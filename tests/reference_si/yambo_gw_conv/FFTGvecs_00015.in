@@ -1,0 +1,74 @@
+em1d
+gw0
+HF_and_locXC
+ppa
+Chimod =  'hartree'
+% XfnQP_Wv
+ 0.00|0.00|0.00|  
+%
+BoseCut = 0.100000 
+GfnQP_Wc_E = 0.000000 eV
+% XfnQP_Wc
+ 0.00|0.00|0.00|  
+%
+% QpntsRXp
+ 1|4|  
+%
+BoseTemp = -1.000000 eV
+ElecTemp = 0.000000 eV
+NGsBlkXp = 1 Ry
+% QPkrange
+ 1|4|1|30|  
+%
+CGrdSpXp = 100.000000 
+NLogCPUs = 0.000000 
+FFTGvecs = 15 Ry
+X_all_q_nCPU_invert = 0.000000 
+StdoHash = 40.000000 
+GDamping = 0.100000 eV
+DBsIOoff =     'none'
+GfnQP_Wv_E = 0.000000 eV
+% GbndRnge
+ 1|30|  
+%
+XfnQP_Wc_E = 0.000000 eV
+% GfnQP_Wv
+ 0.00|0.00|0.00|  
+%
+% EhEngyXp
+ -1.000000|-1.000000| eV 
+%
+dScStep = 0.100000 eV
+Nelectro = 8.000000 
+% BndsRnXp
+ 1|10|  
+%
+DysSolver =        'n'
+XfnQPdb =     'none'
+% GfnQP_Wc
+ 0.00|0.00|0.00|  
+%
+GfnQPdb =     'none'
+EXXRLvcs = 17261.000000 RL
+kind =       'BG'
+XfnQP_Z = (1.000000,0.000000) 
+XfnQP_Wv_E = 0.000000 eV
+% LongDrXp
+ 1.000000|0.000000|0.000000|  
+%
+GfnQP_Z = (1.000000,0.000000) 
+GTermEn = 40.817080 eV
+OccTresh = 0.000010 
+% GfnQP_E
+ 0.000000|1.000000|1.000000|  
+%
+GTermKind =     'none'
+XfnQP_N = 1.000000 
+GfnQP_N = 1.000000 
+PPAPntXp = 27.211380 eV
+% QPerange
+ 1|4|0.0|-1.0|  
+%
+% XfnQP_E
+ 0.000000|1.000000|1.000000|  
+%

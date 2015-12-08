@@ -1,0 +1,85 @@
+em1s
+bse
+optics
+bsk
+bss
+Chimod =  'hartree'
+BEnSteps = 100.000000 
+% XfnQP_Wv
+ 0.00|0.00|0.00|  
+%
+BoseCut = 0.100000 
+KfnQP_Wv_E = 0.000000 eV
+% BSEEhEny
+ -1.000000|-1.000000| eV 
+%
+% BSEBands
+ 1|30|  
+%
+% XfnQP_Wc
+ 0.00|0.00|0.00|  
+%
+DrudeWBS = (0.000000,0.000000) eV
+BSKmod =      'SEX'
+% BEnRange
+ 0.00000|10.00000| eV 
+%
+KfnQP_Z = (1.000000,0.000000) 
+BoseTemp = -1.000000 eV
+KfnQP_N = 1.000000 
+ElecTemp = 0.000000 eV
+KfnQP_Wc_E = 0.000000 eV
+BSENGexx = 17261.000000 RL
+CGrdSpXs = 100.000000 
+% KfnQP_E
+ 0.000000|1.000000|1.000000|  
+%
+BS_nCPU_diago = 0.000000 
+NLogCPUs = 0.000000 
+NGsBlkXs = 5 Ry
+FFTGvecs = 10 Ry
+BSENGBlk = 1.000000 RL
+X_all_q_nCPU_invert = 0.000000 
+StdoHash = 40.000000 
+DBsIOoff =     'none'
+BSHayTrs = -0.020000 
+% KfnQP_Wc
+ 0.00|0.00|0.00|  
+%
+% QpntsRXs
+ 1|4|  
+%
+XfnQP_Wc_E = 0.000000 eV
+% EhEngyXs
+ -1.000000|-1.000000| eV 
+%
+BSEmod =   'causal'
+Nelectro = 8.000000 
+NonPDirs =     'none'
+XfnQPdb =     'none'
+KfnQPdb =     'none'
+BSSmod =        'h'
+% BndsRnXs
+ 1|30|  
+%
+% KfnQP_Wv
+ 0.00|0.00|0.00|  
+%
+XfnQP_Z = (1.000000,0.000000) 
+% BLongDir
+ 1.000000|0.000000|0.000000|  
+%
+DrudeWXs = (0.000000,0.000000) eV
+XfnQP_Wv_E = 0.000000 eV
+% BDmRange
+ 0.10000|0.10000| eV 
+%
+OccTresh = 0.000010 
+XfnQP_N = 1.000000 
+BS_nCPU_invert = 0.000000 
+% XfnQP_E
+ 0.000000|1.000000|1.000000|  
+%
+% LongDrXs
+ 1.000000|0.000000|0.000000|  
+%

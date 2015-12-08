@@ -1,0 +1,6 @@
+*.pyc
+__pycache__
+*.swp
+tests/relax
+tests/scf
+tests/nscf
