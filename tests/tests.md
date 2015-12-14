@@ -8,7 +8,7 @@ To run the basic tests:
 
 This will extract a reference database, generate input files and compare them to a reference.
 
-To run the advances tests:
+To run the advanced tests:
 
     :::bash
     python test_si.py -f

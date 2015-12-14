@@ -36,6 +36,7 @@ class YamboIn():
             # that yambo generates. Yambo should have a command line argument that just generates
             # the input file without calling the editor
             if vim:
+                workdir = os.getcwd()
                 os.chdir(folder)
                 yambo = Popen(args, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
                 yambo.stdin.write(":wq\n")
@@ -45,7 +46,7 @@ class YamboIn():
                     sleep(1.0)
                     n+=1
                 yambo.kill()
-                os.chdir('..')
+                os.chdir(workdir)
             # if yambo is not compiled with vim we don't care
             else:
                 os.system(args)
