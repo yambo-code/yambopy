@@ -19,7 +19,6 @@ Tests:
 Requirements:
 - numpy: http://www.numpy.org/ 
 - matplotlib: http://matplotlib.org/
-- spur (only for the tutorial): https://pypi.python.org/pypi/spur
 
 TODO:
 - Automatic convergence tests (increase a certain variable until the final result changes less than a certain threshold)

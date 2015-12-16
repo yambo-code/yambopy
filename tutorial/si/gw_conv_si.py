@@ -9,10 +9,8 @@ from yambopy.analyse import *
 from pwpy.inputfile import *
 from pwpy.outputxml import *
 import subprocess
-import spur
 
 yambo = 'yambo'
-shell = spur.LocalShell()
 
 if not os.path.isdir('database'):
     os.mkdir('database')
@@ -27,15 +25,13 @@ else:
 #check if the SAVE folder is present
 if not os.path.isdir('database/SAVE'):
     print('preparing yambo database')
-    log_p2y   = shell.run(['p2y'],  cwd="nscf/si.save")
-    print(log_p2y.output,file=open("p2y.log","w"))
-    log_yambo = shell.run(['yambo'],cwd="nscf/si.save")
-    print(log_yambo.output,file=open("yambo.log","w"))
-    shell.run('mv nscf/si.save/SAVE database'.split())
+    os.system('cd nscf/si.save; p2y')
+    os.system('cd nscf/si.save; yambo')
+    os.system('mv nscf/si.save/SAVE database')
 
 if not os.path.isdir('gw_conv'):
     os.mkdir('gw_conv')
-    shell.run('cp -r database/SAVE gw_conv'.split())
+    os.system('cp -r database/SAVE gw_conv')
 
 #create the yambo input file
 y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
@@ -49,8 +45,8 @@ y.arguments.append('WFbuffIO')
 def run(filename):
     """ Function to be called by the optimize function """
     folder = filename.split('.')[0]
-    print(filename, folder)
-    shell.run(('yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder)).split(),cwd='gw_conv')
+    print(filename,folder)
+    os.system('cd gw_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
 
 y.optimize(conv,run=run)
 

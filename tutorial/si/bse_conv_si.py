@@ -9,12 +9,9 @@ from yambopy.analyse import *
 from pwpy.inputfile import *
 from pwpy.outputxml import *
 import subprocess
-import spur
 
 if not os.path.isdir('database'):
     os.mkdir('database')
-
-shell = spur.LocalShell()
 
 #check if the nscf data is present
 if os.path.isdir('nscf/si.save'):
@@ -26,16 +23,14 @@ else:
 #check if the SAVE folder is present
 if not os.path.isdir('database/SAVE'):
     print('preparing yambo database')
-    log_p2y   = shell.run(['p2y'],  cwd="nscf/si.save")
-    print(log_p2y.output,file=open("p2y.log","w"))
-    log_yambo = shell.run(['yambo'],cwd="nscf/si.save")
-    print(log_yambo.output,file=open("yambo.log","w"))
-    shell.run('mv nscf/si.save/SAVE database'.split())
+    os.system('cd nscf/si.save; p2y')
+    os.system('cd nscf/si.save; yambo')
+    os.system('mv nscf/si.save/SAVE database'.split())
 
 #if bse folder is not present, create it
 if not os.path.isdir('bse_conv'):
     os.mkdir('bse_conv')
-    shell.run('cp -r database/SAVE bse_conv'.split())
+    os.system('cp -r database/SAVE bse_conv')
 
 #create the yambo input file
 y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse_conv')
@@ -44,13 +39,12 @@ y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse_conv')
 conv = { 'FFTGvecs': [[10,15,20],'Ry'],
          'NGsBlkXs': [[5,10,20], 'Ry'],
          'BndsRnXs': [[1,10],[1,20],[1,30]] }
-y.arguments.append('WFbuffIO')
 
 def run(filename):
     """ Function to be called by the optimize function """
     folder = filename.split('.')[0]
     print(filename, folder)
-    shell.run(('yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder)).split(),cwd='bse_conv')
+    os.system('cd bse_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
 
 y.optimize(conv,run=run)
 
