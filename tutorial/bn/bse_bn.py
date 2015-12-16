@@ -6,14 +6,11 @@ from __future__ import print_function
 from yambopy.inputfile import *
 from pwpy.inputfile import *
 from pwpy.outputxml import *
-import spur
 
 yambo = "yambo"
 
 if not os.path.isdir('database'):
     os.mkdir('database')
-
-shell = spur.LocalShell()
 
 #check if the nscf cycle is present
 if os.path.isdir('nscf/bn.save'):
@@ -25,24 +22,20 @@ else:
 #check if the SAVE folder is present
 if not os.path.isdir('database/SAVE'):
     print('preparing yambo database')
-    log_p2y   = shell.run(['p2y'],  cwd="nscf/bn.save")
-    print(log_p2y.output,file=open("p2y.log","w"))
-    log_yambo = shell.run(['yambo'],cwd="nscf/bn.save")
-    print(log_yambo.output,file=open("yambo.log","w"))
-    shell.run('mv nscf/bn.save/SAVE database'.split())
+    os.system('cd nscf/bn.save; p2y')
+    os.system('cd nscf/bn.save; yambo')
+    os.system('mv nscf/bn.save/SAVE database')
 
 #check if the SAVE folder is present
 if not os.path.isdir('database_double/SAVE'):
     print('preparing yambo database')
-    log_p2y   = shell.run(['p2y'],  cwd="nscf_double/bn.save")
-    print(log_p2y.output,file=open("p2y.log","w"))
-    log_yambo = shell.run(['yambo'],cwd="nscf_double/bn.save")
-    print(log_yambo.output,file=open("yambo.log","w"))
-    shell.run('mv nscf_double/bn.save/SAVE database_double'.split())
+    os.system('cd nscf_double/bn.save; p2y')
+    os.system('cd nscf_double/bn.save; yambo')
+    os.system('mv nscf_double/bn.save/SAVE database_double')
 
 if not os.path.isdir('bse'):
     os.mkdir('bse')
-    shell.run('cp -r database/SAVE bse'.split())
+    os.system('cp -r database/SAVE bse')
 
 #initialize the double grid
 f = open('bse/ypp.in','w')
@@ -51,7 +44,7 @@ f.write("""kpts_map
 "../database_double"
 %""")
 f.close()
-shell.run('ypp',cwd='bse')
+os.system('cd bse; ypp')
 
 #create the yambo input file
 y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
@@ -65,7 +58,4 @@ y.arguments.append('WRbsWF')
 y.write('bse/yambo_run.in')
 
 print('running yambo')
-log_yambo = shell.run(('%s -F yambo_run.in -J yambo'%yambo).split(),cwd='bse')
-print(log_yambo.output,file=open("yambo_bse.log","w"))
-
-
+os.system('cd bse; %s -F yambo_run.in -J yambo'%yambo)

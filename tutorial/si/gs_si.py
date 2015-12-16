@@ -5,7 +5,6 @@
 from __future__ import print_function
 from pwpy.inputfile import *
 from pwpy.outputxml import *
-import spur
 
 #
 # Create the input files
@@ -75,31 +74,24 @@ def update_positions(pathin,pathout):
     q.write('%s/si.scf'%pathout)
 
 if __name__ == "__main__":
-    nproc = 2
+    nproc = 1
 
     # create input files and folders
     relax()
     scf()
     nscf()
 
-    # run the commands using spur
-    # can be adapted to run remotelly (read the spur documentation)
-    # need to copy the input files and folders to the remote destination
-    shell = spur.LocalShell()
     print("running relax:")
-    log_rel = shell.run(("mpirun -np %d pw.x -inp si.scf"%nproc).split(),cwd="relax")  #relax
-    print(log_rel.output,file=open("relax.log","w"))
+    os.system("cd relax; mpirun -np %d pw.x -inp si.scf > relax.log"%nproc)
     update_positions('relax','scf') 
     print("done!")
 
     print("running scf:")
-    log_scf  = shell.run(("mpirun -np %d pw.x -inp si.scf"%nproc).split(),cwd="scf")  #scf
-    print(log_scf.output,file=open("scf.log","w"))
+    os.system("cd scf; mpirun -np %d pw.x -inp si.scf > scf.log"%nproc)
     print("done!")
 
     print("running nscf:")
-    log_nscf = shell.run("cp -r scf/si.save nscf/".split()) #nscf
-    log_nscf = shell.run(("mpirun -np %d pw.x -inp si.nscf"%nproc).split(),cwd="nscf") #nscf
-    print(log_nscf.output,file=open("nscf.log","w"))
+    os.system("cp -r scf/si.save nscf/")
+    os.system("cd nscf; mpirun -np %d pw.x -inp si.nscf > nscf.log"%nproc)
     print("done!")
 

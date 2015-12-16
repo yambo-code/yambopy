@@ -5,7 +5,6 @@
 from __future__ import print_function, division
 from pwpy.inputfile import *
 from pwpy.outputxml import *
-import spur
 import argparse
 
 #
@@ -95,34 +94,26 @@ if __name__ == "__main__":
     nscf([ 9, 9,1], 'nscf')
     nscf([18,18,1], 'nscf_double')
 
-    # run the commands using spur
-    # can be adapted to run remotelly (read the spur documentation)
-    # need to copy the input files and folders to the remote destination
-    shell = spur.LocalShell()
     if args.relax:
         print("running relax:")
-        log_rel = shell.run(("mpirun -np %d pw.x -inp bn.scf"%args.nthreads).split(),cwd="relax")  #relax
-        print(log_rel.output,file=open("relax.log","w"))
+        os.system("cd relax; mpirun -np %d pw.x -inp bn.scf > relax.log"%args.nthreads)  #relax
         update_positions('relax','scf') 
         print("done!")
 
     if args.scf:
         print("running scf:")
-        log_scf  = shell.run(("mpirun -np %d pw.x -inp bn.scf"%args.nthreads).split(),cwd="scf")  #scf
-        print(log_scf.output,file=open("scf.log","w"))
+        os.system("cd scf; mpirun -np %d pw.x -inp bn.scf > scf.log"%args.nthreads)  #scf
         print("done!")
    
     if args.nscf: 
         print("running nscf:")
-        log_nscf = shell.run("cp -r scf/bn.save nscf/".split()) #nscf
-        log_nscf = shell.run(("mpirun -np %d pw.x -inp bn.nscf"%args.nthreads).split(),cwd="nscf") #nscf
-        print(log_nscf.output,file=open("nscf.log","w"))
+        os.system("cp -r scf/bn.save nscf/") #nscf
+        os.system("cd nscf; mpirun -np %d pw.x -inp bn.nscf > nscf.log"%args.nthreads) #nscf
         print("done!")
 
     if args.nscf_double: 
         print("running nscf_double:")
-        log_nscf = shell.run("cp -r scf/bn.save nscf_double/".split()) #nscf
-        log_nscf = shell.run(("mpirun -np %d pw.x -inp bn.nscf"%args.nthreads).split(),cwd="nscf_double") #nscf
-        print(log_nscf.output,file=open("nscf_double.log","w"))
+        os.system("cp -r scf/bn.save nscf_double/") #nscf
+        os.system("cd nscf_double; mpirun -np %d pw.x -inp bn.nscf > nscf_double.log"%args.nthreads) #nscf
         print("done!")
 
