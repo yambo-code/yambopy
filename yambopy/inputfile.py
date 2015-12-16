@@ -38,6 +38,7 @@ class YamboIn():
             if vim:
                 workdir = os.getcwd()
                 os.chdir(folder)
+                os.system('rm -f yambo.in')
                 yambo = Popen(args, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
                 yambo.stdin.write(":wq\n")
                 yambo.stdin.flush()
