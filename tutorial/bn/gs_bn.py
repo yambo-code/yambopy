@@ -81,10 +81,10 @@ if __name__ == "__main__":
 
     #parse options
     parser = argparse.ArgumentParser(description='Test the yambopy script.')
-    parser.add_argument('-r' ,'--relax',       action="store_true", help='Run structural relaxation')
-    parser.add_argument('-s' ,'--scf',         action="store_true", help='Run self-consistent calculation')
-    parser.add_argument('-n' ,'--nscf',        action="store_true", help='Run non-self consistent calculation')
-    parser.add_argument('-n2','--nscf_double', action="store_true", help='Run non-self consistent calculation for the double grid')
+    parser.add_argument('-r' ,'--relax',       action="store_false", help='Don\'t run structural relaxation')
+    parser.add_argument('-s' ,'--scf',         action="store_false", help='Don\'t run self-consistent calculation')
+    parser.add_argument('-n' ,'--nscf',        action="store_false", help='Don\'t run non-self consistent calculation')
+    parser.add_argument('-n2','--nscf_double', action="store_false", help='Don\'t run non-self consistent calculation for the double grid')
     parser.add_argument('-t' ,'--nthreads',    action="store_true", help='Number of threads', default=2 )
     args = parser.parse_args()
 
