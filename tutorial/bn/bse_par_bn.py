@@ -71,7 +71,7 @@ f.close()
 #calculate first q-point and dipoles
 os.system('cd bse_par; %s -F yambo_q1.in -J 1'%yambo)
 #copy dipoles to save
-os.system('cp bse_par/1/ndb.dipoles* bse_par/SAVE')
+os.system('cp bse_par/1/ndb.dip* bse_par/SAVE')
 
 print('running separate yambo files')
 os.system('parallel :::: jobs.sh')
