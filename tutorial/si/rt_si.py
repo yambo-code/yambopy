@@ -9,7 +9,9 @@ from yambopy.inputfile import *
 from pwpy.inputfile import *
 from pwpy.outputxml import *
 
-yambo = 'yambo_rt'
+yambo    = 'yambo'
+yambo_rt = 'yambo_rt'
+ypp_rt   = 'ypp_rt'
 
 '''
 # check if the database is present
@@ -35,34 +37,39 @@ if not os.path.isdir('database/SAVE'):
 
 def realtime(calculation,name_folder):
   if calculation == 'collision':
-    return YamboIn('%s -r -e c -v c -V all'%yambo)    
+    return YamboIn('%s -r -e -v c -V all'%yambo_rt)    
   if calculation == 'tdsex':
-    return YamboIn('%s -q p -v c -V all'%yambo)    
+    return YamboIn('%s -q p -v c -V all'%yambo_rt)    
   if calculation == 'pumping':
-    return YamboIn('%s -q p -v c -V all'%yambo)    
+    return YamboIn('%s -q p -v c -V all'%yambo_rt)    
   if calculation == 'dissipation':
-    return YamboIn('%s -d -p c -g n -V all'%yambo)    
+    return YamboIn('%s -p c -g n -V all'%yambo_rt)    
 
 calculation = 'collision'
-
-# Collision
+#calculation = 'tdsex'
+#calculation = 'pumping'
+#calculation = 'diss-elph'
+#calculation = 'diss-elel'
+#calculation = 'diss-both'
 
 y = realtime('collision','.')
+
+# System Common variables
 y['FFTGvecs']  = [15,'Ha']
 y['EXXRLvcs']  = [15,'Ha']
+y['SCBands']   = [[25,28],'']
+
+# Collision
 y['NGsBlkXp']  = [1200,'mHa']
-y['SCBands' ]  = [[25,28],'']
 y['BndsRnXs' ] = [[1,70],'']
 y['CUTGeo']    = 'box z'
 y['CUTBox']    = [[0,0,38], '']
 y.write('03_COLLISION')
+os.system('rm yambo.in')
 
 # Time-dependent
- # System
 y = realtime('tdsex','.')
-y['FFTGvecs']  = [15,'Ha']
-y['EXXRLvcs']  = [15,'Ha']
-y['SCBands']   = [[25,28],'']
+# System
 y['GfnQP_Wv']  = [ [0.04,0.00,0.00],'' ]
 y['GfnQP_Wc']  = [ [0.04,0.00,0.00],'' ]
 y['GfnQPdb']   = 'none' 
@@ -77,6 +84,11 @@ y['Probe_kind'] = "DELTA"
 y['Probe_Damp'] = [0,'fs']
 y['Probe_Freq'] = [[0.0,0.0],'eV']
 y.write('04_TDSEX')
+os.system('rm yambo.in')
+
+
+exit()
+
 
 if calculation == 'collision':
   print('running yambo-collision')

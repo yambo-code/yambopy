@@ -21,7 +21,8 @@ class YamboIn():
     _runexp     = '([a-zA-Z0-9_]+)\s+' #runlevels
     # list of available runlevels to be stored in the arguments array
     _runlevels  = ['rim_cut','em1s','bse','optics','bsk','bss',
-                   'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life'] 
+                   'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life',
+                   'collisions','negf','el_ph_scatt','el_el_scatt'] 
 
     def __init__(self,args='',folder='.',vim=True):
         self.folder = folder
