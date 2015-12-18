@@ -4,10 +4,10 @@
 import subprocess
 import os
 from netCDF4 import Dataset
-files = subprocess.check_output('ls */ndb.em1s_fragment_1',shell=True).splitlines()
+files = subprocess.check_output('ls */ndb.em1?_*',shell=True).splitlines()
 
 os.system('mkdir yambo')
-os.system('cp 1/ndb.em1s yambo')
+os.system('cp 1/ndb.em1* yambo')
 for filename in files:
     q,fname = filename.split('/')
     print q,fname[:-1]+q
