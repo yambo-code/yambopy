@@ -64,6 +64,11 @@ class YamboIn():
         """
         self.variables[key] = value
 
+    def __delitem__(self,key):
+        """ remove a keyword from teh dicitonary 
+        """
+        del self.variables[key]    
+
     def read_file(self,filename='yambo.in'):
         """ Read the keywords from a file
         """
