@@ -123,6 +123,8 @@ class YamboIn():
             array = [val.strip() for val in array.split('|')[:-1]]
             self[name] = [array,unit]
 
+        return {"arguments": self.arguments, "variables": self.variables}
+
     def optimize(self,conv,variables=('all',),run=lambda x: None):
         """ Function to to make multiple runs of yambo to converge calculation parameters
             Input:

@@ -4,6 +4,8 @@
 #
 from __future__ import print_function
 from yambopy.inputfile import *
+from yambopy.outputfile import *
+from yambopy.analyse import *
 from pwpy.inputfile import *
 from pwpy.outputxml import *
 import argparse
@@ -67,3 +69,12 @@ y.write('bse/yambo_run.in')
 
 print('running yambo')
 os.system('cd bse; %s -F yambo_run.in -J yambo'%yambo)
+
+#pack in a json file
+y = YamboOut('bse')
+y.pack()
+
+#analyse the data
+y = YamboAnalyser('bse')
+y.plot_bse('eps')
+

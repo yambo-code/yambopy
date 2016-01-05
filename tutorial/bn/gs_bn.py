@@ -91,8 +91,8 @@ if __name__ == "__main__":
     # create input files and folders
     relax()
     scf()
-    nscf([6,6,1], 'nscf')
-    nscf([12,12,1], 'nscf_double')
+    nscf([12,12,1], 'nscf')
+    nscf([24,24,1], 'nscf_double')
 
     if args.relax:
         print("running relax:")
