@@ -7,6 +7,12 @@ from __future__ import print_function
 from yambopy.inputfile import *
 from pwpy.inputfile import *
 from pwpy.outputxml import *
+import argparse
+
+#parse options
+parser = argparse.ArgumentParser(description='Test the yambopy script.')
+parser.add_argument('-dg' ,'--doublegrid', action="store_true", help='Use double grid')
+args = parser.parse_args()
 
 yambo = "yambo"
 
@@ -39,7 +45,8 @@ if not os.path.isdir('bse_par'):
     os.system('cp -r database/SAVE bse_par')
 
 #initialize the double grid
-if not os.path.isfile('bse_par/SAVE/ndb.Double_Grid'):
+if args.doublegrid:
+    print("creating double grid")
     f = open('bse_par/ypp.in','w')
     f.write("""kpts_map
     %DbGd_DB1_paths
@@ -49,9 +56,9 @@ if not os.path.isfile('bse_par/SAVE/ndb.Double_Grid'):
     os.system('cd bse_par; ypp')
 
 #create the yambo input file
-y = YamboIn('yambo -b -o b -V all',folder='bse_par')
+y = YamboIn('yambo -r -b -o b -V all',folder='bse_par')
 
-y['FFTGvecs'] = [15,'Ry']
+y['FFTGvecs'] = [30,'Ry']
 y['NGsBlkXs'] = [1,'Ry']
 y['BndsRnXs'] = [[1,30],'']
 y['BSEBands'] = [[3,6],'']
@@ -81,11 +88,13 @@ os.system('cp merge_eps.py bse_par')
 os.system('cd bse_par; python merge_eps.py')
 
 os.system('rm bse_par/yambo.in')
-y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse_par')
-y['FFTGvecs'] = [15,'Ry']
+y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder='bse_par')
+y['FFTGvecs'] = [30,'Ry']
 y['NGsBlkXs'] = [1,'Ry']
 y['BndsRnXs'] = [[1,30],'']
 y['BSEBands'] = [[3,6],'']
+y['BEnSteps'] = [500,'']
+y['BEnRange'] = [[1.0,6.0],'eV']
 y.arguments.append('WRbsWF')
 y.write('bse_par/yambo_run.in')
 os.system('cd bse_par; %s -F yambo_run.in -J yambo'%yambo)
