@@ -1,0 +1,15 @@
+relax
+scf
+nscf
+database
+nscf_double
+database_double
+gw
+gw_conv
+gw_cutoff
+gw_par
+bse
+bse_conv
+bse_par
+bse_par_bug
+gw_bse

@@ -7,6 +7,7 @@
 from subprocess import Popen, PIPE
 from yambopy.inputfile import YamboIn
 from copy import *
+from netCDF4 import Dataset
 import os
 import json
 import numpy as np
@@ -26,7 +27,7 @@ class YamboOut():
         Input:
         The relative path of the folder where yambo dumped its input files
     """
-    _lock = "lock" #name of the lockfile 
+    _lock = "lock" #name of the lockfile
 
     def __init__(self,folder):
         self.folder = folder
@@ -35,19 +36,32 @@ class YamboOut():
         if os.path.isdir(folder):
             outdir = os.listdir(folder)
         else:
-            print "Invalid folder: %s"%folder 
+            print "Invalid folder: %s"%folder
             exit(1)
         if os.path.isdir(folder+"/LOG"):
             logdir = os.listdir(folder+"/LOG")
         else:
-            logdir = outdir 
+            logdir = outdir
 
-        self.output = ["%s/%s"%(folder,f) for f in outdir if f[:2] == 'o-']
+        self.output = ["%s/%s"%(folder,f) for f in outdir if f[:2] == 'o-' and ('bse' in f or 'qp' in f)]
         self.run    = ["%s/%s"%(folder,f) for f in outdir if f[:2] == 'r-']
         self.logs   = ["%s/LOG/%s"%(folder,f) for f in logdir]
-        self.data      = None
-        self.runtime   = None
-        self.inputfile = None
+        self.get_runtime()
+        self.get_data()
+        self.get_inputfile()
+        self.get_cell()
+
+    def get_cell(self):
+        """ Get information about the unit cell (lattice vectors, atom types and positions) from the SAVE folder
+        """
+        path = '%s/SAVE/ns.db1'%self.folder
+        if os.path.isfile(path):
+            #read database
+            self.nc_db    = Dataset(path)
+            self.lat           = self.nc_db.variables['LATTICE_VECTORS'][:].T
+            self.apos          = self.nc_db.variables['ATOM_POS'][:,0,:]
+            self.atomic_number = self.nc_db.variables['atomic_numbers'][:].T
+
 
     def get_data(self):
         """ Search for a tag in the output files and get the data
@@ -123,16 +137,16 @@ class YamboOut():
     def pack(self,filename=None):
         """ Pack up all the data in the structure in a json file
         """
-        if not self.runtime  : self.get_runtime()
-        if not self.data     : self.get_data()
-        if not self.inputfile: self.get_inputfile()
         if not filename: filename = self.folder
 
         f = open(filename+'.json','w')
         y = YamboIn()
         json.dump({"data"     : dict(zip(self.data.keys(),[d.tolist() for d in self.data.values()])),
                    "runtime"  : self.runtime,
-                   "inputfile": y.read_string(self.inputfile)},
+                   "inputfile": y.read_string(self.inputfile),
+                   "lattice":  self.lat.tolist(),
+                   "atompos":  self.apos.tolist(),
+                   "atomtype": self.atomic_number.tolist()},
                    f,indent=5)
         f.close()
 
@@ -144,6 +158,8 @@ class YamboOut():
         s+= ("%s\n"*len(self.run)%tuple(self.run))
         s+= "\noutput:\n"
         s+= ("%s\n"*len(self.output)%tuple(self.output))
+        s+= "\nlattice:\n"
+        s+= "\n".join([("%12.8lf "*3)%tuple(vec) for vec in self.lat])+"\n"
+        s+= "\natom positions:\n"
+        s+= "\n".join(["%3d "%self.atomic_number[n]+("%12.8lf "*3)%tuple(vec) for n,vec in enumerate(self.apos)])+"\n"
         return s
-
-

@@ -21,7 +21,7 @@ if not os.path.isdir('database'):
     os.mkdir('database')
 
 #check if the nscf cycle is present
-if os.path.isdir('nscf/bn.save'):
+if os.path.isdir('nscf/mos2.save'):
     print('nscf calculation found!')
 else:
     print('nscf calculation not found!')
@@ -30,16 +30,16 @@ else:
 #check if the SAVE folder is present
 if not os.path.isdir('database/SAVE'):
     print('preparing yambo database')
-    os.system('cd nscf/bn.save; p2y > p2y.log')
-    os.system('cd nscf/bn.save; yambo > yambo.log')
-    os.system('mv nscf/bn.save/SAVE database')
+    os.system('cd nscf/mos2.save; p2y > p2y.log')
+    os.system('cd nscf/mos2.save; yambo > yambo.log')
+    os.system('mv nscf/mos2.save/SAVE database')
 
 #check if the SAVE folder is present
 if not os.path.isdir('database_double/SAVE'):
     print('preparing yambo database')
-    os.system('cd nscf_double/bn.save; p2y > p2y.log')
-    os.system('cd nscf_double/bn.save; yambo > yambo.log')
-    os.system('mv nscf_double/bn.save/SAVE database_double')
+    os.system('cd nscf_double/mos2.save; p2y > p2y.log')
+    os.system('cd nscf_double/mos2.save; yambo > yambo.log')
+    os.system('mv nscf_double/mos2.save/SAVE database_double')
 
 if not os.path.isdir('bse'):
     os.mkdir('bse')
@@ -62,9 +62,9 @@ y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
 y['FFTGvecs'] = [30,'Ry']
 y['NGsBlkXs'] = [1,'Ry']
 y['BndsRnXs'] = [[1,30],'']
-y['BSEBands'] = [[3,6],'']
+y['BSEBands'] = [[8,11],'']
 y['BEnSteps'] = [500,'']
-y['BEnRange'] = [[1.0,6.0],'eV']
+y['BEnRange'] = [[0.0,6.0],'eV']
 
 y.arguments.append('WFbuffIO')
 y.arguments.append('WRbsWF')

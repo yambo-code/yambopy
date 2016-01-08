@@ -15,7 +15,7 @@ class YamboIn():
     _variaexp   = '([A-Za-z\_0-9]+(?:\_[A-Za-z]+)?)' #variables names 
     _numexp     = '([+-]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)' #number
     _spacexp    = '(?:\s+)?' #space
-    _stringexp  = '"([a-zA-Z_]+)"' #string
+    _stringexp  = '"(.+)"' #string
     _arrayexp   = '%(?:\s+)?'+_variaexp+'\s+(?:\#.+)?((?:(?:\s|\.|[+-]?\d)+?\|)+)\s+([a-zA-Z]+)?' #arrays
     _complexexp = '\(\s+?'+_numexp+'\s+?,\s+?'+_numexp+'\s+?\)\s+([a-zA-Z]+)?' #complex numbers
     _runexp     = '([a-zA-Z0-9_]+)\s+' #runlevels
@@ -122,6 +122,8 @@ class YamboIn():
             name, array, unit = var
             array = [val.strip() for val in array.split('|')[:-1]]
             self[name] = [array,unit]
+
+        return {"arguments": self.arguments, "variables": self.variables}
 
     def optimize(self,conv,variables=('all',),run=lambda x: None):
         """ Function to to make multiple runs of yambo to converge calculation parameters

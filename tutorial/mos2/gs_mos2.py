@@ -1,6 +1,6 @@
 #
 # Author: Henrique Pereira Coutada Miranda
-# Run a Silicon groundstate calculation using Quantum Espresso
+# Run a MoS2 groundstate calculation using Quantum Espresso
 #
 from __future__ import print_function, division
 from pwpy.inputfile import *
@@ -11,21 +11,24 @@ import argparse
 # Create the input files
 #
 def get_inputfile():
-    """ Define a Quantum espresso input file for boron nitride
+    """ Define a Quantum espresso input file for MoS2
     """ 
     qe = PwIn()
-    qe.atoms = [['N',[0.0,0.0,0.5]],
-                ['B',[1/3,2/3,0.5]]]
-    qe.atypes = {'B': [10.811, "B.pbe-mt_fhi.UPF"],
-                 'N': [14.0067,"N.pbe-mt_fhi.UPF"]}
+    a = 5.83803209416
+    c = 20
+    qe.atoms = [['Mo',[2/3,1/3,0.0]],
+                [ 'S',[1/3,2/3, 2.92781466/c]],
+                [ 'S',[1/3,2/3,-2.92781466/c]]]
+    qe.atypes = {'Mo': [10.811, "Mo.pz-mt_fhi.UPF"],
+                 'S':  [14.0067, "S.pz-mt_fhi.UPF"]}
 
-    qe.control['prefix'] = "'bn'"
+    qe.control['prefix'] = "'mos2'"
     qe.control['wf_collect'] = '.true.'
-    qe.system['celldm(1)'] = 4.7
-    qe.system['celldm(3)'] = 12/qe.system['celldm(1)']
+    qe.system['celldm(1)'] = a
+    qe.system['celldm(3)'] = c/qe.system['celldm(1)']
     qe.system['ecutwfc'] = 60
     qe.system['occupations'] = "'fixed'"
-    qe.system['nat'] = 2
+    qe.system['nat'] = 3
     qe.system['ntyp'] = 2
     qe.system['ibrav'] = 4
     qe.kpoints = [12, 12, 1]
@@ -41,7 +44,7 @@ def relax():
     qe.ions['ion_dynamics']  = "'bfgs'"
     qe.cell['cell_dynamics']  = "'bfgs'"
     qe.cell['cell_dofree']  = "'2Dxy'"
-    qe.write('relax/bn.scf')
+    qe.write('relax/mos2.scf')
 
 #scf
 def scf():
@@ -49,7 +52,7 @@ def scf():
         os.mkdir('scf')
     qe = get_inputfile()
     qe.control['calculation'] = "'scf'"
-    qe.write('scf/bn.scf')
+    qe.write('scf/mos2.scf')
  
 #nscf
 def nscf(kpoints,folder):
@@ -62,20 +65,20 @@ def nscf(kpoints,folder):
     qe.system['nbnd'] = 30
     qe.system['force_symmorphic'] = ".true."
     qe.kpoints = kpoints
-    qe.write('%s/bn.nscf'%folder)
+    qe.write('%s/mos2.nscf'%folder)
 
 def update_positions(pathin,pathout):
     """ update the positions of the atoms in the scf file using the output of the relaxation loop
     """
-    e = EspressoXML('bn',path=pathin)
+    e = EspressoXML('mos2',path=pathin)
     pos = e.get_scaled_positions()
 
-    q = PwIn('%s/bn.scf'%pathin)
+    q = PwIn('%s/mos2.scf'%pathin)
     print("old celldm(1)", q.system['celldm(1)'])
     q.system['celldm(1)'] = e.cell[0][0]
     print("new celldm(1)", q.system['celldm(1)'])
     q.atoms = zip([a[0] for a in q.atoms],pos)
-    q.write('%s/bn.scf'%pathout)
+    q.write('%s/mos2.scf'%pathout)
 
 if __name__ == "__main__":
 
@@ -96,24 +99,24 @@ if __name__ == "__main__":
 
     if args.relax:
         print("running relax:")
-        os.system("cd relax; mpirun -np %d pw.x -inp bn.scf > relax.log"%args.nthreads)  #relax
+        os.system("cd relax; mpirun -np %d pw.x -inp mos2.scf > relax.log"%args.nthreads)  #relax
         update_positions('relax','scf') 
         print("done!")
 
     if args.scf:
         print("running scf:")
-        os.system("cd scf; mpirun -np %d pw.x -inp bn.scf > scf.log"%args.nthreads)  #scf
+        os.system("cd scf; mpirun -np %d pw.x -inp mos2.scf > scf.log"%args.nthreads)  #scf
         print("done!")
    
     if args.nscf: 
         print("running nscf:")
-        os.system("cp -r scf/bn.save nscf/") #nscf
-        os.system("cd nscf; mpirun -np %d pw.x -inp bn.nscf > nscf.log"%args.nthreads) #nscf
+        os.system("cp -r scf/mos2.save nscf/") #nscf
+        os.system("cd nscf; mpirun -np %d pw.x -inp mos2.nscf > nscf.log"%args.nthreads) #nscf
         print("done!")
 
     if args.nscf_double: 
         print("running nscf_double:")
-        os.system("cp -r scf/bn.save nscf_double/") #nscf
-        os.system("cd nscf_double; mpirun -np %d pw.x -inp bn.nscf > nscf_double.log"%args.nthreads) #nscf
+        os.system("cp -r scf/mos2.save nscf_double/") #nscf
+        os.system("cd nscf_double; mpirun -np %d pw.x -inp mos2.nscf > nscf_double.log"%args.nthreads) #nscf
         print("done!")
 
