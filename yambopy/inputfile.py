@@ -22,9 +22,9 @@ class YamboIn():
     # list of available runlevels to be stored in the arguments array
     _runlevels  = ['rim_cut','em1s','bse','optics','bsk','bss',
                    'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life',
-                   'collisions','negf','el_ph_scatt','el_el_scatt'] 
+                   'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsymms'] 
 
-    def __init__(self,args='',folder='.',vim=True):
+    def __init__(self,args='',folder='.',vim=True,filename='yambo.in'):
         self.folder = folder
 
         #the type of the variables is determined from the type of variable in this dictionary
@@ -39,12 +39,12 @@ class YamboIn():
             if vim:
                 workdir = os.getcwd()
                 os.chdir(folder)
-                os.system('rm -f yambo.in')
+                os.system('rm -f %s'%filename)
                 yambo = Popen(args, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
                 yambo.stdin.write(":wq\n")
                 yambo.stdin.flush()
                 n = 0
-                while not os.path.isfile('yambo.in') and n < 6:
+                while not os.path.isfile(filename) and n < 6:
                     sleep(1.0)
                     n+=1
                 yambo.kill()
