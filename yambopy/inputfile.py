@@ -22,7 +22,7 @@ class YamboIn():
     # list of available runlevels to be stored in the arguments array
     _runlevels  = ['rim_cut','em1s','bse','optics','bsk','bss',
                    'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life',
-                   'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsymms'] 
+                   'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsyms'] 
 
     def __init__(self,args='',folder='.',vim=True,filename='yambo.in'):
         self.folder = folder
@@ -52,7 +52,7 @@ class YamboIn():
             # if yambo is not compiled with vim we don't care
             else:
                 os.system(args)
-            self.read_file(filename="%s/yambo.in"%folder)
+            self.read_file(filename="%s/%s"%(folder,filename))
 
     def __getitem__(self,key):
         """ Get the value of a keyword in the input file
