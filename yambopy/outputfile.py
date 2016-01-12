@@ -54,14 +54,17 @@ class YamboOut():
     def get_cell(self):
         """ Get information about the unit cell (lattice vectors, atom types and positions) from the SAVE folder
         """
-        path = '%s/SAVE/ns.db1'%self.folder
+        path = 'SAVE/ns.db1'
         if os.path.isfile(path):
             #read database
             self.nc_db    = Dataset(path)
             self.lat           = self.nc_db.variables['LATTICE_VECTORS'][:].T
             self.apos          = self.nc_db.variables['ATOM_POS'][:,0,:]
             self.atomic_number = self.nc_db.variables['atomic_numbers'][:].T
-
+        else:
+            self.lat = None
+            self.apos = None
+            self.atomic_number = None
 
     def get_data(self):
         """ Search for a tag in the output files and get the data
