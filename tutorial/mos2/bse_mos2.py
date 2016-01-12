@@ -60,8 +60,8 @@ if args.doublegrid:
 y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
 
 y['FFTGvecs'] = [30,'Ry']
-y['NGsBlkXs'] = [1,'Ry']
-y['BndsRnXs'] = [[1,30],'']
+y['NGsBlkXs'] = [2,'Ry']
+y['BndsRnXs'] = [[1,60],'']
 y['BSEBands'] = [[8,11],'']
 y['BEnSteps'] = [500,'']
 y['BEnRange'] = [[0.0,6.0],'eV']
