@@ -62,9 +62,9 @@ class YamboOut():
             self.apos          = self.nc_db.variables['ATOM_POS'][:,0,:]
             self.atomic_number = self.nc_db.variables['atomic_numbers'][:].T
         else:
-            self.lat = None
-            self.apos = None
-            self.atomic_number = None
+            self.lat = np.array([])
+            self.apos = np.array([])
+            self.atomic_number = np.array([])
 
     def get_data(self):
         """ Search for a tag in the output files and get the data

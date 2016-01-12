@@ -125,12 +125,12 @@ class TestYamboIn_GW_Si(unittest.TestCase):
     def test_gw_input(self):
         """ Test if we can initialize the YamboIn class for a typical GW input file
         """
-        y = YamboIn('yambo -d -p p -g n -V all',folder='gw')
+        y = YamboIn('yambo -p p -g n -V all',folder='gw')
  
     def test_gw_convergence(self):
         """ Test if we can generate multiple input files changing some variables
         """
-        y = YamboIn('yambo -d -p p -g n -V all',folder='gw_conv')
+        y = YamboIn('yambo -p p -g n -V all',folder='gw_conv')
         conv = { 'FFTGvecs': [[10,15,20],'Ry'],
                  'NGsBlkXp': [[5,10,20], 'Ry'],
                  'BndsRnXp': [[1,10],[1,20],[1,30]] }
@@ -141,7 +141,7 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
     def test_yambo_gw_si(self):
         """ Run GW calculation with yambo
         """
-        y = YamboIn('yambo -d -p p -g n -V all',folder='gw_conv')
+        y = YamboIn('yambo -p p -g n -V all',folder='gw_conv')
         conv = { 'FFTGvecs': [[10,15,20],'Ry'],
                  'NGsBlkXp': [[1,2,5], 'Ry'],
                  'BndsRnXp': [[1,10],[1,20],[1,30]] }
