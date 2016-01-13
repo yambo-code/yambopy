@@ -22,7 +22,9 @@ class YamboIn():
     # list of available runlevels to be stored in the arguments array
     _runlevels  = ['rim_cut','em1s','bse','optics','bsk','bss',
                    'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life',
-                   'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsyms'] 
+                   'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsyms',
+                   'QPDBs', 'QPDB_merge','RealTime','RT_X','RToccDos','RToccBnd','RToccEner'
+                   'RToccTime','RTlifeBnd','amplitude'] 
 
     def __init__(self,args='',folder='.',vim=True,filename='yambo.in'):
         self.folder = folder
