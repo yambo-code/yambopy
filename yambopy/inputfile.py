@@ -24,7 +24,7 @@ class YamboIn():
                    'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life',
                    'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsyms',
                    'QPDBs', 'QPDB_merge','RealTime','RT_X','RToccDos','RToccBnd','RToccEner'
-                   'RToccTime','RTlifeBnd','amplitude'] 
+                   'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid'] 
 
     def __init__(self,args='',folder='.',vim=True,filename='yambo.in'):
         self.folder = folder
@@ -64,10 +64,15 @@ class YamboIn():
     def __setitem__(self,key,value):
         """ Set the value of a keyword in the input file
         """
+        #if the units are not specified, add them
+        if type(value) == list and str not in map(type,value):
+            value = [value,'']
+        if type(value) in [int,float,complex]:
+            value = [value,'']
         self.variables[key] = value
 
     def __delitem__(self,key):
-        """ remove a keyword from teh dicitonary 
+        """ remove a keyword from the dicitonary 
         """
         del self.variables[key]    
 
