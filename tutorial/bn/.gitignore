@@ -4,6 +4,7 @@ nscf
 database
 nscf_double
 database_double
+phonon
 gw
 gw_conv
 gw_cutoff

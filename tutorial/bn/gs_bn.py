@@ -64,6 +64,26 @@ def nscf(kpoints,folder):
     qe.kpoints = kpoints
     qe.write('%s/bn.nscf'%folder)
 
+def phonon(kpoints,qpoints,folder):
+    if not os.path.isdir(folder):
+        os.mkdir(folder)
+    ph = PhIn()
+    ph['nq1'],ph['nq2'],ph['nq3'] = qpoints
+    ph['tr2_ph'] = 1e-12
+    ph['prefix'] = "'bn'"
+    ph['epsil'] = ".false."
+    ph['trans'] = ".true."
+    ph['fildyn'] = "'bn.dyn'"
+    ph['fildrho'] = "'bn.drho'"
+    ph['ldisp'] = ".true."
+    ph.write('%s/bn.ph'%folder)
+
+    md = DynmatIn()
+    md['asr'] = "'simple'"
+    md['fildyn'] = "'bn.dyn1'"
+    md['filout'] = "'bn.modes'"
+    md.write('%s/bn.dynmat'%folder)
+
 def update_positions(pathin,pathout):
     """ update the positions of the atoms in the scf file using the output of the relaxation loop
     """
@@ -85,6 +105,7 @@ if __name__ == "__main__":
     parser.add_argument('-s' ,'--scf',         action="store_false", help='Don\'t run self-consistent calculation')
     parser.add_argument('-n' ,'--nscf',        action="store_false", help='Don\'t run non-self consistent calculation')
     parser.add_argument('-n2','--nscf_double', action="store_false", help='Don\'t run non-self consistent calculation for the double grid')
+    parser.add_argument('-p' ,'--phonon',      action="store_false", help='Don\'t run phonon calculation')
     parser.add_argument('-t' ,'--nthreads',    action="store_true", help='Number of threads', default=2 )
     args = parser.parse_args()
 
@@ -93,6 +114,7 @@ if __name__ == "__main__":
     scf()
     nscf([12,12,1], 'nscf')
     nscf([24,24,1], 'nscf_double')
+    phonon([12,12,1],[1,1,1], 'phonon')
 
     if args.relax:
         print("running relax:")
@@ -115,5 +137,12 @@ if __name__ == "__main__":
         print("running nscf_double:")
         os.system("cp -r scf/bn.save nscf_double/") #nscf
         os.system("cd nscf_double; mpirun -np %d pw.x -inp bn.nscf > nscf_double.log"%args.nthreads) #nscf
+        print("done!")
+    
+    if args.phonon:
+        print("running phonon:")
+        os.system("cp -r scf/bn.save phonon/")
+        os.system("cd phonon; mpirun -np %d ph.x -inp bn.ph > phonon.log"%args.nthreads) #phonon
+        os.system("cd phonon; dynmat.x -inp bn.dynmat > dynmat.log") #matdyn
         print("done!")
 
