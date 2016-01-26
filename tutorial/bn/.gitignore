@@ -4,6 +4,7 @@ nscf
 database
 nscf_double
 database_double
+phonon
 gw
 gw_conv
 gw_cutoff
@@ -14,3 +15,4 @@ bse_par
 bse_par_bug
 gw_bse
 jobs.sh
+bse.json

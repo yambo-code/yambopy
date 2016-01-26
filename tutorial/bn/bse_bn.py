@@ -61,9 +61,9 @@ y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
 
 y['FFTGvecs'] = [30,'Ry']
 y['NGsBlkXs'] = [1,'Ry']
-y['BndsRnXs'] = [[1,30],'']
-y['BSEBands'] = [[3,6],'']
-y['BEnSteps'] = [500,'']
+y['BndsRnXs'] = [1,30]
+y['BSEBands'] = [3,6]
+y['BEnSteps'] = 500
 y['BEnRange'] = [[1.0,6.0],'eV']
 
 y.arguments.append('WFbuffIO')
