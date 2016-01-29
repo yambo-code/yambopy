@@ -43,13 +43,8 @@ class YamboIn():
                 os.chdir(folder)
                 os.system('rm -f %s'%filename)
                 yambo = Popen(args, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
-                yambo.stdin.write(":wq\n")
-                yambo.stdin.flush()
-                n = 0
-                while not os.path.isfile(filename) and n < 6:
-                    sleep(1.0)
-                    n+=1
-                yambo.kill()
+                yambo.stdin.write(":q!\n")
+                yambo.wait()
                 os.chdir(workdir)
             # if yambo is not compiled with vim we don't care
             else:
