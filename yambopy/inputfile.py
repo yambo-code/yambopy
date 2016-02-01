@@ -51,19 +51,15 @@ class YamboIn():
 
         # if we initalize the class with arguments we call yambo to generate the input file
         if args != '':
+            workdir = os.getcwd()
+            os.chdir(folder)
+            os.system('rm -f %s'%filename)
+            yambo = Popen(args, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
             # if yambo calls vim we have to close it. We just want the generic input file
             # that yambo generates.
-            if vim:
-                workdir = os.getcwd()
-                os.chdir(folder)
-                os.system('rm -f %s'%filename)
-                yambo = Popen(args, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
-                yambo.stdin.write(":q!\n")
-                yambo.wait()
-                os.chdir(workdir)
-            # if yambo is not compiled with vim we don't care
-            else:
-                os.system(args)
+            if vim: yambo.stdin.write(":q!\n")
+            yambo.wait()
+            os.chdir(workdir)
             self.read_file(filename="%s/%s"%(folder,filename))
 
     def __getitem__(self,key):
