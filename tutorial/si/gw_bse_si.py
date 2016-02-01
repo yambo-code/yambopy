@@ -3,9 +3,8 @@
 # Run a GW+BSE calculation using Yambo
 #
 from __future__ import print_function
-from yambopy.inputfile import *
-from pwpy.inputfile import *
-from pwpy.outputxml import *
+from yambopy import *
+from qepy import *
 
 yambo =  'yambo'
 
@@ -17,7 +16,7 @@ if os.path.isdir('nscf/si.save'):
     print('nscf calculation found!')
 else:
     print('nscf calculation not found!')
-    exit() 
+    exit()
 
 #check if the SAVE folder is present
 if not os.path.isdir('database/SAVE'):

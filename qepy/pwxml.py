@@ -7,7 +7,7 @@
 import xml.etree.ElementTree as ET
 from pwpy.auxiliary import car_red
 
-class EspressoXML():
+class PwXML():
     """ Class to read data from a Quantum espresso XML file
     """
     _datafile =  'data-file.xml'

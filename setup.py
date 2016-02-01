@@ -1,6 +1,6 @@
 from distutils.core import setup
 
-packages_yambopy = ['yambopy','pwpy']
+packages_yambopy = ['yambopy','qepy']
 
 if __name__ == '__main__':
     setup(name='yambopy',

@@ -8,11 +8,8 @@ import os
 import argparse
 import subprocess
 import filecmp
-from yambopy.inputfile import *
-from yambopy.outputfile import *
-from yambopy.analyse import *
-from pwpy.inputfile import *
-from pwpy.outputxml import *
+from yambopy import *
+from qepy import *
 
 class TestPW_Si(unittest.TestCase):
     """ This class creates the input files for Si and compares them to reference files

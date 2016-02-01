@@ -4,3 +4,6 @@
 # This file is part of yambopy
 #
 #
+from yambopy.inputfile import *
+from yambopy.outputfile import *
+from yambopy.analyse import *
