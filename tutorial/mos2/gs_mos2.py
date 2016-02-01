@@ -3,8 +3,7 @@
 # Run a MoS2 groundstate calculation using Quantum Espresso
 #
 from __future__ import print_function, division
-from pwpy.inputfile import *
-from pwpy.outputxml import *
+from qepy import *
 import argparse
 
 #
@@ -12,7 +11,7 @@ import argparse
 #
 def get_inputfile():
     """ Define a Quantum espresso input file for MoS2
-    """ 
+    """
     qe = PwIn()
     a = 5.83803209416
     c = 20
@@ -53,7 +52,7 @@ def scf():
     qe = get_inputfile()
     qe.control['calculation'] = "'scf'"
     qe.write('scf/mos2.scf')
- 
+
 #nscf
 def nscf(kpoints,folder):
     if not os.path.isdir(folder):
@@ -100,23 +99,22 @@ if __name__ == "__main__":
     if args.relax:
         print("running relax:")
         os.system("cd relax; mpirun -np %d pw.x -inp mos2.scf > relax.log"%args.nthreads)  #relax
-        update_positions('relax','scf') 
+        update_positions('relax','scf')
         print("done!")
 
     if args.scf:
         print("running scf:")
         os.system("cd scf; mpirun -np %d pw.x -inp mos2.scf > scf.log"%args.nthreads)  #scf
         print("done!")
-   
-    if args.nscf: 
+
+    if args.nscf:
         print("running nscf:")
         os.system("cp -r scf/mos2.save nscf/") #nscf
         os.system("cd nscf; mpirun -np %d pw.x -inp mos2.nscf > nscf.log"%args.nthreads) #nscf
         print("done!")
 
-    if args.nscf_double: 
+    if args.nscf_double:
         print("running nscf_double:")
         os.system("cp -r scf/mos2.save nscf_double/") #nscf
         os.system("cd nscf_double; mpirun -np %d pw.x -inp mos2.nscf > nscf_double.log"%args.nthreads) #nscf
         print("done!")
-

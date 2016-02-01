@@ -43,15 +43,26 @@ Silicon GW+BSE
 Boron Nitride BSE Double Grid
 =============================
 
-0. Calculate the Ground state properties of bn using Quantum espresso (gs_bn.py)
+0. Calculate the Ground state proprieties of bn using Quantum espresso (gs_bn.py)
     - Relax unit cell
     - Self-consistent cycle
     - Non self-consistent cycle
 
-1. Generate two yambo databases 9x9 and 18x18
+1. Generate two yambo databases 12x12 and 24x24
     - Run p2y
     - Run Yambo
 
-5. BSE calculation for bn using the double grid technique (bse_conv_bn.py)
+2. BSE calculation for bn using the double grid technique (bse_conv_bn.py)
+    - Set the variables for a yambo input file using python
+    - Run the calculation
+
+MoS2
+====
+0. Calculate the ground state properties of MoS2 using Quantum espresso (gs_mos2.py)
+    - Relax unit cell
+    - Self-consistent cycle
+    - Non self-consistent cycle
+
+1. BSE calculation for MoS2 (bse_mos2.py)
     - Set the variables for a yambo input file using python
     - Run the calculation
