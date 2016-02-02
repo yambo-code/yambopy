@@ -3,15 +3,14 @@
 # Run a Silicon groundstate calculation using Quantum Espresso
 #
 from __future__ import print_function
-from pwpy.inputfile import *
-from pwpy.outputxml import *
+from qepy import *
 
 #
 # Create the input files
 #
 def get_inputfile():
     """ Define a Quantum espresso input file for silicon
-    """ 
+    """
     qe = PwIn()
     qe.atoms = [['Si',[0.125,0.125,0.125]],
                 ['Si',[-.125,-.125,-.125]]]
@@ -46,7 +45,7 @@ def scf():
     qe = get_inputfile()
     qe.control['calculation'] = "'scf'"
     qe.write('scf/si.scf')
- 
+
 #nscf
 def nscf():
     if not os.path.isdir('nscf'):
@@ -63,7 +62,7 @@ def nscf():
 def update_positions(pathin,pathout):
     """ update the positions of the atoms in the scf file using the output of the relaxation loop
     """
-    e = EspressoXML('si',path=pathin)
+    e = PwXML('si',path=pathin)
     pos = e.get_scaled_positions()
 
     q = PwIn('%s/si.scf'%pathin)
@@ -83,7 +82,7 @@ if __name__ == "__main__":
 
     print("running relax:")
     os.system("cd relax; mpirun -np %d pw.x -inp si.scf > relax.log"%nproc)
-    update_positions('relax','scf') 
+    update_positions('relax','scf')
     print("done!")
 
     print("running scf:")
@@ -94,4 +93,3 @@ if __name__ == "__main__":
     os.system("cp -r scf/si.save nscf/")
     os.system("cd nscf; mpirun -np %d pw.x -inp si.nscf > nscf.log"%nproc)
     print("done!")
-

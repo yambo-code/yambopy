@@ -11,8 +11,11 @@ from time import sleep
 import re
 
 class YamboIn():
+    """ Class to read, write, create and manipulate yambo input files with python.
+    """
+
     #Regular expressions
-    _variaexp   = '([A-Za-z\_0-9]+(?:\_[A-Za-z]+)?)' #variables names 
+    _variaexp   = '([A-Za-z\_0-9]+(?:\_[A-Za-z]+)?)' #variables names
     _numexp     = '([+-]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)' #number
     _spacexp    = '(?:\s+)?' #space
     _stringexp  = '"(.+?)"' #string
@@ -24,9 +27,22 @@ class YamboIn():
                    'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life',
                    'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsyms',
                    'QPDBs', 'QPDB_merge','RealTime','RT_X','RToccDos','RToccBnd','RToccEner'
-                   'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid'] 
+                   'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid']
 
     def __init__(self,args='',folder='.',vim=True,filename='yambo.in'):
+        """ Initialize a yambo `input` file.
+
+            Arguments:
+                args: if specified yambopy will run yambo, read the generated input file and initialize the class with those variables.
+                folder: the folder where the SAVE directory is located
+                vim: if yambo is compiled using vim as an editor this variable should be set as True because then `yambopy` will close vim.
+                A new argument for yambo '-Q' tells yambo to not call vim.
+                filename: the name of the input file to be read. Can be used to read a file in the hardrive:
+                .. code-block:: python
+                    y = YamboIn(filename='somefile.in')
+                    print y
+                if the variable args was used then the filename should be left as `yambo.in` because that's the default input filename that yambo will write.
+        """
         self.folder = folder
 
         #the type of the variables is determined from the type of variable in this dictionary
@@ -35,29 +51,24 @@ class YamboIn():
 
         # if we initalize the class with arguments we call yambo to generate the input file
         if args != '':
+            workdir = os.getcwd()
+            os.chdir(folder)
+            os.system('rm -f %s'%filename)
+            yambo = Popen(args, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
             # if yambo calls vim we have to close it. We just want the generic input file
-            # that yambo generates. Yambo should have a command line argument that just generates
-            # the input file without calling the editor
-            if vim:
-                workdir = os.getcwd()
-                os.chdir(folder)
-                os.system('rm -f %s'%filename)
-                yambo = Popen(args, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
-                yambo.stdin.write(":q!\n")
-                yambo.wait()
-                os.chdir(workdir)
-            # if yambo is not compiled with vim we don't care
-            else:
-                os.system(args)
+            # that yambo generates.
+            if vim: yambo.stdin.write(":q!\n")
+            yambo.wait()
+            os.chdir(workdir)
             self.read_file(filename="%s/%s"%(folder,filename))
 
     def __getitem__(self,key):
-        """ Get the value of a keyword in the input file
+        """ Get the value of a variable in the input file
         """
         return self.variables[key]
 
     def __setitem__(self,key,value):
-        """ Set the value of a keyword in the input file
+        """ Set the value of a variable in the input file
         """
         #if the units are not specified, add them
         if type(value) == list and str not in map(type,value):
@@ -67,35 +78,29 @@ class YamboIn():
         self.variables[key] = value
 
     def __delitem__(self,key):
-        """ remove a keyword from the dicitonary 
+        """ Remove a keyword from the dicitonary
         """
-        del self.variables[key]    
+        del self.variables[key]
 
     def read_file(self,filename='yambo.in'):
-        """ Read the keywords from a file
+        """ Read the variables from a file
         """
         yambofile = open(filename,"r")
         inputfile = self.read_string(yambofile.read())
         yambofile.close()
 
-    def read_dict_type(self,variables):
-        """ read the variables from a dictionary separated by datatype.
-        This is done because the datatypes are not kept in 
-        """
-        self.variables = variables
-
     def add_dict(self,variables):
-        """ add a dictionary to the current inputfile
+        """ Add a dictionary containing variables to the current inputfile
         """
         self.variables.update(variables)
 
     def read_string(self,inputfile):
-        """ Read the input variables from an input file
+        """ Read the input variables from a string
         """
         var_real     = re.findall(self._variaexp +'='+ self._spacexp +
-                                  self._numexp + self._spacexp + '([A-Za-z]+)?',inputfile)  
+                                  self._numexp + self._spacexp + '([A-Za-z]+)?',inputfile)
         var_string   = re.findall(self._variaexp +'='+ self._spacexp + self._stringexp, inputfile)
-        var_array    = re.findall(self._arrayexp, inputfile) 
+        var_array    = re.findall(self._arrayexp, inputfile)
         var_complex  = re.findall(self._variaexp +'='+ self._spacexp + self._complexexp, inputfile)
         var_runlevel = re.findall(self._runexp, inputfile)
 
@@ -103,7 +108,7 @@ class YamboIn():
         for key in self._runlevels:
             if key in var_runlevel:
                 self.arguments.append(key)
-  
+
         #float variables
         for var in var_real:
             name, value, unit = var
@@ -117,7 +122,7 @@ class YamboIn():
         #complex variables
         for var in var_complex:
             name, real, imag, unit = var
-            self[name] = [complex(float(real),float(imag)),unit] 
+            self[name] = [complex(float(real),float(imag)),unit]
 
         #array variables
         for var in var_array:
@@ -131,16 +136,12 @@ class YamboIn():
         """ Function to to make multiple runs of yambo to converge calculation parameters
             Input:
             A dictionary conv that has all the variables to be optimized
-            A list fo the name of the variables in the dicitonary that are to be optimized 
+            A list fo the name of the variables in the dicitonary that are to be optimized
             A function run that takes as input the name of the inputfile (used to run yambo)
 
-            Example:
-            def run(filename):
-                os.system('yambo -F %s'%filename)
-
-            What is done
-            Make a calculation with all the first elements of the different variables in conv
-            For each of the remaining elements make a new run
+            .. code-block:: python
+                def run(filename):
+                    os.system('yambo -F %s'%filename)
         """
         name_files = []
 
@@ -217,24 +218,24 @@ class YamboIn():
         for var in variables:
             self[var] = backup[var]
 
-        return name_files 
+        return name_files
 
     def write(self,filename='yambo.in'):
-        """ write the a yambo input file 
+        """ Write a yambo input file
         """
         f = open(filename,"w")
         f.write(str(self))
-        f.close()    
+        f.close()
 
     def pack(self,filename):
-        """ pack all the data of this structure in a json file
+        """ Pack all the data of this structure in a `.json` file
         """
         f = open(filename,'w')
         json.dump(f,[self.arguments,self.real,self.string,self.complex,self.array],indent=5)
         f.close()
 
     def __str__(self):
-        """  Function that returns the input file as a string
+        """  Returns the input file as a string
         """
         s  = ""
 
@@ -255,7 +256,7 @@ class YamboIn():
                 continue
             if type(value[0])==list:
                 array, unit = value
-                s+="%% %s\n %s %s \n%%\n"%(key,"|".join(map(str,array))+'|',unit)
+                s+="%% %s\n %s %s \n%%\n"%(key," | ".join(map(str,array))+' | ',unit)
                 continue
             if type(value[0])==complex:
                 value, unit = value
@@ -263,4 +264,4 @@ class YamboIn():
                 continue
             print "Unknown type for variable:", key
             exit(1)
-        return s 
+        return s
