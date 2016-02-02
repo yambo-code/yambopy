@@ -21,7 +21,7 @@ In the begining of each script (for GW or BSE) there is a check for the presence
 
 If the `gw_conv_si.py` you will find an example of how ot use the `optimize()` function to converge the calculation parameters.
 
-Bn
+BN
 ----
 In a similar fashion to the previous example you can run the ground state calculations for Boron Nitride using `gs_bn.py`.
 

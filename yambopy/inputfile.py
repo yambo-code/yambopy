@@ -256,7 +256,7 @@ class YamboIn():
                 continue
             if type(value[0])==list:
                 array, unit = value
-                s+="%% %s\n %s %s \n%%\n"%(key,"|".join(map(str,array))+'|',unit)
+                s+="%% %s\n %s %s \n%%\n"%(key," | ".join(map(str,array))+' | ',unit)
                 continue
             if type(value[0])==complex:
                 value, unit = value
