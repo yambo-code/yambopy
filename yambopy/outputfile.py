@@ -7,7 +7,10 @@
 from subprocess import Popen, PIPE
 from yambopy.inputfile import YamboIn
 from copy import *
-from netCDF4 import Dataset
+try:
+    from netCDF4 import Dataset
+except ImportError:
+    _has_netcdf = False
 import os
 import json
 import numpy as np
@@ -43,7 +46,7 @@ class YamboOut():
         else:
             logdir = outdir
 
-        self.output = ["%s/%s"%(folder,f) for f in outdir if f[:2] == 'o-' and ('bse' in f or 'qp' in f)]
+        self.output = ["%s/%s"%(folder,f) for f in outdir if f[:2] == 'o-' and ('eel' in f or 'eps' in f or 'qp' in f)]
         self.run    = ["%s/%s"%(folder,f) for f in outdir if f[:2] == 'r-']
         self.logs   = ["%s/LOG/%s"%(folder,f) for f in logdir]
         self.get_runtime()
@@ -55,9 +58,9 @@ class YamboOut():
         """ Get information about the unit cell (lattice vectors, atom types and positions) from the SAVE folder
         """
         path = 'SAVE/ns.db1'
-        if os.path.isfile(path):
+        if os.path.isfile(path) and _has_netcdf:
             #read database
-            self.nc_db    = Dataset(path)
+            self.nc_db         = Dataset(path)
             self.lat           = self.nc_db.variables['LATTICE_VECTORS'][:].T
             self.apos          = self.nc_db.variables['ATOM_POS'][:,0,:]
             self.atomic_number = self.nc_db.variables['atomic_numbers'][:].T

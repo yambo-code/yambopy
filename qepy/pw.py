@@ -87,6 +87,7 @@ class PwIn():
         #find READ_ATOMS keyword in file and read next lines
         for line in lines:
             if "ATOMIC_POSITIONS" in line:
+                self.atomic_pos_type = re.findall('([A-Za-z]+)',line)[-1]
                 for i in xrange(int(self.system["nat"])):
                     atype, x,y,z = lines.next().split()
                     self.atoms.append([atype,[float(i) for i in x,y,z]])
@@ -206,7 +207,7 @@ class PwIn():
         for atype in self.atypes:
             string += " %3s %8s %20s\n" % (atype, self.atypes[atype][0], self.atypes[atype][1])
         #print atomic positions
-        string += "ATOMIC_POSITIONS { crystal }\n"
+        string += "ATOMIC_POSITIONS { %s }\n"%self.atomic_pos_type
         for atom in self.atoms:
             string += "%3s %14.10lf %14.10lf %14.10lf\n" % (atom[0], atom[1][0], atom[1][1], atom[1][2])
         #print kpoints

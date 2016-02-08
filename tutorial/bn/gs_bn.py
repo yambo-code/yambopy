@@ -112,9 +112,9 @@ if __name__ == "__main__":
     # create input files and folders
     relax()
     scf()
-    nscf([12,12,1], 'nscf')
-    nscf([24,24,1], 'nscf_double')
-    phonon([12,12,1],[1,1,1], 'phonon')
+    nscf([6,6,6], 'nscf')
+    nscf([12,12,1], 'nscf_double')
+    phonon([12,12,1],[3,3,1], 'phonon')
 
     if args.relax:
         print("running relax:")
