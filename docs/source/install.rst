@@ -1,5 +1,8 @@
+Installation
+=============
+
 Download
-=========
+-------
 
 To obtain the code you can clone the git repository:
 
@@ -14,7 +17,7 @@ Or download the `zip` file from:
     wget https://github.com/henriquemiranda/yambo-py/archive/master.zip
 
 Install
-=======
+--------
 
 `yambopy` uses distutils for the instalation. To install it run:
 
@@ -27,4 +30,3 @@ If you do not have root permisisons (when you want to install in your cluster fo
 .. code-block:: bash
 
     sudo python setup.py install --user
-

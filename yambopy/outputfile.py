@@ -9,6 +9,7 @@ from yambopy.inputfile import YamboIn
 from copy import *
 try:
     from netCDF4 import Dataset
+    _has_netcdf = True
 except ImportError:
     _has_netcdf = False
 import os
@@ -32,8 +33,9 @@ class YamboOut():
     """
     _lock = "lock" #name of the lockfile
 
-    def __init__(self,folder):
+    def __init__(self,folder,save_folder='.'):
         self.folder = folder
+        self.save_folder = save_folder
 
         #get the output dir
         if os.path.isdir(folder):
@@ -55,17 +57,27 @@ class YamboOut():
         self.get_cell()
 
     def get_cell(self):
-        """ Get information about the unit cell (lattice vectors, atom types and positions) from the SAVE folder
+        """ Get information about the unit cell (lattice vectors, atom types, positions,
+            kpoints and symmetry operations) from the SAVE folder.
         """
-        path = 'SAVE/ns.db1'
+        path = self.save_folder+'/SAVE/ns.db1'
         if os.path.isfile(path) and _has_netcdf:
             #read database
             self.nc_db         = Dataset(path)
             self.lat           = self.nc_db.variables['LATTICE_VECTORS'][:].T
+            self.alat          = self.nc_db.variables['LATTICE_PARAMETER'][:].T
+            self.sym_car       = self.nc_db.variables['SYMMETRY'][:]
+            self.kpts_iku      = self.nc_db.variables['K-POINTS'][:].T
             self.apos          = self.nc_db.variables['ATOM_POS'][:,0,:]
             self.atomic_number = self.nc_db.variables['atomic_numbers'][:].T
+
         else:
+            if not _has_netcdf: print('YamboOut withouth netCDF4 support won\'t retrieve information about the structure')
+            print('Could not find ns.db1 in %s'%self.save_folder+'/SAVE')
             self.lat = np.array([])
+            self.alat = np.array([])
+            self.sym_car = np.array([])
+            self.kpts_iku = np.array([])
             self.apos = np.array([])
             self.atomic_number = np.array([])
 
@@ -95,7 +107,9 @@ class YamboOut():
         """ Get the runtime from the r-* file
         """
         files = sorted([open(f) for f in self.run])
-        if len(files) > 1: print 'WARNING: more than one file is present, we use the last one (alfabetic order)'
+        if len(files) > 1:
+            print( 'WARNING: more than one r-* file is present in %s'%self.folder )
+            print( 'We use the last one (alfabetic order) to get the runtime' )
         timing = dict()
         category = "UNKNOWN"
         for line in files[-1]:
@@ -121,18 +135,6 @@ class YamboOut():
         plt.legend()
         plt.show()
 
-    def locked(self):
-        """ check if there is a lock present in the folder
-        """
-        return self._lock in os.listdir(self.folder)
-
-    def put_lock(self):
-        """ Put a file to lock the folder.
-            This way we don't read anything from this folder again
-        """
-        f = open(self.folder+'/%s'%self._lock,'w')
-        f.close()
-
     def print_runtime(self):
         """ Print the runtime in a string
         """
@@ -150,9 +152,12 @@ class YamboOut():
         json.dump({"data"     : dict(zip(self.data.keys(),[d.tolist() for d in self.data.values()])),
                    "runtime"  : self.runtime,
                    "inputfile": y.read_string(self.inputfile),
-                   "lattice":  self.lat.tolist(),
-                   "atompos":  self.apos.tolist(),
-                   "atomtype": self.atomic_number.tolist()},
+                   "lattice"  : self.lat.tolist(),
+                   "alat"     : self.alat.tolist(), 
+                   "kpts_iku" : self.kpts_iku.tolist(),
+                   "sym_car"  : self.sym_car.tolist(),
+                   "atompos"  : self.apos.tolist(),
+                   "atomtype" : self.atomic_number.tolist()},
                    f,indent=5)
         f.close()
 

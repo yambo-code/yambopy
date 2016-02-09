@@ -52,7 +52,7 @@ y.optimize(conv,run=run)
 for dirpath,dirnames,filenames in os.walk('gw_conv'):
     #check if there are some output files in the folder
     if ([ f for f in filenames if 'o-' in f ]):
-        y = YamboOut(dirpath)
+        y = YamboOut(dirpath,save_folder='gw_conv')
         y.pack()
 
 #plot the results using yambmo analyser

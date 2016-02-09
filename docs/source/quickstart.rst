@@ -81,7 +81,7 @@ This class is used to read the `.json` files generated with YamboOut and plot th
     print yo
 
 
-pw.x
+PwIn
 -----
 
 `yambopy` provides a class `PwIn()` to create and edit input files for `pw.x` from the `Quantum Espresso <http://www.quantum-espresso.org/>`_ suite.
@@ -120,7 +120,7 @@ Here is an example of how to create an input file for Silicon.
     qe.write('qe.in')
 
 
-ph.x
+PhIn
 -----
 
 `yambopy` provides a class `PhIn()` to write input files for `ph.x` from the  `Quantum Espresso <http://www.quantum-espresso.org/>`_ suite.
@@ -142,7 +142,7 @@ ph.x
     print ph
     ph.write('si.ph')
 
-dynmat.x
+DynmatIn
 --------
 
 `yambopy` provides a class `DynmatIn()` to write input files for `dynmat.x` from the  `Quantum Espresso <http://www.quantum-espresso.org/>`_ suite.
