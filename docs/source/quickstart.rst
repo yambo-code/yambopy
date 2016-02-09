@@ -42,7 +42,8 @@ Using the initialization above you can use the following code to see how the res
            'BndsRnXs': [[1,10],[1,20],[1,30]] }
 
   def run(filename):
-      os.system('yambo -F %s'%filename)
+      folder = filename.split('.')[0]
+      os.system('yambo -F %s -J %s'%(filename,folder))
 
   yi.optimize(conv,run=run)
 
@@ -50,7 +51,8 @@ YamboOut
 --------
 
 This class is used to read the output files of a typical yambo calculation and pack the results in a `.json` file for posterior analysis using `YamboAnalyser`.
-Currently we save the `o-` data and the input file that is written at the end. YamboOut also tries to get information about the positions of the atoms and lattice from the SAVE directory.
+Currently we save the `o-` data and the input file that is written at the end. YamboOut also tries to get information about the positions of the atoms and lattice from the `SAVE` directory.
+This is only possible if you have netCDF4 support in your python installation.
 
 .. code-block:: python
 
@@ -72,10 +74,12 @@ This class is used to read the `.json` files generated with YamboOut and plot th
     from yambopy import YamboAnalyser
 
     ya = YamboAnalyser('tutorial')
-    ya.plot_bse()
+    ya.plot_bse() #for the case of a bse calculation
+    ya.plot_gw() #for the case of a gw calculation
 
     #print the output file in the terminal
     print yo
+
 
 pw.x
 -----

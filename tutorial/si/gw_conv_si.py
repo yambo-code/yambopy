@@ -35,12 +35,10 @@ if not os.path.isdir('gw_conv'):
 
 #create the yambo input file
 y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
-QPKrange,_ = y['QPkrange']
-y['QPkrange'] = [QPKrange[:2]+[6,10],'']
+y['QPkrange'][0][2:4] = [6,10]
 conv = { 'FFTGvecs': [[10,15,20],'Ry'],
          'NGsBlkXd': [[1,2,5], 'Ry'],
          'BndsRnXd': [[1,10],[1,20],[1,30]] }
-y.arguments.append('WFbuffIO')
 
 def run(filename):
     """ Function to be called by the optimize function """
@@ -51,12 +49,11 @@ def run(filename):
 y.optimize(conv,run=run)
 
 #pack the files in .json files
-for folder in subprocess.check_output('ls gw_conv/*/o-*',shell=True).splitlines():
-    folder = '/'.join(folder.split('/')[:-1])
-    y = YamboOut(folder)
-    if not y.locked():
+for dirpath,dirnames,filenames in os.walk('gw_conv'):
+    #check if there are some output files in the folder
+    if ([ f for f in filenames if 'o-' in f ]):
+        y = YamboOut(dirpath)
         y.pack()
-        y.put_lock()
 
 #plot the results using yambmo analyser
 y = YamboAnalyser('gw_conv')

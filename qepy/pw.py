@@ -29,6 +29,7 @@ class PwIn():
         self.atoms = []
         self.cell_parameters = []
         self.cell_units = 'angstrom'
+        self.atomic_pos_type = 'crystal'
 
         #in case we start from a reference file
         if filename:
