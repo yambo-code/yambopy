@@ -3,7 +3,13 @@ yambopy
 
 Create automatic workflows for yambo using python
 
-Features:
+Documentation
+-------------
+You can read the documentation in:
+http://yambopy.readthedocs.org/en/latest/
+
+Features
+--------
 - Create Yambo input files using a transparent python script
 - Collect the output data in .json files for posterior analysis
 - Plot the results using matplotlib
@@ -11,19 +17,24 @@ Features:
 - Test suite
 - Tutorial
 
-Tests:
+Tests
+------
 - Generate input files and compare to reference
 - Generate input files, run the calculations using Quantum Espresso and Yambo
 - Plot the results using matplotlib
 
-Requirements:
-- numpy: http://www.numpy.org/ 
+Requirements
+------------
+- numpy: http://www.numpy.org/
 - matplotlib: http://matplotlib.org/
+- netCDF4: http://unidata.github.io/netcdf4-python/
 
-TODO:
+TODO
+----
 - Automatic convergence tests (increase a certain variable until the final result changes less than a certain threshold)
 
-Authors:
+Authors
+------
 - Henrique Pereira Coutada Miranda
 - Alejandro Molina Sanchez
 
