@@ -4,7 +4,7 @@
 #
 from __future__ import print_function
 from yambopy import *
-from pwpy import *
+from qepy import *
 import argparse
 
 #parse options

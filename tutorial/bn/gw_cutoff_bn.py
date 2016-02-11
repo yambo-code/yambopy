@@ -4,11 +4,8 @@
 # using different layer separations with or without the coulomb truncation
 #
 from __future__ import division, print_function
-from yambopy.inputfile import *
-from yambopy.outfile import *
-from yambopy.analyse import *
-from pwpy.inputfile import *
-from pwpy.outputxml import *
+from yambopy import *
+from qepy import *
 import argparse
 
 yambo =  'yambo'

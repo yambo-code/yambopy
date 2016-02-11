@@ -3,8 +3,7 @@
 # Run a Silicon groundstate calculation using Quantum Espresso
 #
 from __future__ import print_function, division
-from pwpy.inputfile import *
-from pwpy.outputxml import *
+from qepy import *
 import argparse
 
 kpoints = [9,9,1]

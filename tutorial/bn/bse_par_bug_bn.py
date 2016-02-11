@@ -9,9 +9,8 @@
 # all th q-points are calculated except 1st qpoint but the data of qpoint 5 is there isntead
 #
 from __future__ import print_function
-from yambopy.inputfile import *
-from pwpy.inputfile import *
-from pwpy.outputxml import *
+from yambopy import *
+from qepy import *
 import os
 
 yambo = "yambo"

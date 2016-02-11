@@ -3,11 +3,8 @@
 # Run a BSE calculation using yambo
 #
 from __future__ import print_function
-from yambopy.inputfile import *
-from yambopy.outputfile import *
-from yambopy.analyse import *
-from pwpy.inputfile import *
-from pwpy.outputxml import *
+from yambopy import *
+from qepy import *
 import argparse
 
 #parse options

@@ -4,9 +4,8 @@
 # one job per q-point for the dielectric function
 #
 from __future__ import print_function
-from yambopy.inputfile import *
-from pwpy.inputfile import *
-from pwpy.outputxml import *
+from yambopy import *
+from qepy import *
 import argparse
 
 #parse options
