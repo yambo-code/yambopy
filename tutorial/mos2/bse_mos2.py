@@ -59,14 +59,13 @@ if args.doublegrid:
 #create the yambo input file
 y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
 
-y['FFTGvecs'] = [30,'Ry']
-y['NGsBlkXs'] = [2,'Ry']
-y['BndsRnXs'] = [[1,60],'']
+y['FFTGvecs'] = [15,'Ry']
+y['NGsBlkXs'] = [1,'Ry']
+y['BndsRnXs'] = [[1,40],'']
 y['BSEBands'] = [[8,11],'']
 y['BEnSteps'] = [500,'']
 y['BEnRange'] = [[0.0,6.0],'eV']
 
-y.arguments.append('WFbuffIO')
 y.arguments.append('WRbsWF')
 y.write('bse/yambo_run.in')
 

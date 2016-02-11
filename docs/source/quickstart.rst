@@ -1,7 +1,9 @@
 Quickstart
 ==========
 
-Only the `yambo` runlevels are hardcoded in `yambopy`. This means that any new variable in `yambo` can me immediately used from `yambopy` without needing to add new variables to the `yambopy` python code.
+Only the `yambo` runlevels are hardcoded in `yambopy`. This means that any new
+variable in `yambo` can me immediately used from `yambopy` without needing to
+add new variables to the `yambopy` python code.
 
 YamboIn
 -------
@@ -29,11 +31,15 @@ The class can be initialized in two ways:
     #this will write the file on the hard drive
     yi.write('input.in')
 
-Keep in mind that the runlevels are hardcoded in `yambopy` this means that each new runlevel has to be added to the `_runlevels` list in the YamboIn class.
+Keep in mind that the runlevels are hardcoded in `yambopy` this means that each
+new runlevel has to be added to the `_runlevels` list in the YamboIn class.
 
-An interesting feature of the `YamboIn()` class is the `optimize()` funciton that helps to make convergence tests.
-After you defined the all the relevant variables for the yambo input file you might want to run the code several times changing some of them to see how the final result changes.
-Using the initialization above you can use the following code to see how the results change as you use more sctrict convergence paramaters:
+An interesting feature of the `YamboIn()` class is the `optimize()` funciton that
+helps to make convergence tests. After you defined the all the relevant variables
+for the yambo input file you might want to run the code several times changing
+some of them to see how the final result changes.
+Using the initialization above you can use the following code to see how the
+results change as you use more sctrict convergence paramaters:
 
 .. code-block:: python
 
@@ -50,8 +56,11 @@ Using the initialization above you can use the following code to see how the res
 YamboOut
 --------
 
-This class is used to read the output files of a typical yambo calculation and pack the results in a `.json` file for posterior analysis using `YamboAnalyser`.
-Currently we save the `o-` data and the input file that is written at the end. YamboOut also tries to get information about the positions of the atoms and lattice from the `SAVE` directory.
+This class is used to read the output files of a typical yambo calculation and
+pack the results in a `.json` file for posterior analysis using `YamboAnalyser`.
+Currently we save the `o-` data and the input file that is written at the end.
+YamboOut also tries to get information about the positions of the atoms and
+lattice from the `SAVE` directory.
 This is only possible if you have netCDF4 support in your python installation.
 
 .. code-block:: python
@@ -77,19 +86,21 @@ This class is used to read the `.json` files generated with YamboOut and plot th
     ya.plot_bse() #for the case of a bse calculation
     ya.plot_gw() #for the case of a gw calculation
 
-    #print the output file in the terminal
-    print yo
+    #print loaded files in the terminal
+    print ya
 
 
 PwIn
 -----
 
-`yambopy` provides a class `PwIn()` to create and edit input files for `pw.x` from the `Quantum Espresso <http://www.quantum-espresso.org/>`_ suite.
-This class works in a similar way as `YamboIn()` so you can start it either by reading a file from the hard drive
+`yambopy` provides a class `PwIn()` to create and edit input files for `pw.x`
+from the `Quantum Espresso <http://www.quantum-espresso.org/>`_ suite.
+This class works in a similar way as `YamboIn()` so you can start it either by
+reading a file from the hard drive
 or specifying the variables in a python script.
 
 The `input <http://www.quantum-espresso.org/wp-content/uploads/Doc/INPUT_PW.html>`_ file for `pw.x` is split into different sections.
-youc an acess the variables for each section using :code:`.<section>['variable_name']`.
+you can acess the variables for each section using :code:`.<section>['variable_name']`.
 
 Here is an example of how to create an input file for Silicon.
 
@@ -123,7 +134,8 @@ Here is an example of how to create an input file for Silicon.
 PhIn
 -----
 
-`yambopy` provides a class `PhIn()` to write input files for `ph.x` from the  `Quantum Espresso <http://www.quantum-espresso.org/>`_ suite.
+`yambopy` provides a class `PhIn()` to write input files for `ph.x` from the
+`Quantum Espresso <http://www.quantum-espresso.org/>`_ suite.
 
 .. code-block:: python
 
@@ -145,7 +157,8 @@ PhIn
 DynmatIn
 --------
 
-`yambopy` provides a class `DynmatIn()` to write input files for `dynmat.x` from the  `Quantum Espresso <http://www.quantum-espresso.org/>`_ suite.
+`yambopy` provides a class `DynmatIn()` to write input files for `dynmat.x`
+from the  `Quantum Espresso <http://www.quantum-espresso.org/>`_ suite.
 
 .. code-block:: python
 
@@ -156,5 +169,6 @@ DynmatIn
     md['fildyn'] = "'si.dyn1'"
     md['filout'] = "'si.modes'"
 
+    #write the input file in the terminal
     print md
     md.write('si.dynmat'%folder)

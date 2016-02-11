@@ -3,20 +3,24 @@
 # Run a GW calculation using Yambo
 #
 from __future__ import print_function
-from yambopy.inputfile import *
-from yambopy.outputfile import *
-from yambopy.analyse import *
-from pwpy.inputfile import *
-from pwpy.outputxml import *
-import subprocess
+from yambopy import *
+from pwpy import *
+import argparse
+
+#parse options
+parser = argparse.ArgumentParser(description='GW convergence')
+parser.add_argument('-r' ,'--run',  action="store_true", help='Run the calculation')
+parser.add_argument('-p' ,'--plot', action="store_true", help='Run the analysis')
+args = parser.parse_args()
 
 yambo = 'yambo'
+prefix = 'si'
 
 if not os.path.isdir('database'):
     os.mkdir('database')
 
 #check if the nscf cycle is present
-if os.path.isdir('nscf/si.save'):
+if os.path.isdir('nscf/%s.save'%prefix):
     print('nscf calculation found!')
 else:
     print('nscf calculation not found!')
@@ -25,38 +29,44 @@ else:
 #check if the SAVE folder is present
 if not os.path.isdir('database/SAVE'):
     print('preparing yambo database')
-    os.system('cd nscf/si.save; p2y')
-    os.system('cd nscf/si.save; yambo')
-    os.system('mv nscf/si.save/SAVE database')
+    os.system('cd nscf/%s.save; p2y'%prefix)
+    os.system('cd nscf/%s.save; yambo'%prefix)
+    os.system('mv nscf/%s.save/SAVE database'%prefix)
 
 if not os.path.isdir('gw_conv'):
     os.mkdir('gw_conv')
     os.system('cp -r database/SAVE gw_conv')
 
-#create the yambo input file
-y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
-y['QPkrange'][0][2:4] = [6,10]
-conv = { 'FFTGvecs': [[10,15,20],'Ry'],
-         'NGsBlkXd': [[1,2,5], 'Ry'],
-         'BndsRnXd': [[1,10],[1,20],[1,30]] }
+if args.run:
+    #create the yambo input file
+    y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw_conv')
+    y['QPkrange'][0][2:4] = [2,6]
+    conv = { 'FFTGvecs': [[5,10,15],'Ry'],
+             'NGsBlkXp': [[1,2,3], 'Ry'],
+             'BndsRnXp': [[1,10],[1,20],[1,30]] }
 
-def run(filename):
-    """ Function to be called by the optimize function """
-    folder = filename.split('.')[0]
-    print(filename,folder)
-    os.system('cd gw_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
+    def run(filename):
+        """ Function to be called by the optimize function """
+        folder = filename.split('.')[0]
+        print(filename,folder)
+        os.system('cd gw_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
 
-y.optimize(conv,run=run)
+    y.optimize(conv,run=run)
 
-#pack the files in .json files
-for dirpath,dirnames,filenames in os.walk('gw_conv'):
-    #check if there are some output files in the folder
-    if ([ f for f in filenames if 'o-' in f ]):
-        y = YamboOut(dirpath,save_folder='gw_conv')
-        y.pack()
+if args.plot:
+    #pack the files in .json files
+    pack_files_in_folder('gw_conv')
 
-#plot the results using yambmo analyser
-y = YamboAnalyser('gw_conv')
-print(y)
-y.plot_gw('qp')
-print('done!')
+    #plot the results using yambm analyser
+    ya = YamboAnalyser('gw_conv')
+    print(ya)
+    print('plot all qpoints')
+    ya.plot_gw('qp')
+    print('plot along a path')
+    path = [[0.5,   0,   0],
+            [  0,   0,   0],
+            [  0, 0.5, 0.5],
+            [1.0, 1.0, 1.0]]
+    ya.plot_gw_path('qp',path)
+
+    print('done!')

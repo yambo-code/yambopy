@@ -25,6 +25,17 @@ except ImportError:
 else:
     _has_matplotlib = True
 
+def pack_files_in_folder(folder,save_folder=None):
+    """ Helper funciton to look for output files in a
+    """
+    if not save_folder: save_folder = folder
+    #pack the files in .json files
+    for dirpath,dirnames,filenames in os.walk(folder):
+        #check if there are some output files in the folder
+        if ([ f for f in filenames if 'o-' in f ]):
+            y = YamboOut(dirpath,save_folder=save_folder)
+            y.pack()
+
 class YamboOut():
     """ Class to read yambo output files and pack them in a JSON file
 
@@ -33,7 +44,7 @@ class YamboOut():
     """
     _lock = "lock" #name of the lockfile
 
-    def __init__(self,folder,save_folder='.'):
+    def __init__(self,folder,save_folder='./'):
         self.folder = folder
         self.save_folder = save_folder
 
@@ -48,11 +59,11 @@ class YamboOut():
         else:
             logdir = outdir
 
-        self.output = ["%s/%s"%(folder,f) for f in outdir if f[:2] == 'o-' and ('eel' in f or 'eps' in f or 'qp' in f)]
-        self.run    = ["%s/%s"%(folder,f) for f in outdir if f[:2] == 'r-']
-        self.logs   = ["%s/LOG/%s"%(folder,f) for f in logdir]
+        self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and ('eel' in f or 'eps' in f or 'qp' in f)]
+        self.run    = ["%s"%f for f in outdir if f[:2] == 'r-']
+        self.logs   = ["/LOG/%s"%f for f in logdir]
         self.get_runtime()
-        self.get_data()
+        self.get_outputfile()
         self.get_inputfile()
         self.get_cell()
 
@@ -81,32 +92,35 @@ class YamboOut():
             self.apos = np.array([])
             self.atomic_number = np.array([])
 
-    def get_data(self):
-        """ Search for a tag in the output files and get the data
+    def get_outputfile(self):
+        """ Get the data from the o-* file
         """
-        files = [open(f) for f in self.output]
+        files = [open("%s/%s"%(self.folder,f)) for f in self.output]
         self.data = dict([(filename,np.loadtxt(f)) for filename,f in zip(self.output,files)])
         for f in files: f.close()
         return self.data
 
     def get_inputfile(self):
-        """ Get the input file from the r-* file
+        """ Get the input file from the o-* file
         """
-        f = open(self.output[-1],'r')
-        self.inputfile = []
+        f = open("%s/%s"%(self.folder,self.output[-1]),'r')
+        inputfile = []
         for line in f:
             if 'Input file :' in line:
                 for line in f:
                     # Note this: to read the input file we just ignore the first 4 characters
                     # of the section after the tag 'Input file:'
-                    self.inputfile.append( line[4:] )
+                    inputfile.append( line[4:] )
         f.close()
-        self.inputfile =''.join( self.inputfile )
+       
+        #use YamboIn to read the input file to a list 
+        yi = YamboIn()
+        self.inputfile = yi.read_string( ''.join(inputfile) )
 
     def get_runtime(self):
         """ Get the runtime from the r-* file
         """
-        files = sorted([open(f) for f in self.run])
+        files = sorted([open("%s/%s"%(self.folder,f)) for f in self.run])
         if len(files) > 1:
             print( 'WARNING: more than one r-* file is present in %s'%self.folder )
             print( 'We use the last one (alfabetic order) to get the runtime' )
@@ -145,13 +159,13 @@ class YamboOut():
     def pack(self,filename=None):
         """ Pack up all the data in the structure in a json file
         """
+        #if no filename is specified we use the same name as the folder
         if not filename: filename = self.folder
 
-        f = open(filename+'.json','w')
-        y = YamboIn()
+        f = open('%s.json'%filename,'w')
         json.dump({"data"     : dict(zip(self.data.keys(),[d.tolist() for d in self.data.values()])),
                    "runtime"  : self.runtime,
-                   "inputfile": y.read_string(self.inputfile),
+                   "inputfile": self.inputfile,
                    "lattice"  : self.lat.tolist(),
                    "alat"     : self.alat.tolist(), 
                    "kpts_iku" : self.kpts_iku.tolist(),

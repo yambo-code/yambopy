@@ -45,8 +45,8 @@ In the `gw_conv_si.py` you will find an example of how ot use the `optimize()` f
     y.optimize(conv,run=run)
 
 This code will run yambo as many times as variables specified in the `conv` dictionary.
-The first calculation is always called `reference` and takes always the first element of each of the lists.
-Then for each element of the list that is not the first one a calculation is made.
+The first calculation is called `reference` and uses as parameters the first element of each of the lists.
+For each of the other elements of the list a calculation is made.
 
 **3. Collect the data**
 
@@ -59,13 +59,18 @@ For this use the `YamboOut()` class:
   for dirpath,dirnames,filenames in os.walk('gw_conv'):
     #check if there are some output files in the folder
     if ([ f for f in filenames if 'o-' in f ]):
-        y = YamboOut(dirpath)
+        y = YamboOut(dirpath,save_folder=dirpath)
         y.pack()
 
+This snippet of code can be called using the funcition:
+
+.. code-block:: python
+
+    pack_files_in_folder('gw_conv',save_folder='gw_conv')
 
 **4. Plot the data**
 
-After this you should have a set of `.json` files in the folder, one for each calculation.
+After this you should have a set of `json` files in the folder, one for each calculation.
 To make a plot of them all you just need to run:
 
 .. code-block:: python
@@ -73,33 +78,105 @@ To make a plot of them all you just need to run:
   #plot the results using yambmo analyser
   y = YamboAnalyser('gw_conv')
   y.plot_gw('qp')
+  y.plot_gw_path('qp')
 
 You can add more plots by simply adding more files in the folder you give as input to the `YamboAnalyser()` class.
+At the end you should obtain a plot like this:
+
+.. image:: figures/gw_si.png
 
 Coulomb-cutoff (BN)
 -------------------------------
 
-In a similar fashion to the previous example you can run the ground state calculations for Boron Nitride using `gs_bn.py`.
+In this example we will test the convergence of the coulomb truncation for a BSE calculation in single layer Boron Nitride.
+For that we define a loop where we perform a self-consistent ground state calculation, non self-consistent calculation, create the databases
+and run yambo with increasing vaccum and plot the absorption spectra.
+
+**2. Coulomb truncation convergence**
+
+In the folder `tutorials/bn/` you find the python script `bse_cutoff.py`.
+You can run this script with:
 
 .. code-block:: bash
 
-    python gs_bn.py
+    python bse_cutoff.py -r
+
+The main loop changes the `layer_separation` variable using values from a list.
+In the script you can find how the functions `scf`, `ncf` and `database` are defined.
+
+.. code-block:: python
+
+    #for each separation run the ground state calculation and
+    for layer_separation in layer_separations:
+
+      root_folder = "%s/%d"%(work_folder,layer_separation)
+      if not os.path.isdir(root_folder):
+          os.makedirs(root_folder)
+
+      # run the ground state calculation
+      print("scf cycle")
+      scf(layer_separation,folder="%s/scf"%root_folder)
+      os.system("cd %s/scf; pw.x < %s.scf > scf.log"%(root_folder,prefix))
+
+      # run the non self consistent calculation
+      print("nscf cycle")
+      src ='%s/scf/%s.save'%(root_folder,prefix)
+      dst ='%s/nscf/%s.save'%(root_folder,prefix)
+      nscf(layer_separation,folder="%s/nscf"%root_folder)
+      os.system( 'cp -r %s %s'%(src,dst) )
+      os.system("cd %s/nscf; pw.x < %s.nscf > nscf.log"%(root_folder,prefix))
+
+      # generate the database
+      database('%s'%root_folder,nscf_folder="%s/nscf"%root_folder)
+
+      # calculate the absorption spectra using yambo
+      y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder=root_folder)
+
+      y['FFTGvecs'] = [30,'Ry']
+      y['NGsBlkXs'] = [1,'Ry']
+      y['BndsRnXs'] = [1,30]
+
+      y['CUTGeo'] = 'box z'
+      y['CUTBox'] = [0,0,layer_separation-1]
+
+      y['KfnQP_E']  = [1.0,1.0,1.0] #scissor operator
+      y['BSEBands'] = [3,6]
+      y['BEnSteps'] = 500
+      y['BEnRange'] = [[1.0,6.0],'eV']
+      y.write('%s/yambo_run.in'%root_folder)
+      os.system('cd %s; %s -F yambo_run.in -J %d'%(root_folder,yambo,layer_separation))
+
+**3. Plot the convergence**
+
+You can plot the results using:
+
+.. code-block:: bash
+
+    python bse_cutoff.py -p
+
+You should obtain a plot like this:
+
+.. image:: figures/bse_cutoff.png
+
 
 Parallel Bethe-Salpeter (MoS\ :sub:`2`)
 -----------------------------------------------------------------
 
 In this tutorial we will show how you can paralelize the dielectric function calculation in
-separate jobs for BSE optical spectra calculation.
+separate jobs for a BSE optical absorption spectra calculation.
 
-The idea of this tutorial is that in certain clusters its advantageous to split the dielectric function calculation
+The idea is that in certain clusters its advantageous to split the dielectric function calculation
 in smaller jobs (one for each q-point) that can run at the same time.
-Using `yambo` you can separate the dielectric function calculation among many cpus
-using the variable `q` in `X_all_q_CPU` and `X_all_q_ROLEs`. The issue with this is that you still need to make a big reservation
-and in some cases there is load imbalancement (some nodes end up waiting for others). Slitting in smaller jobs
-can help your jobs to get ahead in the queue and avoids the load imbalancement. Also if there are many free nodes you might end up running all the q-points at the same time.
+Using the `yambo` paralelization you can separate the dielectric function calculation among many cpus
+using the variable `q` in `X_all_q_CPU` and `X_all_q_ROLEs`. The issue is that you still need to make a big reservation
+and in some cases there is load imbalancement (some nodes end up waiting for others). Splitting in smaller jobs
+can help your jobs to get ahead in the queue and avoid the load imbalancement.
+If there are many free nodes you might end up running all the q-points at the same time.
 
 **The idea is quite simple:** you create an individual input file for each q-point, submit each job separatly, collect
-the results and do the final BSE step (this method also applies for a GW calculation).
+the results and do the final BSE step (this method should also apply for a GW calculation).
+
+**1. Ground State**
 
 The groundstate calculation for MoS\ :sub:`2` is made in a similar fashion as the previous examples.
 If some of the steps are already calculated you can tell the script not to run them using for example:
@@ -109,3 +186,86 @@ If some of the steps are already calculated you can tell the script not to run t
     python gs_mos2.py -n2
 
 The option `-n2` will tell the script not to run the double grid `nscf` calculation.
+
+**2. Parallel Dielectric function**
+
+Here we tell `yambo` to calculate the dielectric function. We read the number of q-points the system has
+and generate one input file per q-point. Next we tell yambo to calculate the first q-point. `Yambo` will calculate the dipoles
+and the dielectric function at the first q-point.
+Once the calculation is done we copy the dipoles to the SAVE directory. After that we can run each q-point calculation
+as a separate job.
+Here the user can decide to submit one job per q-point on a cluster or use a program like
+`gnuparallel <http://www.gnu.org/software/parallel/>`_ to schedule the jobs according to the
+available resources. In this example we use the second option.
+
+.. code-block:: python
+
+    #create the yambo input file
+    y = YamboIn('yambo -r -b -o b -V all',folder='bse_par')
+    y['FFTGvecs'] = [15,'Ry']
+    y['NGsBlkXs'] = [1,'Ry']
+    y['BndsRnXs'] = [[1,40],'']
+    y.write('bse_par/yambo_run.in')
+
+    #get the number of q-points
+    _,nkpoints = y['QpntsRXs'][0]
+
+    #prepare the q-points input files
+    f = open('jobs.sh','w')
+    for nk in xrange(1,int(nkpoints)+1):
+        y['QpntsRXs'] = [[nk,nk],'']
+        y.write('bse_par/yambo_q%d.in'%(nk))
+        if nk != 1:
+            f.write('cd bse_par; %s -F yambo_q%d.in -J %d\n'%(yambo,nk,nk))
+    f.close()
+
+    #calculate first q-point and dipoles
+    os.system('cd bse_par; %s -F yambo_q1.in -J 1'%yambo)
+    #copy dipoles to save
+    os.system('cp bse_par/1/ndb.dip* bse_par/SAVE')
+    #run jobs using gnuparallel
+    os.system('parallel :::: jobs.sh')
+
+**3. BSE**
+
+Once the dielectric function is calculated its time to collect the data in one folder and
+do the last step of the calculation: solve the Bethe-Salpeter equation.
+The `merge_eps.py` gathers the dielectric funciton databases into one folder with the correct numeration.
+In the next version of yambo this step won\'t be necessary (yambo will write the databases with the correct numeration).
+The the last step is to generate the BSE Hamiltonian and diagonalize it.
+
+.. code-block:: python
+
+    #gather all the files
+    os.system('cp merge_eps.py bse_par')
+    os.system('cd bse_par; python merge_eps.py')
+
+    y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder='bse_par')
+    y['FFTGvecs'] = [15,'Ry']
+    y['NGsBlkXs'] = [1,'Ry']
+    y['BndsRnXs'] = [[1,40],'']
+    y['BSEBands'] = [8,11]
+    y['BEnSteps'] = 500
+    y['BEnRange'] = [[1.0,6.0],'eV']
+    y.arguments.append('WRbsWF')
+
+    y.write('bse_par/yambo_run.in')
+    os.system('cd bse_par; %s -F yambo_run.in -J yambo'%yambo)
+
+
+**3. Collect and plot the results**
+
+You can plot the data much in the same way as you did for the GW calculation.
+
+.. code-block:: python
+
+    #collect the data
+    pack_files_in_folder('bse_par')
+
+    #plot the results using yambo analyser
+    y = YamboAnalyser('bse_par')
+    y.plot_bse('eps')
+
+You should obtain a plot like this:
+
+.. image:: figures/bse_mos2.png

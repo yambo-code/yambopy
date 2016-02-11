@@ -1,6 +1,6 @@
 #
 # Author: Henrique Pereira Coutada Miranda
-# Run a GW calculation using yambo
+# Run a BSE calculation using yambo
 #
 from __future__ import print_function
 from yambopy.inputfile import *

@@ -7,9 +7,11 @@ from pwpy.inputfile import *
 from pwpy.outputxml import *
 import argparse
 
-#
-# Create the input files
-#
+kpoints = [9,9,1]
+kpoints_double = [18,18,1]
+qpoints = [3,3,1]
+
+# create the input files
 def get_inputfile():
     """ Define a Quantum espresso input file for boron nitride
     """ 
@@ -28,7 +30,7 @@ def get_inputfile():
     qe.system['nat'] = 2
     qe.system['ntyp'] = 2
     qe.system['ibrav'] = 4
-    qe.kpoints = [12, 12, 1]
+    qe.kpoints = [9, 9, 1]
     qe.electrons['conv_thr'] = 1e-8
     return qe
 
@@ -44,15 +46,15 @@ def relax():
     qe.write('relax/bn.scf')
 
 #scf
-def scf():
-    if not os.path.isdir('scf'):
-        os.mkdir('scf')
+def scf(folder='scf'):
+    if not os.path.isdir(folder):
+        os.mkdir(folder)
     qe = get_inputfile()
     qe.control['calculation'] = "'scf'"
-    qe.write('scf/bn.scf')
+    qe.write('%s/bn.scf'%folder)
  
 #nscf
-def nscf(kpoints,folder):
+def nscf(kpoints,folder='nscf'):
     if not os.path.isdir(folder):
         os.mkdir(folder)
     qe = get_inputfile()
@@ -64,7 +66,7 @@ def nscf(kpoints,folder):
     qe.kpoints = kpoints
     qe.write('%s/bn.nscf'%folder)
 
-def phonon(kpoints,qpoints,folder):
+def phonon(kpoints,qpoints,folder='phonon'):
     if not os.path.isdir(folder):
         os.mkdir(folder)
     ph = PhIn()
@@ -87,7 +89,7 @@ def phonon(kpoints,qpoints,folder):
 def update_positions(pathin,pathout):
     """ update the positions of the atoms in the scf file using the output of the relaxation loop
     """
-    e = EspressoXML('bn',path=pathin)
+    e = PwXML('bn',path=pathin)
     pos = e.get_scaled_positions()
 
     q = PwIn('%s/bn.scf'%pathin)
@@ -112,9 +114,9 @@ if __name__ == "__main__":
     # create input files and folders
     relax()
     scf()
-    nscf([6,6,6], 'nscf')
-    nscf([12,12,1], 'nscf_double')
-    phonon([12,12,1],[3,3,1], 'phonon')
+    nscf(kpoints)
+    nscf(kpoints_double, folder='nscf_double')
+    phonon(kpoints,qpoints)
 
     if args.relax:
         print("running relax:")
