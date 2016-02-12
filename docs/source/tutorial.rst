@@ -162,7 +162,12 @@ You should obtain a plot like this:
 Parallel Bethe-Salpeter (MoS\ :sub:`2`)
 -----------------------------------------------------------------
 
-In this tutorial we will show how you can paralellize the dielectric function calculation in
+.. warning::
+    The `merge_eps.py` gathers the dielectric function databases into one folder with the correct numeration.
+    This script should be used in versions of `yambo` that create one file `ndb.em1*_fragment_1` per folder.
+    In the next version of `yambo` the files will already have the correct numeration so you just need to collect all the files.
+
+In this tutorial we will show how you can parallelize the dielectric function calculation in
 separate jobs for a BSE optical absorption spectra calculation.
 
 The idea is that in certain clusters its advantageous to split the dielectric function calculation
@@ -229,10 +234,8 @@ available resources. In this example we use the second option.
 **3. BSE**
 
 Once the dielectric function is calculated its time to collect the data in one folder and
-do the last step of the calculation: solve the Bethe-Salpeter equation.
-The `merge_eps.py` gathers the dielectric function databases into one folder with the correct numeration.
-In the next version of `yambo` this step won\'t be necessary (yambo will write the databases with the correct numeration).
-The the last step is to generate the BSE Hamiltonian and diagonalize it.
+do the last step of the calculation: generate the BSE Hamiltonian, diagonalize it and
+calculate the absorption.
 
 .. code-block:: python
 
