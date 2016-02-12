@@ -35,7 +35,8 @@ y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
 y['FFTGvecs'] = [15,'Ry']
 y['NGsBlkXs'] = [1,'Ry']
 y['BndsRnXs'] = [[1,30],'']
-y.arguments.append('WFbuffIO')
+y['BSEBands'] = [[3,6],'']
+y.arguments.append('WRbsWF')
 y.write('bse/yambo_run.in')
 
 print('running yambo')

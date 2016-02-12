@@ -1,8 +1,8 @@
 Tutorial
 ==========
 
-In the `tutorial` folder you can find some examples fo how to get started using `yambopy`.
-The first step in any calculation with yambo is to calculate the ground state proprieties using either `abinit` or `pw.x`.
+In the `tutorial` folder you can find some examples of how to get started using `yambopy`.
+The first step in any calculation with `yambo` is to calculate the ground state proprieties using either `abinit` or `pw.x`.
 We don't have support to read and write `abinit` input files. To do that you should use the `abipy <https://github.com/gmatteo/abipy>`_ package.
 Included in the `yambopy` package we include some basic scripts to generate Quantum Espresso input files.
 
@@ -23,9 +23,9 @@ to run a self-consistent (scf) cycle and a non self-consistent (nscf) cycle usin
 **2. GW convergence**
 
 Afterwards you can run a GW calculation using the `gw_si.py` script and a Bethe-Salpether (BSE) calculation using the `bse_si.py`.
-In the begining of each script (for GW or BSE) there is a check for the presence of the SAVE database. In case it is not present it will be generated.
+In the beginning of each script (for GW or BSE) there is a check for the presence of the SAVE database. In case it is not present it will be generated.
 
-In the `gw_conv_si.py` you will find an example of how ot use the `optimize()` function to converge the calculation parameters.
+In the `gw_conv_si.py` you will find an example of how to use the `optimize()` function to converge the calculation parameters.
 
 .. code-block:: python
 
@@ -44,7 +44,7 @@ In the `gw_conv_si.py` you will find an example of how ot use the `optimize()` f
 
     y.optimize(conv,run=run)
 
-This code will run yambo as many times as variables specified in the `conv` dictionary.
+This code will run `yambo` as many times as variables specified in the `conv` dictionary.
 The first calculation is called `reference` and uses as parameters the first element of each of the lists.
 For each of the other elements of the list a calculation is made.
 
@@ -62,7 +62,7 @@ For this use the `YamboOut()` class:
         y = YamboOut(dirpath,save_folder=dirpath)
         y.pack()
 
-This snippet of code can be called using the funcition:
+This snippet of code can be called using the function:
 
 .. code-block:: python
 
@@ -75,7 +75,7 @@ To make a plot of them all you just need to run:
 
 .. code-block:: python
 
-  #plot the results using yambmo analyser
+  #plot the results using yambo analyser
   y = YamboAnalyser('gw_conv')
   y.plot_gw('qp')
   y.plot_gw_path('qp')
@@ -90,7 +90,7 @@ Coulomb-cutoff (BN)
 
 In this example we will test the convergence of the coulomb truncation for a BSE calculation in single layer Boron Nitride.
 For that we define a loop where we perform a self-consistent ground state calculation, non self-consistent calculation, create the databases
-and run yambo with increasing vaccum and plot the absorption spectra.
+and run `yambo` with increasing vacuum and plot the absorption spectra.
 
 **2. Coulomb truncation convergence**
 
@@ -162,23 +162,23 @@ You should obtain a plot like this:
 Parallel Bethe-Salpeter (MoS\ :sub:`2`)
 -----------------------------------------------------------------
 
-In this tutorial we will show how you can paralelize the dielectric function calculation in
+In this tutorial we will show how you can paralellize the dielectric function calculation in
 separate jobs for a BSE optical absorption spectra calculation.
 
 The idea is that in certain clusters its advantageous to split the dielectric function calculation
 in smaller jobs (one for each q-point) that can run at the same time.
-Using the `yambo` paralelization you can separate the dielectric function calculation among many cpus
+Using the `yambo` parallelization you can separate the dielectric function calculation among many cpus
 using the variable `q` in `X_all_q_CPU` and `X_all_q_ROLEs`. The issue is that you still need to make a big reservation
-and in some cases there is load imbalancement (some nodes end up waiting for others). Splitting in smaller jobs
-can help your jobs to get ahead in the queue and avoid the load imbalancement.
+and in some cases there is load imbalance (some nodes end up waiting for others). Splitting in smaller jobs
+can help your jobs to get ahead in the queue and avoid the load imbalance.
 If there are many free nodes you might end up running all the q-points at the same time.
 
-**The idea is quite simple:** you create an individual input file for each q-point, submit each job separatly, collect
+**The idea is quite simple:** you create an individual input file for each q-point, submit each job separately, collect
 the results and do the final BSE step (this method should also apply for a GW calculation).
 
 **1. Ground State**
 
-The groundstate calculation for MoS\ :sub:`2` is made in a similar fashion as the previous examples.
+The ground state calculation for MoS\ :sub:`2` is made in a similar fashion as the previous examples.
 If some of the steps are already calculated you can tell the script not to run them using for example:
 
 .. code-block:: bash
@@ -190,7 +190,7 @@ The option `-n2` will tell the script not to run the double grid `nscf` calculat
 **2. Parallel Dielectric function**
 
 Here we tell `yambo` to calculate the dielectric function. We read the number of q-points the system has
-and generate one input file per q-point. Next we tell yambo to calculate the first q-point. `Yambo` will calculate the dipoles
+and generate one input file per q-point. Next we tell `yambo` to calculate the first q-point. `Yambo` will calculate the dipoles
 and the dielectric function at the first q-point.
 Once the calculation is done we copy the dipoles to the SAVE directory. After that we can run each q-point calculation
 as a separate job.
@@ -230,8 +230,8 @@ available resources. In this example we use the second option.
 
 Once the dielectric function is calculated its time to collect the data in one folder and
 do the last step of the calculation: solve the Bethe-Salpeter equation.
-The `merge_eps.py` gathers the dielectric funciton databases into one folder with the correct numeration.
-In the next version of yambo this step won\'t be necessary (yambo will write the databases with the correct numeration).
+The `merge_eps.py` gathers the dielectric function databases into one folder with the correct numeration.
+In the next version of `yambo` this step won\'t be necessary (yambo will write the databases with the correct numeration).
 The the last step is to generate the BSE Hamiltonian and diagonalize it.
 
 .. code-block:: python

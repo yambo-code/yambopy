@@ -121,7 +121,7 @@ if args.analyse:
 
         os.system('cp gw_cutoff/%d/yambo.json gw_cutoff/%d.json'%(vac,vac))
 
-#plot the band structure
-ya = YamboAnalyser('gw_cutoff')
-ya.plot_gw(['qp'],cols=(lambda x: x[2]+x[3],))
-ya.plot_gw(['qp'],cols=(lambda x: x[2]+x[3],),rows=(lambda x: x[2]-x[1],))
+    #plot the band structure
+    ya = YamboAnalyser('gw_cutoff')
+    ya.plot_gw(['qp'],cols=(lambda x: x[2]+x[3],))
+    ya.plot_gw(['qp'],cols=(lambda x: x[2]+x[3],),rows=(lambda x: x[2]-x[1],))

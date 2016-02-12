@@ -1,18 +1,18 @@
 Quickstart
 ==========
 
-Only the `yambo` runlevels are hardcoded in `yambopy`. This means that any new
+Only the `yambo` run levels are hardcoded in `yambopy`. This means that any new
 variable in `yambo` can me immediately used from `yambopy` without needing to
 add new variables to the `yambopy` python code.
 
 YamboIn
 -------
 
-Read, write, create and manipulate yambo input files with python.
+Read, write, create and manipulate `yambo` input files with python.
 
 The class can be initialized in two ways:
-    - Specifying the runlevels: `yambopy` will run yambo, read the generated input file and initialize the class with the variables
-    - Without runlevels: just initialize the class and then the user can specify the variables in the script
+    - Specifying the run levels: `yambopy` will run `yambo`, read the generated input file and initialize the class with the variables
+    - Without run levels: just initialize the class and then the user can specify the variables in the script
 
 .. code-block:: python
 
@@ -31,15 +31,15 @@ The class can be initialized in two ways:
     #this will write the file on the hard drive
     yi.write('input.in')
 
-Keep in mind that the runlevels are hardcoded in `yambopy` this means that each
-new runlevel has to be added to the `_runlevels` list in the YamboIn class.
+Keep in mind that the run levels are hardcoded in `yambopy` this means that each
+new run level has to be added to the `_runlevels` list in the `YamboIn()` class.
 
-An interesting feature of the `YamboIn()` class is the `optimize()` funciton that
+An interesting feature of the `YamboIn()` class is the `optimize()` function that
 helps to make convergence tests. After you defined the all the relevant variables
-for the yambo input file you might want to run the code several times changing
+for the `yambo` input file you might want to run the code several times changing
 some of them to see how the final result changes.
 Using the initialization above you can use the following code to see how the
-results change as you use more sctrict convergence paramaters:
+results change as you use more strict convergence parameters:
 
 .. code-block:: python
 
@@ -56,10 +56,10 @@ results change as you use more sctrict convergence paramaters:
 YamboOut
 --------
 
-This class is used to read the output files of a typical yambo calculation and
+This class is used to read the output files of a typical `yambo` calculation and
 pack the results in a `.json` file for posterior analysis using `YamboAnalyser`.
 Currently we save the `o-` data and the input file that is written at the end.
-YamboOut also tries to get information about the positions of the atoms and
+`YamboOut()` also tries to get information about the positions of the atoms and
 lattice from the `SAVE` directory.
 This is only possible if you have netCDF4 support in your python installation.
 
@@ -76,7 +76,7 @@ This is only possible if you have netCDF4 support in your python installation.
 YamboAnalyser
 -------------
 
-This class is used to read the `.json` files generated with YamboOut and plot them.
+This class is used to read the `.json` files generated with `YamboOut()` and plot them.
 
 .. code-block:: python
 
@@ -99,8 +99,9 @@ This class works in a similar way as `YamboIn()` so you can start it either by
 reading a file from the hard drive
 or specifying the variables in a python script.
 
-The `input <http://www.quantum-espresso.org/wp-content/uploads/Doc/INPUT_PW.html>`_ file for `pw.x` is split into different sections.
-you can acess the variables for each section using :code:`.<section>['variable_name']`.
+The `input <http://www.quantum-espresso.org/wp-content/uploads/Doc/INPUT_PW.html>`_
+file for `pw.x` is split into different sections.
+you can access the variables for each section using :code:`.<section>['variable_name']`.
 
 Here is an example of how to create an input file for Silicon.
 
