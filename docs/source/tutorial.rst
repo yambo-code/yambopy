@@ -78,7 +78,11 @@ To make a plot of them all you just need to run:
   #plot the results using yambo analyser
   y = YamboAnalyser('gw_conv')
   y.plot_gw('qp')
-  y.plot_gw_path('qp')
+  path = [[[0.5,   0,   0],'L'],
+          [[  0,   0,   0],'$\Gamma$'],
+          [[  0, 0.5, 0.5],'X'],
+          [[1.0, 1.0, 1.0],'$\Gamma$']]
+  ya.plot_gw_path('qp',path)
 
 You can add more plots by simply adding more files in the folder you give as input to the `YamboAnalyser()` class.
 At the end you should obtain a plot like this:

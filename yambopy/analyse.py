@@ -91,11 +91,12 @@ class YamboAnalyser():
         colors = [cmap(i) for i in np.linspace(0, 1, nfiles)]
         return colors
 
-    def plot_gw_path(self,tags,path,cols=(lambda x: x[2]+x[3],),rows=None):
+    def plot_gw_path(self,tags,path_label,cols=(lambda x: x[2]+x[3],),rows=None):
         """ Create a path of k-points and find the points in the regular mesh that correspond to points in the path
             Use these points to plot the GW band structure.
         """
-        path = np.array(path)
+        path = np.array([p[0] for p in path_label])
+        labels = [p[1] for p in path_label]
         plot = False
         colors = self.get_colors(tags)
         fig = plt.figure()
@@ -153,13 +154,13 @@ class YamboAnalyser():
                 #sort the points acoording to distance to the start of the path
                 kpoints_in_path = sorted(kpoints_in_path.values(),key=lambda i: i[1])
                 
-                bands_highsym_qpts.append(distance)
                 #get kpoints_in_pathpoints
-                for index_dist_kpt in kpoints_in_path:
-                    index, disp, kpt = index_dist_kpt
+                if k==0: bands_highsym_qpts.append(kpoints_in_path[0][2])
+                for index, disp, kpt in kpoints_in_path:
                     bands_kpoints.append( kpt )
                     bands_indexes.append( index )
                     print ("%12.8lf "*3)%tuple(kpt), index
+                bands_highsym_qpts.append(kpt)
 
             #calculate distances
             bands_distances = [0]
@@ -183,10 +184,18 @@ class YamboAnalyser():
 
         if plot:
             #plot highsymetry qpoints
-            for x in bands_highsym_qpts:
-                plt.axvline(x,color='k')
+            distance = 0
+            bands_highsym_qpts_distances = [0]
+            for nk in range(1,len(bands_highsym_qpts)):
+                plt.axvline(distance,color='k')
+                distance+=np.linalg.norm(bands_highsym_qpts[nk]-bands_highsym_qpts[nk-1])
+                bands_highsym_qpts_distances.append(distance)
+
+            #plot labels
+            plt.xticks(bands_highsym_qpts_distances, labels)
 
             box = ax.get_position()
+            plt.title('GW quasiparticles on a path')
             ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
             plt.xlim(0,max(bands_distances))
             ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
@@ -267,6 +276,7 @@ class YamboAnalyser():
             box = ax.get_position()
             ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
 
+            plt.title('GW quasiparticles on a mesh')
             ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
             plt.show()
 
