@@ -5,6 +5,9 @@
 from __future__ import print_function
 from qepy import *
 
+scf_kpoints  = [4,4,4]
+nscf_kpoints = [4,4,4]
+prefix = 'si'
 #
 # Create the input files
 #
@@ -16,7 +19,7 @@ def get_inputfile():
                 ['Si',[-.125,-.125,-.125]]]
     qe.atypes = {'Si': [28.086,"Si.pbe-mt_fhi.UPF"]}
 
-    qe.control['prefix'] = "'si'"
+    qe.control['prefix'] = "'%s'"%prefix
     qe.control['wf_collect'] = '.true.'
     qe.system['celldm(1)'] = 10.3
     qe.system['ecutwfc'] = 60
@@ -24,7 +27,6 @@ def get_inputfile():
     qe.system['nat'] = 2
     qe.system['ntyp'] = 1
     qe.system['ibrav'] = 2
-    qe.kpoints = [4, 4, 4]
     qe.electrons['conv_thr'] = 1e-8
     return qe
 
@@ -36,7 +38,8 @@ def relax():
     qe.control['calculation'] = "'vc-relax'"
     qe.ions['ion_dynamics']  = "'bfgs'"
     qe.cell['cell_dynamics']  = "'bfgs'"
-    qe.write('relax/si.scf')
+    qe.kpoints = scf_kpoints
+    qe.write('relax/%s.scf'%prefix)
 
 #scf
 def scf():
@@ -44,7 +47,8 @@ def scf():
         os.mkdir('scf')
     qe = get_inputfile()
     qe.control['calculation'] = "'scf'"
-    qe.write('scf/si.scf')
+    qe.kpoints = scf_kpoints
+    qe.write('scf/%s.scf'%prefix)
 
 #nscf
 def nscf():
@@ -56,21 +60,21 @@ def nscf():
     qe.electrons['conv_thr'] = 1e-8
     qe.system['nbnd'] = 30
     qe.system['force_symmorphic'] = ".true."
-    qe.kpoints = [2, 2, 2]
-    qe.write('nscf/si.nscf')
+    qe.kpoints = nscf_kpoints
+    qe.write('nscf/%s.nscf'%prefix)
 
 def update_positions(pathin,pathout):
     """ update the positions of the atoms in the scf file using the output of the relaxation loop
     """
-    e = PwXML('si',path=pathin)
+    e = PwXML(prefix,path=pathin)
     pos = e.get_scaled_positions()
 
-    q = PwIn('%s/si.scf'%pathin)
+    q = PwIn('%s/%s.scf'%(pathin,prefix))
     print("old celldm(1)", q.system['celldm(1)'])
     q.system['celldm(1)'] = e.cell[0][2]*2
     print("new celldm(1)", q.system['celldm(1)'])
     q.atoms = zip([a[0] for a in q.atoms],pos)
-    q.write('%s/si.scf'%pathout)
+    q.write('%s/%s.scf'%(pathout,prefix))
 
 if __name__ == "__main__":
     nproc = 1
@@ -81,15 +85,15 @@ if __name__ == "__main__":
     nscf()
 
     print("running relax:")
-    os.system("cd relax; mpirun -np %d pw.x -inp si.scf > relax.log"%nproc)
+    os.system("cd relax; mpirun -np %d pw.x -inp %s.scf > relax.log"%(nproc,prefix))
     update_positions('relax','scf')
     print("done!")
 
     print("running scf:")
-    os.system("cd scf; mpirun -np %d pw.x -inp si.scf > scf.log"%nproc)
+    os.system("cd scf; mpirun -np %d pw.x -inp %s.scf > scf.log"%(nproc,prefix))
     print("done!")
 
     print("running nscf:")
-    os.system("cp -r scf/si.save nscf/")
-    os.system("cd nscf; mpirun -np %d pw.x -inp si.nscf > nscf.log"%nproc)
+    os.system("cp -r scf/%s.save nscf/"%prefix)
+    os.system("cd nscf; mpirun -np %d pw.x -inp %s.nscf > nscf.log"%(nproc,prefix))
     print("done!")

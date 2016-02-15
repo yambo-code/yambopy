@@ -13,7 +13,7 @@ def get_inputfile():
     """ Define a Quantum espresso input file for MoS2
     """
     qe = PwIn()
-    a = 5.83803209416
+    a = 5.838
     c = 20
     qe.atoms = [['Mo',[2/3,1/3,0.5]],
                 [ 'S',[1/3,2/3, 2.92781466/c+0.5]],
@@ -30,7 +30,7 @@ def get_inputfile():
     qe.system['nat'] = 3
     qe.system['ntyp'] = 2
     qe.system['ibrav'] = 4
-    qe.kpoints = [12, 12, 1]
+    qe.kpoints = [9, 9, 1]
     qe.electrons['conv_thr'] = 1e-8
     return qe
 
@@ -69,7 +69,7 @@ def nscf(kpoints,folder):
 def update_positions(pathin,pathout):
     """ update the positions of the atoms in the scf file using the output of the relaxation loop
     """
-    e = EspressoXML('mos2',path=pathin)
+    e = PwXML('mos2',path=pathin)
     pos = e.get_scaled_positions()
 
     q = PwIn('%s/mos2.scf'%pathin)
@@ -93,8 +93,8 @@ if __name__ == "__main__":
     # create input files and folders
     relax()
     scf()
-    nscf([12,12,1], 'nscf')
-    nscf([24,24,1], 'nscf_double')
+    nscf([9,9,1], 'nscf')
+    nscf([18,18,1], 'nscf_double')
 
     if args.relax:
         print("running relax:")

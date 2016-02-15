@@ -4,9 +4,8 @@
 # one job per q-point for the dielectric function
 #
 from __future__ import print_function
-from yambopy.inputfile import *
-from pwpy.inputfile import *
-from pwpy.outputxml import *
+from yambopy import *
+from qepy import *
 import argparse
 
 #parse options
@@ -61,8 +60,6 @@ y = YamboIn('yambo -r -b -o b -V all',folder='bse_par')
 y['FFTGvecs'] = [30,'Ry']
 y['NGsBlkXs'] = [1,'Ry']
 y['BndsRnXs'] = [[1,30],'']
-y['BSEBands'] = [[3,6],'']
-y.arguments.append('WRbsWF')
 y.write('bse_par/yambo_run.in')
 _,nkpoints = y['QpntsRXs'][0]
 
@@ -87,7 +84,6 @@ os.system('parallel :::: jobs.sh')
 os.system('cp merge_eps.py bse_par')
 os.system('cd bse_par; python merge_eps.py')
 
-os.system('rm bse_par/yambo.in')
 y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder='bse_par')
 y['FFTGvecs'] = [30,'Ry']
 y['NGsBlkXs'] = [1,'Ry']

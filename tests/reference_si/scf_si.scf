@@ -4,7 +4,7 @@
           wf_collect = .true.
 /&end
 &system
-             ecutwfc = 60
+             ecutwfc = 40
          occupations = 'fixed'
            celldm(1) = 10.3
                ibrav = 2

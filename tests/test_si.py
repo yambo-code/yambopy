@@ -1,4 +1,4 @@
-#
+
 # Author: Henrique Pereira Coutada Miranda
 # Tests for the yambopy library
 # Si
@@ -23,7 +23,7 @@ class TestPW_Si(unittest.TestCase):
         qe.control['prefix'] = "'si'"
         qe.control['wf_collect'] = '.true.'
         qe.system['celldm(1)'] = 10.3
-        qe.system['ecutwfc'] = 60
+        qe.system['ecutwfc'] = 40
         qe.system['occupations'] = "'fixed'"
         qe.system['nat'] = 2
         qe.system['ntyp'] = 1
@@ -78,7 +78,7 @@ class TestPW_Si_Run(unittest.TestCase):
         print "\nstep 1: relax"
         os.system('cd relax; pw.x < si.scf > si.scf.log')
 
-        e = EspressoXML('si',path='relax')
+        e = PwXML('si',path='relax')
         pos = e.get_scaled_positions()
 
         q = PwIn('relax/si.scf')
@@ -128,8 +128,8 @@ class TestYamboIn_GW_Si(unittest.TestCase):
         """ Test if we can generate multiple input files changing some variables
         """
         y = YamboIn('yambo -p p -g n -V all',folder='gw_conv')
-        conv = { 'FFTGvecs': [[10,15,20],'Ry'],
-                 'NGsBlkXp': [[5,10,20], 'Ry'],
+        conv = { 'FFTGvecs': [[5,10,15],'Ry'],
+                 'NGsBlkXp': [[1,2,5], 'Ry'],
                  'BndsRnXp': [[1,10],[1,20],[1,30]] }
         y.optimize(conv)
         return y
@@ -139,7 +139,7 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
         """ Run GW calculation with yambo
         """
         y = YamboIn('yambo -p p -g n -V all',folder='gw_conv')
-        conv = { 'FFTGvecs': [[10,15,20],'Ry'],
+        conv = { 'FFTGvecs': [[5,10,15],'Ry'],
                  'NGsBlkXp': [[1,2,5], 'Ry'],
                  'BndsRnXp': [[1,10],[1,20],[1,30]] }
         y.optimize(conv)
@@ -175,7 +175,7 @@ class TestYamboIn_BSE_Si(unittest.TestCase):
         """ Test if we can generate multiple input files changing some variables
         """
         y = YamboIn('yambo -b -o b -k sex -y h -V all',folder='bse_conv')
-        conv = { 'FFTGvecs': [[10,15,20],'Ry'],
+        conv = { 'FFTGvecs': [[5,10,15],'Ry'],
                  'NGsBlkXs': [[1,2,5], 'Ry'],
                  'BndsRnXs': [[1,10],[1,20],[1,30]] }
         y.optimize(conv)
@@ -186,8 +186,8 @@ class TestYamboIn_BSE_Si_Run(unittest.TestCase):
         """ Run BSE calculation with yambo
         """
         y = YamboIn('yambo -b -o b -k sex -y h -V all',folder='bse_conv')
-        conv = { 'FFTGvecs': [[10,15,20],'Ry'],
-                 'NGsBlkXs': [[5,10,20], 'Ry'],
+        conv = { 'FFTGvecs': [[5,10,15],'Ry'],
+                 'NGsBlkXs': [[1,2,5], 'Ry'],
                  'BndsRnXs': [[1,10],[1,20],[1,30]] }
 
         print
@@ -202,13 +202,11 @@ class TestYamboOut_BSE_Si(unittest.TestCase):
     def test_yamboout_bse_si(self):
         """ Read the yambo BSE output files and write them as .json
         """
-        #list all folders with o-* files inside
-        for folder in subprocess.check_output('ls bse_conv/*/o-*',shell=True).splitlines():
-            folder = '/'.join(folder.split('/')[:-1])
-            y = YamboOut(folder)
-            if not y.locked():
+        for dirpath,dirnames,filenames in os.walk('bse_conv'):
+            #check if there are some output files in the folder
+            if ([ f for f in filenames if 'o-' in f ]):
+                y = YamboOut(dirpath,save_folder='bse_conv')
                 y.pack()
-                y.put_lock()
 
     def test_yamboanalyse_bse_si(self):
         """ Analyse the BSE .json output files
@@ -220,12 +218,11 @@ class TestYamboOut_GW_Si(unittest.TestCase):
     def test_yamboout_gw_si(self):
         """ Read the yambo GW output files
         """
-        for folder in subprocess.check_output('ls gw_conv/*/o-*',shell=True).splitlines():
-            folder = '/'.join(folder.split('/')[:-1])
-            y = YamboOut(folder)
-            if not y.locked():
+        for dirpath,dirnames,filenames in os.walk('gw_conv'):
+            #check if there are some output files in the folder
+            if ([ f for f in filenames if 'o-' in f ]):
+                y = YamboOut(dirpath,save_folder='gw_conv')
                 y.pack()
-                y.put_lock()
         
     def test_yamboanalyse_gw_si(self):
         """ Analyse the yambo GW .json output files

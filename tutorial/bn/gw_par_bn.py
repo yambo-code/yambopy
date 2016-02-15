@@ -8,9 +8,8 @@
 # modify it accordingly
 #
 from __future__ import print_function
-from yambopy.inputfile import *
-from pwpy.inputfile import *
-from pwpy.outputxml import *
+from yambopy import *
+from qepy import *
 
 yambo =  'yambo'
 
@@ -78,7 +77,7 @@ os.system('cd gw_par; %s -F yambo_q1.in -J 1'%yambo)
 #copy dipoles to save
 os.system('cp gw_par/1/ndb.dip* gw_par/SAVE')
 print('running separate yambo files')
-os.system('parallel :::: jobs.sh')
+#os.system('parallel :::: jobs.sh')
 
 #gather all the files
 os.system('cp merge_eps.py gw_par')
@@ -86,7 +85,7 @@ os.system('cd gw_par; python merge_eps.py')
 
 y = YamboIn('yambo -d -g n -V all',folder='gw_par')
 QPKrange,_ = y['QPkrange']
-y['QPkrange'] = [QPKrange[:2]+[6,10],'']
+y['QPkrange'] = [QPKrange[:2]+[3,6],'']
 y['FFTGvecs'] = [15,'Ry']
 y['NGsBlkXd'] = [1,'Ry']
 y['BndsRnXd'] = [[1,30],'']
@@ -98,3 +97,20 @@ y.write('gw_par/yambo_run.in')
 
 print('running yambo')
 os.system('cd gw_par; %s -F yambo_run.in -J yambo'%yambo)
+
+#pack the files in .json files
+pack_files_in_folder('gw_par')
+
+#plot the results using yambm analyser
+ya = YamboAnalyser()
+print(ya)
+print('plot all qpoints')
+ya.plot_gw('qp')
+print('plot along a path')
+path = [[   0,   0,   0],
+        [ 0.5,   0,   0],
+        [1./3, 1/3,   0],
+        [   0,   0,   0]]
+ya.plot_gw_path('qp',path)
+
+print('done!')

@@ -4,11 +4,8 @@
 # using different layer separations with or without the coulomb truncation
 #
 from __future__ import division, print_function
-from yambopy.inputfile import *
-from yambopy.outfile import *
-from yambopy.analyse import *
-from pwpy.inputfile import *
-from pwpy.outputxml import *
+from yambopy import *
+from qepy import *
 import argparse
 
 yambo =  'yambo'
@@ -124,7 +121,7 @@ if args.analyse:
 
         os.system('cp gw_cutoff/%d/yambo.json gw_cutoff/%d.json'%(vac,vac))
 
-#plot the band structure
-ya = YamboAnalyser('gw_cutoff')
-ya.plot_gw(['qp'],cols=(lambda x: x[2]+x[3],))
-ya.plot_gw(['qp'],cols=(lambda x: x[2]+x[3],),rows=(lambda x: x[2]-x[1],))
+    #plot the band structure
+    ya = YamboAnalyser('gw_cutoff')
+    ya.plot_gw(['qp'],cols=(lambda x: x[2]+x[3],))
+    ya.plot_gw(['qp'],cols=(lambda x: x[2]+x[3],),rows=(lambda x: x[2]-x[1],))
