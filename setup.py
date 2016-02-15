@@ -1,6 +1,6 @@
 from distutils.core import setup
 
-packages_yambopy = ['yambopy','qepy']
+packages_yambopy = ['yambopy','qepy','schedulerpy']
 
 if __name__ == '__main__':
     setup(name='yambopy',

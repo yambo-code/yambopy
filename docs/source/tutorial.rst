@@ -8,6 +8,7 @@ Included in the `yambopy` package we include some basic scripts to generate Quan
 
 GW convergence (Si)
 --------------------
+**by H. Miranda**
 
 **1. Ground State**
 
@@ -91,6 +92,7 @@ At the end you should obtain a plot like this:
 
 Coulomb-cutoff (BN)
 -------------------------------
+**by H. Miranda**
 
 In this example we will test the convergence of the coulomb truncation for a BSE calculation in single layer Boron Nitride.
 For that we define a loop where we perform a self-consistent ground state calculation, non self-consistent calculation, create the databases
@@ -165,6 +167,7 @@ You should obtain a plot like this:
 
 Parallel Bethe-Salpeter (MoS\ :sub:`2`)
 -----------------------------------------------------------------
+**by H. Miranda**
 
 .. warning::
     The `merge_eps.py` gathers the dielectric function databases into one folder with the correct numeration.
@@ -277,46 +280,47 @@ You should obtain a plot like this:
 
 .. image:: figures/bse_mos2.png
 
-Real Time Simulations
------------------------
+Real Time Simulations (Si)
+---------------------------
+**by A. Molina Sánchez**
 
-We start with the calculation of the ground state properties using the script `gs_si.py`. We will create self-consistent
-data (folder `scf`) and a non-self consistent data (folder `nscf`). All the real-time calculations are realized
-inside the folder `FixSymm`.
+
+We start with the calculation of the ground state properties using the script `gs_si.py` in the `tutorials/si` folder.
+We will create self-consistent data (folder `scf`) and a non-self consistent data (folder `nscf`). All the real-time calculations are realized
+inside the folder `rt`.
 
 In order to perform real-time simulations we need to perform some preliminary steps:
 
-    - Creating the files containing the electron-phonon matrix elements: We use quantum espresso ('ph.x'). The grid used for obtaining the eletron-phonon matrix elements must be the same than for the real-time simulations. See in the yambo website more information about the methodology.
+    - Creating the files containing the electron-phonon matrix elements: We use quantum espresso ('ph.x'). The grid used for obtaining the eletron-phonon matrix elements must be the same than for the real-time simulations. See in the `yambo` `website <http://www.yambo-code.org/>`_ more information about the methodology.
 
 .. code-block:: bash
- 
+
     python gkkp_si.py
 
-The script will create a folder `GKKP` inside `FixSymm`. `GKKP` contains all the electron-phonon matrix elements in the
+The script will create a folder `GKKP` inside `rt`. `GKKP` contains all the electron-phonon matrix elements in the
 full Brillouin zone.
-
 
     - Breaking symmetries. The action of an external field breaks the symmetry of the system. We need to break the symmetries according with the direction of the polarization of the incident light. When we run for first time:
 
 .. code-block:: bash
- 
+
     python rt_si.py
 
-Yambopy check if the `SAVE` exists inside `FixSymm`. If not, it breaks the symmetries. We can select linear or circular
+`yambopy` check if the `SAVE` exists inside `rt`. If not, it breaks the symmetries. We can select linear or circular
 polarized light. The light polarization must be the same along all the calculations. Here we select a field along x-axis:
 
 .. code-block:: bash
 
-    ypp['Efield1'] = [ 1, 0, 0]  # Field in the X-direction 
+    ypp['Efield1'] = [ 1, 0, 0]  # Field in the X-direction
 
-The circular polarizad field must be set as follows:
+The circular polarized field must be set as follows:
 
 .. code-block:: bash
 
-    ypp['Efield1'] = [ 1, 0, 0]  # Circular polarization 
-    ypp['Efield2'] = [ 0, 1, 0] 
+    ypp['Efield1'] = [ 1, 0, 0]  # Circular polarization
+    ypp['Efield2'] = [ 0, 1, 0]
 
-If everything is OK we have to find inside `FixSymm` the folder `SAVE` and `GKKP`. Now we can start the 
+If everything is OK we have to find inside `rt` the folder `SAVE` and `GKKP`. Now we can start the
 real-time simulations. We discuss the following run levels.
 
 **1. Collisions.**
@@ -350,12 +354,12 @@ use the COHSEX potential).
     run['Field1_kind'] = "DELTA"
 
 In order to save time one can increase the `IOtime` intervals. Be aware that some post-processing runs could need high
-precission and thus small `IOtime` intervals.
+precision and thus small `IOtime` intervals.
 
 **3. Time-dependent with a gaussian pulse.**
-  
+
 .. code-block:: bash
-    
+
     yambo -q p -v c -V all
 
 The gaussian pulse should be centered in energy at an excitonic peak for an efficient excitation. The damping parameter
@@ -374,13 +378,10 @@ determines the duration of the pulse.
     yambo -s p -q p -v c -V all
 
 We excite with the same gaussian pulse but now electrons and holes relax via electron-phonon interaction. The folder `GKKP` must
-be inside the folder `FixSymm`. The new variables to set is the interpolation steps for the lifetime due to the electron-phonon
+be inside the folder `rt`. The new variables to set is the interpolation steps for the lifetime due to the electron-phonon
 interaction, otherwise the calculations will be very slow.
 
 .. code-block:: bash
 
     run['LifeInterpKIND']  = 'FLAT'
-    run['LifeInterpSteps'] = [ [4.0,1.0], 'fs' ] 
-
-
-
+    run['LifeInterpSteps'] = [ [4.0,1.0], 'fs' ]

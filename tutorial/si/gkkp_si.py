@@ -8,6 +8,7 @@ from yambopy import *
 from qepy import *
 
 ph = 'ph.x'
+folder = 'elphon'
 
 #check if the scf cycle is present
 if os.path.isdir('scf/si.save'):
@@ -25,7 +26,7 @@ else:
 
 # Create a work directory
 
-os.system('mkdir -p work_elph')
+os.system('mkdir -p %s'%folder)
 
 # Input files for the electron-phonon calculation
 
@@ -42,38 +43,38 @@ phin['nq1']             = 2
 phin['nq2']             = 2
 phin['nq3']             = 2
 
-phin.write('work_elph/02ph.in')      # Potential calculation
+phin.write('%s/02ph.in'%folder)      # Potential calculation
 phin['trans']           = '.false.'
 phin['electron_phonon'] = "'yambo'"
-phin.write('work_elph/04elph.in')    # Electron-phonon calculation
+phin.write('%s/04elph.in'%folder)    # Electron-phonon calculation
 
 # A. Generation s.dbph_# Files
 
 # 1. Self-consistent data
-os.system('cp -r scf/si.save work_elph')
+os.system('cp -r scf/si.save %s'%folder)
 # 2. Potential dVscf 
-os.system('cd work_elph; %s < 02ph.in   | tee 02.out'%ph)
+os.system('cd %s; %s < 02ph.in   | tee 02.out'%(folder,ph))
 # 3. Non-self consistent data
-os.system('cp -r nscf/si.save work_elph/.')
+os.system('cp -r nscf/si.save %s/.'%folder)
 # 4. Electron-phonon matrix elements
-os.system('cd work_elph; %s < 04elph.in | tee 04.out'%ph)
+os.system('cd %s; %s < 04elph.in | tee 04.out'%(folder,ph))
 
 # B. Generation of the gkkp fragments 
 
 # 1. Database in Yambo
-os.system('cd nscf/si.save; p2y -O ../../work_elph/ELPH')
-os.system('cp work_elph/elph_dir/* work_elph/ELPH ; cd work_elph/ELPH')
+os.system('cd nscf/si.save; p2y -O ../../%s/ELPH'%folder)
+os.system('cp %s/elph_dir/* %s/ELPH'%(folder,folder))
 # 2. Setup yambo
-y  = YamboIn('yambo_rt -i -V all -Q',folder='work_elph/ELPH')
+y  = YamboIn('yambo_rt -i -V all -Q',folder='%s/ELPH'%folder)
 y.arguments.append('BSEscatt')
-y.write('work_elph/ELPH/yambo.in')
-os.system('cd work_elph/ELPH ; yambo_rt -F yambo.in')
+y.write('%s/ELPH/yambo.in'%folder)
+os.system('cd %s/ELPH ; yambo_rt -F yambo.in'%folder)
 # 3. Expansion gkkp matrix elements
-yp = YamboIn('ypp_ph -g',folder='work_elph/ELPH',filename='ypp.in')
+yp = YamboIn('ypp_ph -g',folder='%s/ELPH'%folder,filename='ypp.in')
 yp.arguments.append('GkkpExpand')
-yp.write('work_elph/ELPH/ypp.in')
-os.system('cd work_elph/ELPH ; ypp_ph -F ypp.in')
-# 4. Moving files to FixSymm
-os.system('mkdir -p FixSymm; cd FixSymm ; mkdir -p GKKP')
-os.system('mv work_elph/ELPH/SAVE/ndb.elph* FixSymm/GKKP')
-print('Files ready in folder FixSymm')
+yp.write('%s/ELPH/ypp.in'%folder)
+os.system('cd %s/ELPH ; ypp_ph -F ypp.in'%folder)
+# 4. Moving files to rt
+os.system('mkdir -p rt; cd rt ; mkdir -p GKKP')
+os.system('mv %s/ELPH/SAVE/ndb.elph* rt/GKKP'%folder)
+print('Files ready in folder rt')
