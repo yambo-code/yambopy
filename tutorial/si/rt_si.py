@@ -67,7 +67,7 @@ if not os.path.isdir('FixSymm/SAVE'):
 # you can select the calculation among : 'collision', 'tdsex', 'pump', 'dissipation'
 
 job = dict()
-job['calculation']  = 'dissipation'
+job['calculation']  = 'collision'
 job['folder-run']   = 'Diss'
 job['folder-col']   = 'COLLISION'
 job['folder-gkkp']  = 'GKKP'
@@ -86,18 +86,18 @@ if job['calculation']=='dissipation':
 # System Common variables
 run['FFTGvecs']  = [5,'Ha']
 run['EXXRLvcs']  = [5,'Ha']
-run['SCBands']   = [[2,7],'']
+run['SCBands']   = [2,7]
 
 # Collision variables
 if job['calculation']=='collision':
   run['NGsBlkXp']  = [ 100,'mHa']
-  run['BndsRnXs' ] = [[1,30],'']
+  run['BndsRnXs' ] = [1,30]
   run.write('FixSymm/03_COLLISION')
 
 # Common time-dependent variable
 if job['calculation']=='tdsex' or 'pump' or 'dissipation':
-  run['GfnQP_Wv']   = [ [0.01,0.00,0.00],'' ]
-  run['GfnQP_Wc']   = [ [0.01,0.00,0.00],'' ]
+  run['GfnQP_Wv']   = [0.01,0.00,0.00]
+  run['GfnQP_Wc']   = [0.01,0.00,0.00]
   run['GfnQPdb']    = 'none' 
   run['Potential']  = 'COHSEX' 
   # Time-propagation 
@@ -107,8 +107,8 @@ if job['calculation']=='tdsex' or 'pump' or 'dissipation':
   run['IOtime']     = [ [2.000, 2.000, 2.000], 'fs' ] 
   # Pump Pulse
   run['Field1_Int']       = [ 1E6 , 'kWLm2']    # Intensity pulse
-  run['Field1_Dir']       = [[1.0,0.0,0.0],'']  # Polarization pulse
-  run['Field1_Dir_circ']  = [[0.0,1.0,0.0],'']  # Polarization pulse
+  run['Field1_Dir']       = [1.0,0.0,0.0]  # Polarization pulse
+  run['Field1_Dir_circ']  = [0.0,1.0,0.0]  # Polarization pulse
   run['Field1_pol']       = "linear"            # Polarization type (linear or circular) 
 
 # Time-dependent COHSEX -- DELTA PULSE

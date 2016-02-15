@@ -276,3 +276,111 @@ You can plot the data much in the same way as you did for the GW calculation.
 You should obtain a plot like this:
 
 .. image:: figures/bse_mos2.png
+
+Real Time Simulations
+-----------------------
+
+We start with the calculation of the ground state properties using the script `gs_si.py`. We will create self-consistent
+data (folder `scf`) and a non-self consistent data (folder `nscf`). All the real-time calculations are realized
+inside the folder `FixSymm`.
+
+In order to perform real-time simulations we need to perform some preliminary steps:
+
+    - Creating the files containing the electron-phonon matrix elements: We use quantum espresso ('ph.x'). The grid used for obtaining the eletron-phonon matrix elements must be the same than for the real-time simulations. See in the yambo website more information about the methodology.
+
+.. code-block:: bash
+ 
+    python gkkp_si.py
+
+The script will create a folder `GKKP` inside `FixSymm`. `GKKP` contains all the electron-phonon matrix elements in the
+full Brillouin zone.
+
+
+    - Breaking symmetries. The action of an external field breaks the symmetry of the system. We need to break the symmetries according with the direction of the polarization of the incident light. When we run for first time:
+
+.. code-block:: bash
+ 
+    python rt_si.py
+
+Yambopy check if the `SAVE` exists inside `FixSymm`. If not, it breaks the symmetries. We can select linear or circular
+polarized light. The light polarization must be the same along all the calculations. Here we select a field along x-axis:
+
+.. code-block:: bash
+
+    ypp['Efield1'] = [ 1, 0, 0]  # Field in the X-direction 
+
+The circular polarizad field must be set as follows:
+
+.. code-block:: bash
+
+    ypp['Efield1'] = [ 1, 0, 0]  # Circular polarization 
+    ypp['Efield2'] = [ 0, 1, 0] 
+
+If everything is OK we have to find inside `FixSymm` the folder `SAVE` and `GKKP`. Now we can start the 
+real-time simulations. We discuss the following run levels.
+
+**1. Collisions.**
+
+.. code-block:: bash
+
+    yambo -r -e -v c -V all
+
+Calculation of the collisions files. This step is mandatory to run any real-time simulation. We have
+several choices for the potential approximation (we use COHSEX in this tutorial).
+
+.. code-block:: bash
+
+    Potential = 'COHSEX' # IP, HARTREE, HARTREE-FOCK, COHSEX
+
+**2. Time-dependent with a delta pulse.**
+
+.. code-block:: bash
+
+    yambo -q p -v c -V all
+
+The delta pulse real time simulation is the equivalent to the Bethe-Salpeter equation in the time domain (if we
+use the COHSEX potential).
+
+.. code-block:: bash
+
+    run['RTstep']      = [ 100 ,'as']
+    run['NETime']      = [ 300 ,'fs']
+    run['Integrator']  = "RK2 RWA"
+    run['IOtime']      = [ [2.000, 2.000, 2.000], 'fs' ]
+    run['Field1_kind'] = "DELTA"
+
+In order to save time one can increase the `IOtime` intervals. Be aware that some post-processing runs could need high
+precission and thus small `IOtime` intervals.
+
+**3. Time-dependent with a gaussian pulse.**
+  
+.. code-block:: bash
+    
+    yambo -q p -v c -V all
+
+The gaussian pulse should be centered in energy at an excitonic peak for an efficient excitation. The damping parameter
+determines the duration of the pulse.
+
+.. code-block:: bash
+
+    run['Field1_kind'] = "QSSIN"
+    run['Field1_Damp'] = [  50,'fs']
+    run['Field1_Freq'] = [[2.5,0.0],'eV']
+
+**4. Time-dependent with a gaussian pulse and electron-phonon scattering.**
+
+.. code-block:: bash
+
+    yambo -s p -q p -v c -V all
+
+We excite with the same gaussian pulse but now electrons and holes relax via electron-phonon interaction. The folder `GKKP` must
+be inside the folder `FixSymm`. The new variables to set is the interpolation steps for the lifetime due to the electron-phonon
+interaction, otherwise the calculations will be very slow.
+
+.. code-block:: bash
+
+    run['LifeInterpKIND']  = 'FLAT'
+    run['LifeInterpSteps'] = [ [4.0,1.0], 'fs' ] 
+
+
+
