@@ -52,15 +52,17 @@ if os.path.isdir('%s/SAVE'%folder):
   print('symmetries for carrier dynamics ready') 
 if not os.path.isdir('%s/SAVE'%folder):
   print('breaking symmetries')
-  os.system('mkdir -p rt')
-  os.system('cp -r database/SAVE rt')
-  ypp = YamboIn('ypp_ph -n -V all',folder='rt',filename='ypp.in')
+  os.system('mkdir -p %s'%folder)
+  os.system('cp -r database/SAVE %s'%folder)
+  ypp = YamboIn('ypp_ph -n -V all',folder=folder,filename='ypp.in')
   ypp['Efield1'] = [[1.0,0.0,0.0],''] # Field in the X-direction
   ypp.arguments.append('RmTimeRev')   # Remove Time Symmetry
   ypp.write('rt/ypp.in')
-  os.system('cd rt ; %s -F ypp.in'%ypp_ph )
-  os.system('cd rt ; cd FixSymm; yambo ' )
-  os.system('mv rt/FixSymm/SAVE %s/'%folder)
+  os.system('cd %s ; %s -F ypp.in'%(folder,ypp_ph) )
+  os.system('cd %s ; cd FixSymm; yambo '%(folder) )
+  os.system('rm -r %s/SAVE'%folder)
+  os.system('mv %s/FixSymm/SAVE %s/'%(folder,folder))
+  os.system('rm -r %s/FixSymm'%folder)
   print('%s folder created'%folder)
 
 # you can select the calculation among : 'collision', 'tdsex', 'pump', 'dissipation'
