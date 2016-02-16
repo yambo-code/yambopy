@@ -94,7 +94,7 @@ run['SCBands']   = [2,7]
 
 # Collision variables
 if job['calculation']=='collision':
-  run['NGsBlkXp']  = [ 100,'mHa']
+  run['NGsBlkXs']  = [ 100,'mHa']
   run['BndsRnXs' ] = [1,30]
   run.write('%s/03_COLLISION'%folder)
 
