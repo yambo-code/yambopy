@@ -32,7 +32,7 @@ class PhIn():
         if 'true' in self['qplot'].lower(): 
             s += "%d\n"%len(self.qpoints)
             for q in self.qpoints:
-                s+=("%12.8lf "*4)%tuple(q)+"\n"
+                s+=("%12.8lf %12.8lf %12.8lf %d")%tuple(q)+"\n"
         return s
 
     def __setitem__(self,key,value):
