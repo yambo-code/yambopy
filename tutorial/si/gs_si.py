@@ -5,8 +5,8 @@
 from __future__ import print_function
 from qepy import *
 
-scf_kpoints  = [4,4,4]
-nscf_kpoints = [4,4,4]
+scf_kpoints  = [2,2,2]
+nscf_kpoints = [3,3,3]
 prefix = 'si'
 #
 # Create the input files
@@ -22,7 +22,7 @@ def get_inputfile():
     qe.control['prefix'] = "'%s'"%prefix
     qe.control['wf_collect'] = '.true.'
     qe.system['celldm(1)'] = 10.3
-    qe.system['ecutwfc'] = 60
+    qe.system['ecutwfc'] = 30
     qe.system['occupations'] = "'fixed'"
     qe.system['nat'] = 2
     qe.system['ntyp'] = 1
@@ -58,7 +58,7 @@ def nscf():
     qe.control['calculation'] = "'nscf'"
     qe.electrons['diago_full_acc'] = ".true."
     qe.electrons['conv_thr'] = 1e-8
-    qe.system['nbnd'] = 30
+    qe.system['nbnd'] = 20
     qe.system['force_symmorphic'] = ".true."
     qe.kpoints = nscf_kpoints
     qe.write('nscf/%s.nscf'%prefix)

@@ -99,6 +99,7 @@ class YamboAnalyser():
         labels = [p[1] for p in path_label]
         plot = False
         colors = self.get_colors(tags)
+        lstyles = ['-', '--', '_', ':'] 
         fig = plt.figure()
         ax = plt.subplot(111)
         n=0
@@ -174,10 +175,10 @@ class YamboAnalyser():
                 kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
 
                 #plot 
-                for bands in bands_cols:
+                for ib,bands in enumerate(bands_cols):
                     label = output_filename
                     for band in bands:
-                        plt.plot(bands_distances,[band[k] for k in bands_indexes],'-',label=label,color=colors[n])
+                        plt.plot(bands_distances,[band[k] for k in bands_indexes],linestyle=lstyles[ib%len(lstyles)],label=label,color=colors[n])
                         label=None
                 plot = True
                 n+=1
@@ -237,6 +238,17 @@ class YamboAnalyser():
             bands_cols.append(bands)
         return kpoint_index, bands_cols
 
+    def plot_qp_correction(self,tags=('qp',),lda=2,qp=3):
+       for json_filename in sorted(self.jsonfiles.keys()):
+            for output_filename in self.jsonfiles[json_filename]["data"]:
+                if all(i in output_filename for i in tags):
+                    data = np.array( self.jsonfiles[json_filename]["data"][output_filename] )
+                    
+                    plt.plot(data[:,lda],data[:,qp],'ro') 
+
+       plt.plot()
+       plt.show()
+        
     def plot_gw(self,tags=('qp',),cols=(lambda x: x[2]+x[3],),rows=None):
         """ Use this function to plot the quasiparticle energies from a GW calculation
             cols: a list of indexes or functions
