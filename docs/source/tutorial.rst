@@ -385,3 +385,26 @@ interaction, otherwise the calculations will be very slow.
 
     run['LifeInterpKIND']  = 'FLAT'
     run['LifeInterpSteps'] = [ [4.0,1.0], 'fs' ]
+
+
+Electron-Phonon interaction (Si)
+---------------------------
+**by A. Molina Sánchez**
+
+**1. Ground State and non-self consistent calculation**
+
+Electron-phonon interaction calculations requires to obtain electronic states, phonon states and the 
+interaciton between them. An extended study can be found in the  `Thesis of Elena Cannuccia 
+<http://www.yambo-code.org/papers/Thesis_Elena_Cannuccia.pdf>`_.
+
+
+Go to the ``tutorial`` folder and run the ground state calculation using the ``gs_si.py`` file:
+
+.. code-block:: bash
+
+    python gs_si.py
+
+The script will run a relaxation of the structure, read the optimized cell parameter and create a new input file that is used
+to run a self-consistent (scf) cycle and a non self-consistent (nscf) cycle using the charge density calculated on the previous run.
+
+The self-consistent data are used in the calculation
