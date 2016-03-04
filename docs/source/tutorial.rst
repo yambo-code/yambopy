@@ -407,4 +407,8 @@ Go to the ``tutorial`` folder and run the ground state calculation using the ``g
 The script will run a relaxation of the structure, read the optimized cell parameter and create a new input file that is used
 to run a self-consistent (scf) cycle and a non self-consistent (nscf) cycle using the charge density calculated on the previous run.
 
-The self-consistent data are used in the calculation
+The self-consistent data are used to obtain the derivative of the potential. The non-self-consistent data are used, together with the
+potential derivative, for deriving the electron-phonon matrix elements.
+
+.. image:: figures/tutorial-el-ph_1.jpg
+

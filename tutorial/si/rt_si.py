@@ -79,16 +79,17 @@ else:
 # System Common variables
 run['FFTGvecs']  = [5,'Ha']
 run['EXXRLvcs']  = [5,'Ha']
-run['SCBands']   = [2,7]
 
 # Collision variables
 if job['calculation']=='collision':
   run['NGsBlkXs']  = [ 100,'mHa']
   run['BndsRnXs' ] = [1,30]
+  run['COLBands']  = [2,7]
   run.write('%s/03_COLLISION'%folder)
 
 # Common time-dependent variable
 if job['calculation']=='tdsex' or 'pump' or 'dissipation':
+  run['RTBands']    = [2,7]
   run['GfnQP_Wv']   = [0.01,0.00,0.00]
   run['GfnQP_Wc']   = [0.01,0.00,0.00]
   run['GfnQPdb']    = 'none' 

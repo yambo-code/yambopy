@@ -59,7 +59,7 @@ class YamboOut():
         else:
             logdir = outdir
 
-        self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and ('refl' in f or 'eel' in f or 'eps' in f or 'qp' in f)]
+        self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and ('refl' in f or 'eel' in f or 'eps' in f or 'qp' in f or 'sf' in f)]
         self.run    = ["%s"%f for f in outdir if f[:2] == 'r-']
         self.logs   = ["/LOG/%s"%f for f in logdir]
         self.get_runtime()

@@ -178,7 +178,9 @@ class YamboAnalyser():
                 for ib,bands in enumerate(bands_cols):
                     label = output_filename
                     for band in bands:
-                        plt.plot(bands_distances,[band[k] for k in bands_indexes],linestyle=lstyles[ib%len(lstyles)],label=label,color=colors[n])
+                        #print len(bands_distances)
+                        print len([band[k] for k in bands_indexes])
+                        plt.plot(bands_distances,[band[k] for k in bands_indexes])#,linestyle=lstyles[ib%len(lstyles)],label=label,color=colors[n])
                         label=None
                 plot = True
                 n+=1
@@ -244,8 +246,10 @@ class YamboAnalyser():
                 if all(i in output_filename for i in tags):
                     data = np.array( self.jsonfiles[json_filename]["data"][output_filename] )
                     
-                    plt.plot(data[:,lda],data[:,qp],'ro') 
-
+                    plt.title('Temperature correction of eigenvalues')
+                    plt.plot(data[:,lda],data[:,qp],'o',label=output_filename) 
+                    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
+       plt.plot([min(data[:,lda]),max(data[:,lda])],[min(data[:,lda]),max(data[:,lda])],'k--')          
        plt.plot()
        plt.show()
         
@@ -329,6 +333,22 @@ class YamboAnalyser():
 
             ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
             plt.show()
+
+    def plot_spectral_function(self,tags):
+        if type(tags) == str:
+            tags = (tags,)
+        ax = plt.axes([0.1, 0.1, .7, .7])
+        for json_filename in sorted(self.jsonfiles.keys()):
+          for output_filename in self.jsonfiles[json_filename]["data"]:
+            if all(i in output_filename for i in tags):
+               data = np.array( self.jsonfiles[json_filename]["data"][output_filename] )
+               plt.title('Spectral function as a function of Temperature')
+               plt.plot(data[:,0],data[:,2],'-',label=output_filename) 
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
+        plt.show()
 
     def print_timing(self,tags=""):
         for k in self.jsonfiles.keys():
