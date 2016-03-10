@@ -412,3 +412,35 @@ potential derivative, for deriving the electron-phonon matrix elements.
 
 .. image:: figures/tutorial-el-ph_1.jpg
 
+
+The script ``elph_pw_si.py`` calculates the electron-phonon matrix elements. It follows the indications of the flowchart, using
+the scf and nscf data. All the files used by QE are stored in the directory ``work``. Finally, it transform the files from
+the QE format to the netCDF format used by yambo. It creates the folder ``elphon``.
+
+
+**2. Electron-phonon calculations**
+
+
+The second step requires the script ``elph_qp_si.py``. If the electron-phonon matrix elements have been successfully created and
+stored in ``elphon/SAVE`` we are ready to calculate the electron-phonon correction of the eigenvalues at several temperatures, 
+or to examine the spectral function of each quasi-particle state. A more complete tutorial of the capabilities of yambo is 
+also available in the `yambo website <http://www.yambo-code.org/tutorials/Electron_Phonon/index.php>`_.
+
+If we run 
+
+.. code-block:: bash
+   
+    python elph_qp_si.py -r
+
+Yambo will calculate the quasi-particle correction and the spectral functions for the top of the valence band and the 
+bottom of the conduction band (states 4 and 5).
+
+
+.. image:: figures/elph-qp-correction.png
+
+
+.. image:: figures/elph-sf-band4.png
+
+
+
+.. image:: figures/elph-sf-band5.png

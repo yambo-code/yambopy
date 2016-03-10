@@ -241,6 +241,7 @@ class YamboAnalyser():
         return kpoint_index, bands_cols
 
     def plot_qp_correction(self,tags=('qp',),lda=2,qp=3):
+       ax = plt.axes([0.1, 0.1, .7, .7])
        for json_filename in sorted(self.jsonfiles.keys()):
             for output_filename in self.jsonfiles[json_filename]["data"]:
                 if all(i in output_filename for i in tags):
@@ -249,7 +250,14 @@ class YamboAnalyser():
                     plt.title('Temperature correction of eigenvalues')
                     plt.plot(data[:,lda],data[:,qp],'o',label=output_filename) 
                     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
-       plt.plot([min(data[:,lda]),max(data[:,lda])],[min(data[:,lda]),max(data[:,lda])],'k--')          
+       xmin, xmax = ax.get_xlim()
+       ymin, ymax = ax.get_ylim()
+       plt.plot([xmin,xmax],[ymin,ymax],'k--',lw=2)          
+
+       box = ax.get_position()
+       ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+       ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
+       plt.show()
        plt.plot()
        plt.show()
         
