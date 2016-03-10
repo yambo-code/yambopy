@@ -36,6 +36,6 @@ TODO
 Authors
 ------
 - Henrique Pereira Coutada Miranda
-- Alejandro Molina Sanchez
+- [Alejandro Molina Sanchez](http://alexmoratalla.github.io/)
 
 The code is at an early stage of development, help us by sending bug reports, patches and suggestions!
