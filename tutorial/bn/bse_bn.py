@@ -9,7 +9,9 @@ import argparse
 
 #parse options
 parser = argparse.ArgumentParser(description='Test the yambopy script.')
-parser.add_argument('-dg' ,'--doublegrid', action="store_true", help='Use double grid')
+parser.add_argument('-dg','--doublegrid', action="store_true", help='Use double grid')
+parser.add_argument('-c', '--calc', action="store_true", help='calculate the BSE')
+parser.add_argument('-p', '--plot', action="store_true", help='plot the results')
 args = parser.parse_args()
 
 yambo = "yambo"
@@ -53,23 +55,25 @@ if args.doublegrid:
     f.close()
     os.system('cd bse; ypp')
 
-#create the yambo input file
-y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
+if args.calc:
+    #create the yambo input file
+    y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
 
-y['FFTGvecs'] = [30,'Ry']
-y['NGsBlkXs'] = [1,'Ry']
-y['BndsRnXs'] = [1,30]
-y['BSEBands'] = [3,6]
-y['BEnSteps'] = 500
-y['BEnRange'] = [[1.0,6.0],'eV']
+    y['FFTGvecs'] = [30,'Ry']
+    y['NGsBlkXs'] = [1,'Ry']
+    y['BndsRnXs'] = [1,30]
+    y['BSEBands'] = [3,6]
+    y['BEnSteps'] = 500
+    y['BEnRange'] = [[1.0,6.0],'eV']
 
-y.arguments.append('WFbuffIO')
-y.arguments.append('WRbsWF')
-y.write('bse/yambo_run.in')
+    y.arguments.append('WFbuffIO')
+    y.arguments.append('WRbsWF')
+    y.write('bse/yambo_run.in')
 
-print('running yambo')
-os.system('cd bse; %s -F yambo_run.in -J yambo'%yambo)
+    print('running yambo')
+    os.system('cd bse; %s -F yambo_run.in -J yambo'%yambo)
 
-#pack in a json file
-y = YamboOut('bse')
-y.pack()
+if args.plot:
+    #pack in a json file
+    y = YamboOut('bse')
+    y.pack()

@@ -40,6 +40,7 @@ if not os.path.isdir('gw_conv'):
 if args.run:
     #create the yambo input file
     y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw_conv')
+    y['GbndRnge'] = [[1,15],'']
     y['QPkrange'][0][2:4] = [2,6]
     conv = { 'FFTGvecs': [[5,10,15],'Ry'],
              'NGsBlkXp': [[1,2,3], 'Ry'],

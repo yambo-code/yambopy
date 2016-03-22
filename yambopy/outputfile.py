@@ -83,7 +83,7 @@ class YamboOut():
             self.atomic_number = self.nc_db.variables['atomic_numbers'][:].T
 
         else:
-            if not _has_netcdf: print('YamboOut withouth netCDF4 support won\'t retrieve information about the structure')
+            if not _has_netcdf: print('YamboOut without netCDF4 support won\'t retrieve information about the structure')
             print('Could not find ns.db1 in %s'%self.save_folder+'/SAVE')
             self.lat = np.array([])
             self.alat = np.array([])
@@ -93,10 +93,22 @@ class YamboOut():
             self.atomic_number = np.array([])
 
     def get_outputfile(self):
-        """ Get the data from the o-* file
+        """ Get the data from the o-* files
         """
+        #open all the o-* files
         files = [open("%s/%s"%(self.folder,f)) for f in self.output]
-        self.data = dict([(filename,np.loadtxt(f)) for filename,f in zip(self.output,files)])
+
+        self.data = {}
+        self.tags = {}
+        for filename,f in zip(self.output,files):
+            #get the string with the file data
+            string = f.read()
+            tags = re.findall('([a-zA-Z\-\/]+)\[',string)
+            f.seek(0)
+            self.data[filename] = np.loadtxt(f)
+            self.tags[filename] = tags
+
+        #close all the files
         for f in files: f.close()
         return self.data
 
@@ -164,6 +176,7 @@ class YamboOut():
 
         f = open('%s.json'%filename,'w')
         json.dump({"data"     : dict(zip(self.data.keys(),[d.tolist() for d in self.data.values()])),
+                   "tags"     : self.tags,
                    "runtime"  : self.runtime,
                    "inputfile": self.inputfile,
                    "lattice"  : self.lat.tolist(),

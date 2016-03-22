@@ -19,7 +19,7 @@ else:
     _has_matplotlib = True
 
 def red_car(red,lat): return np.array(map( lambda coord: coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2], red))
-def car_red(car,lat): return np.array(map( lambda coord: np.linalg.solve(lat.T,coord), car))
+def car_red(car,lat): return np.array(map( lambda coord: np.linalg.solve(np.array(lat).T,coord), car))
 def rec_lat(lat):
     """
     Calculate the reciprocal lattice vectors
@@ -70,7 +70,9 @@ class YamboAnalyser():
     def get_data_file(self,calculation,tags):
         for filename in self.jsonfiles[calculation]["data"].keys():
             if all(i in filename for i in tags):
-                return np.array( self.jsonfiles[calculation]["data"][filename] )
+                tags = self.jsonfiles[calculation]["tags"][filename]
+                data = np.array( self.jsonfiles[calculation]["data"][filename] )
+                return dict( zip(tags, data.T) )
 
     def get_data(self,tags):
         """ Get a dictionary with all the data from the files under analysis
