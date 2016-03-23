@@ -423,24 +423,33 @@ the QE format to the netCDF format used by yambo. It creates the folder ``elphon
 
 The second step requires the script ``elph_qp_si.py``. If the electron-phonon matrix elements have been successfully created and
 stored in ``elphon/SAVE`` we are ready to calculate the electron-phonon correction of the eigenvalues at several temperatures, 
-or to examine the spectral function of each quasi-particle state. A more complete tutorial of the capabilities of yambo is 
-also available in the `yambo website <http://www.yambo-code.org/tutorials/Electron_Phonon/index.php>`_.
+or to examine the spectral function of each quasi-particle state. A detailed tutorial of the capabilities of the module electron-phonon
+of yambo is also available in the `yambo website <http://www.yambo-code.org/tutorials/Electron_Phonon/index.php>`_.
 
-If we run 
+If we run:
 
 .. code-block:: bash
    
     python elph_qp_si.py -r
 
 Yambo will calculate the quasi-particle correction and the spectral functions for the top of the valence band and the 
-bottom of the conduction band (states 4 and 5).
+bottom of the conduction band (states 4 and 5). In order to plot the results we type:
 
+.. code-block:: bash
+   
+    python elph_qp_si.py -p
+
+The QP correction due to the electron-phonon interaction are usually much smaller than those obtained with the GW approximation.
 
 .. image:: figures/elph-qp-correction.png
 
+We can also plot the spectral function for a given state (n,k), i. e., the imaginary part of the Green's function. This is a useful check of
+the validity of the QP approximation. A well-defined QP state will show a single-peak spectral function (or a clearly predominant one). A recent
+application in single-layer MoS2 is available here.
 
-.. image:: figures/elph-sf-band4.png
+.. image:: figures/elph-sf.png
+
+We can play with more options by selecting the appropiate variables from the script ``elph_qp_si.py``. Among the options is to select the Fan or the Debye-Waller
+term, make a calculation on the on-mass-shell approximation, print the Eliashberg functions, etc. 
 
 
-
-.. image:: figures/elph-sf-band5.png

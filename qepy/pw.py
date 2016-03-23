@@ -72,7 +72,7 @@ class PwIn():
         """
         # we will write down the cell parameters explicitly
         self.system['ibrav'] = 0
-        del self.system['celldm(1)']
+        if 'celldm(1)' in self.system: del self.system['celldm(1)']
         self.cell_parameters = atoms.get_cell()
         self.atoms = zip(atoms.get_chemical_symbols(),atoms.get_scaled_positions())
         self.system['nat'] = len(self.atoms)
@@ -108,7 +108,7 @@ class PwIn():
                     for i in xrange(3):
                         self.cell_parameters[i] = [ float(x)*a for x in lines.next().split() ]
             if self.cell_units == 'angstrom' or self.cell_units == 'bohr':
-                del self.system['celldm(1)']
+                if 'celldm(1)' in self.system: del self.system['celldm(1)']
         elif ibrav == 4:
             a = float(self.system['celldm(1)'])
             c = float(self.system['celldm(3)'])
