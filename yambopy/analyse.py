@@ -18,13 +18,16 @@ except ImportError:
 else:
     _has_matplotlib = True
 
-def red_car(red,lat): return np.array(map( lambda coord: coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2], red))
+def red_car(red,lat):
+    lat = np.array(lat)
+    return np.array(map( lambda coord: coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2], red))
+
 def car_red(car,lat): return np.array(map( lambda coord: np.linalg.solve(np.array(lat).T,coord), car))
 def rec_lat(lat):
     """
     Calculate the reciprocal lattice vectors
     """
-    a1,a2,a3 = lat
+    a1,a2,a3 = np.array(lat)
     v = np.dot(a1,np.cross(a2,a3))
     b1 = np.cross(a2,a3)/v
     b2 = np.cross(a3,a1)/v
@@ -93,6 +96,66 @@ class YamboAnalyser():
         colors = [cmap(i) for i in np.linspace(0, 1, nfiles)]
         return colors
 
+    def get_path(self,path,json_filename):
+        """ Obtain a list of indexes and kpoints that belong to the regular mesh
+        """
+        jsonfile = self.jsonfiles[json_filename]
+
+        if 'kpts_iku' not in jsonfile or 'sym_car' not in jsonfile:
+            print( "Could not find information about the k points in the json file %s."%json_filename )
+            print( "Re-run YamboOut with netCDF support and specify the 'save_folder' path" )
+            exit(1)
+
+        #get data from json file
+        kpts_iku = np.array(jsonfile['kpts_iku'])
+        sym_car  = np.array(jsonfile['sym_car'])
+        alat     = np.array(jsonfile['alat'])
+        lattice  = np.array(jsonfile['lattice'])
+
+        #convert to cartesian coordinates
+        kpts_car = np.array([ k/alat for k in kpts_iku ])
+
+        #get the full list of kpoints
+        full_kpts = expand_kpts(kpts_car,sym_car)
+
+        #points in cartesian coordinates
+        reciprocal_lattice = rec_lat(lattice)
+        path_car = red_car(path, reciprocal_lattice)
+
+        #find the points along the high symmetry lines
+        distance = 0
+        bands_kpoints = []
+        bands_indexes = []
+        bands_highsym_qpts = []
+        old_kpt = np.array([0,0,0])
+        for k in range(len(path)-1):
+            
+            kpoints_in_path = {} #store here all the points in the path
+            start_kpt = path_car[k]
+            end_kpt = path_car[k+1]
+            #find the collinear points
+            for x,y,z in product(range(-1,2),repeat=3):
+                shift = red_car(np.array([[x,y,z]]),reciprocal_lattice)[0]
+                for index, kpt in full_kpts:
+                    kpt_shift = kpt+shift
+                    #if the point is collinear and not in the list we add it
+                    if isbetween(start_kpt,end_kpt,kpt_shift):
+                        key = tuple([round(kpt,4) for kpt in kpt_shift])
+                        value = [ index, np.linalg.norm(start_kpt-kpt_shift), kpt_shift ]
+                        kpoints_in_path[key] = value
+
+            #sort the points acoording to distance to the start of the path
+            kpoints_in_path = sorted(kpoints_in_path.values(),key=lambda i: i[1])
+            
+            #get kpoints_in_pathpoints
+            if k==0: bands_highsym_qpts.append(kpoints_in_path[0][2])
+            for index, disp, kpt in kpoints_in_path:
+                bands_kpoints.append( kpt )
+                bands_indexes.append( index )
+                print ("%12.8lf "*3)%tuple(kpt), index
+            bands_highsym_qpts.append(kpt)
+        return bands_kpoints, bands_indexes, bands_highsym_qpts
+
     def plot_gw_path(self,tags,path_label,cols=(lambda x: x[2]+x[3],),rows=None):
         """ Create a path of k-points and find the points in the regular mesh that correspond to points in the path
             Use these points to plot the GW band structure.
@@ -106,84 +169,34 @@ class YamboAnalyser():
         ax = plt.subplot(111)
         n=0
 
-        #select point in the path
-        for json_filename in self.jsonfiles:
-            jsonfile = self.jsonfiles[json_filename]
+        #select one of the files to obtain the points in the path
+        json_filename = self.jsonfiles.keys()[0]
 
-            if 'kpts_iku' not in jsonfile or 'sym_car' not in jsonfile:
-                print( "Could not find information about the k points in the json file %s."%json_filename )
-                print( "Re-run YamboOut with netCDF support and specify the save_folder path" )
-                exit(1)
+        #find the points along the high symmetry lines
+        json_filename = self.jsonfiles.keys()[0]
+        bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path,json_filename)
 
-            #get data from json file
-            kpts_iku = np.array(jsonfile['kpts_iku'])
-            sym_car  = np.array(jsonfile['sym_car'])
-            alat     = np.array(jsonfile['alat'])
-            lattice  = np.array(jsonfile['lattice'])
+        distances = []
+        distance = 0
+        #calculate distances
+        bands_distances = [0]
+        distance = 0
+        for nk in range(1,len(bands_kpoints)):
+            distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
+            bands_distances.append(distance)
 
-            #convert to cartesian coordinates
-            kpts_car = np.array([ k/alat for k in kpts_iku ])
+        #obtain the bands for the output files and plot
+        for output_filename in self.jsonfiles[json_filename]['data']:
+            kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
 
-            #get the full list of kpoints
-            full_kpts = expand_kpts(kpts_car,sym_car)
-
-            #points in cartesian coordinates
-            reciprocal_lattice = rec_lat(lattice)
-            path_car = red_car(path, reciprocal_lattice)
-
-            #find the points along the high symmetry lines
-            bands_kpoints = []
-            bands_indexes = []
-            bands_highsym_qpts = []
-            distances = []
-            distance = 0
-            old_kpt = np.array([0,0,0])
-            for k in range(len(path)-1):
-                
-                kpoints_in_path = {} #store here all the points in the path
-                start_kpt = path_car[k]
-                end_kpt = path_car[k+1]
-                #find the collinear points
-                for x,y,z in product(range(-1,2),repeat=3):
-                    shift = red_car(np.array([[x,y,z]]),reciprocal_lattice)[0]
-                    for index, kpt in full_kpts:
-                        kpt_shift = kpt+shift
-                        #if the point is collinear and not in the list we add it
-                        if isbetween(start_kpt,end_kpt,kpt_shift):
-                            key = tuple([round(kpt,4) for kpt in kpt_shift])
-                            value = [ index, np.linalg.norm(start_kpt-kpt_shift), kpt_shift ]
-                            kpoints_in_path[key] = value
-
-                #sort the points acoording to distance to the start of the path
-                kpoints_in_path = sorted(kpoints_in_path.values(),key=lambda i: i[1])
-                
-                #get kpoints_in_pathpoints
-                if k==0: bands_highsym_qpts.append(kpoints_in_path[0][2])
-                for index, disp, kpt in kpoints_in_path:
-                    bands_kpoints.append( kpt )
-                    bands_indexes.append( index )
-                    print ("%12.8lf "*3)%tuple(kpt), index
-                bands_highsym_qpts.append(kpt)
-
-            #calculate distances
-            bands_distances = [0]
-            distance = 0
-            for nk in range(1,len(bands_kpoints)):
-                distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
-                bands_distances.append(distance)
-
-            #obtain the bands for the output files and plot
-            for output_filename in self.jsonfiles[json_filename]['data']:
-                kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
-
-                #plot 
-                for ib,bands in enumerate(bands_cols):
-                    label = output_filename
-                    for band in bands:
-                        plt.plot(bands_distances,[band[k] for k in bands_indexes],linestyle=lstyles[ib%len(lstyles)],label=label,color=colors[n])
-                        label=None
-                plot = True
-                n+=1
+            #plot 
+            for ib,bands in enumerate(bands_cols):
+                label = output_filename
+                for band in bands:
+                    plt.plot(bands_distances,[band[k] for k in bands_indexes],linestyle=lstyles[ib%len(lstyles)],label=label,color=colors[n])
+                    label=None
+            plot = True
+            n+=1
 
         if plot:
             #plot highsymetry qpoints
