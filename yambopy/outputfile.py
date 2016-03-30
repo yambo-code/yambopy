@@ -103,7 +103,7 @@ class YamboOut():
         for filename,f in zip(self.output,files):
             #get the string with the file data
             string = f.read()
-            tags = re.findall('([a-zA-Z\-\/]+)\[',string)
+            tags = [tag.strip() for tag in re.findall('([ `0-9a-zA-Z\-\/]+)\[',string)]
             f.seek(0)
             self.data[filename] = np.loadtxt(f)
             self.tags[filename] = tags
