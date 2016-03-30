@@ -97,7 +97,7 @@ if job['calculation']=='tdsex' or 'pump' or 'dissipation':
   run['Potential']  = 'COHSEX' 
   # Time-propagation 
   run['RTstep']     = [  10.0,'as']
-  run['NETime']     = [ 300.0,'fs']
+  run['NETime']     = [   2.0,'ps']
   run['Integrator'] = "RK2 RWA"
   run['IOtime']     = [ [1.000, 1.000, 1.000], 'fs' ] 
   # Pump Pulse
@@ -114,7 +114,7 @@ if job['calculation']=='tdsex':
 # Pumping with finite pulse
 if job['calculation']=='pump' or 'dissipation':
   run['Field1_kind'] = "QSSIN"
-  run['Field1_Damp'] = [  20,'fs']
+  run['Field1_Damp'] = [ 100,'fs']
   run['Field1_Freq'] = [[2.1,0.0],'eV']
 
 if job['calculation']=='pump':

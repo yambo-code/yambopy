@@ -14,8 +14,9 @@ import argparse
 
 #parse options
 parser = argparse.ArgumentParser(description='Convergence test of the colomb cutoff')
-parser.add_argument('-r' ,'--run',  action="store_true", help='Run the calculation')
-parser.add_argument('-p' ,'--plot', action="store_true", help='Run the analysis')
+parser.add_argument('-r' ,'--run',      action="store_true", help='Run the calculation')
+parser.add_argument('-p' ,'--plot',     action="store_true", help='Run the analysis')
+parser.add_argument('-a' ,'--advanced', action="store_true", help='Run the analysis')
 args = parser.parse_args()
 
 yambo_ph  = 'yambo_ph'
@@ -23,7 +24,7 @@ ypp_ph    = 'ypp_ph'
 
 folder_ya = 'elphon'
 
-temperature = [0, 500, 1000]
+temperature = [500]
 
 # A. Run QPs El-Ph correction
 if args.run:
@@ -68,5 +69,10 @@ if args.plot:
   #        [[1.0, 1.0, 1.0],'$\Gamma$']]
   #ya.plot_gw_path('qp',path,cols=(3,))
   print('plot Spectral Functions')
-  ya.plot_spectral_function('band_004')
-  ya.plot_spectral_function('band_005')
+  ya.plot_spectral_function('band')
+
+# C. Advance options
+
+if args.advanced:
+  # Run
+  yqp.arguments.append('WRgFsq')

@@ -449,7 +449,7 @@ application in single-layer MoS2 is available here.
 
 .. image:: figures/elph-sf.png
 
-We can play with more options by selecting the appropiate variables from the script ``elph_qp_si.py``. Among the options is to select the Fan or the Debye-Waller
-term, make a calculation on the on-mass-shell approximation, print the Eliashberg functions, etc. 
+We can play with more options by selecting the appropiate variables from the script ``elph_qp_si.py``. For instance we can: (i) select only
+the Fan or Debye-Waller term, (ii) calculation on the on-mass-shell approximation, (iii) print the Eliashberg functions, etc.
 
 
