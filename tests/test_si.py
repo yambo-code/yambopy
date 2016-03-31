@@ -240,6 +240,11 @@ if __name__ == '__main__':
     parser.add_argument('-c','--clean',  action="store_true",
                         help='Clean all the data from a previous run')
     args = parser.parse_args()
+
+    #first test if yambo is installed
+    if not subprocess.call("yambo", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
+        print "yambo not found, please install it before running the tests"
+        exit()
    
     #clean tests
     if args.clean: 

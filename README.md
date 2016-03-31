@@ -25,9 +25,11 @@ Tests
 
 Requirements
 ------------
+- yambo: http://www.yambo-code.org/
 - numpy: http://www.numpy.org/
 - matplotlib: http://matplotlib.org/
-- netCDF4: http://unidata.github.io/netcdf4-python/
+- netCDF4 (optional): http://unidata.github.io/netcdf4-python/
+- Quantum Espresso (optional): http://www.quantum-espresso.org/
 
 TODO
 ----

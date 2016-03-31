@@ -62,6 +62,7 @@ class PwIn():
     def get_atoms(self):
         """ Get the lattice parameters, postions of the atoms and chemical symbols
         """
+        self.read_cell_parameters()
         cell = self.cell_parameters
         pos = [atom[1] for atom in self.atoms]
         sym = [atom[0] for atom in self.atoms]
