@@ -22,12 +22,22 @@
 #from __future__ import print_function
 from yambopy import *
 from qepy import *
+import os
 
 yambo    = 'yambo'
 yambo_rt = 'yambo_rt'
 ypp_rt   = 'ypp_rt'
 ypp_ph   = 'ypp_ph'
 folder   = 'rt'
+
+# you can select the calculation among : 'collision', 'tdsex', 'pump', 'dissipation'
+
+job = dict()
+job['calculation']  = 'dissipation'
+job['folder-run']   = ''
+job['folder-col']   = 'COLLISION'
+job['folder-gkkp']  = 'GKKP'
+job['DG']           = (False,'DG-60x60')
 
 # check if the database is present
 if not os.path.isdir('database'):
@@ -51,38 +61,18 @@ if not os.path.isdir('database/SAVE'):
 if os.path.isdir('%s/SAVE'%folder):
   print('symmetries for carrier dynamics ready') 
 if not os.path.isdir('%s/SAVE'%folder):
-  print('breaking symmetries')
-  os.system('mkdir -p %s'%folder)
-  os.system('cp -r database/SAVE %s'%folder)
-  ypp = YamboIn('ypp_ph -n -V all',folder=folder,filename='ypp.in')
-  ypp['Efield1'] = [[1.0,0.0,0.0],''] # Field in the X-direction
-  ypp.arguments.append('RmTimeRev')   # Remove Time Symmetry
-  ypp.write('rt/ypp.in')
-  os.system('cd %s ; %s -F ypp.in'%(folder,ypp_ph) )
-  os.system('cd %s ; cd FixSymm; yambo '%(folder) )
-  os.system('rm -r %s/SAVE'%folder)
-  os.system('mv %s/FixSymm/SAVE %s/'%(folder,folder))
-  os.system('rm -r %s/FixSymm'%folder)
-  print('%s folder created'%folder)
-
-# you can select the calculation among : 'collision', 'tdsex', 'pump', 'dissipation'
-
-job = dict()
-job['calculation']  = 'collision'
-job['folder-run']   = 'Diss'
-job['folder-col']   = 'COLLISION'
-job['folder-gkkp']  = 'GKKP'
-job['DG']           = (False,'DG-60x60')
+  breaking_symmetries([1,0,0],folder=folder)
 
 if job['calculation']=='collision':
   print 'Collision'  
-  run = YamboIn('%s -r -e -v c -V all'%yambo_rt,folder=folder)
+  run = YamboIn('%s -r -e -v c'%yambo_rt,folder=folder)
 elif job['calculation']=='tdsex':
-  run = YamboIn('%s -q p -v c -V all'%yambo_rt,folder=folder)
+  run = YamboIn('%s -q p -Q'%yambo_rt,folder=folder)
 elif job['calculation']=='pump':
-  run = YamboIn('%s -q p -v c -V all'%yambo_rt,folder=folder)
+  print 'pump calculation'
+  run = YamboIn('%s -q p -Q'%yambo_rt,folder=folder)
 elif job['calculation']=='dissipation':
-  run = YamboIn('%s -s p -q p -v c -V all'%yambo_rt,folder=folder)
+  run = YamboIn('%s -s p -q p'%yambo_rt,folder=folder)
 else:
   print 'Invalid calculation type'
   exit()
@@ -90,27 +80,28 @@ else:
 # System Common variables
 run['FFTGvecs']  = [5,'Ha']
 run['EXXRLvcs']  = [5,'Ha']
-run['SCBands']   = [2,7]
 
 # Collision variables
 if job['calculation']=='collision':
   run['NGsBlkXs']  = [ 100,'mHa']
   run['BndsRnXs' ] = [1,30]
+  run['COLLBands'] = [2,7]
   run.write('%s/03_COLLISION'%folder)
 
 # Common time-dependent variable
 if job['calculation']=='tdsex' or 'pump' or 'dissipation':
-  run['GfnQP_Wv']   = [0.01,0.00,0.00]
-  run['GfnQP_Wc']   = [0.01,0.00,0.00]
+  run['RTBands']    = [2,7]
+  run['GfnQP_Wv']   = [0.10,0.00,0.00]
+  run['GfnQP_Wc']   = [0.10,0.00,0.00]
   run['GfnQPdb']    = 'none' 
   run['Potential']  = 'COHSEX' 
   # Time-propagation 
-  run['RTstep']     = [0.100,'fs']
-  run['NETime']     = [ 300,'fs']
+  run['RTstep']     = [  10.0,'as']
+  run['NETime']     = [   2.0,'ps']
   run['Integrator'] = "RK2 RWA"
-  run['IOtime']     = [ [2.000, 2.000, 2.000], 'fs' ] 
+  run['IOtime']     = [ [1.000, 1.000, 1.000], 'fs' ] 
   # Pump Pulse
-  run['Field1_Int']       = [ 1E6 , 'kWLm2']    # Intensity pulse
+  run['Field1_Int']       = [ 1E5 , 'kWLm2']    # Intensity pulse
   run['Field1_Dir']       = [1.0,0.0,0.0]  # Polarization pulse
   run['Field1_Dir_circ']  = [0.0,1.0,0.0]  # Polarization pulse
   run['Field1_pol']       = "linear"            # Polarization type (linear or circular) 
@@ -123,8 +114,8 @@ if job['calculation']=='tdsex':
 # Pumping with finite pulse
 if job['calculation']=='pump' or 'dissipation':
   run['Field1_kind'] = "QSSIN"
-  run['Field1_Damp'] = [  50,'fs']
-  run['Field1_Freq'] = [[2.5,0.0],'eV']
+  run['Field1_Damp'] = [ 100,'fs']
+  run['Field1_Freq'] = [[2.1,0.0],'eV']
 
 if job['calculation']=='pump':
   run.write('%s/05_NEGF'%folder)
@@ -133,7 +124,7 @@ if job['calculation']=='pump':
 if job['calculation']=='dissipation':
 # Interpolation 
   run['LifeInterpKIND']  = 'FLAT'
-  run['LifeInterpSteps'] = [ [4.0,1.0], 'fs' ] 
+  run['LifeInterpSteps'] = [ [1.0,1.0], 'fs' ] 
   run.write('%s/06_DISS'%folder)
 
 # Run
@@ -147,7 +138,7 @@ if job['calculation'] == 'collision':
 # Time-dependent without/with Double Grid 
 
 if job['calculation'] == 'tdsex':
-  job['folder-run'] += 'tds-int-%s' % ( str(int(run['Field1_Int'][0])) )
+  job['folder-run'] += 'tdsex'
   print('running TD-COHSEX in folder: ' + str(job['folder-run']))
   if not os.path.isdir('%s/'%folder+job['folder-col']):
     print 'Collisions not found'
@@ -162,7 +153,7 @@ if job['calculation'] == 'tdsex':
 
 if job['calculation'] == 'pump':
   print('running pumping with finite pulse')
-  job['folder-run'] += 'negf-int-%s-damp-%sfs-freq-%seV' % ( str(int(run['Field1_Int'][0])), str(run['Field1_Damp'][0]),run['Field1_Freq'][0][0] )
+  job['folder-run'] += 'negf'
   print('running NEGF in folder: ' + str(job['folder-run']))
   if not os.path.isdir('%s/'%folder+job['folder-col']):
     print 'Collisions not found'
@@ -170,13 +161,14 @@ if job['calculation'] == 'pump':
   if job['DG'][0]:
     print('with Double Grid from folder %s'%job['DG'][1])
   else:
-    os.system ('cd %s; %s -F 05_NEGF -J \'%s,%s\' -C %s'%(folder,yambo_rt,job['folder-run'],job['folder-col'],job['folder-run']))
-
+    #os.system ('cd %s; %s -F 05_NEGF -J \'%s,%s\' -C %s'%(folder,yambo_rt,job['folder-run'],job['folder-col'],job['folder-run']))
+    print 'cd %s ; %s -F 05_NEGF -J \'%s,%s\' -C %s'%(folder,yambo_rt,job['folder-run'],job['folder-col'],job['folder-run'])
 # Time-dependent with a pulse and dissipation and without/with Double Grid 
 
 if job['calculation'] == 'dissipation':
   print('running pumping with finite pulse and with electron-phonon scattering')
   print('this run level needs the GKKP folder to run')
+  job['folder-run'] += 'dneq'
   if not os.path.isdir('%s/'%folder+job['folder-col']):
     print 'Collisions not found'
     exit()
@@ -187,6 +179,7 @@ if job['calculation'] == 'dissipation':
       print('%s -F 06_DISS -J \'%s,%s,%s\''%(yambo_rt,job['folder-run'],job['folder-col'],job['DG'][1]))
     else:
       os.system ('cd %s; %s -F 06_DISS -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,job['folder-run'],job['folder-col'],job['folder-gkkp'],job['folder-run']))
+      print 'cd %s; %s -F 06_DISS -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,job['folder-run'],job['folder-col'],job['folder-gkkp'],job['folder-run'])
   else:
     print('No gkkp files. Calculation stop')
     print('You may run gkkp_si.py')

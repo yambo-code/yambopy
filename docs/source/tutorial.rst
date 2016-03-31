@@ -385,3 +385,71 @@ interaction, otherwise the calculations will be very slow.
 
     run['LifeInterpKIND']  = 'FLAT'
     run['LifeInterpSteps'] = [ [4.0,1.0], 'fs' ]
+
+
+Electron-Phonon interaction (Si)
+---------------------------
+**by A. Molina Sánchez**
+
+**1. Ground State and non-self consistent calculation**
+
+Electron-phonon interaction calculations requires to obtain electronic states, phonon states and the 
+interaciton between them. An extended study can be found in the  `Thesis of Elena Cannuccia 
+<http://www.yambo-code.org/papers/Thesis_Elena_Cannuccia.pdf>`_.
+
+
+Go to the ``tutorial`` folder and run the ground state calculation using the ``gs_si.py`` file:
+
+.. code-block:: bash
+
+    python gs_si.py
+
+The script will run a relaxation of the structure, read the optimized cell parameter and create a new input file that is used
+to run a self-consistent (scf) cycle and a non self-consistent (nscf) cycle using the charge density calculated on the previous run.
+
+The self-consistent data are used to obtain the derivative of the potential. The non-self-consistent data are used, together with the
+potential derivative, for deriving the electron-phonon matrix elements.
+
+.. image:: figures/tutorial-el-ph_1.jpg
+
+
+The script ``elph_pw_si.py`` calculates the electron-phonon matrix elements. It follows the indications of the flowchart, using
+the scf and nscf data. All the files used by QE are stored in the directory ``work``. Finally, it transform the files from
+the QE format to the netCDF format used by yambo. It creates the folder ``elphon``.
+
+
+**2. Electron-phonon calculations**
+
+
+The second step requires the script ``elph_qp_si.py``. If the electron-phonon matrix elements have been successfully created and
+stored in ``elphon/SAVE`` we are ready to calculate the electron-phonon correction of the eigenvalues at several temperatures, 
+or to examine the spectral function of each quasi-particle state. A detailed tutorial of the capabilities of the module electron-phonon
+of yambo is also available in the `yambo website <http://www.yambo-code.org/tutorials/Electron_Phonon/index.php>`_.
+
+If we run:
+
+.. code-block:: bash
+   
+    python elph_qp_si.py -r
+
+Yambo will calculate the quasi-particle correction and the spectral functions for the top of the valence band and the 
+bottom of the conduction band (states 4 and 5). In order to plot the results we type:
+
+.. code-block:: bash
+   
+    python elph_qp_si.py -p
+
+The QP correction due to the electron-phonon interaction are usually much smaller than those obtained with the GW approximation.
+
+.. image:: figures/elph-qp-correction.png
+
+We can also plot the spectral function for a given state (n,k), i. e., the imaginary part of the Green's function. This is a useful check of
+the validity of the QP approximation. A well-defined QP state will show a single-peak spectral function (or a clearly predominant one). A recent
+application in single-layer MoS2 is available here.
+
+.. image:: figures/elph-sf.png
+
+We can play with more options by selecting the appropiate variables from the script ``elph_qp_si.py``. For instance we can: (i) select only
+the Fan or Debye-Waller term, (ii) calculation on the on-mass-shell approximation, (iii) print the Eliashberg functions, etc.
+
+

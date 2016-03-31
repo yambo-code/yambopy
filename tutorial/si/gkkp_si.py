@@ -39,9 +39,7 @@ phin['iverbosity']      = 1
 phin['ldisp']           = '.true.'
 phin['trans']           = '.true.'
 phin['electron_phonon'] =  "'dvscf'" 
-phin['nq1']             = 2
-phin['nq2']             = 2
-phin['nq3']             = 2
+phin['nq1'], phin['nq2'], phin['nq3'] = 3, 3, 3
 
 phin.write('%s/02ph.in'%folder)      # Potential calculation
 phin['trans']           = '.false.'

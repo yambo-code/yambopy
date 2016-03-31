@@ -13,6 +13,7 @@ class DynmatIn():
     """
     def __init__(self):
         self.variable = dict()
+        self.qpoints     = [] 
 
     def write(self,filename):
         f = open(filename,'w')
@@ -22,6 +23,10 @@ class DynmatIn():
     def __str__(self):
         s = '&input'
         s += self.stringify_group('',self.variable) #print variable
+        if len(self.qpoints) > 0:
+          s+=("%d\n"%len(self.qpoints))
+          for q in self.qpoints:
+            s+=("%12.8lf %12.8lf %12.8lf")%tuple(q)+"\n"
         return s
 
     def __setitem__(self,key,value):

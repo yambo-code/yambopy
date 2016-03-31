@@ -3,6 +3,9 @@
 # Author: Alejandro Molina-Sanchez
 # Run electron-phonon calculations using Yambo 
 #
+# This script run QE to obtain the electron-phonon matrix elements to
+# be used by Yambo
+#
 # Calculations are done inside the folder elphon 
 #
 ##############################################################################
@@ -122,30 +125,3 @@ if not os.path.isfile('%s/SAVE/ndb.elph_gkkp'%folder_ya):
 
   ypp = YamboIn('ypp_ph -g',folder=folder_ya,filename='ypp.in')
   os.system('cd %s; ypp_ph'%folder_ya)
-
-# D. Run QPs El-Ph correction
-
-yqp = YamboIn('yambo_ph -g n -c p',folder=folder_ya,filename='yambo.in')
-yqp.arguments.append('ExtendOut')
-yqp.write('%s/qp.in'%folder_ya)
-ysf = YamboIn('yambo_ph -g g -c p',folder=folder_ya,filename='yambo.in')
-ysf.write('%s/sf.in'%folder_ya)
-os.system('cd %s; yambo_ph -F qp.in -J qp; yambo_ph -F sf.in -J sf'%folder_ya) 
-
-# E. Analysis
-
-#pack the files in .json files
-pack_files_in_folder(folder_ya)
-
-#plot the results using yambo analyser
-ya = YamboAnalyser()
-print('plot QPs corrections')
-ya.plot_qp_correction('qp')
-
-print('plot QP values corrections')
-path = [[[0.5,   0,   0],'L'],
-        [[  0,   0,   0],'$\Gamma$'],
-        [[  0, 0.5, 0.5],'X'],
-        [[1.0, 1.0, 1.0],'$\Gamma$']]
-
-ya.plot_gw_path('qp',path,cols=(2,3))
