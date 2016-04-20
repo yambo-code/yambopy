@@ -1,6 +1,7 @@
 &control
          calculation = 'scf'
               prefix = 'si'
+          pseudo_dir = '..'
           wf_collect = .true.
 /&end
 &system
