@@ -3,6 +3,7 @@
 # Run a GW calculation using Yambo
 #
 from __future__ import print_function
+import sys
 from yambopy import *
 from qepy import *
 import argparse
@@ -10,8 +11,12 @@ import argparse
 #parse options
 parser = argparse.ArgumentParser(description='GW convergence')
 parser.add_argument('-r' ,'--run',  action="store_true", help='Run the calculation')
-parser.add_argument('-p' ,'--plot', action="store_true", help='Run the analysis')
+parser.add_argument('-p' ,'--plot', action="store_true", help='Pack into json files and plot the results')
 args = parser.parse_args()
+
+if len(sys.argv)==1:
+    parser.print_help()
+    sys.exit(1)
 
 yambo = 'yambo'
 prefix = 'si'
