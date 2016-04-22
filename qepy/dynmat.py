@@ -26,7 +26,7 @@ class DynmatIn():
         if len(self.qpoints) > 0:
           s+=("%d\n"%len(self.qpoints))
           for q in self.qpoints:
-            s+=("%12.8lf %12.8lf %12.8lf")%tuple(q)+"\n"
+            s+=("%12.8lf %12.8lf %12.8lf")%tuple(q[:3])+"\n"
         return s
 
     def __setitem__(self,key,value):
