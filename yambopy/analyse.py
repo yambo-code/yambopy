@@ -129,7 +129,7 @@ class YamboAnalyser():
         bands_highsym_qpts = []
         old_kpt = np.array([0,0,0])
         for k in range(len(path)-1):
-            
+
             kpoints_in_path = {} #store here all the points in the path
             start_kpt = path_car[k]
             end_kpt = path_car[k+1]
@@ -146,7 +146,7 @@ class YamboAnalyser():
 
             #sort the points acoording to distance to the start of the path
             kpoints_in_path = sorted(kpoints_in_path.values(),key=lambda i: i[1])
-            
+
             #get kpoints_in_pathpoints
             if k==0: bands_highsym_qpts.append(kpoints_in_path[0][2])
             for index, disp, kpt in kpoints_in_path:
@@ -164,7 +164,7 @@ class YamboAnalyser():
         labels = [p[1] for p in path_label]
         plot = False
         colors = self.get_colors(tags)
-        lstyles = ['-', '--', '_', ':'] 
+        lstyles = ['-', '--', '_', ':']
         fig = plt.figure()
         ax = plt.subplot(111)
         n=0
@@ -186,18 +186,18 @@ class YamboAnalyser():
             bands_distances.append(distance)
 
         #obtain the bands for the output files and plot
-        for output_filename in self.jsonfiles[json_filename]['data']:
-            kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
+        for json_filename in self.jsonfiles.keys():
+            for output_filename in self.jsonfiles[json_filename]['data']:
+                kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
 
-            #plot 
-            for ib,bands in enumerate(bands_cols):
-                label = output_filename
-                for band in bands:
-                    plt.plot(bands_distances,[band[k] for k in bands_indexes],linestyle=lstyles[ib%len(lstyles)],label=label,color=colors[n])
-                    label=None
-            plot = True
-            n+=1
-
+                #plot
+                for ib,bands in enumerate(bands_cols):
+                    label = output_filename
+                    for band in bands:
+                        plt.plot(bands_distances,[band[k] for k in bands_indexes],linestyle=lstyles[ib%len(lstyles)],label=label,color=colors[n])
+                        label=None
+                plot = True
+                n+=1
 
         if plot:
             #plot highsymetry qpoints
@@ -227,7 +227,7 @@ class YamboAnalyser():
             K-point Band E0 E-E0 Sc(E0)
             if we want to plot the bandstructure we have to plot in the same k-point
             the values of the required column for the different bands
-        """ 
+        """
         data = np.array( self.jsonfiles[json_filename]["data"][output_filename] )
         # first we get the number of bands to plot
         bands = data[:,1]
@@ -247,10 +247,10 @@ class YamboAnalyser():
             else:
                 print "The col datatype: %s is not known"%str(type(col))
                 exit(1)
-           
+
             #make row operations if available
             if rows:
-                bands = [ row(bands) for row in rows ] 
+                bands = [ row(bands) for row in rows ]
             bands_cols.append(bands)
         return kpoint_index, bands_cols
 
@@ -260,12 +260,12 @@ class YamboAnalyser():
             for output_filename in self.jsonfiles[json_filename]["data"]:
                 if all(i in output_filename for i in tags):
                     data = np.array( self.jsonfiles[json_filename]["data"][output_filename] )
-                    
-                    plt.plot(data[:,lda],data[:,qp],'o',label=output_filename) 
+
+                    plt.plot(data[:,lda],data[:,qp],'o',label=output_filename)
                     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
        xmin, xmax = ax.get_xlim()
        ymin, ymax = ax.get_ylim()
-       plt.plot([xmin,xmax],[ymin,ymax],'k--',lw=2)          
+       plt.plot([xmin,xmax],[ymin,ymax],'k--',lw=2)
 
        box = ax.get_position()
        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
@@ -273,7 +273,7 @@ class YamboAnalyser():
        plt.show()
        plt.plot()
        plt.show()
-        
+
     def plot_gw(self,tags=('qp',),cols=(lambda x: x[2]+x[3],),rows=None):
         """ Use this function to plot the quasiparticle energies from a GW calculation
             cols: a list of indexes or functions
@@ -283,7 +283,7 @@ class YamboAnalyser():
 
             Example:
                 a.plot_gw('qp',cols=(lambda x: x[2]+x[3],),rows=(lambda x: x[1]-x[2],))
-                
+
                 Will plot only files with 'qp' in their filename
                 Will add the second and third columns (DFT eigenvalues + GW corrections)
                 Will subtract the 2nd and 1st bands (usefull to study the convergence of the gap)
@@ -301,7 +301,7 @@ class YamboAnalyser():
 
                     kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
 
-                    #plot 
+                    #plot
                     for bands in bands_cols:
                         label = output_filename
                         for band in bands:
@@ -323,7 +323,7 @@ class YamboAnalyser():
 
             Example:
                 a.plot_gw('eps',cols=(2,))
-                
+
                 Will plot only files with 'eps' in their filename (absorption spectra)
                 Will plot the second column (absorption spectra)
         """
@@ -364,7 +364,7 @@ class YamboAnalyser():
             if all(i in output_filename for i in tags):
                data = np.array( self.jsonfiles[json_filename]["data"][output_filename] )
                plt.title('Spectral function as a function of Temperature')
-               plt.plot(data[:,0],data[:,2],'-',label=output_filename) 
+               plt.plot(data[:,0],data[:,2],'-',label=output_filename)
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
 
@@ -391,7 +391,7 @@ class YamboAnalyser():
 
     def get_inputfiles(self):
 
-        inputfiles = dict()       
+        inputfiles = dict()
         for k in self.jsonfiles:
             inputfiles[k] = dict()
             for datatype in ['array','real','string','complex']:
@@ -411,5 +411,5 @@ class YamboAnalyser():
         for json_file in self.jsonfiles:
             s+="%s\n"%json_file
             for f in self.jsonfiles[json_file]['data']:
-                s+="\t%s\n"%f 
+                s+="\t%s\n"%f
         return s

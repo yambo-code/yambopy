@@ -4,6 +4,7 @@
 # Si
 #
 import unittest
+import sys
 import os
 import argparse
 import subprocess
@@ -22,6 +23,7 @@ class TestPW_Si(unittest.TestCase):
         
         qe.control['prefix'] = "'si'"
         qe.control['wf_collect'] = '.true.'
+        qe.control['pseudo_dir'] = "'..'"
         qe.system['celldm(1)'] = 10.3
         qe.system['ecutwfc'] = 40
         qe.system['occupations'] = "'fixed'"
@@ -240,6 +242,10 @@ if __name__ == '__main__':
     parser.add_argument('-c','--clean',  action="store_true",
                         help='Clean all the data from a previous run')
     args = parser.parse_args()
+
+    if len(sys.argv)==1:
+        parser.print_help()
+        sys.exit(1)
 
     #first test if yambo is installed
     if not subprocess.call("yambo", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
