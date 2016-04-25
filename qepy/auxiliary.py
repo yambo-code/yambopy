@@ -5,8 +5,8 @@
 #
 #
 import numpy as np
-#try:
-#    from matplotlib import pyplot as plt
+import os
+from matplotlib import pyplot as plt
 
 def car_red(car,lat):
     """
@@ -22,13 +22,13 @@ def generate_path(klist,kinterval):
     """
     kout  = np.zeros([sum(kinterval)+1,4])
     kout[:,3] = 1
-    #klist = np.array(klist)
-    klabel = []
-    kpoint = []
+    klabel, kpoint = [], []
+
     for kline in klist:
-      klabel.append(kline[1])
       kpoint.append(kline[0]) 
+      klabel.append(kline[1])
     kpoint = np.array(kpoint)
+
     io = 0
     for ik,interval in enumerate(kinterval):
       for ip in range(interval):
@@ -36,22 +36,3 @@ def generate_path(klist,kinterval):
         io = io + 1
     kout[io,:3] = kpoint[ik] + float(ip+1)/interval*(kpoint[ik+1] - kpoint[ik])
     return kout
-
-def plot_qe_bands(prefix,folder,path,kint,nbands,nkpoints):
-    """
-    Plot of the band structure.
-    """
-    os.system('cd %s ; band_reading_qe %s' % (folder,prefix))
-    bands = np.loadtxt('%s/%s.dat' % (folder,prefix))
-    klabel, kpos = [], []
-    fig = plt.subplots(figsize=(11,10))
-    kpos.append(0)
-    for line in path:
-      klabel.append(line[1]) 
-    for kl in kint:
-      kpos.append(kpos[-1]+kl)
-    plt.xticks( kpos, klabel)
-    plt.ylabel('E (eV)')
-    for ib in range(nbands):
-      plt.plot(bands[ib*nkpoints:(ib+1)*nkpoints,0], bands[ib*nkpoints:(ib+1)*nkpoints,1], 'r-', lw=2)
-    plt.show()

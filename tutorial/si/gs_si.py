@@ -63,6 +63,19 @@ def nscf():
     qe.kpoints = nscf_kpoints
     qe.write('nscf/%s.nscf'%prefix)
 
+def bands():
+    if not os.path.isdir('bands'):
+        os.mkdir('bands')
+    qe = get_inputfile()
+    qe.control['calculation'] = "'bands'"
+    qe.electrons['diago_full_acc'] = ".true."
+    qe.electrons['conv_thr'] = 1e-8
+    qe.system['nbnd'] = 8
+    qe.system['force_symmorphic'] = ".true."
+    qe.ktype = 'crystal'
+    qe.klist = generate_path([ [[0,0,0],'G'], [[-0.5,-0.5,0],'X'] , [[-0.25,-0.5,-0.25],'W'] , [[0,-0.375,0.375],'K'],[[0,0.5,0],'L'],[[0,0,0],'G'] ] , [20,20,20,20,20])
+    qe.write('bands/%s.bands'%prefix)
+
 def update_positions(pathin,pathout):
     """ update the positions of the atoms in the scf file using the output of the relaxation loop
     """
@@ -83,7 +96,8 @@ if __name__ == "__main__":
     relax()
     scf()
     nscf()
-
+    bands()
+    
     print("running relax:")
     os.system("cd relax; mpirun -np %d pw.x -inp %s.scf > relax.log"%(nproc,prefix))
     update_positions('relax','scf')
@@ -97,3 +111,11 @@ if __name__ == "__main__":
     os.system("cp -r scf/%s.save nscf/"%prefix)
     os.system("cd nscf; mpirun -np %d pw.x -inp %s.nscf > nscf.log"%(nproc,prefix))
     print("done!")
+    print("running bands:")
+    os.system("cp -r scf/%s.save bands/"%prefix)
+    os.system("cd bands; mpirun -np %d pw.x -inp %s.bands > bands.log"%(nproc,prefix))
+    print("done!")
+
+    print("running plotting:")
+    xml = PwXML(prefix='si',path='bands')
+    xml.plot_eigen([(0,'G'),(20,'X'),(40,'W'),(60,'K'),(80,'L'),(100,'G')])
