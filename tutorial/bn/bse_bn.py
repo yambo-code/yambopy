@@ -3,6 +3,7 @@
 # Run a BSE calculation using yambo
 #
 from __future__ import print_function
+import sys
 from yambopy import *
 from qepy import *
 import argparse
@@ -10,9 +11,13 @@ import argparse
 #parse options
 parser = argparse.ArgumentParser(description='Test the yambopy script.')
 parser.add_argument('-dg','--doublegrid', action="store_true", help='Use double grid')
-parser.add_argument('-c', '--calc', action="store_true", help='calculate the BSE')
-parser.add_argument('-p', '--plot', action="store_true", help='plot the results')
+parser.add_argument('-r', '--run',       action="store_true",  help='Run BSE calculation')
+parser.add_argument('-p', '--plot',       action="store_true", help='plot the results')
 args = parser.parse_args()
+
+if len(sys.argv)==1:
+    parser.print_help()
+    sys.exit(1)
 
 yambo = "yambo"
 
@@ -55,7 +60,7 @@ if args.doublegrid:
     f.close()
     os.system('cd bse; ypp')
 
-if args.calc:
+if args.run:
     #create the yambo input file
     y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
 
@@ -64,9 +69,8 @@ if args.calc:
     y['BndsRnXs'] = [1,30]
     y['BSEBands'] = [3,6]
     y['BEnSteps'] = 500
-    y['BEnRange'] = [[1.0,6.0],'eV']
+    y['BEnRange'] = [[0.0,10.0],'eV']
 
-    y.arguments.append('WFbuffIO')
     y.arguments.append('WRbsWF')
     y.write('bse/yambo_run.in')
 

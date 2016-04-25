@@ -14,25 +14,50 @@ def car_red(car,lat):
     """
     return np.array(map( lambda coord: np.linalg.solve(np.array(lat).T,coord), car))
 
-def generate_path(klist,kinterval):
+class Path():
+    """ Class that defines a path in the brillouin zone
     """
-    Generation of a path in reciprocal space by specifying a list of k-points
-    Output in the format of quantum espresso == [ [kx, ky, kz, 1], ... ]
-    Probably Henrique is going to suffer a hearth attack...
-    """
-    kout  = np.zeros([sum(kinterval)+1,4])
-    kout[:,3] = 1
-    klabel, kpoint = [], []
+    def __init__(self,klist,intervals):
+        """
+        Generation of a path in reciprocal space by specifying a list of k-points
+        """
+        self.intervals = intervals
+        klabels = []
+        kpoints = []
 
-    for kline in klist:
-      kpoint.append(kline[0]) 
-      klabel.append(kline[1])
-    kpoint = np.array(kpoint)
+        for kline in klist:
+            kpoint, klabel = kline
+            kpoints.append(kpoint)
+            klabels.append(klabel)
+        self.kpoints = np.array(kpoints)
+        self.klabels = klabels
 
-    io = 0
-    for ik,interval in enumerate(kinterval):
-      for ip in range(interval):
-        kout[io,:3] = kpoint[ik] + float(ip)/interval*(kpoint[ik+1] - kpoint[ik])
-        io = io + 1
-    kout[io,:3] = kpoint[ik] + float(ip+1)/interval*(kpoint[ik+1] - kpoint[ik])
-    return kout
+    def get_klist(self):
+        """ 
+        Output in the format of quantum espresso == [ [kx, ky, kz, 1], ... ]
+        """
+        kpoints = self.kpoints
+        intervals = self.intervals
+        kout  = np.zeros([sum(intervals)+1,4])
+        kout[:,3] = 1
+        io = 0
+        for ik,interval in enumerate(intervals):
+          for ip in range(interval):
+            kout[io,:3] = kpoints[ik] + float(ip)/interval*(kpoints[ik+1] - kpoints[ik])
+            io = io + 1
+        kout[io,:3] = kpoints[ik] + float(ip+1)/interval*(kpoints[ik+1] - kpoints[ik])
+
+        return kout
+
+    def get_indexes(self):
+        """ get the index of each point of the path
+        """
+
+        indexes = []
+        index = 0
+        for n,label in enumerate(self.intervals):
+            indexes.append([index,self.klabels[n]])
+            index += self.intervals[n] 
+        indexes.append([index,self.klabels[-1]])
+        return indexes
+
