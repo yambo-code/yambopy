@@ -3,10 +3,11 @@
 # Run a Silicon groundstate calculation using Quantum Espresso
 #
 from __future__ import print_function, division
+import sys
 from qepy import *
 import argparse
 
-kpoints = [9,9,1]
+kpoints = [30,30,1]
 kpoints_double = [18,18,1]
 qpoints = [3,3,1]
 
@@ -102,13 +103,17 @@ if __name__ == "__main__":
 
     #parse options
     parser = argparse.ArgumentParser(description='Test the yambopy script.')
-    parser.add_argument('-r' ,'--relax',       action="store_false", help='Don\'t run structural relaxation')
-    parser.add_argument('-s' ,'--scf',         action="store_false", help='Don\'t run self-consistent calculation')
-    parser.add_argument('-n' ,'--nscf',        action="store_false", help='Don\'t run non-self consistent calculation')
-    parser.add_argument('-n2','--nscf_double', action="store_false", help='Don\'t run non-self consistent calculation for the double grid')
-    parser.add_argument('-p' ,'--phonon',      action="store_false", help='Don\'t run phonon calculation')
+    parser.add_argument('-r' ,'--relax',       action="store_true", help='Structural relaxation')
+    parser.add_argument('-s' ,'--scf',         action="store_true", help='Self-consistent calculation')
+    parser.add_argument('-n' ,'--nscf',        action="store_true", help='Non-self consistent calculation')
+    parser.add_argument('-n2','--nscf_double', action="store_true", help='Non-self consistent calculation for the double grid')
+    parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
     parser.add_argument('-t' ,'--nthreads',    action="store_true", help='Number of threads', default=2 )
     args = parser.parse_args()
+
+    if len(sys.argv)==1:
+        parser.print_help()
+        sys.exit(1)
 
     # create input files and folders
     relax()

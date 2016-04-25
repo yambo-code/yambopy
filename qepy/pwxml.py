@@ -4,7 +4,7 @@
 # This file is part of yambopy
 #
 import xml.etree.ElementTree as ET
-from   qepy.auxiliary import car_red
+from   qepy.auxiliary import *
 from   matplotlib     import pyplot as plt
 from   numpy import array
 from matplotlib.backends.backend_pdf import PdfPages
@@ -63,10 +63,12 @@ class PwXML():
         s += "atoms:\n"
         for a in self.atoms:
             s += str(a)+'\n'
+        s += "nkpoints: %d\n"%self.nkpoints
+        s += "nbands: %d\n"%self.nbands
         return s
 
     def plot_eigen(self,path=[]):
-        """ plot teh eigenvalues uwing matplotlib
+        """ plot the eigenvalues using matplotlib
         """
 ###################################################################################
 # Font selection and borders
@@ -79,8 +81,11 @@ class PwXML():
 
         if self.eigen is None:
             self.get_eigen()
-       
-        if path: plt.xticks( *zip(*path) )
+      
+        if path:
+            if isinstance(path,Path):
+                path = path.get_indexes()
+            plt.xticks( *zip(*path) )
         plt.ylabel('E (eV)')
 
         #plot vertical line

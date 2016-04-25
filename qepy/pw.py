@@ -59,6 +59,9 @@ class PwIn():
                     atype, znuc, psp = lines.next().split()
                     self.atypes[atype] = [znuc,psp]
 
+    def set_path(self,path):
+        self.klist = path.get_klist()
+
     def get_atoms(self):
         """ Get the lattice parameters, postions of the atoms and chemical symbols
         """
