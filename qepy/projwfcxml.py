@@ -15,7 +15,7 @@ class projwfcXML():
     """
     _proj_file = 'atomic_proj.xml'
 
-    def __init__(self,prefix,path='.'):
+    def __init__(self,prefix,path='.',outproj='proj.out'):
         """ Initialize the structure with the path where the atomic_proj.xml is
         """
         self.prefix   = prefix
@@ -29,6 +29,18 @@ class projwfcXML():
         self.fermi    = float(self.datafile_xml.find("HEADER/FERMI_ENERGY").text)
         #get number of projections
         self.nproj    = int(self.datafile_xml.find("HEADER/NUMBER_OF_ATOMIC_WFC").text)
+
+        # Dictionary of orbitals
+        f = open(outproj)
+        states = []
+        for line in f.readlines()[:100]:
+          l = re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z]+)\s+\),\s+wfc\s+([0-9])\s+\((?:j=([0-9.]+))? ?(?:l=([0-9.]+))? ?(?:m=\s+([0-9.]+))? ?(?:m_j=([ \-0-9.]+))?',line)
+          if l: states.append(l)
+        f.close()
+
+        orbital = {}
+        
+        # End of Dictionary of orbitals
  
         self.eigen = None 
         self.proj  = None 
