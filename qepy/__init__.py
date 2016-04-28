@@ -4,8 +4,9 @@
 # This file is part of yambopy
 #
 #
-from qepy.pw        import *
-from qepy.ph        import *
-from qepy.dynmat    import *
-from qepy.pwxml     import *
-from qepy.auxiliary import *
+from qepy.pw             import *
+from qepy.ph             import *
+from qepy.dynmat         import *
+from qepy.pwxml          import *
+from qepy.auxiliary      import *
+from qepy.projection_xml import *
