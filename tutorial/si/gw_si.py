@@ -32,7 +32,7 @@ if not os.path.isdir('gw'):
 #create the yambo input file
 y = YamboIn('%s -d -g n -V all'%yambo,folder='gw')
 QPKrange,_ = y['QPkrange']
-y['QPkrange'] = [QPKrange[:2]+[6,10],'']
+y['QPkrange'] = [QPKrange[:2]+[3,6],'']
 y['FFTGvecs'] = [15,'Ry']
 y['NGsBlkXp'] = [1,'Ry']
 y['BndsRnXp'] = [[1,30],'']

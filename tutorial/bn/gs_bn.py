@@ -7,7 +7,7 @@ import sys
 from qepy import *
 import argparse
 
-kpoints = [30,30,1]
+kpoints = [24,24,1]
 kpoints_double = [18,18,1]
 qpoints = [3,3,1]
 
@@ -110,6 +110,7 @@ if __name__ == "__main__":
     parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
     parser.add_argument('-t' ,'--nthreads',    action="store_true", help='Number of threads', default=2 )
     args = parser.parse_args()
+    nthreads = int(args.nthreads)
 
     if len(sys.argv)==1:
         parser.print_help()
@@ -124,31 +125,31 @@ if __name__ == "__main__":
 
     if args.relax:
         print("running relax:")
-        os.system("cd relax; mpirun -np %d pw.x -inp bn.scf > relax.log"%args.nthreads)  #relax
+        os.system("cd relax; mpirun -np %d pw.x -inp bn.scf > relax.log"%nthreads)  #relax
         update_positions('relax','scf') 
         print("done!")
 
     if args.scf:
         print("running scf:")
-        os.system("cd scf; mpirun -np %d pw.x -inp bn.scf > scf.log"%args.nthreads)  #scf
+        os.system("cd scf; mpirun -np %d pw.x -inp bn.scf > scf.log"%nthreads)  #scf
         print("done!")
    
     if args.nscf: 
         print("running nscf:")
         os.system("cp -r scf/bn.save nscf/") #nscf
-        os.system("cd nscf; mpirun -np %d pw.x -inp bn.nscf > nscf.log"%args.nthreads) #nscf
+        os.system("cd nscf; mpirun -np %d pw.x -inp bn.nscf > nscf.log"%nthreads) #nscf
         print("done!")
 
     if args.nscf_double: 
         print("running nscf_double:")
         os.system("cp -r scf/bn.save nscf_double/") #nscf
-        os.system("cd nscf_double; mpirun -np %d pw.x -inp bn.nscf > nscf_double.log"%args.nthreads) #nscf
+        os.system("cd nscf_double; mpirun -np %d pw.x -inp bn.nscf > nscf_double.log"%nthreads) #nscf
         print("done!")
     
     if args.phonon:
         print("running phonon:")
         os.system("cp -r scf/bn.save phonon/")
-        os.system("cd phonon; mpirun -np %d ph.x -inp bn.ph > phonon.log"%args.nthreads) #phonon
+        os.system("cd phonon; mpirun -np %d ph.x -inp bn.ph > phonon.log"%nthreads) #phonon
         os.system("cd phonon; dynmat.x -inp bn.dynmat > dynmat.log") #matdyn
         print("done!")
 
