@@ -7,7 +7,6 @@ from yambopy import *
 from yambopy.netcdf import *
 from yambopy.plot import *
 from itertools import product
-from scipy.optimize import bisect
 
 max_exp = 50
 ha2ev = 27.211396132
@@ -125,6 +124,7 @@ class YamboSaveDB():
         """ Determine the fermi energy
         """
         if self.efermi: return self.efermi
+        from scipy.optimize import bisect
 
         def fermi(e):
             """ fermi dirac function

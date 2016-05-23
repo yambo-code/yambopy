@@ -6,6 +6,8 @@
 #
 import numpy as np
 from yambopy.jsonencoder import *
+from yambopy.netcdf import *
+from yambopy.plot import *
 
 #lattce related stuff
 from yambopy.lattice import *
