@@ -23,7 +23,7 @@ if not os.path.isdir('database/SAVE'):
     print('preparing yambo database')
     os.system('cd nscf/si.save; p2y')
     os.system('cd nscf/si.save; yambo')
-    os.system('mv nscf/si.save/SAVE database'.split())
+    os.system('mv nscf/si.save/SAVE database')
 
 if not os.path.isdir('gw_bse'):
     os.mkdir('gw_bse')
