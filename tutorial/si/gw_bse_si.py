@@ -44,7 +44,6 @@ os.system('cd gw_bse; %s -F yambo_run.in -J yambo'%yambo)
 
 #creathe the bse input file
 y = YamboIn('%s -b -o b -k sex -y d -V all'%yambo,folder='gw_bse')
-y['QPkrange'] = [QPKrange[:2]+[6,10],'']
 y['FFTGvecs'] = [15,'Ry']
 y['NGsBlkXs'] = [1,'Ry']
 y['BndsRnXs'] = [[1,30],'']
