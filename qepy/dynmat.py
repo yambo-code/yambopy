@@ -148,7 +148,7 @@ class Matdyn():
             if isinstance(path,Path):
                 path = path.get_indexes()
             plt.xticks( *zip(*path) )
-        plt.ylabel('\omega (cm$^{-1}$)')
+        plt.ylabel('\\omega (cm$^{-1}$)')
 
         #plot vertical line
         for point in path:

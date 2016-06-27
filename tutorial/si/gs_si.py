@@ -7,10 +7,11 @@ import sys
 from qepy import *
 import argparse
 
-scf_kpoints  = [2,2,2]
-nscf_kpoints = [3,3,3]
+scf_kpoints  = [4,4,4]
+nscf_kpoints = [4,4,4]
 prefix = 'si'
-
+matdyn = 'matdyn.x'
+q2r =    'q2r.x'
 p = Path([ [[1.0,1.0,1.0],'G'],
            [[0.0,0.5,0.5],'X'],
            [[0.0,0.0,0.0],'G'],
@@ -91,6 +92,7 @@ def phonons():
     ph['fildyn'] = "'%s.dyn'" % prefix
     ph['ldisp']  = '.true.'
     ph['trans']  = '.true.'
+    ph['tr2_ph'] = 1e-12
     ph['nq1'], ph['nq2'], ph['nq3'] = 2, 2, 2
     ph.write('phonons/%s.phonons'%prefix)
 
@@ -100,14 +102,14 @@ def dispersion():
     disp['zasr']  = "'simple'" 
     disp['flfrc'] = "'%s.fc'"  % prefix
     disp.write('phonons/q2r.in')
-    os.system('cd phonons; ~/Software/espresso-5.1/bin/q2r.x < q2r.in')
+    os.system('cd phonons; %s < q2r.in'%q2r)
     dyn = DynmatIn()
     dyn['flfrc'] = "'%s.fc'" % prefix
     dyn['asr']   = "'simple'"  
     dyn['flfrq'] = "'%s.freq'" % prefix
     dyn.qpoints = p.get_klist()
     dyn.write('phonons/matdyn.in')
-    os.system('cd phonons; ~/Software/espresso-5.1/bin/matdyn.x < matdyn.in')
+    os.system('cd phonons; %s < matdyn.in'%matdyn)
    
     # Use a class to read and plot the frequencies
     Matdyn(natoms=2,nqpoints=61,path='phonons').plot_eigen(path=p)
