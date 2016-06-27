@@ -8,6 +8,18 @@ import numpy as np
 import os
 from matplotlib import pyplot as plt
 
+def float_from_string(x):
+  """
+  Convert a string in a float 
+  """
+  y=[]
+  for t in x.split():
+    try:
+      y.append(float(t))
+    except ValueError:
+      pass
+  return y
+
 def car_red(car,lat):
     """
     Convert cartesian coordinates to reduced

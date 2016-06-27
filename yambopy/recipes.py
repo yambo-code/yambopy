@@ -13,7 +13,7 @@ def breaking_symmetries(efield1,efield2=[0,0,0],folder='.',RmTimeRev=True):
 # RmTimeRev : Remove time symmetry is set True by default
   os.system('mkdir -p %s'%folder)
   os.system('cp -r database/SAVE %s'%folder)
-  ypp = YamboIn('ypp_ph -n -V all',folder=folder,filename='ypp.in')
+  ypp = YamboIn('ypp_ph -y -V all',folder=folder,filename='ypp.in')
   ypp['Efield1'] = efield1 # Field in the X-direction
   ypp['Efield2'] = efield2 # Field in the X-direction
   if RmTimeRev:

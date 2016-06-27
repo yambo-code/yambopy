@@ -14,7 +14,7 @@
 # calculation : 'collision', 'tdsex', 'negf', 'dissipation'
 # folder-col  : collision data
 # folder-run  : results (only work if collisions have been previously calculated)
-# DG          : True or False if we use the double-grid
+# DG          : True or False if we use the double-grid (not yet implemented)
 #
 # Calculations are done inside the folder rt (feel free to rename it)
 #
@@ -22,18 +22,25 @@
 #from __future__ import print_function
 from yambopy import *
 from qepy import *
+import argparse
 import os
 
+# Select the run-level : 'collision', 'tdsex', 'pump', 'dissipation'
+parser = argparse.ArgumentParser(description='Example of real-time simulation')
+parser.add_argument('-c' ,'--collisions')
+parser.add_argument('-t' ,'--tdsex')
+parser.add_argument('-p' ,'--pump')
+parser.add_argument('-d' ,'--dissipation')
+args = parser.parse_args()
+
+p2y      = 'p2y'
 yambo    = 'yambo'
 yambo_rt = 'yambo_rt'
 ypp_rt   = 'ypp_rt'
 ypp_ph   = 'ypp_ph'
 folder   = 'rt'
 
-# you can select the calculation among : 'collision', 'tdsex', 'pump', 'dissipation'
-
 job = dict()
-job['calculation']  = 'dissipation'
 job['folder-run']   = ''
 job['folder-col']   = 'COLLISION'
 job['folder-gkkp']  = 'GKKP'
@@ -53,43 +60,47 @@ else:
 #check if the SAVE folder is present
 if not os.path.isdir('database/SAVE'):
     print('preparing yambo database')
-    os.system('cd nscf/si.save; p2y')
-    os.system('cd nscf/si.save; yambo')
-    os.system('mv nscf/si.save/SAVE database')
+    os.system('cd nscf/si.save; %s ;%s ; mv SAVE ../../database' % (p2y,yambo))
 
 #check if the rt folder is present
 if os.path.isdir('%s/SAVE'%folder):
-  print('symmetries for carrier dynamics ready') 
+  print('Symmetries for carrier dynamics ready') 
 if not os.path.isdir('%s/SAVE'%folder):
   breaking_symmetries([1,0,0],folder=folder)
 
-if job['calculation']=='collision':
-  print 'Collision'  
-  run = YamboIn('%s -r -e -v c'%yambo_rt,folder=folder)
-elif job['calculation']=='tdsex':
-  run = YamboIn('%s -q p -Q'%yambo_rt,folder=folder)
-elif job['calculation']=='pump':
-  print 'pump calculation'
-  run = YamboIn('%s -q p -Q'%yambo_rt,folder=folder)
-elif job['calculation']=='dissipation':
+if args.collisions:
+  print 'Collisions'  
+  run = YamboIn('%s -r -e -v hsex'%yambo_rt,folder=folder)
+elif args.tdsex:
+  print 'Time-dependent Screened-Exchange'  
+  run = YamboIn('%s -q p'%yambo_rt,folder=folder)
+elif args.pump:
+  print 'Time-dependent with electric field'
+  run = YamboIn('%s -q p'%yambo_rt,folder=folder)
+elif args.dissipation:
+  print 'Time-dependent with electric field and electron-phonon scattering'
   run = YamboIn('%s -s p -q p'%yambo_rt,folder=folder)
 else:
   print 'Invalid calculation type'
   exit()
 
-# System Common variables
-run['FFTGvecs']  = [5,'Ha']
-run['EXXRLvcs']  = [5,'Ha']
+# System Common variables NOW ARE THEY ONLY IN THE COLLISIONS?
+#run['FFTGvecs']  = [5,'Ha']
+#run['HARRLvcs']  = [5,'Ha'] # New Variable, ask DS
+#run['EXXRLvcs']  = [100,'mHa']  # Why must EXXRLvcs <= NGsBlkXs
 
 # Collision variables
-if job['calculation']=='collision':
-  run['NGsBlkXs']  = [ 100,'mHa']
+if args.collisions:
+  run['FFTGvecs']  = [5,'Ha']
+  run['HARRLvcs']  = [5,'Ha']     # Equivalent to BSENGexx in the BSE run-level
+  run['EXXRLvcs']  = [100,'mHa']  # Equivalent to BSENGBlk in the BSE run-level
+  run['NGsBlkXs']  = [100,'mHa']
   run['BndsRnXs' ] = [1,30]
-  run['COLLBands'] = [2,7]
+  run['COLLBands'] = [2,7]     # Bug in the Initizalization. Tell DS
   run.write('%s/03_COLLISION'%folder)
 
 # Common time-dependent variable
-if job['calculation']=='tdsex' or 'pump' or 'dissipation':
+if args.tdsex or args.pump or args.dissipation:
   run['RTBands']    = [2,7]
   run['GfnQP_Wv']   = [0.10,0.00,0.00]
   run['GfnQP_Wc']   = [0.10,0.00,0.00]
@@ -107,37 +118,37 @@ if job['calculation']=='tdsex' or 'pump' or 'dissipation':
   run['Field1_pol']       = "linear"            # Polarization type (linear or circular) 
 
 # Time-dependent COHSEX -- DELTA PULSE
-if job['calculation']=='tdsex':
+if args.tdsex:
   run['Field1_kind'] = "DELTA"
   run.write('%s/04_TDSEX'%folder)
 
 # Pumping with finite pulse
-if job['calculation']=='pump' or 'dissipation':
+if args.pump or args.dissipation:
   run['Field1_kind'] = "QSSIN"
   run['Field1_Damp'] = [ 100,'fs']
   run['Field1_Freq'] = [[2.1,0.0],'eV']
 
-if job['calculation']=='pump':
+if args.pump:
   run.write('%s/05_NEGF'%folder)
 
 # Pumping with finite pulse and electron-phonon dissipation
-if job['calculation']=='dissipation':
+if args.pump or args.dissipation:
 # Interpolation 
   run['LifeInterpKIND']  = 'FLAT'
   run['LifeInterpSteps'] = [ [1.0,1.0], 'fs' ] 
   run.write('%s/06_DISS'%folder)
 
-# Run
+# Submission in serial
 
 # Collisions
 
-if job['calculation'] == 'collision':
+if args.collisions:
   print('running yambo-collision')
   os.system('cd %s; %s -F 03_COLLISION -J %s'%(folder,yambo_rt,job['folder-col']))
 
 # Time-dependent without/with Double Grid 
 
-if job['calculation'] == 'tdsex':
+if args.tdsex:
   job['folder-run'] += 'tdsex'
   print('running TD-COHSEX in folder: ' + str(job['folder-run']))
   if not os.path.isdir('%s/'%folder+job['folder-col']):
@@ -151,7 +162,7 @@ if job['calculation'] == 'tdsex':
 
 # Time-dependent with a pulse and without/with Double Grid 
 
-if job['calculation'] == 'pump':
+if args.pump:
   print('running pumping with finite pulse')
   job['folder-run'] += 'negf'
   print('running NEGF in folder: ' + str(job['folder-run']))
@@ -163,9 +174,10 @@ if job['calculation'] == 'pump':
   else:
     #os.system ('cd %s; %s -F 05_NEGF -J \'%s,%s\' -C %s'%(folder,yambo_rt,job['folder-run'],job['folder-col'],job['folder-run']))
     print 'cd %s ; %s -F 05_NEGF -J \'%s,%s\' -C %s'%(folder,yambo_rt,job['folder-run'],job['folder-col'],job['folder-run'])
+
 # Time-dependent with a pulse and dissipation and without/with Double Grid 
 
-if job['calculation'] == 'dissipation':
+if args.dissipation:
   print('running pumping with finite pulse and with electron-phonon scattering')
   print('this run level needs the GKKP folder to run')
   job['folder-run'] += 'dneq'
