@@ -23,7 +23,7 @@ if not os.path.isdir('database/SAVE'):
     print('preparing yambo database')
     os.system('cd nscf/si.save; p2y')
     os.system('cd nscf/si.save; yambo')
-    os.system('mv nscf/si.save/SAVE database')
+    os.system('mv nscf/si.save/SAVE database'.split())
 
 if not os.path.isdir('gw_bse'):
     os.mkdir('gw_bse')
@@ -32,7 +32,7 @@ if not os.path.isdir('gw_bse'):
 #create the gw yambo input file
 y = YamboIn('%s -d -p c -g n -V all'%yambo,folder='gw_bse')
 QPKrange,_ = y['QPkrange']
-y['QPkrange'] = [QPKrange[:2]+[6,10],'']
+y['QPkrange'] = [QPKrange[:2]+[4,5],'']
 y['FFTGvecs'] = [15,'Ry']
 y['NGsBlkXs'] = [1,'Ry']
 y['BndsRnXs'] = [[1,30],'']
@@ -47,6 +47,8 @@ y = YamboIn('%s -b -o b -k sex -y d -V all'%yambo,folder='gw_bse')
 y['FFTGvecs'] = [15,'Ry']
 y['NGsBlkXs'] = [1,'Ry']
 y['BndsRnXs'] = [[1,30],'']
+y['BSEBands'] = [[4,5]]
+y['KfnQPdb'] = 'E < yambo/ndb.QP'
 y.write('gw_bse/yambo_run.in')
 
 #run the bse calculation using the dielectric function from gw
