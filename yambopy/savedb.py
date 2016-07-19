@@ -148,14 +148,6 @@ class YamboSaveDB():
 
         self.efermi = bisect(occupation_minus_ne,self.min_eival,self.max_eival)
 
-        #import matplotlib.pyplot as plt
-        #xmin, xmax = self.min_eival,self.max_eival
-        #x = np.arange(xmin,xmax,0.1)
-        #y = [occupation_minus_ne(i) for i in x ]
-        #plt.plot(x,y)
-        #plt.plot([xmin,xmax],[0,0])
-        #plt.show()
-
         print "fermi: %lf eV"%self.efermi
 
         self.eigenvalues -= self.efermi

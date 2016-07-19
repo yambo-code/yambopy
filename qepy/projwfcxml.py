@@ -5,8 +5,6 @@
 #
 import xml.etree.ElementTree as ET
 from   qepy.auxiliary import *
-from   matplotlib     import pyplot as plt
-from matplotlib.collections import LineCollection
 from   numpy import array, zeros
 import re
 
@@ -86,13 +84,11 @@ class ProjwfcXML():
             Under development to include also colormap and a dictionary for the
             selection of the orbitals...
         """
-        renormalization = 25.0
+        import matplotlib.pyplot as plt
+
         # Font selection and borders
         plt.rc('text', usetex=True)
         plt.rc('font', family='serif',serif="Computer Modern Roman",size=20)
-        #rcParams['axes.linewidth']    = 3
-        #rcParams['xtick.major.width'] = 2
-        #rcParams['ytick.major.width'] = 2
 
         if self.eigen is None:
           self.get_eigen()
