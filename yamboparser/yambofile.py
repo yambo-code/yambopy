@@ -61,7 +61,7 @@ class YamboFile():
             self.type = 'report'
         elif any(prefix in filename for prefix in self._log_prefixes):
             self.type = 'log'
-        elif any(prefix in filename for prefix in self._netcdf_prefixes):
+        elif any(prefix in filename for prefix in self._netcdf_prefixes) and _has_netcdf:
             for sufix in self._netcdf_sufixes:
                 if sufix in filename: 
                     self.type = 'netcdf_%s'%self._netcdf_sufixes[sufix]
@@ -96,20 +96,22 @@ class YamboFile():
     def parse_netcdf_gw(self):
         """ Parse the netcdf gw file
         """
-        f = Dataset('%s/%s'%(self.folder,self.filename))
-        #quasiparticles table
-        qp_table  = f.variables['QP_table'][:].T
-        self.data['Kpoint_index'] = qp_table[2]
-        self.data['Band'] = qp_table[0]
+        if _has_netcdf:
 
-        #qpoints
-        self.data['Kpoint']   = f.variables['QP_kpts'][:].T
+            f = Dataset('%s/%s'%(self.folder,self.filename))
+            #quasiparticles table
+            qp_table  = f.variables['QP_table'][:].T
+            self.data['Kpoint_index'] = qp_table[2]
+            self.data['Band'] = qp_table[0]
 
-        #quasi-particles
-        qp = f.variables['QP_E_Eo_Z'][:]
-        qp = qp[0]+qp[1]*1j
-        self.data['E'], self.data['Eo'], self.data['Z'] = qp.T
-        f.close()
+            #qpoints
+            self.data['Kpoint']   = f.variables['QP_kpts'][:].T
+
+            #quasi-particles
+            qp = f.variables['QP_E_Eo_Z'][:]
+            qp = qp[0]+qp[1]*1j
+            self.data['E'], self.data['Eo'], self.data['Z'] = qp.T
+            f.close()
         
     def parse_report(self):
         """ Parse the report files.
