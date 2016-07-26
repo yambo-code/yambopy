@@ -111,6 +111,11 @@ class YamboAnalyser():
         sym_car  = np.array(jsonfile['sym_car'])
         alat     = np.array(jsonfile['alat'])
         lattice  = np.array(jsonfile['lattice'])
+        
+        #check if the lattice data is present
+        if not lattice:
+            print('Information about the lattice is not present, cannot determine the path')
+            exit(1)
 
         #convert to cartesian coordinates
         kpts_car = np.array([ k/alat for k in kpts_iku ])
