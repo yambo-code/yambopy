@@ -3,7 +3,7 @@
 #
 # This file is part of yamboparser
 # 
-from yamboparser import *
+from .yambofile import *
 import os
 import numpy as np
 
@@ -23,7 +23,7 @@ class YamboFolder():
             # iterate over all the files in the folder
             for filename in filenames:
                 y = YamboFile(filename, folder=dirname)
-                if y: #checks if the file is of a known type
+                if y.type !='unknown': #checks if the file is of a known type
                     self.yambofiles.append(y)
 
     def get_data(self):
