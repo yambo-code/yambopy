@@ -143,7 +143,7 @@ class YamboFile():
                 self.lines = fl.readlines()
         # start with check for  failure due to error:
         err = re.compile('^\s+?\[ERROR\]\s+?(.*)$')
-        kpoints = re.compile('^\s+?[A-X*]+\sK\s\[([0-9]+)\]\s[:]\s([0-9.]+\s+[0-9.]+\s+[0-9.]+)\s[A-Za-z()*.\s]+\d+\w([0-9.]+)')
+        kpoints = re.compile('^  [A-X*]+\sK\s\[([0-9]+)\]\s[:](?:\s+)?([0-9.E-]+\s+[0-9.E-]+\s+[0-9.E-]+)\s[A-Za-z()\s*.]+[0-9]+[A-Za-z()\s*.]+([0-9.]+)')
         memory = re.compile('^\s+?<([0-9a-z-]+)> ([A-Z0-9]+)[:] \[M  ([0-9.]+) Gb\]? ([a-zA-Z0-9\s.()\[\]]+)?')
         timing = re.compile('\s+?[A-Za-z]+iming\s+?[A-Za-z/\[\]]+[:]\s+?([a-z0-9-]+)[/]([a-z0-9-]+)[/]([a-z0-9-]+)')
         self.memstats.extend([ line for line in self.lines if memory.match(line)])
@@ -156,13 +156,14 @@ class YamboFile():
             if timing.match(line):
                 self.timing.append(timing.match(line).groups()[0] )
             if kpoints.match(line):
-                self.kpoints[str(int(kpoints.match(line).groups()[0]))] =  [ float(i.strip()) for i in kpoints.match(line).groups()[1].split()]
+                kindx, kpt, wgt = kpoints.match(line).groups()
+                self.kpoints[str(int(kindx))] =  [ float(i.strip()) for i in kpt.split()]
                     
         full_lines = '\n'.join(self.lines)
-        qp_regx = re.compile('(^\s+?QP\s\[eV\]\s@\sK\s\[\d+\][a-z0-9:()\s.-]+)(.*?)(?=^$)',re.M|re.DOTALL)
-        kp_regex = re.compile('^\s+?QP\s\[eV\]\s@\sK\s\[(\d+)\][a-z0-9:()\s.-]+$')
+        qp_regx = re.compile('(^\s+?QP\s\[eV\]\s@\sK\s\[\d+\][a-z0-9E:()\s.-]+)(.*?)(?=^$)',re.M|re.DOTALL)
+        kp_regex = re.compile('^\s+?QP\s\[eV\]\s@\sK\s\[(\d+)\][a-z0-9E:()\s.-]+$')
         spliter = re.compile('^(B[=]\d+\sEo[=]\s+?[E0-9.-]+\sE[=]\s+?[E0-9.-]+\sE[-]Eo[=]\s+?[E0-9.-]+\sRe[(]Z[)][=]\s+?[E0-9.-]+\sIm[(]Z[)][=]\s?[E0-9.-]+\snlXC[=]\s+?[E0-9.-]+\slXC[=]\s+?[E0-9.-]+\sSo[=]\s+?[E0-9.-]+)')
-        extract = re.compile('B[=](\d+)\sEo[=]\s+?([E0-9.-]+)\sE[=]\s+?([E0-9.-]+)\sE[-]Eo[=]\s+?([E0-9.-]+)\sRe[(]Z[)][=]\s?([E0-9.-]+)\sIm[(]Z[)][=]\s?[E0-9.-]+\snlXC[=]\s?([E0-9.-]+)\slXC[=]\s?([E0-9.-]+)\sSo[=]\s+?([E0-9.-]+)')
+        extract = re.compile('B[=](\d+)\sEo[=](?:\s+)?([E0-9.-]+)\sE[=](?:\s+)?([E0-9.-]+)\sE[-]Eo[=](?:\s+)?([E0-9.-]+)\sRe[(]Z[)][=](?:\s+)?([E0-9.-]+)\sIm[(]Z[)][=](?:\s+)?[E0-9.-]+\snlXC[=](?:\s+)?([E0-9.-]+)\slXC[=](?:\s+)?([E0-9.-]+)\sSo[=](?:\s+)?([E0-9.-]+)')
         qp_lines = qp_regx.findall(full_lines)
         qp_results ={}
         for each in qp_lines: # first group of qp data, shares k-point index
