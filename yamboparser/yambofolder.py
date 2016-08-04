@@ -33,8 +33,10 @@ class YamboFolder():
         data = {}
         for yambofile in self.yambofiles:
             print yambofile.filename
-            print yambofile.data.keys()
-       
+            print "data:",yambofile.data.keys()
+            print "memo:",yambofile.memstats
+            print "warn:",yambofile.warnings
+ 
     def __str__(self):
         s = ''
         for yambofile in self.yambofiles:

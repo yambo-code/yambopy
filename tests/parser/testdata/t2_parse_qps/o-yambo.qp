@@ -1,0 +1,88 @@
+#                                                           
+#  **    **    **     ****     ****  ******     *******     
+# //**  **    ****   /**/**   **/** /*////**   **/////**    
+#  //****    **//**  /**//** ** /** /*   /**  **     //**   
+#   //**    **  //** /** //***  /** /******  /**      /**   
+#    /**   **********/**  //*   /** /*//// **/**      /**   
+#    /**  /**//////**/**   /    /** /*    /**//**     **    
+#    /**  /**     /**/**        /** /*******  //*******     
+#    //   //      // //         //  ///////    ///////      
+#                                                           
+#        Version 4.0.2 Revision 13596 Hash 99ae60b          
+#                        MPI Build                          
+#                http://www.yambo-code.org                  
+#
+# GW [Newton Solver]
+#
+#  == Real Axis GW ==
+#  GW SC iterations       :0
+#  dS/dw steps            : 2
+#  dS/dw step         [ev]:  0.10000
+#  X G`s            [used]: 1
+#  X G`s            [disk]: 1
+#  X bands                :  1  20
+#  X poles           [o/o]: 100.0000
+#  X e/h E range      [ev]:-1.000000 -1.000000
+#  X xc-Kernel            : none
+#  X damping range    [ev]:  0.10000   0.10000
+#  X Steps                : 100
+#  X BZ energy Double Grid: no
+#  X BZ Double Grid points:0
+#  Sc/G bands             :  1  20
+#  Sc/G damping       [ev]:  0.10000
+#  Sc bands terminator    : no
+#  Sx RL components       :  6615
+#  QP @ K 001 - 006 : b 004 - 005
+#
+#  K-point    Band       Eo         E-Eo       Sc|Eo
+#
+  1.000000   4.000000   0.000000   0.565499   2.085629
+  1.000000   5.000000   2.320436   1.893271  -2.722179
+  2.000000   4.000000  -0.953297   0.500344   2.235807
+  2.000000   5.000000   1.397108   1.454261  -2.650491
+  3.000000   4.000000  -2.264515   0.378967   2.526141
+  3.000000   5.000000   0.773065   1.195603  -2.587908
+  4.000000   4.000000  -1.984581   0.401753   2.447444
+  4.000000   5.000000   1.555292   1.301211  -2.718796
+  5.000000   4.000000  -0.953487   0.500323   2.235873
+  5.000000   5.000000   1.397014   1.454258  -2.650500
+  6.000000   4.000000  -1.984689   0.401353   2.447448
+  6.000000   5.000000   1.555160   1.301198  -2.718824
+# 
+# 07/22/2016 at 11:13 YAMBO @ lmp00236.local [start]
+# 07/22/2016 at 11:13                        [end]
+#  
+# Timing   [Min/Max/Average]: 03s/03s/03s
+#
+# .-Input file : yambo_run.in
+# | em1d                         # [R Xd] Dynamical Inverse Dielectric Matrix
+# | HF_and_locXC                 # [R XX] Hartree-Fock Self-energy and Vxc
+# | gw0                          # [R GW] GoWo Quasiparticle energy levels
+# | BoseTemp= 0.000000     eV    # Bosonic Temperature
+# | FFTGvecs= 15           Ry    # [FFT] Plane-waves
+# | WFbuffIO                     # [IO] Wave-functions buffered I/O
+# | X_all_q_nCPU_invert= 1       # [PARALLEL] CPUs for matrix inversion
+# | EXXRLvcs=  6615        RL    # [XX] Exchange RL components
+# | Chimod= "hartree"            # [X] IP/Hartree/ALDA/LRC/BSfxc
+# | % GbndRnge
+# |   1 | 20 |                   # [GW] G[W] bands range
+# | %
+# | GDamping=  0.10000     eV    # [GW] G[W] damping
+# | dScStep=  0.10000      eV    # [GW] Energy step to evaluate Z factors
+# | % BndsRnXd
+# |   1 | 20 |                   # [Xd] Polarization function bands
+# | %
+# | NGsBlkXd= 1            RL    # [Xd] Response block size
+# | % DmRngeXd
+# |   0.10000 |  0.10000 | eV    # [Xd] Damping range
+# | %
+# | ETStpsXd= 100                # [Xd] Total Energy steps
+# | % LongDrXd
+# | 0.1000E-4 | 0.000    | 0.000    |        # [Xd] [cc] Electric Field
+# | %
+# | GTermKind= "none"            # [GW] GW terminator ("none","BG" Bruneval-Gonze,"BRS" Berger-Reining-Sottile)
+# | GTermEn= 40.81708      eV    # [GW] GW terminator energy (only for kind="BG")
+# | DysSolver= "n"               # [GW] Dyson Equation solver ("n","s","g")
+# | %QPkrange                    # [GW] QP generalized Kpoint/Band indices
+# |   1|  6|  4|  5|
+# | %
