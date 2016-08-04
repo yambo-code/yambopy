@@ -15,8 +15,8 @@ folder = os.path.dirname(os.path.realpath(__file__))+'/testdata/'
 class TestFolder(unittest.TestCase):
      
     def test_folder_list(self):
-        fold = YamboFolder(folder+'/testdata')
-        assert len (fold.yambofiles)==3
+        fold = YamboFolder(folder+'t2_parse_qps/')
+        assert len (fold.yambofiles)==5
 
 
 class TestFileT1(unittest.TestCase):
