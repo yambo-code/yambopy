@@ -33,7 +33,7 @@ class YamboFile():
     _report_prefixes = ['r-','r.']
     _log_prefixes    = ['l-','l.']
     _netcdf_prefixes = ['ns','ndb']
-    _netcdf_sufixes  = {'QP':'gw'}
+    _netcdf_sufixes  = {'QP':'gw','HF_and_locXC':'hf'}
 
     def __init__(self,filename,folder='.'):
         self.filename = filename
@@ -81,6 +81,7 @@ class YamboFile():
             Add here things to read log and report files...
         """
         if   self.type == 'netcdf_gw': self.parse_netcdf_gw()
+        elif self.type == 'netcdf_hf': self.parse_netcdf_hf()
         elif self.type == 'output_gw': self.parse_output()
         elif self.type == 'log': self.parse_log()
         elif self.type == 'report'  : self.parse_report()
@@ -92,7 +93,7 @@ class YamboFile():
         if self.type == "output_absorption":
             tags = [tag.strip() for tag in re.findall('([ `0-9a-zA-Z\-\/]+)\[[0-9]\]',''.join(self.lines))]
         if self.type == "output_gw":
-            tags = [line for line in self.lines if all(tag in line for tag in ['K-point','Band','Eo'])][0]
+            tags = [line.replace('(meV)','').replace('Sc(Eo)','Sc|Eo') for line in self.lines if all(tag in line for tag in ['K-point','Band','Eo'])][0]
             tags = tags[2:].strip().split()
         table = np.genfromtxt(self.lines)
         _kdata ={}
@@ -113,22 +114,45 @@ class YamboFile():
         """ Parse the netcdf gw file
         """
         if _has_netcdf:
-
+            data = {}
             f = Dataset('%s/%s'%(self.folder,self.filename))
             #quasiparticles table
             qp_table  = f.variables['QP_table'][:].T
-            self.data['Kpoint_index'] = qp_table[2]
-            self.data['Band'] = qp_table[0]
-
+            data['Kpoint_index'] = qp_table[:,2]
+            data['Band'] = qp_table[:,0]
+            if qp_table.shape[1] == 4: # spin polarized
+                data['Spin_pol'] = qp_table[:,3]
+            data['qp_table'] = qp_table[:,1:]  # ib, ik, ,(isp if spin polarized)
             #qpoints
-            self.data['Kpoint']   = f.variables['QP_kpts'][:].T
+            data['Kpoint']   = f.variables['QP_kpts'][:].T
 
             #quasi-particles
             qp = f.variables['QP_E_Eo_Z'][:]
             qp = qp[0]+qp[1]*1j
-            self.data['E'], self.data['Eo'], self.data['Z'] = qp.T
+            data['E'],  data['Eo'], data['Z'] = qp.T
+            data['E-Eo'] = data['E']  -  data['Eo'] 
+            self.data=data
             f.close()
-        
+       
+    def parse_netcdf_hf(self):
+        """ Parse the netcdf hf file (ndb.HF_and_locXC)
+        """
+        if _has_netcdf:
+            data = {}
+            f = Dataset('%s/%s'%(self.folder,self.filename))
+            hf =  f.variables['Sx_Vxc'][:]
+            if hf.shape[0]%8 ==0 :
+                qp =  hf.reshape(-1,8)
+                ib, ibp, ik, isp, rsx, isx, revx, imvx = qp.T
+            else:
+                qp =  hf.reshape(-1,7)
+                ib, ibp, ik, rsx, isx, revx, imvx = qp.T
+            data['Sx'] = rsx + isx*1j 
+            data['Vxc'] = revx + imvx*1j
+
+            self.data=data
+            f.close()
+ 
     def parse_report(self):
         """ Parse the report files.
             produces output of this nature:

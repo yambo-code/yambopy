@@ -15,8 +15,8 @@ folder = os.path.dirname(os.path.realpath(__file__))+'/testdata/'
 class TestFolder(unittest.TestCase):
      
     def test_folder_list(self):
-        fold = YamboFolder(folder+'/testdata')
-        assert len (fold.yambofiles)==3
+        fold = YamboFolder(folder+'t2_parse_qps/')
+        assert len (fold.yambofiles)==7
 
 
 class TestFileT1(unittest.TestCase):
@@ -55,6 +55,16 @@ class TestFileT2(unittest.TestCase):
 
         fl = YamboFile('r-yambo_em1d_HF_and_locXC_gw0',folder+'t2_parse_qps')
         assert fl.type=='report'
+
+    def test_ndb_qp_parsing(self):
+        fl = YamboFile('ndb.QP',folder+'t3_parse_netcdf')
+        print "fl type", fl.type
+        assert fl.type=='netcdf_gw'
+
+    def test_ndb_hf_parsing(self):
+        fl = YamboFile('ndb.HF_and_locXC',folder+'t3_parse_netcdf')
+        print "fl type", fl.type
+        assert fl.type=='netcdf_hf'
 
 if __name__ == "__main__":
     
