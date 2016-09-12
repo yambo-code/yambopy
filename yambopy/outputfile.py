@@ -4,37 +4,17 @@
 # This file is part of yambopy
 #
 #
-from subprocess import Popen, PIPE
-from yambopy.inputfile import YamboIn
+from yambopy import *
 from copy import *
+import os
+import re
 try:
     from netCDF4 import Dataset
     _has_netcdf = True
 except ImportError:
     _has_netcdf = False
-import os
-import json
-import numpy as np
-import re
 
-#we try to use matplotlib, if not present we won't use it
-try:
-    from matplotlib import pyplot as plt
-except ImportError:
-    _has_matplotlib = False
-else:
-    _has_matplotlib = True
-
-def pack_files_in_folder(folder,save_folder=None):
-    """ Helper funciton to look for output files in a
-    """
-    if not save_folder: save_folder = folder
-    #pack the files in .json files
-    for dirpath,dirnames,filenames in os.walk(folder):
-        #check if there are some output files in the folder
-        if ([ f for f in filenames if 'o-' in f ]):
-            y = YamboOut(dirpath,save_folder=save_folder)
-            y.pack()
+from yambopy.plot import *
 
 class YamboOut():
     """ Class to read yambo output files and pack them in a JSON file
@@ -59,7 +39,7 @@ class YamboOut():
         else:
             logdir = outdir
 
-        self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and ('refl' in f or 'eel' in f or 'eps' in f or 'qp' in f or 'sf' in f)]
+        self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and ('refl' in f or 'eel' in f or 'eps' in f or 'qp' in f or 'sf' in f) and 'xsf' not in f]
         self.run    = ["%s"%f for f in outdir if f[:2] == 'r-']
         self.logs   = ["/LOG/%s"%f for f in logdir]
         self.get_runtime()
@@ -96,6 +76,7 @@ class YamboOut():
         """ Get the data from the o-* files
         """
         #open all the o-* files
+        print self.output
         files = [open("%s/%s"%(self.folder,f)) for f in self.output]
 
         self.data = {}
@@ -124,8 +105,8 @@ class YamboOut():
                     # of the section after the tag 'Input file:'
                     inputfile.append( line[4:] )
         f.close()
-       
-        #use YamboIn to read the input file to a list 
+
+        #use YamboIn to read the input file to a list
         yi = YamboIn()
         self.inputfile = yi.read_string( ''.join(inputfile) )
 
@@ -147,10 +128,19 @@ class YamboOut():
         self.runtime = timing
         return timing
 
+    def get_data(self,tags):
+        """ Search for a tag in the output files and obtain the data
+        """
+        data = {}
+        for key in self.data.keys():
+            print key
+            if all(tag in key for tag in tags):
+                data[key] = dict(zip(self.tags[key],np.array(self.data[key]).T))
+        return data
+
     def plot(self,tag,cols=(2,),xlabel=None):
         """ Search in the output files a certain tag and plot it
         """
-        if 'self.data' not in locals(): self.get_data()
         for key in self.data.keys():
             if tag in key:
                 data = self.data[key]
@@ -174,19 +164,18 @@ class YamboOut():
         #if no filename is specified we use the same name as the folder
         if not filename: filename = self.folder
 
-        f = open('%s.json'%filename,'w')
-        json.dump({"data"     : dict(zip(self.data.keys(),[d.tolist() for d in self.data.values()])),
-                   "tags"     : self.tags,
-                   "runtime"  : self.runtime,
-                   "inputfile": self.inputfile,
-                   "lattice"  : self.lat.tolist(),
-                   "alat"     : self.alat.tolist(), 
-                   "kpts_iku" : self.kpts_iku.tolist(),
-                   "sym_car"  : self.sym_car.tolist(),
-                   "atompos"  : self.apos.tolist(),
-                   "atomtype" : self.atomic_number.tolist()},
-                   f,indent=5)
-        f.close()
+        jsondata = {"data"     : dict(zip(self.data.keys(),[d.tolist() for d in self.data.values()])),
+                    "tags"     : self.tags,
+                    "runtime"  : self.runtime,
+                    "inputfile": self.inputfile,
+                    "lattice"  : self.lat,
+                    "alat"     : self.alat,
+                    "kpts_iku" : self.kpts_iku,
+                    "sym_car"  : self.sym_car,
+                    "atompos"  : self.apos,
+                    "atomtype" : self.atomic_number}
+        filename = '%s.json'%filename
+        JsonDumper(jsondata,filename)
 
     def __str__(self):
         s = ""

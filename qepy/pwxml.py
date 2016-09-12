@@ -5,9 +5,7 @@
 #
 import xml.etree.ElementTree as ET
 from   qepy.auxiliary import *
-from   matplotlib     import pyplot as plt
 from   numpy import array
-from matplotlib.backends.backend_pdf import PdfPages
 
 HatoeV = 27.2107
 
@@ -70,14 +68,11 @@ class PwXML():
     def plot_eigen(self,path=[]):
         """ plot the eigenvalues using matplotlib
         """
-###################################################################################
-# Font selection and borders
+        import matplotlib.pyplot as plt
+        
+        # Font selection and borders
         plt.rc('text', usetex=True)
         plt.rc('font', family='serif',serif="Computer Modern Roman",size=20)
-#        rcParams['axes.linewidth']    = 3
-#        rcParams['xtick.major.width'] = 2
-#        rcParams['ytick.major.width'] = 2
-###################################################################################
 
         if self.eigen is None:
             self.get_eigen()

@@ -10,7 +10,8 @@ import argparse
 
 #parse options
 parser = argparse.ArgumentParser(description='Test the yambopy script.')
-parser.add_argument('-dg' ,'--doublegrid', action="store_true", help='Use double grid')
+parser.add_argument('-dg','--doublegrid', action="store_true", help='Use double grid')
+parser.add_argument('-r' ,'--run',        action="store_true", help='Run the calculation')
 args = parser.parse_args()
 
 yambo = "yambo"
@@ -33,11 +34,12 @@ if not os.path.isdir('database/SAVE'):
     os.system('mv nscf/bn.save/SAVE database')
 
 #check if the SAVE folder is present
-if not os.path.isdir('database_double/SAVE'):
-    print('preparing yambo database2')
-    os.system('cd nscf_double/bn.save; p2y')
-    os.system('cd nscf_double/bn.save; yambo')
-    os.system('mv nscf_double/bn.save/SAVE database_double')
+if args.doublegrid:
+    if not os.path.isdir('database_double/SAVE'):
+        print('preparing yambo database')
+        os.system('cd nscf_double/bn.save; p2y')
+        os.system('cd nscf_double/bn.save; yambo')
+        os.system('mv nscf_double/bn.save/SAVE database_double')
 
 if not os.path.isdir('bse_par'):
     os.mkdir('bse_par')
@@ -82,7 +84,9 @@ os.system('parallel :::: jobs.sh')
 
 #gather all the files
 os.system('cp merge_eps.py bse_par')
-os.system('cd bse_par; python merge_eps.py')
+os.system('mkdir bse_par/yambo')
+os.system('cd bse_par; cp 1/ndb.em1? yambo/')
+os.system('cd bse_par; cp */ndb.em1?_fragment_* yambo/')
 
 y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder='bse_par')
 y['FFTGvecs'] = [30,'Ry']
@@ -90,7 +94,7 @@ y['NGsBlkXs'] = [1,'Ry']
 y['BndsRnXs'] = [[1,30],'']
 y['BSEBands'] = [[3,6],'']
 y['BEnSteps'] = [500,'']
-y['BEnRange'] = [[1.0,6.0],'eV']
+y['BEnRange'] = [[0.0,10.0],'eV']
 y.arguments.append('WRbsWF')
 y.write('bse_par/yambo_run.in')
 os.system('cd bse_par; %s -F yambo_run.in -J yambo'%yambo)

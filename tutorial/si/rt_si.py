@@ -70,7 +70,11 @@ if not os.path.isdir('%s/SAVE'%folder):
 
 if args.collisions:
   print 'Collisions'  
+<<<<<<< HEAD
   run = YamboIn('%s -r -e -v cohsex'%yambo_rt,folder=folder)
+=======
+  run = YamboIn('%s -r -e -v hsex'%yambo_rt,folder=folder)
+>>>>>>> henriquemiranda/master
 elif args.tdsex:
   print 'Time-dependent Screened-Exchange'  
   run = YamboIn('%s -q p'%yambo_rt,folder=folder)
@@ -92,9 +96,15 @@ else:
 # Collision variables
 if args.collisions:
   run['FFTGvecs']  = [5,'Ha']
+<<<<<<< HEAD
   run['HARRLvcs']  = [5,'Ha'] # New Variable, ask DS
   run['EXXRLvcs']  = [100,'mHa']  # Why must EXXRLvcs <= NGsBlkXs
   run['NGsBlkXs']  = [ 100,'mHa']
+=======
+  run['HARRLvcs']  = [5,'Ha']     # Equivalent to BSENGexx in the BSE run-level
+  run['EXXRLvcs']  = [100,'mHa']  # Equivalent to BSENGBlk in the BSE run-level
+  run['NGsBlkXs']  = [100,'mHa']
+>>>>>>> henriquemiranda/master
   run['BndsRnXs' ] = [1,30]
   run['COLLBands'] = [2,7]     # Bug in the Initizalization. Tell DS
   run.write('%s/03_COLLISION'%folder)

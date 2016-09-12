@@ -7,10 +7,11 @@ import sys
 from qepy import *
 import argparse
 
-scf_kpoints  = [2,2,2]
-nscf_kpoints = [3,3,3]
+scf_kpoints  = [4,4,4]
+nscf_kpoints = [4,4,4]
 prefix = 'si'
-
+matdyn = 'matdyn.x'
+q2r =    'q2r.x'
 p = Path([ [[1.0,1.0,1.0],'G'],
            [[0.0,0.5,0.5],'X'],
            [[0.0,0.0,0.0],'G'],
@@ -84,6 +85,35 @@ def bands():
     qe.set_path(p)
     qe.write('bands/%s.bands'%prefix)
 
+def phonons():
+    os.system('mkdir -p phonons')
+    ph = PhIn()
+    ph['prefix'] = "'%s'"     % prefix
+    ph['fildyn'] = "'%s.dyn'" % prefix
+    ph['ldisp']  = '.true.'
+    ph['trans']  = '.true.'
+    ph['tr2_ph'] = 1e-12
+    ph['nq1'], ph['nq2'], ph['nq3'] = 2, 2, 2
+    ph.write('phonons/%s.phonons'%prefix)
+
+def dispersion():
+    disp = DynmatIn()
+    disp['fildyn']= "'%s.dyn'" % prefix
+    disp['zasr']  = "'simple'" 
+    disp['flfrc'] = "'%s.fc'"  % prefix
+    disp.write('phonons/q2r.in')
+    os.system('cd phonons; %s < q2r.in'%q2r)
+    dyn = DynmatIn()
+    dyn['flfrc'] = "'%s.fc'" % prefix
+    dyn['asr']   = "'simple'"  
+    dyn['flfrq'] = "'%s.freq'" % prefix
+    dyn.qpoints = p.get_klist()
+    dyn.write('phonons/matdyn.in')
+    os.system('cd phonons; %s < matdyn.in'%matdyn)
+   
+    # Use a class to read and plot the frequencies
+    Matdyn(natoms=2,nqpoints=61,path='phonons').plot_eigen(path=p)
+
 def update_positions(pathin,pathout):
     """ update the positions of the atoms in the scf file using the output of the relaxation loop
     """
@@ -107,6 +137,7 @@ if __name__ == "__main__":
     parser.add_argument('-n2','--nscf_double', action="store_true", help='Non-self consistent calculation for the double grid')
     parser.add_argument('-b' ,'--bands',       action="store_true", help='Calculate band-structure')
     parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
+    parser.add_argument('-d' ,'--dispersion',  action="store_true", help='Phonon dispersion')
     parser.add_argument('-t' ,'--nthreads',    action="store_true", help='Number of threads', default=2 )
     args = parser.parse_args()
 
@@ -119,6 +150,7 @@ if __name__ == "__main__":
     scf()
     nscf()
     bands()
+    phonons()
    
     if args.relax: 
         print("running relax:")
@@ -146,3 +178,14 @@ if __name__ == "__main__":
         print("running plotting:")
         xml = PwXML(prefix='si',path='bands')
         xml.plot_eigen(p)
+
+    if args.phonon:
+        print("running phonons:")
+        os.system("cp -r scf/%s.save phonons/"%prefix)
+        os.system("cd phonons; mpirun -np %d ph.x -inp %s.phonons > phonons.log"%(args.nthreads,prefix))
+        print("done!")
+
+    if args.dispersion:
+        print("running dispersion:")
+        dispersion()
+        print("done!")

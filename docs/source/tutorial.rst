@@ -17,9 +17,11 @@ Go to the ``tutorial`` folder and run the ground state calculation using the ``g
 .. code-block:: bash
 
     python gs_si.py
+    python gs_si.py -r -s -n
 
-The script will run a relaxation of the structure, read the optimized cell parameter and create a new input file that is used
-to run a self-consistent (scf) cycle and a non self-consistent (nscf) cycle using the charge density calculated on the previous run.
+When you run the script without any arguments it will display the available options.
+The second line will run a relaxation of the structure (-r, relax option), read the optimized cell parameter and create a new input file that is used
+to run a self-consistent (-s, --scf option) cycle and a non self-consistent (-n, --nscf option) cycle using the charge density calculated on the previous run.
 
 **2. GW convergence**
 
@@ -280,18 +282,76 @@ You should obtain a plot like this:
 
 .. image:: figures/bse_mos2.png
 
+Excitonic wavefunctions (BN)
+-----------------------------------------------------------------
+**by H. Miranda**
+
+In this example we show how to use the ``yambopy`` to plot the excitonic wavefunctions that result from a BSE calculation.
+Beaware the parameters of the calculation are not high enough to obtain a converged calculation. To run the calculation do:
+
+.. code-block:: bash
+
+    python gs_bn.py -s -n
+    python bse_bn.py -r
+
+Afterwards you can run a basic analysis of the excitonic states and store the wavefunctions of the ones 
+that are more optically active and plot their wavefunctions in reciprocal space. Plots in real space are also possible
+using yambopy but won't be treated here. In the analysis code you have:
+
+.. code-block:: python
+
+    #get the absorption spectra
+    a = YamboBSEAbsorptionSpectra('yambo',save='bse/SAVE',path='bse')
+    excitons = a.get_excitons(min_intensity=0.0005,max_energy=6,Degen_Step=0.01)
+    print( "nexcitons: %d"%len(excitons) )
+    print( "excitons:" )
+    print( excitons )
+    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1))
+    a.write_json()
+    
+The class ``YamboBSEAbsorptionSpectra()`` reads the absoprtion spectra obtained with explicit diagonalization of the
+BSE matrix. ``yambo`` if the ``job_string`` identifier used when running yambo, ``bse`` is the name of the folder where the job was run.
+The function ``get_excitons()`` runs ``ypp`` to obtain the exitonic states and their intensities.
+The function ``get_wavefunctions()`` also calls ``ypp`` and reads the
+reciprocal (and optionally real space) space wavefunctions and finally we store all the data in a ``json`` file.
+
+This file can then be easily ploted with another python script.
+To run this part of the code you can do:
+
+.. code-block:: bash
+
+    python bse_bn.py -a
+    python plot_excitons.py
+    
+You should then obtain plots similiar (these ones were generated on a 30x30 kpoint grid) to the figures presented here:
+
+.. image:: figures/absorption_bn.png
+.. image:: figures/excitons_bn.png
+
+Again beaware this figures serve only to show the kind of representation 
+that can be obtained with ``yambo`` and ``yambopy``. Further convergence tests need to be performed to obtain
+accurate results, but that is left to the user.
+
+Some plots of excitonic wavefunctions in real space are show in a parallel project in:
+`http://henriquemiranda.github.io/excitonwebsite/ <http://henriquemiranda.github.io/excitonwebsite/>`_ 
+
 Real Time Simulations (Si)
 ---------------------------
 **by A. Molina Sánchez**
 
 
-We start with the calculation of the ground state properties using the script ``gs_si.py`` in the ``tutorials/si`` folder.
-We will create self-consistent data (folder ``scf``) and a non-self consistent data (folder ``nscf``). All the real-time calculations are realized
+We start with the calculation of the ground state properties using the script 
+``gs_si.py`` in the ``tutorials/si`` folder.
+We will create self-consistent data (folder ``scf``) and a non-self consistent 
+data (folder ``nscf``). All the real-time calculations are realized
 inside the folder ``rt``.
 
 In order to perform real-time simulations we need to perform some preliminary steps:
 
-    - Creating the files containing the electron-phonon matrix elements: We use quantum espresso ('ph.x'). The grid used for obtaining the eletron-phonon matrix elements must be the same than for the real-time simulations. See in the ``yambo`` ``website <http://www.yambo-code.org/>``_ more information about the methodology.
+    - Creating the files containing the electron-phonon matrix elements: We use 
+    quantum espresso ('ph.x'). The grid used for obtaining the eletron-phonon 
+    matrix elements must be the same than for the real-time simulations. 
+    See in the `yambo website <http://www.yambo-code.org/>`_ more information about the methodology.
 
 .. code-block:: bash
 
@@ -300,7 +360,9 @@ In order to perform real-time simulations we need to perform some preliminary st
 The script will create a folder ``GKKP`` inside ``rt``. ``GKKP`` contains all the electron-phonon matrix elements in the
 full Brillouin zone.
 
-    - Breaking symmetries. The action of an external field breaks the symmetry of the system. We need to break the symmetries according with the direction of the polarization of the incident light. When we run for first time:
+    - Breaking symmetries. The action of an external field breaks the symmetry of 
+    the system. We need to break the symmetries according with the direction of 
+    the polarization of the incident light. When we run for first time:
 
 .. code-block:: bash
 
@@ -451,5 +513,3 @@ application in single-layer MoS2 is available here.
 
 We can play with more options by selecting the appropiate variables from the script ``elph_qp_si.py``. For instance we can: (i) select only
 the Fan or Debye-Waller term, (ii) calculation on the on-mass-shell approximation, (iii) print the Eliashberg functions, etc.
-
-

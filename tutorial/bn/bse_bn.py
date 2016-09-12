@@ -11,8 +11,8 @@ import argparse
 #parse options
 parser = argparse.ArgumentParser(description='Test the yambopy script.')
 parser.add_argument('-dg','--doublegrid', action="store_true", help='Use double grid')
-parser.add_argument('-r', '--run',       action="store_true",  help='Run BSE calculation')
-parser.add_argument('-p', '--plot',       action="store_true", help='plot the results')
+parser.add_argument('-r', '--run',        action="store_true", help='Run BSE calculation')
+parser.add_argument('-a', '--analyse',    action="store_true", help='plot the results')
 args = parser.parse_args()
 
 if len(sys.argv)==1:
@@ -39,11 +39,12 @@ if not os.path.isdir('database/SAVE'):
     os.system('mv nscf/bn.save/SAVE database')
 
 #check if the SAVE folder is present
-if not os.path.isdir('database_double/SAVE'):
-    print('preparing yambo database')
-    os.system('cd nscf_double/bn.save; p2y > p2y.log')
-    os.system('cd nscf_double/bn.save; yambo > yambo.log')
-    os.system('mv nscf_double/bn.save/SAVE database_double')
+if args.doublegrid:
+    if not os.path.isdir('database_double/SAVE'):
+        print('preparing yambo database')
+        os.system('cd nscf_double/bn.save; p2y > p2y.log')
+        os.system('cd nscf_double/bn.save; yambo > yambo.log')
+        os.system('mv nscf_double/bn.save/SAVE database_double')
 
 if not os.path.isdir('bse'):
     os.mkdir('bse')
@@ -77,7 +78,16 @@ if args.run:
     print('running yambo')
     os.system('cd bse; %s -F yambo_run.in -J yambo'%yambo)
 
-if args.plot:
+if args.analyse:
     #pack in a json file
     y = YamboOut('bse')
     y.pack()
+
+    #get the absorption spectra
+    a = YamboBSEAbsorptionSpectra('yambo',save='bse/SAVE',path='bse')
+    excitons = a.get_excitons(min_intensity=0.0005,max_energy=6,Degen_Step=0.01)
+    print( "nexcitons: %d"%len(excitons) )
+    print( "excitons:" )
+    print( excitons )
+    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1))
+    a.write_json()
