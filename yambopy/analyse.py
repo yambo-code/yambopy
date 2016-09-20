@@ -113,7 +113,7 @@ class YamboAnalyser():
         lattice  = np.array(jsonfile['lattice'])
 
         #check if the lattice data is present
-        if not lattice:
+        if not lattice.any():
             print('Information about the lattice is not present, cannot determine the path')
             exit(1)
 
