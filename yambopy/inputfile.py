@@ -18,16 +18,16 @@ class YamboIn():
     _variaexp   = '([A-Za-z\_0-9]+(?:\_[A-Za-z]+)?)' #variables names
     _numexp     = '([+-]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)' #number
     _spacexp    = '(?:\s+)?' #space
-    _stringexp  = '"(.+?)"' #string
-    _arrayexp   = '%(?:\s+)?'+_variaexp+'\s+(?:\#.+)?((?:(?:\s|\.|[+-]?\d)+?\|)+)\s+([a-zA-Z]+)?' #arrays
-    _complexexp = '\(\s+?'+_numexp+'\s+?,\s+?'+_numexp+'\s+?\)\s+([a-zA-Z]+)?' #complex numbers
-    _runexp     = '([a-zA-Z0-9_]+)\s+' #runlevels
+    _stringexp  = '["\']([a-zA-Z0-9_ ]+?)["\']' #string
+    _arrayexp   = '%'+_spacexp+_variaexp+'\s+(?:\#.+)?((?:(?:\s|\.|[+-]?\d)+?\|)+)\s+([a-zA-Z]+)?' #arrays
+    _complexexp = '\('+_spacexp+_numexp+_spacexp+','+_spacexp+_numexp+_spacexp+'\)'+_spacexp+'([a-zA-Z]+)?' #complex numbers
+    _runexp     = '([a-zA-Z0-9_]+)' #runlevels
     # list of available runlevels to be stored in the arguments array
     _runlevels  = ['rim_cut','chi','em1s','bse','optics','bsk','bss',
                    'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life',
                    'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsyms',
                    'QPDBs', 'QPDB_merge','RealTime','RT_X','RToccDos','RToccBnd','RToccEner',
-                   'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid','gkkp','el_ph_corr']
+                   'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid','gkkp','el_ph_corr','WRbsWF']
 
     def __init__(self,args='',folder='.',vim=True,filename='yambo.in'):
         """ Initialize a yambo `input` file.
@@ -99,12 +99,12 @@ class YamboIn():
     def read_string(self,inputfile):
         """ Read the input variables from a string
         """
-        var_real     = re.findall(self._variaexp +'='+ self._spacexp +
-                                  self._numexp + self._spacexp + '([A-Za-z]+)?',inputfile)
-        var_string   = re.findall(self._variaexp +'='+ self._spacexp + self._stringexp, inputfile)
-        var_array    = re.findall(self._arrayexp, inputfile)
-        var_complex  = re.findall(self._variaexp +'='+ self._spacexp + self._complexexp, inputfile)
-        var_runlevel = re.findall(self._runexp, inputfile)
+        var_real     = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp +
+                                  self._numexp + self._spacexp + '([A-Za-z]+)?.+$',inputfile,re.MULTILINE)
+        var_string   = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp + self._stringexp + '.+$', inputfile,re.MULTILINE)
+        var_array    = re.findall(self._arrayexp,inputfile)
+        var_complex  = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp + self._complexexp + '.+$', inputfile,re.MULTILINE)
+        var_runlevel = re.findall(self._runexp + self._spacexp + '.+$', inputfile,re.MULTILINE)
 
         # Determination of the arguments
         for key in self._runlevels:
