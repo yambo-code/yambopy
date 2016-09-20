@@ -61,6 +61,8 @@ class YamboIn():
             yambo.wait()
             os.chdir(workdir)
             self.read_file(filename="%s/%s"%(folder,filename))
+        else:
+            self.read_file(filename="%s/%s"%(folder,filename))
 
     def __getitem__(self,key):
         """ Get the value of a variable in the input file
