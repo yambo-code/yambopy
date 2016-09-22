@@ -81,11 +81,13 @@ class PwIn():
         self.atoms = zip(atoms.get_chemical_symbols(),atoms.get_scaled_positions())
         self.system['nat'] = len(self.atoms)
 
-    def displace(self,mode,displacement):
+    def displace(self,mode,displacement,masses=None):
         """ A routine to displace the atoms acoording to a phonon mode
         """
+        if masses is None:
+            masses = [1] * len(self.atoms)
         for i in xrange(len(self.atoms)):
-            self.atoms[i][1] = self.atoms[i][1] + mode[i].real*displacement
+            self.atoms[i][1] = self.atoms[i][1] + mode[i].real*displacement*1/sqrt(masses[i])
 
     def read_atoms(self):
         lines = iter(self.file_lines)
