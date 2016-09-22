@@ -17,10 +17,10 @@ class YamboIn():
     #Regular expressions
     _variaexp   = '([A-Za-z\_0-9]+(?:\_[A-Za-z]+)?)' #variables names
     _numexp     = '([+-]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)' #number
-    _spacexp    = '(?:\s+)?' #space
+    _spacexp    = '(?:[ \t]+)?' #space
     _stringexp  = '["\']([a-zA-Z0-9_ ]+?)["\']' #string
     _arrayexp   = '%'+_spacexp+_variaexp+'\s+(?:\#.+)?((?:(?:\s|\.|[+-]?\d)+?\|)+)\s+([a-zA-Z]+)?' #arrays
-    _complexexp = '\('+_spacexp+_numexp+_spacexp+','+_spacexp+_numexp+_spacexp+'\)'+_spacexp+'([a-zA-Z]+)?' #complex numbers
+    _complexexp = '\('+_spacexp+_numexp+_spacexp+','+_spacexp+_numexp+_spacexp+'\)' #complex numbers
     _runexp     = '([a-zA-Z0-9_]+)' #runlevels
     # list of available runlevels to be stored in the arguments array
     _runlevels  = ['rim_cut','chi','em1s','bse','optics','bsk','bss',
@@ -100,11 +100,11 @@ class YamboIn():
         """ Read the input variables from a string
         """
         var_real     = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp +
-                                  self._numexp + self._spacexp + '([A-Za-z]+)?.+$',inputfile,re.MULTILINE)
-        var_string   = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp + self._stringexp + '.+$', inputfile,re.MULTILINE)
+                                  self._numexp + self._spacexp + '([A-Za-z]+)?',inputfile)
+        var_string   = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp + self._stringexp, inputfile)
         var_array    = re.findall(self._arrayexp,inputfile)
-        var_complex  = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp + self._complexexp + '.+$', inputfile,re.MULTILINE)
-        var_runlevel = re.findall(self._runexp + self._spacexp + '.+$', inputfile,re.MULTILINE)
+        var_complex  = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp + self._complexexp + self._spacexp + '([A-Za-z]+)?', inputfile)
+        var_runlevel = re.findall(self._runexp + self._spacexp, inputfile)
 
         # Determination of the arguments
         for key in self._runlevels:
