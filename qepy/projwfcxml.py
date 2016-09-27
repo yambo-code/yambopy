@@ -77,7 +77,7 @@ class ProjwfcXML():
 
         return proj
 
-    def plot_eigen(self, ax, size=20, path=[], selected_orbitals=[]):
+    def plot_eigen(self, ax, size=20, color='r', path=[], selected_orbitals=[]):
         """ Plot the band structure. The size of the points is the weigth of
             the selected orbitals.
             Under development to include also colormap and a dictionary for the
@@ -115,7 +115,7 @@ class ProjwfcXML():
         #plot bands
         for ib in range(self.nbands):
             #ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,c='r',edgecolors='none')
-            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=w_proj[:,ib]*size,c='r',edgecolors='none')
+            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=w_proj[:,ib]*size,c=color,edgecolors='none')
 
         ax.set_xlim(0, self.nkpoints-1)
         ax.set_ylim(auto=True)

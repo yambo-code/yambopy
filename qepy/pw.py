@@ -56,8 +56,18 @@ class PwIn():
         for line in lines:
             if "ATOMIC_SPECIES" in line:
                 for i in xrange(int(self.system["ntyp"])):
-                    atype, znuc, psp = lines.next().split()
-                    self.atypes[atype] = [znuc,psp]
+                    atype, mass, psp = lines.next().split()
+                    self.atypes[atype] = [mass,psp]
+
+    def get_masses(self):
+        """ Get an array with the masses of all the atoms
+        """
+        masses = []
+        for atom in self.atoms:
+            atype = self.atypes[atom[0]]
+            mass = atype[0]
+            masses.append(mass) 
+        return masses
 
     def set_path(self,path):
         self.klist = path.get_klist()
@@ -84,10 +94,12 @@ class PwIn():
     def displace(self,mode,displacement,masses=None):
         """ A routine to displace the atoms acoording to a phonon mode
         """
+        small_mass = min(masses) #we scale all the displacements to the bigger mass
         if masses is None:
             masses = [1] * len(self.atoms)
+            small_mass = 1
         for i in xrange(len(self.atoms)):
-            self.atoms[i][1] = self.atoms[i][1] + mode[i].real*displacement*1/sqrt(masses[i])
+            self.atoms[i][1] = self.atoms[i][1] + mode[i].real*displacement*sqrt(small_mass)/sqrt(masses[i])
 
     def read_atoms(self):
         lines = iter(self.file_lines)
