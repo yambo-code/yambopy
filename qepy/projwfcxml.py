@@ -77,7 +77,7 @@ class ProjwfcXML():
 
         return proj
 
-    def plot_eigen(self, ax, size=20, color='r', path=[], selected_orbitals=[]):
+    def plot_eigen(self, ax, size=20, cmap=None, color='r', path=[], selected_orbitals=[]):
         """ Plot the band structure. The size of the points is the weigth of
             the selected orbitals.
             Under development to include also colormap and a dictionary for the
@@ -96,29 +96,24 @@ class ProjwfcXML():
             ax.axvline(x,c='k',lw=2)
         ax.axhline(0,c='k')
 
+        #get weights
+        w_proj = self.get_weights(selected_orbitals=selected_orbitals)
+
+        #plot bands
+        for ib in range(self.nbands):
+            #ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,c='r',edgecolors='none')
+            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=w_proj[:,ib]*size,c=color,cmap=cmap,edgecolors='none')
+
+        ax.set_xlim(0, self.nkpoints-1)
+        ax.set_ylim(auto=True)
+
+    def get_weights(self,selected_orbitals=[]):
         # Selection of the bands
         w_proj = zeros([self.nkpoints,self.nbands])
         for ik in range(self.nkpoints):
           for ib in range(self.nbands):
             w_proj[ik,ib] = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
-
-        #plot bands with linewithds
-        #for ib in range(self.nbands):
-        #    x = range(self.nkpoints)
-        #    y = (self.eigen[:,ib] - self.fermi)*RytoeV
-        #    points = np.array([x, y]).T.reshape(-1, 1, 2)
-        #    segments = np.concatenate([points[:-1], points[1:]], axis=1)
-        #    print w_proj[:,ib]
-        #    lc = LineCollection(segments, linewidths=1+w_proj[:,ib]*10)
-        #    plt.gca().add_collection(lc)
-
-        #plot bands
-        for ib in range(self.nbands):
-            #ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,c='r',edgecolors='none')
-            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=w_proj[:,ib]*size,c=color,edgecolors='none')
-
-        ax.set_xlim(0, self.nkpoints-1)
-        ax.set_ylim(auto=True)
+        return w_proj
 
     def get_eigen(self):
         """ Return eigenvalues

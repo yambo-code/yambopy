@@ -22,6 +22,7 @@ def get_inputfile():
                  'N': [14.0067,"N.pbe-mt_fhi.UPF"]}
 
     qe.control['prefix'] = "'bn'"
+    qe.control['verbosity'] = "'high'"
     qe.control['wf_collect'] = '.true.'
     qe.system['celldm(1)'] = 4.7
     qe.system['celldm(3)'] = 12/qe.system['celldm(1)']
@@ -108,7 +109,7 @@ if __name__ == "__main__":
     parser.add_argument('-n' ,'--nscf',        action="store_true", help='Non-self consistent calculation')
     parser.add_argument('-n2','--nscf_double', action="store_true", help='Non-self consistent calculation for the double grid')
     parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
-    parser.add_argument('-t' ,'--nthreads',    action="store_true", help='Number of threads', default=2 )
+    parser.add_argument('-t' ,'--nthreads',                         help='Number of threads', default=2 )
     args = parser.parse_args()
     nthreads = int(args.nthreads)
 
@@ -137,7 +138,7 @@ if __name__ == "__main__":
     if args.nscf: 
         print("running nscf:")
         os.system("cp -r scf/bn.save nscf/") #nscf
-        os.system("cd nscf; mpirun -np %d pw.x -inp bn.nscf > nscf.log"%nthreads) #nscf
+        os.system("cd nscf; mpirun -np %d pw.x -nk %d -inp bn.nscf > nscf.log"%(nthreads,nthreads)) #nscf
         print("done!")
 
     if args.nscf_double: 
