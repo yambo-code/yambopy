@@ -65,7 +65,7 @@ class PwIn():
         masses = []
         for atom in self.atoms:
             atype = self.atypes[atom[0]]
-            mass = atype[0]
+            mass = float(atype[0])
             masses.append(mass) 
         return masses
 
