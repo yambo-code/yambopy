@@ -12,6 +12,8 @@ nscf_kpoints = [4,4,4]
 prefix = 'si'
 matdyn = 'matdyn.x'
 q2r =    'q2r.x'
+pw = 'pw.x'
+ph = 'ph.x'
 p = Path([ [[1.0,1.0,1.0],'G'],
            [[0.0,0.5,0.5],'X'],
            [[0.0,0.0,0.0],'G'],
@@ -154,25 +156,25 @@ if __name__ == "__main__":
    
     if args.relax: 
         print("running relax:")
-        os.system("cd relax; mpirun -np %d pw.x -inp %s.scf > relax.log"%(args.nthreads,prefix))
+        os.system("cd relax; mpirun -np %d %s -inp %s.scf > relax.log"%(args.nthreads,pw,prefix))
         update_positions('relax','scf')
         print("done!")
 
     if args.scf:
         print("running scf:")
-        os.system("cd scf; mpirun -np %d pw.x -inp %s.scf > scf.log"%(args.nthreads,prefix))
+        os.system("cd scf; mpirun -np %d %s -inp %s.scf > scf.log"%(args.nthreads,pw,prefix))
         print("done!")
 
     if args.nscf:
         print("running nscf:")
         os.system("cp -r scf/%s.save nscf/"%prefix)
-        os.system("cd nscf; mpirun -np %d pw.x -inp %s.nscf > nscf.log"%(args.nthreads,prefix))
+        os.system("cd nscf; mpirun -np %d %s -inp %s.nscf > nscf.log"%(args.nthreads,pw,prefix))
         print("done!")
     
     if args.bands:
         print("running bands:")
         os.system("cp -r scf/%s.save bands/"%prefix)
-        os.system("cd bands; mpirun -np %d pw.x -inp %s.bands > bands.log"%(args.nthreads,prefix))
+        os.system("cd bands; mpirun -np %d %s -inp %s.bands > bands.log"%(args.nthreads,pw,prefix))
         print("done!")
 
         print("running plotting:")
@@ -182,7 +184,7 @@ if __name__ == "__main__":
     if args.phonon:
         print("running phonons:")
         os.system("cp -r scf/%s.save phonons/"%prefix)
-        os.system("cd phonons; mpirun -np %d ph.x -inp %s.phonons > phonons.log"%(args.nthreads,prefix))
+        os.system("cd phonons; mpirun -np %d %s -inp %s.phonons > phonons.log"%(args.nthreads,ph,prefix))
         print("done!")
 
     if args.dispersion:

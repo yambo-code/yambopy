@@ -10,6 +10,8 @@ import sys
 scf_kpoints  = [12,12,1]
 nscf_kpoints  = [12,12,1]
 nscf2_kpoints = [24,24,1]
+pw = 'pw.x'
+ph = 'ph.x'
 prefix = 'mos2'
 
 p = Path([ [[0.0, 0.0, 0.0],'G'],
@@ -134,32 +136,32 @@ if __name__ == "__main__":
 
     if args.relax:
         print("running relax:")
-        os.system("cd relax; mpirun -np %d pw.x -inp mos2.scf > relax.log"%nthreads)  #relax
+        os.system("cd relax; mpirun -np %d %s -inp mos2.scf > relax.log"%(nthreads,pw))  #relax
         update_positions('relax','scf')
         print("done!")
 
     if args.scf:
         print("running scf:")
-        os.system("cd scf; mpirun -np %d pw.x -inp mos2.scf > scf.log"%nthreads)  #scf
+        os.system("cd scf; mpirun -np %d %s -inp mos2.scf > scf.log"%(nthreads,pw))  #scf
         print("done!")
 
     if args.nscf:
         print("running nscf:")
         os.system("cp -r scf/mos2.save nscf/") #nscf
-        os.system("cd nscf; mpirun -np %d pw.x -inp mos2.nscf > nscf.log"%nthreads) #nscf
+        os.system("cd nscf; mpirun -np %d %s -inp mos2.nscf > nscf.log"%(nthreads,pw)) #nscf
         print("done!")
 
     if args.nscf_double:
         print("running nscf_double:")
         os.system("cp -r scf/mos2.save nscf_double/") #nscf
-        os.system("cd nscf_double; mpirun -np %d pw.x -inp mos2.nscf > nscf_double.log"%nthreads) #nscf
+        os.system("cd nscf_double; mpirun -np %d %s -inp mos2.nscf > nscf_double.log"%(nthreads,pw)) #nscf
         print("done!")
 
 
     if args.bands:
         print("running bands:")
         os.system("cp -r scf/%s.save bands/"%prefix)
-        os.system("cd bands; mpirun -np %d pw.x -inp %s.bands | tee bands.log"%(nthreads,prefix))
+        os.system("cd bands; mpirun -np %d %s -inp %s.bands | tee bands.log"%(nthreads,pw,prefix))
         print("done!")
 
         print("running plotting:")
