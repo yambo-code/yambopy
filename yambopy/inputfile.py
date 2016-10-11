@@ -87,7 +87,11 @@ class YamboIn():
     def read_file(self,filename='yambo.in'):
         """ Read the variables from a file
         """
-        yambofile = open(filename,"r")
+        try:
+            yambofile = open(filename,"r")
+        except IOError:
+            print 'Could not read the yambo input file, make sure yambo is installed and that it was executed in a folder with a SAVE directory'
+            exit(1)
         inputfile = self.read_string(yambofile.read())
         yambofile.close()
 

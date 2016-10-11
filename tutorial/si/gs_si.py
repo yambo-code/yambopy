@@ -129,6 +129,40 @@ def update_positions(pathin,pathout):
     q.atoms = zip([a[0] for a in q.atoms],pos)
     q.write('%s/%s.scf'%(pathout,prefix))
 
+def run_relax(nthreads=1):
+    print("running relax:")
+    os.system("cd relax; mpirun -np %d %s -inp %s.scf > relax.log"%(nthreads,pw,prefix))
+    update_positions('relax','scf')
+    print("done!")
+
+def run_scf(nthreads=1):
+    print("running scf:")
+    os.system("cd scf; mpirun -np %d %s -inp %s.scf > scf.log"%(nthreads,pw,prefix))
+    print("done!")
+
+def run_nscf(nthreads=1):
+    print("running nscf:")
+    os.system("cp -r scf/%s.save nscf/"%prefix)
+    os.system("cd nscf; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
+    print("done!")
+
+def run_bands(nthreads=1):
+    print("running bands:")
+    os.system("cp -r scf/%s.save bands/"%prefix)
+    os.system("cd bands; mpirun -np %d %s -inp %s.bands > bands.log"%(nthreads,pw,prefix))
+    print("done!")
+
+def run_plot():
+    print("running plotting:")
+    xml = PwXML(prefix='si',path='bands')
+    xml.plot_eigen(p)
+
+def run_phonon(threads=1):
+    print("running phonons:")
+    os.system("cp -r scf/%s.save phonons/"%prefix)
+    os.system("cd phonons; mpirun -np %d %s -inp %s.phonons > phonons.log"%(nthreads,ph,prefix))
+    print("done!")
+
 if __name__ == "__main__":
 
     #parse options
@@ -154,40 +188,12 @@ if __name__ == "__main__":
     bands()
     phonons()
    
-    if args.relax: 
-        print("running relax:")
-        os.system("cd relax; mpirun -np %d %s -inp %s.scf > relax.log"%(args.nthreads,pw,prefix))
-        update_positions('relax','scf')
-        print("done!")
-
-    if args.scf:
-        print("running scf:")
-        os.system("cd scf; mpirun -np %d %s -inp %s.scf > scf.log"%(args.nthreads,pw,prefix))
-        print("done!")
-
-    if args.nscf:
-        print("running nscf:")
-        os.system("cp -r scf/%s.save nscf/"%prefix)
-        os.system("cd nscf; mpirun -np %d %s -inp %s.nscf > nscf.log"%(args.nthreads,pw,prefix))
-        print("done!")
-    
+    if args.relax:      run_relax(args.nthreads) 
+    if args.scf:        run_scf(args.nthreads)
+    if args.nscf:       run_nscf(args.nthreads)
+    if args.phonon:     run_phonon(args.nthreads)
+    if args.dispersion: dispersion()
     if args.bands:
-        print("running bands:")
-        os.system("cp -r scf/%s.save bands/"%prefix)
-        os.system("cd bands; mpirun -np %d %s -inp %s.bands > bands.log"%(args.nthreads,pw,prefix))
-        print("done!")
+        run_bands(args.nthreads)
+        run_plot()
 
-        print("running plotting:")
-        xml = PwXML(prefix='si',path='bands')
-        xml.plot_eigen(p)
-
-    if args.phonon:
-        print("running phonons:")
-        os.system("cp -r scf/%s.save phonons/"%prefix)
-        os.system("cd phonons; mpirun -np %d %s -inp %s.phonons > phonons.log"%(args.nthreads,ph,prefix))
-        print("done!")
-
-    if args.dispersion:
-        print("running dispersion:")
-        dispersion()
-        print("done!")

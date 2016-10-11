@@ -47,7 +47,8 @@ def expand_kpts(kpts,syms):
     return full_kpts
 
 def isbetween(a,b,c):
-    #check if c is between a and b
+    """ Check if c is between a and b
+    """
     return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0)
 
 class YamboAnalyser():
@@ -181,14 +182,13 @@ class YamboAnalyser():
         json_filename = self.jsonfiles.keys()[0]
         bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path,json_filename)
 
-        distances = []
-        distance = 0
         #calculate distances
         bands_distances = [0]
         distance = 0
         for nk in range(1,len(bands_kpoints)):
             distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
             bands_distances.append(distance)
+        
 
         #obtain the bands for the output files and plot
         for json_filename in self.jsonfiles.keys():
@@ -205,7 +205,7 @@ class YamboAnalyser():
                 n+=1
 
         if plot:
-            #plot highsymetry qpoints
+            #plot high-symmetry q-points
             distance = 0
             bands_highsym_qpts_distances = [0]
             for nk in range(1,len(bands_highsym_qpts)):
