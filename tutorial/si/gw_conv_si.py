@@ -31,6 +31,7 @@ def gw_convergence():
     #create the folder to run the calculation
     if not os.path.isdir('gw_conv'):
         os.mkdir('gw_conv')
+    if not os.path.isdir('gw_conv/SAVE'):
         os.system('cp -r database/SAVE gw_conv')
 
     #create the yambo input file
