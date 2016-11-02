@@ -87,11 +87,7 @@ class YamboIn():
     def read_file(self,filename='yambo.in'):
         """ Read the variables from a file
         """
-        try:
-            yambofile = open(filename,"r")
-        except IOError:
-            print 'Could not read the yambo input file, make sure yambo is installed and that it was executed in a folder with a SAVE directory'
-            exit(1)
+        yambofile = open(filename,"r")
         inputfile = self.read_string(yambofile.read())
         yambofile.close()
 
@@ -262,7 +258,14 @@ class YamboIn():
                 continue
             if type(value[0])==list:
                 array, unit = value
-                s+="%% %s\n %s %s \n%%\n"%(key," | ".join(map(str,array))+' | ',unit)
+                if type(array[0])==list:
+                    s+='%% %s\n'%key
+                    for l in array:
+                        s+="%s \n"%(" | ".join(map(str,l))+' | ')
+                    s+='%s'%unit
+                    s+='%\n'
+                else:
+                    s+="%% %s\n %s %s \n%%\n"%(key," | ".join(map(str,array))+' | ',unit)
                 continue
             if type(value[0])==complex:
                 value, unit = value
