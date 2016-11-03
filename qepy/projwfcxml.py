@@ -15,12 +15,8 @@ class ProjwfcXML():
     """
     _proj_file = 'atomic_proj.xml'
 
-<<<<<<< HEAD
-    def __init__(self,prefix,path='.',outproj='proj.out'):
-=======
     def __init__(self,prefix,output_filename='projwfc.log',path='.'):
 
->>>>>>> henriquemiranda/master
         """ Initialize the structure with the path where the atomic_proj.xml is
         """
         self.prefix   = prefix
@@ -31,26 +27,12 @@ class ProjwfcXML():
         # Read the number of BANDS
         self.nbands   = int(self.datafile_xml.find("HEADER/NUMBER_OF_BANDS").text)
         #get fermi
-        self.fermi    = float(self.datafile_xml.find("HEADER/FERMI_ENERGY").text)
+        self.fermi    = float(self.datafile_xml.find("HEADER/FERMI_ENERGY").text)*RytoeV
         #get number of projections
         self.nproj    = int(self.datafile_xml.find("HEADER/NUMBER_OF_ATOMIC_WFC").text)
+        #get weights of kpoints projections
+        self.weights  = map(float,self.datafile_xml.find("WEIGHT_OF_K-POINTS").text.split())
 
-<<<<<<< HEAD
-        # Dictionary of orbitals
-        f = open(outproj)
-        states = []
-        for line in f.readlines()[:100]:
-          l = re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z]+)\s+\),\s+wfc\s+([0-9])\s+\((?:j=([0-9.]+))? ?(?:l=([0-9.]+))? ?(?:m=\s+([0-9.]+))? ?(?:m_j=([ \-0-9.]+))?',line)
-          if l: states.append(l)
-        f.close()
-
-        orbital = {}
-        
-        # End of Dictionary of orbitals
- 
-        self.eigen = None 
-        self.proj  = None 
-=======
         self.eigen = self.get_eigen()
         self.proj  = self.get_proj()
 
@@ -77,7 +59,6 @@ class ProjwfcXML():
         self.states = states
 
         f.close()
->>>>>>> henriquemiranda/master
 
     def __str__(self):
         s = ""
@@ -96,57 +77,43 @@ class ProjwfcXML():
 
         return proj
 
-    def plot_eigen(self, path=[], selected_orbitals=[]):
+    def plot_eigen(self, ax, size=20, cmap=None, color='r', path=[], selected_orbitals=[]):
         """ Plot the band structure. The size of the points is the weigth of
             the selected orbitals.
             Under development to include also colormap and a dictionary for the
             selection of the orbitals...
         """
-        from   matplotlib     import pyplot as plt
-        renormalization = 25.0
-        # Font selection and borders
-        plt.rc('text', usetex=True)
-        plt.rc('font', family='serif',serif="Computer Modern Roman",size=20)
-        #rcParams['axes.linewidth']    = 3
-        #rcParams['xtick.major.width'] = 2
-        #rcParams['ytick.major.width'] = 2
-
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
-            plt.xticks( *zip(*path) )
-        plt.ylabel('E (eV)')
+        ticks, labels = zip(*path)
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(labels)
+        ax.set_ylabel('E (eV)')
 
         #plot vertical line
-        for point in path:
-            x, label = point
-            plt.axvline(x)
-        plt.axhline(0)
+        for x, label in path:
+            ax.axvline(x,c='k',lw=2)
+        ax.axhline(0,c='k')
 
+        #get weights
+        w_proj = self.get_weights(selected_orbitals=selected_orbitals)
+
+        #plot bands
+        for ib in range(self.nbands):
+            #ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,c='r',edgecolors='none')
+            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=w_proj[:,ib]*size,c=color,cmap=cmap,edgecolors='none')
+
+        ax.set_xlim(0, self.nkpoints-1)
+        ax.set_ylim(auto=True)
+
+    def get_weights(self,selected_orbitals=[]):
         # Selection of the bands
         w_proj = zeros([self.nkpoints,self.nbands])
         for ik in range(self.nkpoints):
           for ib in range(self.nbands):
             w_proj[ik,ib] = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
-
-        #plot bands with linewithds
-        #for ib in range(self.nbands):
-        #    x = range(self.nkpoints)
-        #    y = (self.eigen[:,ib] - self.fermi)*RytoeV
-        #    points = np.array([x, y]).T.reshape(-1, 1, 2)
-        #    segments = np.concatenate([points[:-1], points[1:]], axis=1)
-        #    print w_proj[:,ib]
-        #    lc = LineCollection(segments, linewidths=1+w_proj[:,ib]*10)
-        #    plt.gca().add_collection(lc)
-
-        #plot bands
-        for ib in range(self.nbands):
-           plt.scatter(range(self.nkpoints),self.eigen[:,ib]*RytoeV - self.fermi*RytoeV,s=w_proj[:,ib]*renormalization,c='r',edgecolors='none')
-
-        plt.xlim(0, self.nkpoints-1)
-        lim = 0.1
-        plt.ylim(min(self.eigen.flatten()-lim)*RytoeV, max(self.eigen.flatten()+lim)*RytoeV)
-        plt.show()
+        return w_proj
 
     def get_eigen(self):
         """ Return eigenvalues
@@ -155,14 +122,14 @@ class ProjwfcXML():
         eigen = []
         for ik in xrange(self.nkpoints):
           eigen.append( map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG"%(ik+1)).text.split() ))
-        self.eigen = np.array(eigen)
-        return eigen
+        self.eigen = np.array(eigen)*RytoeV
+        return self.eigen
 
     def write_proj(self,filename='proj'):
         """
         Write the projection array in a numpy file
         """
-        np.savez(filename,proj=self.proj)
+        np.savez(filename,proj=self.proj,weights=self.weights)
         
     def get_proj(self):
         """ Return projections
@@ -180,5 +147,5 @@ class ProjwfcXML():
         s  = "nbands:   %d\n"%self.nbands
         s += "nkpoints: %d\n"%self.nkpoints
         for n,state in enumerate(self.states):
-            s += "n -> iatom:%3d atype:%2s wfc:%d j:%s l:%s m:%s m_j:%s\n"%(state['iatom'],state['atype'],state['wfc'],str(state['j']),str(state['l']),str(state['m']),str(state['m_j']))
+            s += "n: %3d -> iatom:%3d atype:%2s wfc:%d j:%s l:%s m:%s m_j:%s\n"%(n,state['iatom'],state['atype'],state['wfc'],str(state['j']),str(state['l']),str(state['m']),str(state['m_j']))
         return s
