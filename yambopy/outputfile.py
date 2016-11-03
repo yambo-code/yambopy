@@ -96,19 +96,27 @@ class YamboOut():
     def get_inputfile(self):
         """ Get the input file from the o-* file
         """
-        f = open("%s/%s"%(self.folder,self.output[-1]),'r')
-        inputfile = []
-        for line in f:
-            if 'Input file :' in line:
-                for line in f:
-                    # Note this: to read the input file we just ignore the first 4 characters
-                    # of the section after the tag 'Input file:'
-                    inputfile.append( line[4:] )
-        f.close()
+        files = [open("%s/%s"%(self.folder,f),'r') for f in self.output]
 
-        #use YamboIn to read the input file to a list
-        yi = YamboIn(filename=None)
-        self.inputfile = yi.read_string( ''.join(inputfile) )
+        self.inputfile = {}
+    
+        for filename,f in zip(self.output,files):
+
+            #read this inputfile
+            inputfile = []
+            for line in f:
+                if 'Input file :' in line:
+                    for line in f:
+                        # Note this: to read the input file we just ignore the first 4 characters
+                        # of the section after the tag 'Input file:'
+                        inputfile.append( line[4:] )
+            
+            #use YamboIn to read the input file to a list
+            yi = YamboIn(filename=None)
+            self.inputfile[filename] = yi.read_string( ''.join(inputfile) )
+
+        #close all the files
+        for f in files: f.close()
 
     def get_runtime(self):
         """ Get the runtime from the r-* file
