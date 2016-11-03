@@ -122,12 +122,20 @@ def update_positions(pathin,pathout):
     e = PwXML(prefix,path=pathin)
     pos = e.get_scaled_positions()
 
-    q = PwIn('%s/%s.scf'%(pathin,prefix))
-    print("old celldm(1)", q.system['celldm(1)'])
-    q.system['celldm(1)'] = e.cell[0][2]*2
-    print("new celldm(1)", q.system['celldm(1)'])
-    q.atoms = zip([a[0] for a in q.atoms],pos)
-    q.write('%s/%s.scf'%(pathout,prefix))
+    #open relaxed cell
+    qin  = PwIn('%s/%s.scf'%(pathin,prefix))
+
+    #open scf file
+    qout = PwIn('%s/%s.scf'%(pathout,prefix))
+
+    #update positions on scf file
+    print("old celldm(1)", qin.system['celldm(1)'])
+    qout.system['celldm(1)'] = e.cell[0][2]*2
+    print("new celldm(1)", qout.system['celldm(1)'])
+    qout.atoms = zip([a[0] for a in qin.atoms],pos)
+
+    #write scf
+    qout.write('%s/%s.scf'%(pathout,prefix))
 
 def run_relax(nthreads=1):
     print("running relax:")
@@ -182,18 +190,22 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # create input files and folders
-    relax()
-    scf()
-    nscf()
-    bands()
-    phonons()
    
-    if args.relax:      run_relax(args.nthreads) 
-    if args.scf:        run_scf(args.nthreads)
-    if args.nscf:       run_nscf(args.nthreads)
-    if args.phonon:     run_phonon(args.nthreads)
+    scf()
+    if args.relax:
+        relax()
+        run_relax(args.nthreads) 
+    if args.scf:        
+        run_scf(args.nthreads)
+    if args.nscf:
+        nscf()
+        run_nscf(args.nthreads)
+    if args.phonon:     
+        phonons()
+        run_phonon(args.nthreads)
     if args.dispersion: dispersion()
     if args.bands:
+        bands()
         run_bands(args.nthreads)
         run_plot()
 
