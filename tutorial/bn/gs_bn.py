@@ -10,6 +10,7 @@ import argparse
 kpoints = [24,24,1]
 kpoints_double = [18,18,1]
 qpoints = [3,3,1]
+pw = 'pw.x'
 
 # create the input files
 def get_inputfile():
@@ -22,6 +23,7 @@ def get_inputfile():
                  'N': [14.0067,"N.pbe-mt_fhi.UPF"]}
 
     qe.control['prefix'] = "'bn'"
+    qe.control['verbosity'] = "'high'"
     qe.control['wf_collect'] = '.true.'
     qe.system['celldm(1)'] = 4.7
     qe.system['celldm(3)'] = 12/qe.system['celldm(1)']
@@ -108,7 +110,7 @@ if __name__ == "__main__":
     parser.add_argument('-n' ,'--nscf',        action="store_true", help='Non-self consistent calculation')
     parser.add_argument('-n2','--nscf_double', action="store_true", help='Non-self consistent calculation for the double grid')
     parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
-    parser.add_argument('-t' ,'--nthreads',    action="store_true", help='Number of threads', default=2 )
+    parser.add_argument('-t' ,'--nthreads',                         help='Number of threads', default=2 )
     args = parser.parse_args()
     nthreads = int(args.nthreads)
 
@@ -125,31 +127,31 @@ if __name__ == "__main__":
 
     if args.relax:
         print("running relax:")
-        os.system("cd relax; mpirun -np %d pw.x -inp bn.scf > relax.log"%nthreads)  #relax
+        os.system("cd relax; mpirun -np %d %s -inp bn.scf > relax.log"%(nthreads,pw))  #relax
         update_positions('relax','scf') 
         print("done!")
 
     if args.scf:
         print("running scf:")
-        os.system("cd scf; mpirun -np %d pw.x -inp bn.scf > scf.log"%nthreads)  #scf
+        os.system("cd scf; mpirun -np %d %s -inp bn.scf > scf.log"%(nthreads,pw))  #scf
         print("done!")
    
     if args.nscf: 
         print("running nscf:")
         os.system("cp -r scf/bn.save nscf/") #nscf
-        os.system("cd nscf; mpirun -np %d pw.x -inp bn.nscf > nscf.log"%nthreads) #nscf
+        os.system("cd nscf; mpirun -np %d %s -nk %d -inp bn.nscf > nscf.log"%(nthreads,pw,nthreads)) #nscf
         print("done!")
 
     if args.nscf_double: 
         print("running nscf_double:")
         os.system("cp -r scf/bn.save nscf_double/") #nscf
-        os.system("cd nscf_double; mpirun -np %d pw.x -inp bn.nscf > nscf_double.log"%nthreads) #nscf
+        os.system("cd nscf_double; mpirun -np %d %s -inp bn.nscf > nscf_double.log"%(nthreads,pw)) #nscf
         print("done!")
     
     if args.phonon:
         print("running phonon:")
         os.system("cp -r scf/bn.save phonon/")
-        os.system("cd phonon; mpirun -np %d ph.x -inp bn.ph > phonon.log"%nthreads) #phonon
+        os.system("cd phonon; mpirun -np %d %s -inp bn.ph > phonon.log"%(nthreads,ph)) #phonon
         os.system("cd phonon; dynmat.x -inp bn.dynmat > dynmat.log") #matdyn
         print("done!")
 

@@ -17,31 +17,32 @@ class YamboIn():
     #Regular expressions
     _variaexp   = '([A-Za-z\_0-9]+(?:\_[A-Za-z]+)?)' #variables names
     _numexp     = '([+-]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)' #number
-    _spacexp    = '(?:\s+)?' #space
-    _stringexp  = '"(.+?)"' #string
-    _arrayexp   = '%(?:\s+)?'+_variaexp+'\s+(?:\#.+)?((?:(?:\s|\.|[+-]?\d)+?\|)+)\s+([a-zA-Z]+)?' #arrays
-    _complexexp = '\(\s+?'+_numexp+'\s+?,\s+?'+_numexp+'\s+?\)\s+([a-zA-Z]+)?' #complex numbers
-    _runexp     = '([a-zA-Z0-9_]+)\s+' #runlevels
+    _spacexp    = '(?:[ \t]+)?' #space
+    _stringexp  = '["\']([a-zA-Z0-9_ ]+?)["\']' #string
+    _arrayexp   = '%'+_spacexp+_variaexp+'\s+(?:\#.+)?((?:(?:\s|\.|[+-]?\d)+?\|)+)\s+([a-zA-Z]+)?' #arrays
+    _complexexp = '\('+_spacexp+_numexp+_spacexp+','+_spacexp+_numexp+_spacexp+'\)' #complex numbers
+    _runexp     = '([a-zA-Z0-9_]+)' #runlevels
     # list of available runlevels to be stored in the arguments array
     _runlevels  = ['rim_cut','chi','em1s','bse','optics','bsk','bss',
                    'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life',
                    'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsyms',
                    'QPDBs', 'QPDB_merge','RealTime','RT_X','RToccDos','RToccBnd','RToccEner',
-                   'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid','gkkp','el_ph_corr']
+                   'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid','gkkp','el_ph_corr','WRbsWF','Select_energy', 'RTDBs','photolum']
 
     def __init__(self,args='',folder='.',vim=True,filename='yambo.in'):
-        """ Initialize a yambo `input` file.
+        """
+        Initialize a yambo `input` file.
 
-            Arguments:
-                args: if specified yambopy will run yambo, read the generated input file and initialize the class with those variables.
-                folder: the folder where the SAVE directory is located
-                vim: if yambo is compiled using vim as an editor this variable should be set as True because then `yambopy` will close vim.
-                A new argument for yambo '-Q' tells yambo to not call vim.
-                filename: the name of the input file to be read. Can be used to read a file in the hardrive:
-                .. code-block:: python
-                    y = YamboIn(filename='somefile.in')
-                    print y
-                if the variable args was used then the filename should be left as `yambo.in` because that's the default input filename that yambo will write.
+        Arguments:
+            args: if specified yambopy will run yambo, read the generated input file and initialize the class with those variables.
+            folder: the folder where the SAVE directory is located
+            vim: if yambo is compiled using vim as an editor this variable should be set as True because then `yambopy` will close vim.
+            A new argument for yambo '-Q' tells yambo to not call vim.
+            filename: the name of the input file to be read. Can be used to read a file in the hardrive:
+            .. code-block:: python
+                y = YamboIn(filename='somefile.in')
+                print y
+            if the variable args was used then the filename should be left as `yambo.in` because that's the default input filename that yambo will write.
         """
         self.folder = folder
 
@@ -61,6 +62,9 @@ class YamboIn():
             yambo.wait()
             os.chdir(workdir)
             self.read_file(filename="%s/%s"%(folder,filename))
+        else:
+            if filename:
+                self.read_file(filename="%s/%s"%(folder,filename))
 
     def __getitem__(self,key):
         """ Get the value of a variable in the input file
@@ -97,12 +101,12 @@ class YamboIn():
     def read_string(self,inputfile):
         """ Read the input variables from a string
         """
-        var_real     = re.findall(self._variaexp +'='+ self._spacexp +
+        var_real     = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp +
                                   self._numexp + self._spacexp + '([A-Za-z]+)?',inputfile)
-        var_string   = re.findall(self._variaexp +'='+ self._spacexp + self._stringexp, inputfile)
-        var_array    = re.findall(self._arrayexp, inputfile)
-        var_complex  = re.findall(self._variaexp +'='+ self._spacexp + self._complexexp, inputfile)
-        var_runlevel = re.findall(self._runexp, inputfile)
+        var_string   = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp + self._stringexp, inputfile)
+        var_array    = re.findall(self._arrayexp,inputfile)
+        var_complex  = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp + self._complexexp + self._spacexp + '([A-Za-z]+)?', inputfile)
+        var_runlevel = re.findall(self._runexp + self._spacexp, inputfile)
 
         # Determination of the arguments
         for key in self._runlevels:
@@ -243,7 +247,7 @@ class YamboIn():
         s += "\n".join(self.arguments)+'\n'
 
         for key,value in self.variables.items():
-            if type(value)==str:
+            if type(value)==str or type(value)==unicode:
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue
             if type(value[0])==float:
@@ -256,12 +260,19 @@ class YamboIn():
                 continue
             if type(value[0])==list:
                 array, unit = value
-                s+="%% %s\n %s %s \n%%\n"%(key," | ".join(map(str,array))+' | ',unit)
+                if type(array[0])==list:
+                    s+='%% %s\n'%key
+                    for l in array:
+                        s+="%s \n"%(" | ".join(map(str,l))+' | ')
+                    s+='%s'%unit
+                    s+='%\n'
+                else:
+                    s+="%% %s\n %s %s \n%%\n"%(key," | ".join(map(str,array))+' | ',unit)
                 continue
             if type(value[0])==complex:
                 value, unit = value
                 s+="%s = (%lf,%lf) %s\n"%(key,value.real,value.imag,unit)
                 continue
-            print "Unknown type for variable:", key
+            print "Unknown type %s for variable: %s" %( type(value), key)
             exit(1)
         return s

@@ -25,7 +25,7 @@ Tests
 
 Requirements
 ------------
-- yambo: http://www.yambo-code.org/
+- yambo (>4.0.0): http://www.yambo-code.org/
 - numpy: http://www.numpy.org/
 - matplotlib: http://matplotlib.org/
 - netCDF4 (optional): http://unidata.github.io/netcdf4-python/
@@ -37,7 +37,7 @@ TODO
 
 Authors
 ------
-- Henrique Pereira Coutada Miranda
+- [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/)
 - [Alejandro Molina Sanchez](http://alexmoratalla.github.io/)
 
 The code is at an early stage of development, help us by sending bug reports, patches and suggestions!

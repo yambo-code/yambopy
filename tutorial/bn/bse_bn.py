@@ -68,7 +68,7 @@ if args.run:
     y['FFTGvecs'] = [30,'Ry']
     y['NGsBlkXs'] = [1,'Ry']
     y['BndsRnXs'] = [1,30]
-    y['BSEBands'] = [3,5]
+    y['BSEBands'] = [3,6]
     y['BEnSteps'] = 500
     y['BEnRange'] = [[0.0,10.0],'eV']
 

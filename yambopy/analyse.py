@@ -9,6 +9,7 @@ import json
 import numpy as np
 import re
 from itertools import product
+from yambopy import *
 
 #we try to use matplotlib, if not present we won't use it
 try:
@@ -47,7 +48,8 @@ def expand_kpts(kpts,syms):
     return full_kpts
 
 def isbetween(a,b,c):
-    #check if c is between a and b
+    """ Check if c is between a and b
+    """
     return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0)
 
 class YamboAnalyser():
@@ -117,6 +119,11 @@ class YamboAnalyser():
             print('Information about the lattice is not present, cannot determine the path')
             exit(1)
 
+        #check if the lattice data is present
+        if not lattice.any():
+            print('Information about the lattice is not present, cannot determine the path')
+            exit(1)
+
         #convert to cartesian coordinates
         kpts_car = np.array([ k/alat for k in kpts_iku ])
 
@@ -181,14 +188,13 @@ class YamboAnalyser():
         json_filename = self.jsonfiles.keys()[0]
         bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path,json_filename)
 
-        distances = []
-        distance = 0
         #calculate distances
         bands_distances = [0]
         distance = 0
         for nk in range(1,len(bands_kpoints)):
             distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
             bands_distances.append(distance)
+        
 
         #obtain the bands for the output files and plot
         for json_filename in self.jsonfiles.keys():
@@ -205,7 +211,7 @@ class YamboAnalyser():
                 n+=1
 
         if plot:
-            #plot highsymetry qpoints
+            #plot high-symmetry q-points
             distance = 0
             bands_highsym_qpts_distances = [0]
             for nk in range(1,len(bands_highsym_qpts)):
@@ -384,32 +390,70 @@ class YamboAnalyser():
                     print "%40s %10s %10s %10s"%(key,val[0],val[1],val[2])
 
     def get_inputfiles_tag(self,tags):
+        """
+        Get a specific tag from all the .json files from the folders
+        You need to write down all the tags that you want to find
+        The tags are both for variables in the input file and arguments (meaning runlevels)
+        """
+        #check if a string was passed and in that case we make it a tuple
+        if type(tags) == str:
+            tags = (tags,)
+
         inputfiles = self.get_inputfiles()
         inputfiles_tags = dict()
 
         for k in inputfiles.keys():
             inputfiles_tags[k] = dict()
+            
+            # get the current inputfile
+            this_inputfile = inputfiles[k]
+            
+            #initialize the dictionary
+            inputfiles_tags[k] = {'variables':{},'arguments':[]}
+
             for tag in tags:
-                if tag in inputfiles[k].keys():
-                    inputfiles_tags[k][tag] = inputfiles[k][tag]
+                for filename in this_inputfile:
+
+                    # We look for the tag both in the variable and in the arguments
+                    # look in variables
+                    if tag in this_inputfile[filename]['variables'].keys():
+                        inputfiles_tags[k]['variables'][tag] = this_inputfile[filename]['variables'][tag]
+                    #look in arguments
+                    if tag in this_inputfile[filename]['arguments']:
+                        inputfiles_tags[k]['arguments'].append(tag)
         return inputfiles_tags
 
     def get_inputfiles(self):
+        """
+        Get all the inputfiles from the different .json files
+        Each .json file contains all the output files in a folder
+        """
 
         inputfiles = dict()
         for k in self.jsonfiles:
             inputfiles[k] = dict()
-            for datatype in ['array','real','string','complex']:
-                for key,val in self.jsonfiles[k]["inputfile"][datatype].items():
-                    inputfiles[k][key] = val
+            for key,val in self.jsonfiles[k]["inputfile"].items():
+                inputfiles[k][key] = val
         return inputfiles
 
     def print_inputfiles(self):
+        """
+        Print all the inputfiles from all the json files
+        """
+        #iterate over the json files
         for k in self.jsonfiles.keys():
-            print "filename:", k
-            y = yamboin()
-            y.read_variables_dict( self.jsonfiles[k]["inputfile"] )
-            print y
+            print "jsonfile: ", k
+            
+            #get the jsonfile
+            jsonfile = self.jsonfiles[k]
+
+            for inputfile,content in jsonfile['inputfile'].items():
+                print "inputfile:", inputfile
+                y = YamboIn(filename=None)
+                y.arguments = content["arguments"]
+                y.variables = content["variables"]
+                print y
+                print
 
     def __str__(self):
         s = ""

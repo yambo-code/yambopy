@@ -77,11 +77,13 @@ os.system('cd gw_par; %s -F yambo_q1.in -J 1'%yambo)
 #copy dipoles to save
 os.system('cp gw_par/1/ndb.dip* gw_par/SAVE')
 print('running separate yambo files')
-#os.system('parallel :::: jobs.sh')
+os.system('parallel :::: jobs.sh')
 
 #gather all the files
-os.system('cp merge_eps.py gw_par')
-os.system('cd gw_par; python merge_eps.py')
+#os.system('cp merge_eps.py gw_par')
+os.system('mkdir gw_par/yambo')
+os.system('cd gw_par; cp 1/ndb.em1* yambo') 
+os.system('cd gw_par; cp */ndb.em1?_fragment_* yambo') 
 
 y = YamboIn('yambo -d -g n -V all',folder='gw_par')
 QPKrange,_ = y['QPkrange']

@@ -17,10 +17,11 @@ except ImportError:
 from yambopy.plot import *
 
 class YamboOut():
-    """ Class to read yambo output files and pack them in a JSON file
+    """ 
+    Class to read yambo output files and pack them in a JSON file
 
-        Input:
-        The relative path of the folder where yambo dumped its input files
+    Input:
+    The relative path of the folder where yambo dumped its input files
     """
     _lock = "lock" #name of the lockfile
 
@@ -48,8 +49,9 @@ class YamboOut():
         self.get_cell()
 
     def get_cell(self):
-        """ Get information about the unit cell (lattice vectors, atom types, positions,
-            kpoints and symmetry operations) from the SAVE folder.
+        """ 
+        Get information about the unit cell (lattice vectors, atom types, positions,
+        kpoints and symmetry operations) from the SAVE folder.
         """
         path = self.save_folder+'/SAVE/ns.db1'
         if os.path.isfile(path) and _has_netcdf:
@@ -73,10 +75,10 @@ class YamboOut():
             self.atomic_number = np.array([])
 
     def get_outputfile(self):
-        """ Get the data from the o-* files
+        """ 
+        Get the data from the o-* files
         """
         #open all the o-* files
-        print self.output
         files = [open("%s/%s"%(self.folder,f)) for f in self.output]
 
         self.data = {}
@@ -84,7 +86,7 @@ class YamboOut():
         for filename,f in zip(self.output,files):
             #get the string with the file data
             string = f.read()
-            tags = [tag.strip() for tag in re.findall('([ `0-9a-zA-Z\-\/]+)\[[0-9]\]',string)]
+            tags = [tag.strip() for tag in re.findall('#\n#\s+((?:(?:[`0-9a-zA-Z\-\/\|\[\]]+)\s+)+)#\n\s',string)[0].split()]
             f.seek(0)
             self.data[filename] = np.loadtxt(f)
             self.tags[filename] = tags
@@ -94,42 +96,60 @@ class YamboOut():
         return self.data
 
     def get_inputfile(self):
-        """ Get the input file from the o-* file
         """
-        f = open("%s/%s"%(self.folder,self.output[-1]),'r')
-        inputfile = []
-        for line in f:
-            if 'Input file :' in line:
-                for line in f:
-                    # Note this: to read the input file we just ignore the first 4 characters
-                    # of the section after the tag 'Input file:'
-                    inputfile.append( line[4:] )
-        f.close()
+        Get the input file from the o-* file
+        """
+        files = [open("%s/%s"%(self.folder,f),'r') for f in self.output]
 
-        #use YamboIn to read the input file to a list
-        yi = YamboIn()
-        self.inputfile = yi.read_string( ''.join(inputfile) )
+        self.inputfile = {}
+    
+        for filename,f in zip(self.output,files):
+
+            #read this inputfile
+            inputfile = []
+            for line in f:
+                if 'Input file :' in line:
+                    for line in f:
+                        # Note this: to read the input file we just ignore the first 4 characters
+                        # of the section after the tag 'Input file:'
+                        inputfile.append( line[4:] )
+            
+            #use YamboIn to read the input file to a list
+            yi = YamboIn(filename=None)
+            self.inputfile[filename] = yi.read_string( ''.join(inputfile) )
+
+        #close all the files
+        for f in files: f.close()
 
     def get_runtime(self):
-        """ Get the runtime from the r-* file
+        """
+        Get the runtime from the r-* file
         """
         files = sorted([open("%s/%s"%(self.folder,f)) for f in self.run])
-        if len(files) > 1:
-            print( 'WARNING: more than one r-* file is present in %s'%self.folder )
-            print( 'We use the last one (alfabetic order) to get the runtime' )
+
+        #empty timing
         timing = dict()
-        category = "UNKNOWN"
-        for line in files[-1]:
-            if 'Timing' in line:
-                timing[category] = line.split()[-1].split('/')
-            if re.search('(\[[0-9.]+\].[A-Z])', line):
-                category = line.strip()
+
+        #iterate over all the files
+        for f,filename in zip(files,self.run):
+            #dictionary for each filename
+            this_timing = timing[filename] = dict()
+            
+            category = "UNKNOWN"
+            for line in files[-1]:
+                if 'Timing' in line:
+                    this_timing[category] = line.split()[-1].split('/')
+                if re.search('(\[[0-9.]+\].[A-Z])', line):
+                    category = line.strip()
+
+        #close attl the files
         for f in files: f.close()
         self.runtime = timing
         return timing
 
     def get_data(self,tags):
-        """ Search for a tag in the output files and obtain the data
+        """
+        Search for a tag in the output files and obtain the data
         """
         data = {}
         for key in self.data.keys():
@@ -139,7 +159,8 @@ class YamboOut():
         return data
 
     def plot(self,tag,cols=(2,),xlabel=None):
-        """ Search in the output files a certain tag and plot it
+        """
+        Search in the output files a certain tag and plot it
         """
         for key in self.data.keys():
             if tag in key:
@@ -152,14 +173,16 @@ class YamboOut():
         plt.show()
 
     def print_runtime(self):
-        """ Print the runtime in a string
+        """
+        Print the runtime in a string
         """
         timing = self.get_runtime()
         for t in timing.items():
             print t[0], '\n', t[1], '\n'
 
     def pack(self,filename=None):
-        """ Pack up all the data in the structure in a json file
+        """
+        Pack up all the data in the structure in a json file
         """
         #if no filename is specified we use the same name as the folder
         if not filename: filename = self.folder
