@@ -9,6 +9,7 @@ import json
 import numpy as np
 import re
 from itertools import product
+from yambopy import *
 
 #we try to use matplotlib, if not present we won't use it
 try:
@@ -384,30 +385,56 @@ class YamboAnalyser():
                     print "%40s %10s %10s %10s"%(key,val[0],val[1],val[2])
 
     def get_inputfiles_tag(self,tags):
+        """
+        Get a specific tag from all the .json files from the folders
+        You need to write down all the tags that you want to find
+        The tags are both for variables in the input file and arguments (meaning runlevels)
+        """
+        #check if a string was passed and in that case we make it a tuple
+        if type(tags) == str:
+            tags = (tags,)
+
         inputfiles = self.get_inputfiles()
         inputfiles_tags = dict()
 
         for k in inputfiles.keys():
             inputfiles_tags[k] = dict()
+            
+            # get the current inputfile
+            this_inputfile = inputfiles[k]
+            
+            #initialize the dictionary
+            inputfiles_tags[k] = {'variables':{},'arguments':[]}
+
             for tag in tags:
-                if tag in inputfiles[k].keys():
-                    inputfiles_tags[k][tag] = inputfiles[k][tag]
+                for filename in this_inputfile:
+
+                    # We look for the tag both in the variable and in the arguments
+                    # look in variables
+                    if tag in this_inputfile[filename]['variables'].keys():
+                        inputfiles_tags[k]['variables'][tag] = this_inputfile[filename]['variables'][tag]
+                    #look in arguments
+                    if tag in this_inputfile[filename]['arguments']:
+                        inputfiles_tags[k]['arguments'].append(tag)
         return inputfiles_tags
 
     def get_inputfiles(self):
+        """
+        Get all the inputfiles from the different .json files
+        Each .json file contains all the output files in a folder
+        """
 
         inputfiles = dict()
         for k in self.jsonfiles:
             inputfiles[k] = dict()
-            for datatype in ['array','real','string','complex']:
-                for key,val in self.jsonfiles[k]["inputfile"][datatype].items():
-                    inputfiles[k][key] = val
+            for key,val in self.jsonfiles[k]["inputfile"].items():
+                inputfiles[k][key] = val
         return inputfiles
 
     def print_inputfiles(self):
         for k in self.jsonfiles.keys():
             print "filename:", k
-            y = yamboin()
+            y = YamboIn(filename=None)
             y.read_variables_dict( self.jsonfiles[k]["inputfile"] )
             print y
 
