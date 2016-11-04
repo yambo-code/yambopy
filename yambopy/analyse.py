@@ -432,11 +432,23 @@ class YamboAnalyser():
         return inputfiles
 
     def print_inputfiles(self):
+        """
+        Print all the inputfiles from all the json files
+        """
+        #iterate over the json files
         for k in self.jsonfiles.keys():
-            print "filename:", k
-            y = YamboIn(filename=None)
-            y.read_variables_dict( self.jsonfiles[k]["inputfile"] )
-            print y
+            print "jsonfile: ", k
+            
+            #get the jsonfile
+            jsonfile = self.jsonfiles[k]
+
+            for inputfile,content in jsonfile['inputfile'].items():
+                print "inputfile:", inputfile
+                y = YamboIn(filename=None)
+                y.arguments = content["arguments"]
+                y.variables = content["variables"]
+                print y
+                print
 
     def __str__(self):
         s = ""
