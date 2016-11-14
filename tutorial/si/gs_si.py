@@ -121,10 +121,10 @@ def update_positions(pathin,pathout):
     """
     e = PwXML(prefix,path=pathin)
     pos = e.get_scaled_positions()
-
+     
     #open relaxed cell
     qin  = PwIn('%s/%s.scf'%(pathin,prefix))
-
+  
     #open scf file
     qout = PwIn('%s/%s.scf'%(pathout,prefix))
 
@@ -165,7 +165,7 @@ def run_plot():
     xml = PwXML(prefix='si',path='bands')
     xml.plot_eigen(p)
 
-def run_phonon(threads=1):
+def run_phonon(nthreads=1):
     print("running phonons:")
     os.system("cp -r scf/%s.save phonons/"%prefix)
     os.system("cd phonons; mpirun -np %d %s -inp %s.phonons > phonons.log"%(nthreads,ph,prefix))
