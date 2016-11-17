@@ -33,19 +33,22 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
         self.atoms = None
         self.excitons = None
-
+ 
         #use YamboOut to read the absorption spectra
         self.path = path
-        #try to find o-* files in path, if not use path/job_string
-        try:
-            y = YamboOut(path)
-        except:
-            YamboOut("%s/%s"%(path,job_string))
 
-        # we obtain all the bse spectra
-        absorptionspectra = y.get_data(('eps','diago'))
-        if absorptionspectra == {}:
-           raise ValueError('Could not find the o-*diago*eps file. Make sure you diagonalized the BSE hamiltonian in yambo.')  
+        #try to find o-* files in path, if not use path/job_string
+        paths = [path, "%s/%s"%(path,job_string)]
+        for path in paths:
+            y = YamboOut(p)
+            absorptionspectra = y.get_data(('eps','diago'))
+            #if we read the files then continue
+            if absorptionspectra != {}:
+                break
+
+        #trap the errors here
+        if absorptionspectra != {}:
+            raise ValueError('Could not find the o-*diago*eps files in %s. Make sure you diagonalized the BSE hamiltonian in yambo.'%paths)
 
         #we just use one of them
         key = list(absorptionspectra)[0]
