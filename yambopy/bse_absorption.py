@@ -36,7 +36,11 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
         #use YamboOut to read the absorption spectra
         self.path = path
-        y = YamboOut(path)
+        #try to find o-* files in path, if not use path/job_string
+        try:
+            y = YamboOut(path)
+        except:
+            YamboOut("%s/%s"%(path,job_string))
 
         # we obtain all the bse spectra
         absorptionspectra = y.get_data(('eps','diago'))
