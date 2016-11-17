@@ -12,6 +12,11 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
     Create a file with information about the excitons from Yambo files
     """
     def __init__(self,job_string,path='.'):
+        """
+        Parameters:
+            job_string - the job_string used for yambo. yambo -J <job_string>
+            path       - the folder where the yambo run was made
+        """
 
         #look for the save folder
         self.save=path+'/SAVE'
