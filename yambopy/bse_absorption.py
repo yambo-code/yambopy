@@ -40,14 +40,14 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
         #try to find o-* files in path, if not use path/job_string
         paths = [path, "%s/%s"%(path,job_string)]
         for path in paths:
-            y = YamboOut(p)
+            y = YamboOut(path)
             absorptionspectra = y.get_data(('eps','diago'))
             #if we read the files then continue
             if absorptionspectra != {}:
                 break
 
         #trap the errors here
-        if absorptionspectra != {}:
+        if absorptionspectra == {}:
             raise ValueError('Could not find the o-*diago*eps files in %s. Make sure you diagonalized the BSE hamiltonian in yambo.'%paths)
 
         #we just use one of them
@@ -100,7 +100,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
           Cells      - Number of cells to plot in real space
           Hole       - Define the hole position in cartesian coordinates
           Direction  - Choose the directions to plot along
-          Format="x" - Choose the format to plot in. Can be: x for xcrysden or g for gnuplot
+          Format     - Choose the format to plot in. Can be: x for xcrysden or g for gnuplot (default: 'x' for xcrysden)
           Degen_Step - Threshold to merge degenerate states. If the difference in energy between the states is smaller than
                        this value their wavefunctions will be plotted together
           repx       - Number or repetitions along the x direction
