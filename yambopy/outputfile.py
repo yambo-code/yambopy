@@ -25,16 +25,20 @@ class YamboOut():
     """
     _lock = "lock" #name of the lockfile
 
-    def __init__(self,folder,save_folder='./'):
+    def __init__(self,folder,save_folder='.'):
         self.folder = folder
-        self.save_folder = save_folder
+
+        #check if the save folder is in save_folder if not try folder
+        if not os.path.isdir(save_folder+'/SAVE'):
+            self.save_folder = folder
+        else:
+            self.save_folder = save_folder
 
         #get the output dir
         if os.path.isdir(folder):
             outdir = os.listdir(folder)
         else:
-            print "Invalid folder: %s"%folder
-            exit(1)
+            raise ValueError( "Invalid folder: %s"%folder )
         if os.path.isdir(folder+"/LOG"):
             logdir = os.listdir(folder+"/LOG")
         else:
@@ -65,8 +69,9 @@ class YamboOut():
             self.atomic_number = self.nc_db.variables['atomic_numbers'][:].T
 
         else:
-            if not _has_netcdf: print('YamboOut without netCDF4 support won\'t retrieve information about the structure')
-            print('Could not find ns.db1 in %s'%self.save_folder+'/SAVE')
+            if not _has_netcdf: 
+                print('YamboOut without netCDF4 support won\'t retrieve information about the structure')
+            print('Could not find ns.db1 in %s'%path)
             self.lat = np.array([])
             self.alat = np.array([])
             self.sym_car = np.array([])

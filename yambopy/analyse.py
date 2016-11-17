@@ -104,9 +104,7 @@ class YamboAnalyser():
         jsonfile = self.jsonfiles[json_filename]
 
         if 'kpts_iku' not in jsonfile or 'sym_car' not in jsonfile:
-            print( "Could not find information about the k points in the json file %s."%json_filename )
-            print( "Re-run YamboOut with netCDF support and specify the 'save_folder' path" )
-            exit(1)
+            raise ValueError( "Could not find information about the k points in the json file %s."%json_filename )
 
         #get data from json file
         kpts_iku = np.array(jsonfile['kpts_iku'])
@@ -116,8 +114,7 @@ class YamboAnalyser():
 
         #check if the lattice data is present
         if not lattice.any():
-            print('Information about the lattice is not present, cannot determine the path')
-            exit(1)
+            raise ValueError('Information about the lattice is not present, cannot determine the path')
 
         #convert to cartesian coordinates
         kpts_car = np.array([ k/alat for k in kpts_iku ])
@@ -251,8 +248,7 @@ class YamboAnalyser():
             elif isinstance( col, int ):
                 bands = np.array([ data[data[:,1]==b,col] for b in xrange(bmin,bmax+1) ])
             else:
-                print "The col datatype: %s is not known"%str(type(col))
-                exit(1)
+                raise ValueError( "The col datatype: %s is not known"%str(type(col)) )
 
             #make row operations if available
             if rows:

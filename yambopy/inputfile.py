@@ -215,8 +215,7 @@ class YamboIn():
                     self.write( "%s/%s.in"%(self.folder,filename) )
                     run(filename+".in")
                 continue
-            print "unknown type for variable:", key
-            exit(1)
+            raise ValueError( "unknown type for variable:", key )
 
         #put back the original values of the variables
         for var in variables:
@@ -273,6 +272,5 @@ class YamboIn():
                 value, unit = value
                 s+="%s = (%lf,%lf) %s\n"%(key,value.real,value.imag,unit)
                 continue
-            print "Unknown type %s for variable: %s" %( type(value), key)
-            exit(1)
+            raise ValueError( "Unknown type %s for variable: %s" %( type(value), key) )
         return s

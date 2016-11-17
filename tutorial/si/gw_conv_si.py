@@ -21,6 +21,8 @@ def create_save():
         exit() 
 
     #check if the SAVE folder is present
+    if not os.path.isdir('database'):
+        os.mkdir('database')
     if not os.path.isdir('database/SAVE'):
         print('preparing yambo database')
         os.system('cd nscf/%s.save; %s'%(prefix,p2y))
