@@ -136,13 +136,13 @@ class YamboIn():
 
         return {"arguments": self.arguments, "variables": self.variables}
 
-    def optimize(self,conv,variables=('all',),run=lambda x: None):
+    def optimize(self,conv,variables=('all',),run=lambda x: None,ref_run=True):
         """ Function to to make multiple runs of yambo to converge calculation parameters
             Input:
             A dictionary conv that has all the variables to be optimized
             A list fo the name of the variables in the dicitonary that are to be optimized
             A function run that takes as input the name of the inputfile (used to run yambo)
-
+            A boolean ref_run that can disable the submitting of the reference run (see scripts/plot_cv.py)
             .. code-block:: python
                 def run(filename):
                     os.system('yambo -F %s'%filename)
@@ -170,8 +170,11 @@ class YamboIn():
             reference[key] = [values[0],unit]
             self[key] = [values[0],unit]
         #write the file and run
-        self.write( "%s/reference.in"%(self.folder) )
-        run('reference.in')
+        if ref_run==True:
+            self.write( "%s/reference.in"%(self.folder) )
+            run('reference.in')
+        else:
+
 
         #converge one by one
         for key in [var for var in conv.keys() if var in variables]:
