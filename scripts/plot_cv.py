@@ -21,9 +21,10 @@ import sys
 # kpoint : number of the k-point which is to be evaluated
 
 # Exemple values for 1L-MoS2 on a 12x12 grid
-bandc = 27 ; bandv = 26
-kpoint = 19
-print 'Conduction band: ',bandc,'\nValence band: ',bandv,'\nK-point:',kpoint
+bandv = 26   ; bandc = 27   
+kpointv = 19 ; kpointc = 19 
+print 'Valence band: ',bandv,'conduction band: ',bandc
+print 'K-point VB: ',kpointv, ' k-point CB: ',kpointc
 
 folder = sys.argv[1]
 var = sys.argv[2]
@@ -84,9 +85,9 @@ for key in keys:
     valence=[]
     conduction=[]
     for i in range(len(outvars[key]+1)):
-        if outvars[key][i][kpindex]==kpoint and outvars[key][i][bdindex]==bandc:
+        if outvars[key][i][kpindex]==kpointc and outvars[key][i][bdindex]==bandc:
 		conduction=outvars[key][i]
-        elif outvars[key][i][kpindex]==kpoint and outvars[key][i][bdindex]==bandv:
+        elif outvars[key][i][kpindex]==kpointv and outvars[key][i][bdindex]==bandv:
 		valence = outvars[key][i]
     # Then the gap can be calculated
     out = conduction[e0index]+conduction[gwindex]-(valence[e0index]+valence[gwindex]) 
