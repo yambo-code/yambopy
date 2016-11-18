@@ -1,4 +1,5 @@
-#from __future__ import print_function
+import matplotlib
+matplotlib.use('Agg') # prevents crashes if no X server present
 from yambopy import *
 import matplotlib.pyplot as plt
 import sys
@@ -18,7 +19,7 @@ var = sys.argv[2]
 
 # <folder> would be the folder containing all .json files
 print 'Packing ...'
-#pack_files_in_folder(folder)
+pack_files_in_folder(folder)
 print 'Packing done.'
 
 # importing data from .json files in <folder>
@@ -76,5 +77,6 @@ for key in keys:
 plt.plot(inparray,outarray,'o-')
 plt.xlabel(var+' ('+unit+')')
 plt.ylabel('E_gw = E_lda + \Delta E')
-plt.show()
+#plt.show()
+plt.savefig(folder+'_'+var+'.png')
 print filename
