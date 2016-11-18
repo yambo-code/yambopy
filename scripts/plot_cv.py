@@ -5,14 +5,25 @@ import matplotlib.pyplot as plt
 import sys
 
 """ Input : python data_grab.py <folder> <variable>
+    Other parameters must be changed depending on systems in the first lines of the script.
     
     Uses .json files from pack_files_in_folder routine
-    to help plotting convergence for the <variable> passed as argument
+    to help plotting the energy gap convergence for the <variable> passed as argument
     <folder> is the folder containing all the different run folders,
     wherein the different o-* files are located.
     NB : The reference run is not used and should be disabled if using the 
     yambopy.optimize() routine using arg "ref_run=False".
     """
+
+## USER-DEFINED VARIABLES
+# Variables used to find where the gap is.
+# bandc | bandv : number of the conduction | valence band
+# kpoint : number of the k-point which is to be evaluated
+
+# Exemple values for 1L-MoS2 on a 12x12 grid
+bandc = 27 ; bandv = 26
+kpoint = 19
+print 'Conduction band: ',bandc,'\nValence band: ',bandv,'\nK-point:',kpoint
 
 folder = sys.argv[1]
 var = sys.argv[2]
@@ -29,6 +40,7 @@ data = YamboAnalyser(folder)
 # extract data according to relevant variable
 outvars = data.get_data(var)
 invars = data.get_inputfiles_tag(var)
+tags = data.get_tags(var)
 
 # Get only files related to the convergence study of the variable
 keys=[]
@@ -48,12 +60,16 @@ outarray = []
 filename = folder+'_'+var+'.dat'
 f = open(filename,'w')
 
+# The following variables are used to make the script compatible with both short and extended output
+kpindex = tags[keys[0]].tolist().index('K-point')
+bdindex = tags[keys[0]].tolist().index('Band')
+e0index = tags[keys[0]].tolist().index('Eo')
+gwindex = tags[keys[0]].tolist().index('E-Eo')
+
 # Writing the unit of the input value in the first line
 unit = invars[keys[0]]['variables'][var][1]
 f.write('# Unit of the input value: '+str(unit)+'\n')
 
-# In the 'short' Yambo output format :
-# K-coord | Band | E_LDA | E_GW-E_LDA | Sc|Eo
 for key in keys:
     # input value
     # GbndRnge and BndsRnX_ are special cases
@@ -63,11 +79,18 @@ for key in keys:
     else:
         inp = invars[key]['variables'][var][0]
 
-    # output value : E_GW between bands 26 and 27
-    # in my particular case, I have band 26 on line 2 and band 27 on line 3 (index 1 and 2)
-    # TODO : check band using if [input_key][i][1] == 26|27
-    # col 2+3 is E_GW ; bands 27-26 is gap
-    out = outvars[key][2][2]+outvars[key][2][3]-( outvars[key][1][2]+outvars[key][1][3] )
+    # Output value (gap energy)
+    # First the relevant lines are identified
+    valence=[]
+    conduction=[]
+    for i in range(len(outvars[key]+1)):
+        if outvars[key][i][kpindex]==kpoint and outvars[key][i][bdindex]==bandc:
+		conduction=outvars[key][i]
+        elif outvars[key][i][kpindex]==kpoint and outvars[key][i][bdindex]==bandv:
+		valence = outvars[key][i]
+    # Then the gap can be calculated
+    out = conduction[e0index]+conduction[gwindex]-(valence[e0index]+valence[gwindex]) 
+
     #writing value and energy diff in file
     s=str(inp)+'\t'+str(out)+'\n'
     f.write(s)
