@@ -91,6 +91,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                           Cells=[1,1,1], Hole=[0,0,0],
                           Direction="123", Format="x",
                           Degen_Step=0.0100,
+                          MinWeight=1.e-20,
                           repx=range(-1,2), repy=range(-1,2), repz=range(-1,2),
                           wf=False):
         """
@@ -103,6 +104,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
           Format     - Choose the format to plot in. Can be: x for xcrysden or g for gnuplot (default: 'x' for xcrysden)
           Degen_Step - Threshold to merge degenerate states. If the difference in energy between the states is smaller than
                        this value their wavefunctions will be plotted together
+          MinWeight  - Minimum value of the weight
           repx       - Number or repetitions along the x direction
           repy       - Number or repetitions along the x direction
           repz       - Number or repetitions along the x direction
@@ -122,7 +124,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
         #create a ypp file using YamboIn for reading the excitonic weights
         yppew = YamboIn('ypp -e a',filename='ypp.in',folder=self.path)
-        yppew['MinWeight'] = 1e-6
+        yppew['MinWeight'] = MinWeight
         yppew['Degen_Step'] = Degen_Step
 
         keywords = ["lattice", "atoms", "atypes", "nx", "ny", "nz"]

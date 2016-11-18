@@ -71,7 +71,7 @@ fig = plt.figure(figsize=(16,8))
 sorted_excitons = sorted(data['excitons'],key=lambda x: x['energy'])
 
 #colormap
-cmap = plt.get_cmap("gist_heat_r")
+cmap = plt.get_cmap("viridis")
 
 for n,exciton in enumerate(sorted_excitons[:8]):
     ax = plt.subplot(2,4,n+1)
