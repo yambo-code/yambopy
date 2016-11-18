@@ -182,9 +182,9 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
             self.data["excitons"].append(exciton)
 
-    def write_json(self):
+    def write_json(self,filename="absorptionspectra"):
         """ Write a jsonfile with the absorption spectra and the wavefunctions of certain excitons
         """
         print "writing json file...",
-        JsonDumper(self.data,"absorptionspectra.json")
+        JsonDumper(self.data,"%s.json"%filename)
         print "done!"
