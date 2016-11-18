@@ -1,63 +1,63 @@
-# Copyright (c) 2016, Henrique Miranda
-# All rights reserved.
-#
-#
-# This file is part of the yambopy project
-#
 from yambopy import *
 import json
-import matplotlib.pyplot as plt
 import numpy as np
 from math import sqrt
+import matplotlib.pyplot as plt
 
-#colormap
-cmap = plt.get_cmap("gist_heat_r")
+ang2bohr = 1.889725989
+cut = 0.2 #set the plot limits
 
-#read file
+def get_var(dictionary,variables):
+    """
+    To have compatibility with different version of yambo
+    We provide a list of different possible tags
+    """
+    for var in variables:
+        if var in dictionary:
+            return dictionary[var]
+    raise ValueError( 'Could not find the variables %s in the output file'%str(variables) )
+#
+# read file
+#
 f = open('absorptionspectra.json')
 data = json.load(f)
 f.close()
 
+#
+# plot the absorption spectra
+#
 print "nexitons", len(data['excitons'])
-
-#plot the absorption spectra
-plt.plot(data['E/ev'], data['EPS-Im'],label='BSE',lw=4)
-plt.plot(data['E/ev'], data['EPSo-Im'],label='IP',lw=4)
+plt.plot(get_var(data,['E/ev','E/ev[1]']), get_var(data,['EPS-Im[2]' ]),label='BSE',lw=4)
+plt.plot(get_var(data,['E/ev','E/ev[1]']), get_var(data,['EPSo-Im[4]']),label='EPS',lw=4)
 for n,exciton in enumerate(data['excitons']):
     plt.axvline(exciton['energy'])
-plt.xlabel('$\omega$ (eV)')
-plt.gca().yaxis.set_major_locator(plt.NullLocator())
-plt.legend()
 plt.draw()
 
-lat = np.array(data['lattice'])
-rlat = rec_lat(lat)
-print "reciprocal lattice:"
-for x in rlat:
-    print ("%12.8lf "*3)%tuple(x)
-x,y,z = np.array(rlat )
-cut=.65
-xmin,ymin,_ = -(x+y)*cut 
-xmax,ymax,_ = +(x+y)*cut
 
-#plot excitons
-fig = plt.figure(figsize=(16,8))
-plt.rc('text', usetex=True)
-plt.rc('font', family='serif',serif="Computer Modern Roman",size=20)
+#
+# plot excitons
+#
+cmap = plt.get_cmap("gist_heat_r")
+fig = plt.figure(figsize=(12,4))
 
 sorted_excitons = sorted(data['excitons'],key=lambda x: x['energy'])
 
-for n,exciton in enumerate(sorted_excitons[:8]):
-    ax = plt.subplot(2,4,n+1)
-    ax.set_aspect('equal', 'datalim')
-    w = np.array(exciton['weights'])
+for n,exciton in enumerate(sorted_excitons):
+    #get data
+    w   = np.array(exciton['weights'])
     qpt = np.array(exciton['qpts'])
-    ax.scatter(qpt[:,0], qpt[:,1], marker='H', s=10, color=[cmap(sqrt(c)) for c in w], label="e: %lf"%exciton['energy'])
-    plt.xlim([xmin,xmax])
-    plt.ylim([ymin,ymax])
+
+    #plot
+    ax = plt.subplot(2,5,n+1)
+    ax.scatter(qpt[:,0], qpt[:,1], s=20, c=w, cmap=cmap, lw=0, label="e: %lf"%exciton['energy'])
+
+    # axis
+    plt.xlim([-cut,cut])
+    plt.ylim([-cut,cut])
     plt.gca().yaxis.set_major_locator(plt.NullLocator())
     plt.gca().xaxis.set_major_locator(plt.NullLocator())
-    ax.legend(prop={'size':12})
+    ax.set_aspect('equal', 'datalim')
 
+#plt.subplot_tool()
 plt.draw()
 plt.show()

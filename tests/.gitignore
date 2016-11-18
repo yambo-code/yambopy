@@ -2,6 +2,7 @@ bse
 bse_conv
 database
 gw
+bands
 gw_conv
 nscf
 relax
