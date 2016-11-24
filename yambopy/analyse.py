@@ -89,6 +89,16 @@ class YamboAnalyser():
                     data[k] = np.array( self.jsonfiles[k]["data"][filename] )
         return data
 
+    def get_tags(self,tags):
+        """ Get a dictionary with the tags of the output file colomns
+        """
+        tagslist = dict()
+        for k in sorted(self.jsonfiles.keys()):
+            for filename in self.jsonfiles[k]["tags"].keys():
+                if all(i in filename for i in tags):
+                    tagslist[k] = np.array( self.jsonfiles[k]["tags"][filename] )
+        return tagslist
+
     def get_colors(self,tags):
         """ select the colors according to the number of files to plot
         the files to plot are the ones that have all the tags in their name
