@@ -30,12 +30,13 @@ if not os.path.isdir('gw'):
     os.system('cp -r database/SAVE gw')
 
 #create the yambo input file
-y = YamboIn('%s -d -g n -V all'%yambo,folder='gw')
+y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw')
 QPKrange,_ = y['QPkrange']
-y['QPkrange'] = [QPKrange[:2]+[3,6],'']
-y['FFTGvecs'] = [15,'Ry']
+y['QPkrange'] = [QPKrange[:2]+[4,5],'']
+y['FFTGvecs'] = [20,'Ry']
 y['NGsBlkXp'] = [1,'Ry']
-y['BndsRnXp'] = [[1,30],'']
+y['BndsRnXp'] = [1,20]
+y['GbndRnge'] = [1,20]
 y.arguments.append('WFbuffIO')
 y.write('gw/yambo_run.in')
 

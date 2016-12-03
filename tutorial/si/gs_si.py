@@ -182,7 +182,7 @@ if __name__ == "__main__":
     parser.add_argument('-b' ,'--bands',       action="store_true", help='Calculate band-structure')
     parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
     parser.add_argument('-d' ,'--dispersion',  action="store_true", help='Phonon dispersion')
-    parser.add_argument('-t' ,'--nthreads',    action="store_true", help='Number of threads', default=2 )
+    parser.add_argument('-t' ,'--nthreads',                         help='Number of threads', default=2 )
     args = parser.parse_args()
 
     if len(sys.argv)==1:
