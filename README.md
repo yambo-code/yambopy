@@ -40,4 +40,8 @@ Authors
 - [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/)
 - [Alejandro Molina Sanchez](http://alexmoratalla.github.io/)
 
+Additional collaborators:
+- Fulvio Paleari
+- Alexandre Morlet
+
 The code is at an early stage of development, help us by sending bug reports, patches and suggestions!
