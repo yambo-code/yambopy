@@ -1,8 +1,12 @@
-# Version : 5th dec, 1700
+# Version : 6th dec
 """ python plot_BSE.py <PathToFolder> <Variable> 
+This script allows to track the energy of the n-first bright exciton (settings in script).
+Another way to converge BS calculations in parallel to absorption spectra plotting.
+
 The Folder normally contains the SAVE folder as well as <variable> folders. Path should be at least '.'.
 Yambo must be able to run, because ypp is called multiple times.
 """
+# Future dev : have both excitonic energies and abs spectra.
 
 import matplotlib
 matplotlib.use('Agg') # prevents crashes if no X server present
@@ -17,19 +21,22 @@ import sys
 path = sys.argv[1]
 var = sys.argv[2]
 
-# PARAMETERS
+###################
+# USER PARAMETERS #
+###################
+
+# Number of excitons to get
+exc_n = 2
 # Exciton brightness threshhold
 exc_int = 0.005
 # Exciton degenerescence threshold
 exc_degen = 0.01
-# Number of excitons to get
-exc_n = 2
 # Max exciton energies before ignoring
 exc_max_E = 5 # eV
 
-#################
-#  INPUT VALUE  #
-#################
+#####################
+#  INPUT AND FILES  #
+#####################
 
 print 'Packing ...'
 pack_files_in_folder(path)
@@ -41,8 +48,6 @@ data = YamboAnalyser(path)
 
 # extract data according to relevant var
 invars = data.get_inputfiles_tag(var)
-
-##################
 
 # Get only files related to the convergence study of the var
 keys=[]
@@ -56,44 +61,36 @@ print keys
 # unit of the input value
 unit = invars[keys[0]]['variables'][var][1]
 
-# Keys already cover the following block
-## Get all folders in path that start with var
-## (i.e. all runs for cv)
-#dirfiles = os.listdir(path)
-#jobnames=[]
-#for f in dirfiles:
-#    jobname = os.path.join(path,f)
-#    if os.path.isdir(jobname):
-#	    if f.startswith(var):
-#		jobnames.append(f)
+######################
 
-
+# Output-file filename
 outname = path+'_'+var+'.dat'
-#outfile = open(filename,'w')
 
+# Array that will contain the output
 excitons = []
 
+# Loop over all calculations
 for key in keys:
 	jobname=key.replace('.json','')
-    # input value
-    # GbndRnge and BndsRnX_ are special cases
-        if var.startswith('GbndRng') or var.startswith('BndsRnX'):
+	print jobname
+
+        # input value
+        # BndsRn__ is a special case
+        if var.startswith('BndsRnX'):
         # format : [1, nband, ...]
             inp = invars[key]['variables'][var][0][1]
         else:
             inp = invars[key]['variables'][var][0]
 
-
-	print jobname
 	print 'Preparing JSON file. Calling ypp ...'
 	### Creating the 'absorptionspectra.json' file
-	print path
+	# It will contain the exciton energies
 	y = YamboOut(folder=path,save_folder=path)
 	# Args : name of job, SAVE folder path, folder where job was run path
 	a = YamboBSEAbsorptionSpectra(jobname,path=path)
 	# Get excitons values
 	a.get_excitons(min_intensity=exc_int,max_energy=exc_max_E,Degen_Step=exc_degen)
-	# Get excitonic WFs
+	# Get excitonic WFs (contains eigenvalues)
 	a.get_wavefunctions(Degen_Step=exc_degen,repx=range(-1,2),repy=range(-1,2),repz=range(1))
 	# Write .json file
 	a.write_json(filename=path+'_'+jobname)
@@ -127,7 +124,6 @@ for key in keys:
 	excitons.append(l)
 
 print excitons
-#f.write('Variable: ',var,', unit :',unit)
 header = 'Variable: '+var+', unit: '+unit
 np.savetxt(outname,excitons,header=header,fmt='%1f')
-print 'Done.'
+print outname
