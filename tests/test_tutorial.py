@@ -30,6 +30,7 @@ class TestGW_Convergence_GroundState(unittest.TestCase):
         gs_si.run_nscf()
         gs_si.run_bands()
         gs_si.run_plot()
+        gs_si.orbitals()
 
 class TestGW_Convergence_GWconvergence(unittest.TestCase):
     def test_convergence(self):
@@ -77,6 +78,6 @@ if __name__ == '__main__':
 
     if args.clean:
         print "cleaning..."
-        os.system('rm -rf relax gw_conv bands scf nscf database')
+        os.system('rm -rf relax gw_conv bands scf nscf database proj.in')
         print "done!"
         exit() 

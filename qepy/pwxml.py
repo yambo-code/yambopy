@@ -31,6 +31,12 @@ class PwXML():
             cell_lat = self.datafile_xml.findall("CELL/DIRECT_LATTICE_VECTORS/a%d"%i)[0].text
             self.cell.append([float(x) for x in cell_lat.strip().split()])
 
+        #get reciprocal cell
+        self.rcell = []
+        for i in xrange(1,4):
+            rcell_lat = self.datafile_xml.findall("CELL/RECIPROCAL_LATTICE_VECTORS/b%d"%i)[0].text
+            self.rcell.append([float(x) for x in rcell_lat.strip().split()])
+
         #get atoms
         self.natoms = int(self.datafile_xml.findall("IONS/NUMBER_OF_ATOMS")[0].text)
         self.atoms = []
@@ -42,6 +48,12 @@ class PwXML():
         self.nkpoints = int(self.datafile_xml.findall("BRILLOUIN_ZONE/NUMBER_OF_K-POINTS")[0].text.strip())
         # Read the number of BANDS
         self.nbands   = int(self.datafile_xml.find("BAND_STRUCTURE_INFO/NUMBER_OF_BANDS").text)
+
+        #get k-points
+        self.kpoints = [] 
+        for i in range(self.nkpoints):
+          k_aux = self.datafile_xml.findall('BRILLOUIN_ZONE/K-POINT.%d'%(i+1))[0].get('XYZ')
+          self.kpoints.append([float(x) for x in k_aux.strip().split()])
  
         #get fermi
         self.fermi = float(self.datafile_xml.find("BAND_STRUCTURE_INFO/FERMI_ENERGY").text)
@@ -65,14 +77,14 @@ class PwXML():
         s += "nbands: %d\n"%self.nbands
         return s
 
-    def plot_eigen(self,path=[]):
+    def plot_eigen(self,path=[],xlim=(),ylim=()):
         """ plot the eigenvalues using matplotlib
         """
         import matplotlib.pyplot as plt
         
         # Font selection and borders
         plt.rc('text', usetex=True)
-        plt.rc('font', family='serif',serif="Computer Modern Roman",size=20)
+        plt.rc('font', family='serif',serif="Computer Modern Roman",size=25)
 
         if self.eigen is None:
             self.get_eigen()
@@ -93,6 +105,13 @@ class PwXML():
         eigen = array(self.eigen)
         for ib in range(self.nbands):
            plt.plot(xrange(self.nkpoints),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
+
+        #plot options
+        if xlim:
+          plt.xlim(xlim)
+        if ylim:
+          plt.ylim(ylim)
+
         plt.show()
 
     def write_eigen(self,fmt='gnuplot'):
@@ -111,7 +130,7 @@ class PwXML():
             print 'fmt %s not implemented'%fmt
 
     def get_eigen(self):
-        """ Return eigenvalues
+        """ Return eigenvalues in Hartree
         """
         datafile_xml = self.datafile_xml
         eigen = []
@@ -120,3 +139,4 @@ class PwXML():
                 eigen.append(map(float, EIGENVALUES.text.split()))
         self.eigen  = eigen
         return eigen
+

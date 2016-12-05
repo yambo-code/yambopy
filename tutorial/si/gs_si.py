@@ -8,7 +8,7 @@ from qepy import *
 import argparse
 
 scf_kpoints  = [4,4,4]
-nscf_kpoints = [4,4,4]
+nscf_kpoints = [3,3,3]
 prefix = 'si'
 matdyn = 'matdyn.x'
 q2r =    'q2r.x'
@@ -86,6 +86,17 @@ def bands():
     qe.ktype = 'crystal'
     qe.set_path(p)
     qe.write('bands/%s.bands'%prefix)
+
+def orbitals():
+    f = open('proj.in','w')
+    projwfc = ProjwfcIn('si')
+    projwfc.write(folder='bands')
+    projwfc.run(folder='bands')
+    projection = ProjwfcXML(prefix='si',path='bands')
+    ax = plt.subplot(1,1,1)
+    projection.plot_eigen(ax,path=p,selected_orbitals=[0,4],selected_orbitals_2=[2,5],size=40,cmap='RdBu')
+    ax.set_ylim([-7,6])
+    plt.show()
 
 def phonons():
     os.system('mkdir -p phonons')
@@ -180,6 +191,7 @@ if __name__ == "__main__":
     parser.add_argument('-n' ,'--nscf',        action="store_true", help='Non-self consistent calculation')
     parser.add_argument('-n2','--nscf_double', action="store_true", help='Non-self consistent calculation for the double grid')
     parser.add_argument('-b' ,'--bands',       action="store_true", help='Calculate band-structure')
+    parser.add_argument('-o' ,'--orbitals',    action="store_true", help='Plot band structure with orbital weights')
     parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
     parser.add_argument('-d' ,'--dispersion',  action="store_true", help='Phonon dispersion')
     parser.add_argument('-t' ,'--nthreads',                         help='Number of threads', default=2 )
@@ -208,4 +220,6 @@ if __name__ == "__main__":
         bands()
         run_bands(args.nthreads)
         run_plot()
+    if args.orbitals:
+        orbitals()
 
