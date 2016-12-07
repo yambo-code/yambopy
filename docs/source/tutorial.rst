@@ -339,7 +339,6 @@ Real Time Simulations (Si)
 ---------------------------
 **by A. Molina Sánchez**
 
-
 We start with the calculation of the ground state properties using the script 
 ``gs_si.py`` in the ``tutorials/si`` folder.
 We will create self-consistent data (folder ``scf``) and a non-self consistent 
@@ -391,47 +390,82 @@ real-time simulations. We discuss the following run levels.
 
     yambo -r -e -v c -V all
 
-Calculation of the collisions files. This step is mandatory to run any real-time simulation. We have
+Calculation of the collisions files. This step is mandatory to run any real-time simulation. We calculate the
+matrix elements related with the electronic correlation (see 
+Ref. `PRB 84, 245110 (2011) <http://journals.aps.org/prb/abstract/10.1103/PhysRevB.84.245110>`_). We have
 several choices for the potential approximation (we use COHSEX in this tutorial).
 
 .. code-block:: bash
 
-    Potential = 'COHSEX' # IP, HARTREE, HARTREE-FOCK, COHSEX
+  run['HXC_Potential'] = 'COHSEX' # IP, HARTREE, HARTREE-FOCK, COHSEX
+
+The variables for the collisions are very similar to a Bethe-Salpeter (BSE) run. First, we start calculating
+the static dielectric function. It follows the calculation of the Kernel components for the 
+electron-hole states of interest. In addition, we have several cutoffs 
+to be set, in a similar way than in the case of the BSE.
+
+.. code-block:: bash
+
+  run['NGsBlkXs']  = [100,'mHa']  # Cut-off of the dielectric function
+  run['BndsRnXs' ] = [1,30]       # Bands of the dielectric function
+  run['COLLBands'] = [2,7]        # States participating in the dynamics.
+  run['HARRLvcs']  = [5,'Ha']     # Hartree term: Equivalent to BSENGexx in the BSE run-level
+  run['EXXRLvcs']  = [100,'mHa']  # Forck term:   Equivalent to BSENGBlk in the BSE run-level
+  run['CORRLvcs']  = [100,'mHa']  # Correlation term: Not appearing in BSE. 
+
+In general, we use the converged parameters of the BSE to set the 
+variables of the collisions run. For parallel runs (see section for parallel advices) a common 
+recipe is to parallelize only in k points.
 
 **2. Time-dependent with a delta pulse.**
 
 .. code-block:: bash
 
-    yambo -q p -v c -V all
+    yambo -q p 
 
 The delta pulse real time simulation is the equivalent to the Bethe-Salpeter equation in the time domain (if we
-use the COHSEX potential).
+use the COHSEX potential). We have to set the propagation variables: (i) time interval, (ii) duration of the
+simulation, and (iii) integrator. We have also to set the intensity of the delta pulse.
 
 .. code-block:: bash
 
-    run['RTstep']      = [ 100 ,'as']
-    run['NETime']      = [ 300 ,'fs']
-    run['Integrator']  = "RK2 RWA"
-    run['IOtime']      = [ [2.000, 2.000, 2.000], 'fs' ]
-    run['Field1_kind'] = "DELTA"
+    run['RTstep']      = [ 100 ,'as']  # Interval
+    run['NETime']      = [ 300 ,'fs']  # Duration
+    run['Integrator']  = "RK2 RWA"     # Runge-Kutta propagation
 
-In order to save time one can increase the ``IOtime`` intervals. Be aware that some post-processing runs could need high
-precision and thus small ``IOtime`` intervals.
+    run['Field1_kind'] = "DELTA"          # Type of pulse 
+    run['Field1_Int']  = [ 1E4 , 'kWLm2'] # Intensity pulse
+
+    run['IOtime']      = [ [0.050, 0.050, 0.100], 'fs' ]
+
+The ``IOtime`` intervals specify the time interval to write (i) carriers, (ii) green's functions and (iii) output. In general,
+we can set high values to avoid frequent IO and hence slow simulations. Only in the case where we need the
+data to calculate the Fourier Transform (as in the case of the delta pulse, we set this variable to lower values).
+
+A good test to check that yambo_rt is running properly is to confront the BSE spectra with the obtained using yambo_rt (use the 
+script kbe-spectra.py). 
 
 **3. Time-dependent with a gaussian pulse.**
 
 .. code-block:: bash
 
-    yambo -q p -v c -V all
+    yambo -q p
 
-The gaussian pulse should be centered in energy at an excitonic peak for an efficient excitation. The damping parameter
-determines the duration of the pulse.
+The run-level is identical for that of the delta pulse. However, we have to set more variables related with the pulse kind. In order
+to generate a sizable amount of carriers, the pulse should be centered at the excitonic peaks (obtained from the delta pulse spectra).
+The damping parameter determines the duration of the pulse. We can also chose linear or circular polarization (see later
+the section for circular polarization). Be aware of setting the duration of the simulation accordingly with the duration of the pulse.
 
 .. code-block:: bash
 
     run['Field1_kind'] = "QSSIN"
-    run['Field1_Damp'] = [  50,'fs']
-    run['Field1_Freq'] = [[2.5,0.0],'eV']
+    run['Field1_Damp'] = [  50,'fs']         # Duration of the pulse
+    run['Field1_Freq'] = [[2.3,2.3],'eV']    # Excitation frequency 
+
+In general, for any pulse create a population of carriers (electron-holes). One sign that simulation is running well is that the number
+of electrons and holes is the same during all the simulation. Below we show the typical outputs for several kinds of pulses (DELTA, QSSIN and
+SIN), like the polarization, number of carriers and pump intensity.
+
 
 **4. Time-dependent with a gaussian pulse and electron-phonon scattering.**
 

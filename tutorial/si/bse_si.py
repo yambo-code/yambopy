@@ -32,10 +32,12 @@ if not os.path.isdir('bse'):
 #create the yambo input file
 y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
 
-y['FFTGvecs'] = [15,'Ry']
-y['NGsBlkXs'] = [1,'Ry']
+y['FFTGvecs'] = [5,'Ha']
+y['BSENGexx'] = [5,'Ha']
+y['NGsBlkXs'] = [500,'mHa']
+y['BSENGBlk'] = [500,'mHa']
 y['BndsRnXs'] = [[1,30],'']
-y['BSEBands'] = [[3,6],'']
+y['BSEBands'] = [[2,7],'']
 y.arguments.append('WRbsWF')
 y.write('bse/yambo_run.in')
 
