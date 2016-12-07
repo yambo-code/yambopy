@@ -9,6 +9,7 @@ import argparse
 
 scf_kpoints  = [4,4,4]
 nscf_kpoints = [3,3,3]
+dg_kpoints   = [4,4,4]
 prefix = 'si'
 matdyn = 'matdyn.x'
 q2r =    'q2r.x'
@@ -69,10 +70,24 @@ def nscf():
     qe.control['calculation'] = "'nscf'"
     qe.electrons['diago_full_acc'] = ".true."
     qe.electrons['conv_thr'] = 1e-8
-    qe.system['nbnd'] = 20
+    qe.system['nbnd'] = 30
     qe.system['force_symmorphic'] = ".true."
     qe.kpoints = nscf_kpoints
     qe.write('nscf/%s.nscf'%prefix)
+
+#double-grid
+def dg():
+    if not os.path.isdir('nscf-dg'):
+        os.mkdir('nscf-dg')
+    qe = get_inputfile()
+    qe.control['calculation'] = "'nscf'"
+    qe.electrons['diago_full_acc'] = ".true."
+    qe.electrons['conv_thr'] = 1e-8
+    qe.system['nbnd'] = 8
+    qe.system['force_symmorphic'] = ".true."
+    qe.kpoints = dg_kpoints
+    qe.write('nscf-dg/%s.nscf'%prefix)
+
 
 def bands():
     if not os.path.isdir('bands'):
@@ -165,6 +180,12 @@ def run_nscf(nthreads=1):
     os.system("cd nscf; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
     print("done!")
 
+def run_dg(nthreads=1):
+    print("running nscf:")
+    os.system("cp -r scf/%s.save nscf-dg/"%prefix)
+    os.system("cd nscf-dg; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
+    print("done!")
+
 def run_bands(nthreads=1):
     print("running bands:")
     os.system("cp -r scf/%s.save bands/"%prefix)
@@ -212,6 +233,9 @@ if __name__ == "__main__":
     if args.nscf:
         nscf()
         run_nscf(args.nthreads)
+    if args.nscf_double:
+        dg()
+        run_dg(args.nthreads)
     if args.phonon:     
         phonons()
         run_phonon(args.nthreads)
