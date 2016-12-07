@@ -51,62 +51,6 @@ class DynmatIn():
 
 
 class Matdyn():
-    """ Class to read data from matdyn.modes files 
-    """
-    _datafile = 'matdyn.modes'
-    def __init__(self,natoms,nqpoints,path='.'):
-        self.path     = path
-        data_phon     = open("%s/%s"%(path, self._datafile),'r').readlines()
-        self.nmodes   = natoms*3
-        self.nqpoints = nqpoints
-        self.eigen, self.modes = [], []
-        for j in xrange(nqpoints):
-          frec, v_frec = [], []
-          for i in xrange(self.nmodes):
-            k=4 + j*(self.nmodes*(natoms+1)+5) + i*(natoms+1)
-            y = float_from_string(data_phon[k])
-            v_mode = []
-            for ii in xrange(1,natoms+1):
-              z      = float_from_string(data_phon[k+ii])
-              v_atom = array([complex(z[0],z[1]),complex(z[2],z[3]),complex(z[4],z[5])])
-              v_mode.append(v_atom)
-            v_frec.append(array(v_mode))
-            frec.append(y[1])
-          self.eigen.append(frec)
-          self.modes.append(array(v_frec))
-
-    def plot_eigen(self,path=[]):
-        """ plot the phonon frequencies using matplotlib
-        """
-###################################################################################
-# Font selection and borders
-        plt.rc('text', usetex=True)
-        plt.rc('font', family='serif',serif="Computer Modern Roman",size=20)
-###################################################################################
-
-        if self.eigen is None:
-            print('Error')
-            #self.get_eigen()
-      
-        if path:
-            if isinstance(path,Path):
-                path = path.get_indexes()
-            plt.xticks( *zip(*path) )
-        plt.ylabel('\omega (cm$^{-1}$)')
-
-        #plot vertical line
-        for point in path:
-            x, label = point
-            plt.axvline(x)
-
-        #plot bands
-        eigen = array(self.eigen)
-        for ib in range(self.nmodes):
-           plt.plot(xrange(self.nqpoints),eigen[:,ib], 'r-', lw=2)
-        plt.show()
-  
-
-class Matdyn():
     """ Class to read and plot the data from matdyn.modes files 
     """
     _datafile = 'matdyn.modes'
@@ -134,11 +78,7 @@ class Matdyn():
     def plot_eigen(self,path=[]):
         """ plot the phonon frequencies using matplotlib
         """
-###################################################################################
-# Font selection and borders
-        plt.rc('text', usetex=True)
-        plt.rc('font', family='serif',serif="Computer Modern Roman",size=20)
-###################################################################################
+        import matplotlib.pyplot as plt
 
         if self.eigen is None:
             print('Error')

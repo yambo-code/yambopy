@@ -30,18 +30,19 @@ class YamboIn():
                    'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid','gkkp','el_ph_corr','WRbsWF','Select_energy', 'RTDBs','photolum','kpts_map']
 
     def __init__(self,args='',folder='.',vim=True,filename='yambo.in'):
-        """ Initialize a yambo `input` file.
+        """
+        Initialize a yambo `input` file.
 
-            Arguments:
-                args: if specified yambopy will run yambo, read the generated input file and initialize the class with those variables.
-                folder: the folder where the SAVE directory is located
-                vim: if yambo is compiled using vim as an editor this variable should be set as True because then `yambopy` will close vim.
-                A new argument for yambo '-Q' tells yambo to not call vim.
-                filename: the name of the input file to be read. Can be used to read a file in the hardrive:
-                .. code-block:: python
-                    y = YamboIn(filename='somefile.in')
-                    print y
-                if the variable args was used then the filename should be left as `yambo.in` because that's the default input filename that yambo will write.
+        Arguments:
+            args: if specified yambopy will run yambo, read the generated input file and initialize the class with those variables.
+            folder: the folder where the SAVE directory is located
+            vim: if yambo is compiled using vim as an editor this variable should be set as True because then `yambopy` will close vim.
+            A new argument for yambo '-Q' tells yambo to not call vim.
+            filename: the name of the input file to be read. Can be used to read a file in the hardrive:
+            .. code-block:: python
+                y = YamboIn(filename='somefile.in')
+                print y
+            if the variable args was used then the filename should be left as `yambo.in` because that's the default input filename that yambo will write.
         """
         self.folder = folder
 
@@ -61,8 +62,9 @@ class YamboIn():
             yambo.wait()
             os.chdir(workdir)
             self.read_file(filename="%s/%s"%(folder,filename))
-        if filename:
-            self.read_file(filename="%s/%s"%(folder,filename))
+        else:
+            if filename:
+                self.read_file(filename="%s/%s"%(folder,filename))
 
     def __getitem__(self,key):
         """ Get the value of a variable in the input file
@@ -213,8 +215,7 @@ class YamboIn():
                     self.write( "%s/%s.in"%(self.folder,filename) )
                     run(filename+".in")
                 continue
-            print "unknown type for variable:", key
-            exit(1)
+            raise ValueError( "unknown type for variable:", key )
 
         #put back the original values of the variables
         for var in variables:
@@ -245,7 +246,7 @@ class YamboIn():
         s += "\n".join(self.arguments)+'\n'
 
         for key,value in self.variables.items():
-            if type(value)==str:
+            if type(value)==str or type(value)==unicode:
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue
             if type(value[0])==float:
@@ -271,6 +272,5 @@ class YamboIn():
                 value, unit = value
                 s+="%s = (%lf,%lf) %s\n"%(key,value.real,value.imag,unit)
                 continue
-            print "Unknown type for variable:", key
-            exit(1)
+            raise ValueError( "Unknown type %s for variable: %s" %( type(value), key) )
         return s

@@ -8,11 +8,23 @@ from yambopy.plot  import *
 import os
 
 class YamboBSEAbsorptionSpectra(YamboSaveDB):
-    """ Create a file with information about the excitons from Yambo files
     """
-    def __init__(self,job_string,save='SAVE',path='.'):
-        YamboSaveDB.__init__(self,save=save)
-        self.save = save
+    Create a file with information about the excitons from Yambo files
+    """
+    def __init__(self,job_string,path='.'):
+        """
+        Parameters:
+            job_string - the job_string used for yambo. yambo -J <job_string>
+            path       - the folder where the yambo run was made
+        """
+
+        #look for the save folder
+        self.save=path+'/SAVE'
+        if not os.path.isdir(self.save):
+            raise ValueError('SAVE folder not found in %s'%self.save)
+
+        YamboSaveDB.__init__(self,save=self.save)
+
         self.job_string = job_string
         self.data = {"excitons":[],
                      "lattice": self.lat,
@@ -21,19 +33,35 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
         self.atoms = None
         self.excitons = None
-
+ 
         #use YamboOut to read the absorption spectra
         self.path = path
-        y = YamboOut(path)
-        # we obtain all the bse spectra
-        absorptionspectra = y.get_data(('eps','diago'))
+
+        #try to find o-* files in path, if not use path/job_string
+        paths = [path, "%s/%s"%(path,job_string)]
+        for path in paths:
+            y = YamboOut(path)
+            absorptionspectra = y.get_data(('eps','diago'))
+            #if we read the files then continue
+            if absorptionspectra != {}:
+                break
+
+        #trap the errors here
+        if absorptionspectra == {}:
+            raise ValueError('Could not find the o-*diago*eps files in %s. Make sure you diagonalized the BSE hamiltonian in yambo.'%paths)
+
         #we just use one of them
         key = list(absorptionspectra)[0]
         for key,value in absorptionspectra[key].items():
             self.data[key] = value
 
-    def get_excitons(self,min_intensity=0.1,max_energy=4,Degen_Step=0.0100):
-        """ Obtain the excitons using ypp
+    def get_excitons(self,min_intensity=0.1,max_energy=4,Degen_Step=0.0):
+        """ 
+        Obtain the excitons using ypp
+        Parameters:
+            min_intensity - Only plot excitons with intensity larger than this value (default: 0.1)
+            max_energy    - Only plot excitons with energy below this value (default: 4 eV)
+            Degen_Step    - Only plot excitons whose energy is different by more that this value (default: 0.0)
         """
         filename = "%s/o-%s.exc_E_sorted"%(self.path,self.job_string)
         if not os.path.isfile(filename):
@@ -59,13 +87,29 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
         return self.excitons
 
-    def get_wavefunctions(self,FFTGvecs=30,Cells=[1,1,1],Hole=[0,0,0],Direction="123",Format="x",
-                          Degen_Step=0.0100,repx=range(-1,2),repy=range(-1,2),repz=range(-1,2),wf=False):
-        """ Collect all the wavefuncitons with an intensity larger than self.threshold
+    def get_wavefunctions(self, FFTGvecs=30,
+                          Cells=[1,1,1], Hole=[0,0,0],
+                          Direction="123", Format="x",
+                          Degen_Step=0.0100,
+                          repx=range(-1,2), repy=range(-1,2), repz=range(-1,2),
+                          wf=False):
+        """
+        Collect all the wavefuncitons with an intensity larger than self.threshold
+        Parameters:
+          FFTGvecs   - Number of FFTGvecs. Related to how accurate the representation is
+          Cells      - Number of cells to plot in real space
+          Hole       - Define the hole position in cartesian coordinates
+          Direction  - Choose the directions to plot along
+          Format     - Choose the format to plot in. Can be: x for xcrysden or g for gnuplot (default: 'x' for xcrysden)
+          Degen_Step - Threshold to merge degenerate states. If the difference in energy between the states is smaller than
+                       this value their wavefunctions will be plotted together
+          repx       - Number or repetitions along the x direction
+          repy       - Number or repetitions along the x direction
+          repz       - Number or repetitions along the x direction
+          wf         - Get the wavefuncitons in real space or not (default: False)
         """
         if self.excitons is None:
-            print "Excitons not present use get_exitons() first"
-            exit()
+            raise ValueError( "Excitons not present. Run YamboBSEAbsorptionSpectra.get_excitons() first" )
 
         #create a ypp file using YamboIn for reading the wavefunction
         yppwf = YamboIn('ypp -e w',filename='ypp.in',folder=self.path)
@@ -138,9 +182,9 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
             self.data["excitons"].append(exciton)
 
-    def write_json(self):
+    def write_json(self,filename="absorptionspectra"):
         """ Write a jsonfile with the absorption spectra and the wavefunctions of certain excitons
         """
         print "writing json file...",
-        JsonDumper(self.data,"absorptionspectra.json")
+        JsonDumper(self.data,"%s.json"%filename)
         print "done!"

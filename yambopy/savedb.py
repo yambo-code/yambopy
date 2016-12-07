@@ -63,8 +63,7 @@ class YamboSaveDB():
             filename = '%s/ns.db1'%save
             database    = Dataset(filename)
         except:
-            print "Error reading %s database"%filename
-            exit()
+            raise ValueError( "Error reading %s database"%filename )
         self.atomic_numbers   = database.variables['atomic_numbers'][:]
         self.atomic_positions = database.variables['ATOM_POS'][0,:]
         self.eigenvalues      = database.variables['EIGENVALUES'][0,:]*ha2ev
@@ -118,7 +117,6 @@ class YamboSaveDB():
         #status
         self.expanded = False
         self.efermi = None
-        self.save = True
 
     def get_fermi(self,inv_smear=0.001):
         """ Determine the fermi energy

@@ -10,7 +10,7 @@ from textwrap import dedent
 # Scheduler of HPC cluster of CENAERO
 #
 class pbs():
-    def __init__(self, name='pbs', nodes=1, core=1, dependent=0, mem=2624, queue='main', group_list=None, walltime="1:00:00", option=None ):
+    def __init__(self, name='pbs', nodes=1, core=1, dependent=0, mem=2624, queue='main', group_list=None, walltime="1:00:00", option=None, modules=[] ):
         self.nodes = nodes
         self.core = core
         self.name = name
@@ -21,6 +21,7 @@ class pbs():
         self.commands = []
         self.walltime = walltime
         self.option = option
+        self.modules = modules
         self.header = dedent('''
                              exec > ${PBS_O_WORKDIR}/${PBS_JOBNAME}_${PBS_JOBID}.log 
                              echo "------------------ Work dir --------------------" 
@@ -46,6 +47,8 @@ class pbs():
         if self.dependent:  s += "#PBS -W depend=afterok:%s\n"%self.dependent
         s += "#PBS -l walltime=%s\n"%self.walltime
         s += dedent(self.header)
+        for names in self.modules:
+          s += "module load %s\n" % (names)
         s += "\n".join(self.commands)
         return s
 

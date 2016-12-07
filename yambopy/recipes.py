@@ -7,7 +7,7 @@
 from yambopy import *
 import os
 
-def pack_files_in_folder(folder,save_folder=None):
+def pack_files_in_folder(folder,save_folder=None,verbose=True):
     """
      Pack the output files in a folder to json files
     """
@@ -16,6 +16,7 @@ def pack_files_in_folder(folder,save_folder=None):
     for dirpath,dirnames,filenames in os.walk(folder):
         #check if there are some output files in the folder
         if ([ f for f in filenames if 'o-' in f ]):
+            print dirpath
             y = YamboOut(dirpath,save_folder=save_folder)
             y.pack()
 
