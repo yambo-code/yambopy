@@ -46,12 +46,7 @@ def run(filename):
 y.optimize(conv,run=run)
 
 #pack the files in .json files
-for folder in subprocess.check_output('ls bse_conv/*/o-*',shell=True).splitlines():
-    folder = '/'.join(folder.split('/')[:-1])
-    y = YamboOut(folder)
-    if not y.locked():
-        y.pack()
-        y.put_lock()
+pack_files_in_folder('bse_conv')
 
 #plot the results using yambmo analyser
 y = YamboAnalyser('bse_conv')
