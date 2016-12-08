@@ -14,27 +14,30 @@ yambo = "yambo"
 prefix = "mos2"
 folder = "bse_par"
 
-#check if the nscf cycle is present
-if os.path.isdir('nscf/%s.save'%prefix):
-    print('nscf calculation found!')
-else:
-    print('nscf calculation not found!')
-    exit()
+def databases():
+    #check if the nscf cycle is present
+    if os.path.isdir('nscf/%s.save'%prefix):
+        print('nscf calculation found!')
+    else:
+        print('nscf calculation not found!')
+        exit()
 
-#check if the SAVE folder is present
-if not os.path.isdir('database/SAVE'):
-    if not os.path.isdir('database'):
-        os.mkdir('database')
-    print('preparing yambo database')
-    os.system('cd nscf/%s.save; p2y'%prefix)
-    os.system('cd nscf/%s.save; %s'%(prefix,yambo))
-    os.system('mv nscf/%s.save/SAVE database'%prefix)
+    #check if the SAVE folder is present
+    if not os.path.isdir('database/SAVE'):
+        if not os.path.isdir('database'):
+            os.mkdir('database')
+        print('preparing yambo database')
+        os.system('cd nscf/%s.save; p2y'%prefix)
+        os.system('cd nscf/%s.save; %s'%(prefix,yambo))
+        os.system('mv nscf/%s.save/SAVE database'%prefix)
 
-if not os.path.isdir(folder):
-    os.mkdir(folder)
-    os.system('cp -r database/SAVE %s'%folder)
+    if not os.path.isdir(folder):
+        os.mkdir(folder)
+        os.system('cp -r database/SAVE %s'%folder)
 
 def run():
+    databases()
+
     #create the yambo input file
     y = YamboIn('%s -r -b -o b -V all'%yambo,folder=folder)
 
