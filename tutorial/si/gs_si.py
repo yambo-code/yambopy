@@ -8,7 +8,8 @@ from qepy import *
 import argparse
 
 scf_kpoints  = [4,4,4]
-nscf_kpoints = [4,4,4]
+nscf_kpoints = [3,3,3]
+dg_kpoints   = [4,4,4]
 prefix = 'si'
 matdyn = 'matdyn.x'
 q2r =    'q2r.x'
@@ -69,10 +70,24 @@ def nscf():
     qe.control['calculation'] = "'nscf'"
     qe.electrons['diago_full_acc'] = ".true."
     qe.electrons['conv_thr'] = 1e-8
-    qe.system['nbnd'] = 20
+    qe.system['nbnd'] = 30
     qe.system['force_symmorphic'] = ".true."
     qe.kpoints = nscf_kpoints
     qe.write('nscf/%s.nscf'%prefix)
+
+#double-grid
+def dg():
+    if not os.path.isdir('nscf-dg'):
+        os.mkdir('nscf-dg')
+    qe = get_inputfile()
+    qe.control['calculation'] = "'nscf'"
+    qe.electrons['diago_full_acc'] = ".true."
+    qe.electrons['conv_thr'] = 1e-8
+    qe.system['nbnd'] = 8
+    qe.system['force_symmorphic'] = ".true."
+    qe.kpoints = dg_kpoints
+    qe.write('nscf-dg/%s.nscf'%prefix)
+
 
 def bands():
     if not os.path.isdir('bands'):
@@ -86,6 +101,17 @@ def bands():
     qe.ktype = 'crystal'
     qe.set_path(p)
     qe.write('bands/%s.bands'%prefix)
+
+def orbitals():
+    f = open('proj.in','w')
+    projwfc = ProjwfcIn('si')
+    projwfc.write(folder='bands')
+    projwfc.run(folder='bands')
+    projection = ProjwfcXML(prefix='si',path='bands')
+    ax = plt.subplot(1,1,1)
+    projection.plot_eigen(ax,path=p,selected_orbitals=[0,4],selected_orbitals_2=[2,5],size=40,cmap='RdBu')
+    ax.set_ylim([-7,6])
+    plt.show()
 
 def phonons():
     os.system('mkdir -p phonons')
@@ -154,6 +180,12 @@ def run_nscf(nthreads=1):
     os.system("cd nscf; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
     print("done!")
 
+def run_dg(nthreads=1):
+    print("running nscf:")
+    os.system("cp -r scf/%s.save nscf-dg/"%prefix)
+    os.system("cd nscf-dg; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
+    print("done!")
+
 def run_bands(nthreads=1):
     print("running bands:")
     os.system("cp -r scf/%s.save bands/"%prefix)
@@ -180,9 +212,10 @@ if __name__ == "__main__":
     parser.add_argument('-n' ,'--nscf',        action="store_true", help='Non-self consistent calculation')
     parser.add_argument('-n2','--nscf_double', action="store_true", help='Non-self consistent calculation for the double grid')
     parser.add_argument('-b' ,'--bands',       action="store_true", help='Calculate band-structure')
+    parser.add_argument('-o' ,'--orbitals',    action="store_true", help='Plot band structure with orbital weights')
     parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
     parser.add_argument('-d' ,'--dispersion',  action="store_true", help='Phonon dispersion')
-    parser.add_argument('-t' ,'--nthreads',    action="store_true", help='Number of threads', default=2 )
+    parser.add_argument('-t' ,'--nthreads',                         help='Number of threads', default=2 )
     args = parser.parse_args()
 
     if len(sys.argv)==1:
@@ -200,6 +233,9 @@ if __name__ == "__main__":
     if args.nscf:
         nscf()
         run_nscf(args.nthreads)
+    if args.nscf_double:
+        dg()
+        run_dg(args.nthreads)
     if args.phonon:     
         phonons()
         run_phonon(args.nthreads)
@@ -208,4 +244,6 @@ if __name__ == "__main__":
         bands()
         run_bands(args.nthreads)
         run_plot()
+    if args.orbitals:
+        orbitals()
 
