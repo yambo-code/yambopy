@@ -7,6 +7,7 @@ from __future__ import print_function
 from multiprocessing import Pool
 from yambopy import *
 from qepy import *
+import multiprocessing
 import argparse
 import sys
 
@@ -35,7 +36,11 @@ def databases():
         os.mkdir(folder)
         os.system('cp -r database/SAVE %s'%folder)
 
-def run():
+def run_job(job):
+    print(job)
+    os.system(job)
+
+def run(nthreads=1):
     databases()
 
     #create the yambo input file
@@ -50,20 +55,20 @@ def run():
     startk,endk = map(int,y['QpntsRXs'][0])
 
     #prepare the q-points input files
-    f = open('jobs.sh','w')
+    jobs = []
     for nk in xrange(1,endk+1):
         y['QpntsRXs'] = [[nk,nk],'']
         y.write('%s/yambo_q%d.in'%(folder,nk))
         if nk != 1:
-            f.write('cd %s; %s -F yambo_q%d.in -J yambo_q%d -C yambo_q%d\n'%(folder,yambo,nk,nk,nk))
-    f.close()
+            jobs.append('cd %s; %s -F yambo_q%d.in -J yambo_q%d -C yambo_q%d 2> log%d'%(folder,yambo,nk,nk,nk,nk))
 
     #calculate first q-point and dipoles
     os.system('cd %s; %s -F yambo_q1.in -J yambo_q1 -C yambo_q1'%(folder,yambo))
     #copy dipoles to save
     os.system('cp %s/yambo_q1/ndb.dip* %s/SAVE'%(folder,folder))
-    #run jobs using gnuparallel
-    os.system('parallel :::: jobs.sh')
+
+    p = multiprocessing.Pool(nthreads)
+    p.map(run_job, jobs)
 
     #gather all the files
     if not os.path.isdir('%s/yambo'%folder):
@@ -94,15 +99,17 @@ def plot():
 if __name__ == "__main__":
     #parse options
     parser = argparse.ArgumentParser(description='Parallel BSE calculation')
-    parser.add_argument('-r' ,'--run',  action="store_true", help='Run the calculation')
-    parser.add_argument('-p' ,'--plot', action="store_true", help='Run the analysis')
+    parser.add_argument('-r' ,'--run',      action="store_true", help='Run the calculation')
+    parser.add_argument('-p' ,'--plot',     action="store_true", help='Run the analysis')
+    parser.add_argument('-t' ,'--nthreads', default=2, help='Run the analysis')
     args = parser.parse_args()
+    nthreads = int(args.nthreads)
 
     if len(sys.argv)==1:
         parser.print_help()
         sys.exit(1)
 
     if args.run:
-        run()
+        run(nthreads)
     if args.plot:
         plot()
