@@ -13,11 +13,14 @@ from yambopy import *
 from qepy import *
 import imp
 
+#######################################################
+# Silicon GW convergence
+#######################################################
 sys.path.append('../tutorial/si')
 import gs_si
 import gw_conv_si
 
-class TestGW_Convergence_GWconvergence(unittest.TestCase):
+class TestGW_Convergence(unittest.TestCase):
     def test_ainputs(self):
         gs_si.relax()
         gs_si.scf()
@@ -38,6 +41,33 @@ class TestGW_Convergence_GWconvergence(unittest.TestCase):
  
     def test_plot(self):
         gw_conv_si.plot_convergence()
+
+#######################################################
+# Boron Nitride Coulomb Cutoff
+#######################################################
+sys.path.append('../tutorial/bn')
+import bse_cutoff
+
+class TestCoulomb_Cutoff(unittest.TestCase):
+    def test_calcs(self):
+        bse_cutoff.run()
+ 
+    def test_plot(self):
+        bse_cutoff.plot()
+
+#######################################################
+# Parallel Bethe-Salpeter MoS2
+#######################################################
+sys.path.append('../tutorial/mos')
+import bse_cutoff
+
+class TestCoulomb_Cutoff(unittest.TestCase):
+    def test_calcs(self):
+        bse_cutoff.run()
+ 
+    def test_plot(self):
+        bse_cutoff.plot()
+
 
 def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
@@ -67,12 +97,13 @@ if __name__ == '__main__':
    
     # Test for tutorial 1
     if args.tutorial1:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestGW_Convergence_GWconvergence)
+        suite = unittest.TestLoader().loadTestsFromTestCase(TestGW_Convergence)
         unittest.TextTestRunner(verbosity=2).run(suite)
 
     # Test for tutorial 2
     if args.tutorial2:
-        raise NotImplementedError('Tutorial 2 is not implemented yet')       
+        suite = unittest.TestLoader().loadTestsFromTestCase(TestCoulomb_Cutoff)
+        unittest.TextTestRunner(verbosity=2).run(suite)
 
     # Test for tutorial 3
     if args.tutorial3:
