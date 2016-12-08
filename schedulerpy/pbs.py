@@ -39,7 +39,7 @@ class pbs():
     def __str__(self):
         s = '#!/bin/bash\n'
         if self.name:  s += "#PBS -N %s\n"%self.name
-        s += "#PBS -l select=%d:ncpus=%d:mpiprocs=%d:vmem=%dmb:ompthreads=1\n"%(self.nodes,self.core,self.core,self.mem*self.core)
+        s += "#PBS -l nodes=%d:ppn=%d\n"%(self.nodes,self.core)
         s += "#PBS -l pvmem=%dmb\n"%(self.mem*self.core)
         s += "#PBS -q %s\n"%(self.queue)
         s += "#PBS -r y\n"
