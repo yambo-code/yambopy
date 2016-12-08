@@ -9,9 +9,12 @@ gw_conv
 gw_cutoff
 gw_par
 bse
+bse_dbg
 bse_conv
 bse_par
 bse_par_bug
 gw_bse
+bands
 jobs.sh
 *.json
+*.log

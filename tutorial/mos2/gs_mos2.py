@@ -14,10 +14,11 @@ pw = 'pw.x'
 ph = 'ph.x'
 prefix = 'mos2'
 
+npoints = 20
 p = Path([ [[0.0, 0.0, 0.0],'G'],
            [[0.5, 0.0, 0.0],'M'],
            [[1./3,1./3,0.0],'K'],
-           [[0.0, 0.0, 0.0],'G']], [20,20,20])
+           [[0.0, 0.0, 0.0],'G']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
 #
 # Create the input files
@@ -87,8 +88,8 @@ def bands():
     qe = get_inputfile()
     qe.control['calculation'] = "'bands'"
     qe.electrons['diago_full_acc'] = ".true."
-    qe.electrons['conv_thr'] = 1e-10
-    qe.system['nbnd'] = 20
+    qe.electrons['conv_thr'] = 1e-8
+    qe.system['nbnd'] = 13
     qe.system['force_symmorphic'] = ".true."
     qe.ktype = 'crystal'
     qe.set_path(p)
@@ -148,20 +149,20 @@ if __name__ == "__main__":
     if args.nscf:
         print("running nscf:")
         os.system("cp -r scf/mos2.save nscf/") #nscf
-        os.system("cd nscf; mpirun -np %d %s -inp mos2.nscf > nscf.log"%(nthreads,pw)) #nscf
+        os.system("cd nscf; mpirun -np %d %s -inp mos2.nscf -nk %d > nscf.log"%(nthreads,pw,nthreads)) #nscf
         print("done!")
 
     if args.nscf_double:
         print("running nscf_double:")
         os.system("cp -r scf/mos2.save nscf_double/") #nscf
-        os.system("cd nscf_double; mpirun -np %d %s -inp mos2.nscf > nscf_double.log"%(nthreads,pw)) #nscf
+        os.system("cd nscf_double; mpirun -np %d %s -inp mos2.nscf -nk %d | tee nscf_double.log"%(nthreads,pw,nthreads)) #nscf
         print("done!")
 
 
     if args.bands:
         print("running bands:")
         os.system("cp -r scf/%s.save bands/"%prefix)
-        os.system("cd bands; mpirun -np %d %s -inp %s.bands | tee bands.log"%(nthreads,pw,prefix))
+        os.system("cd bands; mpirun -np %d %s -inp %s.bands -nk %d | tee bands.log"%(nthreads,pw,prefix,nthreads))
         print("done!")
 
         print("running plotting:")

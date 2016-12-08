@@ -7,3 +7,4 @@ gw_conv
 nscf
 relax
 scf
+bse_cutoff
