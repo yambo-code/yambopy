@@ -1,8 +1,9 @@
+# Version : dec 2nd
 import os
 import re
 import numpy as np
 
-# Get a list of all exciton files, make a new file with x=time, y1 = exc n1, y2 = exc n2
+# Get a list of all exciton files, make a new file with x=time, y1 = exc A1, y2 = exc A2
 
 # List of exciton files
 dirfiles = os.listdir('.')
@@ -14,7 +15,7 @@ for f in dirfiles:
 files.sort()
 print files
 
-# Get times (assuming o-tXXX, length 3 mini)
+# Get times
 times=[]
 for f in files:
     time=re.search('[0-9]{3,}',f).group()
