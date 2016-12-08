@@ -17,7 +17,7 @@ sys.path.append('../tutorial/si')
 import gs_si
 import gw_conv_si
 
-class TestGW_Convergence_GroundState(unittest.TestCase):
+class TestGW_Convergence_GWconvergence(unittest.TestCase):
     def test_ainputs(self):
         gs_si.relax()
         gs_si.scf()
@@ -32,7 +32,6 @@ class TestGW_Convergence_GroundState(unittest.TestCase):
         gs_si.run_plot()
         gs_si.orbitals()
 
-class TestGW_Convergence_GWconvergence(unittest.TestCase):
     def test_convergence(self):
         gw_conv_si.create_save()
         gw_conv_si.gw_convergence()
@@ -46,11 +45,10 @@ def is_exe(fpath):
 if __name__ == '__main__':
     #parse options
     parser = argparse.ArgumentParser(description='Run the tutorials to test yambopy.')
-    parser.add_argument('-t11','--tutorial11', action="store_true", help='Run the ground statue of Si')
-    parser.add_argument('-t12','--tutorial12', action="store_true", help='Run the GW convergence in Si')
-    parser.add_argument('-t2', '--tutorial2',  action="store_true", help='Run the tutorial on Coulomb-cutoff in BN')
-    parser.add_argument('-t3', '--tutorial3',  action="store_true", help='Run the tutorial in Parallel Bethe-Salpeter in MoS2')
-    parser.add_argument('-c',  '--clean',      action="store_true", help='Clean all the data from a previous run')
+    parser.add_argument('-t1', '--tutorial1', action="store_true", help='Run the GW convergence caluclation of Si')
+    parser.add_argument('-t2', '--tutorial2', action="store_true", help='Run the tutorial on Coulomb-cutoff in BN')
+    parser.add_argument('-t3', '--tutorial3', action="store_true", help='Run the tutorial in Parallel Bethe-Salpeter in MoS2')
+    parser.add_argument('-c',  '--clean',     action="store_true", help='Clean all the data from a previous run')
     args = parser.parse_args()
 
     if len(sys.argv)==1:
@@ -68,13 +66,17 @@ if __name__ == '__main__':
         exit()
    
     # Test for tutorial 1
-    if args.tutorial12:
+    if args.tutorial1:
         suite = unittest.TestLoader().loadTestsFromTestCase(TestGW_Convergence_GWconvergence)
         unittest.TextTestRunner(verbosity=2).run(suite)
 
-    if args.tutorial11:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestGW_Convergence_GroundState)
-        unittest.TextTestRunner(verbosity=2).run(suite)
+    # Test for tutorial 2
+    if args.tutorial2:
+        raise NotImplementedError('Tutorial 2 is not implemented yet')       
+
+    # Test for tutorial 3
+    if args.tutorial3:
+        raise NotImplementedError('Tutorial 3 is not implemented yet')       
 
     if args.clean:
         print "cleaning..."
