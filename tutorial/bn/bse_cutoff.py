@@ -6,12 +6,7 @@ from __future__ import print_function
 from yambopy import *
 from qepy import *
 import argparse
-
-#parse options
-parser = argparse.ArgumentParser(description='Convergence test of the colomb cutoff')
-parser.add_argument('-r' ,'--run',  action="store_true", help='Run the calculation')
-parser.add_argument('-p' ,'--plot', action="store_true", help='Run the analysis')
-args = parser.parse_args()
+import sys
 
 prefix = "bn"
 work_folder = "bse_cutoff"
@@ -73,10 +68,11 @@ def database(output_folder,nscf_folder='nscf'):
         os.system('mv %s/%s.save/SAVE %s'%(nscf_folder,prefix,output_folder))
         print('done!')
 
-if args.run:
+def run(nthreads=1):
     #for each separation run the ground state calculation and
     for layer_separation in layer_separations:
 
+        print("layer separation: %d bohr"%layer_separation)
         root_folder = "%s/%d"%(work_folder,layer_separation)
         if not os.path.isdir(root_folder):
             os.makedirs(root_folder)
@@ -98,7 +94,7 @@ if args.run:
         database('%s'%root_folder,nscf_folder="%s/nscf"%root_folder)
 
         # calculate the absorption spectra
-        y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder=root_folder)
+        y = YamboIn('mpirun -np %d yambo -r -b -o b -k sex -y d -V all'%nthreads,folder=root_folder)
 
         y['FFTGvecs'] = [30,'Ry']
         y['NGsBlkXs'] = [1,'Ry']
@@ -114,7 +110,7 @@ if args.run:
         y.write('%s/yambo_run.in'%root_folder)
         os.system('cd %s; %s -F yambo_run.in -J %d'%(root_folder,yambo,layer_separation))
 
-if args.plot:
+def plot():
     for layer_separation in layer_separations:
         root_folder = "%s/%d"%(work_folder,layer_separation)
     
@@ -125,3 +121,21 @@ if args.plot:
     ya = YamboAnalyser(work_folder)
     ya.plot_bse('eps')
 
+if __name__ == "__main__":
+
+    #parse options
+    parser = argparse.ArgumentParser(description='Convergence test of the colomb cutoff')
+    parser.add_argument('-r' ,'--run',     action="store_true", help='Run the calculation')
+    parser.add_argument('-p' ,'--plot',    action="store_true", help='Run the analysis')
+    parser.add_argument('-t' ,'--nthreads',                     help='Number of threads', default=2)
+    args = parser.parse_args()
+    nthreads = int(args.nthreads)
+
+    if len(sys.argv)==1:
+        parser.print_help()
+        sys.exit(1)
+
+    if args.run:
+        run(nthreads)
+    if args.plot:
+        plot()

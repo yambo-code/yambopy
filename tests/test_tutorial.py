@@ -13,11 +13,14 @@ from yambopy import *
 from qepy import *
 import imp
 
+#######################################################
+# Silicon GW convergence
+#######################################################
 sys.path.append('../tutorial/si')
 import gs_si
 import gw_conv_si
 
-class TestGW_Convergence_GWconvergence(unittest.TestCase):
+class TestGW_Convergence(unittest.TestCase):
     def test_ainputs(self):
         gs_si.relax()
         gs_si.scf()
@@ -39,8 +42,48 @@ class TestGW_Convergence_GWconvergence(unittest.TestCase):
     def test_plot(self):
         gw_conv_si.plot_convergence()
 
+#######################################################
+# Boron Nitride Coulomb Cutoff
+#######################################################
+sys.path.append('../tutorial/bn')
+import bse_cutoff
+
+class TestCoulomb_Cutoff(unittest.TestCase):
+    def test_calcs(self):
+        bse_cutoff.run()
+ 
+    def test_plot(self):
+        bse_cutoff.plot()
+
+#######################################################
+# Parallel Bethe-Salpeter MoS2
+#######################################################
+sys.path.append('../tutorial/mos2')
+import gs_mos2
+import bse_par_mos2
+
+class TestParallel_BSE(unittest.TestCase):
+    def test_ainputs(self):
+        gs_mos2.scf()
+        gs_mos2.nscf()
+
+    def test_calcs(self):
+        gs_mos2.run_scf()
+        gs_mos2.run_nscf()
+ 
+    def test_parallel(self):
+        bse_par_mos2.run()
+
+    def test_plot(self):
+        bse_par_mos2.plot()
+
 def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+def clean():
+        print "cleaning..."
+        os.system('rm -rf relax gw bse_conv bse_cutoff bse_par bse gw_conv bands scf nscf database proj.in')
+        print "done!"
 
 if __name__ == '__main__':
     #parse options
@@ -67,19 +110,22 @@ if __name__ == '__main__':
    
     # Test for tutorial 1
     if args.tutorial1:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestGW_Convergence_GWconvergence)
+        clean()
+        suite = unittest.TestLoader().loadTestsFromTestCase(TestGW_Convergence)
         unittest.TextTestRunner(verbosity=2).run(suite)
 
     # Test for tutorial 2
     if args.tutorial2:
-        raise NotImplementedError('Tutorial 2 is not implemented yet')       
+        clean()
+        suite = unittest.TestLoader().loadTestsFromTestCase(TestCoulomb_Cutoff)
+        unittest.TextTestRunner(verbosity=2).run(suite)
 
     # Test for tutorial 3
     if args.tutorial3:
-        raise NotImplementedError('Tutorial 3 is not implemented yet')       
+        clean()
+        suite = unittest.TestLoader().loadTestsFromTestCase(TestParallel_BSE)
+        unittest.TextTestRunner(verbosity=2).run(suite)
 
     if args.clean:
-        print "cleaning..."
-        os.system('rm -rf relax gw_conv bands scf nscf database proj.in')
-        print "done!"
-        exit() 
+        clean()
+

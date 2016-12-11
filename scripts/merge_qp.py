@@ -1,4 +1,4 @@
-# Copyright (C) 2015 Fulvio Paleari, Henrique Pereira Coutada Miranda
+# Copyright (C) 2016 Fulvio Paleari, Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy

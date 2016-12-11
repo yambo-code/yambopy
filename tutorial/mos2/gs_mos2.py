@@ -8,16 +8,17 @@ import argparse
 import sys
 
 scf_kpoints  = [12,12,1]
-nscf_kpoints  = [12,12,1]
-nscf2_kpoints = [24,24,1]
+nscf_kpoints = [12,12,1]
+dg_kpoints   = [24,24,1]
 pw = 'pw.x'
 ph = 'ph.x'
 prefix = 'mos2'
 
+npoints = 20
 p = Path([ [[0.0, 0.0, 0.0],'G'],
            [[0.5, 0.0, 0.0],'M'],
            [[1./3,1./3,0.0],'K'],
-           [[0.0, 0.0, 0.0],'G']], [20,20,20])
+           [[0.0, 0.0, 0.0],'G']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
 #
 # Create the input files
@@ -68,7 +69,7 @@ def scf():
     qe.write('scf/mos2.scf')
 
 #nscf
-def nscf(kpoints,folder):
+def nscf_kpoints_folder(kpoints,folder):
     if not os.path.isdir(folder):
         os.mkdir(folder)
     qe = get_inputfile()
@@ -80,6 +81,13 @@ def nscf(kpoints,folder):
     qe.kpoints = kpoints
     qe.write('%s/mos2.nscf'%folder)
 
+#nscf
+def nscf():
+    nscf_kpoints_folder(nscf_kpoints,'nscf')
+
+def nscf_double():
+    nscf_kpoints_folder(dg_kpoints,'nscf_double')
+
 #bands
 def bands():
     if not os.path.isdir('bands'):
@@ -87,8 +95,8 @@ def bands():
     qe = get_inputfile()
     qe.control['calculation'] = "'bands'"
     qe.electrons['diago_full_acc'] = ".true."
-    qe.electrons['conv_thr'] = 1e-10
-    qe.system['nbnd'] = 20
+    qe.electrons['conv_thr'] = 1e-8
+    qe.system['nbnd'] = 13
     qe.system['force_symmorphic'] = ".true."
     qe.ktype = 'crystal'
     qe.set_path(p)
@@ -107,14 +115,48 @@ def update_positions(pathin,pathout):
     q.atoms = zip([a[0] for a in q.atoms],pos)
     q.write('%s/mos2.scf'%pathout)
 
+def run_relax(nthreads=1):
+    print("running relax:")
+    os.system("cd relax; mpirun -np %d %s -inp mos2.scf > relax.log"%(nthreads,pw))  #relax
+    update_positions('relax','scf')
+    print("done!")
+
+def run_scf(nthreads=1):
+    print("running scf:")
+    os.system("cd scf; mpirun -np %d %s -inp mos2.scf > scf.log"%(nthreads,pw))  #scf
+    print("done!")
+
+def run_nscf(nthreads=1):
+    print("running nscf:")
+    os.system("cp -r scf/mos2.save nscf/") #nscf
+    os.system("cd nscf; mpirun -np %d %s -inp mos2.nscf -nk %d > nscf.log"%(nthreads,pw,nthreads)) #nscf
+    print("done!")
+
+def run_nscf_double(nthreads=1):
+    print("running nscf_double:")
+    os.system("cp -r scf/mos2.save nscf_double/") #nscf
+    os.system("cd nscf_double; mpirun -np %d %s -inp mos2.nscf -nk %d > nscf_double.log"%(nthreads,pw,nthreads)) #nscf
+    print("done!")
+
+def run_bands(nthreads=1):
+    print("running bands:")
+    os.system("cp -r scf/%s.save bands/"%prefix)
+    os.system("cd bands; mpirun -np %d %s -inp %s.bands -nk %d > bands.log"%(nthreads,pw,prefix,nthreads))
+    print("done!")
+
+def run_plot():
+    print("running plotting:")
+    xml = PwXML(prefix=prefix,path='bands')
+    xml.plot_eigen(p)
+
 if __name__ == "__main__":
 
     #parse options
     parser = argparse.ArgumentParser(description='Test the yambopy script.')
     parser.add_argument('-r' ,'--relax',       action="store_true", help='Structural relaxation')
     parser.add_argument('-s' ,'--scf',         action="store_true", help='Self-consistent calculation')
-    parser.add_argument('-n' ,'--nscf',        action="store_true", help='Non-self consistent calculation')
-    parser.add_argument('-n2','--nscf_double', action="store_true", help='Non-self consistent calculation for the double grid')
+    parser.add_argument('-n' ,'--nscf',        action="store_true", help='Non self-consistent calculation')
+    parser.add_argument('-n2','--nscf_double', action="store_true", help='Non self-consistent calculation for the double grid')
     parser.add_argument('-b' ,'--bands',       action="store_true", help='Calculate band-structure')
     parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
     parser.add_argument('-t' ,'--nthreads',    help='Number of threads', default=2 )
@@ -130,40 +172,22 @@ if __name__ == "__main__":
     # create input files and folders
     relax()
     scf()
-    nscf(nscf_kpoints,  'nscf')
-    nscf(nscf2_kpoints, 'nscf_double')
+    nscf()
+    nscf_double()
     bands()
 
     if args.relax:
-        print("running relax:")
-        os.system("cd relax; mpirun -np %d %s -inp mos2.scf > relax.log"%(nthreads,pw))  #relax
-        update_positions('relax','scf')
-        print("done!")
+        run_relax(nthreads)
 
     if args.scf:
-        print("running scf:")
-        os.system("cd scf; mpirun -np %d %s -inp mos2.scf > scf.log"%(nthreads,pw))  #scf
-        print("done!")
+        run_scf(nthreads)
 
     if args.nscf:
-        print("running nscf:")
-        os.system("cp -r scf/mos2.save nscf/") #nscf
-        os.system("cd nscf; mpirun -np %d %s -inp mos2.nscf > nscf.log"%(nthreads,pw)) #nscf
-        print("done!")
+        run_nscf(nthreads)
 
     if args.nscf_double:
-        print("running nscf_double:")
-        os.system("cp -r scf/mos2.save nscf_double/") #nscf
-        os.system("cd nscf_double; mpirun -np %d %s -inp mos2.nscf > nscf_double.log"%(nthreads,pw)) #nscf
-        print("done!")
-
+        run_nscf_double(nthreads)
 
     if args.bands:
-        print("running bands:")
-        os.system("cp -r scf/%s.save bands/"%prefix)
-        os.system("cd bands; mpirun -np %d %s -inp %s.bands | tee bands.log"%(nthreads,pw,prefix))
-        print("done!")
-
-        print("running plotting:")
-        xml = PwXML(prefix=prefix,path='bands')
-        xml.plot_eigen(p)
+        run_bands(nthreads)
+        run_plot()
