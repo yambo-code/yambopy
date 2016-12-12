@@ -1,12 +1,11 @@
-# Version : 6th dec
-""" python plot_BSE.py <PathToFolder> <Variable> 
+# Version : 12th dec
+""" python plot_bse_cv.py <PathToFolder> <Variable> 
 This script allows to track the energy of the n-first bright exciton (settings in script).
-Another way to converge BS calculations in parallel to absorption spectra plotting.
+It also creates a .png file with all the absorption spectra on top of each other.
 
 The Folder normally contains the SAVE folder as well as <variable> folders.
 Yambo must be able to run, because ypp is called multiple times.
 """
-# Future dev : have both excitonic energies and abs spectra.
 
 import matplotlib
 matplotlib.use('Agg') # prevents crashes if no X server present
@@ -56,7 +55,7 @@ for key in invars:
         keys.append(key)
 
 keys=sorted(keys)
-print keys
+print 'Files detected: ',keys
 
 # unit of the input value
 unit = invars[keys[0]]['variables'][var][1]
@@ -82,7 +81,7 @@ for key in keys:
         else:
             inp = invars[key]['variables'][var][0]
 
-	print 'Preparing JSON file. Calling ypp ...'
+	print 'Preparing JSON file. Calling ypp if necessary.'
 	### Creating the 'absorptionspectra.json' file
 	# It will contain the exciton energies
 	y = YamboOut(folder=path,save_folder=path)
@@ -96,34 +95,36 @@ for key in keys:
 	a.write_json(filename=path+'_'+jobname)
 
 	### Loading data from .json file
-	f = open(path+'_'+jobname+'.json')
+	f = open(path+'_'+key)
 	data = json.load(f)
 	f.close()
 	print 'JSON file prepared and loaded.'
-#
-#	### Plotting the absorption spectra
-#	print 'Absorption spectra ...'
-#	# BSE spectra
-#	plt.plot(data['E/ev[1]'], data['EPS-Im[2]'],label='BSE',lw=4)
+
+	### Plotting the absorption spectra
+	# BSE spectra
+	plt.plot(data['E/ev[1]'], data['EPS-Im[2]'],label=jobname,lw=2)
 #	# Axes : lines for exciton energies, labels
 #	for n,exciton in enumerate(data['excitons']):
 #	    plt.axvline(exciton['energy'])
-#	plt.xlabel('$\omega$ (eV)')
-#	plt.gca().yaxis.set_major_locator(plt.NullLocator())
-#	plt.legend()
-#	#plt.draw()
-#	#plt.show()
-#	plt.savefig(path+'_'+jobname+'_abs.png', bbox_inches='tight')
 
+	### Creating array with exciton values (according to settings)
 	l = [inp]
 	for n,exciton in enumerate(data['excitons']):
 		if n <= exc_n-1:
-			print exciton['energy']
 			l.append(exciton['energy'])
 
 	excitons.append(l)
 
-print excitons
 header = 'Variable: '+var+', unit: '+unit
 np.savetxt(outname,excitons,header=header,fmt='%1f')
 print outname
+
+plt.xlabel('$\omega$ (eV)')
+plt.gca().yaxis.set_major_locator(plt.NullLocator())
+plt.legend()
+#plt.draw()
+#plt.show()
+plotname = path+'_'+var+'_abs.png'
+plt.savefig(plotname, bbox_inches='tight')
+print plotname
+print 'Done.'
