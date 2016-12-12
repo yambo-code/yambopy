@@ -3,7 +3,7 @@
 This script allows to track the energy of the n-first bright exciton (settings in script).
 Another way to converge BS calculations in parallel to absorption spectra plotting.
 
-The Folder normally contains the SAVE folder as well as <variable> folders. Path should be at least '.'.
+The Folder normally contains the SAVE folder as well as <variable> folders.
 Yambo must be able to run, because ypp is called multiple times.
 """
 # Future dev : have both excitonic energies and abs spectra.
