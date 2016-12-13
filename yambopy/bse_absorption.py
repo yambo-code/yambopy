@@ -39,8 +39,8 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
         #try to find o-* files in path, if not use path/job_string
         paths = [path, "%s/%s"%(path,job_string)]
-        for path in paths:
-            y = YamboOut(path)
+        for p in paths:
+            y = YamboOut(p,save_folder=path)
             absorptionspectra = y.get_data(('eps','diago'))
             #if we read the files then continue
             if absorptionspectra != {}:

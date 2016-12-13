@@ -7,7 +7,7 @@ import sys
 from qepy import *
 import argparse
 
-kpoints = [24,24,1]
+kpoints = [12,12,1]
 kpoints_double = [18,18,1]
 qpoints = [3,3,1]
 pw = 'pw.x'

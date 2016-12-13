@@ -13,7 +13,9 @@ parser = argparse.ArgumentParser(description='Test the yambopy script.')
 parser.add_argument('-dg','--doublegrid', action="store_true", help='Use double grid')
 parser.add_argument('-r', '--run',        action="store_true", help='Run BSE calculation')
 parser.add_argument('-a', '--analyse',    action="store_true", help='plot the results')
+parser.add_argument('-f', '--folder',     default="bse_run",   help='choose folder where to put results')
 args = parser.parse_args()
+folder = args.folder
 
 if len(sys.argv)==1:
     parser.print_help()
@@ -46,47 +48,72 @@ if args.doublegrid:
         os.system('cd nscf_double/bn.save; yambo > yambo.log')
         os.system('mv nscf_double/bn.save/SAVE database_double')
 
-if not os.path.isdir('bse'):
-    os.mkdir('bse')
-    os.system('cp -r database/SAVE bse')
+if not os.path.isdir(folder):
+    os.mkdir(folder)
+    os.system('cp -r database/SAVE %s'%folder)
 
 #initialize the double grid
 if args.doublegrid:
     print("creating double grid")
-    f = open('bse/ypp.in','w')
+    f = open('%s/ypp.in'%folder,'w')
     f.write("""kpts_map
     %DbGd_DB1_paths
     "../database_double"
     %""")
     f.close()
-    os.system('cd bse; ypp')
+    os.system('cd %s; ypp')
 
 if args.run:
     #create the yambo input file
-    y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
+    y = YamboIn('%s -b -o b -k sex -y d -V all'%yambo,folder=folder)
 
-    y['FFTGvecs'] = [30,'Ry']
-    y['NGsBlkXs'] = [1,'Ry']
-    y['BndsRnXs'] = [1,30]
+    #common variables
     y['BSEBands'] = [4,5]
     y['BEnSteps'] = 500
     y['BEnRange'] = [[2.0,12.0],'eV']
     y['KfnQP_E']  = [2.91355133,1.0,1.0] #some scissor shift
-    y.write('bse/yambo_run.in')
 
-    print('running yambo')
-    os.system('cd bse; %s -F yambo_run.in -J yambo'%yambo)
+    #list of variables to optimize and the values they might take
+    conv = { 'FFTGvecs': [[10,15,20],'Ry'],
+             'NGsBlkXs': [[1,2,3], 'Ry'],
+             'BndsRnXs': [[1,10],[1,20],[1,30]] }
+
+    def run(filename):
+        """ Function to be called by the optimize function """
+        path = filename.split('.')[0]
+        print(filename, path)
+        os.system('cd %s; yambo -F %s -J %s -C %s 2> %s.log'%(folder,filename,path,path,path))
+
+    y.optimize(conv,run=run)
 
 if args.analyse:
-    #pack in a json file
-    y = YamboOut('bse')
-    y.pack()
+    #pack the files in .json files
+    pack_files_in_folder(folder)
 
-    #get the absorption spectra
-    a = YamboBSEAbsorptionSpectra('yambo',path='bse')
-    excitons = a.get_excitons(min_intensity=0.0005,max_energy=7,Degen_Step=0.01)
-    print( "nexcitons: %d"%len(excitons) )
-    print( "excitons:" )
-    print( excitons )
-    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1))
-    a.write_json()
+    paths = []
+    #get folder names
+    for dirpath,dirnames,filenames in os.walk(folder):
+        #ignore the root folder
+        if dirpath == folder:
+            continue
+
+        #check if there are some output files in the folder
+        if ([ f for f in filenames if 'o-' in f ]):
+            paths.append( dirpath.split('/')[-1] )
+
+    for path in paths:
+        print( path )
+        #get the absorption spectra
+        a = YamboBSEAbsorptionSpectra(path,path=folder)
+        excitons = a.get_excitons(min_intensity=0.0005,max_energy=7,Degen_Step=0.01)
+        print( "nexcitons: %d"%len(excitons) )
+        print( "excitons:" )
+        print( excitons )
+        a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1))
+        a.write_json(path)
+
+    #plot the results using yambo analyser
+    y = YamboAnalyser(folder)
+    print(y)
+    y.plot_bse('eps')
+    print('done!')

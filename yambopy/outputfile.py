@@ -21,7 +21,8 @@ class YamboOut():
     Class to read yambo output files and pack them in a JSON file
 
     Input:
-    The relative path of the folder where yambo dumped its input files
+    folder      -> The relative path of the folder where yambo dumped its input files
+    save_folder -> The path were the SAVE folder is localized 
     """
     _lock = "lock" #name of the lockfile
 
