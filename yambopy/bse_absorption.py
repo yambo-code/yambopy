@@ -33,14 +33,14 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
         self.atoms = None
         self.excitons = None
- 
+
         #use YamboOut to read the absorption spectra
         self.path = path
 
         #try to find o-* files in path, if not use path/job_string
         paths = [path, "%s/%s"%(path,job_string)]
-        for path in paths:
-            y = YamboOut(path)
+        for p in paths:
+            y = YamboOut(folder=p,save_folder=path)
             absorptionspectra = y.get_data(('eps','diago'))
             #if we read the files then continue
             if absorptionspectra != {}:
@@ -56,7 +56,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
             self.data[key] = value
 
     def get_excitons(self,min_intensity=0.1,max_energy=4,Degen_Step=0.0):
-        """ 
+        """
         Obtain the excitons using ypp
         Parameters:
             min_intensity - Only plot excitons with intensity larger than this value (default: 0.1)
