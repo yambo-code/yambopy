@@ -429,20 +429,25 @@ simulation, and (iii) integrator. We have also to set the intensity of the delta
 
 .. code-block:: bash
 
+    run['GfnQP_Wv']   = [0.10,0.00,0.00]    # Constant damping valence
+    run['GfnQP_Wc']   = [0.10,0.00,0.00]    # Constant damping conduction
+
     run['RTstep']      = [ 100 ,'as']  # Interval
     run['NETime']      = [ 300 ,'fs']  # Duration
     run['Integrator']  = "RK2 RWA"     # Runge-Kutta propagation
 
     run['Field1_kind'] = "DELTA"          # Type of pulse 
-    run['Field1_Int']  = [ 1E4 , 'kWLm2'] # Intensity pulse
+    run['Field1_Int']  = [ 1000, 'kWLm2'] # Intensity pulse
 
     run['IOtime']      = [ [0.050, 0.050, 0.100], 'fs' ]
 
 The ``IOtime`` intervals specify the time interval to write (i) carriers, (ii) green's functions and (iii) output. In general,
 we can set high values to avoid frequent IO and hence slow simulations. Only in the case where we need the
-data to calculate the Fourier Transform (as in the case of the delta pulse, we set this variable to lower values).
+data to calculate the Fourier Transform (as in the case of the delta pulse, we set this variable to lower values). The constant
+dampings ``GfnQP_Wv`` and ``GfnQP_Wc`` are dephasing constants, responsible of the decaying of the polarization. They are
+the finite-time equivalent to the finite broadening of the Bethe-Salpeter solver (``BDmRange``).
 
-A good test to check that yambo_rt is running properly is to confront the BSE spectra with the obtained using yambo_rt (use the 
+A mandatory test to check if yambo_rt is running properly is to confront the BSE spectra with the obtained using yambo_rt (use the 
 script kbe-spectra.py). 
 
 **3. Time-dependent with a gaussian pulse.**
@@ -467,20 +472,54 @@ of electrons and holes is the same during all the simulation. Below we show the 
 SIN), like the polarization, number of carriers and pump intensity.
 
 
-**4. Time-dependent with a gaussian pulse and electron-phonon scattering.**
+**4. Time-dependent with a gaussian pulse and dissipation**
+
+The Kadanoff-Baym equation implemented in yambo includes dissipation mechanisms such as (i) electron-phonon scattering, (ii) electron-electron
+scattering and (iii) electron-photon scattering. In the following subsections we use a gaussian pulse with the parameters given above.
+
+**4.1 Electron-phonon interaction**
 
 .. code-block:: bash
 
-    yambo -s p -q p -v c -V all
+   yambo -q p -s p
 
-We excite with the same gaussian pulse but now electrons and holes relax via electron-phonon interaction. The folder ``GKKP`` must
-be inside the folder ``rt``. The new variables to set is the interpolation steps for the lifetime due to the electron-phonon
-interaction, otherwise the calculations will be very slow.
+In order to include electron-phonon dissipation, previously we need to create the electron-phonon matrix elements. We call the script
+``gkkp_sii.py``. We can check
 
 .. code-block:: bash
 
-    run['LifeInterpKIND']  = 'FLAT'
-    run['LifeInterpSteps'] = [ [4.0,1.0], 'fs' ]
+    python gkkp_si.py
+
+This script runs QE to calculate the matrix elements and then ``ypp_ph`` to convert them to the ``yambo`` format. If everything is right
+we find a folder call ``GKKP`` inside ``rt``. ``GKKP`` contains all the electron-phonon matrix elements in the
+full Brillouin zone. The variables related to the dissipation are
+
+.. code-block:: bash
+
+    run['LifeExtrapSteps'] = [ [1.0,1.0], 'fs' ]
+    run['BoseTemp']        = [ 0, 'K']
+    run['ElPhModes']       = [ 1, 9]
+    run.arguments.append('LifeExtrapolation')     # If commented:   Lifetimes are constant
+
+The variable ``LifeExtrapSteps`` sets the extrapolation steps to calculate the electron-phonon lifetimes. If commented, lifetimes are assumed
+constants. We can set the lattice temperature with ``BoseTemp`` and the number of modes entering in the simulation ``ElPhModes``. In order
+to account of the temperature effects in a realistic ways the electron and hole damping ``GfnQP_Wv`` and ``GfnQP_Wc`` should be update for 
+each temperature run. In most semiconductors, they are proportional to the electronic density of states. The second element of the array
+multiply the density of states by the given values. For instance, we could set:
+
+.. code-block:: bash
+
+    run['GfnQP_Wv']   = [0.00,0.10,0.00]    # Constant damping valence
+    run['GfnQP_Wc']   = [0.00,0.10,0.00]    # Constant damping conduction
+
+**4.2 Electron-electron interaction**
+
+.. code-block:: bash
+
+   yambo -q p -s e
+
+The inclusion of the electron-electron scattering needs the calculation of the electron-electron collisions files.
+
 
 
 Electron-Phonon interaction (Si)
@@ -522,10 +561,12 @@ stored in ``elphon/SAVE`` we are ready to calculate the electron-phonon correcti
 or to examine the spectral function of each quasi-particle state. A detailed tutorial of the capabilities of the module electron-phonon
 of yambo is also available in the `yambo website <http://www.yambo-code.org/tutorials/Electron_Phonon/index.php>`_.
 
+H
 If we run:
 
 .. code-block:: bash
    
+H
     python elph_qp_si.py -r
 
 Yambo will calculate the quasi-particle correction and the spectral functions for the top of the valence band and the 
