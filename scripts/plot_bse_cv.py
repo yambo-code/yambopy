@@ -87,9 +87,9 @@ for key in keys:
     y = YamboOut(folder=path,save_folder=path)
     # Args : name of job, SAVE folder path, folder where job was run path
     a = YamboBSEAbsorptionSpectra(jobname,path=path)
-    # Get excitons values
+    # Get excitons values (runs ypp)
     a.get_excitons(min_intensity=exc_int,max_energy=exc_max_E,Degen_Step=exc_degen)
-    # Get excitonic WFs (contains eigenvalues)
+    # Get excitonic WFs (reads eigenvalues)
     a.get_wavefunctions(Degen_Step=exc_degen,repx=range(-1,2),repy=range(-1,2),repz=range(1))
     # Write .json file
     a.write_json(filename=path+'_'+jobname)
