@@ -36,6 +36,7 @@ folder_dg  = args.folder_dg
 
 sym = YamboIn('ypp_rt -m',folder=folder_out,filename='ypp.in')
 sym['DbGd_DB1_paths']= [ ["'../%s'" % folder_in], '' ]
+sym.arguments.append('noBZExpand')
 sym.write('%s/map-dg.in' % (folder_out))
 os.system('cd %s; ypp_rt -F map-dg.in' % (folder_out))
 os.system('cd %s; mkdir -p %s; mv SAVE/ndb.Double_Grid %s/' % (folder_out, folder_dg, folder_dg)) 

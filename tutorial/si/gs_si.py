@@ -7,8 +7,8 @@ import sys
 from qepy import *
 import argparse
 
-scf_kpoints  = [4,4,4]
-nscf_kpoints = [3,3,3]
+scf_kpoints  = [2,2,2]
+nscf_kpoints = [2,2,2]
 dg_kpoints   = [4,4,4]
 prefix = 'si'
 matdyn = 'matdyn.x'
@@ -109,7 +109,9 @@ def orbitals():
     projwfc.run(folder='bands')
     projection = ProjwfcXML(prefix='si',path='bands')
     ax = plt.subplot(1,1,1)
-    projection.plot_eigen(ax,path=p,selected_orbitals=[0,4],selected_orbitals_2=[2,5],size=40,cmap='RdBu')
+    s_orb = [0,16]
+    p_orb = [1,2,3,17,19,20]
+    projection.plot_eigen(ax,path=p,selected_orbitals=s_orb,selected_orbitals_2=p_orb,size=40,cmap='RdBu')
     ax.set_ylim([-7,6])
     plt.show()
 

@@ -448,7 +448,16 @@ dampings ``GfnQP_Wv`` and ``GfnQP_Wc`` are dephasing constants, responsible of t
 the finite-time equivalent to the finite broadening of the Bethe-Salpeter solver (``BDmRange``).
 
 A mandatory test to check if yambo_rt is running properly is to confront the BSE spectra with the obtained using yambo_rt (use the 
-script kbe-spectra.py). 
+script kbe-spectra.py). Observe how the KBE spectra is identical to the BSE spectra except for intensities bigger than ``1E5``. Beyond
+this value we are not longer in the linear response regime.
+
+.. image:: figures/bse-kbe-intensity.png
+   :height: 400px
+   :width: 800 px
+   :align: center
+
+
+
 
 **3. Time-dependent with a gaussian pulse.**
 
@@ -470,6 +479,7 @@ the section for circular polarization). Be aware of setting the duration of the 
 In general, for any pulse create a population of carriers (electron-holes). One sign that simulation is running well is that the number
 of electrons and holes is the same during all the simulation. Below we show the typical outputs for several kinds of pulses (DELTA, QSSIN and
 SIN), like the polarization, number of carriers and pump intensity.
+
 
 
 **4. Time-dependent with a gaussian pulse and dissipation**
