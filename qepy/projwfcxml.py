@@ -6,7 +6,6 @@
 import xml.etree.ElementTree as ET
 from   qepy.auxiliary import *
 from   numpy import array, zeros
-import matplotlib.pyplot as plt
 import re
 
 RytoeV = 13.605698066
@@ -88,6 +87,7 @@ class ProjwfcXML():
             Under development to include also colormap and a dictionary for the
             selection of the orbitals...
         """
+        import matplotlib.pyplot as plt
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
