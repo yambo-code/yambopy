@@ -83,7 +83,6 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
             for exc in self.excitons:
                 e,i,index = exc
                 #if the energy of this exciton is too diferent then we add it to the list
-                print e
                 if abs(e-prev_exc)<Degen_Step:
                     new_excitons[-1][1] += i
                     continue
