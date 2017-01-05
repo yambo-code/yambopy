@@ -456,9 +456,6 @@ this value we are not longer in the linear response regime.
    :width: 800 px
    :align: center
 
-
-
-
 **3. Time-dependent with a gaussian pulse.**
 
 .. code-block:: bash
@@ -477,10 +474,11 @@ the section for circular polarization). Be aware of setting the duration of the 
     run['Field1_Freq'] = [[2.3,2.3],'eV']    # Excitation frequency 
 
 In general, for any pulse create a population of carriers (electron-holes). One sign that simulation is running well is that the number
-of electrons and holes is the same during all the simulation. Below we show the typical outputs for several kinds of pulses (DELTA, QSSIN and
-SIN), like the polarization, number of carriers and pump intensity.
+of electrons and holes is the same during all the simulation. Below we show the typical output for a simulation of a gaussian pulse. 
 
 
+Besides the delta and gaussian pulse we can use others as the sin pulse. Below we have a brief summary of the three pulses, showing the
+external field and the number of carriers.
 
 **4. Time-dependent with a gaussian pulse and dissipation**
 
@@ -530,6 +528,47 @@ multiply the density of states by the given values. For instance, we could set:
 
 The inclusion of the electron-electron scattering needs the calculation of the electron-electron collisions files.
 
+**5. Use of Double-Grid in carrier dynamics simulation**
+
+The convergence of the results with the k-grid is a delicate issue in carrier dynamics simulations. In order to mitigate the
+simulation time we can use a double-grid. In our example we create the double-grid in three steps.
+
+(i) We run a non-self-consistent simulation for a larger grid (``4x4x4`` in the silicon example). We find the results in the folder **nscf-dg**.
+
+(ii) We break the symmetries accordingly with our polarization field using the scripts. We indicate the output folder **rt-dg**, the prefix **si** and the polarization **100**.
+
+.. code-block:: bash
+
+   python break-symm.py -i nscf-dg -o rt-dg -p si -s 100
+
+(iii) We have created the script `map-symm.py` to map the coarse grid in the fine grid.
+
+.. code-block:: bash
+
+   python map-symm.py -i rt-dg -o rt dg-4x4x4 
+
+The folder **dg-4x4x4** is inside the **rt** folder. We will find a netCDF file ``ndb.Double_Grid``. In order to tell yambo to read the Double-grid we
+have to indicate the folder name inside the ``-J`` option. In our example
+
+.. code-block:: bash
+
+   yambo_rt -F 04_PUMP -J 'qssin,col-hxc,dg-4x4x4'
+
+We can activate the double-grid in the python script `rt_si.py` by selecting:
+
+.. code-block:: bash
+
+   job['DG'] = (True,'dg-4x4x4')
+
+We can also check if yambo is reading correctly the double-grid in the report file. We have to find the lines:
+
+.. code-block:: bash
+
+  [02.05] Double K-grid
+    =====================
+
+  K-points             : 103
+  Bands                :  8
 
 
 Electron-Phonon interaction (Si)
