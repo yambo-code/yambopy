@@ -137,12 +137,13 @@ def dispersion():
     dyn['flfrc'] = "'%s.fc'" % prefix
     dyn['asr']   = "'simple'"  
     dyn['flfrq'] = "'%s.freq'" % prefix
+    dyn['q_in_cryst_coord'] = '.true.'
     dyn.qpoints = p.get_klist()
     dyn.write('phonons/matdyn.in')
     os.system('cd phonons; %s < matdyn.in'%matdyn)
-   
+    print( len(p.get_klist()) ) 
     # Use a class to read and plot the frequencies
-    Matdyn(natoms=2,nqpoints=61,path='phonons').plot_eigen(path=p)
+    Matdyn(natoms=2,path=p,folder='phonons').plot_eigen()
 
 def update_positions(pathin,pathout):
     """ update the positions of the atoms in the scf file using the output of the relaxation loop

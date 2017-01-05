@@ -81,7 +81,7 @@ else:
   print 'Invalid calculation type'
   exit()
 
-run['DBsIOoff']= "GF CARRIERs"             # [IO] Space-separated list of DB with NO I/O. DB=(DIP,X,HF,COLLs,J,GF,CARRIERs,W,SC,BS,ALL)
+run['DBsIOoff']= "J GF CARRIERs"             # [IO] Space-separated list of DB with NO I/O. DB=(DIP,X,HF,COLLs,J,GF,CARRIERs,W,SC,BS,ALL)
 
 # Collision variables
 if args.collisions:
@@ -114,13 +114,13 @@ if args.pump or args.dissipation:
   run['Integrator'] = "RK2 RWA"
   run['IOtime']     = [ [ 0.100,  0.050, 0.500], 'fs' ] 
   # Pump Pulse
-  run['Field1_Int']       = [ 1 , 'kWLm2']    # Intensity pulse
+  run['Field1_Int']       = [ 1000, 'kWLm2']    # Intensity pulse
   run['Field1_Dir']       = [1.0,0.0,0.0]  # Polarization pulse
   run['Field1_Dir_circ']  = [0.0,1.0,0.0]  # Polarization pulse
   run['Field1_pol']       = "linear"       # Polarization type (linear or circular) 
   run['Field1_kind']      = "QSSIN"        # [RT Field1] Kind(SIN|RES|ANTIRES|GAUSS|DELTA|QSSIN)
   run['Field1_Damp']      = [ 100,'fs']
-  run['Field1_Freq']      = [[0.01,0.01],'eV']
+  run['Field1_Freq']      = [[2.23,2.23],'eV']
 
 # Pumping with finite pulse and electron-phonon dissipation
 if args.dissipation:
