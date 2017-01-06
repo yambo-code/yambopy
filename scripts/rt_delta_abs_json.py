@@ -51,33 +51,37 @@ print times
 nlines = len(output[keys[0]])
 # We want to create a file that is x, y1, y2, ..., yn
 array = np.zeros((nlines,len(keys)+1))
-
-for l in range(0,nlines):
-    # first, value of x
-    array[l][0]=output[keys[0]][l][0]
-    # then all the y's
-    for i in range(0,len(keys)):
-        array[l][i+1]=output[keys[i]][l][1]
-
-# Now we use the different plots to get the change at different times
 diff = np.zeros((nlines,len(keys)))
 
 for l in range(0,nlines):
-  diff[l][0]=array[l][0]
-  # yi-y0
-  for i in range(1,len(keys)):
-    diff[l][i]=array[l][i+1]-array[l][1]
+    # first, value of x
+    x = output[keys[0]][l][0]
+    array[l][0]=x
+    diff[l][0]=x
+    # then all the y's
+    # t0
+    y0 = output[keys[0]][l][1]
+    array[l][1] = y0
+    # additional columns
+    for i,key in enumerate(keys):
+        # t_i > t0
+        y1 = output[key][l][1]
+        array[l][i+1]=y1
+        if i==0:
+            continue
+        diff[l][i]=y1-y0
+
 
 # Writing
 
-file1=open('array.dat','w')
+file1=open(args.job+'.dat','w')
 string = 'eV'
 for t in times:
     string = string + '\t' + t
 np.savetxt(file1,array,delimiter='\t',header=string)
 file1.close()
 
-file2=open('diff.dat','w')
+file2=open(args.job+'_diff.dat','w')
 string = 'eV'
 for i,t in enumerate(times):
     if i==0:
