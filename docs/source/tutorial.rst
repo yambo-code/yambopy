@@ -437,7 +437,7 @@ simulation, and (iii) integrator. We have also to set the intensity of the delta
     run['Integrator']  = "RK2 RWA"     # Runge-Kutta propagation
 
     run['Field1_kind'] = "DELTA"          # Type of pulse 
-    run['Field1_Int']  = [ 1000, 'kWLm2'] # Intensity pulse
+    run['Field1_Int']  = [ 100, 'kWLm2']  # Intensity pulse
 
     run['IOtime']      = [ [0.050, 0.050, 0.100], 'fs' ]
 
@@ -472,13 +472,21 @@ the section for circular polarization). Be aware of setting the duration of the 
     run['Field1_kind'] = "QSSIN"
     run['Field1_Damp'] = [  50,'fs']         # Duration of the pulse
     run['Field1_Freq'] = [[2.3,2.3],'eV']    # Excitation frequency 
+    run['Field1_Int']  = [ 1, 'kWLm2']       # Intensity pulse
 
 In general, for any pulse create a population of carriers (electron-holes). One sign that simulation is running well is that the number
 of electrons and holes is the same during all the simulation. Below we show the typical output for a simulation of a gaussian pulse. 
 
 
 Besides the delta and gaussian pulse we can use others as the sin pulse. Below we have a brief summary of the three pulses, showing the
-external field and the number of carriers.
+external field and the number of carriers. Observe than the sinusoidal pulse is active along all the simulation time, therefore we are always creating carriers. After certain time the number of electrons will exceed the charge acceptable in a simulation of linear response. The polarization follows the field. In the case of the delta pulse, we see a zero-intensity field and a constant number of carriers. Thus, the pulse is only active at the initial time and afterwards the polarization decays due to the the finite
+lifetime given by ``GfnQP_Wv`` and ``GfnQP_Wc``. 
+
+.. image:: figures/dyn-field-pulses.png
+   :height: 400px
+   :width: 800 px
+   :align: center
+
 
 **4. Time-dependent with a gaussian pulse and dissipation**
 
@@ -571,6 +579,10 @@ We can also check if yambo is reading correctly the double-grid in the report fi
   Bands                :  8
 
 
+**6. Post-processing in carrier dynamics simulation**
+
+
+
 Electron-Phonon interaction (Si)
 ---------------------------
 **by A. Molina Sánchez**
@@ -610,12 +622,10 @@ stored in ``elphon/SAVE`` we are ready to calculate the electron-phonon correcti
 or to examine the spectral function of each quasi-particle state. A detailed tutorial of the capabilities of the module electron-phonon
 of yambo is also available in the `yambo website <http://www.yambo-code.org/tutorials/Electron_Phonon/index.php>`_.
 
-H
 If we run:
 
 .. code-block:: bash
    
-H
     python elph_qp_si.py -r
 
 Yambo will calculate the quasi-particle correction and the spectral functions for the top of the valence band and the 

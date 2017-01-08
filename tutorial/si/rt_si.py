@@ -37,13 +37,13 @@ yambo    = 'yambo'
 yambo_rt = 'yambo_rt'
 ypp_rt   = 'ypp_rt'
 ypp_ph   = 'ypp_ph'
-folder   = 'rt-gaussian'
+folder   = 'rt'
 
 job = dict()
 job['folder-run']   = ''                # Optional additional job identifier
 job['folder-col']   = 'col-hxc'              # Collisions folder
 job['folder-gkkp']  = 'GKKP'                 # gkkp folder
-job['DG']           = (True,'dg-4x4x4')     # Double-grid folder
+job['DG']           = (False,'dg-4x4x4')     # Double-grid folder
 job['temperature']  = 0.0                    # Temperature phonon bath
 
 # check if the database is present
@@ -81,7 +81,7 @@ else:
   print 'Invalid calculation type'
   exit()
 
-run['DBsIOoff']= "J GF CARRIERs"             # [IO] Space-separated list of DB with NO I/O. DB=(DIP,X,HF,COLLs,J,GF,CARRIERs,W,SC,BS,ALL)
+run['DBsIOoff']= "J G"             # [IO] Space-separated list of DB with NO I/O. DB=(DIP,X,HF,COLLs,J,GF,CARRIERs,W,SC,BS,ALL)
 
 # Collision variables
 if args.collisions:
@@ -109,17 +109,17 @@ if args.pump or args.dissipation:
   run['GfnQP_E']    = [0.00, 1.00, 1.00]  # [EXTQP BSK BSS] E parameters  (c/v) eV|adim|adim
   run['HXC_Potential']  = 'HARTREE+SEX' 
   # Time-propagation 
-  run['RTstep']     = [  50.0,'as']
-  run['NETime']     = [   0.2,'ps']
+  run['RTstep']     = [ 100.0,'as']
+  run['NETime']     = [   1.0,'ps']
   run['Integrator'] = "RK2 RWA"
-  run['IOtime']     = [ [ 0.100,  0.050, 0.500], 'fs' ] 
+  run['IOtime']     = [ [ 1.000,  1.000, 5.000], 'fs' ] 
   # Pump Pulse
-  run['Field1_Int']       = [10000, 'kWLm2']    # Intensity pulse
+  run['Field1_Int']       = [ 10.0, 'kWLm2']  # Intensity pulse
   run['Field1_Dir']       = [1.0,0.0,0.0]  # Polarization pulse
   run['Field1_Dir_circ']  = [0.0,1.0,0.0]  # Polarization pulse
   run['Field1_pol']       = "linear"       # Polarization type (linear or circular) 
   run['Field1_kind']      = "QSSIN"        # [RT Field1] Kind(SIN|RES|ANTIRES|GAUSS|DELTA|QSSIN)
-  run['Field1_Damp']      = [  20,'fs']
+  run['Field1_Damp']      = [  75,'fs']
   run['Field1_Freq']      = [[2.23,2.23],'eV']
 
 # Pumping with finite pulse and electron-phonon dissipation
@@ -149,7 +149,8 @@ if args.pump:
   print('running NEGF in folder: %s' % job['folder-run'])
   if job['DG'][0]:
     print('with Double Grid from folder %s'%job['DG'][1])
-    os.system ('cd %s; %s -F 04_PUMP -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['DG'][0],jobname))
+    print ('cd %s; %s -F 04_PUMP -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['DG'][1],jobname))
+    os.system ('cd %s; %s -F 04_PUMP -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['DG'][1],jobname))
   else:
     print 'cd %s ; %s -F 04_PUMP -J \'%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],jobname)
     os.system ('cd %s; %s -F 04_PUMP -J \'%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],jobname))
