@@ -475,7 +475,14 @@ the section for circular polarization). Be aware of setting the duration of the 
     run['Field1_Int']  = [ 1, 'kWLm2']       # Intensity pulse
 
 In general, for any pulse create a population of carriers (electron-holes). One sign that simulation is running well is that the number
-of electrons and holes is the same during all the simulation. Below we show the typical output for a simulation of a gaussian pulse. 
+of electrons and holes is the same during all the simulation. Below we show the typical output for a simulation of a gaussian pulse, the number of
+carriers increases until the intensity of the pulse becomes zero.
+
+.. image:: figures/qssin-pulse.png
+   :height: 400px
+   :width: 800 px
+   :align: center
+
 
 
 Besides the delta and gaussian pulse we can use others as the sin pulse. Below we have a brief summary of the three pulses, showing the
@@ -528,6 +535,15 @@ multiply the density of states by the given values. For instance, we could set:
     run['GfnQP_Wv']   = [0.00,0.10,0.00]    # Constant damping valence
     run['GfnQP_Wc']   = [0.00,0.10,0.00]    # Constant damping conduction
 
+Below we show the carrier dynamics simulation including the electron-phonon dissipation of electrons and holes. We have made the example for two different
+temperatures. We only show the lifetimes of electrons and holes for 0 and 300 K. At each time step we show the mean value of the electron-phonon lifetime. We can observe
+that increases for larger temperature (see the Electron-phonon tutorial). Moreover, when the systems tends to the final state the mean EP lifetimes reachs a constant value.
+
+.. image:: figures/lifetimes.png
+   :height: 400px
+   :width: 800 px
+   :align: center
+
 **4.2 Electron-electron interaction**
 
 .. code-block:: bash
@@ -577,11 +593,6 @@ We can also check if yambo is reading correctly the double-grid in the report fi
 
   K-points             : 103
   Bands                :  8
-
-
-**6. Post-processing in carrier dynamics simulation**
-
-
 
 Electron-Phonon interaction (Si)
 ---------------------------

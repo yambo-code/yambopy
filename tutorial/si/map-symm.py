@@ -17,9 +17,9 @@ import argparse
 
 print ('This script map a fine grid to a coarse grid.')
 print ('It requires three arguments')
-print ('1: folder with the fine grid')
-print ('2: folder of the RT simulation')
-print ('3: name for the folder hosting the double-grid')
+print ('1: -i  folder with the fine grid')
+print ('2: -o  folder of the RT simulation')
+print ('3: -dg name for the folder hosting the double-grid')
 
 parser = argparse.ArgumentParser(description='Map of a double-grid')
 parser.add_argument('-i'  ,'--input'    , help='Folder containing the SAVE folder of the double grid')

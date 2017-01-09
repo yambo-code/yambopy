@@ -40,11 +40,11 @@ ypp_ph   = 'ypp_ph'
 folder   = 'rt'
 
 job = dict()
-job['folder-run']   = ''                # Optional additional job identifier
-job['folder-col']   = 'col-hxc'              # Collisions folder
-job['folder-gkkp']  = 'GKKP'                 # gkkp folder
-job['DG']           = (False,'dg-4x4x4')     # Double-grid folder
-job['temperature']  = 0.0                    # Temperature phonon bath
+job['folder-run']   = ''                 # Optional additional job identifier
+job['folder-col']   = 'col-hxc'          # Collisions folder
+job['folder-gkkp']  = 'GKKP'             # gkkp folder
+job['DG']           = (False,'dg-4x4x4') # Double-grid folder
+job['temperature']  = 0.0                # Temperature phonon bath
 
 # check if the database is present
 if not os.path.isdir('database'):
@@ -127,6 +127,7 @@ if args.dissipation:
 # Interpolation 
   run['LifeExtrapSteps'] = [ [5.0,5.0], 'fs' ] 
   run['ElPhModes']       = [ 1, 6]
+  run['BoseTemp']        = [ job['temperature'], 'K']
   run.arguments.append('LifeExtrapolation')
 
 # Submission in serial
@@ -168,7 +169,8 @@ if args.dissipation:
     jobname = '%s%s-%.0e-%sfs-%seV-%sK' % ( job['folder-run'], run['Field1_kind'],run['Field1_Int'][0], run['Field1_Damp'][0], run['Field1_Freq'][0][0],job['temperature'] )
   if job['DG'][0]:
     print('with Double Grid from folder %s'%job['DG'][1])
-    print('%s -F 06_DISS -J \'%s,%s,%s\''%(yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],job['DG'][1]))
+    print('%s -F 05_DISS -J \'%s,%s,%s,%s\''%(yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],job['DG'][1]))
+    os.system('cd %s; %s -F 05_DISS -J \'%s,%s,%s,%s\''%(folder,yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],job['DG'][1]))
   else:
     print 'cd %s; %s -F 05_DISS -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],jobname)
     os.system( 'cd %s; %s -F 05_DISS -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],jobname) )
