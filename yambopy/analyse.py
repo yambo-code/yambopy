@@ -82,9 +82,14 @@ class YamboAnalyser():
     def get_data(self,tags):
         """ Get a dictionary with all the data from the files under analysis
         """
+        if type(tags) is str:
+            tags=(tags,)
         data = dict()
         for k in sorted(self.jsonfiles.keys()):
             for filename in self.jsonfiles[k]["data"].keys():
+                if "eel" in filename:
+                    print 'eel file skipped'
+                    continue
                 if all(i in filename for i in tags):
                     data[k] = np.array( self.jsonfiles[k]["data"][filename] )
         return data
@@ -196,7 +201,7 @@ class YamboAnalyser():
         for nk in range(1,len(bands_kpoints)):
             distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
             bands_distances.append(distance)
-        
+
 
         #obtain the bands for the output files and plot
         for json_filename in self.jsonfiles.keys():
@@ -405,10 +410,10 @@ class YamboAnalyser():
 
         for k in inputfiles.keys():
             inputfiles_tags[k] = dict()
-            
+
             # get the current inputfile
             this_inputfile = inputfiles[k]
-            
+
             #initialize the dictionary
             inputfiles_tags[k] = {'variables':{},'arguments':[]}
 
@@ -444,7 +449,7 @@ class YamboAnalyser():
         #iterate over the json files
         for k in self.jsonfiles.keys():
             print "jsonfile: ", k
-            
+
             #get the jsonfile
             jsonfile = self.jsonfiles[k]
 

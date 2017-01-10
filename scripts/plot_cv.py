@@ -6,12 +6,12 @@ import sys
 
 """ Input : python data_grab.py <folder> <variable>
     Other parameters must be changed depending on systems in the first lines of the script.
-    
+
     Uses .json files from pack_files_in_folder routine
     to help plotting the energy gap convergence for the <variable> passed as argument
     <folder> is the folder containing all the different run folders,
     wherein the different o-* files are located.
-    NB : The reference run is not used and should be disabled if using the 
+    NB : The reference run is not used and should be disabled if using the
     yambopy.optimize() routine using arg "ref_run=False".
     """
 
@@ -21,8 +21,8 @@ import sys
 # kpoint : number of the k-point which is to be evaluated
 
 # Exemple values for 1L-MoS2 on a 12x12 grid
-bandv = 26   ; bandc = 27   
-kpointv = 19 ; kpointc = 19 
+bandv = 26   ; bandc = 27
+kpointv = 19 ; kpointc = 19
 print 'Valence band: ',bandv,'conduction band: ',bandc
 print 'K-point VB: ',kpointv, ' k-point CB: ',kpointc
 
@@ -86,11 +86,11 @@ for key in keys:
     conduction=[]
     for i in range(len(outvars[key]+1)):
         if outvars[key][i][kpindex]==kpointc and outvars[key][i][bdindex]==bandc:
-		conduction=outvars[key][i]
+                conduction=outvars[key][i]
         elif outvars[key][i][kpindex]==kpointv and outvars[key][i][bdindex]==bandv:
-		valence = outvars[key][i]
+                valence = outvars[key][i]
     # Then the gap can be calculated
-    out = conduction[e0index]+conduction[gwindex]-(valence[e0index]+valence[gwindex]) 
+    out = conduction[e0index]+conduction[gwindex]-(valence[e0index]+valence[gwindex])
 
     #writing value and energy diff in file
     s=str(inp)+'\t'+str(out)+'\n'
