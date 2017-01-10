@@ -46,6 +46,7 @@ class YamboIn():
             if the variable args was used then the filename should be left as `yambo.in` because that's the default input filename that yambo will write.
         """
         self.folder = folder
+        self.yamboargs = args
 
         #the type of the variables is determined from the type of variable in this dictionary
         self.variables = {} #here we will store the values of the variables
@@ -91,7 +92,14 @@ class YamboIn():
     def read_file(self,filename='yambo.in'):
         """ Read the variables from a file
         """
-        yambofile = open(filename,"r")
+        try:
+            yambofile = open(filename,"r")
+        except IOError:
+            print('Could not read the file %s'%filename)
+            print('Something is wrong, yambo did not create the input file. Or the file you are trying to read does not exist')
+            print('command: %s'%self.yamboargs)
+            print('folder:  %s/'%self.folder)
+            exit()
         inputfile = self.read_string(yambofile.read())
         yambofile.close()
 
@@ -138,13 +146,13 @@ class YamboIn():
 
         return {"arguments": self.arguments, "variables": self.variables}
 
-    def optimize(self,conv,variables=('all',),run=lambda x: None):
+    def optimize(self,conv,variables=('all',),run=lambda x: None,ref_run=True):
         """ Function to to make multiple runs of yambo to converge calculation parameters
             Input:
             A dictionary conv that has all the variables to be optimized
             A list fo the name of the variables in the dicitonary that are to be optimized
             A function run that takes as input the name of the inputfile (used to run yambo)
-
+            A boolean ref_run that can disable the submitting of the reference run (see scripts/plot_cv.py)
             .. code-block:: python
                 def run(filename):
                     os.system('yambo -F %s'%filename)
@@ -172,8 +180,11 @@ class YamboIn():
             reference[key] = [values[0],unit]
             self[key] = [values[0],unit]
         #write the file and run
-        self.write( "%s/reference.in"%(self.folder) )
-        run('reference.in')
+        if ref_run==True:
+            self.write( "%s/reference.in"%(self.folder) )
+            run('reference.in')
+        else:
+            print 'Reference run disabled.'
 
         #converge one by one
         for key in [var for var in conv.keys() if var in variables]:

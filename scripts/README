@@ -1,0 +1,11 @@
+Yabmopy scripts
+================================
+
+Here you can find some user contributed scripts for yambopy.
+
+1. merge_qp.py
+ Merge QP databases from multiple yambo GW runs
+
+2. plot_cv.py
+ After running a GW calculation with a gw_conv.py type of script you can analyse the data and plot the
+ difference between a selected conduction and valence band as a function of a convergence parameter.

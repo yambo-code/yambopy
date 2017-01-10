@@ -68,22 +68,29 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
             os.system("cd %s; ypp -e s -J %s"%(self.path,self.job_string))
         self.excitons = np.loadtxt(filename)
 
-        #filter with degen
-        if Degen_Step:
-            new_excitons = []
-            prev_exc = 0
-            for exc in self.excitons:
-                e,i,index = exc
-                if abs(e-prev_exc)>Degen_Step:
-                    new_excitons.append(exc)
-                prev_exc = e
-            self.excitons = np.array(new_excitons)
-
         #filter with energy
         self.excitons = self.excitons[self.excitons[:,0]<max_energy]
 
         #filter with intensity
         self.excitons = self.excitons[self.excitons[:,1]>min_intensity]
+
+        #filter with degen
+        if Degen_Step:
+
+            #create a list with differences in energy
+            new_excitons = []
+            prev_exc = 0
+            for exc in self.excitons:
+                e,i,index = exc
+                #if the energy of this exciton is too diferent then we add it to the list
+                print e
+                if abs(e-prev_exc)<Degen_Step:
+                    new_excitons[-1][1] += i
+                    continue
+                new_excitons.append([e,i,index])
+                intensity = 0
+                prev_exc = e
+            self.excitons = np.array(new_excitons)
 
         return self.excitons
 
@@ -91,6 +98,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                           Cells=[1,1,1], Hole=[0,0,0],
                           Direction="123", Format="x",
                           Degen_Step=0.0100,
+                          MinWeight=1e-8,
                           repx=range(-1,2), repy=range(-1,2), repz=range(-1,2),
                           wf=False):
         """
@@ -122,7 +130,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
         #create a ypp file using YamboIn for reading the excitonic weights
         yppew = YamboIn('ypp -e a',filename='ypp.in',folder=self.path)
-        yppew['MinWeight'] = 1e-6
+        yppew['MinWeight'] = MinWeight
         yppew['Degen_Step'] = Degen_Step
 
         keywords = ["lattice", "atoms", "atypes", "nx", "ny", "nz"]

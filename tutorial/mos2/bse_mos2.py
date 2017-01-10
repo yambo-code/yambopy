@@ -7,68 +7,106 @@ from yambopy import *
 from qepy import *
 import argparse
 
-#parse options
-parser = argparse.ArgumentParser(description='Test the yambopy script.')
-parser.add_argument('-dg' ,'--doublegrid', action="store_true", help='Use double grid')
-args = parser.parse_args()
-
 yambo = "yambo"
+p2y = "p2y"
+folder='bse'
 
-if not os.path.isdir('database'):
-    os.mkdir('database')
+def doublegrid():
+    global folder
+    folder = "%s_dbg"%folder
+    database()
 
-#check if the nscf cycle is present
-if os.path.isdir('nscf/mos2.save'):
-    print('nscf calculation found!')
-else:
-    print('nscf calculation not found!')
-    exit()
+    #check if the nscf cycle is present
+    if os.path.isdir('nscf_double/mos2.save'):
+        print('nscf_double calculation found!')
+    else:
+        print('nscf_double calculation not found!')
+        exit()
 
-#check if the SAVE folder is present
-if not os.path.isdir('database/SAVE'):
-    print('preparing yambo database')
-    os.system('cd nscf/mos2.save; p2y > p2y.log')
-    os.system('cd nscf/mos2.save; yambo > yambo.log')
-    os.system('mv nscf/mos2.save/SAVE database')
+    #check if the SAVE folder is present
+    if not os.path.isdir('database_double/SAVE'):
+        if not os.path.isdir('database_double'):
+            os.mkdir('database_double')
+        print('preparing yambo database')
+        # we don't need to read the wavefunctions for the double grid
+        os.system('cd nscf_double/mos2.save; %s -w > p2y.log'%p2y)
+        os.system('cd nscf_double/mos2.save; %s > yambo.log'%yambo)
+        os.system('mv nscf_double/mos2.save/SAVE database_double')
 
-#check if the SAVE folder is present
-if not os.path.isdir('database_double/SAVE'):
-    print('preparing yambo database')
-    os.system('cd nscf_double/mos2.save; p2y > p2y.log')
-    os.system('cd nscf_double/mos2.save; yambo > yambo.log')
-    os.system('mv nscf_double/mos2.save/SAVE database_double')
+    #copy databases
+    if not os.path.isdir(folder):
+        os.mkdir(folder)
+        os.system('cp -r database/SAVE %s'%folder)
 
-if not os.path.isdir('bse'):
-    os.mkdir('bse')
-    os.system('cp -r database/SAVE bse')
-
-#initialize the double grid
-if args.doublegrid:
+    #initialize the double grid
     print("creating double grid")
-    f = open('bse/ypp.in','w')
+    f = open('%s/ypp.in'%folder,'w')
     f.write("""kpts_map
     %DbGd_DB1_paths
     "../database_double"
     %""")
     f.close()
-    os.system('cd bse; ypp')
+    os.system('cd %s; ypp'%folder)
 
-#create the yambo input file
-y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
+def database():
+    #check if the nscf cycle is present
+    if os.path.isdir('nscf/mos2.save'):
+        print('nscf calculation found!')
+    else:
+        print('nscf calculation not found!')
 
-y['FFTGvecs'] = [15,'Ry']
-y['NGsBlkXs'] = [1,'Ry']
-y['BndsRnXs'] = [[1,40],'']
-y['BSEBands'] = [[8,11],'']
-y['BEnSteps'] = [500,'']
-y['BEnRange'] = [[0.0,6.0],'eV']
+    #check if the SAVE folder is present
+    if not os.path.isdir('database/SAVE'):
+        if not os.path.isdir('database'):
+            os.mkdir('database')
+        print('preparing yambo database')
+        # we don't need to read the wavefunctions for the double grid
+        os.system('cd nscf/mos2.save; %s > p2y.log'%p2y)
+        os.system('cd nscf/mos2.save; %s > yambo.log'%yambo)
+        os.system('mv nscf/mos2.save/SAVE database')
 
-y.arguments.append('WRbsWF')
-y.write('bse/yambo_run.in')
+    #copy databases
+    if not os.path.isdir(folder):
+        os.mkdir(folder)
+        os.system('cp -r database/SAVE %s'%folder)
 
-print('running yambo')
-os.system('cd bse; %s -F yambo_run.in -J yambo'%yambo)
+def run():
+    database()
 
-#pack in a json file
-y = YamboOut('bse')
-y.pack()
+    #check if the SAVE folder is present
+    if not os.path.isdir('database/SAVE'):
+        if not os.path.isdir('database'):
+            os.mkdir('database')
+        print('preparing yambo database')
+        os.system('cd nscf/mos2.save; %s > p2y.log'%p2y)
+        os.system('cd nscf/mos2.save; %s > yambo.log'%yambo)
+        os.system('mv nscf/mos2.save/SAVE database')
+
+    #create the yambo input file
+    y = YamboIn('%s -b -o b -k sex -y d -V all'%yambo,folder=folder)
+
+    y['FFTGvecs'] = [20,'Ry']
+    y['NGsBlkXs'] = [1,'Ry']
+    y['BndsRnXs'] = [1,40]
+    y['BSEBands'] = [8,11]
+    y['BEnSteps'] = [500,'']
+    y['BEnRange'] = [[0.0,6.0],'eV']
+
+    y.arguments.append('WRbsWF')
+    y.write('%s/yambo_run.in'%folder)
+
+    print('running yambo')
+    os.system('cd %s; %s -F yambo_run.in -J yambo'%(folder,yambo))
+
+if __name__ == '__main__':
+    #parse options
+    parser = argparse.ArgumentParser(description='Test the yambopy script.')
+    parser.add_argument('-r'  ,'--run',       action="store_true", help='Use double grid')
+    parser.add_argument('-dg' ,'--doublegrid', action="store_true", help='Use double grid')
+    args = parser.parse_args()
+
+    if args.doublegrid:
+        doublegrid()        
+
+    if args.run:
+        run()

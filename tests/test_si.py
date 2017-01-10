@@ -255,7 +255,7 @@ if __name__ == '__main__':
     #clean tests
     if args.clean: 
         print "cleaning..."
-        os.system('rm -rf scf bse bse_conv gw gw_conv nscf relax database')
+        os.system('rm -rf scf bse bse_conv gw gw_conv nscf relax database proj.in')
         print "done!"
         exit()
 
