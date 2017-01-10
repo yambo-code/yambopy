@@ -92,12 +92,12 @@ class YamboOut():
             #get the string with the file data
             try:
                 string = f.read()
-                tags = [tag.strip() for tag in re.findall('#\n#\s+((?:(?:[`0-9a-zA-Z\-\/\|\\(\)[\]]+)\s+)+)#\n\s',string)[0].split()]
+                tags = [tag.strip() for tag in re.findall('#\n#\s+((?:(?:[`0-9a-zA-Z\-\/\|\\(\)\_[\]]+)\s+)+)#\n\s',string)[0].split()]
                 f.seek(0)
                 self.data[filename] = np.loadtxt(f)
                 self.tags[filename] = tags
             except:
-                raise ValueError('Error reading file %s.'%"%s/%s"%(self.folder,f))
+                raise ValueError('Error reading file %s'%"%s/%s"%(self.folder,filename))
 
         #close all the files
         for f in files: f.close()
