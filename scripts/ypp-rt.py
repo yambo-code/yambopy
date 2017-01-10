@@ -11,7 +11,6 @@ Automation of ypp_rt calls.
    - Occupation : Calculates occupation at different times
 """
 
-
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('-f' ,'--folder'    , help='Folder with real-time simulations')
 parser.add_argument('-j' ,'--job'       , help='Name of job (ex: DELTA-1E+03)')
@@ -21,6 +20,9 @@ args = parser.parse_args()
 
 folder = args.folder
 job = args.job
+
+### Occupation path
+path = [[0.0,0.0,0.0],[0.5,0.5,0.0]]
 
 
 ###
@@ -50,13 +52,13 @@ if args.spectra:
 if args.occupation:
     run = YamboIn('ypp_rt -n o b -V all',folder=folder,filename='ypp.in')
 
-    run['TimeRange']   = [ [ 0, 600] , 'fs' ]
+    run['TimeRange']   = [ [ 0, 50] , 'fs' ]
     run['TimeStep']    = [ 50, 'fs' ]
     run['cooIn']       = "rlu"
     run['BANDS_steps'] = 10
     run['QPkrange']    = [1,576,25,28]
-    run['BKpts'] = [[0.5,0.5,0.0],[0.0,0.0,0.0],[1.0,1.0,0.0],[0.5,0.5,0.0]]
-
+    run.arguments.append('NNInterp')
+    run['BKpts'] = [path,'']
     run.write('%s/ypp-obands.in' % folder)
     os.system('cd %s; ypp_rt -F ypp-obands.in -J %s' % (folder,job) )
 
