@@ -429,21 +429,32 @@ simulation, and (iii) integrator. We have also to set the intensity of the delta
 
 .. code-block:: bash
 
+    run['GfnQP_Wv']   = [0.10,0.00,0.00]    # Constant damping valence
+    run['GfnQP_Wc']   = [0.10,0.00,0.00]    # Constant damping conduction
+
     run['RTstep']      = [ 100 ,'as']  # Interval
     run['NETime']      = [ 300 ,'fs']  # Duration
     run['Integrator']  = "RK2 RWA"     # Runge-Kutta propagation
 
     run['Field1_kind'] = "DELTA"          # Type of pulse 
-    run['Field1_Int']  = [ 1E4 , 'kWLm2'] # Intensity pulse
+    run['Field1_Int']  = [ 100, 'kWLm2']  # Intensity pulse
 
     run['IOtime']      = [ [0.050, 0.050, 0.100], 'fs' ]
 
 The ``IOtime`` intervals specify the time interval to write (i) carriers, (ii) green's functions and (iii) output. In general,
 we can set high values to avoid frequent IO and hence slow simulations. Only in the case where we need the
-data to calculate the Fourier Transform (as in the case of the delta pulse, we set this variable to lower values).
+data to calculate the Fourier Transform (as in the case of the delta pulse, we set this variable to lower values). The constant
+dampings ``GfnQP_Wv`` and ``GfnQP_Wc`` are dephasing constants, responsible of the decaying of the polarization. They are
+the finite-time equivalent to the finite broadening of the Bethe-Salpeter solver (``BDmRange``).
 
-A good test to check that yambo_rt is running properly is to confront the BSE spectra with the obtained using yambo_rt (use the 
-script kbe-spectra.py). 
+A mandatory test to check if yambo_rt is running properly is to confront the BSE spectra with the obtained using yambo_rt (use the 
+script kbe-spectra.py). Observe how the KBE spectra is identical to the BSE spectra except for intensities bigger than ``1E5``. Beyond
+this value we are not longer in the linear response regime.
+
+.. image:: figures/bse-kbe-intensity.png
+   :height: 400px
+   :width: 800 px
+   :align: center
 
 **3. Time-dependent with a gaussian pulse.**
 
@@ -461,27 +472,127 @@ the section for circular polarization). Be aware of setting the duration of the 
     run['Field1_kind'] = "QSSIN"
     run['Field1_Damp'] = [  50,'fs']         # Duration of the pulse
     run['Field1_Freq'] = [[2.3,2.3],'eV']    # Excitation frequency 
+    run['Field1_Int']  = [ 1, 'kWLm2']       # Intensity pulse
 
 In general, for any pulse create a population of carriers (electron-holes). One sign that simulation is running well is that the number
-of electrons and holes is the same during all the simulation. Below we show the typical outputs for several kinds of pulses (DELTA, QSSIN and
-SIN), like the polarization, number of carriers and pump intensity.
+of electrons and holes is the same during all the simulation. Below we show the typical output for a simulation of a gaussian pulse, the number of
+carriers increases until the intensity of the pulse becomes zero.
+
+.. image:: figures/qssin-pulse.png
+   :height: 400px
+   :width: 800 px
+   :align: center
 
 
-**4. Time-dependent with a gaussian pulse and electron-phonon scattering.**
+
+Besides the delta and gaussian pulse we can use others as the sin pulse. Below we have a brief summary of the three pulses, showing the
+external field and the number of carriers. Observe than the sinusoidal pulse is active along all the simulation time, therefore we are always creating carriers. After certain time the number of electrons will exceed the charge acceptable in a simulation of linear response. The polarization follows the field. In the case of the delta pulse, we see a zero-intensity field and a constant number of carriers. Thus, the pulse is only active at the initial time and afterwards the polarization decays due to the the finite
+lifetime given by ``GfnQP_Wv`` and ``GfnQP_Wc``. 
+
+.. image:: figures/dyn-field-pulses.png
+   :height: 400px
+   :width: 800 px
+   :align: center
+
+
+**4. Time-dependent with a gaussian pulse and dissipation**
+
+The Kadanoff-Baym equation implemented in yambo includes dissipation mechanisms such as (i) electron-phonon scattering, (ii) electron-electron
+scattering and (iii) electron-photon scattering. In the following subsections we use a gaussian pulse with the parameters given above.
+
+**4.1 Electron-phonon interaction**
 
 .. code-block:: bash
 
-    yambo -s p -q p -v c -V all
+   yambo -q p -s p
 
-We excite with the same gaussian pulse but now electrons and holes relax via electron-phonon interaction. The folder ``GKKP`` must
-be inside the folder ``rt``. The new variables to set is the interpolation steps for the lifetime due to the electron-phonon
-interaction, otherwise the calculations will be very slow.
+In order to include electron-phonon dissipation, previously we need to create the electron-phonon matrix elements. We call the script
+``gkkp_sii.py``. We can check
 
 .. code-block:: bash
 
-    run['LifeInterpKIND']  = 'FLAT'
-    run['LifeInterpSteps'] = [ [4.0,1.0], 'fs' ]
+    python gkkp_si.py
 
+This script runs QE to calculate the matrix elements and then ``ypp_ph`` to convert them to the ``yambo`` format. If everything is right
+we find a folder call ``GKKP`` inside ``rt``. ``GKKP`` contains all the electron-phonon matrix elements in the
+full Brillouin zone. The variables related to the dissipation are
+
+.. code-block:: bash
+
+    run['LifeExtrapSteps'] = [ [1.0,1.0], 'fs' ]
+    run['BoseTemp']        = [ 0, 'K']
+    run['ElPhModes']       = [ 1, 9]
+    run.arguments.append('LifeExtrapolation')     # If commented:   Lifetimes are constant
+
+The variable ``LifeExtrapSteps`` sets the extrapolation steps to calculate the electron-phonon lifetimes. If commented, lifetimes are assumed
+constants. We can set the lattice temperature with ``BoseTemp`` and the number of modes entering in the simulation ``ElPhModes``. In order
+to account of the temperature effects in a realistic ways the electron and hole damping ``GfnQP_Wv`` and ``GfnQP_Wc`` should be update for 
+each temperature run. In most semiconductors, they are proportional to the electronic density of states. The second element of the array
+multiply the density of states by the given values. For instance, we could set:
+
+.. code-block:: bash
+
+    run['GfnQP_Wv']   = [0.00,0.10,0.00]    # Constant damping valence
+    run['GfnQP_Wc']   = [0.00,0.10,0.00]    # Constant damping conduction
+
+Below we show the carrier dynamics simulation including the electron-phonon dissipation of electrons and holes. We have made the example for two different
+temperatures. We only show the lifetimes of electrons and holes for 0 and 300 K. At each time step we show the mean value of the electron-phonon lifetime. We can observe
+that increases for larger temperature (see the Electron-phonon tutorial). Moreover, when the systems tends to the final state the mean EP lifetimes reachs a constant value.
+
+.. image:: figures/lifetimes.png
+   :height: 400px
+   :width: 800 px
+   :align: center
+
+**4.2 Electron-electron interaction**
+
+.. code-block:: bash
+
+   yambo -q p -s e
+
+The inclusion of the electron-electron scattering needs the calculation of the electron-electron collisions files.
+
+**5. Use of Double-Grid in carrier dynamics simulation**
+
+The convergence of the results with the k-grid is a delicate issue in carrier dynamics simulations. In order to mitigate the
+simulation time we can use a double-grid. In our example we create the double-grid in three steps.
+
+(i) We run a non-self-consistent simulation for a larger grid (``4x4x4`` in the silicon example). We find the results in the folder **nscf-dg**.
+
+(ii) We break the symmetries accordingly with our polarization field using the scripts. We indicate the output folder **rt-dg**, the prefix **si** and the polarization **100**.
+
+.. code-block:: bash
+
+   python break-symm.py -i nscf-dg -o rt-dg -p si -s 100
+
+(iii) We have created the script `map-symm.py` to map the coarse grid in the fine grid.
+
+.. code-block:: bash
+
+   python map-symm.py -i rt-dg -o rt dg-4x4x4 
+
+The folder **dg-4x4x4** is inside the **rt** folder. We will find a netCDF file ``ndb.Double_Grid``. In order to tell yambo to read the Double-grid we
+have to indicate the folder name inside the ``-J`` option. In our example
+
+.. code-block:: bash
+
+   yambo_rt -F 04_PUMP -J 'qssin,col-hxc,dg-4x4x4'
+
+We can activate the double-grid in the python script `rt_si.py` by selecting:
+
+.. code-block:: bash
+
+   job['DG'] = (True,'dg-4x4x4')
+
+We can also check if yambo is reading correctly the double-grid in the report file. We have to find the lines:
+
+.. code-block:: bash
+
+  [02.05] Double K-grid
+    =====================
+
+  K-points             : 103
+  Bands                :  8
 
 Electron-Phonon interaction (Si)
 ---------------------------

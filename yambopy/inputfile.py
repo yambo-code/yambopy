@@ -27,7 +27,8 @@ class YamboIn():
                    'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life',
                    'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsyms',
                    'QPDBs', 'QPDB_merge','RealTime','RT_X','RToccDos','RToccBnd','RToccEner',
-                   'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid','gkkp','el_ph_corr','WRbsWF','Select_energy', 'RTDBs','photolum','kpts_map']
+                   'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid','gkkp','el_ph_corr','WRbsWF','Select_energy', 'RTDBs','photolum','kpts_map',
+                   'RTtime','RToccupations','RTfitbands']
 
     def __init__(self,args='',folder='.',vim=True,filename='yambo.in'):
         """
@@ -77,6 +78,7 @@ class YamboIn():
         """
         #if the units are not specified, add them
         if type(value) == list and str not in map(type,value):
+            value = [value,'']
             value = [value,'']
         if type(value) in [int,float,complex]:
             value = [value,'']
@@ -235,21 +237,24 @@ class YamboIn():
         return name_files
 
     def write(self,filename='yambo.in'):
-        """ Write a yambo input file
+        """ 
+        Write a yambo input file
         """
         f = open(filename,"w")
         f.write(str(self))
         f.close()
 
     def pack(self,filename):
-        """ Pack all the data of this structure in a `.json` file
+        """ 
+        Pack all the data of this structure in a `.json` file
         """
         f = open(filename,'w')
         json.dump(f,[self.arguments,self.real,self.string,self.complex,self.array],indent=5)
         f.close()
 
     def __str__(self):
-        """  Returns the input file as a string
+        """  
+        Returns the input file as a string
         """
         s  = ""
 
