@@ -87,7 +87,7 @@ class PwIn():
         Si 0.0 0.0 0.0
         Si 0.5 0.5 0.5
         """
-        atoms_str = [line.strip.split() for line in string.strip().split('\n')]
+        atoms_str = [line.strip().split() for line in string.strip().split('\n')]
         self.atoms = []
         for atype,x,y,z in atoms_str:
             self.atoms.append([atype,map(float,[x,y,z])])
