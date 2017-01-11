@@ -1,12 +1,3 @@
-# Version : 12th dec
-""" python plot_bse_cv.py <PathToFolder> <Variable>
-This script allows to track the energy of the n-first bright exciton (settings in script).
-It also creates a .png file with all the absorption spectra on top of each other.
-
-The Folder normally contains the SAVE folder as well as <variable> folders.
-Yambo must be able to run, because ypp is called multiple times.
-"""
-
 import matplotlib
 matplotlib.use('Agg') # prevents crashes if no X server present
 from yambopy import *
@@ -16,20 +7,41 @@ import matplotlib.pyplot as plt
 import numpy as np
 from math import sqrt
 import sys
+import argparse
 
-path = sys.argv[1]
-var = sys.argv[2]
+""" 
+Using ypp, you can:
+  Create a .png of all absorption spectra relevant to the variable you study
+  Look at the eigenvalues of the first n bright excitons.
+
+Pass the folder and variable name using -f and -v.
+Inside the script are additional settings.
+"""
+
+
+parser = argparse.ArgumentParser(description='Helps studying convergence on BS calculations using ypp calls.')
+parser.add_argument('-f' ,'--folder'    , help='Folder containing SAVE and convergence runs.')
+parser.add_argument('-v' ,'--variable'  , help='Variable tested (e.g. FFTGvecs)')
+# TODO have options to disable one or the other (text/graph)
+args = parser.parse_args()
+
+folder = args.folder
+var    = args.var
+
 
 ###################
 # USER PARAMETERS #
 ###################
+# Note : Agg backend (line 2) works great for clusters (no X.org server), 
+# but if X is available, you might want to comment it and 
+# uncomment the plt.show() at the bottom of the script
 
 # Number of excitons to get
 exc_n = 2
 # Exciton brightness threshhold
-exc_int = 0.005
+exc_int = 0.005 
 # Exciton degenerescence threshold
-exc_degen = 0.01
+exc_degen = 0.01 # eV
 # Max exciton energies before ignoring
 exc_max_E = 5 # eV
 
@@ -38,12 +50,12 @@ exc_max_E = 5 # eV
 #####################
 
 print 'Packing ...'
-pack_files_in_folder(path)
+pack_files_in_folder(folder)
 print 'Packing done.'
 
 # importing data from .json files in <folder>
 print 'Importing...'
-data = YamboAnalyser(path)
+data = YamboAnalyser(folder)
 
 # extract data according to relevant var
 invars = data.get_inputfiles_tag(var)
@@ -63,7 +75,7 @@ unit = invars[keys[0]]['variables'][var][1]
 ######################
 
 # Output-file filename
-outname = path+'_'+var+'.dat'
+outname = folder+'_'+var+'.dat'
 
 # Array that will contain the output
 excitons = []
@@ -84,18 +96,18 @@ for key in keys:
     print 'Preparing JSON file. Calling ypp if necessary.'
     ### Creating the 'absorptionspectra.json' file
     # It will contain the exciton energies
-    y = YamboOut(folder=path,save_folder=path)
+    y = YamboOut(folder=folder,save_folder=folder)
     # Args : name of job, SAVE folder path, folder where job was run path
-    a = YamboBSEAbsorptionSpectra(jobname,path=path)
+    a = YamboBSEAbsorptionSpectra(jobname,path=folder)
     # Get excitons values (runs ypp)
     a.get_excitons(min_intensity=exc_int,max_energy=exc_max_E,Degen_Step=exc_degen)
     # Get excitonic WFs (reads eigenvalues)
     a.get_wavefunctions(Degen_Step=exc_degen,repx=range(-1,2),repy=range(-1,2),repz=range(1))
     # Write .json file
-    a.write_json(filename=path+'_'+jobname)
+    a.write_json(filename=folder+'_'+jobname)
 
     ### Loading data from .json file
-    f = open(path+'_'+key)
+    f = open(folder+'_'+key)
     data = json.load(f)
     f.close()
     print 'JSON file prepared and loaded.'
@@ -124,7 +136,7 @@ plt.gca().yaxis.set_major_locator(plt.NullLocator())
 plt.legend()
 #plt.draw()
 #plt.show()
-plotname = path+'_'+var+'_abs.png'
+plotname = folder+'_'+var+'_abs.png'
 plt.savefig(plotname, bbox_inches='tight')
 print plotname
 print 'Done.'
