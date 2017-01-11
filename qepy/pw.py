@@ -81,6 +81,17 @@ class PwIn():
         sym = [atom[0] for atom in self.atoms]
         return cell, pos, sym
 
+    def set_atoms_string(self,string):
+        """
+        set the atomic postions using string of the form
+        Si 0.0 0.0 0.0
+        Si 0.5 0.5 0.5
+        """
+        atoms_str = [line.strip.split() for line in string.strip().split('\n')]
+        self.atoms = []
+        for atype,x,y,z in atoms_str:
+            self.atoms.append([atype,map(float,[x,y,z])])
+
     def set_atoms(self,atoms):
         """ set the atomic postions using a Atoms datastructure from ase
         """

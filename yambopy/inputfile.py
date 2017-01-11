@@ -237,21 +237,24 @@ class YamboIn():
         return name_files
 
     def write(self,filename='yambo.in'):
-        """ Write a yambo input file
+        """ 
+        Write a yambo input file
         """
         f = open(filename,"w")
         f.write(str(self))
         f.close()
 
     def pack(self,filename):
-        """ Pack all the data of this structure in a `.json` file
+        """ 
+        Pack all the data of this structure in a `.json` file
         """
         f = open(filename,'w')
         json.dump(f,[self.arguments,self.real,self.string,self.complex,self.array],indent=5)
         f.close()
 
     def __str__(self):
-        """  Returns the input file as a string
+        """  
+        Returns the input file as a string
         """
         s  = ""
 
@@ -259,6 +262,7 @@ class YamboIn():
         s += "\n".join(self.arguments)+'\n'
 
         for key,value in self.variables.items():
+            print key, value, type(value[0])
             if type(value)==str or type(value)==unicode:
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue
@@ -284,5 +288,6 @@ class YamboIn():
             if type(value[0])==complex:
                 value, unit = value
                 s+="%s = (%lf,%lf) %s\n"%(key,value.real,value.imag,unit)
+                continue
             raise ValueError( "Unknown type %s for variable: %s" %( type(value), key) )
         return s
