@@ -116,4 +116,11 @@ class Matdyn():
                     xi = self.modes[nq][n][na].imag
                     s+=("%12.8lf %12.8lfj    "*3)%(xr[0],xi[0],xr[1],xi[1],xr[2],xi[2])+"\n"
         return s
-
+    
+    def write_freq_file(self,filename='freq.dat'):
+        f = open(filename,'w') 
+        for n in xrange(self.nmodes):
+          for nq in xrange(self.nqpoints):
+            f.write("%4.3lf   %4.3lf\n"%(float(nq),self.eigen[nq][n])) 
+          f.write("\n") 
+        f.close()
