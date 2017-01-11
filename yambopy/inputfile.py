@@ -262,7 +262,6 @@ class YamboIn():
         s += "\n".join(self.arguments)+'\n'
 
         for key,value in self.variables.items():
-            print key, value, type(value[0])
             if type(value)==str or type(value)==unicode:
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue
