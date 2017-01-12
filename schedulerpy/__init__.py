@@ -4,5 +4,7 @@
 # This file is part of yambopy
 #
 #
+from schedulerpy.scheduler import *
 from schedulerpy.pbs import *
-from schedulerpy.oarsub import *
+from schedulerpy.oar import *
+from schedulerpy.bash import *
