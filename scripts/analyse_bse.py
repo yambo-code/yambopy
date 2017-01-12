@@ -12,7 +12,7 @@ import argparse
 """
 Using ypp, you can study the convergence of BSE calculations in 2 ways:
   Create a .png of all absorption spectra relevant to the variable you study
-  Look at the eigenvalues of the first n bright excitons.
+  Look at the eigenvalues of the first n "bright" excitons (given a threshold intensity)
 
 The script reads from <folder> all results from <variable> calculations (skipping the reference run)
 and display them. To avoid running the reference run for nothing, use optimize(...,ref_run=False).
@@ -28,19 +28,22 @@ parser = argparse.ArgumentParser(description='Study convergence on BS calculatio
 parser.add_argument('folder'    , help='Folder containing SAVE and convergence runs.')
 parser.add_argument('variable'  , help='Variable tested (e.g. FFTGvecs)'             )
 parser.add_argument('-ne','--numbexc', help='Number of excitons to read beyond threshold', default=2)
-parser.add_argument('-ie','--intexc' , help='Minimum intensity for excitons to be considered bright', default=0.005)
+parser.add_argument('-ie','--intexc' , help='Minimum intensity for excitons to be considered bright', default=0.05)
 parser.add_argument('-de','--degenexc', help='Energy threshold under which different peaks are merged (eV)', default=0.01)
 parser.add_argument('-me','--maxexc', help='Energy threshold after which excitons are not read anymore (eV)', default=5.0)
 parser.add_argument('-np','--nopack'    , help='Skips packing o- files into .json files', action='store_false')
+parser.add_argument('-nt','--notext'    , help='Skips writing the .dat file', action='store_false')
+parser.add_argument('-nd','--nodraw'    , help='Skips drawing (plotting) the abs spectra', action='store_false')
 # TODO have options to disable one or the other (text/graph)
 args = parser.parse_args()
 
 folder    = args.folder
-var       = args.var
+var       = args.variable
 exc_n     = args.numbexc
 exc_int   = args.intexc
 exc_degen = args.degenexc
 exc_max_E = args.maxexc
+nopack    = args.nopack
 
 #####################
 #  INPUT AND FILES  #
@@ -84,13 +87,13 @@ for key in keys:
     jobname=key.replace('.json','')
     print jobname
 
-        # input value
-        # BndsRn__ is a special case
-        if var.startswith('BndsRnX'):
-        # format : [1, nband, ...]
-            inp = invars[key]['variables'][var][0][1]
-        else:
-            inp = invars[key]['variables'][var][0]
+    # input value
+    # BndsRn__ is a special case
+    if var.startswith('BndsRnX'):
+    # format : [1, nband, ...]
+        inp = invars[key]['variables'][var][0][1]
+    else:
+        inp = invars[key]['variables'][var][0]
 
     print 'Preparing JSON file. Calling ypp if necessary.'
     ### Creating the 'absorptionspectra.json' file
@@ -98,11 +101,9 @@ for key in keys:
     y = YamboOut(folder=folder,save_folder=folder)
     # Args : name of job, SAVE folder path, folder where job was run path
     a = YamboBSEAbsorptionSpectra(jobname,path=folder)
-    # Get excitons values (runs ypp)
+    # Get excitons values (runs ypp once)
     a.get_excitons(min_intensity=exc_int,max_energy=exc_max_E,Degen_Step=exc_degen)
-    # Get excitonic WFs (reads eigenvalues)
-    a.get_wavefunctions(Degen_Step=exc_degen,repx=range(-1,2),repy=range(-1,2),repz=range(1))
-    # Write .json file
+    # Write .json file with spectra and eigenenergies
     a.write_json(filename=folder+'_'+jobname)
 
     ### Loading data from .json file
@@ -126,16 +127,23 @@ for key in keys:
 
     excitons.append(l)
 
-header = 'Variable: '+var+', unit: '+unit
-np.savetxt(outname,excitons,header=header,fmt='%1f')
-print outname
+if args.notext:
+    header = 'Variable: '+var+', unit: '+unit+'\nColumns : '+var+' and "bright" excitons eigenenergies in order.'
+    np.savetxt(outname,excitons,header=header,fmt='%1f')
+    print outname
+else:
+    print '-nt flag : no text produced.'
 
-plt.xlabel('$\omega$ (eV)')
-plt.gca().yaxis.set_major_locator(plt.NullLocator())
-plt.legend()
-#plt.draw()
-#plt.show()
-plotname = folder+'_'+var+'_abs.png'
-plt.savefig(plotname, bbox_inches='tight')
-print plotname
+if args.nodraw:
+    plt.xlabel('$\omega$ (eV)')
+    plt.gca().yaxis.set_major_locator(plt.NullLocator())
+    plt.legend()
+    #plt.draw()
+    #plt.show()
+    plotname = folder+'_'+var+'_abs.png'
+    plt.savefig(plotname, bbox_inches='tight')
+    print plotname
+else:
+    print '-nd flag : no plot produced.'
+
 print 'Done.'
