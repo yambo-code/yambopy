@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('Agg') # prevents crashes if no X server present (clusters)
+#matplotlib.use('Agg') # prevents crashes if no X server present (clusters)
 from yambopy import *
 import matplotlib.pyplot as plt
 import sys
@@ -37,6 +37,7 @@ kpointc= args.kpointc
 bandv  = args.bandv
 kpointv= args.kpointv
 nopack = args.nopack
+text   = args.text
 
 print 'Valence band: ',bandv,'conduction band: ',bandc
 print 'K-point VB: ',kpointv, ' k-point CB: ',kpointc
@@ -60,18 +61,17 @@ tags = data.get_tags(var)
 # Get only files related to the convergence study of the variable
 keys=[]
 for key in invars:
-    print key
     if key.startswith(var):
-        print 'OK'
         keys.append(key)
-    else:
-        print 'Pas OK'
 
 # Ordered to help plotting with lines
 keys=sorted(keys)
 
 print 'Preparing output...'
 ### Output
+
+# Unit of the variable :
+unit = invars[keys[0]]['variables'][var][1]
 
 # The following variables are used to make the script compatible with both short and extended output
 kpindex = tags[keys[0]].tolist().index('K-point')
@@ -95,22 +95,22 @@ for i,key in enumerate(keys):
     # First the relevant lines are identified
     valence=[]
     conduction=[]
-    for i in range(len(outvars[key]+1)):
-        if outvars[key][i][kpindex]==kpointc and outvars[key][i][bdindex]==bandc:
-                conduction=outvars[key][i]
-        elif outvars[key][i][kpindex]==kpointv and outvars[key][i][bdindex]==bandv:
-                valence = outvars[key][i]
+    for j in range(len(outvars[key]+1)):
+        if outvars[key][j][kpindex]==kpointc and outvars[key][j][bdindex]==bandc:
+                conduction=outvars[key][j]
+        elif outvars[key][j][kpindex]==kpointv and outvars[key][j][bdindex]==bandv:
+                valence = outvars[key][j]
     # Then the gap can be calculated
     array[i][1] = conduction[e0index]+conduction[gwindex]-(valence[e0index]+valence[gwindex])
 
-unit = invars[keys[0]]['variables'][var][1]
-filename = folder+'_'+var+'.dat'
-header = 'Variable: ',var,', unit: ',str(unit)
-np.savetxt(filename,array,delimiter='\t',header=header)
+if text:
+    filename = folder+'_'+var+'.dat'
+    header = 'Variable: '+var+', unit: '+str(unit)
+    np.savetxt(filename,array,delimiter='\t',header=header)
+    print filename
 
 plt.plot(array[:,0],array[:,1],'o-')
 plt.xlabel(var+' ('+unit+')')
 plt.ylabel('E_gw = E_lda + \Delta E')
 plt.show()
 #plt.savefig(folder+'_'+var+'.png')
-print filename
