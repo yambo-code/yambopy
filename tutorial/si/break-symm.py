@@ -19,25 +19,29 @@ import argparse
 print ('This script breaks the symmetries of a given nscf run and')
 print ('prepares the rt-folder for the RT simulations')
 print ('Gives two arguments')
-print ('arg1: folder with nscf data')
-print ('arg2: folder for RT simulation')
-print ('arg3: prefix')
+print ('-i: folder with nscf data')
+print ('-o: folder for RT simulation')
+print ('-p: prefix')
+print ('-s: symmetry')
+print ('Example: python break-symm.py -i nscf -o rt-100 -p si -s 100')
 
 parser = argparse.ArgumentParser(description='Map of a double-grid')
 parser.add_argument('-i' ,'--input'    , help='Folder with nscf data')
 parser.add_argument('-o' ,'--output'   , help='Folder for RT simulation')
-parser.add_argument('-p' ,'--prefix'    ,help='Prefix')
+parser.add_argument('-p' ,'--prefix'   ,help='Prefix')
+parser.add_argument('-s' ,'--symmetry' ,help='Choice symmetry: 100 010 110')
 args = parser.parse_args()
 
 #  print ('No folder given')
 print ('Folder of nscf data     ===>>>  ' ,args.input)
 print ('Folder of RT simulation ===>>>  ' ,args.output)
 print ('Prefix                  ===>>>  ' ,args.prefix)
-print ('')
+print ('Symmetry                ===>>>  ' ,args.symmetry)
 
 nscf_folder = args.input
 rt_folder   = args.output
 prefix      = args.prefix
+symm        = args.symmetry
   
 # Generation of the database folder
 
@@ -48,4 +52,10 @@ if not os.path.isdir('database'):
 # Breaking of symmetries
 
 if not os.path.isdir(rt_folder):
-  breaking_symmetries([1,0,0], [0,1,0], rt_folder)
+  if symm   == '100':
+    breaking_symmetries([1,0,0], [0,0,0], rt_folder)
+  elif symm == '010':
+    breaking_symmetries([0,1,0], [0,0,0], rt_folder)
+  elif symm == '110':
+    breaking_symmetries([1,0,0], [0,1,0], rt_folder)
+

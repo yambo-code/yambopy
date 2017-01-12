@@ -30,15 +30,18 @@ if not os.path.isdir('bse'):
     os.system('cp -r database/SAVE bse')
 
 #create the yambo input file
-y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
+y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder='bse')
 
 y['FFTGvecs'] = [5,'Ha']
 y['BSENGexx'] = [5,'Ha']
-y['NGsBlkXs'] = [500,'mHa']
-y['BSENGBlk'] = [500,'mHa']
-y['BndsRnXs'] = [[1,30],'']
-y['BSEBands'] = [[2,7],'']
+y['NGsBlkXs'] = [800,'mHa']
+y['BSENGBlk'] = [800,'mHa']
+y['BndsRnXs'] = [1,20]
+y['BSEBands'] = [2, 7]
+y['RandQpts'] = 1000000
+y['BEnSteps'] = 1000
 y.arguments.append('WRbsWF')
+y.arguments.append('ALLGexx')
 y.write('bse/yambo_run.in')
 
 print('running yambo')
