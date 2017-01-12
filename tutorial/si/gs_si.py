@@ -7,8 +7,8 @@ import sys
 from qepy import *
 import argparse
 
-scf_kpoints  = [4,4,4]
-nscf_kpoints = [3,3,3]
+scf_kpoints  = [2,2,2]
+nscf_kpoints = [2,2,2]
 dg_kpoints   = [4,4,4]
 prefix = 'si'
 matdyn = 'matdyn.x'
@@ -109,7 +109,9 @@ def orbitals():
     projwfc.run(folder='bands')
     projection = ProjwfcXML(prefix='si',path='bands')
     ax = plt.subplot(1,1,1)
-    projection.plot_eigen(ax,path=p,selected_orbitals=[0,4],selected_orbitals_2=[2,5],size=40,cmap='RdBu')
+    s_orb = [0,16]
+    p_orb = [1,2,3,17,19,20]
+    projection.plot_eigen(ax,path=p,selected_orbitals=s_orb,selected_orbitals_2=p_orb,size=40,cmap='RdBu')
     ax.set_ylim([-7,6])
     plt.show()
 
@@ -135,12 +137,13 @@ def dispersion():
     dyn['flfrc'] = "'%s.fc'" % prefix
     dyn['asr']   = "'simple'"  
     dyn['flfrq'] = "'%s.freq'" % prefix
+    dyn['q_in_cryst_coord'] = '.true.'
     dyn.qpoints = p.get_klist()
     dyn.write('phonons/matdyn.in')
     os.system('cd phonons; %s < matdyn.in'%matdyn)
-   
+    print( len(p.get_klist()) ) 
     # Use a class to read and plot the frequencies
-    Matdyn(natoms=2,nqpoints=61,path='phonons').plot_eigen(path=p)
+    Matdyn(natoms=2,path=p,folder='phonons').plot_eigen()
 
 def update_positions(pathin,pathout):
     """ update the positions of the atoms in the scf file using the output of the relaxation loop

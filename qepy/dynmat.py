@@ -54,13 +54,15 @@ class Matdyn():
     """ Class to read and plot the data from matdyn.modes files 
     """
     _datafile = 'matdyn.modes'
-    def __init__(self,natoms,nqpoints,path='.'):
+    def __init__(self,natoms,path,folder='.'):
+        self.folder   = folder
         self.path     = path
-        data_phon     = open("%s/%s"%(path, self._datafile),'r').readlines()
+        data_phon     = open("%s/%s"%(folder, self._datafile),'r').readlines()
         self.nmodes   = natoms*3
-        self.nqpoints = nqpoints
+        self.nqpoints = len(path.get_klist()) 
         self.eigen, self.modes = [], []
-        for j in xrange(nqpoints):
+
+        for j in xrange(self.nqpoints):
           frec, v_frec = [], []
           for i in xrange(self.nmodes):
             k=4 + j*(self.nmodes*(natoms+1)+5) + i*(natoms+1)

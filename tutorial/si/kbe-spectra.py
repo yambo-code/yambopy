@@ -44,6 +44,8 @@ os.system('cd %s; ypp_rt -F ypp.in -J %s' % (folder,jobname))
 kbe = loadtxt('%s/o-%s.YPP-eps_along_E'  % (folder,jobname))
 bse = loadtxt('%s/o-%s.eps_q1_diago_bse' % (bsefolder,bsename))
 
-plt.plot(kbe[:,0],kbe[:,1])
-plt.plot(bse[:,0],bse[:,1])
+plt.plot(kbe[:,0],kbe[:,1],label='KBE')
+plt.plot(bse[:,0],bse[:,1],label='BSE')
+
+plt.legend()
 plt.show()

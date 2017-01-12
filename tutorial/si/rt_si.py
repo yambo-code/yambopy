@@ -27,9 +27,9 @@ import os
 
 # Select the run-level : 'collision', 'pump', 'dissipation'
 parser = argparse.ArgumentParser(description='Example of real-time simulation')
-parser.add_argument('-c' ,'--collisions')
-parser.add_argument('-p' ,'--pump')
-parser.add_argument('-d' ,'--dissipation')
+parser.add_argument('-c' ,'--collisions', action="store_true")
+parser.add_argument('-p' ,'--pump',       action="store_true")
+parser.add_argument('-d' ,'--dissipation',action="store_true")
 args = parser.parse_args()
 
 p2y      = 'p2y'
@@ -40,11 +40,11 @@ ypp_ph   = 'ypp_ph'
 folder   = 'rt'
 
 job = dict()
-job['folder-run']   = ''                # Optional additional job identifier
-job['folder-col']   = 'col-hxc'              # Collisions folder
-job['folder-gkkp']  = 'GKKP'                 # gkkp folder
-job['DG']           = (False,'dg-4x4x4')     # Double-grid folder
-job['temperature']  = 0.0                    # Temperature phonon bath
+job['folder-run']   = ''                 # Optional additional job identifier
+job['folder-col']   = 'col-hxc'          # Collisions folder
+job['folder-gkkp']  = 'GKKP'             # gkkp folder
+job['DG']           = (False,'dg-4x4x4') # Double-grid folder
+job['temperature']  = 0.0                # Temperature phonon bath
 
 # check if the database is present
 if not os.path.isdir('database'):
@@ -81,16 +81,24 @@ else:
   print 'Invalid calculation type'
   exit()
 
+run['DBsIOoff']= "J G"             # [IO] Space-separated list of DB with NO I/O. DB=(DIP,X,HF,COLLs,J,GF,CARRIERs,W,SC,BS,ALL)
+
 # Collision variables
 if args.collisions:
-  run['FFTGvecs']  = [5,'Ha']
-  run['HARRLvcs']  = [5,'Ha']     # Hartree term: Equivalent to BSENGexx in the BSE run-level
-  run['EXXRLvcs']  = [500,'mHa']  # Forck term:   Equivalent to BSENGBlk in the BSE run-level
-  run['CORRLvcs']  = [500,'mHa']  # Correlation term: Not appearing in BSE. 
-  run['NGsBlkXs']  = [500,'mHa']
-  run['BndsRnXs' ] = [1,30]       # Static screening
-  run['COLLBands'] = [2,7]        # Electron-Hole states
   run['HXC_Potential']  = 'HARTREE+SEX' 
+  run['COLLBands'] = [2,7]        # Electron-Hole states
+
+  run['FFTGvecs']  = [5,'Ha']
+  run['NGsBlkXs']  = [800,'mHa']
+  run['BndsRnXs' ] = [1,20]       # Static screening
+
+  run['HARRLvcs']  = [5,'Ha']     # Hartree term: Equivalent to BSENGexx in the BSE run-level
+  run['EXXRLvcs']  = [800,'mHa']  # Forck term:   Equivalent to BSENGBlk in the BSE run-level
+  run['CORRLvcs']  = [800,'mHa']  # Correlation term: Not appearing in BSE. 
+
+  run.arguments.append('ALLGHAR')
+
+  run['RandQpts'] = 1000000
   run.write('%s/03_COLLISION'%folder)
 
 # Common time-dependent variable
@@ -101,24 +109,26 @@ if args.pump or args.dissipation:
   run['GfnQP_E']    = [0.00, 1.00, 1.00]  # [EXTQP BSK BSS] E parameters  (c/v) eV|adim|adim
   run['HXC_Potential']  = 'HARTREE+SEX' 
   # Time-propagation 
-  run['RTstep']     = [   5.0,'as']
+  run['RTstep']     = [ 100.0,'as']
   run['NETime']     = [   1.0,'ps']
   run['Integrator'] = "RK2 RWA"
-  run['IOtime']     = [ [10.000, 10.000, 1.000], 'fs' ] 
+  run['IOtime']     = [ [ 1.000,  1.000, 5.000], 'fs' ] 
   # Pump Pulse
-  run['Field1_Int']       = [ 1E4 , 'kWLm2']    # Intensity pulse
+  run['Field1_Int']       = [ 10.0, 'kWLm2']  # Intensity pulse
   run['Field1_Dir']       = [1.0,0.0,0.0]  # Polarization pulse
   run['Field1_Dir_circ']  = [0.0,1.0,0.0]  # Polarization pulse
   run['Field1_pol']       = "linear"       # Polarization type (linear or circular) 
   run['Field1_kind']      = "QSSIN"        # [RT Field1] Kind(SIN|RES|ANTIRES|GAUSS|DELTA|QSSIN)
-  run['Field1_Damp']      = [ 50,'fs']
-  run['Field1_Freq']      = [[2.3,2.3],'eV']
+  run['Field1_Damp']      = [  75,'fs']
+  run['Field1_Freq']      = [[2.23,2.23],'eV']
 
 # Pumping with finite pulse and electron-phonon dissipation
-if args.pump or args.dissipation:
+if args.dissipation:
 # Interpolation 
-  run['LifeInterpKIND']  = 'FLAT'
-  run['LifeInterpSteps'] = [ [1.0,1.0], 'fs' ] 
+  run['LifeExtrapSteps'] = [ [5.0,5.0], 'fs' ] 
+  run['ElPhModes']       = [ 1, 6]
+  run['BoseTemp']        = [ job['temperature'], 'K']
+  run.arguments.append('LifeExtrapolation')
 
 # Submission in serial
 
@@ -140,6 +150,8 @@ if args.pump:
   print('running NEGF in folder: %s' % job['folder-run'])
   if job['DG'][0]:
     print('with Double Grid from folder %s'%job['DG'][1])
+    print ('cd %s; %s -F 04_PUMP -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['DG'][1],jobname))
+    os.system ('cd %s; %s -F 04_PUMP -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['DG'][1],jobname))
   else:
     print 'cd %s ; %s -F 04_PUMP -J \'%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],jobname)
     os.system ('cd %s; %s -F 04_PUMP -J \'%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],jobname))
@@ -157,7 +169,8 @@ if args.dissipation:
     jobname = '%s%s-%.0e-%sfs-%seV-%sK' % ( job['folder-run'], run['Field1_kind'],run['Field1_Int'][0], run['Field1_Damp'][0], run['Field1_Freq'][0][0],job['temperature'] )
   if job['DG'][0]:
     print('with Double Grid from folder %s'%job['DG'][1])
-    print('%s -F 06_DISS -J \'%s,%s,%s\''%(yambo_rt,jobname,job['folder-col'],job['DG'][1]))
+    print('%s -F 05_DISS -J \'%s,%s,%s,%s\''%(yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],job['DG'][1]))
+    os.system('cd %s; %s -F 05_DISS -J \'%s,%s,%s,%s\''%(folder,yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],job['DG'][1]))
   else:
     print 'cd %s; %s -F 05_DISS -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],jobname)
     os.system( 'cd %s; %s -F 05_DISS -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],jobname) )
