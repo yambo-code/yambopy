@@ -60,20 +60,18 @@ tags = data.get_tags(var)
 # Get only files related to the convergence study of the variable
 keys=[]
 for key in invars:
+    print key
     if key.startswith(var):
+        print 'OK'
         keys.append(key)
+    else:
+        print 'Pas OK'
 
 # Ordered to help plotting with lines
 keys=sorted(keys)
 
 print 'Preparing output...'
 ### Output
-# arrays for matplotlib plot
-# file for later use
-inparray = []
-outarray = []
-filename = folder+'_'+var+'.dat'
-f = open(filename,'w')
 
 # The following variables are used to make the script compatible with both short and extended output
 kpindex = tags[keys[0]].tolist().index('K-point')
@@ -81,9 +79,6 @@ bdindex = tags[keys[0]].tolist().index('Band')
 e0index = tags[keys[0]].tolist().index('Eo')
 gwindex = tags[keys[0]].tolist().index('E-Eo')
 
-# Writing the unit of the input value in the first line
-unit = invars[keys[0]]['variables'][var][1]
-f.write('# Unit of the input value: '+str(unit)+'\n')
 
 array = np.zeros((len(keys),2))
 
@@ -108,15 +103,14 @@ for i,key in enumerate(keys):
     # Then the gap can be calculated
     array[i][1] = conduction[e0index]+conduction[gwindex]-(valence[e0index]+valence[gwindex])
 
-    #writing value and energy diff in file
-    s=str(inp)+'\t'+str(out)+'\n'
-    f.write(s)
-    inparray.append([inp])
-    outarray.append([out])
+unit = invars[keys[0]]['variables'][var][1]
+filename = folder+'_'+var+'.dat'
+header = 'Variable: ',var,', unit: ',str(unit)
+np.savetxt(filename,array,delimiter='\t',header=header)
 
-plt.plot(inparray,outarray,'o-')
+plt.plot(array[:,0],array[:,1],'o-')
 plt.xlabel(var+' ('+unit+')')
 plt.ylabel('E_gw = E_lda + \Delta E')
-#plt.show()
-plt.savefig(folder+'_'+var+'.png')
+plt.show()
+#plt.savefig(folder+'_'+var+'.png')
 print filename
