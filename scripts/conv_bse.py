@@ -23,6 +23,7 @@ parser = argparse.ArgumentParser(description='Helps studying convergence on BS c
 parser.add_argument('-f' ,'--folder'    , help='Folder containing SAVE and convergence runs.')
 parser.add_argument('-v' ,'--variable'  , help='Variable tested (e.g. FFTGvecs)')
 # TODO have options to disable one or the other (text/graph)
+# TODO have the user parameters into '-x' too, with default values to make them optional
 args = parser.parse_args()
 
 folder = args.folder
