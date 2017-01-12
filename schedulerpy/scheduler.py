@@ -92,7 +92,6 @@ class Scheduler():
             
         #load configurations file
         config = Scheduler.load_config()
-                        
         if scheduler is None:
             schedulername = config['default']
         else:
@@ -217,12 +216,13 @@ class Scheduler():
         """
         if "modules" in self.kwargs:
             config_modules = self.kwargs["modules"]
-            if mod in config_modules:
-                self.modules.append(config_modules[mod])
-            else:
-                raise ValueError("Module \"%s\" is now known. "
-                                 "Add it to the config file in %s. "
-                                 "Known modules are: %s"%(mod,self._config_filename,config_modules))
+            if not config_modules == "None":
+              if mod in config_modules:
+                  self.modules.append(config_modules[mod])
+              else:
+                  raise ValueError("Module \"%s\" is now known. "
+                                   "Add it to the config file in %s. "
+                                   "Known modules are: %s"%(mod,self._config_filename,config_modules))
         else:
             raise ValueError("No modules are known. "
                              "Add some to the config file in %s. "%(self._config_filename))
