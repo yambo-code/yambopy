@@ -1,38 +1,52 @@
 import matplotlib
-matplotlib.use('Agg') # prevents crashes if no X server present
+matplotlib.use('Agg') # prevents crashes if no X server present (clusters)
 from yambopy import *
 import matplotlib.pyplot as plt
 import sys
+import argparse
+import numpy as np
 
-""" Input : python data_grab.py <folder> <variable>
-    Other parameters must be changed depending on systems in the first lines of the script.
+"""
+Study the convergence of GW calculations by looking at the change in band-gap value.
 
-    Uses .json files from pack_files_in_folder routine
-    to help plotting the energy gap convergence for the <variable> passed as argument
-    <folder> is the folder containing all the different run folders,
-    wherein the different o-* files are located.
-    NB : The reference run is not used and should be disabled if using the
-    yambopy.optimize() routine using arg "ref_run=False".
-    """
+The script reads from <folder> all results from <variable> calculations (skipping the reference run)
+and display them. To avoid running the reference run for nothing, use optimize(...,ref_run=False).
+Please note that the first value in the convergence dictionnary will thus not be ran.
 
-## USER-DEFINED VARIABLES
-# Variables used to find where the gap is.
-# bandc | bandv : number of the conduction | valence band
-# kpoint : number of the k-point which is to be evaluated
+Use the band and k-point options (or change default values) according to the size of your k-grid and
+the location of the band extrema.
+"""
 
-# Exemple values for 1L-MoS2 on a 12x12 grid
-bandv = 26   ; bandc = 27
-kpointv = 19 ; kpointc = 19
+parser = argparse.ArgumentParser(description='Study GW convergence with regards to the band-gap value.')
+#parser.add_argument('-f' ,'--folder'    , help='Folder containing SAVE and convergence runs.', required=True)
+#parser.add_argument('-v' ,'--variable'  , help='Variable tested (e.g. FFTGvecs)'             , required=True)
+parser.add_argument('folder'    , help='Folder containing SAVE and convergence runs.')
+parser.add_argument('variable'  , help='Variable tested (e.g. FFTGvecs)'             )
+parser.add_argument('-bc','--bandc'     , help='Lowest conduction band number'    , default=27)
+parser.add_argument('-kc','--kpointc'   , help='K-point index for conduction band', default=19)
+parser.add_argument('-bv','--bandv'     , help='Highest valence band number'      , default=26)
+parser.add_argument('-kv','--kpointv'   , help='K-point index for valence band'   , default=19)
+parser.add_argument('-np','--nopack'    , help='Skips packing o- files into .json files', action='store_false')
+parser.add_argument('-t'  ,'--text'      , help='Also print a text file for reference'   , action='store_true')
+args = parser.parse_args()
+
+folder = args.folder
+var    = args.variable
+bandc  = args.bandc
+kpointc= args.kpointc
+bandv  = args.bandv
+kpointv= args.kpointv
+nopack = args.nopack
+
 print 'Valence band: ',bandv,'conduction band: ',bandc
 print 'K-point VB: ',kpointv, ' k-point CB: ',kpointc
 
-folder = sys.argv[1]
-var = sys.argv[2]
 
-# <folder> would be the folder containing all .json files
-print 'Packing ...'
-pack_files_in_folder(folder)
-print 'Packing done.'
+# Packing results (o-* files) from the calculations into yambopy-friendly .json files
+if nopack: # True by default, False if -np used
+    print 'Packing ...'
+    pack_files_in_folder(folder)
+    print 'Packing done.'
 
 # importing data from .json files in <folder>
 print 'Importing...'
@@ -71,14 +85,16 @@ gwindex = tags[keys[0]].tolist().index('E-Eo')
 unit = invars[keys[0]]['variables'][var][1]
 f.write('# Unit of the input value: '+str(unit)+'\n')
 
-for key in keys:
+array = np.zeros((len(keys),2))
+
+for i,key in enumerate(keys):
     # input value
     # GbndRnge and BndsRnX_ are special cases
     if var.startswith('GbndRng') or var.startswith('BndsRnX'):
         # format : [1, nband, ...]
-        inp = invars[key]['variables'][var][0][1]
+        array[i][0] = invars[key]['variables'][var][0][1]
     else:
-        inp = invars[key]['variables'][var][0]
+        array[i][0] = invars[key]['variables'][var][0]
 
     # Output value (gap energy)
     # First the relevant lines are identified
@@ -90,7 +106,7 @@ for key in keys:
         elif outvars[key][i][kpindex]==kpointv and outvars[key][i][bdindex]==bandv:
                 valence = outvars[key][i]
     # Then the gap can be calculated
-    out = conduction[e0index]+conduction[gwindex]-(valence[e0index]+valence[gwindex])
+    array[i][1] = conduction[e0index]+conduction[gwindex]-(valence[e0index]+valence[gwindex])
 
     #writing value and energy diff in file
     s=str(inp)+'\t'+str(out)+'\n'
