@@ -11,7 +11,7 @@ Study the convergence of GW calculations by looking at the change in band-gap va
 
 The script reads from <folder> all results from <variable> calculations (skipping the reference run)
 and display them. To avoid running the reference run for nothing, use optimize(...,ref_run=False).
-Please note that the first value in the convergence dictionnary will thus not be ran.
+Please note that the first value in the convergence dictionnary will thus not be run.
 
 Use the band and k-point options (or change default values) according to the size of your k-grid and
 the location of the band extrema.
