@@ -34,7 +34,6 @@ parser.add_argument('-me','--maxexc', help='Energy threshold after which exciton
 parser.add_argument('-np','--nopack'    , help='Skips packing o- files into .json files', action='store_false')
 parser.add_argument('-nt','--notext'    , help='Skips writing the .dat file', action='store_false')
 parser.add_argument('-nd','--nodraw'    , help='Skips drawing (plotting) the abs spectra', action='store_false')
-# TODO have options to disable one or the other (text/graph)
 args = parser.parse_args()
 
 folder    = args.folder
@@ -115,7 +114,7 @@ for key in keys:
     ### Plotting the absorption spectra
     # BSE spectra
     plt.plot(data['E/ev[1]'], data['EPS-Im[2]'],label=jobname,lw=2)
-#   # Axes : lines for exciton energies, labels
+#   # Axes : lines for exciton energies (disabled, would make a mess)
 #   for n,exciton in enumerate(data['excitons']):
 #       plt.axvline(exciton['energy'])
 
