@@ -66,9 +66,9 @@ class YamboAnalyser():
 
         files = ["%s"%filename for filename in os.listdir(folder)]
         self.filenames = [f for f in files if '.json' in f]
-
         #read the files
         files = [open("%s/%s"%(self.folder,f)) for f in self.filenames]
+
         self.jsonfiles = dict([(filename,json.load(f)) for filename,f in zip(self.filenames,files)])
         for f in files: f.close()
 
@@ -87,9 +87,6 @@ class YamboAnalyser():
         data = dict()
         for k in sorted(self.jsonfiles.keys()):
             for filename in self.jsonfiles[k]["data"].keys():
-                if "eel" in filename:
-                    print 'eel file skipped'
-                    continue
                 if all(i in filename for i in tags):
                     data[k] = np.array( self.jsonfiles[k]["data"][filename] )
         return data
