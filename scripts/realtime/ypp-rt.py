@@ -7,7 +7,7 @@ import argparse
 
 """
 Automation of ypp_rt calls.
-   - Spectra : BSE spectra of real-time simulations
+   - Spectra : BSE spectra of real-time simulations (NOT on time t)
    - Occupation : Calculates occupation at different times
 """
 
