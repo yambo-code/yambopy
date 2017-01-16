@@ -12,16 +12,18 @@ def pack_files_in_folder(folder,save_folder=None,mask='',verbose=True):
      Pack the output files in a folder to json files
     """
     if not save_folder: save_folder = folder
+    print mask
     #pack the files in .json files
     for dirpath,dirnames,filenames in os.walk(folder):
         #check if the folder fits the mask
-#        for d in dirpath:
-#            if mask in d:
-        #check if there are some output files in the folder
-        if ([ f for f in filenames if 'o-' in f ]):
-            print dirpath
-            y = YamboOut(dirpath,save_folder=save_folder)
-            y.pack()
+        print 'if %s in %s' %(mask, dirpath)
+        if mask in dirpath:
+            print 'OK'
+            #check if there are some output files in the folder
+            if ([ f for f in filenames if 'o-' in f ]):
+                print dirpath
+                y = YamboOut(dirpath,save_folder=save_folder)
+                y.pack()
 
 def breaking_symmetries(efield1,efield2=[0,0,0],folder='.',RmTimeRev=True):
 # Breaks the symmetries for a given field.
