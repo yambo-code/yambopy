@@ -119,7 +119,7 @@ class ProjwfcXML():
         if not selected_orbitals_2:
           for ib in range(self.nbands):
             #ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,c='r',edgecolors='none')
-            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=w_proj[:,ib]*size,c=color,cmap=color_map,edgecolors='none')
+            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=w_proj[:,ib]*size,c=color,edgecolors='none')
 
         ax.set_xlim(0, self.nkpoints-1)
         ax.set_ylim(auto=True)
