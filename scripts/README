@@ -13,3 +13,6 @@ Here you can find some user contributed scripts for yambopy.
 3. analyse_bse.py
  After running a BSE calculation with a bse_conv.py type of script, you can analyse the data and plot either
  the bright excitons eigenenergies or the optical spectra as a function of a convergence parameter.
+
+4. plot_excitons.py
+ Plot the BSE spectra including excitonic energies and the exciton weights in the Brillouin Zone of a BSE calculation.
