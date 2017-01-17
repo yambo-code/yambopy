@@ -33,7 +33,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
         self.atoms = None
         self.excitons = None
-
+ 
         #use YamboOut to read the absorption spectra
         self.path = path
 
@@ -56,7 +56,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
             self.data[key] = value
 
     def get_excitons(self,min_intensity=0.1,max_energy=4,Degen_Step=0.0):
-        """
+        """ 
         Obtain the excitons using ypp
         Parameters:
             min_intensity - Only plot excitons with intensity larger than this value (default: 0.1)
@@ -91,7 +91,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                 prev_exc = e
             self.excitons = np.array(new_excitons)
 
-        #create dictionary with excitons
+        #create dictionary with excitons 
         excitons = self.data["excitons"]
         for e,intensity,i in self.excitons:
             exciton = {"energy": e,
@@ -117,7 +117,6 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
           Format     - Choose the format to plot in. Can be: x for xcrysden or g for gnuplot (default: 'x' for xcrysden)
           Degen_Step - Threshold to merge degenerate states. If the difference in energy between the states is smaller than
                        this value their wavefunctions will be plotted together
-          MinWeight  - Minimum value of the weight
           repx       - Number or repetitions along the x direction
           repy       - Number or repetitions along the x direction
           repz       - Number or repetitions along the x direction
@@ -125,6 +124,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
         """
         if self.excitons is None:
             raise ValueError( "Excitons not present. Run YamboBSEAbsorptionSpectra.get_excitons() first" )
+        self.data["excitons"] = []
 
         #create a ypp file using YamboIn for reading the wavefunction
         yppwf = YamboIn('ypp -e w',filename='ypp.in',folder=self.path)
