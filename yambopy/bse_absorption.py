@@ -124,6 +124,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
         """
         if self.excitons is None:
             raise ValueError( "Excitons not present. Run YamboBSEAbsorptionSpectra.get_excitons() first" )
+        self.data["excitons"] = []
 
         #create a ypp file using YamboIn for reading the wavefunction
         yppwf = YamboIn('ypp -e w',filename='ypp.in',folder=self.path)
