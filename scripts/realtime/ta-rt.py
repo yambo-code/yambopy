@@ -1,4 +1,4 @@
-import matplotlib
+#import matplotlib
 #matplotlib.use('Agg') # prevents crashes if no X server present
 from yambopy import *
 import sys
@@ -16,6 +16,7 @@ Setting inside the script : prefix
 parser = argparse.ArgumentParser(description='Map of a double-grid')
 parser.add_argument('-f' ,'--folder'    , help='Folder with data for TA')
 parser.add_argument('-j' ,'--job'       , help='Name of job (ex: B-QSSIN-... without "-tX")')
+parser.add_argument('-nt','--notext'    , help='Skips the writing of the data', action='store_false')
 args = parser.parse_args()
 
 print "Folder: ",args.folder
@@ -24,16 +25,15 @@ print "Job: ", args.job
 folder = args.folder
 job = args.job
 
-#print 'packing'
-#pack_files_in_folder(folder,mask=job)
-#print 'done'
+print 'Packing relevant calculations'
+pack_files_in_folder(folder,mask=job)
+print 'Done.'
 
 data = YamboAnalyser(folder)
 output = data.get_data((job,'eps'))
 
 # keys to read the outputs in order
-keys=output.keys()
-keys=sorted(keys)
+keys=sorted(output.keys())
 print 'Keys : ',keys
 
 # times to print in file
@@ -73,24 +73,27 @@ for l in range(0,nlines):
 
 
 # Writing
+if args.notext:
+    print 'Writing data to files...'
+    f=open(job+'.dat','w')
+    string = 'eV'
+    for t in times:
+        string = string + '\t' + t
+    np.savetxt(f,array,delimiter='\t',header=string)
+    f.close()
 
-file1=open(job+'.dat','w')
-string = 'eV'
-for t in times:
-    string = string + '\t' + t
-np.savetxt(file1,array,delimiter='\t',header=string)
-file1.close()
+    f=open(job+'_diff.dat','w')
+    string = 'eV'
+    for i,t in enumerate(times):
+        if i==0:
+           continue
+        string = string + '\t' + t + '-t0'
+    np.savetxt(f,diff,delimiter='\t',header=string)
+    f.close()
 
-file2=open(job+'_diff.dat','w')
-string = 'eV'
-for i,t in enumerate(times):
-    if i==0:
-       continue
-    string = string + '\t' + t + '-t0'
-np.savetxt(file2,diff,delimiter='\t',header=string)
-file2.close()
-
-print 'Writing done.'
+    print 'Writing done.'
+else:
+    print '"--notext" flag'
 
 # Plotting
 fig,ax1=plt.subplots()
