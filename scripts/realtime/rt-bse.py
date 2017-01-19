@@ -21,19 +21,16 @@ from schedulerpy import *
 
 yambo_module = 'yambo/master-intel'
 yambo_rt     = 'yambo_rt'
-ypp_rt       = 'ypp_rt'
 
-#source       = 'rt-D-1.94eV-0K-0.1fs-DG'
-source       = 'QSSIN-1e+03-70.0fs-1.94eV-0K' # no dissipation
-folder_kerr  = 'kerr-24x24'
+source       = 'QSSIN-1e+03-70.0fs-2.0eV-0K'
 folder_rt    = 'rt-24x24'
 folder_gw    = 'gw-24x24'
 
 BSRTmode = 'XRK' #  X: Screening, R: Residuals, K: Kernel
 CSRTmode = 'XG'  #  X: Screening, G: GFs
-QPdata   = 'E'   #  E: Equilibrium QPs, N: Non-Equilibrium QPs, L: Scissor operator
+QPdata   = 'N'   #  E: Equilibrium QPs, N: Non-Equilibrium QPs, L: Scissor operator
 
-bs_nodes =  4
+bs_nodes =  1
 bs_cores =  12
 
 time_probe = range(0,610,150)
@@ -46,13 +43,8 @@ print(time_probe)
 gw = [2.0, 1.41334, 1.16886, 1.04588, 0.98218, 0.9214, 0.8995]
 ##########################################################
 
-dir_pump   = '../%s/%s/' % (folder_rt,source)
-link_pump  = '../%s/%s/' % (folder_rt,source)
-dir_inputs = 'inputs'
-os.system('cd %s; mkdir -p %s'%(folder_kerr,dir_inputs))
 
-
-bs = YamboIn('%s  -r -b -o b -k sex -y d -Q'%yambo_rt,folder=folder_kerr)  # BS
+bs = YamboIn('%s  -r -b -o b -k sex -y d -Q'%yambo_rt,folder=folder_rt)  # BS
 #bs = YamboIn('%s -o g -Q'%yambo_rt,vim=False)  # BS
 bs['DBsIOoff'] = ''
 bs['BSKmod']   = "SEX"                # [BSE] IP/Hartree/HF/ALDA/SEX/BSfxc
@@ -92,29 +84,26 @@ print('RT source calculation: %s \n' % source)
 for time in time_probe:
     print('Time of carriers database %d' % time)
     if 'X' in BSRTmode:
-      bs['XfnRTdb'] = 'f @ %d fs < ./%s/ndb.RT_carriers' % ( time , link_pump )
+      bs['XfnRTdb'] = 'f @ %d fs < ./pulse/ndb.RT_carriers' % ( time )
     if 'R' in BSRTmode:
-      bs['RfnRTdb'] = 'f @ %d fs < ./%s/ndb.RT_carriers' % ( time , link_pump )
+      bs['RfnRTdb'] = 'f @ %d fs < ./pulse/ndb.RT_carriers' % ( time )
     if 'K' in BSRTmode:
-      bs['KfnRTdb'] = 'f @ %d fs < ./%s/ndb.RT_carriers' % ( time , link_pump )
+      bs['KfnRTdb'] = 'f @ %d fs < ./pulse/ndb.RT_carriers' % ( time )
     if 'E' in QPdata:
-      bs['KfnQPdb'] = 'E < ../%s/FixSymm/24x24_run/ndb.QP' % folder_gw         # GW database
-      namebs      = 'B-%s-%s-%s-t%d' % ( BSRTmode,   QPdata, source, time )
+      bs['KfnQPdb'] = 'E < ../../%s/FixSymm/24x24_run/ndb.QP' % folder_gw         # GW database
+      namebs      = 'B-%s-%s-t%d' % ( BSRTmode, QPdata, time )
     if 'N' in QPdata:
-      namebs      = 'B-%s-%s-%s-t%d' % ( BSRTmode, CSRTmode, source, time )
-      name_merged = 'M-%s-%s-t%d'    % ( CSRTmode, source, time )
+      namebs      = 'B-%s-%s-t%d' % ( BSRTmode, CSRTmode, time )
+      name_merged = 'M-%s-t%d'    % ( CSRTmode, time )
       bs['KfnQPdb'] = 'E < ./%s/ndb.QP' % name_merged  # GW + NEQ_COHSEX - EQ_COHSEX
     if 'L' in QPdata:
-      namebs      = 'B-%s-t%d' % ( source, time )
+      namebs      = 'B-L-t%d' % ( time )
       print('Use LDA+Scissor')
-    bs.write('%s/%s/%s.in' %(folder_kerr, dir_inputs, namebs))
+    bs.write('%s/%s/%s.in' %(folder_rt, source, namebs))
     yambo = oarsub(nodes=bs_nodes,core=bs_cores,dependent=0,name='bse-rt',walltime="10:00:00")
     yambo.add_command('module load %s'%yambo_module)
     yambo.add_command('export OMP_NUM_THREADS=1')
-    #yambo.add_command('mpirun -npernode 12 -x OMP_NUM_THREADS -x PATH -x LD_LIBRARY_PATH -hostfile \$OAR_NODEFILE %s -F %s/%s.in -J %s -C %s'%(yambo_kerr,dir_inputs,namebs,namebs,namebs))
-    yambo.add_command('mpirun -hostfile \$OAR_NODEFILE %s -F %s/%s.in -J %s -C %s'%(yambo_rt,dir_inputs,namebs,namebs,namebs))
-    yambo.write('%s/%s.ll' % (folder_kerr, namebs))
-    os.system('cd %s; sh %s.ll'% (folder_kerr, namebs))
-    yambo.clean()
-
+    yambo.add_command('cd %s/%s ; mpirun -hostfile \$OAR_NODEFILE %s -F %s.in -J %s -C %s -I \'../\''%(folder_rt,source,yambo_rt,namebs,namebs,namebs))
+    yambo.write('%s/%s/%s.ll' % (folder_rt, source, namebs))
+    yambo.run()
 
