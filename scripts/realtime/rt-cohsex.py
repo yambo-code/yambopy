@@ -23,28 +23,25 @@ from schedulerpy import *
 
 ############## SETTINGS ##############
 
-yambo_module = 'yambo/master-intel'
+#yambo_module = 'yambo/master-intel'
+yambo_module = 'yambo/git'
 yambo_rt     = 'yambo_rt'
 
-folder_rt    = 'rt-24x24'
-source       = 'QSSIN-1e+03-70.0fs-1.94eV-0K'
+folder_rt    = 'rt-6x6'
+source       = 'QSSIN-1e+03-70.0fs-2.0eV-0K'
 # Folder folder_cohsex in other -rt scripts is for the ndb.QP @ t=0.
 
 CSRTmode = 'XG'  #  X: Screening, G: GFs
 
-nodes =  4
-cores =  12
+nodes =  1
+cores =  16
 
 time_probe = range(0,610,150)
 #time_probe=(0,)
 print(time_probe)
 
+
 #######################################
-
-
-dir_pump   = '../%s/%s/' % (folder_rt,source)
-link_pump  = '../%s/%s/' % (folder_rt,source)
-
 
 cs = YamboIn('%s -r -p c -g n'%yambo_rt,folder=folder_rt) # NEQ COHSEX
 #coulomb cutoff
@@ -61,9 +58,9 @@ cs['BndsRnXs'] = [1,60]
 cs['QPkrange'] = [1,576,25,28]
 #paralelization
 cs['X_all_q_ROLEs'] = 'q.k.c.v'
-cs['X_all_q_CPU']   = '1.24.2.1'
+cs['X_all_q_CPU']   = '1.%d.2.1'%(nodes*cores/2)
 cs['SE_ROLEs']      = 'q.qp.b'
-cs['SE_CPU']        = '1.48.1'
+cs['SE_CPU']        = '1.%d.1'%(nodes*cores)
 # Flags
 cs.arguments.append('ExtendOut')
 
@@ -75,24 +72,21 @@ print('RT source calculation: %s \n' % source)
 for time in time_probe:
     print('Time of carriers database %d' % time)
     if CSRTmode == 'X':
-      cs['XfnRTdb'] = 'f @ %d fs < ./%s/ndb.RT_carriers' % ( time , link_pump )
+      cs['XfnRTdb'] = 'f @ %d fs < ./pulse/ndb.RT_carriers' % ( time )
     elif CSRTmode == 'G':
-      cs['GfnRTdb'] = 'f @ %d fs < ./%s/ndb.RT_carriers' % ( time , link_pump )
+      cs['GfnRTdb'] = 'f @ %d fs < ./pulse/ndb.RT_carriers' % ( time )
     elif CSRTmode == 'XG':
-      cs['XfnRTdb'] = 'f @ %d fs < ./%s/ndb.RT_carriers' % ( time , link_pump )
-      cs['GfnRTdb'] = 'f @ %d fs < ./%s/ndb.RT_carriers' % ( time , link_pump )
+      cs['XfnRTdb'] = 'f @ %d fs < ./pulse/ndb.RT_carriers' % ( time )
+      cs['GfnRTdb'] = 'f @ %d fs < ./pulse/ndb.RT_carriers' % ( time )
     else:
       print('Error in the RT run level')
       exit()
     namecs        = 'C-%s-%s-t%d'              % ( CSRTmode, source, time )
     print(namecs)
     cs.write('%s/%s/%s.in' %(folder_rt, source, namecs))
-    yambo = oarsub(nodes=nodes,core=cores,dependent=4078486,name='cohsex',walltime="10:00:00")
+    yambo = oarsub(nodes=nodes,core=cores,dependent=0,name='cohsex',walltime="10:00:00")
     yambo.add_command('module load %s'%yambo_module)
     yambo.add_command('export OMP_NUM_THREADS=1')
-    #yambo.add_command('mpirun -npernode 12 -x OMP_NUM_THREADS -x PATH -x LD_LIBRARY_PATH -hostfile \$OAR_NODEFILE %s -F %s/%s.in -J %s -C %s'%(yambo_rt,dir_inputs,namecs,namecs,namecs))
-    #yambo.add_command('mpirun -machinefile \$OAR_NODEFILE %s -F %s/%s.in -J %s -C %s'%(yambo_rt,dir_inputs,namecs,namecs,namecs))
-    yambo.add_command('mpirun -hostfile \$OAR_NODEFILE %s -F %s/%s.in -J %s -C %s'%(yambo_rt,dir_inputs,namecs,namecs,namecs))
+    yambo.add_command('cd %s/%s ; mpirun -hostfile \$OAR_NODEFILE %s -F %s.in -J %s -C %s -I \'../\''%(folder_rt,source,yambo_rt,namecs,namecs,namecs))
     yambo.write('%s/%s/%s.ll' % (folder_rt, source, namecs))
-    os.system('cd %s; sh %s.ll'% (folder_kerr, namecs))
-    yambo.clean()
+    yambo.run()
