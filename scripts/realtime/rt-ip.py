@@ -23,11 +23,8 @@ from schedulerpy import *
 
 yambo_module = 'yambo/master-intel'
 yambo_rt     = 'yambo_rt'
-ypp_rt       = 'ypp_rt'
 
-#source       = 'rt-D-1.94eV-0K-2.0fs-DG'
-source       = 'QSSIN-1e+03-70.0fs-1.94eV-0K' # no dissipation
-folder_kerr  = 'kerr-24x24'
+source       = 'QSSIN-1e+03-70.0fs-1.94eV-0K'
 folder_rt    = 'rt-24x24'
 
 ip_nodes =  1
@@ -38,13 +35,7 @@ time_probe = range(0,610,150)
 print(time_probe)
 
 
-dir_pump   = '../%s/%s/' % (folder_rt,source)
-link_pump  = '../%s/%s/' % (folder_rt,source)
-dir_inputs = 'inputs'
-os.system('cd %s; mkdir -p %s'%(folder_kerr,dir_inputs))
-
-
-ip = YamboIn('%s -o b'%yambo_rt,folder=folder_kerr) # NEQ COHSEX
+ip = YamboIn('%s -o b'%yambo_rt,folder=folder_rt) # NEQ COHSEX
 # Common variables
 ip['DBsIOoff'] = 'DIP'
 ip['FFTGvecs'] = [ 20   , 'Ha'  ]
@@ -75,15 +66,15 @@ print('RT source calculation: %s \n' % source)
 
 for time in time_probe:
     print('Time of carriers database %d' % time)
-    ip['XfnRTdb'] = 'f @ %d fs < ../%s/%s/ndb.RT_carriers' % ( time , folder_rt, link_pump )
-    ip['KfnRTdb'] = 'f @ %d fs < ../%s/%s/ndb.RT_carriers' % ( time , folder_rt, link_pump )
-    ip['RfnRTdb'] = 'f @ %d fs < ../%s/%s/ndb.RT_carriers' % ( time , folder_rt, link_pump )
-    nameip        = 'IP-%s-t%d'              % ( source, time )
+    ip['XfnRTdb'] = 'f @ %d fs < ./pulse/ndb.RT_carriers' % ( time )
+    ip['KfnRTdb'] = 'f @ %d fs < ./pulse/ndb.RT_carriers' % ( time )
+    ip['RfnRTdb'] = 'f @ %d fs < ./pulse/ndb.RT_carriers' % ( time )
+    nameip        = 'IP-t%d'              % ( time )
     print(nameip)
-    ip.write('%s/%s/%s.in' %(folder_kerr, dir_inputs, nameip))
+    ip.write('%s/%s/%s.in' %(folder_rt, source, nameip))
     yambo = oarsub(core=ip_cores,dependent=0,name='ip-rt',walltime="02:00:00")
     yambo.add_command('module load %s'%yambo_module)
     yambo.add_command('export OMP_NUM_THREADS=1')
-    yambo.add_command('cd %s; mpirun -machinefile \$OAR_NODEFILE %s -F %s/%s.in -J %s -C %s'%(folder_kerr, yambo_rt, dir_inputs, nameip, nameip, nameip))
+    yambo.add_command('cd %s/%s ; mpirun -hostfile \$OAR_NODEFILE %s -F %s.in -J %s -C %s -I \'../\''%(folder_rt,source,yambo_rt,namebs,namebs,namebs))
+    yambo.write('%s/%s/%s.ll' % (folder_rt, source, namebs))
     yambo.run()
-    yambo.clean()
