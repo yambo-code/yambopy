@@ -58,7 +58,7 @@ class Scheduler():
         self.cores = cores
         self.walltime = walltime
         self.kwargs = kwargs
-        
+
         self.pre_run = self.get_arg("pre_run")
         self.pos_run = self.get_arg("pos_run")
         
@@ -123,9 +123,12 @@ class Scheduler():
         if "cores" in schedulerconfig and cores is None: 
             cores = int(schedulerconfig["cores"])
             del schedulerconfig["cores"]
-        
+       
+        #add scheduler config arguments
+	kwargs.update(schedulerconfig)
+
         #create an instance of the scheduler to use
-        return schedulers[schedulertype](cores=cores,nodes=nodes,walltime=walltime,**schedulerconfig)
+        return schedulers[schedulertype](cores=cores,nodes=nodes,walltime=walltime,**kwargs)
     factory = staticmethod(factory)
     
     def load_config():
@@ -191,9 +194,9 @@ class Scheduler():
         """
         if argument in self.kwargs:
             arg = self.kwargs[argument]
-            if arg == "true":
+            if arg == "true" or arg == True:
                 return True
-            elif arg == "false":
+            elif arg == "false" or arg == False:
                 return False
             elif type(arg) in [str,unicode] and "file:" in arg:
                 #load the text from a textfile
@@ -211,6 +214,12 @@ class Scheduler():
         add commands to be run by the scheduler
         """
         self.commands.append(cmd)
+
+    def add_arguments(self,arguments):
+        """
+        add commands to be run by the scheduler
+        """
+        self.arguments.append(arguments)
 
     def add_mpirun_command(self,cmd):
         """

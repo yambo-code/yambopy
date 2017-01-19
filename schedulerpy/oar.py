@@ -21,6 +21,7 @@ class Oar(Scheduler):
         args = self.arguments
         if self.get_arg("besteffort"): args.append("-t besteffort")
         if self.get_arg("idempotent"): args.append("-t idempotent")
+        if self.get_arg("bigmem"): args.append("-t bigmem")
         
         name = self.get_arg("name")
         if name:  args.append("-n \"%s\""%name)
