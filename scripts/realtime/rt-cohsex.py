@@ -25,13 +25,9 @@ from schedulerpy import *
 
 yambo_module = 'yambo/master-intel'
 yambo_rt     = 'yambo_rt'
-ypp_rt       = 'ypp_rt'
 
 folder_rt    = 'rt-24x24'
-#source       = 'rt-D-1.94eV-0K-0.1fs-DG'
-source       = '0.05fs'
-#source       = 'QSSIN-1e+03-70.0fs-1.94eV-0K' # no dissipation
-folder_kerr  = 'kerr-24x24'
+source       = 'QSSIN-1e+03-70.0fs-1.94eV-0K'
 # Folder folder_cohsex in other -rt scripts is for the ndb.QP @ t=0.
 
 CSRTmode = 'XG'  #  X: Screening, G: GFs
@@ -48,11 +44,9 @@ print(time_probe)
 
 dir_pump   = '../%s/%s/' % (folder_rt,source)
 link_pump  = '../%s/%s/' % (folder_rt,source)
-dir_inputs = 'inputs'
-os.system('cd %s; mkdir -p %s'%(folder_kerr,dir_inputs))
 
 
-cs = YamboIn('%s -r -p c -g n'%yambo_rt,folder=folder_kerr) # NEQ COHSEX
+cs = YamboIn('%s -r -p c -g n'%yambo_rt,folder=folder_rt) # NEQ COHSEX
 #coulomb cutoff
 cs['DBsIOoff'] = 'DIP'
 cs['RandQpts'] =  1000000
@@ -92,13 +86,13 @@ for time in time_probe:
       exit()
     namecs        = 'C-%s-%s-t%d'              % ( CSRTmode, source, time )
     print(namecs)
-    cs.write('%s/%s/%s.in' %(folder_kerr, dir_inputs, namecs))
+    cs.write('%s/%s/%s.in' %(folder_rt, source, namecs))
     yambo = oarsub(nodes=nodes,core=cores,dependent=4078486,name='cohsex',walltime="10:00:00")
     yambo.add_command('module load %s'%yambo_module)
     yambo.add_command('export OMP_NUM_THREADS=1')
     #yambo.add_command('mpirun -npernode 12 -x OMP_NUM_THREADS -x PATH -x LD_LIBRARY_PATH -hostfile \$OAR_NODEFILE %s -F %s/%s.in -J %s -C %s'%(yambo_rt,dir_inputs,namecs,namecs,namecs))
     #yambo.add_command('mpirun -machinefile \$OAR_NODEFILE %s -F %s/%s.in -J %s -C %s'%(yambo_rt,dir_inputs,namecs,namecs,namecs))
     yambo.add_command('mpirun -hostfile \$OAR_NODEFILE %s -F %s/%s.in -J %s -C %s'%(yambo_rt,dir_inputs,namecs,namecs,namecs))
-    yambo.write('%s/%s.ll' % (folder_kerr, namecs))
+    yambo.write('%s/%s/%s.ll' % (folder_rt, source, namecs))
     os.system('cd %s; sh %s.ll'% (folder_kerr, namecs))
     yambo.clean()

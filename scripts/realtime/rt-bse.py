@@ -11,9 +11,6 @@
 # of a Real-Time simulation
 # Author: Alejandro Molina-Sanchez
 #########################################################
-# Collection of real-time scripts:
-# cohsex-rt.py | bse-rt.py | merging-rt.py | ip-rt.py
-#########################################################
 
 #########################################################
 from __future__ import print_function

@@ -34,7 +34,7 @@ folder   = 'rt-24x24'
 
 # Generation of the input file
 
-os.system('cd %s; mkdir -p inputs' % folder)
+#os.system('cd %s; mkdir -p inputs' % folder)
 
 if args.collisions:
   print 'Collisions'
@@ -95,7 +95,7 @@ if args.collisions:
   run['X_all_q_CPU']   = "1.%d.1.1" % (job['nodes']*job['cores'])     # [PARALLEL] CPUs for each role
   run['X_all_q_ROLEs'] = "q.k.c.v"       # [PARALLEL] CPUs roles (q,k,c,v)
   #run.arguments.append('ALLGHAR')
-  run.write('%s/inputs/collisions'%folder)
+  run.write('%s/collisions.in'%folder)
 
 # Common time-dependent variable
 if args.pump or args.dissipation:
@@ -142,8 +142,8 @@ oarsub.add_command('export OMP_NUM_THREADS=1')
 
 # Collisions
 if args.collisions:
-  oarsub.add_command('cd %s; mpirun -hostfile \$OAR_NODEFILE %s -F inputs/collisions -J %s -C %s'%(folder,yambo_rt,job['folder-col'],job['folder-col']))
-  oarsub.write('%s/sub.ll' % folder )
+  oarsub.add_command('cd %s; mpirun -hostfile \$OAR_NODEFILE %s -F collisions.in -J %s -C %s'%(folder,yambo_rt,job['folder-col'],job['folder-col']))
+  oarsub.write('%s/collisions.ll' % folder )
   oarsub.run()
   print('running yambo-collision')
 
@@ -158,11 +158,11 @@ if args.pump:
     job['folder-run'] += '-%.0e-%sfs-%seV-%sK' % ( run['Field1_Int'][0], run['Field1_Damp'][0], run['Field1_Freq'][0][0],job['temperature'])
 
   # writing input file
-  job['input-file'] = job['folder-run']
-  run.write('%s/inputs/%s'% (folder,job['input-file'] ) )
+  job['input-file'] = job['folder-run']+'.in'
+  run.write('%s/%s/%s'% (folder,job['folder-run'],job['input-file'] ) )
 
   # submission script
-  oarsub.add_command('cd %s; mpirun -hostfile \$OAR_NODEFILE %s -F inputs/%s -J \'%s,%s\' -C %s'%(folder,yambo_rt,job['input-file'],job['folder-run'],job['folder-col'],job['folder-run']) )
+  oarsub.add_command('cd %s; mpirun -hostfile \$OAR_NODEFILE %s -F %s/%s -J \'%s/%s,%s\' -C %s/%s'%(folder,yambo_rt,job['folder-run'],job['input-file'],job['folder-run'],job['folder-run'],job['folder-col'],job['folder-run'],job['folder-run']) )
   oarsub.write('%s/%s.ll'%(folder,job['folder-run'])
   oarsub.run()
   print('running Dynamics without dissipation in folder: ' + str(job['folder-run']))
@@ -181,15 +181,15 @@ if args.dissipation:
     job['folder-run'] += '-DG'
 
   # writing input file
-  job['input-file'] = job['folder-run']
-  run.write('%s/inputs/%s'% (folder,job['input-file']) )
+  job['input-file'] = job['folder-run']+'.in'
+  run.write('%s/%s/%s'% (folder,job['folder-run'],job['input-file']) )
 
   # submission script
   if job['DG'][0]:
-    oarsub.add_command('cd %s; mpirun -hostfile \$OAR_NODEFILE %s -F inputs/%s -J \'%s,%s,%s,%s\' -C %s'%(folder,yambo_rt,job['input-file'],job['folder-run'],job['folder-col'],job['folder-gkkp'],job['DG'][1],job['folder-run']) )
+    oarsub.add_command('cd %s; mpirun -hostfile \$OAR_NODEFILE %s -F %s/%s -J \'%s/%s,%s,%s,%s\' -C %s/%s'%(folder,yambo_rt,job['folder-run'],job['input-file'],job['folder-run'],job['folder-run'],job['folder-col'],job['folder-gkkp'],job['DG'][1],job['folder-run'],job['folder-run']) )
     print 'Double Grid enabled'
   else:
-    oarsub.add_command('cd %s; mpirun -hostfile \$OAR_NODEFILE %s -F inputs/%s -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,job['input-file'],job['folder-run'],job['folder-col'],job['folder-gkkp'],job['folder-run']) )
-  oarsub.write('%s/sub.ll'%folder)
+    oarsub.add_command('cd %s; mpirun -hostfile \$OAR_NODEFILE %s -F %s/%s -J \'%s/%s,%s,%s\' -C %s/%s'%(folder,yambo_rt,job['folder-run'],job['input-file'],job['folder-run'],job['folder-run'],job['folder-col'],job['folder-gkkp'],job['folder-run'],job['folder-run']) )
+  oarsub.write('%s/%s.ll'%(folder,job['folder-run'])
   oarsub.run()
   print('running Dynamics with dissipation in folder: ' + str(job['folder-run']))
