@@ -30,7 +30,7 @@ parser.add_argument('-d' ,'--dissipation',action="store_true")
 args = parser.parse_args()
 
 yambo_rt = 'yambo_rt'
-folder   = 'rt-24x24'
+folder   = 'rt-6x6'
 
 # Generation of the input file
 
@@ -63,7 +63,7 @@ job['folder-col']   = 'col-hxc' # name of collisions folder (path folder/folder-
 # the input file and run-folder names are defined at the end
 job['folder-gkkp']  = 'gkkp'
 job['DG']           = (False,'dg-60x60') # Double-grid (True|False) and DG folder
-job['nodes']        = 12
+job['nodes']        = 1
 job['cores']        = 12
 job['ppn']          = job['cores']
 job['threads']      = job['cores']*job['nodes']
@@ -136,7 +136,7 @@ print 'Collisions        ',job['folder-col']
 print 'Number of nodes   ',job['nodes']
 print 'Number of cores   ',job['cores']
 
-oarsub      = oarsub(nodes=job['nodes'],core=job['cores'],dependent=0,name=job['name'],walltime="24:00:00")
+oarsub = oarsub(nodes=job['nodes'],core=job['cores'],dependent=0,name=job['name'],walltime="24:00:00")
 oarsub.add_command('module load %s'%job['yambo_module'])
 oarsub.add_command('export OMP_NUM_THREADS=1')
 
@@ -150,7 +150,7 @@ if args.collisions:
 # Time-dependent without dissipation
 if args.pump:
 
-  # name of run
+  # name of run - change here if you want different variables
   if run['Field1_kind'] == 'DELTA':
     job['folder-run'] = 'DELTA-%.0e' % ( run['Field1_Int'][0])
   else:
@@ -158,38 +158,38 @@ if args.pump:
     job['folder-run'] += '-%.0e-%sfs-%seV-%sK' % ( run['Field1_Int'][0], run['Field1_Damp'][0], run['Field1_Freq'][0][0],job['temperature'])
 
   # writing input file
-  job['input-file'] = job['folder-run']+'.in'
-  run.write('%s/%s/%s'% (folder,job['folder-run'],job['input-file'] ) )
+  os.system('mkdir -p %s/%s'%(folder,job['folder-run']))
+  run.write('%s/%s/pulse.in'% (folder,job['folder-run']))
 
   # submission script
-  oarsub.add_command('cd %s; mpirun -hostfile \$OAR_NODEFILE %s -F %s/%s -J \'%s/%s,%s\' -C %s/%s'%(folder,yambo_rt,job['folder-run'],job['input-file'],job['folder-run'],job['folder-run'],job['folder-col'],job['folder-run'],job['folder-run']) )
-  oarsub.write('%s/%s.ll'%(folder,job['folder-run'])
+  oarsub.add_command('cd %s/%s; mpirun -hostfile \$OAR_NODEFILE %s -F pulse.in -J \'pulse,..//%s\' -C pulse -I \'../\''%(folder,job['folder-run'],yambo_rt,job['folder-col']) )
+  oarsub.write('%s/%s/pulse.ll'%(folder,job['folder-run']))
   oarsub.run()
   print('running Dynamics without dissipation in folder: ' + str(job['folder-run']))
 
 # Time-dependent with dissipation
 if args.dissipation:
 
-  # name of run 
+  # name of run - change here if you want different variables
   if run['Field1_kind'] == 'DELTA':
     job['folder-run'] = 'DELTA-D-%.0e' % ( run['Field1_Int'][0] )
   else:
     job['folder-run'] = '%s' %(run['Field1_kind'])
-    job['folder-run'] = '-D-%seV-%sK-%sfs' % ( run['Field1_Freq'][0][0],job['temperature'],run['LifeExtrapSteps'][0][0])
+    job['folder-run'] += '-D-%seV-%sK-%sfs' % ( run['Field1_Freq'][0][0],job['temperature'],run['LifeExtrapSteps'][0][0])
     #job['folder-run'] += '-D-%.0e-%sfs-%seV-%sK' % ( run['Field1_Int'][0], run['Field1_Damp'][0], run['Field1_Freq'][0][0],job['temperature'])
   if job['DG'][0]:
     job['folder-run'] += '-DG'
 
   # writing input file
-  job['input-file'] = job['folder-run']+'.in'
-  run.write('%s/%s/%s'% (folder,job['folder-run'],job['input-file']) )
+  os.system('mkdir -p %s/%s'%(folder,job['folder-run']))
+  run.write('%s/%s/pulse.in'% (folder,job['folder-run']))
 
   # submission script
   if job['DG'][0]:
-    oarsub.add_command('cd %s; mpirun -hostfile \$OAR_NODEFILE %s -F %s/%s -J \'%s/%s,%s,%s,%s\' -C %s/%s'%(folder,yambo_rt,job['folder-run'],job['input-file'],job['folder-run'],job['folder-run'],job['folder-col'],job['folder-gkkp'],job['DG'][1],job['folder-run'],job['folder-run']) )
+    oarsub.add_command('cd %s/%s; mpirun -hostfile \$OAR_NODEFILE %s -F pulse.in -J \'pulse,..//%s,..//%s,..//%s\' -C pulse -I \'../\''%(folder,job['folder-run'],yambo_rt,job['folder-col'],job['folder-gkkp'],job['DG'][1]) )
     print 'Double Grid enabled'
   else:
-    oarsub.add_command('cd %s; mpirun -hostfile \$OAR_NODEFILE %s -F %s/%s -J \'%s/%s,%s,%s\' -C %s/%s'%(folder,yambo_rt,job['folder-run'],job['input-file'],job['folder-run'],job['folder-run'],job['folder-col'],job['folder-gkkp'],job['folder-run'],job['folder-run']) )
-  oarsub.write('%s/%s.ll'%(folder,job['folder-run'])
+    oarsub.add_command('cd %s/%s; mpirun -hostfile \$OAR_NODEFILE %s -F pulse.in -J \'pulse,..//%s,..//%s\' -C pulse -I \'../\''%(folder,job['folder-run'],yambo_rt,job['folder-col'],job['folder-gkkp']) )
+  oarsub.write('%s/%s/pulse.ll'%(folder,job['folder-run']))
   oarsub.run()
   print('running Dynamics with dissipation in folder: ' + str(job['folder-run']))
