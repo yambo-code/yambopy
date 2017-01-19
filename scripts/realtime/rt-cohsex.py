@@ -23,8 +23,7 @@ from schedulerpy import *
 
 ############## SETTINGS ##############
 
-#yambo_module = 'yambo/master-intel'
-yambo_module = 'yambo/git'
+yambo_module = 'yambo/master-intel'
 yambo_rt     = 'yambo_rt'
 
 folder_rt    = 'rt-6x6'
@@ -34,7 +33,7 @@ source       = 'QSSIN-1e+03-70.0fs-2.0eV-0K'
 CSRTmode = 'XG'  #  X: Screening, G: GFs
 
 nodes =  1
-cores =  16
+cores =  12
 
 time_probe = range(0,610,150)
 #time_probe=(0,)
@@ -81,7 +80,7 @@ for time in time_probe:
     else:
       print('Error in the RT run level')
       exit()
-    namecs        = 'C-%s-%s-t%d'              % ( CSRTmode, source, time )
+    namecs        = 'C-%s-t%d'              % ( CSRTmode, time )
     print(namecs)
     cs.write('%s/%s/%s.in' %(folder_rt, source, namecs))
     yambo = oarsub(nodes=nodes,core=cores,dependent=0,name='cohsex',walltime="10:00:00")
