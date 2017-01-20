@@ -26,6 +26,12 @@ Here you can find some user contributed scripts for yambopy.
   with regards to your system. Be also careful to write the carriers at least for the times you want to study.
   See the tutorial for more details.
 
+  0a. break-symm.py
+    Before any real-time calculation can be done, the symmetries of the system must be broken according to the direction of the polarization of the incident light.
+
+  0b. gkkp.py
+    This one can be found in the tutorial on real-time calculations. It calculates the electron-phonon matrix elements.
+
   1. rt-pulse.py
     This is to be run first. Use the -c option to calculate the collisions, -p to simulate the effect of a laser pump
     and -d to include phonon dissipation (which requires the electron-phonon matrix elements gkkp).
