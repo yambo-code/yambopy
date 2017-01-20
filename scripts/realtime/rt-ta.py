@@ -13,24 +13,25 @@ After real-time calculations are completed, plots the Transient Absorption (TA) 
 Setting inside the script : prefix
 """
 
-parser = argparse.ArgumentParser(description='Map of a double-grid')
-parser.add_argument('-f' ,'--folder'    , help='Folder with data for TA')
-parser.add_argument('-j' ,'--job'       , help='Name of job (ex: B-QSSIN-... without "-tX")')
+parser = argparse.ArgumentParser(description='Make Transiant Absorption (TA) plots from RT-BSE')
+parser.add_argument('-f' ,'--folder'    , help='Real-time folder (e.g.: rt-24x24)')
+parser.add_argument('-j' ,'--job'       , help='Name of job (e.g.: QSSIN-2.0eV)')
+parser.add_argument('-p' ,'--prefix'    , help='Prefix of the BSE calculations (e.g.: B-XRK-XG)')
 parser.add_argument('-nt','--notext'    , help='Skips the writing of the data', action='store_false')
 args = parser.parse_args()
 
-print "Folder: ",args.folder
-print "Job: ", args.job
-
 folder = args.folder
 job = args.job
+prefix = args.prefix
+
+source = folder+'/'+job
 
 print 'Packing relevant calculations'
-pack_files_in_folder(folder,mask=job)
+pack_files_in_folder(source,mask=prefix)
 print 'Done.'
 
-data = YamboAnalyser(folder)
-output = data.get_data((job,'eps'))
+data = YamboAnalyser(source)
+output = data.get_data((prefix,'eps'))
 
 # keys to read the outputs in order
 keys=sorted(output.keys())
@@ -75,7 +76,7 @@ for l in range(0,nlines):
 # Writing
 if args.notext:
     print 'Writing data to files...'
-    f=open(job+'.dat','w')
+    f=open(job+prefix+'.dat','w')
     string = 'eV'
     for t in times:
         string = string + '\t' + t
@@ -103,7 +104,7 @@ plt.legend(loc=2)
 plt.xlabel("eV")
 plt.ylabel("TA (arb. units)")
 plt.axvline(1.94)
-plt.title("TA, job %s in folder %s"%(job,folder))
+plt.title("TA, job %s/%s in folder %s"%(job,prefix,folder))
 ax2 = ax1.twinx()
 #plt.plot(array[:,0],array[:,1],'k-',label='BSE@t0')
 plt.show()
