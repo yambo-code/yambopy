@@ -24,7 +24,7 @@ ypp_ph    = 'ypp_ph'
 
 folder_ya = 'elphon'
 
-temperature = [500]
+temperature = [0,500]
 
 # A. Run QPs El-Ph correction
 if args.run:
