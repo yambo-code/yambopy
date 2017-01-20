@@ -41,6 +41,7 @@ Here you can find some user contributed scripts for yambopy.
 
   3. rt-merge.py
     Combines corrections as defined by the runlevel (see inside script). Can include GW corrections, COHSEX (from rt-cohsex.py and t=0).
+    Calls ypp_rt interactively to produce the databases.
 
   4. rt-bse.py
     Calculate the BSE for the given times. Can include all corrections (from rt-merge.py), only GW at equilibrium or a scissor operator.
@@ -50,3 +51,40 @@ Here you can find some user contributed scripts for yambopy.
 
   6. rt-ta.py
     After the spectra are obtained (most likely from rt-bse.py), this makes transiant absorption spectra for the given BSE calculations.
+
+  Here is an exemple of structure for real-time calculations :
+      rt/
+      ├── col-hxc/
+      ├── collisions.in
+      ├── collisions.ll
+      ├── QSSIN-1e+03-70.0fs-1.0eV-0K/
+          ├── ...
+      ├── QSSIN-1e+03-70.0fs-2.0eV-0K/
+          ├── B-L-t0/ <- BSE calculations at different times (here with scissor operator)
+          ├── B-L-t0.in
+          ├── B-L-t0.ll
+          ├── B-L-t300/
+          ├── B-L-t300.in
+          ├── B-L-t300.ll
+          ├── C-XG-t0/ <- COHSEX calculations at different times
+          ├── C-XG-t0.in
+          ├── C-XG-t0.ll
+          ├── C-XG-t300/
+          ├── C-XG-t300.in
+          ├── C-XG-t300.ll
+          ├── M-XG-t0/ <- Merged corrections (no .ll because it calls ypp in interactive mode)
+          ├── M-XG-t0.in
+          ├── M-XG-t300/
+          ├── M-XG-t300.in
+          ├── pulse/ <- contains carriers dynamics
+          ├── pulse.in
+          ├── pulse.ll
+          └── SAVE/ <- empty, automatically created by Yambo
+      ├── QSSIN-1e+03-70.0fs-3.0eV-0K/
+          ├──...
+      ├── r_setup
+      ├── SAVE/
+      ├── yambo.in
+      └── ypp.in
+
+
