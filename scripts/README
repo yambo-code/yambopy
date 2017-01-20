@@ -16,3 +16,31 @@ Here you can find some user contributed scripts for yambopy.
 
 4. plot_excitons.py
  Plot the BSE spectra including excitonic energies and the exciton weights in the Brillouin Zone of a BSE calculation.
+
+
+  Realtime Folder
+  ===============
+
+  In this folder are a series of scripts aimed at performing real-time simulations and interpreting results.
+  Please beware that inside the different scripts there might be parameters to change and converge properly
+  with regards to your system. Be also careful to write the carriers at least for the times you want to study.
+  See the tutorial for more details.
+
+  1. rt-pulse.py
+    This is to be run first. Use the -c option to calculate the collisions, -p to simulate the effect of a laser pump
+    and -d to include phonon dissipation (which requires the electron-phonon matrix elements gkkp).
+
+  2. rt-cohsex.py
+    Calculate the COHSEX correction at different times.
+
+  3. rt-merge.py
+    Combines corrections as defined by the runlevel (see inside script). Can include GW corrections, COHSEX (from rt-cohsex.py and t=0).
+
+  4. rt-bse.py
+    Calculate the BSE for the given times. Can include all corrections (from rt-merge.py), only GW at equilibrium or a scissor operator.
+
+  5. rt-ip.py
+    Similar to rt-bse.py but in the independant particle approximation.
+
+  6. rt-ta.py
+    After the spectra are obtained (most likely from rt-bse.py), this makes transiant absorption spectra for the given BSE calculations.
