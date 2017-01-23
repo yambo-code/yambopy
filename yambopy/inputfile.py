@@ -79,7 +79,6 @@ class YamboIn():
         #if the units are not specified, add them
         if type(value) == list and str not in map(type,value):
             value = [value,'']
-            value = [value,'']
         if type(value) in [int,float,complex]:
             value = [value,'']
         self.variables[key] = value
