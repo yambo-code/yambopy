@@ -7,6 +7,7 @@ import sys
 import argparse
 import matplotlib.pyplot as plt
 
+
 folder = 'bands'
 
 npoints = 20
