@@ -120,7 +120,7 @@ class PwXML():
         if self.eigen is None:
             self.get_eigen()
         if fmt=='gnuplot':
-            f = open('%s.dat'%prefix,'w')
+            f = open('%s.dat'%self.prefix,'w')
             for ib in xrange(self.nbands):
                 for ik in xrange(self.nkpoints):
                     f.write("%.1lf %.4lf \n " % (ik,self.eigen[ik][ib]*HatoeV) )
