@@ -58,7 +58,7 @@ class Scheduler():
         self.cores = cores
         self.walltime = walltime
         self.kwargs = kwargs
-        
+
         self.pre_run = self.get_arg("pre_run")
         self.pos_run = self.get_arg("pos_run")
         
@@ -123,9 +123,12 @@ class Scheduler():
         if "cores" in schedulerconfig and cores is None: 
             cores = int(schedulerconfig["cores"])
             del schedulerconfig["cores"]
-        
+       
+        #add scheduler config arguments
+	kwargs.update(schedulerconfig)
+
         #create an instance of the scheduler to use
-        return schedulers[schedulertype](cores=cores,nodes=nodes,walltime=walltime,**schedulerconfig)
+        return schedulers[schedulertype](cores=cores,nodes=nodes,walltime=walltime,**kwargs)
     factory = staticmethod(factory)
     
     def load_config():
@@ -141,7 +144,9 @@ class Scheduler():
                           "Please create one."%Scheduler._config_filename)
         
         #put sanity checks here
-        schedulername = config['default']
+        schedulername = "bash"
+        if 'default' in config:
+            schedulername = config['default']
         #print json.dumps(config,indent=2)
  
         return config
@@ -189,9 +194,9 @@ class Scheduler():
         """
         if argument in self.kwargs:
             arg = self.kwargs[argument]
-            if arg == "true":
+            if arg == "true" or arg == True:
                 return True
-            elif arg == "false":
+            elif arg == "false" or arg == False:
                 return False
             elif type(arg) in [str,unicode] and "file:" in arg:
                 #load the text from a textfile
@@ -210,6 +215,20 @@ class Scheduler():
         """
         self.commands.append(cmd)
 
+    def add_arguments(self,arguments):
+        """
+        add commands to be run by the scheduler
+        """
+        self.arguments.append(arguments)
+
+    def add_mpirun_command(self,cmd):
+        """
+        add commands to be run by the scheduler
+        """
+        mpirun = get_arg("mpirun")
+        if mpirun is None: mpirun = "mpirun"
+        self.commands.append("%s %s"%(mpirun,cmd))
+
     def add_module(self,mod):
         """
         add module to be loaded by the scheduler
@@ -224,8 +243,9 @@ class Scheduler():
                                    "Add it to the config file in %s. "
                                    "Known modules are: %s"%(mod,self._config_filename,config_modules))
         else:
-            raise ValueError("No modules are known. "
-                             "Add some to the config file in %s. "%(self._config_filename))
+            raise ValueError("Option 'modules' not found in the specified type of scheduler. "
+                             "Add the option to the config file in %s. "
+                             "If you do not use modules, specify 'modules':'None' "%(self._config_filename))
 
     def run(self):
         """

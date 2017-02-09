@@ -92,6 +92,13 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                 prev_exc = e
             self.excitons = np.array(new_excitons)
 
+        #create 
+        excitons = self.data["excitons"]
+        for e,intensity,i in self.excitons:
+            exciton = {"energy": e,
+                       "intensity": intensity,
+                       "index": i}
+            excitons.append(exciton)
         return self.excitons
 
     def get_wavefunctions(self, FFTGvecs=30,

@@ -11,8 +11,10 @@ class Bash(Scheduler):
     """
     Class to submit jobs using bash
     """
+    _vardict = {"cores":"core",
+                "nodes":"nodes"}
     def initialize(self):
-        pass
+        self.get_vardict()
         
     def __str__(self):
         return self.get_commands()
@@ -26,8 +28,9 @@ class Bash(Scheduler):
     def add_mpirun_command(self, cmd):
         threads = 1
         if self.cores: threads*=self.cores
-        if self.nodes: threads*=self.nodes
-        self.add_command("mpirun -np %d %s"%(threads,cmd))
+        mpirun = self.get_arg("mpirun")
+        if mpirun is None: mpirun = "mpirun"
+        self.add_command("%s -np %d %s"%(mpirun,threads,cmd))
         
     def run(self,dry=False):
         if dry:
