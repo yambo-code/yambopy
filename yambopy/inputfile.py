@@ -104,12 +104,14 @@ class YamboIn():
         yambofile.close()
 
     def add_dict(self,variables):
-        """ Add a dictionary containing variables to the current inputfile
+        """
+        Add a dictionary containing variables to the current inputfile
         """
         self.variables.update(variables)
 
     def read_string(self,inputfile):
-        """ Read the input variables from a string
+        """ 
+        Read the input variables from a string
         """
         var_real     = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp +
                                   self._numexp + self._spacexp + '([A-Za-z]+)?',inputfile)
@@ -117,6 +119,16 @@ class YamboIn():
         var_array    = re.findall(self._arrayexp,inputfile)
         var_complex  = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp + self._complexexp + self._spacexp + '([A-Za-z]+)?', inputfile)
         var_runlevel = re.findall(self._runexp + self._spacexp, inputfile)
+
+        def clean(a):
+            """
+            clean the variables according to the type of data
+            """
+            a = a.strip()
+            if a.replace('.','',1).isdigit():
+                if "." in a: return float(a)
+                else:        return int(a)
+            return a
 
         # Determination of the arguments
         for key in self._runlevels:
@@ -141,7 +153,7 @@ class YamboIn():
         #array variables
         for var in var_array:
             name, array, unit = var
-            array = [val.strip() for val in array.split('|')[:-1]]
+            array = [clean(val) for val in array.split('|')[:-1]]
             self[name] = [array,unit]
 
         return {"arguments": self.arguments, "variables": self.variables}
