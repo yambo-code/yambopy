@@ -23,7 +23,7 @@ from schedulerpy import *
 
 ############## SETTINGS ##############
 
-yambo_module = 'yambo/master-intel'
+yambo_module = 'yambo/intel-4.1'
 yambo_rt     = 'yambo_rt'
 
 folder_rt    = 'rt-6x6'
