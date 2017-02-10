@@ -30,7 +30,6 @@ folder_rt    = 'rt-6x6'
 # folder with ndb.QP from GW calculation (check line 46)
 # sym must have been broken
 folder_gw    = 'gw-6x6'
-folder_cohsex= 'cohsex-6x6' # contains ndb.QP @ t = 0, same for all pumps
 
 CSRTmode = 'XG'  #  X: Screening, G: GFs
 
@@ -44,7 +43,7 @@ print(time_probe)
 db = YamboIn('%s -q m' % ypp_rt,filename='ypp.in',folder=folder_rt)
 db['Z_input'] = 1.0
 db['Actions_and_names'] = [['\"C\"', '', '\n\"N\"', '', '\n\"E\"', '\"../../%s/ndb.QP\"' % folder_gw],'']
-#db['Actions_and_names'] = [['\"C\"', '\"../../%s/ndb.QP\"' % folder_cohsex, '\n\"N\"', ''],''] # Not including GW
+#db['Actions_and_names'] = [['\"C\"', '', '\n\"N\"', ''],''] # Not including GW
 
 
 # Submission of the jobs for each time
