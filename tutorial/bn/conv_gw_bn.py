@@ -124,7 +124,6 @@ def plot_gw():
     ya = YamboAnalyser('gw')
     print('plot all qpoints')
     ya.plot_gw('qp')
-    #ya.plot_gw('qp')
 
     print('plot along a path')
     path = [[[0,   0,   0],'$\Gamma$'],
@@ -181,14 +180,23 @@ def xi():
     shell.run()
     shell.clean()
 
+def plot_xi():
+    #pack the files in .json files
+    pack_files_in_folder('gw')
+    ya = YamboAnalyser('gw')
+    print('plot all qpoints')
+    print(ya)
+    #ya.plot_gw('qp')
+
 if __name__ == "__main__":
     #parse options
     parser = argparse.ArgumentParser(description='GW convergence')
-    parser.add_argument('-c' ,'--convergence',  action="store_true", help='Run convergence calculations')
-    parser.add_argument('-p' ,'--plot', action="store_true",         help='Pack into json files and plot the convergence results')
-    parser.add_argument('-g' ,'--gw', action="store_true",           help='Run a single GW calculation')
-    parser.add_argument('-r' ,'--results', action="store_true",      help='Pack into json files and plot a single GW calculation')
-    parser.add_argument('-x' ,'--xi', action="store_true",      help='Pack into json files and plot a single GW calculation')
+    parser.add_argument('-c'  ,'--convergence',  action="store_true", help='Run convergence calculations')
+    parser.add_argument('-p'  ,'--plot', action="store_true",         help='Pack into json files and plot the convergence results')
+    parser.add_argument('-g'  ,'--gw', action="store_true",           help='Run a single GW calculation')
+    parser.add_argument('-r'  ,'--results', action="store_true",      help='Pack into json files and plot a single GW calculation')
+    parser.add_argument('-x'  ,'--xi', action="store_true",      help='Pack into json files and plot a single GW calculation')
+    parser.add_argument('-xp' ,'--xp', action="store_true",      help='Pack into json files and plot a single GW calculation')
 
     args = parser.parse_args()
 
@@ -197,4 +205,5 @@ if __name__ == "__main__":
     if args.plot:           plot_convergence()
     if args.gw:             gw()
     if args.results:        plot_gw()
-    if args.xi:            xi()
+    if args.xi:             xi()
+    if args.xp:             plot_xi()
