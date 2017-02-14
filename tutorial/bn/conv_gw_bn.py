@@ -182,11 +182,10 @@ def xi():
 
 def plot_xi():
     #pack the files in .json files
-    pack_files_in_folder('gw')
+    #pack_files_in_folder('gw')
     ya = YamboAnalyser('gw')
     print('plot all qpoints')
-    print(ya)
-    #ya.plot_gw('qp')
+    ya.plot_gw('ppa',cols=(lambda x: x[2]+x[3],))
 
 if __name__ == "__main__":
     #parse options
