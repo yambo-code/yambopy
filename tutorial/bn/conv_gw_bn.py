@@ -100,7 +100,7 @@ def gw():
         shell.clean()
 
     # GW calculation. Exact Dynamical Screening. Newton method
-    y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
+    y = YamboIn('%s -d -g n -V all'%yambo,folder='gw')
 
     y['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     y['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
@@ -134,58 +134,60 @@ def plot_gw():
 
 def xi():
     #create the folder to run the calculation
-    if not os.path.isdir('gw'):
+    if not os.path.isdir('gw-xi'):
         shell = bash() 
-        shell.add_command('mkdir -p gw')
-        shell.add_command('cp -r database/SAVE gw/')
+        shell.add_command('mkdir -p gw-xi')
+        shell.add_command('cp -r database/SAVE gw-xi/')
         shell.run()
         shell.clean()
 
-    cohsex = YamboIn('%s -p c -g n -V all'%yambo,folder='gw')
+    cohsex = YamboIn('%s -p c -g n -V all'%yambo,folder='gw-xi')
     cohsex['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     cohsex['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
     cohsex['NGsBlkXs'] = [[1,40],'']         # Screening. Number of bands
     cohsex['NGsBlkXs'] = [1500,'mHa']        # Cutoff Screening
     cohsex['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
     cohsex['QPkrange'] = [ [1,7,4,5], '']
-    cohsex.write('gw/yambo_cohsex.in')
+    cohsex.write('gw-xi/yambo_cohsex.in')
     shell = bash() 
-    shell.add_command('cd gw; %s -F yambo_cohsex.in -J cohsex' % yambo)
+    shell.add_command('cd gw-xi; %s -F yambo_cohsex.in -J coh -C coh' % yambo)
     shell.run()
     shell.clean()
 
-    ppa = YamboIn('%s -p p -g n -V all'%yambo,folder='gw')
+    ppa = YamboIn('%s -p p -g n -V all'%yambo,folder='gw-xi')
     ppa['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     ppa['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
     ppa['NGsBlkXp'] = [[1,40],'']         # Screening. Number of bands
     ppa['NGsBlkXp'] = [1500,'mHa']        # Cutoff Screening
     ppa['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
     ppa['QPkrange'] = [ [1,7,4,5], '']
-    ppa.write('gw/yambo_ppa.in')
+    ppa.write('gw-xi/yambo_ppa.in')
     shell = bash() 
-    shell.add_command('cd gw; %s -F yambo_ppa.in -J ppa' % yambo)
+    shell.add_command('cd gw-xi; %s -F yambo_ppa.in -J pp -C pp' % yambo)
     shell.run()
     shell.clean()
 
-    ra = YamboIn('%s -d -g n -V all'%yambo,folder='gw')
+    ra = YamboIn('%s -d -g n -V all'%yambo,folder='gw-xi')
     ra['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     ra['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
     ra['NGsBlkXd'] = [[1,40],'']         # Screening. Number of bands
     ra['NGsBlkXd'] = [1500,'mHa']        # Cutoff Screening
     ra['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
     ra['QPkrange'] = [ [1,7,4,5], '']
-    ra.write('gw/yambo_ra.in')
+    ra.write('gw-xi/yambo_ra.in')
     shell = bash() 
-    shell.add_command('cd gw; %s -F yambo_ra.in -J ra' % yambo)
+    shell.add_command('cd gw-xi; %s -F yambo_ra.in -J ra -C ra' % yambo)
     shell.run()
     shell.clean()
 
 def plot_xi():
     #pack the files in .json files
-    #pack_files_in_folder('gw')
-    ya = YamboAnalyser('gw')
+    pack_files_in_folder('gw-xi')
+    ya = YamboAnalyser('gw-xi')
     print('plot all qpoints')
-    ya.plot_gw('ppa',cols=(lambda x: x[2]+x[3],))
+    ya.plot_gw('qp',cols=(lambda x: x[2]+x[3],))
+    # Problem to get output files if they are not in the folder jobname
+    # How does it work the name of the calculation?
 
 if __name__ == "__main__":
     #parse options
