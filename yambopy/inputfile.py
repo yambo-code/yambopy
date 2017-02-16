@@ -117,6 +117,16 @@ class YamboIn():
         var_complex  = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp + self._complexexp + self._spacexp + '([A-Za-z]+)?', inputfile)
         var_runlevel = re.findall(self._runexp + self._spacexp, inputfile)
 
+        def clean(a):
+            """
+            clean the variables according to the type of data
+            """
+            a = a.strip()
+            if a.replace('.','',1).isdigit():
+                if "." in a: return float(a)
+                else:        return int(a)
+            return a
+
         # Determination of the arguments
         for key in self._runlevels:
             if key in var_runlevel:
@@ -140,7 +150,7 @@ class YamboIn():
         #array variables
         for var in var_array:
             name, array, unit = var
-            array = [val.strip() for val in array.split('|')[:-1]]
+            array = [clean(val) for val in array.split('|')[:-1]]
             self[name] = [array,unit]
 
         return {"arguments": self.arguments, "variables": self.variables}

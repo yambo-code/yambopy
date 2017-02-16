@@ -19,12 +19,12 @@ from schedulerpy import *
 
 ############## SETTINGS ##############
 
-yambo_module = 'yambo/master-intel'
+yambo_module = 'yambo/intel-4.1'
 yambo_rt     = 'yambo_rt'
 
 source       = 'QSSIN-1e+03-70.0fs-2.0eV-0K'
 folder_rt    = 'rt-24x24'
-folder_gw    = 'gw-24x24'
+folder_gw    = 'gw-24x24' # Where the ndb.QP is located (see l. 93)
 
 BSRTmode = 'XRK' #  X: Screening, R: Residuals, K: Kernel
 CSRTmode = 'XG'  #  X: Screening, G: GFs
@@ -90,7 +90,7 @@ for time in time_probe:
     if 'K' in BSRTmode:
       bs['KfnRTdb'] = 'f @ %d fs < ./pulse/ndb.RT_carriers' % ( time )
     if 'E' in QPdata:
-      bs['KfnQPdb'] = 'E < ../../%s/FixSymm/24x24_run/ndb.QP' % folder_gw         # GW database
+      bs['KfnQPdb'] = 'E < ../../%s/ndb.QP' % folder_gw         # GW database
       namebs      = 'B-%s-%s-t%d' % ( BSRTmode, QPdata, time )
     if 'N' in QPdata:
       namebs      = 'B-%s-%s-t%d' % ( BSRTmode, CSRTmode, time )

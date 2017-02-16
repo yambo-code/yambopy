@@ -30,7 +30,6 @@ folder_rt    = 'rt-6x6'
 # folder with ndb.QP from GW calculation (check line 46)
 # sym must have been broken
 folder_gw    = 'gw-6x6'
-folder_cohsex= 'cohsex-6x6' # contains ndb.QP @ t = 0, same for all pumps
 
 CSRTmode = 'XG'  #  X: Screening, G: GFs
 
@@ -43,8 +42,8 @@ print(time_probe)
 # Merging DBs Steps
 db = YamboIn('%s -q m' % ypp_rt,filename='ypp.in',folder=folder_rt)
 db['Z_input'] = 1.0
-db['Actions_and_names'] = [['\"C\"', '\"../../%s/ndb.QP\"' % folder_cohsex, '\n\"N\"', '', '\n\"E\"', '\"../../%s/FixSymm/24x24_run/ndb.QP\"' % folder_gw],'']
-#db['Actions_and_names'] = [['\"C\"', '\"../../%s/ndb.QP\"' % folder_cohsex, '\n\"N\"', ''],''] # Not including GW
+db['Actions_and_names'] = [['\"C\"', '', '\n\"N\"', '', '\n\"E\"', '\"../../%s/ndb.QP\"' % folder_gw],'']
+#db['Actions_and_names'] = [['\"C\"', '', '\n\"N\"', ''],''] # Not including GW
 
 
 # Submission of the jobs for each time
@@ -54,8 +53,10 @@ print('RT source calculation: %s \n' % source)
 
 for time in time_probe:
     print('Time of carriers database %d' % time)
+    namecs0     = 'C-%s-t0'  % ( CSRTmode )
     namecs      = 'C-%s-t%d' % ( CSRTmode, time )
     merged_file = 'M-%s-t%d' % ( CSRTmode, time )
+    db['Actions_and_names'][0][1] = '\"./%s/ndb.QP\"'%namecs0 # Fetches ndb.QP from COHSEX at time 0
     db['Actions_and_names'][0][3] = '\"./%s/ndb.QP\"'%namecs # Fetches ndb.QP from COHSEX at time tau
     db.write('%s/%s/%s.in'% (folder_rt, source, merged_file))
-    os.system('cd %s/%s; %s -F %s.in -J %s'% (folder_rt,source,ypp_rt,merged_file,merged_file))
+    os.system('cd %s/%s; %s -F %s.in -J %s -I ..'% (folder_rt,source,ypp_rt,merged_file,merged_file))
