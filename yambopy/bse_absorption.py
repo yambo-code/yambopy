@@ -83,7 +83,6 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
             for exc in self.excitons:
                 e,i,index = exc
                 #if the energy of this exciton is too diferent then we add it to the list
-                print e
                 if abs(e-prev_exc)<Degen_Step:
                     new_excitons[-1][1] += i
                     continue
@@ -92,7 +91,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                 prev_exc = e
             self.excitons = np.array(new_excitons)
 
-        #create 
+        #create dictionary with excitons 
         excitons = self.data["excitons"]
         for e,intensity,i in self.excitons:
             exciton = {"energy": e,
@@ -125,6 +124,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
         """
         if self.excitons is None:
             raise ValueError( "Excitons not present. Run YamboBSEAbsorptionSpectra.get_excitons() first" )
+        self.data["excitons"] = []
 
         #create a ypp file using YamboIn for reading the wavefunction
         yppwf = YamboIn('ypp -e w',filename='ypp.in',folder=self.path)
