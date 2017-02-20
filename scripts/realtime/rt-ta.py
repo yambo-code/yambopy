@@ -34,16 +34,20 @@ data = YamboAnalyser(source)
 output = data.get_data((prefix,'eps'))
 
 # keys to read the outputs in order
-keys=sorted(output.keys())
-print 'Keys : ',keys
+keys=output.keys()
 
-# times to print in file
-times=[]
-for i in range(0,len(keys)):
-    t=re.search("[t]\d{1,}", keys[i]).group()
-    times.append(t)
+# sorting
+s=[]
+for i,key in enumerate(keys):
+        s.append((int(re.search("\d{1,}", key).group()),key))
 
-print 'Times : ',times
+s=sorted(s) # s is list of tuples (int,str)
+            # having integers allows to sort correctly
+
+times = ['t'+str(i[0]) for i in s]
+keys  = [i[1] for i in s]
+
+print "Sorted keys: ",keys
 
 # output[key][n][0] is x
 # output[key][n][1] is y

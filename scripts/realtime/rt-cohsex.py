@@ -23,12 +23,11 @@ from schedulerpy import *
 
 ############## SETTINGS ##############
 
-yambo_module = 'yambo/master-intel'
+yambo_module = 'yambo/intel-4.1'
 yambo_rt     = 'yambo_rt'
 
 folder_rt    = 'rt-6x6'
 source       = 'QSSIN-1e+03-70.0fs-2.0eV-0K'
-# Folder folder_cohsex in other -rt scripts is for the ndb.QP @ t=0.
 
 CSRTmode = 'XG'  #  X: Screening, G: GFs
 

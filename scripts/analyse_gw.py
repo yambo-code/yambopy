@@ -5,27 +5,24 @@ import matplotlib.pyplot as plt
 import sys
 import argparse
 import numpy as np
+import operator
 
 """
 Study the convergence of GW calculations by looking at the change in band-gap value.
 
-The script reads from <folder> all results from <variable> calculations (skipping the reference run)
-and display them. To avoid running the reference run for nothing, use optimize(...,ref_run=False).
-Please note that the first value in the convergence dictionnary will thus not be run.
+The script reads from <folder> all results from <variable> calculations and display them.
 
 Use the band and k-point options (or change default values) according to the size of your k-grid and
 the location of the band extrema.
 """
 
 parser = argparse.ArgumentParser(description='Study GW convergence with regards to the band-gap value.')
-#parser.add_argument('-f' ,'--folder'    , help='Folder containing SAVE and convergence runs.', required=True)
-#parser.add_argument('-v' ,'--variable'  , help='Variable tested (e.g. FFTGvecs)'             , required=True)
 parser.add_argument('folder'    , help='Folder containing SAVE and convergence runs.')
 parser.add_argument('variable'  , help='Variable tested (e.g. FFTGvecs)'             )
-parser.add_argument('-bc','--bandc'     , help='Lowest conduction band number'    , default=27)
-parser.add_argument('-kc','--kpointc'   , help='K-point index for conduction band', default=19)
-parser.add_argument('-bv','--bandv'     , help='Highest valence band number'      , default=26)
-parser.add_argument('-kv','--kpointv'   , help='K-point index for valence band'   , default=19)
+parser.add_argument('-bc','--bandc'     , help='Lowest conduction band number'    , default=53, type=int)
+parser.add_argument('-kc','--kpointc'   , help='K-point index for conduction band', default=19, type=int)
+parser.add_argument('-bv','--bandv'     , help='Highest valence band number'      , default=52, type=int)
+parser.add_argument('-kv','--kpointv'   , help='K-point index for valence band'   , default=1, type=int)
 parser.add_argument('-np','--nopack'    , help='Skips packing o- files into .json files', action='store_false')
 parser.add_argument('-t'  ,'--text'      , help='Also print a text file for reference'   , action='store_true')
 args = parser.parse_args()
@@ -46,8 +43,11 @@ print 'K-point VB: ',kpointv, ' k-point CB: ',kpointc
 # Packing results (o-* files) from the calculations into yambopy-friendly .json files
 if nopack: # True by default, False if -np used
     print 'Packing ...'
-    pack_files_in_folder(folder)
+    pack_files_in_folder(folder,mask=var)
+    pack_files_in_folder(folder,mask='reference')
     print 'Packing done.'
+else:
+    print 'Packing skipped.'
 
 # importing data from .json files in <folder>
 print 'Importing...'
@@ -58,14 +58,16 @@ outvars = data.get_data(var)
 invars = data.get_inputfiles_tag(var)
 tags = data.get_tags(var)
 
-# Get only files related to the convergence study of the variable
+# Get only files related to the convergence study of the variable,
+# ordered to have a smooth plot
 keys=[]
-for key in invars:
-    if key.startswith(var):
-        keys.append(key)
+sorted_invars = sorted(invars.items(), key=operator.itemgetter(1))
 
-# Ordered to help plotting with lines
-keys=sorted(keys)
+for i in range(0,len(sorted_invars)):
+    key=sorted_invars[i][0]
+    if key.startswith(var) or key=='reference.json':
+        keys.append(key)
+print 'Files detected: ',keys
 
 print 'Preparing output...'
 ### Output
@@ -105,7 +107,7 @@ for i,key in enumerate(keys):
 
 if text:
     filename = folder+'_'+var+'.dat'
-    header = 'Variable: '+var+', unit: '+str(unit)
+    header = +var+'('+str(unit)+'), gap'
     np.savetxt(filename,array,delimiter='\t',header=header)
     print filename
 
@@ -114,3 +116,8 @@ plt.xlabel(var+' ('+unit+')')
 plt.ylabel('E_gw = E_lda + \Delta E')
 plt.show()
 #plt.savefig(folder+'_'+var+'.png')
+
+# Plot all of the different GW bandstructures in the same plot
+#ya = YamboAnalyser(folder)
+#ya.plot_gw('qp',cols=(lambda x: x[2],lambda x: x[3]+x[4]))
+
