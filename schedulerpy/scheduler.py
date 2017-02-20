@@ -160,6 +160,7 @@ class Scheduler():
         clean the command list
         """
         self.commands = []
+	self.modules  = []
 
     def get_vardict(self):
         """
