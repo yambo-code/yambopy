@@ -4,7 +4,7 @@ Tests
 To run the basic tests:
 
     :::bash
-    python test_si.py
+    python test_si.py -i
 
 This will extract a reference database, generate input files and compare them to a reference.
 

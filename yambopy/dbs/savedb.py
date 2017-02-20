@@ -331,10 +331,9 @@ class YamboSaveDB():
             kpts = self.kpts_car
 
         fig = plt.figure(figsize=(10,10))
-        plt.rc('text', usetex=True)
-        plt.rc('font', family='serif',serif="Computer Modern Roman",size=20)
         plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', cmap=cmap, lw=0, c=weights)
-        plt.axes().set_aspect('equal', 'datalim')
+        ax = plt.axes()
+        ax.set_aspect('equal')
         plt.show()
 
     def __str__(self):

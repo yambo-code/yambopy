@@ -1,6 +1,6 @@
 from distutils.core import setup
 
-packages_yambopy = ['yambopy','qepy','schedulerpy']
+packages_yambopy = ['yambopy','qepy']
 
 if __name__ == '__main__':
     setup(name='yambopy',
@@ -8,5 +8,6 @@ if __name__ == '__main__':
           description='Automatic workflows for Yambo.',
           author='Henrique Miranda',
           author_email='miranda.henrique@gmail.com',
+          scripts=['scripts/yambopy'],
           packages=packages_yambopy,
           )

@@ -108,6 +108,7 @@ def orbitals():
     projwfc.write(folder='bands')
     projwfc.run(folder='bands')
     projection = ProjwfcXML(prefix='si',path='bands')
+    import matplotlib.pyplot as plt
     ax = plt.subplot(1,1,1)
     s_orb = [0,16]
     p_orb = [1,2,3,17,19,20]
