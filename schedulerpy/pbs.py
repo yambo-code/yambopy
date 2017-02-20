@@ -23,6 +23,7 @@ class Pbs(Scheduler):
         self.get_vardict()
         args = self.arguments
         queue = self.get_arg("queue")
+        mem = self.get_mem()
         if self.name: args.append("-N %s"%self.name)
         
         if queue: args.append("-q %s"%(queue))
@@ -33,11 +34,24 @@ class Pbs(Scheduler):
         
         if dependent: args.append("-W depend=afterok:%s"%dependent)
         args.append("-l walltime=%s"%self.walltime)
-            
+
+        if mem: args.append("-l pvmem=%dMB"%mem)
+        
         resources_line = self.get_resources_line()
         if resources_line:
             args.append("-l %s"%resources_line)
-        
+
+    def get_mem(self):
+        """
+        get the memory for this job
+        """
+        mem = self.get_arg("mem")
+        if mem:
+            mem = int(mem)
+            if self.cores: mem *= self.cores
+            if self.nodes: mem *= self.nodes
+        return mem 
+
     def get_resources_line(self):
         """
         get the the line with the resources
@@ -49,12 +63,8 @@ class Pbs(Scheduler):
         if self.cores: resources[self.vardict['cores']] = self.cores
         
         # memory stuff
-        mem = self.get_arg("mem")
-        if mem:
-            mem = int(mem)
-            if self.cores: mem *= self.cores
-            if self.nodes: mem *= self.nodes
-            resources["vmem"] = "%dMB"%mem
+        mem = self.get_mem()
+        if mem: resources["vmem"]  = "%dMB"%mem
         
         resources_line = ":".join(["%s=%s"%(item,value) for item,value in resources.items()])
         
@@ -74,7 +84,7 @@ class Pbs(Scheduler):
         """
         get a bash command to submit the job
         """
-        s = "echo \"%s\" | "%self.get_commands().replace("'","\"").replace("\"","\\\"")
+        s = "echo \"%s\" | "%self.get_commands().replace("'","\"").replace("\"","\\\"").replace("$","\$")
         s += "qsub \\\n"
         s += " \\\n".join(self.arguments)
         return s
