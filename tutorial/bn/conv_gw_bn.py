@@ -199,10 +199,14 @@ if __name__ == "__main__":
     parser.add_argument('-p'  ,'--plot', action="store_true",         help='Pack into json files and plot the convergence results')
     parser.add_argument('-g'  ,'--gw', action="store_true",           help='Run a single GW calculation')
     parser.add_argument('-r'  ,'--results', action="store_true",      help='Pack into json files and plot a single GW calculation')
-    parser.add_argument('-x'  ,'--xi', action="store_true",      help='Pack into json files and plot a single GW calculation')
-    parser.add_argument('-xp' ,'--xp', action="store_true",      help='Pack into json files and plot a single GW calculation')
+    parser.add_argument('-x'  ,'--xi', action="store_true",           help='GW calculations for several approximations of the Screenning')
+    parser.add_argument('-xp' ,'--xp', action="store_true",           help='Plot GW results for COHSEX, PPA and RA')
 
     args = parser.parse_args()
+
+    if len(sys.argv)==1:
+        parser.print_help()
+        sys.exit(1)
 
     create_save()
     if args.convergence:    gw_convergence()
