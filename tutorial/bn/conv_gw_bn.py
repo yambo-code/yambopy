@@ -16,7 +16,7 @@ p2y = 'p2y'
 prefix = 'bn'
 
 # Scheduler ==>> bash
-bash = Scheduler.factory
+bash = Scheduler.factory()
 
 def create_save():
     #check if the nscf cycle is present
@@ -142,6 +142,7 @@ def xi():
         shell.clean()
 
     cohsex = YamboIn('%s -p c -g n -V all'%yambo,folder='gw-xi')
+    print ('COHSEX')
     cohsex['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     cohsex['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
     cohsex['NGsBlkXs'] = [[1,40],'']         # Screening. Number of bands
@@ -155,6 +156,7 @@ def xi():
     shell.clean()
 
     ppa = YamboIn('%s -p p -g n -V all'%yambo,folder='gw-xi')
+    print ('PPA')
     ppa['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     ppa['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
     ppa['NGsBlkXp'] = [[1,40],'']         # Screening. Number of bands
@@ -168,6 +170,7 @@ def xi():
     shell.clean()
 
     ra = YamboIn('%s -d -g n -V all'%yambo,folder='gw-xi')
+    print ('Real axis')
     ra['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     ra['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
     ra['NGsBlkXd'] = [[1,40],'']         # Screening. Number of bands
