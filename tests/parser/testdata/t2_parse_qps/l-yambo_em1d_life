@@ -1,0 +1,27 @@
+
+
+ __   __  _______  __   __  _______  _______
+|  | |  ||   _   ||  |_|  ||  _    ||       |
+|  |_|  ||  |_|  ||       || |_|   ||   _   |
+|       ||       ||       ||       ||  | |  |
+|_     _||       ||       ||  _   | |  |_|  |
+  |   |  |   _   || ||_|| || |_|   ||       |
+  |___|  |__| |__||_|   |_||_______||_______|
+
+
+ <---> [01] CPU structure, Files & I/O Directories
+ <---> [02] CORE Variables Setup
+ <---> [02.01] Unit cells
+ <---> [02.02] Symmetries
+ <---> [02.03] RL shells
+ <---> [02.04] K-grid lattice
+ <---> [02.05] Energies [ev] & Occupations
+ <---> [03] Transferred momenta grid
+ <---> [04] External corrections
+ <---> [04.01] External QP corrections (X)
+ <---> [04.02] G0W0 on the real axis
+
+
+ <---> [04.03] Lifetimes Transitions Selector
+[ERROR] STOP signal received while in :[04.03] Lifetimes Transitions Selector
+[ERROR]One or more Q-point virtual transitions are null. Change QP states
