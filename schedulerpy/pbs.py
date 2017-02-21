@@ -23,6 +23,7 @@ class Pbs(Scheduler):
         self.get_vardict()
         args = self.arguments
         queue = self.get_arg("queue")
+        rerunable= self.get_arg("rerunable")
         mem = self.get_mem()
         if self.name: args.append("-N %s"%self.name)
         
@@ -35,6 +36,8 @@ class Pbs(Scheduler):
         if dependent: args.append("-W depend=afterok:%s"%dependent)
         args.append("-l walltime=%s"%self.walltime)
 
+        if rerunable: args.append("-r y")
+
         if mem: args.append("-l pvmem=%dMB"%mem)
         
         resources_line = self.get_resources_line()
@@ -45,12 +48,41 @@ class Pbs(Scheduler):
         """
         get the memory for this job
         """
+
+        #block to evaluate expressions from
+        #http://stackoverflow.com/questions/2371436/evaluating-a-mathematical-expression-in-a-string
+        import ast
+        import operator as op
+
+        # supported operators
+        operators = {ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul,
+                            ast.Div: op.truediv, ast.Pow: op.pow, ast.BitXor: op.xor,
+                                         ast.USub: op.neg}
+
+        def eval_expr(expr):
+            return eval_(ast.parse(expr, mode='eval').body)
+
+        def eval_(node):
+            if isinstance(node, ast.Num): # <number>
+                return node.n
+            elif isinstance(node, ast.BinOp): # <left> <operator> <right>
+                return operators[type(node.op)](eval_(node.left), eval_(node.right))
+            elif isinstance(node, ast.UnaryOp): # <operator> <operand> e.g., -1
+                return operators[type(node.op)](eval_(node.operand))
+            else:
+                raise TypeError(node)
+        ######
+
         mem = self.get_arg("mem")
         if mem:
-            mem = int(mem)
-            if self.cores: mem *= self.cores
-            if self.nodes: mem *= self.nodes
-        return mem 
+            if self.cores: cores = self.cores
+            else: cores = 1
+            if self.nodes: nodes = self.nodes
+            else: nodes = 1
+            mem = mem.replace("nodes",str(nodes))
+            mem = mem.replace("cores",str(cores))
+        return eval_expr(mem) 
+    
 
     def get_resources_line(self):
         """
@@ -58,10 +90,12 @@ class Pbs(Scheduler):
         """
         tags = ['select','nodes','core','ppn','ncpus','mpiprocs','ompthreads']
         args = [self.get_arg(tag) for tag in tags]
-        resources = OrderedDict([(tag,value) for tag,value in zip(tags,args) if value is not None])
-        if self.nodes: resources[self.vardict['nodes']] = self.nodes
-        if self.cores: resources[self.vardict['cores']] = self.cores
-        
+        resources = []
+        if self.nodes: resources.append((self.vardict['nodes'],self.nodes))
+        if self.cores: resources.append((self.vardict['cores'],self.cores))
+        resources += [(tag,value) for tag,value in zip(tags,args) if value is not None]
+        resources = OrderedDict(resources)
+
         # memory stuff
         mem = self.get_mem()
         if mem: resources["vmem"]  = "%dMB"%mem
