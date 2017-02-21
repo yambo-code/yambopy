@@ -90,10 +90,12 @@ class Pbs(Scheduler):
         """
         tags = ['select','nodes','core','ppn','ncpus','mpiprocs','ompthreads']
         args = [self.get_arg(tag) for tag in tags]
-        resources = OrderedDict([(tag,value) for tag,value in zip(tags,args) if value is not None])
-        if self.nodes: resources[self.vardict['nodes']] = self.nodes
-        if self.cores: resources[self.vardict['cores']] = self.cores
-        
+        resources = []
+        if self.nodes: resources.append((self.vardict['nodes'],self.nodes))
+        if self.cores: resources.append((self.vardict['cores'],self.cores))
+        resources += [(tag,value) for tag,value in zip(tags,args) if value is not None]
+        resources = OrderedDict(resources)
+
         # memory stuff
         mem = self.get_mem()
         if mem: resources["vmem"]  = "%dMB"%mem
