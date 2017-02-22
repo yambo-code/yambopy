@@ -104,7 +104,7 @@ def gw():
 
     y['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     y['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    y['NGsBlkXd'] = [[1,40],'']         # Screening. Number of bands
+    y['BndsRnXdNGsBlkXd'] = [[1,40],'']         # Screening. Number of bands
     y['NGsBlkXd'] = [1500,'mHa']        # Cutoff Screening
     y['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
     y['QPkrange'] = [ [1,7,4,5], '']
@@ -145,7 +145,7 @@ def xi():
     print ('COHSEX')
     cohsex['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     cohsex['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    cohsex['NGsBlkXs'] = [[1,40],'']         # Screening. Number of bands
+    cohsex['BndsRnXd'] = [[1,40],'']         # Screening. Number of bands
     cohsex['NGsBlkXs'] = [1500,'mHa']        # Cutoff Screening
     cohsex['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
     cohsex['QPkrange'] = [ [1,7,4,5], '']
@@ -159,7 +159,7 @@ def xi():
     print ('PPA')
     ppa['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     ppa['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    ppa['NGsBlkXp'] = [[1,40],'']         # Screening. Number of bands
+    ppa['BndsRnXd'] = [[1,40],'']         # Screening. Number of bands
     ppa['NGsBlkXp'] = [1500,'mHa']        # Cutoff Screening
     ppa['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
     ppa['QPkrange'] = [ [1,7,4,5], '']
@@ -170,10 +170,10 @@ def xi():
     shell.clean()
 
     ra = YamboIn('%s -d -g n -V all'%yambo,folder='gw-xi')
-    print ('Real axis')
+    print ('Real Axis')
     ra['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     ra['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    ra['NGsBlkXd'] = [[1,40],'']         # Screening. Number of bands
+    ra['BndsRnXd'] = [[1,40],'']         # Screening. Number of bands
     ra['NGsBlkXd'] = [1500,'mHa']        # Cutoff Screening
     ra['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
     ra['QPkrange'] = [ [1,7,4,5], '']
@@ -192,6 +192,37 @@ def plot_xi():
     # Problem to get output files if they are not in the folder jobname
     # How does it work the name of the calculation?
 
+def dyson_eq():
+    #create the folder to run the calculation
+    folder_dyson = 'gw-zeros'
+    if not os.path.isdir(folder_dyson):
+        shell = bash() 
+        shell.add_command('mkdir -p %s' % folder_dyson)
+        shell.add_command('cp -r database/SAVE %s/' % folder_dyson)
+        shell.run()
+        shell.clean()
+
+    dyson = YamboIn('%s -p p -g n -V all'%yambo,folder=folder_dyson)
+    dyson['FFTGvecs'] = [2,'Ha']            # Global Cutoff
+    dyson['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
+    dyson['BndsRnXd'] = [[1,40],'']         # Screening. Number of bands
+    dyson['NGsBlkXd'] = [1500,'mHa']        # Cutoff Screening
+    dyson['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
+    dyson['QPkrange'] = [ [1,7,4,5], '']
+
+    dyson['DysSolver'] = "n" 
+    dyson.write('%s/yambo_newton.in' % folder_dyson)
+    dyson['DysSolver'] = "s" 
+    dyson.write('%s/yambo_secant.in' % folder_dyson)
+    dyson['DysSolver'] = "g" 
+    dyson.write('%s/yambo_gf.in' % folder_dyson)
+    #shell = bash() 
+    #shell.add_command('cd %s; %s -F yambo_newton.in -J newton -C newton' % (folder_dyson, yambo))
+    #shell.add_command('cd %s; %s -F yambo_secant.in -J secant -C secant' % (folder_dyson, yambo))
+    #shell.add_command('cd %s; %s -F yambo_gf.in     -J gf     -C gf'     % (folder_dyson, yambo))
+    #shell.run()
+    #shell.clean()
+
 if __name__ == "__main__":
     #parse options
     parser = argparse.ArgumentParser(description='GW convergence')
@@ -201,6 +232,7 @@ if __name__ == "__main__":
     parser.add_argument('-r'  ,'--results', action="store_true",      help='Pack into json files and plot a single GW calculation')
     parser.add_argument('-x'  ,'--xi', action="store_true",           help='GW calculations for several approximations of the Screenning')
     parser.add_argument('-xp' ,'--xp', action="store_true",           help='Plot GW results for COHSEX, PPA and RA')
+    parser.add_argument('-z'  ,'--zeros', action="store_true",      help='Pack into json files and plot a single GW calculation')
 
     args = parser.parse_args()
 
@@ -215,3 +247,4 @@ if __name__ == "__main__":
     if args.results:        plot_gw()
     if args.xi:             xi()
     if args.xp:             plot_xi()
+    if args.zeros:          dyson_eq()
