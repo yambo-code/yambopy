@@ -1,7 +1,8 @@
 #
 #
-# Tutorial Yambo School. April 2017 Lausanne 
+# Tutorial Yambo School. Lausanne, 24-28 April 2017
 # Convergence GW on hexagonal BN
+# Alejandro Molina-Sánchez & Henrique P. C. Miranda
 #
 #
 from __future__ import print_function
@@ -16,7 +17,7 @@ p2y = 'p2y'
 prefix = 'bn'
 
 # Scheduler ==>> bash
-bash = Scheduler.factory()
+#bash = Scheduler.factory
 
 def create_save():
     #check if the nscf cycle is present
@@ -50,20 +51,21 @@ def gw_convergence():
     # GW calculation. Exact Dynamical Screening. Newton method
     y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
 
-    y['FFTGvecs'] = [2,'Ha']                     # Global Cutoff
-    y['EXXRLvcs'] = [20,'Ha']                     # Self-energy. Exchange
-    y['NGsBlkXd'] = [1,10]                       # Screening. Number of bands
-    y['NGsBlkXd'] = [0,'mHa']                    # Cutoff Screening
-    y['GbndRnge'] = [[1,10],'']                  # Self-energy. Number of bands
-    y['QPkrange'] = [ [7,7,4,5], '']
+    k_0, k_f = y['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
+
+    y['FFTGvecs'] = [2,'Ha']                # Global Cutoff
+    y['EXXRLvcs'] = [20,'Ha']               # Self-energy. Exchange
+    y['NGsBlkXd'] = [1,10]                  # Screening. Number of bands
+    y['NGsBlkXd'] = [0,'mHa']               # Cutoff Screening
+    y['GbndRnge'] = [1,10]                  # Self-energy. Number of bands
+    y['QPkrange'] = [k_f,k_f,4,5]
     #y.arguments.append('ExtendOut')
 
     conv = { 'FFTGvecs': [[2,2,5,10,15,20],'Ha'],
              'NGsBlkXd': [[0,0,500,1000,1500,2000], 'mHa'],
              'BndsRnXd': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] ,
              'GbndRnge': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] }
-  
-             #'EXXRLvcs': [[2,2,5,10,15,20],'Ha'],
+
     def run(filename):
         """ Function to be called by the optimize function """
         folder = filename.split('.')[0]
@@ -83,10 +85,10 @@ def plot_convergence():
     print('Select the converged value for each variable')
 
     shell = bash() 
-    shell.add_command('python analyse_gw.py -bc 5 -kc 7 -bv 4 -kv 7 gw_conv FFTGvecs')
-    shell.add_command('python analyse_gw.py -bc 5 -kc 7 -bv 4 -kv 7 gw_conv NGsBlkXd')
-    shell.add_command('python analyse_gw.py -bc 5 -kc 7 -bv 4 -kv 7 gw_conv BndsRnXd')
-    shell.add_command('python analyse_gw.py -bc 5 -kc 7 -bv 4 -kv 7 gw_conv GbndRnge')
+    shell.add_command('python analyse_gw.py -bc 5 -kc %d -bv 4 -kv %d gw_conv FFTGvecs' % (kf, kf))
+    shell.add_command('python analyse_gw.py -bc 5 -kc %d -bv 4 -kv %d gw_conv NGsBlkXd' % (kf, kf))
+    shell.add_command('python analyse_gw.py -bc 5 -kc %d -bv 4 -kv %d gw_conv BndsRnXd' % (kf, kf))
+    shell.add_command('python analyse_gw.py -bc 5 -kc %d -bv 4 -kv %d gw_conv GbndRnge' % (kf, kf))
     shell.run()
     shell.clean()
 
@@ -102,13 +104,14 @@ def gw():
     # GW calculation. Exact Dynamical Screening. Newton method
     y = YamboIn('%s -d -g n -V all'%yambo,folder='gw')
 
-    y['FFTGvecs'] = [2,'Ha']            # Global Cutoff
-    y['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    y['BndsRnXdNGsBlkXd'] = [[1,40],'']         # Screening. Number of bands
-    y['NGsBlkXd'] = [1500,'mHa']        # Cutoff Screening
-    y['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
-    y['QPkrange'] = [ [1,7,4,5], '']
-   
+    k_0, k_f = y['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
+
+    y['FFTGvecs'] = [2, 'Ha']          # Global Cutoff
+    y['EXXRLvcs'] = [20,'Ha']          # Self-energy. Exchange
+    y['BndsRnXd'] = [1,40]             # Screening. Number of bands
+    y['NGsBlkXd'] = [1500,'mHa']       # Cutoff Screening
+    y['GbndRnge'] = [1,20]             # Self-energy. Number of bands
+    y['QPkrange'] = [k_0,k_f,2,6]
     y.write('gw/yambo_gw.in')
 
     shell = bash() 
@@ -118,19 +121,20 @@ def gw():
 
 def plot_gw():
     #pack the files in .json files
-    pack_files_in_folder('gw')
+#    pack_files_in_folder('gw')
 
     #plot the results using yambm analyser
     ya = YamboAnalyser('gw')
     print('plot all qpoints')
-    ya.plot_gw('qp')
+#    ya.plot_gw('qp')
 
     print('plot along a path')
-    path = [[[0,   0,   0],'$\Gamma$'],
-            [[0.5, 0,   0],'M'],
-            [[0.3333,0.3333, 0.0],'K'],
-            [[0.0, 0.0, 0.0],'$\Gamma$']]
+    path = [[[0.0,   0.0,    0.0],'$\Gamma$'],
+            [[0.5,   0.0,    0.0],'M'       ],
+            [[0.333333,0.333333, 0.0],'K'       ],
+            [[0.0,   0.0,    0.0],'$\Gamma$']]
     ya.plot_gw_path('qp',path)
+    #ya.plot_gw_path('qp',path,cols=(lambda x: x[2]+x[3],))
 
 def xi():
     #create the folder to run the calculation
@@ -142,13 +146,16 @@ def xi():
         shell.clean()
 
     cohsex = YamboIn('%s -p c -g n -V all'%yambo,folder='gw-xi')
+
+    k_0, k_f = cohsex['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
+
     print ('COHSEX')
     cohsex['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     cohsex['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    cohsex['BndsRnXd'] = [[1,40],'']         # Screening. Number of bands
+    cohsex['BndsRnXd'] = [1,40]              # Screening. Number of bands
     cohsex['NGsBlkXs'] = [1500,'mHa']        # Cutoff Screening
     cohsex['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
-    cohsex['QPkrange'] = [ [1,7,4,5], '']
+    cohsex['QPkrange'] = [k_0, k_f, 2, 6]
     cohsex.write('gw-xi/yambo_cohsex.in')
     shell = bash() 
     shell.add_command('cd gw-xi; %s -F yambo_cohsex.in -J coh -C coh' % yambo)
@@ -159,10 +166,10 @@ def xi():
     print ('PPA')
     ppa['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     ppa['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    ppa['BndsRnXd'] = [[1,40],'']         # Screening. Number of bands
+    ppa['BndsRnXd'] = [1,40]              # Screening. Number of bands
     ppa['NGsBlkXp'] = [1500,'mHa']        # Cutoff Screening
-    ppa['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
-    ppa['QPkrange'] = [ [1,7,4,5], '']
+    ppa['GbndRnge'] = [1,20]              # Self-energy. Number of bands
+    ppa['QPkrange'] = [k_0,k_f,2,6]
     ppa.write('gw-xi/yambo_ppa.in')
     shell = bash() 
     shell.add_command('cd gw-xi; %s -F yambo_ppa.in -J pp -C pp' % yambo)
@@ -171,12 +178,12 @@ def xi():
 
     ra = YamboIn('%s -d -g n -V all'%yambo,folder='gw-xi')
     print ('Real Axis')
-    ra['FFTGvecs'] = [2,'Ha']            # Global Cutoff
+    ra['FFTGvecs'] = [2 ,'Ha']           # Global Cutoff
     ra['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    ra['BndsRnXd'] = [[1,40],'']         # Screening. Number of bands
+    ra['BndsRnXd'] = [1,40]              # Screening. Number of bands
     ra['NGsBlkXd'] = [1500,'mHa']        # Cutoff Screening
-    ra['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
-    ra['QPkrange'] = [ [1,7,4,5], '']
+    ra['GbndRnge'] = [1,20]              # Self-energy. Number of bands
+    ra['QPkrange'] = [k_0,k_f,2,6]
     ra.write('gw-xi/yambo_ra.in')
     shell = bash() 
     shell.add_command('cd gw-xi; %s -F yambo_ra.in -J ra -C ra' % yambo)
@@ -202,13 +209,16 @@ def dyson_eq():
         shell.run()
         shell.clean()
 
-    dyson = YamboIn('%s -p p -g n -V all'%yambo,folder=folder_dyson)
+    dyson = YamboIn('%s -d -g n -V all'%yambo,folder=folder_dyson)
+
+    k_0, k_f = dyson['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
+
     dyson['FFTGvecs'] = [2,'Ha']            # Global Cutoff
     dyson['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    dyson['BndsRnXd'] = [[1,40],'']         # Screening. Number of bands
-    dyson['NGsBlkXd'] = [1500,'mHa']        # Cutoff Screening
-    dyson['GbndRnge'] = [[1,20],'']         # Self-energy. Number of bands
-    dyson['QPkrange'] = [ [1,7,4,5], '']
+    dyson['BndsRnXd'] = [1,10]              # Screening. Number of bands
+    dyson['NGsBlkXd'] = [0500,'mHa']        # Cutoff Screening
+    dyson['GbndRnge'] = [1,20]              # Self-energy. Number of bands
+    dyson['QPkrange'] = [k_0, k_f, 2, 6]
 
     dyson['DysSolver'] = "n" 
     dyson.write('%s/yambo_newton.in' % folder_dyson)
@@ -216,12 +226,19 @@ def dyson_eq():
     dyson.write('%s/yambo_secant.in' % folder_dyson)
     dyson['DysSolver'] = "g" 
     dyson.write('%s/yambo_gf.in' % folder_dyson)
-    #shell = bash() 
-    #shell.add_command('cd %s; %s -F yambo_newton.in -J newton -C newton' % (folder_dyson, yambo))
-    #shell.add_command('cd %s; %s -F yambo_secant.in -J secant -C secant' % (folder_dyson, yambo))
-    #shell.add_command('cd %s; %s -F yambo_gf.in     -J gf     -C gf'     % (folder_dyson, yambo))
-    #shell.run()
-    #shell.clean()
+    shell = bash() 
+    shell.add_command('cd %s; %s -F yambo_newton.in -J newton -C newton' % (folder_dyson, yambo))
+    shell.add_command('cd %s; %s -F yambo_secant.in -J secant -C secant' % (folder_dyson, yambo))
+    shell.add_command('cd %s; %s -F yambo_gf.in     -J gf     -C gf'     % (folder_dyson, yambo))
+    shell.run()
+    shell.clean()
+
+def plot_dyson():
+    #pack the files in .json files
+    pack_files_in_folder('gw-zeros')
+    ya = YamboAnalyser('gw-zeros')
+    print('plot kpoints for Newton and secant solver')
+    ya.plot_gw('qp',cols=(lambda x: x[2]+x[3],))
 
 if __name__ == "__main__":
     #parse options
@@ -232,7 +249,8 @@ if __name__ == "__main__":
     parser.add_argument('-r'  ,'--results', action="store_true",      help='Pack into json files and plot a single GW calculation')
     parser.add_argument('-x'  ,'--xi', action="store_true",           help='GW calculations for several approximations of the Screenning')
     parser.add_argument('-xp' ,'--xp', action="store_true",           help='Plot GW results for COHSEX, PPA and RA')
-    parser.add_argument('-z'  ,'--zeros', action="store_true",      help='Pack into json files and plot a single GW calculation')
+    parser.add_argument('-z'  ,'--zeros', action="store_true",        help='GW calculations for Newton and Secant Solver')
+    parser.add_argument('-zp' ,'--zp', action="store_true",           help='Plot GW results for Newton and Secant Solver')
 
     args = parser.parse_args()
 
@@ -248,3 +266,4 @@ if __name__ == "__main__":
     if args.xi:             xi()
     if args.xp:             plot_xi()
     if args.zeros:          dyson_eq()
+    if args.zp:             plot_dyson()
