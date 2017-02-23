@@ -79,7 +79,6 @@ class YamboIn():
         #if the units are not specified, add them
         if type(value) == list and str not in map(type,value):
             value = [value,'']
-            value = [value,'']
         if type(value) in [int,float,complex]:
             value = [value,'']
         self.variables[key] = value
@@ -164,7 +163,7 @@ class YamboIn():
             A dictionary conv that has all the variables to be optimized
             A list fo the name of the variables in the dicitonary that are to be optimized
             A function run that takes as input the name of the inputfile (used to run yambo)
-            A boolean ref_run that can disable the submitting of the reference run (see scripts/plot_cv.py)
+            A boolean ref_run that can disable the submitting of the reference run (see scripts/analyse_gw.py)
             .. code-block:: python
                 def run(filename):
                     os.system('yambo -F %s'%filename)
@@ -249,7 +248,7 @@ class YamboIn():
         return name_files
 
     def write(self,filename='yambo.in'):
-        """ 
+        """
         Write a yambo input file
         """
         f = open(filename,"w")
@@ -257,7 +256,7 @@ class YamboIn():
         f.close()
 
     def pack(self,filename):
-        """ 
+        """
         Pack all the data of this structure in a `.json` file
         """
         f = open(filename,'w')
@@ -265,7 +264,7 @@ class YamboIn():
         f.close()
 
     def __str__(self):
-        """  
+        """
         Returns the input file as a string
         """
         s  = ""

@@ -1,4 +1,4 @@
-Yabmopy scripts
+Yambopy scripts
 ================================
 
 Here you can find some user contributed scripts for yambopy.
@@ -6,6 +6,85 @@ Here you can find some user contributed scripts for yambopy.
 1. merge_qp.py
  Merge QP databases from multiple yambo GW runs
 
-2. plot_cv.py
+2. analyse_gw.py
  After running a GW calculation with a gw_conv.py type of script you can analyse the data and plot the
- difference between a selected conduction and valence band as a function of a convergence parameter.
+ difference between a selected conduction and valence band at given k-points as a function of a convergence parameter.
+
+3. analyse_bse.py
+ After running a BSE calculation with a bse_conv.py type of script, you can analyse the data and plot either
+ the bright excitons eigenenergies or the optical spectra as a function of a convergence parameter.
+
+4. plot_excitons.py
+ Plot the BSE spectra including excitonic energies and the exciton weights in the Brillouin Zone of a BSE calculation.
+
+
+  Realtime Folder
+  ===============
+
+  In this folder are a series of scripts aimed at performing real-time simulations and interpreting results.
+  Please beware that inside the different scripts there might be parameters to change and converge properly
+  with regards to your system. Be also careful to write the carriers at least for the times you want to study.
+  See the tutorial for more details.
+
+  0a. break-symm.py
+    Before any real-time calculation can be done, the symmetries of the system must be broken according to the direction of the polarization of the incident light.
+
+  0b. gkkp.py
+    This one can be found in the tutorial on real-time calculations. It calculates the electron-phonon matrix elements.
+
+  1. rt-pulse.py
+    This is to be run first. Use the -c option to calculate the collisions, -p to simulate the effect of a laser pump
+    and -d to include phonon dissipation (which requires the electron-phonon matrix elements gkkp).
+
+  2. rt-cohsex.py
+    Calculate the COHSEX correction at different times.
+
+  3. rt-merge.py
+    Combines corrections as defined by the runlevel (see inside script). Can include GW corrections, COHSEX (from rt-cohsex.py and t=0).
+    Calls ypp_rt interactively to produce the databases.
+
+  4. rt-bse.py
+    Calculate the BSE for the given times. Can include all corrections (from rt-merge.py), only GW at equilibrium or a scissor operator.
+
+  5. rt-ip.py
+    Similar to rt-bse.py but in the independant particle approximation.
+
+  6. rt-ta.py
+    After the spectra are obtained (most likely from rt-bse.py), this makes transiant absorption spectra for the given BSE calculations.
+
+  Here is an exemple of structure for real-time calculations :
+      rt/
+      ├── col-hxc/
+      ├── collisions.in
+      ├── collisions.ll
+      ├── QSSIN-1e+03-70.0fs-1.0eV-0K/
+          ├── ...
+      ├── QSSIN-1e+03-70.0fs-2.0eV-0K/
+          ├── B-L-t0/ <- BSE calculations at different times (here with scissor operator)
+          ├── B-L-t0.in
+          ├── B-L-t0.ll
+          ├── B-L-t300/
+          ├── B-L-t300.in
+          ├── B-L-t300.ll
+          ├── C-XG-t0/ <- COHSEX calculations at different times
+          ├── C-XG-t0.in
+          ├── C-XG-t0.ll
+          ├── C-XG-t300/
+          ├── C-XG-t300.in
+          ├── C-XG-t300.ll
+          ├── M-XG-t0/ <- Merged corrections (no .ll because it calls ypp in interactive mode)
+          ├── M-XG-t0.in
+          ├── M-XG-t300/
+          ├── M-XG-t300.in
+          ├── pulse/ <- contains carriers dynamics
+          ├── pulse.in
+          ├── pulse.ll
+          └── SAVE/ <- empty, automatically created by Yambo
+      ├── QSSIN-1e+03-70.0fs-3.0eV-0K/
+          ├──...
+      ├── r_setup
+      ├── SAVE/
+      ├── yambo.in
+      └── ypp.in
+
+
