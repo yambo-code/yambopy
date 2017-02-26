@@ -9,9 +9,10 @@ from qepy import *
 import argparse
 
 #parse options
-parser = argparse.ArgumentParser(description='Test the yambopy script.')
+parser = argparse.ArgumentParser(description='Run BSE calculations on BN.')
 parser.add_argument('-dg','--doublegrid', action="store_true", help='Use double grid')
 parser.add_argument('-r', '--run',        action="store_true", help='Run BSE calculation')
+parser.add_argument('-c', '--cut',        action="store_true", help='Use coulomb truncation')
 parser.add_argument('-a', '--analyse',    action="store_true", help='plot the results')
 args = parser.parse_args()
 
@@ -20,6 +21,7 @@ if len(sys.argv)==1:
     sys.exit(1)
 
 yambo = "yambo"
+layer_separation = 12
 
 if not os.path.isdir('database'):
     os.mkdir('database')
@@ -63,7 +65,11 @@ if args.doublegrid:
 
 if args.run:
     #create the yambo input file
-    y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse')
+    y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder='bse')
+
+    if args.cut:
+        y['CUTGeo'] = 'box z'
+        y['CUTBox'] = [0,0,layer_separation-1]
 
     y['FFTGvecs'] = [30,'Ry']
     y['NGsBlkXs'] = [1,'Ry']
