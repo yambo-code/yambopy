@@ -29,6 +29,10 @@ class YamboStaticScreeningDB():
         self.qpoints = database['HEAD_QPT'][:].T
         self.nqpoints = len(self.qpoints)
         
+        #are we usign coulomb cutoff?
+        self.cutoff = "".join(database['CUTOFF'][:][0]).strip()
+        print self.cutoff
+        
         self.readDBs()
 
     def readDBs(self):
@@ -51,7 +55,7 @@ class YamboStaticScreeningDB():
             #close database
             db.close()
 
-    def plot(self,ax):
+    def plot(self,ax,**kwargs):
         """
         Plot the static screening
         
@@ -66,12 +70,14 @@ class YamboStaticScreeningDB():
         x, y = zip(*sorted(zip(x, y)))        
         y = np.array(y)
  
-        ax.plot(x,y.real)
+        ax.plot(x,y.real,**kwargs)
         ax.set_xlabel('|q|')
 
     def __str__(self):
         s = ""
-        s += "nqpoints: %d"%self.nqpoints
+        s += "nqpoints: %d\n"%self.nqpoints
+        s += "X size:   %d\n"%self.size
+        s += "cutoff: %s\n"%self.cutoff
         return s
 
 
