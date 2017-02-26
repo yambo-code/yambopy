@@ -13,5 +13,6 @@ yambopy documentation
    features
    install
    quickstart
+   scheduler
    tutorial
    autodoc

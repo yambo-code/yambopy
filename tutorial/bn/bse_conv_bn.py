@@ -74,12 +74,14 @@ if args.run:
     y['KfnQP_E']  = [2.91355133,1.0,1.0] #some scissor shift
 
     #list of variables to optimize and the values they might take
-    conv = { 'FFTGvecs': [[10,15,20],'Ry'],
-             'NGsBlkXs': [[1,2,3], 'Ry'],
-             'BndsRnXs': [[1,10],[1,20],[1,30]] }
+    conv = { 'FFTGvecs': [[10,15,20,30],'Ry'],
+             'NGsBlkXs': [[1,2,3,5,6], 'Ry'],
+             'BndsRnXs': [[1,10],[1,20],[1,30],[1,40]] }
 
     def run(filename):
-        """ Function to be called by the optimize function """
+        """
+        Function to be called by the optimize function
+        """
         path = filename.split('.')[0]
         print(filename, path)
         os.system('cd %s; yambo -F %s -J %s -C %s 2> %s.log'%(folder,filename,path,path,path))

@@ -1,12 +1,24 @@
 Classes
 =======
 
+yambopy
+---------
 .. automodule:: yambopy
 .. autoclass:: YamboIn
 .. autoclass:: YamboOut
 .. autoclass:: YamboAnalyser
 
-.. automodule:: pwpy
+qepy
+---------
+.. automodule:: qepy
 .. autoclass:: PwIn
 .. autoclass:: PhIn
-.. autoclass:: EspressoXML
+.. autoclass:: PwXML
+
+schedulerpy
+------------
+.. automodule:: schedulerpy
+.. autoclass:: scheduler
+.. autoclass:: bash
+.. autoclass:: pbs
+.. autoclass:: oar

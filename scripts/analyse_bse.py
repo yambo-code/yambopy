@@ -24,15 +24,20 @@ See line 2 inside the script.
 
 
 parser = argparse.ArgumentParser(description='Study convergence on BS calculations using ypp calls.')
-parser.add_argument('folder'    , help='Folder containing SAVE and convergence runs.')
-parser.add_argument('variable'  , help='Variable tested (e.g. FFTGvecs)'             )
-parser.add_argument('-ne','--numbexc', help='Number of excitons to read beyond threshold', default=2,type=int)
-parser.add_argument('-ie','--intexc' , help='Minimum intensity for excitons to be considered bright', default=0.05,type=float)
+parser.add_argument('folder',           help='Folder containing SAVE and convergence runs.')
+parser.add_argument('variable',         help='Variable tested (e.g. FFTGvecs)'             )
+parser.add_argument('-ne','--numbexc',  help='Number of excitons to read beyond threshold', default=2,type=int)
+parser.add_argument('-ie','--intexc',   help='Minimum intensity for excitons to be considered bright', default=0.05,type=float)
 parser.add_argument('-de','--degenexc', help='Energy threshold under which different peaks are merged (eV)', default=0.01,type=float)
-parser.add_argument('-me','--maxexc', help='Energy threshold after which excitons are not read anymore (eV)', default=4.0,type=float)
-parser.add_argument('-np','--nopack'    , help='Skips packing o- files into .json files', action='store_false')
-parser.add_argument('-nt','--notext'    , help='Skips writing the .dat file', action='store_false')
-parser.add_argument('-nd','--nodraw'    , help='Skips drawing (plotting) the abs spectra', action='store_false')
+parser.add_argument('-me','--maxexc',   help='Energy threshold after which excitons are not read anymore (eV)', default=4.0,type=float)
+parser.add_argument('-np','--nopack',   help='Skips packing o- files into .json files', action='store_false')
+parser.add_argument('-nt','--notext',   help='Skips writing the .dat file', action='store_false')
+parser.add_argument('-nd','--nodraw',   help='Skips drawing (plotting) the abs spectra', action='store_false')
+
+if len(sys.argv)==1:
+    parser.print_help()
+    sys.exit(1)
+
 args = parser.parse_args()
 
 folder    = args.folder

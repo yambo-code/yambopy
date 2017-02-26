@@ -100,9 +100,11 @@ def run(nthreads=1):
     y['BSEBands'] = [[3,6],'']
     y['BEnSteps'] = [500,'']
     y['BEnRange'] = [[0.0,10.0],'eV']
+    y['KfnQP_E']  = [2.91355133,1.0,1.0] #some scissor shift
     y.arguments.append('WRbsWF')
-
     y.write('%s/yambo_run.in'%folder)
+
+    print('running yambo')
     os.system('cd %s; %s -F yambo_run.in -J yambo'%(folder,yambo))
 
 def plot():

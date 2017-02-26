@@ -68,10 +68,11 @@ if args.run:
     y['FFTGvecs'] = [30,'Ry']
     y['NGsBlkXs'] = [1,'Ry']
     y['BndsRnXs'] = [1,30]
-    y['BSEBands'] = [4,5]
+    y['BSEBands'] = [3,6]
     y['BEnSteps'] = 500
-    y['BEnRange'] = [[2.0,12.0],'eV']
+    y['BEnRange'] = [[0.0,10.0],'eV']
     y['KfnQP_E']  = [2.91355133,1.0,1.0] #some scissor shift
+    y.arguments.append('WRbsWF')
     y.write('bse/yambo_run.in')
 
     print('running yambo')
