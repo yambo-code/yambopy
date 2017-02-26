@@ -21,11 +21,11 @@ from yambopy.dbs.em1sdb import *
 from yambopy.io.inputfile import *
 from yambopy.io.outputfile import *
 
-#analyse stuff
-from yambopy.analyse import *
-from yambopy.recipes import *
-
 #bse/excitons files
 from yambopy.bse.excitonwf import *
 from yambopy.bse.excitonweight import *
 from yambopy.bse.bse_absorption import *
+
+#analyse stuff
+from yambopy.analyse import *
+from yambopy.recipes import *

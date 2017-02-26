@@ -25,13 +25,16 @@ class YamboStaticScreeningDB():
         self.nbands = int(nbands)
         self.eh = eh
 
-        #read number of q-points
+        #read gvectors
+        self.gvectors = np.rint(database['X_RL_vecs'][:].T)
+        self.ngvectors = len(self.gvectors)
+        
+        #read q-points
         self.qpoints = database['HEAD_QPT'][:].T
         self.nqpoints = len(self.qpoints)
         
         #are we usign coulomb cutoff?
         self.cutoff = "".join(database['CUTOFF'][:][0]).strip()
-        print self.cutoff
         
         self.readDBs()
 
@@ -55,7 +58,17 @@ class YamboStaticScreeningDB():
             #close database
             db.close()
 
-    def plot(self,ax,**kwargs):
+    def get_g_index(self,g):
+        """
+        get the index of the gvectors.
+        If the gvector is not present return None
+        """
+        for ng,gvec in enumerate(self.gvectors):
+            if np.isclose(g,gvec).all():
+                return ng
+        return None
+        
+    def plot(self,ax,ng1=0,ng2=0,**kwargs):
         """
         Plot the static screening
         
@@ -64,7 +77,7 @@ class YamboStaticScreeningDB():
         """
         M1 = np.eye(self.size)
         x = [np.linalg.norm(q) for q in self.qpoints]
-        y = [np.linalg.inv(M1-xq)[0,0] for xq in self.X ]
+        y = [(M1+xq)[ng2,ng1] for xq in self.X ]
       
         #order according to the distance
         x, y = zip(*sorted(zip(x, y)))        
