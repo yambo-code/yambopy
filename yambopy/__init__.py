@@ -14,6 +14,7 @@ from yambopy.lattice import *
 
 #yambo databases
 from yambopy.dbs.savedb import *
+from yambopy.dbs.qpdb import *
 
 #input/output files
 from yambopy.io.inputfile import *

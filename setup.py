@@ -1,6 +1,12 @@
 from distutils.core import setup
 
-packages_yambopy = ['yambopy','qepy','schedulerpy','yamboparser']
+packages_yambopy = ['yambopy',
+                    'yambopy.io',
+                    'yambopy.dbs',
+                    'yambopy.bse',
+                    'qepy',
+                    'schedulerpy',
+                    'yamboparser']
 
 if __name__ == '__main__':
     setup(name='yambopy',
