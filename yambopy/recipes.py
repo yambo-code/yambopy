@@ -1,4 +1,4 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez, Alexandre Morlet
+# Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez, Alexandre Morlet, Fulvio Paleari
 # All rights reserved.
 #
 # This file is part of yambopy
@@ -12,7 +12,7 @@ import os
 #
 def pack_files_in_folder(folder,save_folder=None,mask='',verbose=True):
     """
-     Pack the output files in a folder to json files
+    Pack the output files in a folder to json files
     """
     if not save_folder: save_folder = folder
     #pack the files in .json files
@@ -52,7 +52,7 @@ def breaking_symmetries(efield1,efield2=[0,0,0],folder='.',RmTimeRev=True):
 #
 # by Alexandre Morlet
 #
-def analyse_bse( folder, var, numbexc, intexc, degenexc, maxexc, pack=True, text=True, draw=True ):
+def analyse_bse( folder, var, numbexc=2, intexc=0.05, degenexc=0.01, maxexc=8.0, pack=True, text=True, draw=True ):
     """
     Using ypp, you can study the convergence of BSE calculations in 2 ways:
       Create a .png of all absorption spectra relevant to the variable you study
@@ -179,3 +179,104 @@ def analyse_bse( folder, var, numbexc, intexc, degenexc, maxexc, pack=True, text
 
     print 'Done.'
 
+#
+# by Fulvio Paleari & Henrique Miranda
+#
+def merge_qp(output,files,verbose=False):
+    #read all the files and display main info in each of them
+    print "=========input========="
+    filenames = [ f.name for f in files]
+    datasets  = [ Dataset(filename) for filename in filenames]
+    QP_table, QP_kpts, QP_E_E0_Z = [], [], []
+    for d,filename in zip(datasets,filenames):
+        _, nkpoints, nqps, _, nstrings = map(int,d['PARS'][:])
+        print "filename:    ", filename
+        if verbose:
+            print "description:"
+            for i in xrange(1,nstrings+1):
+                print ''.join(d['DESC_strings_%05d'%i][0])
+        else:
+            print "description:", ''.join(d['DESC_strings_%05d'%(nstrings)][0])
+        print 
+        QP_table.append( d['QP_table'][:].T )
+        QP_kpts.append( d['QP_kpts'][:].T )
+        QP_E_E0_Z.append( d['QP_E_Eo_Z'][:] )
+
+    # create the QP_table
+    QP_table_save = np.vstack(QP_table)
+
+    # create the kpoints table
+    #create a list with the bigger size of QP_table
+    nkpoints = int(max(QP_table_save[:,2]))
+    QP_kpts_save = np.zeros([nkpoints,3])
+    #iterate over the QP's and store the corresponding kpoint
+    for qp_file,kpts in zip(QP_table,QP_kpts):
+        #iterate over the kpoints and save the coordinates on the list
+        for qp in qp_file:
+            n1,n2,nk = map(int,qp)
+            QP_kpts_save[nk-1] = kpts[nk-1]
+
+    # create the QPs energies table
+    QP_E_E0_Z_save = np.concatenate(QP_E_E0_Z,axis=1)
+
+    #create reference file from one of the files
+    fin  = datasets[0]
+    fout = Dataset(output,'w') 
+
+    variables_update = ['QP_table', 'QP_kpts', 'QP_E_Eo_Z']
+    variables_save   = [QP_table_save.T, QP_kpts_save.T, QP_E_E0_Z_save]
+    variables_dict   = dict(zip(variables_update,variables_save)) 
+    PARS_save = fin['PARS'][:]
+    PARS_save[1:3] = nkpoints,len(QP_table_save)
+
+    #create the description string
+    kmin,kmax = np.amin(QP_table_save[:,2]),np.amax(QP_table_save[:,2])
+    bmin,bmax = np.amin(QP_table_save[:,1]),np.amax(QP_table_save[:,1])
+    description = "QP @ K %03d - %03d : b %03d - %03d"%(kmin,kmax,bmin,bmax)
+    description_save = np.array([i for i in " %s"%description])
+
+    #output data
+    print "========output========="
+    print "filename:    ", output
+    print "description: ", description
+
+    #copy dimensions
+    for dname, the_dim in fin.dimensions.iteritems():
+        fout.createDimension(dname, len(the_dim) if not the_dim.isunlimited() else None)
+
+    #get dimensions
+    def dimensions(array):
+        return tuple([ 'D_%010d'%d for d in array.shape ])
+
+    #create missing dimensions
+    for v in variables_save:
+        for dname,d in zip( dimensions(v),v.shape ):
+            if dname not in fout.dimensions.keys():
+                fout.createDimension(dname, d)
+
+    #copy variables
+    for v_name, varin in fin.variables.iteritems():
+        if v_name in variables_update:
+            #get the variable
+            merged = variables_dict[v_name]
+            # create the variable
+            outVar = fout.createVariable(v_name, varin.datatype, dimensions(merged))
+            # Copy variable attributes
+            outVar.setncatts({k: varin.getncattr(k) for k in varin.ncattrs()})
+            #save outvar
+            outVar[:] = merged
+
+        else:
+            # create the variable
+            outVar = fout.createVariable(v_name, varin.datatype, varin.dimensions)
+            # Copy variable attributes
+            outVar.setncatts({k: varin.getncattr(k) for k in varin.ncattrs()})
+            if v_name=='PARS':
+                outVar[:] = PARS_save[:]
+            elif v_name=='DESC_strings_%05d'%(nstrings):
+                outVar[:] = varin[:]
+                outVar[:,:len(description_save)] = description_save.T
+            else:
+                outVar[:] = varin[:]
+            
+    fout.close()
