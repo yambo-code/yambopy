@@ -6,64 +6,40 @@ from __future__ import print_function
 import sys
 from yambopy import *
 from qepy import *
+from schedulerpy import *
 import argparse
 
-#parse options
-parser = argparse.ArgumentParser(description='Test the yambopy script.')
-parser.add_argument('-dg','--doublegrid', action="store_true", help='Use double grid')
-parser.add_argument('-r', '--run',        action="store_true", help='Run BSE calculation')
-parser.add_argument('-a', '--analyse',    action="store_true", help='plot the results')
-parser.add_argument('-f', '--folder',     default="bse_run",   help='choose folder where to put results')
-args = parser.parse_args()
-folder = args.folder
-
-if len(sys.argv)==1:
-    parser.print_help()
-    sys.exit(1)
-
 yambo = "yambo"
+p2y = "p2y"
+prefix = 'bn'
 
-if not os.path.isdir('database'):
-    os.mkdir('database')
+scheduler = Scheduler.factory
 
-#check if the nscf cycle is present
-if os.path.isdir('nscf/bn.save'):
-    print('nscf calculation found!')
-else:
-    print('nscf calculation not found!')
-    exit()
+def create_save():
+    #check if the nscf cycle is present
+    if os.path.isdir('nscf/%s.save'%prefix):
+        print('nscf calculation found!')
+    else:
+        print('nscf calculation not found!')
+        exit()
 
-#check if the SAVE folder is present
-if not os.path.isdir('database/SAVE'):
-    print('preparing yambo database')
-    os.system('cd nscf/bn.save; p2y > p2y.log')
-    os.system('cd nscf/bn.save; yambo > yambo.log')
-    os.system('mv nscf/bn.save/SAVE database')
-
-#check if the SAVE folder is present
-if args.doublegrid:
-    if not os.path.isdir('database_double/SAVE'):
+    #check if the SAVE folder is present
+    if not os.path.isdir('database'):
         print('preparing yambo database')
-        os.system('cd nscf_double/bn.save; p2y > p2y.log')
-        os.system('cd nscf_double/bn.save; yambo > yambo.log')
-        os.system('mv nscf_double/bn.save/SAVE database_double')
+        shell = scheduler()
+        shell.add_command('cd nscf/%s.save; %s > p2y.log'%(prefix,p2y))
+        shell.add_command('cd nscf/%s.save; %s > yambo.log'%(prefix,yambo))
+        shell.add_command('mv nscf/%s.save/SAVE database'%prefix)
+        shell.run()
 
-if not os.path.isdir(folder):
-    os.mkdir(folder)
-    os.system('cp -r database/SAVE %s'%folder)
+    #create the folder to run the calculation
+    if not os.path.isdir(folder):
+        shell = scheduler()
+        shell.add_command('mkdir -p %s'%folder)
+        shell.add_command('cp -r database/SAVE %s/'%folder)
+        shell.run()
 
-#initialize the double grid
-if args.doublegrid:
-    print("creating double grid")
-    f = open('%s/ypp.in'%folder,'w')
-    f.write("""kpts_map
-    %DbGd_DB1_paths
-    "../database_double"
-    %""")
-    f.close()
-    os.system('cd %s; ypp')
-
-if args.run:
+def bse_convergence():
     #create the yambo input file
     y = YamboIn('%s -b -o b -k sex -y d -V all'%yambo,folder=folder)
 
@@ -84,11 +60,13 @@ if args.run:
         """
         path = filename.split('.')[0]
         print(filename, path)
-        os.system('cd %s; yambo -F %s -J %s -C %s 2> %s.log'%(folder,filename,path,path,path))
+        shell = scheduler()        
+        shell.add_command('cd %s; yambo -F %s -J %s -C %s 2> %s.log'%(folder,filename,path,path,path))
+        shell.run()
 
     y.optimize(conv,run=run)
 
-if args.analyse:
+def analyse():
     #pack the files in .json files
     pack_files_in_folder(folder)
 
@@ -119,3 +97,24 @@ if args.analyse:
     print(y)
     y.plot_bse('eps')
     print('done!')
+
+
+if __name__ == "__main__":
+    #parse options
+    parser = argparse.ArgumentParser(description='Test the yambopy script.')
+    parser.add_argument('-r', '--run',        action="store_true",  help='run BSE convergence calculation')
+    parser.add_argument('-a', '--analyse',    action="store_true",  help='plot the results')
+    parser.add_argument('-f', '--folder',     default="bse_run",    help='choose folder to put the results')
+    parser.add_argument('-p', '--p2y',        default="store_true", help='p2y executable')
+    parser.add_argument('-y', '--yambo',      default="store_true", help='yambo executable')
+
+    args = parser.parse_args()
+    folder = args.folder
+
+    if len(sys.argv)==1:
+        parser.print_help()
+        sys.exit(1)
+
+    create_save()
+    if args.run:     bse_convergence()
+    if args.analyse: analyse()

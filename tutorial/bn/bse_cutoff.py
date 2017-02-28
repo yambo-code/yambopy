@@ -5,14 +5,18 @@
 from __future__ import print_function
 from yambopy import *
 from qepy import *
+from schedulerpy import *
 import argparse
 import sys
 
 prefix = "bn"
 work_folder = "bse_cutoff"
 yambo = "yambo"
+p2y = 'p2y'
 layer_separations = [10,12,14,16]
 kpoints = [9,9,1]
+
+scheduler = Scheduler.factory
 
 # create the quantum espresso input file
 def get_inputfile():
@@ -60,12 +64,13 @@ def nscf(layer_separation,folder='nscf'):
     qe.kpoints = kpoints
     qe.write('%s/%s.nscf'%(folder,prefix))
     
-def database(output_folder,nscf_folder='nscf'):
+def database(shell,output_folder,nscf_folder='nscf'):
     if not os.path.isdir('%s/SAVE'%output_folder):
         print('preparing yambo database...')
-        os.system('cd %s/%s.save; p2y > p2y.log'%(nscf_folder,prefix))
-        os.system('cd %s/%s.save; yambo > yambo.log'%(nscf_folder,prefix))
-        os.system('mv %s/%s.save/SAVE %s'%(nscf_folder,prefix,output_folder))
+        shell.add_command('mkdir -p %s'%nscf_folder)
+        shell.add_command('pushd %s/%s.save; %s; %s'%(nscf_folder,prefix,p2y,yambo))
+        shell.add_command('popd')
+        shell.add_command('mv %s/%s.save/SAVE %s'%(nscf_folder,prefix,output_folder))
         print('done!')
 
 def run(nthreads=1):
@@ -74,24 +79,30 @@ def run(nthreads=1):
 
         print("layer separation: %d bohr"%layer_separation)
         root_folder = "%s/%d"%(work_folder,layer_separation)
+        shell = scheduler()
         if not os.path.isdir(root_folder):
-            os.makedirs(root_folder)
+            shell.add_command( 'mkdir -p %s'%root_folder )
 
         # run the ground state calculation
         print("scf cycle")
         scf(layer_separation,folder="%s/scf"%root_folder)
-        os.system("cd %s/scf; pw.x < %s.scf > scf.log"%(root_folder,prefix))
+        shell.add_command("pushd %s/scf; pw.x < %s.scf > scf.log"%(root_folder,prefix))
+        shell.add_command("popd")
 
         # run the non self consistent calculation
         print("nscf cycle")
         src ='%s/scf/%s.save'%(root_folder,prefix)
         dst ='%s/nscf/%s.save'%(root_folder,prefix)
         nscf(layer_separation,folder="%s/nscf"%root_folder)
-        os.system( 'cp -r %s %s'%(src,dst) )
-        os.system("cd %s/nscf; pw.x < %s.nscf > nscf.log"%(root_folder,prefix))
+
+        shell.add_command('cp -r %s %s'%(src,dst) )
+        shell.add_command("pushd %s/nscf; pw.x < %s.nscf > nscf.log"%(root_folder,prefix))
+        shell.add_command('popd')
 
         # generate the database
-        database('%s'%root_folder,nscf_folder="%s/nscf"%root_folder)
+        database(shell,'%s'%root_folder,nscf_folder="%s/nscf"%root_folder)
+        shell.run()
+        #wait for execution
 
         # calculate the absorption spectra
         y = YamboIn('mpirun -np %d yambo -r -b -o b -k sex -y d -V all'%nthreads,folder=root_folder)
@@ -108,7 +119,9 @@ def run(nthreads=1):
         y['BEnSteps'] = 500
         y['BEnRange'] = [[1.0,6.0],'eV']
         y.write('%s/yambo_run.in'%root_folder)
-        os.system('cd %s; %s -F yambo_run.in -J %d'%(root_folder,yambo,layer_separation))
+        shell = scheduler()
+        shell.add_command('cd %s; %s -F yambo_run.in -J %d'%(root_folder,yambo,layer_separation))
+        shell.run()
 
 def plot():
     for layer_separation in layer_separations:

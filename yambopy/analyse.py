@@ -336,14 +336,15 @@ class YamboAnalyser():
             plt.show()
 
     def plot_bse(self,tags,cols=(2,)):
-        """ Use this function to plot the absorption spectrum calculated using the BSE
-            cols: a list of indexes to select which columns from the file to plot
+        """ 
+        Use this function to plot the absorption spectrum calculated using the BSE
+        cols: a list of indexes to select which columns from the file to plot
 
-            Example:
-                a.plot_gw('eps',cols=(2,))
+        Example:
+            a.plot_bse('eps',cols=(2,))
 
-                Will plot only files with 'eps' in their filename (absorption spectra)
-                Will plot the second column (absorption spectra)
+            Will plot only files with 'eps' in their filename (absorption spectra)
+            Will plot the second column (absorption spectra)
         """
         ax = plt.axes([0.1, 0.1, .7, .7])
         plot = False
