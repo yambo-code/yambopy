@@ -1,6 +1,6 @@
 Schedulerpy
 ==========================
-Schedulerpy is a simple python script to run applications on different schedulers (PBS, OAR) and bash using the same python scripts on different environments.
+Schedulerpy is a simple python script to run applications on different schedulers (PBS, OAR) and bash using the same python scripts.
 
 Basic concept
 --------------------------
@@ -19,8 +19,6 @@ The handling of the command is made using different python classes that define t
 There is one class per interface, and the currently implemented interfaces are OAR, PBS and bash.
 Different interfaces can easily be added. We can for example create a class to run jobs remotely through ssh.
 
-Flexibility
-----------------------------
 The main goal is to create only one python script that says which code to execute and to be able to run it on different computers, schedulers and environments. For that we define a local configuration file that instructs schedulerpy how to run the jobs, be it through a scheduler or bash.
 
 Configurations file

@@ -77,7 +77,7 @@ class YamboStaticScreeningDB():
         """
         M1 = np.eye(self.size)
         x = [np.linalg.norm(q) for q in self.qpoints]
-        y = [(M1+xq)[ng2,ng1] for xq in self.X ]
+        y = [np.abs(xq)[ng2,ng1] for xq in self.X ]
       
         #order according to the distance
         x, y = zip(*sorted(zip(x, y)))        
