@@ -25,6 +25,35 @@ class Cmd():
         if cmd in cmds.keys():
             cmds[cmd](args[1:])
 
+class PlotEm1sCmd(Cmd):
+    """
+    Plot em1s calculation
+
+        possible arguments are:
+        
+        Arguments:
+        folder   -> Folder containing the ndb.ems1 files
+    """
+    def __init__(self,args):
+        #check for args
+        if len(args) < 1:
+            print(self.__doc__)
+            exit(0)
+
+        #first anbd second arguments are mandatory
+        folder = args[0]
+        
+        ys = YamboStaticScreeningDB(save=folder)
+
+        #create plot
+        ax = plt.gca()
+
+        ys.plot(ax,marker='o')
+
+        #final plot
+        plt.show()
+
+
 class AnalyseBSECmd(Cmd):
     """
     Analyse BSE calculation
@@ -126,7 +155,8 @@ class YambopyCmd(Cmd):
     class to implement commands for yambopy.
     each new command to be added should be implemented as a class inheriting from this one
     """
-    _commands = {'analysebse': AnalyseBSECmd,
+    _commands = {'plotem1s': PlotEm1sCmd,
+                 'analysebse': AnalyseBSECmd,
                  'mergeqp':    MergeQPCmd,
                  'test':       TestCmd}
 
