@@ -111,6 +111,6 @@ if text:
 
 plt.plot(array[:,0],array[:,1],'o-')
 plt.xlabel(var+' ('+unit+')')
-plt.ylabel('E_gw = E_lda + \Delta E')
+plt.ylabel('$E_{GW} = E_{LDA} + \Delta E$')
 plt.show()
 #plt.savefig(folder+'_'+var+'.png')

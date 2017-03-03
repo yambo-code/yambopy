@@ -48,21 +48,20 @@ def gw_convergence():
     #create the yambo input file
 
     # GW calculation. Exact Dynamical Screening. Newton method
-    y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
+    y = YamboIn('%s -d -g n -p p -V all'%yambo,folder='gw_conv')
 
     k_0, k_f = y['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
-
     y['FFTGvecs'] = [2,'Ha']                # Global Cutoff
     y['EXXRLvcs'] = [20,'Ha']               # Self-energy. Exchange
-    y['NGsBlkXd'] = [1,10]                  # Screening. Number of bands
-    y['NGsBlkXd'] = [0,'mHa']               # Cutoff Screening
+    y['NGsBlkXp'] = [1,10]                  # Screening. Number of bands
+    y['NGsBlkXp'] = [0,'mHa']               # Cutoff Screening
     y['GbndRnge'] = [1,10]                  # Self-energy. Number of bands
-    y['QPkrange'] = [k_f,k_f,4,5]
+    y['QPkrange'] = [ [k_f,k_f,4,5], '' ]
     #y.arguments.append('ExtendOut')
 
     conv = { 'FFTGvecs': [[2,2,5,10,15,20],'Ha'],
-             'NGsBlkXd': [[0,0,500,1000,1500,2000], 'mHa'],
-             'BndsRnXd': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] ,
+             'NGsBlkXp': [[0,0,500,1000,1500,2000], 'mHa'],
+             'BndsRnXp': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] ,
              'GbndRnge': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] }
 
     def run(filename):
@@ -81,15 +80,15 @@ def plot_convergence():
     y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
 
     k_0, k_f = y['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
-    #pack the files in .json files
+    print (k_f) #pack the files in .json files
     pack_files_in_folder('gw_conv')
 
     print('Select the converged value for each variable')
     shell = bash() 
-    shell.add_command('python analyse_gw.py -bc 5 -kc %d -bv 4 -kv %d gw_conv FFTGvecs' % (k_f, k_f))
-    shell.add_command('python analyse_gw.py -bc 5 -kc %d -bv 4 -kv %d gw_conv NGsBlkXd' % (k_f, k_f))
-    shell.add_command('python analyse_gw.py -bc 5 -kc %d -bv 4 -kv %d gw_conv BndsRnXd' % (k_f, k_f))
-    shell.add_command('python analyse_gw.py -bc 5 -kc %d -bv 4 -kv %d gw_conv GbndRnge' % (k_f, k_f))
+    shell.add_command('python analyse_gw.py -bc 5 -kc %s -bv 4 -kv %s gw_conv FFTGvecs' % (k_f, k_f))
+    shell.add_command('python analyse_gw.py -bc 5 -kc %s -bv 4 -kv %s gw_conv NGsBlkXp' % (k_f, k_f))
+    shell.add_command('python analyse_gw.py -bc 5 -kc %s -bv 4 -kv %s gw_conv BndsRnXp' % (k_f, k_f))
+    shell.add_command('python analyse_gw.py -bc 5 -kc %s -bv 4 -kv %s gw_conv GbndRnge' % (k_f, k_f))
     shell.run()
     shell.clean()
 

@@ -63,7 +63,7 @@ def nscf(kpoints,folder='nscf'):
     qe.control['calculation'] = "'nscf'"
     qe.electrons['diago_full_acc'] = ".true."
     qe.electrons['conv_thr'] = 1e-8
-    qe.system['nbnd'] = 30
+    qe.system['nbnd'] = 50
     qe.system['force_symmorphic'] = ".true."
     qe.kpoints = kpoints
     qe.write('%s/bn.nscf'%folder)
