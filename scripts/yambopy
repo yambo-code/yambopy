@@ -40,7 +40,7 @@ class PlotEm1sCmd(Cmd):
             print(self.__doc__)
             exit(0)
 
-        #first anbd second arguments are mandatory
+        #first and second arguments are mandatory
         folder = args[0]
         
         ys = YamboStaticScreeningDB(save=folder)
@@ -53,6 +53,57 @@ class PlotEm1sCmd(Cmd):
         #final plot
         plt.show()
 
+class AnalyseGWCmd(Cmd):
+    """
+    Analyse GW calculations
+
+        Mandatory arguments are:
+            folder     -> Folder containing SAVE and convergence runs
+            variable   -> Variable tested for convergence (e.g. FFTGvecs)
+
+        Optional variables are:
+            -bc, --bandc   (int)  -> Lowest conduction band number
+            -kc, --kpointc (int)  -> k-point index for conduction band
+            -bv, --bandv   (int)  -> Highest valence band number
+            -kv, --kpointv (int)  -> k-point index for valence band
+            -p , --pack    (bool) -> Calls 'pack_files_in_folder'
+            -t , --text    (bool) -> Prints a text file for future use
+    """
+
+    def __init__(self,args):
+        """ 
+        """ 
+        #check for args
+        if len(args) <= 1:
+            print(self.__doc__)
+            exit(0)
+        
+        #all the other arguments are passed to the merge_qp function
+        
+        parser = argparse.ArgumentParser(description='Study GW convergence with regards to the band-gap value.')
+        parser.add_argument('folder'    , help='Folder containing SAVE and convergence runs.')
+        parser.add_argument('variable'  , help='Variable tested (e.g. FFTGvecs)'             )
+        parser.add_argument('-bc','--bandc'     , help='Lowest conduction band number'    , default=53, type=int)
+        parser.add_argument('-kc','--kpointc'   , help='K-point index for conduction band', default=19, type=int)
+        parser.add_argument('-bv','--bandv'     , help='Highest valence band number'      , default=52, type=int)
+        parser.add_argument('-kv','--kpointv'   , help='K-point index for valence band'   , default=1, type=int)
+        parser.add_argument('-p','--pack'    , help='Skip packing o- files into .json files',default='True', type=bool)
+        parser.add_argument('-t'  ,'--text'      , help='Print a text file for reference'   ,default='True',type=bool)
+        args = parser.parse_args(args)
+
+        folder = args.folder ; var    = args.variable
+        bandc  = args.bandc  ; kpointc= args.kpointc
+        bandv  = args.bandv  ; kpointv= args.kpointv
+        pack = args.pack ; text   = args.text
+
+        #call analyse_gw from recipes.py
+        analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text)
+
+    def info(self):
+        """
+        display help to use this command 
+        """
+        print self.__doc__
 
 class AnalyseBSECmd(Cmd):
     """
@@ -156,6 +207,7 @@ class YambopyCmd(Cmd):
     each new command to be added should be implemented as a class inheriting from this one
     """
     _commands = {'plotem1s': PlotEm1sCmd,
+                 'analysegw': AnalyseGWCmd,
                  'analysebse': AnalyseBSECmd,
                  'mergeqp':    MergeQPCmd,
                  'test':       TestCmd}
