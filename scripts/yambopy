@@ -1,0 +1,180 @@
+#!/usr/bin/env python
+from yambopy import *
+import argparse
+import sys
+
+class Cmd():
+    """
+    Define some generic functions for a command
+    """
+    def info(self):
+        """
+        display the available commands
+        """
+        print('yambopy')
+        print('Available commands are:\n')
+        for cmd,c in self._commands.items():
+            print "%15s -> %s"%(cmd, c.__doc__.split('\n')[1])
+    
+    def run(self,cmds,args):
+        """
+        generic run command
+        cmds is a dictionary that maps the command to the funciton to run
+        """
+        cmd = args[0]
+        if cmd in cmds.keys():
+            cmds[cmd](args[1:])
+
+class PlotEm1sCmd(Cmd):
+    """
+    Plot em1s calculation
+
+        possible arguments are:
+        
+        Arguments:
+        folder   -> Folder containing the ndb.ems1 files
+    """
+    def __init__(self,args):
+        #check for args
+        if len(args) < 1:
+            print(self.__doc__)
+            exit(0)
+
+        #first anbd second arguments are mandatory
+        folder = args[0]
+        
+        ys = YamboStaticScreeningDB(save=folder)
+
+        #create plot
+        ax = plt.gca()
+
+        ys.plot(ax,marker='o')
+
+        #final plot
+        plt.show()
+
+
+class AnalyseBSECmd(Cmd):
+    """
+    Analyse BSE calculation
+        
+        possible arguments are:
+        
+        Arguments:
+        folder   -> Folder containing SAVE and convergence runs.
+        var      -> Variable tested (e.g. FFTGvecs)
+        numbexc  -> Number of excitons to read beyond threshold (default=2)
+        intexc   -> Minimum intensity for excitons to be considered bright (default=0.05)
+        degenexc -> Energy threshold under which different peaks are merged (eV) (default=0.01)
+        maxexc   -> Energy threshold after which excitons are not read anymore (eV) (default=8.0)
+        pack     -> Skips packing o- files into .json files (default: True)
+        text     -> Skips writing the .dat file (default: True)
+        draw     -> Skips drawing (plotting) the abs spectra (default: True)
+    """
+    def __init__(self,args):
+        #check for args
+        if len(args) < 2:
+            print(self.__doc__)
+            exit(0)
+
+        #first anbd second arguments are mandatory
+        folder = args[0]
+        var    = args[1]
+        
+        #all the other arguments are passed to the analyse bse function
+        analyse_bse( folder, var, *args[2:] )
+
+class TestCmd(Cmd):
+    """
+    Run yambopy tests
+    
+        possible arguments are:
+
+        basic -> fast test where input/output is compared with reference files
+        full  -> requires yambo and quantum espresso to be installed
+    """
+    
+    def __init__(self,args):
+        #check for args
+        if len(args) < 1:
+            print(self.__doc__)
+            exit(0)
+
+        cmds = {'basic':self.basic,
+                'full':self.full}
+        self.run(cmds,args)
+
+    def basic(self,*args):
+        print args
+        
+    def full(self,*args):
+        print args
+    
+
+class MergeQPCmd(Cmd):
+    """
+    Merge QP databases
+    
+        possible arguments are:
+
+           <QP files>    -> list of QP files produced by yambo
+        -o <output file> -> output file where to save the merged db
+    """
+
+    def __init__(self,args):
+        """ 
+        possible arguments are:
+        """ 
+        #check for args
+        if len(args) <= 1:
+            print(self.__doc__)
+            exit(0)
+        
+        #all the other arguments are passed to the merge_qp function
+        parser = argparse.ArgumentParser(description='Join different NetCDF quasi-particle databases')
+        parser.add_argument('files', nargs='+', type=argparse.FileType('r'))
+        parser.add_argument('-o','--output',                       help='Output filename', default='ndb_out.QP')
+        parser.add_argument('-v','--verbose', action="store_true", help='Verbose mode')
+        args = parser.parse_args(args)
+
+        output  = args.output
+        files   = args.files
+        verbose = args.verbose
+        
+        #call merge_qp fomr recipes.py
+        merge_qp(output,files,verbose)
+
+    def info(self):
+        """
+        display help to use this command 
+        """
+        print self.__doc__
+
+class YambopyCmd(Cmd):
+    """
+    class to implement commands for yambopy.
+    each new command to be added should be implemented as a class inheriting from this one
+    """
+    _commands = {'plotem1s': PlotEm1sCmd,
+                 'analysebse': AnalyseBSECmd,
+                 'mergeqp':    MergeQPCmd,
+                 'test':       TestCmd}
+
+    def __init__(self,*args):
+        """
+        parse the command from the command line and initialize the class responsible
+        for handling such command
+        """
+        
+        #check for args
+        if len(args) <= 1:
+            self.info()
+            exit(0)
+ 
+        #start call graph     
+        if args[1] in self._commands:
+            cmdclass = self._commands[args[1]]
+            self.cmd = cmdclass(args[2:]) 
+   
+#parse options
+ycmd = YambopyCmd(*sys.argv)

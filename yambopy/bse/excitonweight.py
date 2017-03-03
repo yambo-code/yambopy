@@ -96,11 +96,10 @@ class YamboExcitonWeight(YamboSaveDB):
         cmap = plt.get_cmap("gist_heat_r")
 
         fig = plt.figure(figsize=(20,20))
-        plt.rc('text', usetex=True)
-        plt.rc('font', family='serif',serif="Computer Modern Roman",size=20)
         kpts, weights = self.calc_kpts_weights()
         plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in weights])
-        plt.axes().set_aspect('equal', 'datalim')
+        ax = plt.axes()
+        ax.set_aspect('equal', 'datalim')
         plt.show()
 
     def __str__(self):

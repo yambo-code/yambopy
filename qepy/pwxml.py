@@ -82,10 +82,6 @@ class PwXML():
         """
         import matplotlib.pyplot as plt
         
-        # Font selection and borders
-        plt.rc('text', usetex=True)
-        plt.rc('font', family='serif',serif="Computer Modern Roman",size=25)
-
         if self.eigen is None:
             self.get_eigen()
       

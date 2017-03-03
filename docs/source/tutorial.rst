@@ -171,15 +171,10 @@ Parallel Bethe-Salpeter (MoS\ :sub:`2`)
 -----------------------------------------------------------------
 **by H. Miranda**
 
-.. warning::
-    The ``merge_eps.py`` gathers the dielectric function databases into one folder with the correct numeration.
-    This script should be used in versions of ``yambo`` that create one file ``ndb.em1*_fragment_1`` per folder.
-    In the next version of ``yambo`` the files will already have the correct numeration so you just need to collect all the files.
+In this tutorial we will show how you can split the calculation of the dielectric function in different jobs using ``yambo``.
+The dielectric function can then be used to calculate the excitonic states using the BSE.
 
-In this tutorial we will show how you can parallelize the dielectric function calculation in
-separate jobs for a BSE optical absorption spectra calculation.
-
-The idea is that in certain clusters its advantageous to split the dielectric function calculation
+The idea is that in certain clusters it is advantageous to split the dielectric function calculation
 in smaller jobs (one for each q-point) that can run at the same time.
 Using the ``yambo`` parallelization you can separate the dielectric function calculation among many cpus
 using the variable ``q`` in ``X_all_q_CPU`` and ``X_all_q_ROLEs``. The issue is that you still need to make a big reservation
@@ -197,48 +192,54 @@ If some of the steps are already calculated you can tell the script not to run t
 
 .. code-block:: bash
 
-    python gs_mos2.py -n2
-
-The option ``-n2`` will tell the script not to run the double grid ``nscf`` calculation.
+    python gs_mos2.py
 
 **2. Parallel Dielectric function**
 
 Here we tell ``yambo`` to calculate the dielectric function. We read the number of q-points the system has
-and generate one input file per q-point. Next we tell ``yambo`` to calculate the first q-point. ``Yambo`` will calculate the dipoles
+and generate one input file per q-point. Next we tell ``yambo`` to calculate the first q-point. ``yambo`` will calculate the dipoles
 and the dielectric function at the first q-point.
 Once the calculation is done we copy the dipoles to the SAVE directory. After that we can run each q-point calculation
 as a separate job.
-Here the user can decide to submit one job per q-point on a cluster or use a program like
-`gnuparallel <http://www.gnu.org/software/parallel/>`_ to schedule the jobs according to the
-available resources. In this example we use the second option.
+Here the user can decide to submit one job per q-point on a cluster or use the python ``multiprocessing`` module to submit the jobs in parallel.
+In this example we use the second option.
 
 .. code-block:: python
 
+    from yambopy import *
+    import os
+    import multiprocessing
+
+    yambo = "yambo"
+    folder = "bse_par"
+    nthreads = 2 #create two simultaneous jobs
+
     #create the yambo input file
-    y = YamboIn('yambo -r -b -o b -V all',folder='bse_par')
-    y['FFTGvecs'] = [15,'Ry']
+    y = YamboIn('yambo -r -b -o b -V all',folder=folder)
+
+    y['FFTGvecs'] = [30,'Ry']
     y['NGsBlkXs'] = [1,'Ry']
-    y['BndsRnXs'] = [[1,40],'']
-    y.write('bse_par/yambo_run.in')
+    y['BndsRnXs'] = [[1,30],'']
+    y.write('%s/yambo_run.in'%folder)
 
     #get the number of q-points
-    _,nkpoints = y['QpntsRXs'][0]
+    startk,endk = map(int,y['QpntsRXs'][0])
 
     #prepare the q-points input files
-    f = open('jobs.sh','w')
-    for nk in xrange(1,int(nkpoints)+1):
+    jobs = []
+    for nk in xrange(1,endk+1):
         y['QpntsRXs'] = [[nk,nk],'']
-        y.write('bse_par/yambo_q%d.in'%(nk))
+        y.write('%s/yambo_q%d.in'%(folder,nk))
         if nk != 1:
-            f.write('cd bse_par; %s -F yambo_q%d.in -J %d\n'%(yambo,nk,nk))
-    f.close()
+            jobs.append('cd %s; %s -F yambo_q%d.in -J yambo_q%d -C yambo_q%d 2> log%d'%(folder,yambo,nk,nk,nk,nk))
 
     #calculate first q-point and dipoles
-    os.system('cd bse_par; %s -F yambo_q1.in -J 1'%yambo)
+    os.system('cd %s; %s -F yambo_q1.in -J yambo_q1 -C yambo_q1'%(folder,yambo))
     #copy dipoles to save
-    os.system('cp bse_par/1/ndb.dip* bse_par/SAVE')
-    #run jobs using gnuparallel
-    os.system('parallel :::: jobs.sh')
+    os.system('cp %s/yambo_q1/ndb.dip* %s/SAVE'%(folder,folder))
+
+    p = multiprocessing.Pool(nthreads)
+    p.map(run_job, jobs)
 
 **3. BSE**
 
@@ -249,21 +250,24 @@ calculate the absorption.
 .. code-block:: python
 
     #gather all the files
-    os.system('cp merge_eps.py bse_par')
-    os.system('cd bse_par; python merge_eps.py')
+    if not os.path.isdir('%s/yambo'%folder):
+        os.mkdir('%s/yambo'%folder)
+    os.system('cp %s/yambo_q1/ndb.em* %s/yambo'%(folder,folder))
+    os.system('cp %s/*/ndb.em*_fragment* %s/yambo'%(folder,folder))
 
-    y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder='bse_par')
-    y['FFTGvecs'] = [15,'Ry']
+    y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder=folder)
+    y['FFTGvecs'] = [30,'Ry']
     y['NGsBlkXs'] = [1,'Ry']
-    y['BndsRnXs'] = [[1,40],'']
-    y['BSEBands'] = [8,11]
-    y['BEnSteps'] = 500
-    y['BEnRange'] = [[1.0,6.0],'eV']
+    y['BndsRnXs'] = [[1,30],'']
+    y['BSEBands'] = [[3,6],'']
+    y['BEnSteps'] = [500,'']
+    y['BEnRange'] = [[0.0,10.0],'eV']
+    y['KfnQP_E']  = [2.91355133,1.0,1.0] #some scissor shift
     y.arguments.append('WRbsWF')
+    y.write('%s/yambo_run.in'%folder)
 
-    y.write('bse_par/yambo_run.in')
-    os.system('cd bse_par; %s -F yambo_run.in -J yambo'%yambo)
-
+    print('running yambo')
+    os.system('cd %s; %s -F yambo_run.in -J yambo'%(folder,yambo))
 
 **3. Collect and plot the results**
 
@@ -278,7 +282,7 @@ You can plot the data much in the same way as you did for the GW calculation.
     y = YamboAnalyser('bse_par')
     y.plot_bse('eps')
 
-You should obtain a plot like this:
+You should now obtain a plot like this:
 
 .. image:: figures/bse_mos2.png
 
@@ -348,9 +352,9 @@ inside the folder ``rt``.
 In order to perform real-time simulations we need to perform some preliminary steps:
 
     - Creating the files containing the electron-phonon matrix elements: We use 
-    quantum espresso ('ph.x'). The grid used for obtaining the eletron-phonon 
-    matrix elements must be the same than for the real-time simulations. 
-    See in the `yambo website <http://www.yambo-code.org/>`_ more information about the methodology.
+      quantum espresso ('ph.x'). The grid used for obtaining the eletron-phonon 
+      matrix elements must be the same than for the real-time simulations. 
+      See in the `yambo website <http://www.yambo-code.org/>`_ more information about the methodology.
 
 .. code-block:: bash
 
@@ -360,8 +364,8 @@ The script will create a folder ``GKKP`` inside ``rt``. ``GKKP`` contains all th
 full Brillouin zone.
 
     - Breaking symmetries. The action of an external field breaks the symmetry of 
-    the system. We need to break the symmetries according with the direction of 
-    the polarization of the incident light. When we run for first time:
+      the system. We need to break the symmetries according with the direction of 
+      the polarization of the incident light. When we run for first time:
 
 .. code-block:: bash
 
@@ -595,7 +599,7 @@ We can also check if yambo is reading correctly the double-grid in the report fi
   Bands                :  8
 
 Electron-Phonon interaction (Si)
----------------------------
+---------------------------------
 **by A. Molina Sánchez**
 
 **1. Ground State and non-self consistent calculation**

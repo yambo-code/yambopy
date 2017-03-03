@@ -1,0 +1,79 @@
+
+
+  __ __  ____ ___ ___ ____   ___
+ |  |  |/    |   |   |    \ /   \
+ |  |  |  o  | _   _ |  o  )     |
+ |  ~  |     |  \_/  |     |  O  |
+ |___, |  _  |   |   |  O  |     |
+ |     |  |  |   |   |     |     |
+ |____/|__|__|___|___|_____|\___/
+
+
+ <---> [01] CPU structure, Files & I/O Directories
+ <---> [02] CORE Variables Setup
+ <---> [02.01] Unit cells
+ <---> [02.02] Symmetries
+ <---> [02.03] RL shells
+ <---> [02.04] K-grid lattice
+ <---> [02.05] Energies [ev] & Occupations
+ <---> [03] Transferred momenta grid
+ <---> [04] External corrections
+ <---> [04.01] External QP corrections (X)
+ <---> [04.02] External QP corrections (G)
+ <---> [05] Dynamical Dielectric Matrix
+ <---> [WF] Performing Wave-Functions I/O from ./SAVE
+ <---> [DIP] Checking dipoles header
+ <---> [x,Vnl] computed using 22 projectors
+ <---> [WF] Loading Wave-Functions from buffer
+ <---> Dipoles: P and iR (T): |                                        | [000%] --(E) --(X)
+ <---> Dipoles: P and iR (T): |########################################| [100%] --(E) --(X)
+ <---> [DIP] Writing dipoles header
+ <---> [X-CG] R(p) Tot o/o(of R)  :  175  1728   100
+ <---> [X] Upper matrix triangle filled
+ <---> Xo@q[1] |                                        | [000%] --(E) --(X)
+ <---> Xo@q[1] |########################################| [100%] --(E) --(X)
+ <---> X@q[1] |                                        | [000%] --(E) --(X)
+ <---> X@q[1] |########################################| [100%] --(E) --(X)
+ <---> [WF] Loading Wave-Functions from buffer
+ <---> [FFT-X] Mesh size:  9   9   9
+ <---> [X-CG] R(p) Tot o/o(of R)  :  457  1728   100
+ <---> Xo@q[2] |                                        | [000%] --(E) --(X)
+ <---> Xo@q[2] |########################################| [100%] --(E) --(X)
+ <---> X@q[2] |                                        | [000%] --(E) --(X)
+ <---> X@q[2] |########################################| [100%] --(E) --(X)
+ <---> [X-CG] R(p) Tot o/o(of R)  :  446  1728   100
+ <---> Xo@q[3] |                                        | [000%] --(E) --(X)
+ <---> Xo@q[3] |########################################| [100%] --(E) --(X)
+ <---> X@q[3] |                                        | [000%] --(E) --(X)
+ <---> X@q[3] |########################################| [100%] --(E) --(X)
+ <---> [X-CG] R(p) Tot o/o(of R)  :  506  1728   100
+ <---> Xo@q[4] |                                        | [000%] --(E) --(X)
+ <---> Xo@q[4] |########################################| [100%] --(E) --(X)
+ <---> X@q[4] |                                        | [000%] --(E) --(X)
+ <---> X@q[4] |########################################| [100%] --(E) --(X)
+ <---> [X-CG] R(p) Tot o/o(of R)  :  420  1728   100
+ <---> Xo@q[5] |                                        | [000%] --(E) --(X)
+ <---> Xo@q[5] |########################################| [100%] --(E) --(X)
+ <---> X@q[5] |                                        | [000%] --(E) --(X)
+ <---> X@q[5] |########################################| [100%] --(E) --(X)
+ <01s> [X-CG] R(p) Tot o/o(of R)  :  515  1728   100
+ <01s> Xo@q[6] |                                        | [000%] --(E) --(X)
+ <01s> Xo@q[6] |########################################| [100%] --(E) --(X)
+ <01s> X@q[6] |                                        | [000%] --(E) --(X)
+ <01s> X@q[6] |########################################| [100%] --(E) --(X)
+ <01s> [06] Bare local and non-local Exchange-Correlation
+ <01s> [WF] Loading Wave-Functions from buffer
+ <01s> [FFT-HF/Rho] Mesh size:  32   32   32
+ <01s> EXS |                                        | [000%] --(E) --(X)
+ <02s> EXS |########################################| [100%] 01s(E) 01s(X)
+ <02s> [xc] Functional Perdew, Burke & Ernzerhof(X)+Perdew, Burke & Ernzerhof(C)
+ <02s> [xc] LIBXC used to calculate xc functional
+ <02s> [06.01] HF occupations report
+ <02s> [07] Dyson equation: Newton solver
+ <02s> [07.01] G0W0 on the real axis
+ <02s> [WF] Loading Wave-Functions from buffer
+ <02s> [FFT-Sc] Mesh size:  9   9   9
+ <02s> G0W0 |                                        | [000%] --(E) --(X)
+ <03s> G0W0 |########################################| [100%] --(E) --(X)
+ <03s> [07.02] QP properties and I/O
+ <03s> [08] Game Over & Game summary

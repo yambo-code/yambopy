@@ -123,6 +123,11 @@ class YamboAnalyser():
         sym_car  = np.array(jsonfile['sym_car'])
         alat     = np.array(jsonfile['alat'])
         lattice  = np.array(jsonfile['lattice'])
+        
+        #check if the lattice data is present
+        if not lattice.any():
+            print('Information about the lattice is not present, cannot determine the path')
+            exit(1)
 
         #check if the lattice data is present
         if not lattice.any():
@@ -331,14 +336,15 @@ class YamboAnalyser():
             plt.show()
 
     def plot_bse(self,tags,cols=(2,)):
-        """ Use this function to plot the absorption spectrum calculated using the BSE
-            cols: a list of indexes to select which columns from the file to plot
+        """ 
+        Use this function to plot the absorption spectrum calculated using the BSE
+        cols: a list of indexes to select which columns from the file to plot
 
-            Example:
-                a.plot_gw('eps',cols=(2,))
+        Example:
+            a.plot_bse('eps',cols=(2,))
 
-                Will plot only files with 'eps' in their filename (absorption spectra)
-                Will plot the second column (absorption spectra)
+            Will plot only files with 'eps' in their filename (absorption spectra)
+            Will plot the second column (absorption spectra)
         """
         ax = plt.axes([0.1, 0.1, .7, .7])
         plot = False

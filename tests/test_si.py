@@ -1,6 +1,6 @@
-
+#
 # Author: Henrique Pereira Coutada Miranda
-# Tests for the yambopy library
+# Tests for yambopy
 # Si
 #
 import unittest

@@ -106,10 +106,6 @@ print "rows:",ny
 cmap = plt.get_cmap("gist_heat_r")
 
 fig = plt.figure(figsize=(nx*4,ny*4))
-# Issue if dvipng is not installed
-#plt.rc('text', usetex=True)
-#plt.rc('font', family='serif',serif="Computer Modern Roman",size=20)
-
 sorted_excitons = sorted(data['excitons'],key=lambda x: x['energy'])
 
 for n,exciton in enumerate(sorted_excitons):

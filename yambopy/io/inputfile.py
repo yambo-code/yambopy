@@ -295,6 +295,10 @@ class YamboIn():
                 else:
                     s+="%% %s\n %s %s \n%%\n"%(key," | ".join(map(str,array))+' | ',unit)
                 continue
+            if type(value[0])==str:
+                array = value
+                s+="%% %s\n %s \n%%\n"%(key," | ".join(map(lambda x: "'%s'"%x.replace("'","").replace("\"",""),array))+' | ')
+                continue
             if type(value[0])==complex:
                 value, unit = value
                 s+="%s = (%lf,%lf) %s\n"%(key,value.real,value.imag,unit)

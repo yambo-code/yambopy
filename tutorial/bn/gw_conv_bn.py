@@ -70,7 +70,6 @@ def gw_convergence():
         print(filename,folder)
         shell = bash() 
         shell.add_command('cd gw_conv; %s -F %s -J %s -C %s 2> %s.log'%(yambo,filename,folder,folder,folder))
-        print(shell)
         shell.run()
         shell.clean()
 

@@ -1,8 +1,9 @@
 #
 # Author: Henrique Pereira Coutada Miranda
-# Tests for the yambopy library
-# Si
+# Tests for yambopy
+# Run all the functions of the tutorial
 #
+
 import unittest
 import sys
 import os

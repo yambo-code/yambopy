@@ -13,13 +13,20 @@ from yambopy.plot import *
 from yambopy.lattice import *
 
 #yambo databases
-from yambopy.savedb import *
+from yambopy.dbs.savedb import *
+from yambopy.dbs.qpdb import *
+from yambopy.dbs.em1sdb import *
+from yambopy.dbs.greendb import *
 
 #input/output files
-from yambopy.inputfile import *
-from yambopy.outputfile import *
+from yambopy.io.inputfile import *
+from yambopy.io.outputfile import *
+
+#bse/excitons files
+from yambopy.bse.excitonwf import *
+from yambopy.bse.excitonweight import *
+from yambopy.bse.bse_absorption import *
+
+#analyse stuff
 from yambopy.analyse import *
 from yambopy.recipes import *
-from yambopy.excitonwf import *
-from yambopy.excitonweight import *
-from yambopy.bse_absorption import *
