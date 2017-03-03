@@ -42,15 +42,7 @@ def gw_convergence():
         shell = bash() 
         shell.add_command('mkdir -p gw_conv')
         shell.add_command('cp -r database/SAVE gw_conv/')
-        shell.run()
-        shell.clean()
 
-    #create the yambo input file
-
-    # GW calculation. Exact Dynamical Screening. Newton method
-    y = YamboIn('%s -d -g n -p p -V all'%yambo,folder='gw_conv')
-
-    k_0, k_f = y['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
     y['FFTGvecs'] = [2,'Ha']                # Global Cutoff
     y['EXXRLvcs'] = [20,'Ha']               # Self-energy. Exchange
     y['NGsBlkXp'] = [1,10]                  # Screening. Number of bands
@@ -59,8 +51,8 @@ def gw_convergence():
     y['QPkrange'] = [ [k_f,k_f,4,5], '' ]
     #y.arguments.append('ExtendOut')
 
-    conv = { 'FFTGvecs': [[2,2,5,10,15,20],'Ha'],
-             'NGsBlkXp': [[0,0,500,1000,1500,2000], 'mHa'],
+    conv = { 'FFTGvecs': [[2,5,10,15,20],'Ha'],
+             'NGsBlkXp': [[0,500,1000,1500,2000], 'mHa'],
              'BndsRnXp': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] ,
              'GbndRnge': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] }
 
@@ -101,15 +93,7 @@ def gw():
         shell.clean()
 
     # GW calculation. Exact Dynamical Screening. Newton method
-    y = YamboIn('%s -d -g n -V all'%yambo,folder='gw')
 
-    k_0, k_f = y['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
-
-    y['FFTGvecs'] = [20, 'Ha']          # Global Cutoff
-    y['EXXRLvcs'] = [20, 'Ha']          # Self-energy. Exchange
-    y['BndsRnXd'] = [1,24]             # Screening. Number of bands
-    y['NGsBlkXd'] = [ 500,'mHa']       # Cutoff Screening
-    y['GbndRnge'] = [1,20]             # Self-energy. Number of bands
     y['QPkrange'] = [k_0,k_f,2,6]
 
     y.write('gw/yambo_gw.in')

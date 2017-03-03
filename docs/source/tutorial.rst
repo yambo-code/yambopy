@@ -6,7 +6,131 @@ The first step in any calculation with ``yambo`` is to calculate the ground stat
 We don't have support to read and write ``abinit`` input files. To do that you should use the `abipy <https://github.com/gmatteo/abipy>`_ package.
 Included in the ``yambopy`` package we include some basic scripts to generate Quantum Espresso input files.
 
-GW convergence (Si)
+GW. Basic usage: Convergence and approximations (BN)
+----------------------------------------------------
+**by A. Molina-Sanchez**
+
+We chosen hexagonal boron nitride to explain the use of yambopy. Along this tutorial we show how to use yambopy to make efficient convergence tests, to compare different approximations and to analyze the results.
+
+The initial step is the ground state calculation and the non self-consistent calculation using the ``gs_bn.py`` file:
+
+.. code-block:: bash
+
+    python gs_bn.py
+    python gs_bn.py -sn
+
+We have set 50 bands and the k-grid ``12x12x1``.
+
+**1. GW convergence**
+
+**(a) Calculations**
+
+We converge the main parameters of a GW calculation independently. We make use of the plasmon pole approximation for the dielectric function and the newton solver to find the GW correction to the LDA eigenvalues. The magnitude to converge
+is the bandgap of the BN (conduction and valence band at the K point of the Brillouin zone). We can select this calculation
+by calling the ``YamboIn`` with the right arguments:
+
+.. code-block:: python
+
+    y = YamboIn('yambo -d -g n -p p -V all',folder='gw_conv')
+
+The main variables are:
+
+* FFTGvecs: Global cutoff
+* BndsRnXp: Number of bands in the calculation of the dielectric function (PPA).
+* NGsBlkXp: Cutoff of the dielectric function.
+* GbndRnge: Self-energy. Number of bands.
+
+The convergence with the k-grid is done after these variables are converged and in principle is also independent of them. The convergence is set with a dictionary in which we choose the parameter and the values. Be aware of setting the right units and format for each parameter.
+
+.. code-block:: python
+
+    conv = { 'FFTGvecs': [[2,5,10,15,20],'Ha'],
+             'NGsBlkXp': [[0,500,1000,1500,2000], 'mHa'],
+             'BndsRnXp': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] ,
+             'GbndRnge': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] }
+
+The class ``YamboIn`` includes the function ``optimize``, which is call here:
+
+.. code-block:: python
+
+    y.optimize(conv,run=run,ref_run=False)
+
+This optimization function just need the convergence dictionary and the run instructions, given by the function:
+
+.. code-block:: python
+
+    def run(filename):
+        """ Function to be called by the optimize function """
+        folder = filename.split('.')[0]
+        print(filename,folder)
+        shell = bash() 
+        shell.add_command('cd gw_conv; %s -F %s -J %s -C %s 2> %s.log'%(yambo,filename,folder,folder,folder))
+        shell.run()
+        shell.clean()
+
+We set an interactive run, in the folder ``gw_conv``. All the calculations will be made there with the corresponding jobname.
+
+**(b) Analysis**
+
+Once all the calculations are finished it's time to pack all the files in the ``json`` format for posterior analysis.
+For this use the ``YamboOut()`` class:
+
+.. code-block:: python
+
+  #pack the files in .json files
+  for dirpath,dirnames,filenames in os.walk('gw_conv'):
+    #check if there are some output files in the folder
+    if ([ f for f in filenames if 'o-' in f ]):
+        y = YamboOut(dirpath,save_folder=dirpath)
+        y.pack()
+
+This snippet of code can be called using the function:
+
+.. code-block:: python
+
+    pack_files_in_folder('gw_conv',save_folder='gw_conv')
+
+Yambopy provides the function ``analyse_gw.py`` to perform the analysis of the ``json`` files in an automatic way. By running the script selecting the bands and kpoints, together with the parameter we will obtain the convergence plot.
+
+.. code-block:: python
+
+    python analyse_gw.py -bc 5 -kc 19 -bv 4 -kv 19 gw_conv FFTGvecs
+
+
+.. image:: figures/GW_CONV_FFTGvecs.png
+   :width: 45%
+.. image:: figures/GW_CONV_NGsBlkXp.png
+   :width: 45%
+.. image:: figures/GW_CONV_BndsRnXp.png
+   :width: 45%
+.. image:: figures/GW_CONV_GbndRnge.png
+   :width: 45%
+
+From the convergence plot we can choose now a set of parameters and repeat the calculation for finer k-grids until we
+reach convergence with the k-points. The convergence criteria are left to the user.
+
+**2. GW calculation in a regular grid and plot in a bath in the Brillouin zone**
+
+We have chosen the following parameters:
+
+.. code-block:: bash
+
+   FFTGvecs = 20 Ha
+   BndsRnXp = 24 bands
+   NGsBlkXp = 500 mHa
+   GbndRnge = 20 bands
+   EXXRLvcs = 20 Ha
+   QPkrange = [1,19,2,6]
+
+
+
+
+
+**3. Approximations of the dielectric function (COHSEX, PPA, Real axis integration)**
+
+**4. Solvers (Newton, Secant, Green's function)**
+
+convergence (Si)
 --------------------
 **by H. Miranda**
 
