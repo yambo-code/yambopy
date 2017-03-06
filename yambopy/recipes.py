@@ -54,7 +54,7 @@ def breaking_symmetries(efield1,efield2=[0,0,0],folder='.',RmTimeRev=True):
 # by Alexandre Morlet
 #
 
-def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text):
+def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
     """
     Study the convergence of GW calculations by looking at the change in band-gap value.
 
@@ -67,17 +67,14 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text):
     print 'Valence band: ',bandv,'conduction band: ',bandc
     print 'K-point VB: ',kpointv, ' k-point CB: ',kpointc
 
-
     # Packing results (o-* files) from the calculations into yambopy-friendly .json files
     if pack:
         print 'Packing ...'
         pack_files_in_folder(folder,mask=var)
         pack_files_in_folder(folder,mask='reference')
-    else:
-        print 'Packing skipped.'
 
     # importing data from .json files in <folder>
-    print 'Importing...'
+    print 'Importing data...'
     data = YamboAnalyser(folder)
 
     # extract data according to relevant variable
@@ -96,7 +93,7 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text):
             keys.append(key)
     print 'Files detected: ',keys
 
-    print 'Preparing output...'
+    print 'Computing values...'
     ### Output
 
     # Unit of the variable :
@@ -137,17 +134,18 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text):
         outname = './analyse_%s/%s_%s.dat'%(folder,folder,var)
         header = var+' ('+str(unit)+'), gap'
         np.savetxt(outname,array,delimiter='\t',header=header)
-        print outname
+        print 'Data saved to ',outname
 
-    plt.plot(array[:,0],array[:,1],'o-')
-    plt.xlabel(var+' ('+unit+')')
-    plt.ylabel('E_gw = E_lda + \Delta E')
-    plt.show()
+    if draw:
+        plt.plot(array[:,0],array[:,1],'o-')
+        plt.xlabel(var+' ('+unit+')')
+        plt.ylabel('E_gw = E_lda + \Delta E')
+        plt.show()
 
 #
 # by Alexandre Morlet
 #
-def analyse_bse( folder, var, numbexc=2, intexc=0.05, degenexc=0.01, maxexc=8.0, pack=True, text=True, draw=True ):
+def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
     """
     Using ypp, you can study the convergence of BSE calculations in 2 ways:
       Create a .png of all absorption spectra relevant to the variable you study
@@ -173,12 +171,9 @@ def analyse_bse( folder, var, numbexc=2, intexc=0.05, degenexc=0.01, maxexc=8.0,
         print 'Packing ...'
         pack_files_in_folder(folder,mask=var)
         pack_files_in_folder(folder,mask='reference')
-        print 'Packing done.'
-    else:
-        print 'Packing skipped.'
 
     # importing data from .json files in <folder>
-    print 'Importing...'
+    print 'Importing data...'
     data = YamboAnalyser(folder)
 
     # extract data according to relevant var
@@ -235,7 +230,6 @@ def analyse_bse( folder, var, numbexc=2, intexc=0.05, degenexc=0.01, maxexc=8.0,
         f = open(outname+'.json')
         data = json.load(f)
         f.close()
-        print 'JSON file prepared and loaded.'
 
         ### Plotting the absorption spectra
         # BSE spectra
@@ -254,10 +248,8 @@ def analyse_bse( folder, var, numbexc=2, intexc=0.05, degenexc=0.01, maxexc=8.0,
 
     if text:
         header = 'Columns : '+var+' (in '+unit+') and "bright" excitons eigenenergies in order.'
-        print excitons
         np.savetxt(outname+'.dat',excitons,header=header)
-        #np.savetxt(outname,excitons,header=header,fmt='%1f')
-        print outname+'.dat'
+        print 'Data saved to ',outname+'.dat'
 
     if draw:
         plt.xlabel('$\omega$ (eV)')
@@ -267,8 +259,6 @@ def analyse_bse( folder, var, numbexc=2, intexc=0.05, degenexc=0.01, maxexc=8.0,
         #plt.show()
         plt.savefig(outname+'.png', bbox_inches='tight')
         print outname+'.png'
-    else:
-        print '-nd flag : no plot produced.'
 
     print 'Done.'
 
