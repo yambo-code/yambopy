@@ -142,6 +142,8 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         plt.ylabel('E_gw = E_lda + \Delta E')
         plt.show()
 
+    print 'Done.'
+
 #
 # by Alexandre Morlet
 #

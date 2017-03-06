@@ -153,7 +153,7 @@ class AnalyseBSECmd(Cmd):
         pa('-nt','--notext'  , help='Skips writing the .dat file',              dest='text', action='store_false')
         pa('-nd','--nodraw'  , help='Skips drawing (plotting) the abs spectra', dest='draw', action='store_false')
         parser.set_defaults(pack=True,text=True,draw=True)
-        args = parser.parse_args()
+        args = parser.parse_args(args)
 
         folder    = args.folder   ;   var = args.variable
         exc_n     = args.numbexc  ;   exc_int   = args.intexc
