@@ -104,7 +104,7 @@ class AnalyseGWCmd(Cmd):
         pack = args.pack ; text = args.text ; draw = args.draw
 
         #call analyse_gw from recipes.py
-        analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text)
+        analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw)
 
     def info(self):
         """
