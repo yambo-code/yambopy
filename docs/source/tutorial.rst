@@ -96,7 +96,6 @@ Yambopy provides the function ``analyse_gw.py`` to perform the analysis of the `
 
     python analyse_gw.py -bc 5 -kc 19 -bv 4 -kv 19 gw_conv FFTGvecs
 
-
 .. image:: figures/GW_CONV_FFTGvecs.png
    :width: 45%
 .. image:: figures/GW_CONV_NGsBlkXp.png
@@ -111,7 +110,7 @@ reach convergence with the k-points. The convergence criteria are left to the us
 
 **2. GW calculation in a regular grid and plot in a bath in the Brillouin zone**
 
-We have chosen the following parameters:
+We will work in the PPA for the screening. We have chosen the following parameters:
 
 .. code-block:: bash
 
@@ -122,13 +121,77 @@ We have chosen the following parameters:
    EXXRLvcs = 20 Ha
    QPkrange = [1,19,2,6]
 
+We can just simply run the code to calculate the GW corrections for all the points of the Brillouin zone by setting the convergence parameters in the function gw of the
+script and doing:
 
+.. code-block:: bash
 
+   python gw_conv_bn.py -g
 
+The first image show all the GW energies along all the k-points of the Brillouin zone. A clearer picture can be obtained by plotting the band structure along the symmetry points GMKG by using the analyser:
+
+.. code-block:: bash
+
+   python gw_conv_bn.py -r
+
+We first pack the results in a json file and subsequently we use the analyser to create the object which contains all the information. 
+
+.. code-block:: bash
+   
+   pack_files_in_folder('gw')
+   ya = YamboAnalyser('gw')
+
+The object ``ya`` contains all the results written in the output. We can plot any output variable. In yambopy we provide a function to plot the band structure along a given path. The BN band structure is shown below. The GW correction opens the LDA bandgap as expected.
+
+.. image:: figures/GW-LDA-BN-bands.png
+   :width: 65%
+   :align: center
 
 **3. Approximations of the dielectric function (COHSEX, PPA, Real axis integration)**
 
+We can use yambopy to examine different run levels. For instance, the approximations
+used to obtain the screening are the: (i) static screening or COHSEX, plasmon-pole
+approximations (PPA), or real axis integration. We have set the same parameters for
+each run, just changing the variable name for the number of bands and the cut-off of the screening.
+
+.. code-block:: bash
+
+   COHSEX
+   BndsRnXs = 24 bands
+   NGsBlkXs = 500 mHa
+   PPA 
+   BndsRnXp = 24 bands
+   NGsBlkXp = 500 mHa
+   RA 
+   BndsRnXd = 24 bands
+   NGsBlkXd = 500 mHa
+
+We have set the converged parameters and the function works by running:
+
+.. code-block:: bash
+
+   python gw_conv_bn.py -x
+
+We plot the band structure using the analyzer explained above.
+
+.. code-block:: bash
+
+   python gw_conv_bn.py -xp
+
+The PPA and the RA results are basically on top of each other. On the contrary, the COHSEX (static screening) makes a poor job, overestimating the bandgap correction.
+
+.. image:: figures/GW-cohsex-ppa-ra.png
+   :width: 65%
+   :align: center
+
 **4. Solvers (Newton, Secant, Green's function)**
+
+The solvers to find the QP correction from the self-energy can also be tested. We have included the Newton and the secant method. In the resulting band structures we do not
+appreciate big differences. In anycase it is worthy to test during the convergence procedure.
+
+.. image:: figures/GW-newton-secant.png
+   :width: 65%
+   :align: center
 
 convergence (Si)
 --------------------
