@@ -18,6 +18,7 @@ parser.add_argument('-f' ,'--folder'    , help='Real-time folder (e.g.: rt-24x24
 parser.add_argument('-j' ,'--job'       , help='Name of job (e.g.: QSSIN-2.0eV)')
 parser.add_argument('-p' ,'--prefix'    , help='Prefix of the BSE calculations (e.g.: B-XRK-XG)')
 parser.add_argument('-nt','--notext'    , help='Skips the writing of the data', action='store_false')
+parser.add_argument('-np','--nopack'    , help='Skips packing o- files into .json files', action='store_false')
 args = parser.parse_args()
 
 folder = args.folder
@@ -26,9 +27,10 @@ prefix = args.prefix
 
 source = folder+'/'+job
 
-print 'Packing relevant calculations'
-pack_files_in_folder(source,mask=prefix)
-print 'Done.'
+if args.nopack: # True by default, False if -np used
+    print 'Packing relevant calculations'
+    pack_files_in_folder(source,mask=prefix)
+    print 'Done.'
 
 data = YamboAnalyser(source)
 output = data.get_data((prefix,'eps'))
@@ -57,6 +59,7 @@ nlines = len(output[keys[0]])
 # We want to create a file that is x, y1, y2, ..., yn
 array = np.zeros((nlines,len(keys)+1))
 diff = np.zeros((nlines,len(keys)))
+ymax=0;ymin=0
 
 for l in range(0,nlines):
     # first, value of x
@@ -72,9 +75,16 @@ for l in range(0,nlines):
         # t_i > t0
         y1 = output[key][l][1]
         array[l][i+1]=y1
+
         if i==0:
             continue
-        diff[l][i]=y1-y0
+        diff[l][i]=(y1-y0)/y0
+        if max(diff[l][1:])>ymax:
+            ymax=max(diff[l][1:])
+        if min(diff[l][1:])<ymin:
+            ymin=min(diff[l][1:])
+
+ymin=1.1*ymin ; ymax=1.1*ymax
 
 
 # Writing
@@ -92,7 +102,7 @@ if args.notext:
     for i,t in enumerate(times):
         if i==0:
            continue
-        string = string + '\t' + t + '-t0'
+        string = string + '\t(' + t + '-t0)/t0'
     np.savetxt(f,diff,delimiter='\t',header=string)
     f.close()
 
@@ -101,17 +111,30 @@ else:
     print '"--notext" flag'
 
 # Plotting
+os.system('mkdir -p TA/%s'%job)
 fig,ax1=plt.subplots()
 for i in range(1,len(diff[0])):
-    plt.plot(diff[:,0],diff[:,i],'-',label='%s-%s'%(times[i],times[0]))
-plt.legend(loc=2)
-plt.xlabel("eV")
-plt.ylabel("TA (arb. units)")
-plt.axvline(1.94)
-plt.title("TA, job %s/%s in folder %s"%(job,prefix,folder))
-ax2 = ax1.twinx()
-#plt.plot(array[:,0],array[:,1],'k-',label='BSE@t0')
-plt.show()
+    plt.plot(diff[:,0],diff[:,i],'-',label='(%s-%s)/%s'%(times[i],times[0],times[0]))
+    plt.fill_between(diff[:,0],diff[:,i],where=diff[:,i]>0,color='r',alpha=0.4)
+    plt.fill_between(diff[:,0],diff[:,i],where=diff[:,i]<0,color='b',alpha=0.4)
+    plt.legend(loc=2)
+    plt.xlabel("eV")
+    plt.ylabel("TA (arb. units)")
+    plt.axvline(1.94,color='k')
+    plt.title("TA, job %s/%s in folder %s"%(job,prefix,folder))
+    plt.ylim((ymin,ymax))
+
+
+
+    # inset with BSE
+    a = plt.axes([0.2, .15, .25, .25])
+    plt.plot(array[:,0],array[:,i],'k-',label='BSE@t0')
+    plt.axvline(1.94,color='k')
+    plt.savefig('TA/%s/%d'%(job,i))
+    plt.close()
+
+
+#os.system('convert -delay 40 TA/%s/*.png TA_%s.gif'%(job,job) )
 
 
 print 'Done.'

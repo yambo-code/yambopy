@@ -7,8 +7,9 @@ import argparse
 
 """
 Automation of ypp_rt calls.
-   - Spectra : BSE spectra of real-time simulations (NOT on time t)
+   - Spectra : BSE spectra of real-time simulations
    - Occupation : Calculates occupation at different times
+   - Fermi-Dirac : Computes the occupation at different times along energy levels
 """
 
 parser = argparse.ArgumentParser(description='')
@@ -16,6 +17,7 @@ parser.add_argument('-f' ,'--folder'    , help='Folder with real-time simulation
 parser.add_argument('-j' ,'--job'       , help='Name of job (ex: DELTA-1E+03)')
 parser.add_argument('-s' ,'--spectra'   , action="store_true", help='Do a BSE calculation')
 parser.add_argument('-o' ,'--occupation', action="store_true", help='Compute occupation at different times')
+parser.add_argument('-fd' ,'--fermi', action="store_true", help='Fermi-Dirac distribution of carriers and fit')
 args = parser.parse_args()
 
 folder = args.folder
@@ -59,6 +61,15 @@ if args.occupation:
     run['QPkrange']    = [1,576,25,28]
     run.arguments.append('NNInterp')
     run['BKpts'] = [path,'']
-    run.write('%s/ypp-obands.in' % folder)
-    os.system('cd %s; ypp_rt -F ypp-obands.in -J %s' % (folder,job) )
+    run.write('%s/%s/ypp-obands.in' %(folder,job))
+    os.system('cd %s/%s ; ypp_rt -F ypp-obands.in -J pulse -I ..' % (folder,job) )
+
+if args.fermi:
+    run = YamboIn('ypp_rt -n o e -V all',folder=folder,filename='ypp.in')
+    run['TimeStep']   = [50,'fs']
+    run['TimeRange']  = [ [0.0,5000.0],'fs' ]
+    run['QPkrange']   = [1,300,25,28]
+    run.arguments.append('RTenergy')
+    run.write('%s/%s/ypp-fermi.in'%(folder,job))
+    os.system('cd %s/%s ; ypp_rt -F ypp-fermi.in -J pulse -I ..' %(folder,job))
 

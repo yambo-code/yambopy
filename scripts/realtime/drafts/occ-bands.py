@@ -155,7 +155,6 @@ for time in t_range:
           lste = map(float,line[10:].strip().split())
           while len(lste)<16:
               lste.append(0)
-          print lste
           temp_e[16*(fid-1):fid*16] = lste
       f.close()
       f = open('%s/o-pulse.YPP-RT_occupations_FIT_holes_%s_of_%s'%(path,fid,fnb))
@@ -164,7 +163,6 @@ for time in t_range:
           lste = map(float,line[10:].strip().split())
           while len(lste)<16:
               lste.append(0)
-          print lste
           temp_h[16*(fid-1):fid*16] = lste
       f.close()
       #####
