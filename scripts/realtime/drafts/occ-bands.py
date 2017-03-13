@@ -261,4 +261,4 @@ for time in t_range:
 
 #plt.show()
 # Creating the gif movie
-os.system('convert -delay 40 occupations/%s/%s* %s.gif' % (prefix,name_aux, prefix))
+#os.system('convert -delay 40 occupations/%s/%s* %s.gif' % (prefix,name_aux, prefix))
