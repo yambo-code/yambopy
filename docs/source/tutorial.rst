@@ -8,7 +8,7 @@ Included in the ``yambopy`` package we include some basic scripts to generate Qu
 
 GW. Basic usage: Convergence and approximations (BN)
 ----------------------------------------------------
-**by A. Molina-Sanchez**
+**by A. Molina-Sanchez and H. P. C. Miranda**
 
 We chosen hexagonal boron nitride to explain the use of yambopy. Along this tutorial we show how to use yambopy to make efficient convergence tests, to compare different approximations and to analyze the results.
 
@@ -192,92 +192,6 @@ appreciate big differences. In anycase it is worthy to test during the convergen
 .. image:: figures/GW-newton-secant.png
    :width: 65%
    :align: center
-
-convergence (Si)
---------------------
-**by H. Miranda**
-
-**1. Ground State**
-
-Go to the ``tutorial`` folder and run the ground state calculation using the ``gs_si.py`` file:
-
-.. code-block:: bash
-
-    python gs_si.py
-    python gs_si.py -r -s -n
-
-When you run the script without any arguments it will display the available options.
-The second line will run a relaxation of the structure (-r, relax option), read the optimized cell parameter and create a new input file that is used
-to run a self-consistent (-s, --scf option) cycle and a non self-consistent (-n, --nscf option) cycle using the charge density calculated on the previous run.
-
-**2. GW convergence**
-
-Afterwards you can run a GW calculation using the ``gw_si.py`` script and a Bethe-Salpether (BSE) calculation using the ``bse_si.py``.
-In the beginning of each script (for GW or BSE) there is a check for the presence of the SAVE database. In case it is not present it will be generated.
-
-In the ``gw_conv_si.py`` you will find an example of how to use the ``optimize()`` function to converge the calculation parameters.
-
-.. code-block:: python
-
-    #create the yambo input file
-    y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
-    y['QPkrange'][0][2:4] = [6,10]
-    conv = { 'FFTGvecs': [[10,15,20],'Ry'],
-             'NGsBlkXd': [[1,2,5], 'Ry'],
-             'BndsRnXd': [[1,10],[1,20],[1,30]] }
-
-    def run(filename):
-        """ Function to be called by the optimize function """
-        folder = filename.split('.')[0]
-        print(filename,folder)
-        os.system('cd gw_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
-
-    y.optimize(conv,run=run)
-
-This code will run ``yambo`` as many times as variables specified in the ``conv`` dictionary.
-The first calculation is called ``reference`` and uses as parameters the first element of each of the lists.
-For each of the other elements of the list a calculation is made.
-
-**3. Collect the data**
-
-Once all the calculations are finished it's time to pack all the files in the ``json`` format for posterior analysis.
-For this use the ``YamboOut()`` class:
-
-.. code-block:: python
-
-  #pack the files in .json files
-  for dirpath,dirnames,filenames in os.walk('gw_conv'):
-    #check if there are some output files in the folder
-    if ([ f for f in filenames if 'o-' in f ]):
-        y = YamboOut(dirpath,save_folder=dirpath)
-        y.pack()
-
-This snippet of code can be called using the function:
-
-.. code-block:: python
-
-    pack_files_in_folder('gw_conv',save_folder='gw_conv')
-
-**4. Plot the data**
-
-After this you should have a set of ``json`` files in the folder, one for each calculation.
-To make a plot of them all you just need to run:
-
-.. code-block:: python
-
-  #plot the results using yambo analyser
-  y = YamboAnalyser('gw_conv')
-  y.plot_gw('qp')
-  path = [[[0.5,   0,   0],'L'],
-          [[  0,   0,   0],'$\Gamma$'],
-          [[  0, 0.5, 0.5],'X'],
-          [[1.0, 1.0, 1.0],'$\Gamma$']]
-  ya.plot_gw_path('qp',path)
-
-You can add more plots by simply adding more files in the folder you give as input to the ``YamboAnalyser()`` class.
-At the end you should obtain a plot like this:
-
-.. image:: figures/gw_si.png
 
 Coulomb-cutoff (BN)
 -------------------------------
