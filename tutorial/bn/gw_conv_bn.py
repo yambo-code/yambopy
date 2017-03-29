@@ -42,27 +42,19 @@ def gw_convergence():
         shell = bash() 
         shell.add_command('mkdir -p gw_conv')
         shell.add_command('cp -r database/SAVE gw_conv/')
-        shell.run()
-        shell.clean()
 
-    #create the yambo input file
-
-    # GW calculation. Exact Dynamical Screening. Newton method
-    y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
-
-    k_0, k_f = y['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
+    y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw_conv')
 
     y['FFTGvecs'] = [2,'Ha']                # Global Cutoff
     y['EXXRLvcs'] = [20,'Ha']               # Self-energy. Exchange
-    y['NGsBlkXd'] = [1,10]                  # Screening. Number of bands
-    y['NGsBlkXd'] = [0,'mHa']               # Cutoff Screening
+    y['NGsBlkXp'] = [1,10]                  # Screening. Number of bands
+    y['NGsBlkXp'] = [0,'mHa']               # Cutoff Screening
     y['GbndRnge'] = [1,10]                  # Self-energy. Number of bands
-    y['QPkrange'] = [k_f,k_f,4,5]
-    #y.arguments.append('ExtendOut')
+    y['QPkrange'] = [ [k_f,k_f,4,5], '' ]
 
-    conv = { 'FFTGvecs': [[2,2,5,10,15,20],'Ha'],
-             'NGsBlkXd': [[0,0,500,1000,1500,2000], 'mHa'],
-             'BndsRnXd': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] ,
+    conv = { 'FFTGvecs': [[2,5,10,15,20],'Ha'],
+             'NGsBlkXp': [[0,500,1000,1500,2000], 'mHa'],
+             'BndsRnXp': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] ,
              'GbndRnge': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] }
 
     def run(filename):
@@ -79,16 +71,16 @@ def gw_convergence():
 def plot_convergence():
     y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
 
-    k_0, k_f = y['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
-    #pack the files in .json files
+    k_f = y['QPkrange'][0][1]         # Read the first and last k-points in the uniform k-grid
+    print (k_f) #pack the files in .json files
     pack_files_in_folder('gw_conv')
 
     print('Select the converged value for each variable')
     shell = bash() 
-    shell.add_command('python analyse_gw.py -bc 5 -kc %d -bv 4 -kv %d gw_conv FFTGvecs' % (k_f, k_f))
-    shell.add_command('python analyse_gw.py -bc 5 -kc %d -bv 4 -kv %d gw_conv NGsBlkXd' % (k_f, k_f))
-    shell.add_command('python analyse_gw.py -bc 5 -kc %d -bv 4 -kv %d gw_conv BndsRnXd' % (k_f, k_f))
-    shell.add_command('python analyse_gw.py -bc 5 -kc %d -bv 4 -kv %d gw_conv GbndRnge' % (k_f, k_f))
+    shell.add_command('python analyse_gw.py -bc 5 -kc %s -bv 4 -kv %s gw_conv FFTGvecs' % (k_f, k_f))
+    shell.add_command('python analyse_gw.py -bc 5 -kc %s -bv 4 -kv %s gw_conv NGsBlkXp' % (k_f, k_f))
+    shell.add_command('python analyse_gw.py -bc 5 -kc %s -bv 4 -kv %s gw_conv BndsRnXp' % (k_f, k_f))
+    shell.add_command('python analyse_gw.py -bc 5 -kc %s -bv 4 -kv %s gw_conv GbndRnge' % (k_f, k_f))
     shell.run()
     shell.clean()
 
@@ -101,18 +93,15 @@ def gw():
         shell.run()
         shell.clean()
 
-    # GW calculation. Exact Dynamical Screening. Newton method
-    y = YamboIn('%s -d -g n -V all'%yambo,folder='gw')
+    # GW calculation. PPA Screening. Newton method
+    y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw')
 
-    k_0, k_f = y['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
-
-    y['FFTGvecs'] = [20, 'Ha']          # Global Cutoff
-    y['EXXRLvcs'] = [20, 'Ha']          # Self-energy. Exchange
-    y['BndsRnXd'] = [1,24]             # Screening. Number of bands
-    y['NGsBlkXd'] = [ 500,'mHa']       # Cutoff Screening
-    y['GbndRnge'] = [1,20]             # Self-energy. Number of bands
-    y['QPkrange'] = [k_0,k_f,2,6]
-
+    y['FFTGvecs'] = [20,'Ha']       # Global Cutoff
+    y['EXXRLvcs'] = [20,'Ha']       # Self-energy. Exchange
+    y['NGsBlkXp'] = [1,24]          # Screening. Number of bands
+    y['NGsBlkXp'] = [500,'mHa']     # Cutoff Screening
+    y['GbndRnge'] = [1,20]          # Self-energy. Number of bands
+    y['QPkrange'][0][2:] = [2,6]
     y.write('gw/yambo_gw.in')
 
     shell = bash() 
@@ -134,7 +123,6 @@ def plot_gw():
             [[0.5, 0,   0],'M'],
             [[0.3333,0.3333, 0.0],'K'],
             [[0.0, 0.0, 0.0],'$\Gamma$']]
-    #ya.plot_gw_path('qp',path)
     ya.plot_gw_path('qp',path, cols=(lambda x: x[2]+x[3],2))
 
 def xi():
@@ -148,15 +136,13 @@ def xi():
 
     cohsex = YamboIn('%s -p c -g n -V all'%yambo,folder='gw-xi')
 
-    k_0, k_f = cohsex['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
-
     print ('COHSEX')
     cohsex['FFTGvecs'] = [20,'Ha']           # Global Cutoff
     cohsex['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    cohsex['BndsRnXd'] = [1,24]              # Screening. Number of bands
+    cohsex['BndsRnXs'] = [1,24]              # Screening. Number of bands
     cohsex['NGsBlkXs'] = [ 500,'mHa']        # Cutoff Screening
     cohsex['GbndRnge'] = [1,20]              # Self-energy. Number of bands
-    cohsex['QPkrange'] = [k_0, k_f, 2, 6]
+    cohsex['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
     cohsex.write('gw-xi/yambo_cohsex.in')
     shell = bash() 
     shell.add_command('cd gw-xi; %s -F yambo_cohsex.in -J coh -C coh' % yambo)
@@ -167,10 +153,10 @@ def xi():
     print ('PPA')
     ppa['FFTGvecs'] = [20,'Ha']           # Global Cutoff
     ppa['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    ppa['BndsRnXd'] = [1,24]              # Screening. Number of bands
+    ppa['BndsRnXp'] = [1,24]              # Screening. Number of bands
     ppa['NGsBlkXp'] = [ 500,'mHa']        # Cutoff Screening
     ppa['GbndRnge'] = [1,20]              # Self-energy. Number of bands
-    ppa['QPkrange'] = [k_0,k_f,2,6]
+    ppa['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
     ppa.write('gw-xi/yambo_ppa.in')
     shell = bash() 
     shell.add_command('cd gw-xi; %s -F yambo_ppa.in -J pp -C pp' % yambo)
@@ -184,7 +170,7 @@ def xi():
     ra['BndsRnXd'] = [1,24]              # Screening. Number of bands
     ra['NGsBlkXd'] = [ 500,'mHa']        # Cutoff Screening
     ra['GbndRnge'] = [1,20]              # Self-energy. Number of bands
-    ra['QPkrange'] = [k_0,k_f,2,6]
+    ra['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
     ra.write('gw-xi/yambo_ra.in')
     shell = bash() 
     shell.add_command('cd gw-xi; %s -F yambo_ra.in -J ra -C ra' % yambo)
@@ -195,10 +181,12 @@ def plot_xi():
     #pack the files in .json files
     pack_files_in_folder('gw-xi')
     ya = YamboAnalyser('gw-xi')
-    print('plot all qpoints')
-    ya.plot_gw('qp',cols=(lambda x: x[2]+x[3],))
-    # Problem to get output files if they are not in the folder jobname
-    # How does it work the name of the calculation?
+    print('Plot Band structure for COHSEX, PPA and RA')
+    path = [[[0,   0,   0],'$\Gamma$'],
+            [[0.5, 0,   0],'M'],
+            [[0.3333,0.3333, 0.0],'K'],
+            [[0.0, 0.0, 0.0],'$\Gamma$']]
+    ya.plot_gw_path('qp',path, cols=(lambda x: x[2]+x[3],))
 
 def dyson_eq():
     #create the folder to run the calculation
@@ -212,14 +200,12 @@ def dyson_eq():
 
     dyson = YamboIn('%s -d -g n -V all'%yambo,folder=folder_dyson)
 
-    k_0, k_f = dyson['QPkrange'][0][:2]         # Read the first and last k-points in the uniform k-grid
-
     dyson['FFTGvecs'] = [20,'Ha']           # Global Cutoff
     dyson['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
     dyson['BndsRnXd'] = [1,10]              # Screening. Number of bands
     dyson['NGsBlkXd'] = [ 500,'mHa']        # Cutoff Screening
     dyson['GbndRnge'] = [1,20]              # Self-energy. Number of bands
-    dyson['QPkrange'] = [k_0, k_f, 2, 6]
+    dyson['QPkrange'][0][2:] = [2, 6]
 
     dyson['DysSolver'] = "n" 
     dyson.write('%s/yambo_newton.in' % folder_dyson)
@@ -239,7 +225,11 @@ def plot_dyson():
     pack_files_in_folder('gw-zeros')
     ya = YamboAnalyser('gw-zeros')
     print('plot kpoints for Newton and secant solver')
-    ya.plot_gw('qp',cols=(lambda x: x[2]+x[3],))
+    path = [[[0,   0,   0],'$\Gamma$'],
+            [[0.5, 0,   0],'M'],
+            [[0.3333,0.3333, 0.0],'K'],
+            [[0.0, 0.0, 0.0],'$\Gamma$']]
+    ya.plot_gw_path('qp',path, cols=(lambda x: x[2]+x[3],))
 
 if __name__ == "__main__":
     #parse options

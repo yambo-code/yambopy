@@ -94,23 +94,86 @@ class PlotEm1sCmd(Cmd):
         #final plot
         plt.show()
 
+class AnalyseGWCmd(Cmd):
+    """
+    Study the convergence of GW calculations by looking at the change in band-gap value.
+
+    The script reads from <folder> all results from <variable> calculations and display them.
+
+    Use the band and k-point options according to the size of your k-grid
+    and the location of the band extrema.
+
+        Mandatory arguments are:
+            folder     -> Folder containing SAVE and convergence runs
+            variable   -> Variable tested for convergence (e.g. FFTGvecs)
+
+        Optional variables are:
+            -bc, --bandc   (int)  -> Lowest conduction band number
+            -kc, --kpointc (int)  -> k-point index for conduction band
+            -bv, --bandv   (int)  -> Highest valence band number
+            -kv, --kpointv (int)  -> k-point index for valence band
+            -np, --nopack  (flag) -> Do not call 'pack_files_in_folder'
+            -nt, --notext  (flag) -> Do not print a text file
+            -nd, --nodraw  (flag) -> Do not draw (plot) the result
+    """
+
+    def __init__(self,args):
+
+        #check for args
+        if len(args) <= 1:
+            print(self.__doc__)
+            exit(0)
+
+        #all the other arguments are passed to the merge_qp function
+
+        parser = argparse.ArgumentParser(description='Study GW convergence with regards to the band-gap value.')
+        parser.add_argument('folder'            , help='Folder containing SAVE and convergence runs.')
+        parser.add_argument('variable'          , help='Variable tested (e.g. FFTGvecs)'             )
+        parser.add_argument('-bc','--bandc'     , help='Lowest conduction band number'    , default=53, type=int)
+        parser.add_argument('-kc','--kpointc'   , help='K-point index for conduction band', default=19, type=int)
+        parser.add_argument('-bv','--bandv'     , help='Highest valence band number'      , default=52, type=int)
+        parser.add_argument('-kv','--kpointv'   , help='K-point index for valence band'   , default=1 , type=int)
+        parser.add_argument('-np','--no-pack'   , help='Skip the packing of output files'        , dest='pack', action='store_false')
+        parser.add_argument('-nt','--no-text'   , help='Skip the writing of the analysis result' , dest='text', action='store_false')
+        parser.add_argument('-nd','--no-draw'   , help='Skip the plotting of the analysis result', dest='draw', action='store_false')
+        parser.set_defaults(pack=True,text=True,draw=True)
+        args = parser.parse_args(args)
+
+        folder = args.folder ; var    = args.variable
+        bandc  = args.bandc  ; kpointc= args.kpointc
+        bandv  = args.bandv  ; kpointv= args.kpointv
+        pack = args.pack ; text = args.text ; draw = args.draw
+
+        #call analyse_gw from recipes.py
+        analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw)
+
+    def info(self):
+        """
+        display help to use this command
+        """
+        print self.__doc__
 
 class AnalyseBSECmd(Cmd):
     """
-    Analyse BSE calculation
-        
-        possible arguments are:
-        
-        Arguments:
+    Using ypp, you can study the convergence of BSE calculations in 2 ways:
+      Create a .png of all absorption spectra relevant to the variable you study
+      Look at the eigenvalues of the first n "bright" excitons (given a threshold intensity)
+
+    The script reads from <folder> all results from <variable> calculations for processing.
+    The resulting pictures and data files are saved in the ./analyse_bse/ folder.
+
+    Mandatory arguments are:
         folder   -> Folder containing SAVE and convergence runs.
         var      -> Variable tested (e.g. FFTGvecs)
-        numbexc  -> Number of excitons to read beyond threshold (default=2)
-        intexc   -> Minimum intensity for excitons to be considered bright (default=0.05)
-        degenexc -> Energy threshold under which different peaks are merged (eV) (default=0.01)
-        maxexc   -> Energy threshold after which excitons are not read anymore (eV) (default=8.0)
-        pack     -> Skips packing o- files into .json files (default: True)
-        text     -> Skips writing the .dat file (default: True)
-        draw     -> Skips drawing (plotting) the abs spectra (default: True)
+
+    Optional arguments are:
+        -ne,--numbexc  (int)   -> Number of excitons to read beyond threshold (default=2)
+        -ie,--intexc   (float) -> Minimum intensity for excitons to be considered bright (default=0.05)
+        -de,--degenexc (float) -> Energy threshold under which different peaks are merged (eV) (default=0.01)
+        -me,--maxexc   (float) -> Energy threshold after which excitons are not read anymore (eV) (default=8.0)
+        -np,--nopack   (flag)  -> Skips packing o- files into .json files
+        -nt,--notext   (flag)  -> Skips writing the .dat file
+        -nd,--nodraw   (flag)  -> Skips drawing (plotting) the abs spectra
     """
     def __init__(self,args):
         #check for args

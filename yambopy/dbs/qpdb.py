@@ -10,11 +10,11 @@ class YamboQPDB():
     """
     Class to read yambo QP files
     """
-    def __init__(self,filename):
+    def __init__(self,filename='ndb.QP',folder='.'):
         """
         Read a QP file using the yamboparser 
         """
-        self.yfile = YamboFile("ndb.QP")
+        self.yfile = YamboFile('%s/%s' %(folder,filename))
 
         qps = self.yfile.data
         self.qps   = qps

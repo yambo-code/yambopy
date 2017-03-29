@@ -6,52 +6,71 @@ The first step in any calculation with ``yambo`` is to calculate the ground stat
 We don't have support to read and write ``abinit`` input files. To do that you should use the `abipy <https://github.com/gmatteo/abipy>`_ package.
 Included in the ``yambopy`` package we include some basic scripts to generate Quantum Espresso input files.
 
-GW convergence (Si)
---------------------
-**by H. Miranda**
+GW. Basic usage: Convergence and approximations (BN)
+----------------------------------------------------
+**by A. Molina-Sanchez and H. P. C. Miranda**
 
-**1. Ground State**
+We chosen hexagonal boron nitride to explain the use of yambopy. Along this tutorial we show how to use yambopy to make efficient convergence tests, to compare different approximations and to analyze the results.
 
-Go to the ``tutorial`` folder and run the ground state calculation using the ``gs_si.py`` file:
+The initial step is the ground state calculation and the non self-consistent calculation using the ``gs_bn.py`` file:
 
 .. code-block:: bash
 
-    python gs_si.py
-    python gs_si.py -r -s -n
+    python gs_bn.py
+    python gs_bn.py -sn
 
-When you run the script without any arguments it will display the available options.
-The second line will run a relaxation of the structure (-r, relax option), read the optimized cell parameter and create a new input file that is used
-to run a self-consistent (-s, --scf option) cycle and a non self-consistent (-n, --nscf option) cycle using the charge density calculated on the previous run.
+We have set 50 bands and the k-grid ``12x12x1``.
 
-**2. GW convergence**
+**1. GW convergence**
 
-Afterwards you can run a GW calculation using the ``gw_si.py`` script and a Bethe-Salpether (BSE) calculation using the ``bse_si.py``.
-In the beginning of each script (for GW or BSE) there is a check for the presence of the SAVE database. In case it is not present it will be generated.
+**(a) Calculations**
 
-In the ``gw_conv_si.py`` you will find an example of how to use the ``optimize()`` function to converge the calculation parameters.
+We converge the main parameters of a GW calculation independently. We make use of the plasmon pole approximation for the dielectric function and the newton solver to find the GW correction to the LDA eigenvalues. The magnitude to converge
+is the bandgap of the BN (conduction and valence band at the K point of the Brillouin zone). We can select this calculation
+by calling the ``YamboIn`` with the right arguments:
 
 .. code-block:: python
 
-    #create the yambo input file
-    y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
-    y['QPkrange'][0][2:4] = [6,10]
-    conv = { 'FFTGvecs': [[10,15,20],'Ry'],
-             'NGsBlkXd': [[1,2,5], 'Ry'],
-             'BndsRnXd': [[1,10],[1,20],[1,30]] }
+    y = YamboIn('yambo -d -g n -p p -V all',folder='gw_conv')
+
+The main variables are:
+
+* FFTGvecs: Global cutoff
+* BndsRnXp: Number of bands in the calculation of the dielectric function (PPA).
+* NGsBlkXp: Cutoff of the dielectric function.
+* GbndRnge: Self-energy. Number of bands.
+
+The convergence with the k-grid is done after these variables are converged and in principle is also independent of them. The convergence is set with a dictionary in which we choose the parameter and the values. Be aware of setting the right units and format for each parameter.
+
+.. code-block:: python
+
+    conv = { 'FFTGvecs': [[2,5,10,15,20],'Ha'],
+             'NGsBlkXp': [[0,500,1000,1500,2000], 'mHa'],
+             'BndsRnXp': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] ,
+             'GbndRnge': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] }
+
+The class ``YamboIn`` includes the function ``optimize``, which is call here:
+
+.. code-block:: python
+
+    y.optimize(conv,run=run,ref_run=False)
+
+This optimization function just need the convergence dictionary and the run instructions, given by the function:
+
+.. code-block:: python
 
     def run(filename):
         """ Function to be called by the optimize function """
         folder = filename.split('.')[0]
         print(filename,folder)
-        os.system('cd gw_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
+        shell = bash() 
+        shell.add_command('cd gw_conv; %s -F %s -J %s -C %s 2> %s.log'%(yambo,filename,folder,folder,folder))
+        shell.run()
+        shell.clean()
 
-    y.optimize(conv,run=run)
+We set an interactive run, in the folder ``gw_conv``. All the calculations will be made there with the corresponding jobname.
 
-This code will run ``yambo`` as many times as variables specified in the ``conv`` dictionary.
-The first calculation is called ``reference`` and uses as parameters the first element of each of the lists.
-For each of the other elements of the list a calculation is made.
-
-**3. Collect the data**
+**(b) Analysis**
 
 Once all the calculations are finished it's time to pack all the files in the ``json`` format for posterior analysis.
 For this use the ``YamboOut()`` class:
@@ -71,26 +90,108 @@ This snippet of code can be called using the function:
 
     pack_files_in_folder('gw_conv',save_folder='gw_conv')
 
-**4. Plot the data**
-
-After this you should have a set of ``json`` files in the folder, one for each calculation.
-To make a plot of them all you just need to run:
+Yambopy provides the function ``analyse_gw.py`` to perform the analysis of the ``json`` files in an automatic way. By running the script selecting the bands and kpoints, together with the parameter we will obtain the convergence plot.
 
 .. code-block:: python
 
-  #plot the results using yambo analyser
-  y = YamboAnalyser('gw_conv')
-  y.plot_gw('qp')
-  path = [[[0.5,   0,   0],'L'],
-          [[  0,   0,   0],'$\Gamma$'],
-          [[  0, 0.5, 0.5],'X'],
-          [[1.0, 1.0, 1.0],'$\Gamma$']]
-  ya.plot_gw_path('qp',path)
+    python analyse_gw.py -bc 5 -kc 19 -bv 4 -kv 19 gw_conv FFTGvecs
 
-You can add more plots by simply adding more files in the folder you give as input to the ``YamboAnalyser()`` class.
-At the end you should obtain a plot like this:
+.. image:: figures/GW_CONV_FFTGvecs.png
+   :width: 45%
+.. image:: figures/GW_CONV_NGsBlkXp.png
+   :width: 45%
+.. image:: figures/GW_CONV_BndsRnXp.png
+   :width: 45%
+.. image:: figures/GW_CONV_GbndRnge.png
+   :width: 45%
 
-.. image:: figures/gw_si.png
+From the convergence plot we can choose now a set of parameters and repeat the calculation for finer k-grids until we
+reach convergence with the k-points. The convergence criteria are left to the user.
+
+**2. GW calculation in a regular grid and plot in a bath in the Brillouin zone**
+
+We will work in the PPA for the screening. We have chosen the following parameters:
+
+.. code-block:: bash
+
+   FFTGvecs = 20 Ha
+   BndsRnXp = 24 bands
+   NGsBlkXp = 500 mHa
+   GbndRnge = 20 bands
+   EXXRLvcs = 20 Ha
+   QPkrange = [1,19,2,6]
+
+We can just simply run the code to calculate the GW corrections for all the points of the Brillouin zone by setting the convergence parameters in the function gw of the
+script and doing:
+
+.. code-block:: bash
+
+   python gw_conv_bn.py -g
+
+The first image show all the GW energies along all the k-points of the Brillouin zone. A clearer picture can be obtained by plotting the band structure along the symmetry points GMKG by using the analyser:
+
+.. code-block:: bash
+
+   python gw_conv_bn.py -r
+
+We first pack the results in a json file and subsequently we use the analyser to create the object which contains all the information. 
+
+.. code-block:: bash
+   
+   pack_files_in_folder('gw')
+   ya = YamboAnalyser('gw')
+
+The object ``ya`` contains all the results written in the output. We can plot any output variable. In yambopy we provide a function to plot the band structure along a given path. The BN band structure is shown below. The GW correction opens the LDA bandgap as expected.
+
+.. image:: figures/GW-LDA-BN-bands.png
+   :width: 65%
+   :align: center
+
+**3. Approximations of the dielectric function (COHSEX, PPA, Real axis integration)**
+
+We can use yambopy to examine different run levels. For instance, the approximations
+used to obtain the screening are the: (i) static screening or COHSEX, plasmon-pole
+approximations (PPA), or real axis integration. We have set the same parameters for
+each run, just changing the variable name for the number of bands and the cut-off of the screening.
+
+.. code-block:: bash
+
+   COHSEX
+   BndsRnXs = 24 bands
+   NGsBlkXs = 500 mHa
+   PPA 
+   BndsRnXp = 24 bands
+   NGsBlkXp = 500 mHa
+   RA 
+   BndsRnXd = 24 bands
+   NGsBlkXd = 500 mHa
+
+We have set the converged parameters and the function works by running:
+
+.. code-block:: bash
+
+   python gw_conv_bn.py -x
+
+We plot the band structure using the analyzer explained above.
+
+.. code-block:: bash
+
+   python gw_conv_bn.py -xp
+
+The PPA and the RA results are basically on top of each other. On the contrary, the COHSEX (static screening) makes a poor job, overestimating the bandgap correction.
+
+.. image:: figures/GW-cohsex-ppa-ra.png
+   :width: 65%
+   :align: center
+
+**4. Solvers (Newton, Secant, Green's function)**
+
+The solvers to find the QP correction from the self-energy can also be tested. We have included the Newton and the secant method. In the resulting band structures we do not
+appreciate big differences. In anycase it is worthy to test during the convergence procedure.
+
+.. image:: figures/GW-newton-secant.png
+   :width: 65%
+   :align: center
 
 Optical absorption using the Bethe-Salpeter Equation (BN)
 ----------------------------------------------------------------------------
