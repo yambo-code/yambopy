@@ -41,40 +41,66 @@ class YamboExcitonWeight(YamboSaveDB):
         f.close()
 
     def get_data(self):
-        qpts, weights = self.calc_kpts_weights()
+        qpts, weights, transitions = self.calc_kpts_weights()
         return { "qpts": qpts,
                  "weights": weights,
                  "lattice": self.lat,
-                 "reciprocal_lattice": self.rlat }
+                 "reciprocal_lattice": self.rlat,
+                 "transitions": transitions 
+                 }
 
     def calc_kpts_weights(self,repx=range(3),repy=range(3),repz=range(3)):
         """ Calculate the weights and kpoints of the excitons
         """
-        self.weights = dict()
+        self.weights     = dict()
+        self.transitions = dict()
+        self.transitions_v_to_c = dict()
 
         #first run set everything to zero
         for line in self.excitons:
             v,c,k,sym,w,e = line
             self.weights[(int(k),int(sym))] = 0
+            self.transitions[(int(v),int(c),int(k),int(sym))] = 0
+            self.transitions_v_to_c[(int(v),int(c))] = 0
 
         #add weights
         for line in self.excitons:
             v,c,k,sym,w,e = line
             self.weights[(int(k),int(sym))] += w
+            self.transitions[(int(v),int(c),int(k),int(sym))] += w
 
+        #add percentage of a given v => c transition
+        norm = sum(self.excitons[:,4])
+        for v,c,k,s in self.transitions.keys():
+          self.transitions_v_to_c[(int(v),int(c))] += self.transitions[(v,c,k,s)]
+        for v,c in self.transitions_v_to_c:
+          self.transitions_v_to_c[(v,c)] = self.transitions_v_to_c[(v,c)]/norm
+          print('v ', v,' ==>>>', ' c ',c)
         #rename symmetries and kpoints
         sym = self.sym_car
         kpoints = self.kpts_car
 
-        qpts = []
-        weights = []
+        qpts     = []
+        weights  = []
+        t_v_c    = []
+
         for r in product(repx,repy,repz):
+          for k,s in self.weights.keys():
+            w   = self.weights[(k,s)]
+            weights.append( w )
+            qpt = np.dot(sym[s-1],kpoints[k-1])+red_car([r],self.rlat)[0]
+            qpts.append( qpt )
+            #print (v_ref,c_ref,k,s)
+            #aux.append(self.transitions[(v_ref,c_ref,k,s)])
+         
+        for v_ref,c_ref in self.transitions_v_to_c.keys():
+          aux = []
+          for r in product(repx,repy,repz):
             for k,s in self.weights.keys():
-                w   = self.weights[(k,s)]
-                weights.append( w )
-                qpt = np.dot(sym[s-1],kpoints[k-1])+red_car([r],self.rlat)[0]
-                qpts.append( qpt )
-        return np.array(qpts), np.array(weights)
+              aux.append(self.transitions[(v_ref,c_ref,k,s)])
+          t_v_c.append(np.array(aux)) 
+
+        return np.array(qpts), np.array(weights), t_v_c
 
     def plot_contour(self,resX=500,resY=500):
         """ plot a contour
@@ -93,10 +119,11 @@ class YamboExcitonWeight(YamboSaveDB):
     def plot_weights(self,size=20):
         """ Plot the weights in a scatter plot of this exciton
         """
+        from numpy import sqrt
         cmap = plt.get_cmap("gist_heat_r")
 
         fig = plt.figure(figsize=(20,20))
-        kpts, weights = self.calc_kpts_weights()
+        kpts, weights, transitions = self.calc_kpts_weights()
         plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in weights])
         ax = plt.axes()
         ax.set_aspect('equal', 'datalim')
@@ -111,6 +138,43 @@ class YamboExcitonWeight(YamboSaveDB):
         s += "alat:\n"
         s += ("%12.8lf "*3)%tuple(self.alat)+"\n"
         return s
+
+    def plot_transitions(self,size=20):
+        """ Plot the weight of a given transition in a scatter plot of this exciton. My idea is to associate for each transition a color and to plot in a different plot
+        """
+
+        from numpy import sqrt
+        cmap = plt.get_cmap("gist_heat_r")
+
+        fig = plt.figure(figsize=(20,20))
+        kpts, weights, t_v_c = self.calc_kpts_weights()
+        for individual in t_v_c:   
+          plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in individual])
+
+        ax = plt.axes()
+        ax.set_aspect('equal', 'datalim')
+        plt.show()
+
+    def __str__(self):
+        s = ""
+        s += "reciprocal lattice:\n"
+        s += "\n".join([("%12.8lf "*3)%tuple(r) for r in self.rlat])+"\n"
+        s += "lattice:\n"
+        s += "\n".join([("%12.8lf "*3)%tuple(r) for r in self.lat])+"\n"
+        s += "alat:\n"
+        s += ("%12.8lf "*3)%tuple(self.alat)+"\n"
+        return s
+
+    def plot_exciton_band(self,path,prefix_gw='gw',json_filename='gw'):
+        """ For each transition gives a color and plot all of them in
+        the LDA or GW band structure. For instance (v=4, c=5, red),
+        (v=4,c=6, blue). Same weight associated to valence and cond.
+        """
+        band_gw = YamboAnalyser('gw')#prefix_gw)
+        
+        bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path,json_filename)
+        print( bands_highsym_qpts ) 
+
 
 if __name__ == "__main__":
     ye = YamboExciton('o-yambo.exc_weights_at_1_02')
