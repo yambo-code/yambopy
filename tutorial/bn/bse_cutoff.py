@@ -14,8 +14,9 @@ import sys
 prefix = "bn"
 yambo = "yambo"
 p2y = 'p2y'
-layer_separations = [10,15,20,25,30,35,40,45,50]
-kpoints = [12,12,1]
+layer_separations = [10,15,20,25,30,35,40] #,45,50]
+kpoints = [24,24,1]
+nbands = 20 #should be larger! we use 30 for demonstration
 
 scheduler = Scheduler.factory
 
@@ -32,7 +33,7 @@ def get_inputfile():
     qe.control['prefix'] = "'%s'"%prefix
     qe.control['wf_collect'] = '.true.'
     qe.system['celldm(1)'] = 4.7
-    qe.system['celldm(3)'] = 12/qe.system['celldm(1)']
+    qe.system['celldm(3)'] = 14/qe.system['celldm(1)']
     qe.system['ecutwfc'] = 60
     qe.system['occupations'] = "'fixed'"
     qe.system['nat'] = 2
@@ -59,7 +60,7 @@ def nscf(layer_separation,folder='nscf'):
     qe.control['calculation'] = "'nscf'"
     qe.electrons['diago_full_acc'] = ".true."
     qe.electrons['conv_thr'] = 1e-8
-    qe.system['nbnd'] = 30
+    qe.system['nbnd'] = nbands
     qe.system['force_symmorphic'] = ".true."
     qe.system['celldm(3)'] = layer_separation/qe.system['celldm(1)']
     qe.kpoints = kpoints
@@ -119,14 +120,17 @@ def run_job(layer_separation,work_folder='bse_cutoff',cut=False):
 
     if cut:
         y['CUTGeo'] = 'box z'
-        y['CUTBox'] = [0,0,layer_separation-1]
+        y['CUTBox'] = [0,0,layer_separation-2]
 
-    y['FFTGvecs'] = [30,'Ry']
+        y['RandQpts'] = 1000000
+        y['RandGvec'] = [1,'Ry']
+
+    y['FFTGvecs'] = [20,'Ry']
     y['NGsBlkXs'] = [1,'Ry']          #local field effects
-    y['BndsRnXs'] = [1,30]            #number of bands for static screening
+    y['BndsRnXs'] = [1,nbands]            #number of bands for static screening
 
     y['KfnQP_E']  = [2.91355133,1.0,1.0] #scissor operator
-    y['BSEBands'] = [3,6]                #number of bands in BSE kernel
+    y['BSEBands'] = [4,5]                #number of bands in BSE kernel
     y['BEnRange'] = [[4.0,8.0],'eV']     #energy range to plot optical absorption
     y['BEnSteps'] = 500                  #energy steps in the range
     y.write('%s/yambo_run.in'%root_folder)
@@ -142,7 +146,8 @@ def run(nthreads=1,work_folder='bse_cutoff',cut=True):
         p = multiprocessing.Pool(nthreads)
         run = partial(run_job,work_folder=work_folder,cut=cut)
         try:
-            p.map(run, layer_separations)
+            #reversed list because of load imbalance
+            p.map(run, reversed(layer_separations))
         except KeyboardInterrupt:
             print("Caught KeyboardInterrupt, terminating workers")
             p.terminate()
@@ -152,7 +157,8 @@ def run(nthreads=1,work_folder='bse_cutoff',cut=True):
         for layer_separation in layer_separations:
             run_job(layer_separation,work_folder,cut)
 
-def plot():
+def plot(work_folder):
+    ax = plt.gca()
     for layer_separation in layer_separations:
         root_folder = "%s/%d"%(work_folder,layer_separation)
     
@@ -162,7 +168,13 @@ def plot():
     #plot the results
     ya = YamboAnalyser(work_folder)
     print(ya)
-    ya.plot_bse('eps')
+    ax = ya.plot_bse('eps',ax=ax)
+
+    if cut: title = "with coulomb cutoff"
+    else:   title = "without coulomb cutoff"
+
+    plt.title(title)
+    plt.show()
 
 if __name__ == "__main__":
 
@@ -191,4 +203,4 @@ if __name__ == "__main__":
     if args.run:
         run(nthreads,work_folder,cut)
     if args.plot:
-        plot()
+        plot(work_folder)

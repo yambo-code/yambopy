@@ -92,22 +92,128 @@ At the end you should obtain a plot like this:
 
 .. image:: figures/gw_si.png
 
-Coulomb-cutoff (BN)
--------------------------------
+Optical absorption using the Bethe-Salpeter Equation (BN)
+----------------------------------------------------------------------------
 **by H. Miranda**
 
-In this example we will test the convergence of the coulomb truncation for a BSE calculation in single layer Boron Nitride.
-For that we define a loop where we perform a self-consistent ground state calculation, non self-consistent calculation, create the databases
-and run ``yambo`` with increasing vacuum and plot the absorption spectra.
+In this tutorial we will deal with different aspects of running a BSE calculation with the help of yambopy:
 
-**2. Coulomb truncation convergence**
+    1. Relevant parameters for the convergence
+
+        a. Static dielectric function
+        b. Optical absorption spectra
+
+    2. Coulomb truncation convergence 
+    3. Plot excitonic wavefunctions
+    4. Parallel static screening
+
+1. Relevant parameters for the convergence
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To calculate the Bethe-Salpeter Kernel we need to first calculate the dielectric screening and then the screened coulomb interaction matrix elements.
+The relevant parameters for the two stages are:
+
+**a. Static dielectric function**
+
+    ``FFTGvecs``: number of planewaves to include. This can in general be smaller than the number of planewaves used to calculate the density in the self-consistency cycle. A typical good value is around 30Ry (system dependent and hance should be always checked).
+
+    ``BndsRnXs``: number of bands to calculate the screening. In general a very high number of bands is needed to reach convergence.
+
+    ``NGsBlkXs``: number of components for the local fields . This averages the value of the dielectric screening over a number of periodic copies of the unit cell.
+This parameters greatly increases the cost of the calculation and hence should be increased slowly. A typical good value is 2Ry (highly system dependent!).
+
+To run the calculation do:
+
+.. code-block:: bash
+
+    python bse_conv_bn.py -r -e
+
+Once the parameters are converged you can save the dielectric screening databases ``ndb.em1s*`` and re-use them in the subsequent calculations.
+To do so you can, for example, copy it to the SAVE folder. This is done in the ``run`` function inside the ``bse_conv_bn.py`` file.
+``yambo`` will only re-calculate if it does not find the databases or some parameter has changed.
+
+Once the calculation is done you can plot the static dielectric function as a function of q points:
+
+.. code-block:: bash
+
+    yambopy plotem1s bse_run/FFTGvecs* bse_run/reference
+    yambopy plotem1s bse_run/BndsRnXs* bse_run/reference
+    yambopy plotem1s bse_run/NGsBlkXs* bse_run/reference
+
+.. image:: figures/bse_bn_FFTGvecs.png
+   :height: 200px
+   :width: 320 px
+.. image:: figures/bse_bn_BndsRnXs.png
+   :height: 200px
+   :width: 320 px
+.. image:: figures/bse_bn_NGsBlkXs.png
+   :height: 200px
+   :width: 320 px
+
+
+**b. Optical absorption spectra**
+
+Once you obtained a converged dielectric screening function you can calculate the Bethe-Salpeter auxiliary Hamiltonian and obtain the excitonic stated and energies diagonalizing it or calculating the optical absorption spectra with a recursive method like the Haydock.
+
+    ``BSEBands``: number of bands to generate the transitions. This number should in general be as small as possible as the size of the BSE auxiliary hamiltonian has (in the resonant approximation) dimensions ``Nk*Nv*Nc``. Another way to converge the number of transitions is using ``BSEEhEny``. This value selects the number of bands based on the electron-hole energy difference.
+
+    ``BSENGBlk`` is the number of blocks for the dielectric screening average over the unit cells. This has a similar meaning as ``NGsBlkXs``.
+    ``BSENGexx`` in the number of exchange components. Relatively cheap to calculate but should be as small as possible to save memory.
+    ``KfnQP_E`` is the scissor operator for the BSE. The first value is the rigid scissor, the second and third the stretching for the conduction and valence respectively.
+    The optical absoprtion spectra is obtained in a range of energies given by ``BEnRange`` and the number of frequencies in the interval is ``BEnSteps``.
+
+To run these calculations do:
+
+.. code-block:: bash
+
+    python bse_conv_bn.py -r -b
+
+Once the calculation is done you can plot the optical absorption spectra:
+
+.. code-block:: bash
+
+    yambopy analysebse bse_run BSENGBlk
+    yambopy analysebse bse_run BSENGexx
+    yambopy analysebse bse_run BSEEhEny
+
+.. image:: figures/bse_bn_BSENGBlk_spectra.png
+   :height: 200px
+   :width: 320 px
+.. image:: figures/bse_bn_BSENGBlk_excitons.png
+   :height: 200px
+   :width: 320 px
+
+.. image:: figures/bse_bn_BSENGexx_spectra.png
+   :height: 200px
+   :width: 320 px
+.. image:: figures/bse_bn_BSENGexx_excitons.png
+   :height: 200px
+   :width: 320 px
+
+.. image:: figures/bse_bn_BSEEhEny_spectra.png
+   :height: 200px
+   :width: 320 px
+.. image:: figures/bse_bn_BSEEhEny_excitons.png
+   :height: 200px
+   :width: 320 px
+
+2. Coulomb truncation convergence
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Here we will check how the dielectric screening changes with vacuum spacing between layers and including a coulomb trunctation technique.
+For that we define a loop where we do a self-consistent ground state calculation, non self-consistent calculation, create the databases
+and run a ``yambo`` BSE calculation for different vacuum spacings.
+
+To analyse the data we will:
+    1. plot the dielectric screening
+    2. check how the different values of the screening change the absorption spectra
 
 In the folder ``tutorials/bn/`` you find the python script ``bse_cutoff.py``.
 You can run this script with:
 
 .. code-block:: bash
 
-    python bse_cutoff.py -r
+    python bse_cutoff.py -r    # without coulomb cutoff
+    python bse_cutoff.py -r -c # with coulomb cutoff
 
 The main loop changes the ``layer_separation`` variable using values from a list.
 In the script you can find how the functions ``scf``, ``ncf`` and ``database`` are defined.
@@ -154,28 +260,107 @@ In the script you can find how the functions ``scf``, ``ncf`` and ``database`` a
       y.write('%s/yambo_run.in'%root_folder)
       os.system('cd %s; %s -F yambo_run.in -J %d'%(root_folder,yambo,layer_separation))
 
-**3. Plot the convergence**
+**3. Plot the dielectric function**
 
-You can plot the results using:
+In a similar way as what was done before we can now plot the dielctric funciton for different layer separations:
+
+.. code-block:: bash
+
+    python analyse_em1s.py bse_cutoff     # without coulomb cutoff  
+    python analyse_em1s.py bse_cutoff_cut # with coulomb cutoff
+
+.. image:: figures/bn_em1s_cutoff.png
+   :height: 200px
+   :width: 320 px
+
+.. image:: figures/bn_em1s_cutoff_cut.png
+   :height: 200px
+   :width: 320 px
+
+**2. Plot the absorption**
+
+You can plot how the absorption spectra changes with the cutoff using:
 
 .. code-block:: bash
 
     python bse_cutoff.py -p
+    python bse_cutoff.py -p -c
 
-You should obtain a plot like this:
+.. image:: figures/bn_bse_cutoff_cut.png
+   :height: 200px
+   :width: 320 px
 
-.. image:: figures/bse_cutoff.png
+.. image:: figures/bn_bse_cutoff.png
+   :height: 200px
+   :width: 320 px
+
+3. Excitonic wavefunctions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In this example we show how to use the ``yambopy`` to plot the excitonic wavefunctions that result from a BSE calculation.
+Beaware the parameters of the calculation are not high enough to obtain a converged calculation. To run the calculation do:
+
+.. code-block:: bash
+
+    python gs_bn.py -s -n
+    python bse_bn.py -r
+
+Afterwards you can run a basic analysis of the excitonic states and store the wavefunctions of the ones 
+that are more optically active and plot their wavefunctions in reciprocal space. Plots in real space are also possible
+using yambopy but won't be treated here. In the analysis code you have:
+
+.. code-block:: python
+
+    #get the absorption spectra
+    a = YamboBSEAbsorptionSpectra('yambo',save='bse/SAVE',path='bse')
+    excitons = a.get_excitons(min_intensity=0.0005,max_energy=6,Degen_Step=0.01)
+    print( "nexcitons: %d"%len(excitons) )
+    print( "excitons:" )
+    print( excitons )
+    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1))
+    a.write_json()
+    
+The class ``YamboBSEAbsorptionSpectra()`` reads the absoprtion spectra obtained with explicit diagonalization of the
+BSE matrix. ``yambo`` if the ``job_string`` identifier used when running yambo, ``bse`` is the name of the folder where the job was run.
+The function ``get_excitons()`` runs ``ypp`` to obtain the exitonic states and their intensities.
+The function ``get_wavefunctions()`` also calls ``ypp`` and reads the
+reciprocal (and optionally real space) space wavefunctions and finally we store all the data in a ``json`` file.
+
+This file can then be easily ploted with another python script.
+To run this part of the code you can do:
+
+.. code-block:: bash
+
+    python bse_bn.py -a
+    python plot_excitons.py
+    
+You should then obtain plots similiar (these ones were generated on a 30x30 kpoint grid) to the figures presented here:
+
+.. image:: figures/absorption_bn.png
+   :height: 500px
+   :width: 600 px
+
+.. image:: figures/excitons_bn.png
+   :height: 500px
+   :width: 600 px
 
 
-Parallel Bethe-Salpeter (MoS\ :sub:`2`)
------------------------------------------------------------------
-**by H. Miranda**
+Again beaware this figures serve only to show the kind of representation 
+that can be obtained with ``yambo`` and ``yambopy``. Further convergence tests need to be performed to obtain
+accurate results, but that is left to the user.
 
-In this tutorial we will show how you can split the calculation of the dielectric function in different jobs using ``yambo``.
+Some plots of excitonic wavefunctions in real space are show in a parallel project in:
+`http://henriquemiranda.github.io/excitonwebsite/ <http://henriquemiranda.github.io/excitonwebsite/>`_ 
+
+4. Parallel static screening
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In this tutorial we will show how you can split the calculation of the dielectric function in different jobs using ``yambopy``.
 The dielectric function can then be used to calculate the excitonic states using the BSE.
 
-The idea is that in certain clusters it is advantageous to split the dielectric function calculation
-in smaller jobs (one for each q-point) that can run at the same time.
+The idea is that in certain clusters it is advantageous to split the jobs as much as possible.
+The dielectric function is calculated for different momentum transfer (q-points) over the brillouin zone.
+Each calculation is independent and can run at the same time.
 Using the ``yambo`` parallelization you can separate the dielectric function calculation among many cpus
 using the variable ``q`` in ``X_all_q_CPU`` and ``X_all_q_ROLEs``. The issue is that you still need to make a big reservation
 and in some cases there is load imbalance (some nodes end up waiting for others). Splitting in smaller jobs
@@ -187,20 +372,19 @@ the results and do the final BSE step (this method should also apply for a GW ca
 
 **1. Ground State**
 
-The ground state calculation for MoS\ :sub:``2`` is made in a similar fashion as the previous examples.
-If some of the steps are already calculated you can tell the script not to run them using for example:
+The ground state calculation for BN is made in a similar fashion as the previous examples.
 
 .. code-block:: bash
 
-    python gs_mos2.py
+    python bse_par_bn.py -r -t2
 
 **2. Parallel Dielectric function**
 
-Here we tell ``yambo`` to calculate the dielectric function. We read the number of q-points the system has
-and generate one input file per q-point. Next we tell ``yambo`` to calculate the first q-point. ``yambo`` will calculate the dipoles
-and the dielectric function at the first q-point.
-Once the calculation is done we copy the dipoles to the SAVE directory. After that we can run each q-point calculation
-as a separate job.
+Here we tell ``yambo`` to calculate the dielectric function.
+We read the number of q-points the system has and generate one input file per q-point.
+Next we tell ``yambo`` to calculate the first q-point.
+``yambo`` will calculate the dipoles and the dielectric function at the first q-point.
+Once the calculation is done we copy the dipoles to the SAVE directory. After that we can run each q-point calculation as a separate job.
 Here the user can decide to submit one job per q-point on a cluster or use the python ``multiprocessing`` module to submit the jobs in parallel.
 In this example we use the second option.
 
@@ -243,7 +427,7 @@ In this example we use the second option.
 
 **3. BSE**
 
-Once the dielectric function is calculated its time to collect the data in one folder and
+Once the dielectric function is calculated, it is time to collect the data in one folder and
 do the last step of the calculation: generate the BSE Hamiltonian, diagonalize it and
 calculate the absorption.
 
@@ -271,7 +455,7 @@ calculate the absorption.
 
 **3. Collect and plot the results**
 
-You can plot the data much in the same way as you did for the GW calculation.
+You can then plot the data as before
 
 .. code-block:: python
 
@@ -285,59 +469,6 @@ You can plot the data much in the same way as you did for the GW calculation.
 You should now obtain a plot like this:
 
 .. image:: figures/bse_mos2.png
-
-Excitonic wavefunctions (BN)
------------------------------------------------------------------
-**by H. Miranda**
-
-In this example we show how to use the ``yambopy`` to plot the excitonic wavefunctions that result from a BSE calculation.
-Beaware the parameters of the calculation are not high enough to obtain a converged calculation. To run the calculation do:
-
-.. code-block:: bash
-
-    python gs_bn.py -s -n
-    python bse_bn.py -r
-
-Afterwards you can run a basic analysis of the excitonic states and store the wavefunctions of the ones 
-that are more optically active and plot their wavefunctions in reciprocal space. Plots in real space are also possible
-using yambopy but won't be treated here. In the analysis code you have:
-
-.. code-block:: python
-
-    #get the absorption spectra
-    a = YamboBSEAbsorptionSpectra('yambo',save='bse/SAVE',path='bse')
-    excitons = a.get_excitons(min_intensity=0.0005,max_energy=6,Degen_Step=0.01)
-    print( "nexcitons: %d"%len(excitons) )
-    print( "excitons:" )
-    print( excitons )
-    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1))
-    a.write_json()
-    
-The class ``YamboBSEAbsorptionSpectra()`` reads the absoprtion spectra obtained with explicit diagonalization of the
-BSE matrix. ``yambo`` if the ``job_string`` identifier used when running yambo, ``bse`` is the name of the folder where the job was run.
-The function ``get_excitons()`` runs ``ypp`` to obtain the exitonic states and their intensities.
-The function ``get_wavefunctions()`` also calls ``ypp`` and reads the
-reciprocal (and optionally real space) space wavefunctions and finally we store all the data in a ``json`` file.
-
-This file can then be easily ploted with another python script.
-To run this part of the code you can do:
-
-.. code-block:: bash
-
-    python bse_bn.py -a
-    python plot_excitons.py
-    
-You should then obtain plots similiar (these ones were generated on a 30x30 kpoint grid) to the figures presented here:
-
-.. image:: figures/absorption_bn.png
-.. image:: figures/excitons_bn.png
-
-Again beaware this figures serve only to show the kind of representation 
-that can be obtained with ``yambo`` and ``yambopy``. Further convergence tests need to be performed to obtain
-accurate results, but that is left to the user.
-
-Some plots of excitonic wavefunctions in real space are show in a parallel project in:
-`http://henriquemiranda.github.io/excitonwebsite/ <http://henriquemiranda.github.io/excitonwebsite/>`_ 
 
 Real Time Simulations (Si)
 ---------------------------

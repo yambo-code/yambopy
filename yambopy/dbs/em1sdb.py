@@ -10,8 +10,22 @@ class YamboStaticScreeningDB():
     """
     Class to handle static screening databases from Yambo
     """
-    def __init__(self,save='.',filename='ndb.em1s'):
+    def __init__(self,save='.',filename='ndb.em1s',db1='ns.db1'):
+        self.save = save
         self.filename = "%s/%s"%(save,filename)
+
+        #read the lattice paramaters
+        try:
+            #posibilities where to find db1
+            for filename in ['%s/%s'%(save,db1),'%s/../SAVE/%s'%(save,db1)]:
+                if os.path.isfile(filename):
+                    break
+            database = Dataset(filename, 'r')
+            self.alat = database['LATTICE_PARAMETER'][:]
+            self.lat  = database['LATTICE_VECTORS'][:].T
+            self.volume = np.linalg.det(self.lat)
+        except:
+            raise IOError("Error opening %s in YamboStaticScreeningDB"%filename)
 
         #read em1s database
         try:
@@ -26,11 +40,13 @@ class YamboStaticScreeningDB():
         self.eh = eh
 
         #read gvectors
-        self.gvectors = np.rint(database['X_RL_vecs'][:].T)
+        gvectors = np.rint(database['X_RL_vecs'][:].T)
+        self.gvectors = np.array([g/self.alat  for g in gvectors])
         self.ngvectors = len(self.gvectors)
         
         #read q-points
-        self.qpoints = database['HEAD_QPT'][:].T
+        qpoints = database['HEAD_QPT'][:].T
+        self.qpoints = np.array([q/self.alat  for q in qpoints])
         self.nqpoints = len(self.qpoints)
         
         #are we usign coulomb cutoff?
@@ -58,6 +74,30 @@ class YamboStaticScreeningDB():
             #close database
             db.close()
 
+    def saveDBS(self,path):
+        """
+        Save the database
+        """
+        if os.path.isdir(path): shutil.rmtree(path)
+        os.mkdir(path)
+
+        #copy all the files
+        oldpath = self.path
+        filename = self.filename
+        shutil.copyfile("%s/%s"%(oldpath,filename),"%s/%s"%(path,filename))
+        for nk in xrange(self.nkpoints):
+            fname = "%s_fragments_%d_1"%(filename,nk+1)
+            shutil.copyfile("%s/%s"%(oldpath,fname),"%s/%s"%(path,fname))
+
+        #edit with the new wfs
+        wf = self.wf
+        for nk in xrange(self.nkpoints):
+            fname = "%s_fragments_%d_1"%(filename,nk+1)
+            db = Dataset("%s/%s"%(path,fname),'r+')
+            db['WF_REAL_COMPONENTS_@_K%d_BAND_GRP_1'%(nk+1)][:] = wf[nk].real
+            db['WF_IM_COMPONENTS_@_K%d_BAND_GRP_1'%(nk+1)][:] = wf[nk].imag
+            db.close()
+
     def get_g_index(self,g):
         """
         get the index of the gvectors.
@@ -81,7 +121,7 @@ class YamboStaticScreeningDB():
       
         #order according to the distance
         x, y = zip(*sorted(zip(x, y)))        
-        y = np.array(y)
+        y = np.array(y)*self.volume
  
         ax.plot(x,y.real,**kwargs)
         ax.set_xlabel('|q|')
