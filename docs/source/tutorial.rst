@@ -21,7 +21,8 @@ The initial step is the ground state calculation and the non self-consistent cal
 
 We have set 50 bands and the k-grid ``12x12x1``.
 
-**1. GW convergence**
+1. GW convergence
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **(a) Calculations**
 
@@ -108,7 +109,8 @@ Yambopy provides the function ``analyse_gw.py`` to perform the analysis of the `
 From the convergence plot we can choose now a set of parameters and repeat the calculation for finer k-grids until we
 reach convergence with the k-points. The convergence criteria are left to the user.
 
-**2. GW calculation in a regular grid and plot in a bath in the Brillouin zone**
+2. GW calculation in a regular grid and plot in a bath in the Brillouin zone
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We will work in the PPA for the screening. We have chosen the following parameters:
 
@@ -147,7 +149,8 @@ The object ``ya`` contains all the results written in the output. We can plot an
    :width: 65%
    :align: center
 
-**3. Approximations of the dielectric function (COHSEX, PPA, Real axis integration)**
+3. Approximations of the dielectric function (COHSEX, PPA, Real axis integration)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can use yambopy to examine different run levels. For instance, the approximations
 used to obtain the screening are the: (i) static screening or COHSEX, plasmon-pole
@@ -184,7 +187,8 @@ The PPA and the RA results are basically on top of each other. On the contrary, 
    :width: 65%
    :align: center
 
-**4. Solvers (Newton, Secant, Green's function)**
+4. Solvers (Newton, Secant, Green's function)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The solvers to find the QP correction from the self-energy can also be tested. We have included the Newton and the secant method. In the resulting band structures we do not
 appreciate big differences. In anycase it is worthy to test during the convergence procedure.
