@@ -7,9 +7,10 @@ import sys
 from qepy import *
 import argparse
 
-kpoints = [12,12,1]
+kpoints = [24,24,1]
 kpoints_double = [24,24,1]
 qpoints = [3,3,1]
+layer_separation = 12
 pw = 'pw.x'
 prefix = 'bn'
 
@@ -33,7 +34,7 @@ def get_inputfile():
     qe.control['verbosity'] = "'high'"
     qe.control['wf_collect'] = '.true.'
     qe.system['celldm(1)'] = 4.7
-    qe.system['celldm(3)'] = 12/qe.system['celldm(1)']
+    qe.system['celldm(3)'] = layer_separation/qe.system['celldm(1)']
     qe.system['ecutwfc'] = 60
     qe.system['occupations'] = "'fixed'"
     qe.system['nat'] = 2

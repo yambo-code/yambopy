@@ -51,7 +51,7 @@ def breaking_symmetries(efield1,efield2=[0,0,0],folder='.',RmTimeRev=True):
 
 
 #
-# by Alexandre Morlet
+# by Alexandre Morlet & Henrique Miranda
 #
 
 def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
@@ -166,6 +166,11 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
         pack     -> Skips packing o- files into .json files (default: True)
         text     -> Skips writing the .dat file (default: True)
         draw     -> Skips drawing (plotting) the abs spectra (default: True)
+
+    Returns:
+        excitons -> energies of the first few excitons as funciton of some variable
+        spectras -> absorption spectra for each variable
+
     """
 
     # Packing results (o-* files) from the calculations into yambopy-friendly .json files
@@ -190,7 +195,9 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
         key=sorted_invars[i][0]
         if key.startswith(var) or key=='reference.json':
             keys.append(key)
-    print 'Files detected: ',keys
+    print 'Files detected:'
+    for key in keys:
+        print key
 
     # unit of the input value
     unit = invars[keys[0]]['variables'][var][1]
@@ -204,19 +211,19 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
     # Array that will contain the output
     excitons = []
 
+    spectras = []
     # Loop over all calculations
     for key in keys:
         jobname=key.replace('.json','')
         print jobname
 
         # input value
-        # BndsRn__ is a special case
-        if var.startswith('BndsRnX'):
-        # format : [1, nband, ...]
-            inp = invars[key]['variables'][var][0][1]
+        v = invars[key]['variables'][var][0]
+        if type(v) == list:
+            inp = v[1]
         else:
-            inp = invars[key]['variables'][var][0]
-
+            inp = v
+           
         print 'Preparing JSON file. Calling ypp if necessary.'
         ### Creating the 'absorptionspectra.json' file
         # It will contain the exciton energies
@@ -234,11 +241,14 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
         f.close()
 
         ### Plotting the absorption spectra
-        # BSE spectra
-        plt.plot(data['E/ev[1]'], data['EPS-Im[2]'],label=jobname,lw=2)
-    #   # Axes : lines for exciton energies (disabled, would make a mess)
-    #   for n,exciton in enumerate(data['excitons']):
-    #       plt.axvline(exciton['energy'])
+        spectras.append({'x': data['E/ev[1]'],
+                         'y': data['EPS-Im[2]'],
+                         'label': jobname})
+
+        ### BSE spectra
+        ### Axes : lines for exciton energies (disabled, would make a mess)
+        #for n,exciton in enumerate(data['excitons']):
+        #    plt.axvline(exciton['energy'])
 
         ### Creating array with exciton values (according to settings)
         l = [inp]
@@ -250,19 +260,72 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
 
     if text:
         header = 'Columns : '+var+' (in '+unit+') and "bright" excitons eigenenergies in order.'
-        np.savetxt(outname+'.dat',excitons,header=header)
-        print 'Data saved to ',outname+'.dat'
+
+        ## Excitons energies
+        #output on the screen
+        print header
+        for exc in excitons:
+            x = exc[0]
+            e = exc[1:]
+            print "%8.4lf "%x+("%8.4lf"*len(e))%tuple(e)
+
+        #save file
+        filename = outname+'_excitons.dat'
+        np.savetxt(filename,excitons,header=header)
+        print filename
+        
+        ## Spectra
+        filename = outname+'_spectra.dat'
+        f = open(filename,'w')
+        for spectra in spectras:
+            label = spectra['label']
+            f.write('#%s\n'%label)
+            for x,y in zip(spectra['x'],spectra['y']):
+                f.write("%12.8e %12.8e\n"%(x,y))
+            f.write('\n\n')
+        f.close()
+        print filename
+
+    else:
+        print '-nt flag : no text produced.'
 
     if draw:
+        import matplotlib
+        ## Exciton energy plots
+        filename = outname+'_excitons.png'
+        excitons = np.array(excitons)
+        labels = [spectra['label'] for spectra in spectras]
+        fig = plt.figure(figsize=(6,5))
+        matplotlib.rcParams.update({'font.size': 15})
+        plt.ylabel('1st exciton energy (eV)')
+        plt.xticks(excitons[:,0],labels)
+        plt.plot(excitons[:,0],excitons[:,1])
+        plt.tight_layout()
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        if 'DISPLAY' in os.environ:
+            plt.show()
+        print filename
+
+        ## Spectra plots
+        filename = outname+'_spectra.png'
+        fig = plt.figure(figsize=(6,5))
+        matplotlib.rcParams.update({'font.size': 15})
+        for spectra in spectras:
+            plt.plot(spectra['x'],spectra['y'],label=spectra['label']) 
         plt.xlabel('$\omega$ (eV)')
-        plt.gca().yaxis.set_major_locator(plt.NullLocator())
-        plt.legend()
-        #plt.draw()
-        #plt.show()
-        plt.savefig(outname+'.png', bbox_inches='tight')
-        print outname+'.png'
+        plt.ylabel('Im($\epsilon_M$)')
+        plt.legend(frameon=False)
+        plt.tight_layout()
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        if 'DISPLAY' in os.environ:
+            plt.show()
+        print filename
+    else:
+        print '-nd flag : no plot produced.'
 
     print 'Done.'
+    
+    return excitons, spectras
 
 #
 # by Fulvio Paleari & Henrique Miranda
@@ -365,3 +428,79 @@ def merge_qp(output,files,verbose=False):
                 outVar[:] = varin[:]
 
     fout.close()
+
+#
+# by Henrique Miranda
+#
+def plot_excitons(filename,cut=0.2,size=20):
+    from math import ceil, sqrt
+
+    def get_var(dictionary,variables):
+        """
+        To have compatibility with different version of yambo
+        We provide a list of different possible tags
+        """
+        for var in variables:
+            if var in dictionary:
+                return dictionary[var]
+        raise ValueError( 'Could not find the variables %s in the output file'%str(variables) )
+    #
+    # read file
+    #
+    f = open(filename)
+    data = json.load(f)
+    f.close()
+
+    #
+    # plot the absorption spectra
+    #
+    nexcitons = len(data['excitons'])
+    print "nexitons", nexcitons
+    plt.plot(get_var(data,['E/ev','E/ev[1]']), get_var(data,['EPS-Im[2]' ]),label='BSE',lw=2)
+    plt.plot(get_var(data,['E/ev','E/ev[1]']), get_var(data,['EPSo-Im[4]']),label='IP',lw=2)
+    for n,exciton in enumerate(data['excitons']):
+        plt.axvline(exciton['energy'])
+    plt.xlabel('$\\omega$ (eV)')
+    plt.ylabel('Intensity arb. units')
+    plt.legend(frameon=False)
+    plt.draw()
+
+    #
+    # plot excitons
+    #
+
+    #dimensions
+    nx = int(ceil(sqrt(nexcitons)))
+    ny = int(ceil(nexcitons*1.0/nx))
+    print "cols:",nx
+    print "rows:",ny
+    cmap = plt.get_cmap("gist_heat_r")
+
+    fig = plt.figure(figsize=(nx*3,ny*3))
+
+    sorted_excitons = sorted(data['excitons'],key=lambda x: x['energy'])
+
+    for n,exciton in enumerate(sorted_excitons):
+        #get data
+        w   = np.array(exciton['weights'])
+        qpt = np.array(exciton['qpts'])
+
+        #plot
+        ax = plt.subplot(ny,nx,n+1)
+        ax.scatter(qpt[:,0], qpt[:,1], s=size, c=w, marker='H', cmap=cmap, lw=0, label="%5.2lf (eV)"%exciton['energy'])
+        ax.text(-cut*.9,-cut*.9,"%5.2lf (eV)"%exciton['energy'])
+
+        # axis
+        plt.xlim([-cut,cut])
+        plt.ylim([-cut,cut])
+        ax.yaxis.set_major_locator(plt.NullLocator())
+        ax.xaxis.set_major_locator(plt.NullLocator())
+        ax.set_aspect('equal')
+    
+    plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.01, hspace=0.01)
+
+    plt.show()
+
+
+
+

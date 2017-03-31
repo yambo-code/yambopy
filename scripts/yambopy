@@ -25,6 +25,36 @@ class Cmd():
         if cmd in cmds.keys():
             cmds[cmd](args[1:])
 
+class PlotExcitons(Cmd):
+    """
+    Plot excitons calculation
+        
+        possible arguments are:
+        
+        Arguments:
+        filename -> json file containing the absorption spectra. Default: 'absorptionspectra.json' 
+        -s       -> Size of the materis in the plot
+    """
+    def __init__(self,args):
+        import matplotlib
+
+        #check for args
+        if len(args) < 1:
+            print(self.__doc__)
+            exit(0)
+
+        parser = argparse.ArgumentParser(description='Study convergence on BS calculations using ypp calls.')
+        pa = parser.add_argument
+        pa('filename',     help='json file containing the absorption spectra. Default: \'absorptionspectra.json\'' )
+        pa('-s','--size',  help='Size of the markers in the plot', default=20, type=int)
+        args = parser.parse_args(args)
+
+        if os.path.isfile(args.filename):
+            #create plot
+            plot_excitons(args.filename,size=args.size) 
+        else:
+            print 'file %s is invalid'%filename
+
 class PlotEm1sCmd(Cmd):
     """
     Plot em1s calculation
@@ -35,20 +65,31 @@ class PlotEm1sCmd(Cmd):
         folder   -> Folder containing the ndb.ems1 files
     """
     def __init__(self,args):
+        import matplotlib
+
         #check for args
         if len(args) < 1:
             print(self.__doc__)
             exit(0)
 
-        #first and second arguments are mandatory
-        folder = args[0]
-        
-        ys = YamboStaticScreeningDB(save=folder)
-
+        #first anbd second arguments are mandatory
+        folders = args[0:]
+       
         #create plot
+        fig = plt.figure(figsize=(6,5))
+        matplotlib.rcParams.update({'font.size': 15})
         ax = plt.gca()
 
-        ys.plot(ax,marker='o')
+        for folder in folders: 
+            if os.path.isdir(folder):
+                ys = YamboStaticScreeningDB(save=folder)
+                ys.plot(ax,marker='o',markersize=2,label=folder)
+            else:
+                print "path %s is not a folder"%folder
+
+        plt.legend(frameon=False)
+        ax.set_ylabel('$\epsilon_{00}(\omega=0)$')
+        plt.tight_layout()
 
         #final plot
         plt.show()
@@ -140,29 +181,33 @@ class AnalyseBSECmd(Cmd):
             print(self.__doc__)
             exit(0)
 
-        # Arguments parser
         parser = argparse.ArgumentParser(description='Study convergence on BS calculations using ypp calls.')
         pa = parser.add_argument
-        pa('folder'          , help='Folder containing SAVE and convergence runs.' )
-        pa('variable'        , help='Variable tested (e.g. FFTGvecs)' )
-        pa('-ne','--numbexc' , help='Number of excitons to read beyond threshold'                    , default=2   ,type=int)
-        pa('-ie','--intexc'  , help='Minimum intensity for excitons to be considered bright'         , default=0.05,type=float)
-        pa('-de','--degenexc', help='Energy threshold under which different peaks are merged (eV)'   , default=0.01,type=float)
-        pa('-me','--maxexc'  , help='Energy threshold after which excitons are not read anymore (eV)', default=8.0 ,type=float)
-        pa('-np','--nopack'  , help='Skips packing o- files into .json files',  dest='pack', action='store_false')
-        pa('-nt','--notext'  , help='Skips writing the .dat file',              dest='text', action='store_false')
-        pa('-nd','--nodraw'  , help='Skips drawing (plotting) the abs spectra', dest='draw', action='store_false')
-        parser.set_defaults(pack=True,text=True,draw=True)
+        pa('folder',           help='Folder containing SAVE and convergence runs.' )
+        pa('variable',         help='Variable tested (e.g. FFTGvecs)' )
+        pa('-ne','--numbexc',  help='Number of excitons to read beyond threshold', default=2,type=int)
+        pa('-ie','--intexc',   help='Minimum intensity for excitons to be considered bright', default=0.05,type=float)
+        pa('-de','--degenexc', help='Energy threshold under which different peaks are merged (eV)', default=0.01,type=float)
+        pa('-me','--maxexc',   help='Energy threshold after which excitons are not read anymore (eV)', default=8.0,type=float)
+        pa('-np','--nopack',   help='Skips packing o- files into .json files', action='store_false')
+        pa('-nt','--notext',   help='Skips writing the .dat file', action='store_false')
+        pa('-nd','--nodraw',   help='Skips drawing (plotting) the abs spectra', action='store_false')
+        print('parsing', args)
         args = parser.parse_args(args)
+        print('done')
 
-        folder    = args.folder   ;   var = args.variable
-        exc_n     = args.numbexc  ;   exc_int   = args.intexc
-        exc_degen = args.degenexc ;   exc_max_E = args.maxexc
-        pack      = args.pack   ;   text      = args.text
-        draw      = args.draw
+        folder    = args.folder
+        var       = args.variable
+        exc_n     = args.numbexc
+        exc_int   = args.intexc
+        exc_degen = args.degenexc
+        exc_max_E = args.maxexc
+        pack      = args.nopack
+        text      = args.notext
+        draw      = args.nodraw
 
-        # Function call
-        analyse_bse(folder,var,exc_n,exc_int,exc_degen,exc_max_E,pack,text,draw)
+        #all the other arguments are passed to the analyse bse function
+        excitons, spectra = analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, pack=pack, text=text, draw=draw )
 
 class TestCmd(Cmd):
     """
@@ -235,11 +280,11 @@ class YambopyCmd(Cmd):
     class to implement commands for yambopy.
     each new command to be added should be implemented as a class inheriting from this one
     """
-    _commands = {'plotem1s': PlotEm1sCmd,
-                 'analysegw': AnalyseGWCmd,
-                 'analysebse': AnalyseBSECmd,
-                 'mergeqp':    MergeQPCmd,
-                 'test':       TestCmd}
+    _commands = {'plotem1s':     PlotEm1sCmd,
+                 'analysebse':   AnalyseBSECmd,
+                 'plotexcitons': PlotExcitons,
+                 'mergeqp':      MergeQPCmd,
+                 'test':         TestCmd}
 
     def __init__(self,*args):
         """
@@ -256,6 +301,10 @@ class YambopyCmd(Cmd):
         if args[1] in self._commands:
             cmdclass = self._commands[args[1]]
             self.cmd = cmdclass(args[2:]) 
-   
+        else:
+            self.info()  
+            print 
+            print "Command %s is not known to yambopy"%args[1]
+ 
 #parse options
 ycmd = YambopyCmd(*sys.argv)

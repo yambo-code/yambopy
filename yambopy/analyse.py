@@ -335,7 +335,7 @@ class YamboAnalyser():
             ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
             plt.show()
 
-    def plot_bse(self,tags,cols=(2,)):
+    def plot_bse(self,tags,cols=(2,),ax=None):
         """ 
         Use this function to plot the absorption spectrum calculated using the BSE
         cols: a list of indexes to select which columns from the file to plot
@@ -346,7 +346,11 @@ class YamboAnalyser():
             Will plot only files with 'eps' in their filename (absorption spectra)
             Will plot the second column (absorption spectra)
         """
-        ax = plt.axes([0.1, 0.1, .7, .7])
+        if ax is None:
+            standalone = True
+            ax = plt.gca()
+        else:
+            standalone = False
         plot = False
 
         colors = self.get_colors(tags)
@@ -364,15 +368,16 @@ class YamboAnalyser():
                     for col in cols:
                         x = data[:,0]
                         y = data[:,col-1]
-                        label = filename.split('/')[-1]+"_col=%d"%col
+                        label = filename.split('/')[-1]+" col=%d"%col
                         ax.plot(x,y,label=label,color=color)
                         plot = True
         if plot:
-            box = ax.get_position()
-            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            ax.set_ylabel('$\epsilon_{00}(\omega=0)$')
+            ax.set_xlabel('$\omega$ (eV)')
 
-            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
-            plt.show()
+            ax.legend(frameon=False)
+            if standalone: plt.show()
+        return ax
 
     def plot_spectral_function(self,tags):
         if type(tags) == str:

@@ -72,7 +72,7 @@ def create_save(doublegrid=False):
             print(shell)
             shell.run()
 
-def run(cut=False):
+def run(nthreads=1,cut=False):
     #create the yambo input file
     y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder='bse')
 
@@ -82,17 +82,25 @@ def run(cut=False):
 
     y['FFTGvecs'] = [30,'Ry']
     y['NGsBlkXs'] = [1,'Ry']
-    y['BndsRnXs'] = [1,30]
-    y['BSEBands'] = [3,6]
+    y['BndsRnXs'] = [1,10]
+    y['BSEBands'] = [4,5]
     y['BEnSteps'] = 500
     y['BEnRange'] = [[0.0,10.0],'eV']
     y['KfnQP_E']  = [2.91355133,1.0,1.0] #some scissor shift
     y.arguments.append('WRbsWF')
+
+    if nthreads > 1:
+        y['X_all_q_ROLEs'] = "q"
+        y['X_all_q_CPUs'] = "%d"%nthreads
+
     y.write('bse/yambo_run.in')
 
     print('running yambo')
     shell = scheduler()
-    shell.add_command('cd bse; %s -F yambo_run.in -J yambo'%yambo)
+    if nthreads <= 1:
+        shell.add_command('cd bse; %s -F yambo_run.in -J yambo'%yambo)
+    else:
+        shell.add_command('cd bse; mpirun -np %d %s -F yambo_run.in -J yambo'%(nthreads,yambo))
     shell.run()
     
 def analyse():
@@ -117,7 +125,9 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--run',        action="store_true", help='Run BSE calculation')
     parser.add_argument('-c', '--cut',        action="store_true", help='Use coulomb truncation')
     parser.add_argument('-a', '--analyse',    action="store_true", help='plot the results')
+    parser.add_argument('-t' ,'--nthreads',                     help='Number of threads', default=1)
     args = parser.parse_args()
+    nthreads = int(args.nthreads)
 
     if len(sys.argv)==1:
         parser.print_help()
@@ -126,5 +136,5 @@ if __name__ == "__main__":
     cut = args.cut
     dg = args.doublegrid
     create_save(dg)
-    if args.run:     run(cut) 
+    if args.run:     run(nthreads,cut) 
     if args.analyse: analyse()

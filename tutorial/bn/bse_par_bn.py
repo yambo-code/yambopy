@@ -57,11 +57,18 @@ def run_job(job):
     print(job)
     os.system(job)
 
-def run(nthreads=1):
+def run(nthreads=1,cut=False):
     databases()
 
     #create the yambo input file
     y = YamboIn('yambo -r -b -o b -V all',folder=folder)
+
+    if cut:
+        y['CUTGeo'] = 'box z'
+        y['CUTBox'] = [0,0,10]
+
+        y['RandQpts'] = 1000000
+        y['RandGvec'] = [1,'Ry']
 
     y['FFTGvecs'] = [30,'Ry']
     y['NGsBlkXs'] = [1,'Ry']
@@ -120,6 +127,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Test the yambopy script.')
     parser.add_argument('-dg','--doublegrid', action="store_true", help='Use double grid')
     parser.add_argument('-r' ,'--run',        action="store_true", help='Run the calculation')
+    parser.add_argument('-c' ,'--cut',     action="store_true", help='Use coulomb cutoff')
     parser.add_argument('-p' ,'--plot',     action="store_true", help='Run the analysis')
     parser.add_argument('-t' ,'--nthreads',   default=2,           help='Run the analysis')
     args = parser.parse_args()
@@ -129,8 +137,9 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(1)
 
+    cut = args.cut 
     if args.run:
-        run(nthreads)
+        run(nthreads,cut)
     if args.plot:
         plot()
 
