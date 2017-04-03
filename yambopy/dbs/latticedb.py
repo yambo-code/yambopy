@@ -5,7 +5,6 @@
 #
 from yambopy import *
 from netCDF4 import Dataset
-from units import atomic_mass
 import itertools
 import operator
 

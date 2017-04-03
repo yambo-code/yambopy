@@ -4,19 +4,14 @@
 # This file is part of the yambopy project
 #
 from netCDF4 import Dataset
-from ramanpy import ElectronsDB, Lattice
 import numpy as np
 from itertools import product
 import collections
 ha2ev  = 27.211396132
 
-class YamboElectronsDB(ElectronsDB):
+class YamboElectronsDB():
     def __init__(self,lattice,save='SAVE',filename='ns.db1',expand=True):
-        if isinstance(lattice,Lattice):
-            self.lattice = lattice
-        else:
-            self.lattice = Lattice(lattice)
-        
+        self.lattice = lattice
         self.filename = '%s/%s'%(save,filename)
         self.efermi = None
         self.readDB()
