@@ -9,14 +9,13 @@ from yambopy.jsonencoder import *
 from yambopy.netcdf import *
 from yambopy.plot import *
 
-#lattce related stuff
-from yambopy.lattice import *
-
 #yambo databases
 from yambopy.dbs.savedb import *
 from yambopy.dbs.qpdb import *
 from yambopy.dbs.em1sdb import *
 from yambopy.dbs.greendb import *
+from yambopy.dbs.lattice import *
+from yambopy.dbs.electrons import *
 
 #input/output files
 from yambopy.io.inputfile import *
