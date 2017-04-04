@@ -80,7 +80,8 @@ class YamboSaveDB():
         database.close()
 
         self.natoms = len(self.atomic_positions)
-        
+        _,self.nbands = self.eigenvalues.shape
+
         #get a list of symmetries with time reversal
         nsym = len(self.sym_car)
         self.time_rev_list = [False]*nsym
@@ -94,7 +95,7 @@ class YamboSaveDB():
         eiv = self.eigenvalues.flatten()
         self.min_eival = min(eiv)
         self.max_eival = max(eiv)
-
+        
         #caclulate the reciprocal lattice
         self.rlat  = rec_lat(self.lat)
         self.nsym  = len(self.sym_car)
