@@ -167,7 +167,7 @@ class YamboExcitonWeight(YamboSaveDB):
         ax.set_aspect('equal')
         plt.show()
 
-    def plot_exciton_bs(self,path,nbands='all'):
+    def plot_exciton_bs(self,path,nbands='all',space='transition',color='#1f77b4'):
         """
         Plot the excitonic weights in the band-structure
         """
@@ -191,8 +191,14 @@ class YamboExcitonWeight(YamboSaveDB):
         if nbands == 'all': nbands = self.nbands
         for tw,t in zip(transition_weight,self.transitions_v_to_c.keys()):
             v,c = t
-            plt.plot(bands_distances,eig[:,c-1]-eig[:,v-1])
-            plt.scatter(bands_distances,eig[:,c-1]-eig[:,v-1],s=tw*1e4)
+            if space == 'transition':
+                plt.plot(bands_distances,eig[:,c-1]-eig[:,v-1])
+                plt.scatter(bands_distances,eig[:,c-1]-eig[:,v-1],s=tw*1e4)
+            else:
+                plt.plot(bands_distances,eig[:,c-1],c=color)
+                plt.plot(bands_distances,eig[:,v-1],c=color)
+                plt.scatter(bands_distances,eig[:,c-1],s=tw*1e4,c=color)
+                plt.scatter(bands_distances,eig[:,v-1],s=tw*1e4,c=color)
         plt.show()
 
     def __str__(self):
