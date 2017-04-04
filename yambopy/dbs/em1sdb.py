@@ -12,7 +12,7 @@ class YamboStaticScreeningDB():
     """
     def __init__(self,save='.',filename='ndb.em1s',db1='ns.db1'):
         self.save = save
-        self.filename = "%s/%s"%(save,filename)
+        self.filename = filename
 
         #read the lattice paramaters
         try:
@@ -29,9 +29,9 @@ class YamboStaticScreeningDB():
 
         #read em1s database
         try:
-            database = Dataset(self.filename, 'r')
+            database = Dataset("%s/%s"%(self.save,self.filename), 'r')
         except:
-            raise IOError("Error opening %s in YamboStaticScreeningDB"%self.filename)
+            raise IOError("Error opening %s/%s in YamboStaticScreeningDB"%(self.save,self.filename))
 
         #read some parameters
         size,nbands,eh = database['X_PARS_1'][:3]
@@ -64,18 +64,18 @@ class YamboStaticScreeningDB():
         for nq in range(self.nqpoints):
 
             #open database for each k-point
-            filename = "%s_fragment_%d"%(self.filename,nq+1)
+            filename = "%s/%s_fragment_%d"%(self.save,self.filename,nq+1)
             try:
                 db = Dataset(filename)
 
                 #static screening means we have only one frequency
-                re, im = db['X_Q_%d'%(nq+1)][:][0]
+                re, im = db['X_Q_%d'%(nq+1)][0,:]
                 self.X[nq] = re + 1j*im
      
                 #close database
                 db.close()
             except:
-                print "warning: filed to read %s"%filename
+                print "warning: failed to read %s"%filename
 
     def saveDBS(self,path):
         """
@@ -85,22 +85,30 @@ class YamboStaticScreeningDB():
         os.mkdir(path)
 
         #copy all the files
-        oldpath = self.path
+        oldpath = self.save
         filename = self.filename
         shutil.copyfile("%s/%s"%(oldpath,filename),"%s/%s"%(path,filename))
-        for nk in xrange(self.nkpoints):
-            fname = "%s_fragments_%d_1"%(filename,nk+1)
+        for nq in xrange(self.nqpoints):
+            fname = "%s_fragment_%d"%(filename,nq+1)
             shutil.copyfile("%s/%s"%(oldpath,fname),"%s/%s"%(path,fname))
 
         #edit with the new wfs
-        wf = self.wf
-        for nk in xrange(self.nkpoints):
-            fname = "%s_fragments_%d_1"%(filename,nk+1)
+        X = self.X
+        for nq in xrange(self.nqpoints):
+            fname = "%s_fragment_%d"%(filename,nq+1)
             db = Dataset("%s/%s"%(path,fname),'r+')
-            db['WF_REAL_COMPONENTS_@_K%d_BAND_GRP_1'%(nk+1)][:] = wf[nk].real
-            db['WF_IM_COMPONENTS_@_K%d_BAND_GRP_1'%(nk+1)][:] = wf[nk].imag
+            db['X_Q_%d'%(nq+1)][0,0,:] = X[nq].real
+            db['X_Q_%d'%(nq+1)][0,1,:] = X[nq].imag
             db.close()
 
+    def writetxt(self,filename='em1s.dat',ng1=0,ng2=0,volume=False):
+        """
+        Write \epsilon_{g1=0,g2=0} (q) as a funciton of |q| on a text file
+        volume -> multiply by the volume
+        """
+        x,y = self._geteq(ng1=ng1,ng2=ng2,volume=volume)
+        np.savetxt(filename,np.array([x,y]).T)
+    
     def get_g_index(self,g):
         """
         get the index of the gvectors.
@@ -110,23 +118,33 @@ class YamboStaticScreeningDB():
             if np.isclose(g,gvec).all():
                 return ng
         return None
-        
-    def plot(self,ax,ng1=0,ng2=0,**kwargs):
+
+    def _geteq(self,ng1=0,ng2=0,volume=False): 
+        """
+        get \epsilon_{g1=0,g2=0} (q) as a funciton of |q| 
+        """
+        x = [np.linalg.norm(q) for q in self.qpoints]
+        y = [np.abs(xq)[ng2,ng1] for xq in self.X ]
+      
+        #order according to the distance
+        x, y = zip(*sorted(zip(x, y)))
+        y = np.array(y)
+
+        #scale by volume?
+        if volume: y *= self.volume 
+
+        return x,y
+    
+    def plot(self,ax,ng1=0,ng2=0,volume=False,**kwargs):
         """
         Plot the static screening
         
         Arguments
         ax -> Instance of the matplotlib axes or some other object with the plot method
         """
-        M1 = np.eye(self.size)
-        x = [np.linalg.norm(q) for q in self.qpoints]
-        y = [np.abs(xq)[ng2,ng1] for xq in self.X ]
-      
-        #order according to the distance
-        x, y = zip(*sorted(zip(x, y)))        
-        y = np.array(y)*self.volume
+        x,y = self._geteq(ng1=ng1,ng2=ng2,volume=volume)
  
-        ax.plot(x,y.real,**kwargs)
+        ax.plot(x,y,**kwargs)
         ax.set_xlabel('|q|')
 
     def __str__(self):
