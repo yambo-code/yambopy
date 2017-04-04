@@ -71,22 +71,20 @@ class YamboRTDB():
             db.close()
 
     def integrate(self):
-        occupations = np.zeros([self.nkpoints,self.nbands])
         self.occupations_df = np.zeros([self.ntimes,self.nkpoints,self.nbands])
-        self.occupations = np.zeros([self.ntimes,self.nkpoints,self.nbands])
+        self.occupations_dt = np.zeros([self.ntimes,self.nkpoints,self.nbands])
 
         time = self.times
-        for t in xrange(1,self.ntimes):
+        for t in xrange(0,self.ntimes):
             dt = time[t]-time[t-1]
 
-            #change at time t
-            self.occupations_df[t] = self.RT_carriers_delta_f[t]*dt
+            #"delta_f" is df(t)-df(t0), so total occupation
+            self.occupations[t] = self.RT_carriers_delta_f[t]
 
-            #linear integration
-            occupations += self.occupations_df[t]
-
-            #store current occupation
-            self.occupations[t] = occupations
+            #derivative of df(t)
+            if t==0:
+                continue
+            self.occupations_dt[t] = (self.occupations[t]-self.occupations[t-1])/dt
 
     def __str__(self):
         s = ""
