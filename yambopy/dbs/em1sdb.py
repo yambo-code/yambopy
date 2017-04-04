@@ -65,14 +65,17 @@ class YamboStaticScreeningDB():
 
             #open database for each k-point
             filename = "%s_fragment_%d"%(self.filename,nq+1)
-            db = Dataset(filename)
+            try:
+                db = Dataset(filename)
 
-            #static screening means we have only one frequency
-            re, im = db['X_Q_%d'%(nq+1)][:][0]
-            self.X[nq] = re + 1j*im
- 
-            #close database
-            db.close()
+                #static screening means we have only one frequency
+                re, im = db['X_Q_%d'%(nq+1)][:][0]
+                self.X[nq] = re + 1j*im
+     
+                #close database
+                db.close()
+            except:
+                print "warning: filed to read %s"%filename
 
     def saveDBS(self,path):
         """
