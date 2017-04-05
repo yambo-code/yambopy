@@ -10,6 +10,9 @@ from yambopy.netcdf import *
 from yambopy.plot import *
 from yambopy.units import *
 
+#lattice stuff
+from yambopy.lattice import *
+
 #yambo databases
 from yambopy.dbs.savedb import *
 from yambopy.dbs.qpdb import *

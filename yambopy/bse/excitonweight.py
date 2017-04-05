@@ -49,7 +49,7 @@ class YamboExcitonWeight(YamboSaveDB):
                  "transitions": transitions 
                  }
 
-    def calc_kpts_weights(self,repx=range(3),repy=range(3),repz=range(3)):
+    def calc_kpts_weights(self,repx=range(-1,2),repy=range(-1,2),repz=range(-1,2)):
         """ Calculate the weights and kpoints of the excitons
         """
         self.weights     = dict()
@@ -76,11 +76,13 @@ class YamboExcitonWeight(YamboSaveDB):
         for v,c in self.transitions_v_to_c:
           self.transitions_v_to_c[(v,c)] = self.transitions_v_to_c[(v,c)]/norm
           print('v ', v,' ==>>>', ' c ',c)
+
         #rename symmetries and kpoints
         sym = self.sym_car
         kpoints = self.kpts_car
 
         qpts     = []
+        kidx     = []
         weights  = []
         t_v_c    = []
 
@@ -90,6 +92,7 @@ class YamboExcitonWeight(YamboSaveDB):
             weights.append( w )
             qpt = np.dot(sym[s-1],kpoints[k-1])+red_car([r],self.rlat)[0]
             qpts.append( qpt )
+            kidx.append( k )
             #print (v_ref,c_ref,k,s)
             #aux.append(self.transitions[(v_ref,c_ref,k,s)])
          
@@ -100,7 +103,7 @@ class YamboExcitonWeight(YamboSaveDB):
               aux.append(self.transitions[(v_ref,c_ref,k,s)])
           t_v_c.append(np.array(aux)) 
 
-        return np.array(qpts), np.array(weights), t_v_c
+        return np.array(qpts), np.array(weights), t_v_c, np.array(kidx)
 
     def plot_contour(self,resX=500,resY=500):
         """ plot a contour
@@ -116,17 +119,22 @@ class YamboExcitonWeight(YamboSaveDB):
         plt.contourf(X, Y, Z, cmap='gist_heat_r')
         plt.show()
 
-    def plot_weights(self,size=20):
-        """ Plot the weights in a scatter plot of this exciton
+    def plot_weights(self,size=30,lim=0.2):
+        """
+        Plot the weights in a scatter plot of this exciton
         """
         from numpy import sqrt
         cmap = plt.get_cmap("gist_heat_r")
 
         fig = plt.figure(figsize=(20,20))
-        kpts, weights, transitions = self.calc_kpts_weights()
+        kpts, weights, transitions, _ = self.calc_kpts_weights()
         plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in weights])
+
+        plt.xlim([-lim,lim])
+        plt.ylim([-lim,lim])
+
         ax = plt.axes()
-        ax.set_aspect('equal', 'datalim')
+        ax.set_aspect('equal')
         plt.show()
 
     def __str__(self):
@@ -139,20 +147,58 @@ class YamboExcitonWeight(YamboSaveDB):
         s += ("%12.8lf "*3)%tuple(self.alat)+"\n"
         return s
 
-    def plot_transitions(self,size=20):
-        """ Plot the weight of a given transition in a scatter plot of this exciton. My idea is to associate for each transition a color and to plot in a different plot
+    def plot_transitions(self,size=30,lim=0.2):
+        """
+        Plot the weight of a given transition in a scatter plot of this exciton.
+        My idea is to associate for each transition a color and to plot in a different plot
         """
 
         from numpy import sqrt
         cmap = plt.get_cmap("gist_heat_r")
 
-        fig = plt.figure(figsize=(20,20))
-        kpts, weights, t_v_c = self.calc_kpts_weights()
+        fig = plt.figure(figsize=(10,10))
+        kpts, weights, t_v_c, _ = self.calc_kpts_weights()
         for individual in t_v_c:   
           plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in individual])
 
+        plt.xlim([-lim,lim])
+        plt.ylim([-lim,lim])
         ax = plt.axes()
-        ax.set_aspect('equal', 'datalim')
+        ax.set_aspect('equal')
+        plt.show()
+
+    def plot_exciton_bs(self,path,nbands='all',space='transition',color='#1f77b4'):
+        """
+        Plot the excitonic weights in the band-structure
+        """
+        kpts, weights, t_v_c, kidx = self.calc_kpts_weights(repx=xrange(1),repy=xrange(1),repz=xrange(1))
+        t_v_c = np.array(t_v_c)
+
+        #get_path is provided by savedb
+        bands_kpoints, bands_indexes, path_car = self.get_path(path,kpts=kpts)
+
+        #calculate distances
+        bands_distances = [0]
+        distance = 0
+        for nk in range(1,len(bands_kpoints)):
+            distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
+            bands_distances.append(distance)
+
+        #get energies at these k-points
+        eig = self.eigenvalues[kidx-1]
+        eig = eig[bands_indexes]
+        transition_weight  = t_v_c[:,bands_indexes]
+        if nbands == 'all': nbands = self.nbands
+        for tw,t in zip(transition_weight,self.transitions_v_to_c.keys()):
+            v,c = t
+            if space == 'transition':
+                plt.plot(bands_distances,eig[:,c-1]-eig[:,v-1])
+                plt.scatter(bands_distances,eig[:,c-1]-eig[:,v-1],s=tw*1e4)
+            else:
+                plt.plot(bands_distances,eig[:,c-1],c=color)
+                plt.plot(bands_distances,eig[:,v-1],c=color)
+                plt.scatter(bands_distances,eig[:,c-1],s=tw*1e4,c=color)
+                plt.scatter(bands_distances,eig[:,v-1],s=tw*1e4,c=color)
         plt.show()
 
     def __str__(self):
