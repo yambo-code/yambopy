@@ -4,6 +4,7 @@
 # This file is part of yambopy
 #
 #
+from qepy.lattice    import *
 from qepy.pw         import *
 from qepy.ph         import *
 from qepy.dynmat     import *

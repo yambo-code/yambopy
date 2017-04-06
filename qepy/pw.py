@@ -4,6 +4,7 @@
 # This file is part of yambopy
 #
 #
+from qepy import *
 import os
 import re
 from math import sqrt
@@ -59,6 +60,24 @@ class PwIn():
                     atype, mass, psp = lines.next().split()
                     self.atypes[atype] = [mass,psp]
 
+    def get_symmetry_spglib(self):
+        """
+        get the symmetry group of this system using spglib
+        """
+        import spglib
+
+        lat, positions, atypes = self.get_atoms()
+        lat = np.array(lat)
+
+        at = np.unique(atypes)
+        an = dict(zip(at,xrange(len(at))))
+        atypes = [an[a] for a in atypes]
+
+        cell = (lat,positions,atypes)
+
+        spacegroup = spglib.get_spacegroup(cell,symprec=1e-5)
+        return spacegroup
+
     def get_masses(self):
         """ Get an array with the masses of all the atoms
         """
@@ -77,8 +96,10 @@ class PwIn():
         """
         self.read_cell_parameters()
         cell = self.cell_parameters
-        pos = [atom[1] for atom in self.atoms]
         sym = [atom[0] for atom in self.atoms]
+        pos = [atom[1] for atom in self.atoms]
+        if self.atomic_pos_type == 'bohr':
+            pos = car_red(pos,cell)
         return cell, pos, sym
 
     def set_atoms_string(self,string):
@@ -117,10 +138,12 @@ class PwIn():
         #find READ_ATOMS keyword in file and read next lines
         for line in lines:
             if "ATOMIC_POSITIONS" in line:
+                atomic_pos_type = line
                 self.atomic_pos_type = re.findall('([A-Za-z]+)',line)[-1]
                 for i in xrange(int(self.system["nat"])):
                     atype, x,y,z = lines.next().split()
                     self.atoms.append([atype,[float(i) for i in x,y,z]])
+        self.atomic_pos_type = atomic_pos_type.replace('{','').replace('}','').strip().split()[1]
 
     def read_cell_parameters(self):
         ibrav = int(self.system['ibrav'])
