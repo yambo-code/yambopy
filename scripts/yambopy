@@ -282,6 +282,7 @@ class YambopyCmd(Cmd):
     """
     _commands = {'plotem1s':     PlotEm1sCmd,
                  'analysebse':   AnalyseBSECmd,
+                 'analysegw':    AnalyseGWCmd,
                  'plotexcitons': PlotExcitons,
                  'mergeqp':      MergeQPCmd,
                  'test':         TestCmd}
