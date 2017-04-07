@@ -72,20 +72,37 @@ class PlotEm1sCmd(Cmd):
             print(self.__doc__)
             exit(0)
 
-        #first anbd second arguments are mandatory
-        folders = args[0:]
+        parser = argparse.ArgumentParser(description='Plot em1s calculation.')
+        pa = parser.add_argument
+        pa('folders',      nargs='+', help='json file containing the absorption spectra. Default: \'absorptionspectra.json\'' )
+        pa('-w','--write', help='Write data file in a text file', default='em1s.dat', type=str)
+        args = parser.parse_args(args)
+        folders = args.folders
        
         #create plot
         fig = plt.figure(figsize=(6,5))
         matplotlib.rcParams.update({'font.size': 15})
         ax = plt.gca()
 
+        epsilons = []
         for folder in folders: 
             if os.path.isdir(folder):
                 ys = YamboStaticScreeningDB(save=folder)
                 ys.plot(ax,marker='o',markersize=2,label=folder)
+                x,y = ys._geteq()
+                epsilons.append([folder,x,y])
             else:
                 print "path %s is not a folder"%folder
+
+        if args.write:
+            #write a text file with the data
+            f=open(args.write,'w')
+            for folder,x,y in epsilons:
+                f.write('#%s\n'%folder)
+                for xi,yi in zip(x,y):
+                    f.write("%12.8lf %12.8lf\n"%(xi,yi))
+                f.write('\n\n')
+            f.close()
 
         plt.legend(frameon=False)
         ax.set_ylabel('$\epsilon_{00}(\omega=0)$')
