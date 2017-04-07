@@ -219,7 +219,7 @@ The relevant parameters for the two stages are:
 
 **a. Static dielectric function**
 
-    ``FFTGvecs``: number of planewaves to include. This can in general be smaller than the number of planewaves used to calculate the density in the self-consistency cycle. A typical good value is around 30Ry (system dependent and hance should be always checked).
+    ``FFTGvecs``: number of planewaves to include. This can in general be smaller than the number of planewaves used to calculate the density in the self-consistency cycle. A typical good value is around 30Ry (system dependent and hwnce should be always checked).
 
     ``BndsRnXs``: number of bands to calculate the screening. In general a very high number of bands is needed to reach convergence.
 
@@ -262,9 +262,11 @@ Once you obtained a converged dielectric screening function you can calculate th
     ``BSEBands``: number of bands to generate the transitions. This number should in general be as small as possible as the size of the BSE auxiliary hamiltonian has (in the resonant approximation) dimensions ``Nk*Nv*Nc``. Another way to converge the number of transitions is using ``BSEEhEny``. This value selects the number of bands based on the electron-hole energy difference.
 
     ``BSENGBlk`` is the number of blocks for the dielectric screening average over the unit cells. This has a similar meaning as ``NGsBlkXs``.
+
     ``BSENGexx`` in the number of exchange components. Relatively cheap to calculate but should be as small as possible to save memory.
+
     ``KfnQP_E`` is the scissor operator for the BSE. The first value is the rigid scissor, the second and third the stretching for the conduction and valence respectively.
-    The optical absoprtion spectra is obtained in a range of energies given by ``BEnRange`` and the number of frequencies in the interval is ``BEnSteps``.
+    The optical absorption spectra is obtained in a range of energies given by ``BEnRange`` and the number of frequencies in the interval is ``BEnSteps``.
 
 To run these calculations do:
 
@@ -304,7 +306,7 @@ Once the calculation is done you can plot the optical absorption spectra:
 2. Coulomb truncation convergence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Here we will check how the dielectric screening changes with vacuum spacing between layers and including a coulomb trunctation technique.
+Here we will check how the dielectric screening changes with vacuum spacing between layers and including a coulomb truncation technique.
 For that we define a loop where we do a self-consistent ground state calculation, non self-consistent calculation, create the databases
 and run a ``yambo`` BSE calculation for different vacuum spacings.
 

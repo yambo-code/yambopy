@@ -29,4 +29,4 @@ If you do not have root permisisons (when you want to install in your cluster fo
 
 .. code-block:: bash
 
-    sudo python setup.py install --user
+    python setup.py install --user
