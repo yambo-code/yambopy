@@ -33,6 +33,7 @@ def get_inputfile():
     qe.control['prefix'] = "'%s'"%prefix
     qe.control['verbosity'] = "'high'"
     qe.control['wf_collect'] = '.true.'
+    qe.control['pseudo_dir'] = "'../pseudos/'"
     qe.system['celldm(1)'] = 4.7
     qe.system['celldm(3)'] = layer_separation/qe.system['celldm(1)']
     qe.system['ecutwfc'] = 60

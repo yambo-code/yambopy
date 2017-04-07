@@ -42,8 +42,11 @@ def gw_convergence():
         shell = bash() 
         shell.add_command('mkdir -p gw_conv')
         shell.add_command('cp -r database/SAVE gw_conv/')
+        shell.run()
+        shell.clean()
 
     y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw_conv')
+    k_f = y['QPkrange'][0][1]         # Read the last k-points in the uniform k-grid
 
     y['FFTGvecs'] = [2,'Ha']                # Global Cutoff
     y['EXXRLvcs'] = [20,'Ha']               # Self-energy. Exchange
@@ -71,7 +74,7 @@ def gw_convergence():
 def plot_convergence():
     y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
 
-    k_f = y['QPkrange'][0][1]         # Read the first and last k-points in the uniform k-grid
+    k_f = y['QPkrange'][0][1]         # Read last k-points in the uniform k-grid
     print (k_f) #pack the files in .json files
     pack_files_in_folder('gw_conv')
 

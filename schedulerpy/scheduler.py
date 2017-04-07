@@ -140,8 +140,15 @@ class Scheduler():
             config = json.load(f)
             f.close()
         except IOError:
-            raise IOError("The configuration file %s was not found.\n"
-                          "Please create one."%Scheduler._config_filename)
+            config = {  "default":"bash",
+                        "bash":
+                        {
+                            "mpirun": "mpirun",
+                            "modules": "None",
+                            "pre_run": ["echo 'running job...'"],
+                            "pos_run": ["echo 'done!'"]
+                        }
+                     }      
         
         #put sanity checks here
         schedulername = "bash"

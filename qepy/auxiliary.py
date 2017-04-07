@@ -19,12 +19,6 @@ def float_from_string(x):
       pass
   return y
 
-def car_red(car,lat):
-    """
-    Convert cartesian coordinates to reduced
-    """
-    return np.array(map( lambda coord: np.linalg.solve(np.array(lat).T,coord), car))
-
 class Path():
     """ Class that defines a path in the brillouin zone
     """
