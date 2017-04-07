@@ -126,10 +126,11 @@ class PwIn():
     def displace(self,mode,displacement,masses=None):
         """ A routine to displace the atoms acoording to a phonon mode
         """
-        small_mass = min(masses) #we scale all the displacements to the bigger mass
         if masses is None:
             masses = [1] * len(self.atoms)
             small_mass = 1
+        else:
+            small_mass = min(masses) #we scale all the displacements to the bigger mass
         for i in xrange(len(self.atoms)):
             self.atoms[i][1] = self.atoms[i][1] + mode[i].real*displacement*sqrt(small_mass)/sqrt(masses[i])
 
