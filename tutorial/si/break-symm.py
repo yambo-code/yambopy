@@ -2,7 +2,7 @@
 #
 # Author: Alejandro Molina-Sanchez
 # Run real-time simulations with yambo
-# 
+#
 # Warning: Real-time simulations requires several data folders for running
 # properly. Before using this scripts compulsively is recommended
 # to understand the different run levels.
@@ -42,13 +42,15 @@ nscf_folder = args.input
 rt_folder   = args.output
 prefix      = args.prefix
 symm        = args.symmetry
-  
+
 # Generation of the database folder
 
-if not os.path.isdir('database'):
-  os.system('cd %s/%s.save ; p2y -O ../../database' % (nscf_folder, prefix))
-  os.system('cd database; yambo')
-  
+if os.path.isdir('database'):
+    os.system('rm -rf database')
+
+os.system('cd %s/%s.save ; p2y -O ../../database' % (nscf_folder, prefix))
+os.system('cd database; yambo')
+
 # Breaking of symmetries
 
 if not os.path.isdir(rt_folder):
