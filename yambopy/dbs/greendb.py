@@ -4,9 +4,6 @@
 # This file is part of the yambopy project
 #
 from yambopy import *
-from scipy.optimize import bisect
-from scipy.interpolate import interp1d
-from scipy.misc import derivative
 
 ha2ev  = 27.211396132
 
@@ -64,6 +61,9 @@ class YamboGreenDB():
         Arguments:
         e0 -> bare eigenvalues
         """
+        from scipy.optimize import bisect
+        from scipy.interpolate import interp1d
+        from scipy.misc import derivative
 
         #check if the eigenvalues have the correct dimensions
         if len(e0) != self.nqps:
