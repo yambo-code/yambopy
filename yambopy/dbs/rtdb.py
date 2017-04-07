@@ -50,7 +50,6 @@ class YamboRTDB():
         self.ntimes = len(ordered_files)
 
         #read all of them
-        self.RT_carriers_delta_f        = np.zeros([self.ntimes,self.nbands,self.nkpoints])
         self.RT_carriers_delta_f        = np.zeros([self.ntimes,self.nkpoints,self.nbands])
         #self.RT_carriers_dE_Self_Energy = np.zeros([self.ntimes,self.nbands,self.nkpoints])
         #self.RT_carriers_dE_V_xc        = np.zeros([self.ntimes,self.nbands,self.nkpoints])
@@ -62,7 +61,6 @@ class YamboRTDB():
             db = Dataset("%s/%s"%(self.path,filename))
 
             self.RT_carriers_delta_f[n]          = db['RT_carriers_delta_f'][:].reshape([self.nkpoints,self.nbands])
-            #self.RT_carriers_delta_f[n]          = db['RT_carriers_delta_f'][:].reshape([self.nbands,self.nkpoints])
 
             #self.RT_carriers_dE_Self_Energy[n]   = db['RT_carriers_dE_Self_Energy'][:].reshape([self.nkpoints,self.nbands])
             #self.RT_carriers_dE_V_xc[n]          = db['RT_carriers_dE_V_xc'][:].reshape([self.nbands,self.nkpoints])
