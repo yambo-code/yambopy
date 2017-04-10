@@ -97,15 +97,16 @@ class PlotEm1sCmd(Cmd):
         if args.write:
             #write a text file with the data
             f=open(args.write,'w')
+            f.write('# Real and imaginary part of \epsilon_{00}(\omega=0,q) as a funciton of |q|')
             for folder,x,y in epsilons:
                 f.write('#%s\n'%folder)
                 for xi,yi in zip(x,y):
-                    f.write("%12.8lf %12.8lf\n"%(xi,yi))
+                    f.write("%12.8lf %12.8lf %12.8lf\n"%(xi,yi.real,yi.imag))
                 f.write('\n\n')
             f.close()
 
         plt.legend(frameon=False)
-        ax.set_ylabel('$\epsilon_{00}(\omega=0)$')
+        ax.set_ylabel('$\epsilon_{00}(\omega=0,q)$')
         plt.tight_layout()
 
         #final plot

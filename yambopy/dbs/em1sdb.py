@@ -124,7 +124,7 @@ class YamboStaticScreeningDB():
         get \epsilon_{g1=0,g2=0} (q) as a funciton of |q| 
         """
         x = [np.linalg.norm(q) for q in self.qpoints]
-        y = [np.abs(xq)[ng2,ng1] for xq in self.X ]
+        y = [xq[ng2,ng1] for xq in self.X ]
       
         #order according to the distance
         x, y = zip(*sorted(zip(x, y)))
@@ -140,11 +140,14 @@ class YamboStaticScreeningDB():
         Plot the static screening
         
         Arguments
-        ax -> Instance of the matplotlib axes or some other object with the plot method
+        ax   -> Instance of the matplotlib axes or some other object with the plot method
+        func -> Function to apply to the dielectric function
         """
+
         x,y = self._geteq(ng1=ng1,ng2=ng2,volume=volume)
  
-        ax.plot(x,y,**kwargs)
+        #when plotting we apply a funciton to epsilon to represent it, by default the |x|
+        ax.plot(x,np.abs(y),**kwargs)
         ax.set_xlabel('|q|')
 
     def __str__(self):
