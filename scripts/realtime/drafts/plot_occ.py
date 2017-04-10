@@ -4,22 +4,48 @@
 from yambopy import *
 import matplotlib.gridspec as gridspec
 
-save = 'rt-24x24/SAVE' # Save with the appropriate band structure
-source = 'rt-24x24/QSSIN-100.0fs-2.07eV-300K/pulse/' # Where RT carrier output is
+#save = 'rt-24x24/SAVE' # Save with the appropriate band structure
+folder = 'rt-24x24'
+calc   = 'QSSIN-D-100.0fs-2.07eV-300K-DG' # Where RT carrier output is
+source = '%s/%s/pulse/'%(folder,calc)
 path = [[0.0,0.0,0.0],[0.5,0.0,0.0],[0.33333,0.33333,0.0],[0.0,0.0,0.0]]
+nbv = 2 ; nbc = 2 # nb of valence and conduction bands
+degen_thresh = 0.050 # from what diff in E do we consider degen states
 
 
 # Instances containing LDA bandstructure and occupations
-ys = YamboSaveDB(save)
-yrt = YamboRTDB(ys,path=source)
-ys.get_path(path)
+yrt = YamboRTDB(folder=folder,calc=calc)
+yrt.get_path(path)
 
 # aliases
-kindex = ys.bands_indexes # kpoint indexes (in order) to draw path
-eigenvalues = ys.eigenvalues[kindex,yrt.nband_min-1:yrt.nband_max] # eigenvalues (LDA) of the band included in the RT simulation
+kindex = yrt.bands_indexes # kpoint indexes (in order) to draw path
+eigenvalues = yrt.eigenvalues[kindex,:] # eigenvalues (LDA) of the band included in the RT simulation
+
 nbands = yrt.nbands # number of bands in the RT simulation
 times = [i * 1e15 for i in yrt.times] # times are now in fs
 occupations = yrt.occupations[:,kindex,:] # format time,kindex,band index (from 0 to nbands)
+
+if nbv+nbc != nbands:
+    raise NameError('Incompatible number of bands, set nbv and nbc in script.')
+
+
+
+# occupations in CBs/VBs are summed for easier reading if there are more than one
+if nbv > 1:
+    # one entry per band +1 for the total occ
+    occ_v = np.zeros((len(times),len(kindex),nbv+1))
+    occ_c = np.zeros((len(times),len(kindex),nbc+1))
+    for n in range(nbv):
+        occ_v[:,:,n] = -occupations[:,:,n] # minus sign to get positive occupations
+        np.add(occ_v[:,:,n],occ_v[:,:,nbv],occ_v[:,:,nbv]) # each time we add the occ of the current band to the total
+    for n in range(nbc):
+        occ_c[:,:,n] = occupations[:,:,n+nbv] # +nbv to read CBs
+        np.add(occ_c[:,:,n],occ_c[:,:,nbv],occ_c[:,:,nbc]) # each time we add the occ of the current band to the total
+
+
+#    for k in kindex:
+#        if abs(occupations[0,k,0]-occupations[0,k,1])<degen_thres:
+#            occ_v = occupations[:,:,0]+occupations[:,:,1]
 
 # The external field is read from the o- file
 ext = np.loadtxt(source+'o-pulse.external_field')
@@ -34,46 +60,27 @@ gs.update(hspace=1.1) # bigger horizontal spacing
 xocc = [i for i in range(len(kindex))]
 
 
-# plot at time 10 for exemple
-t = 10
+#for t in range(len(times)):
+for t in (10,):
 
-ax1 = plt.subplot(gs[:-1, :]) # bandstructure w/ occupation plot
-plt.xticks(()) # remove x ticks
+    ax1 = plt.subplot(gs[:-1, :]) # bandstructure w/ occupation plot
+    plt.xticks(()) # remove x ticks
 # Band structure
-plt.plot(eigenvalues,'k-')
+    plt.plot(eigenvalues,'k-')
 # occupation in the form of histogram
-nb = 0
-plt.bar(xocc,(-1)**nb*occupations[t,:,nb]*1000,width=0.02,bottom=eigenvalues[:,nb],color=['blue'],edgecolor='none')
-nb = 1
-plt.bar(xocc,(-1)**nb*occupations[t,:,nb]*1000,width=0.02,bottom=eigenvalues[:,nb],color='blue',edgecolor='none')
-nb=2
-plt.bar([i for i in range(len(kindex))],(-1)**(nb+1)*occupations[t,:,nb]*1000,width=0.02,bottom=eigenvalues[:,nb],color='red')
-nb=3
-plt.bar([i for i in range(len(kindex))],(-1)**(nb+1)*occupations[t,:,nb]*1000,width=0.02,bottom=eigenvalues[:,nb],color="red")
+    plt.bar(xocc,occ_v[t,:,nbv]*1000,width=0.02,bottom=eigenvalues[:,nbv-1],color='blue',edgecolor='none')
+    plt.bar(xocc,occ_c[t,:,nbc]*1000,width=0.02,bottom=eigenvalues[:,nbands-1],color='red',edgecolor='none')
 
-plt.ylabel('E (eV)')
-plt.text(0.50,0.5, '%d fs'%times[t])
+    plt.ylabel('E (eV)')
+    plt.text(0.50,0.5, '%d fs'%times[t])
 
 
-ax2 = plt.subplot(gs[-1, :])
-plt.xticks(())
-plt.yticks(())
-plt.ylabel('Field')
-plt.xlim((0,times[-1]))
-plt.ylim((-1.2,1.2))
-plt.plot(field[:int(times[t])])
-plt.show()
-exit()
+    ax2 = plt.subplot(gs[-1, :])
+    plt.xticks(())
+    plt.yticks(())
+    plt.ylabel('Field')
+    plt.xlim((0,times[-1]))
+    plt.ylim((-1.3,1.3))
+    plt.plot(field[:int(times[t])])
+    plt.show()
 
-
-# plot at time 10 for exemple for band "0"
-t = 10
-nb = 0
-
-plt.show()
-exit()
-
-# we sti
-plt.plot(ys.eigenvalues[ys.bands_indexes,yrt.nband_min-1:yrt.nband_max],'k-')
-plt.bar([i for i in range(len(ys.bands_indexes))],[i for i in range(len(ys.bands_indexes))],width=0.02,bottom=ys.eigenvalues[ys.bands_indexes,yrt.nband_min-1])
-plt.show()
