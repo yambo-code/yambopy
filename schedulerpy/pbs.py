@@ -81,8 +81,8 @@ class Pbs(Scheduler):
             else: nodes = 1
             mem = mem.replace("nodes",str(nodes))
             mem = mem.replace("cores",str(cores))
-        return eval_expr(mem) 
-    
+            mem = eval_expr(mem) 
+        return     
 
     def get_resources_line(self):
         """
@@ -101,7 +101,7 @@ class Pbs(Scheduler):
         if mem: resources["vmem"]  = "%dMB"%mem
         
         resources_line = ":".join(["%s=%s"%(item,value) for item,value in resources.items()])
-        
+       
         return resources_line
     
     def get_script(self):

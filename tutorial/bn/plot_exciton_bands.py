@@ -7,7 +7,7 @@ p = [ [0.0, 0.0, 0.0],
       [0.0, 0.0, 0.0]]
 
 
-yw = YamboExcitonWeight('o-yambo.exc_weights_at_1')
+yw = YamboExcitonWeight('bse/o-yambo.exc_weights_at_1')
 print yw
 
 yw.plot_exciton_bs(p,8)

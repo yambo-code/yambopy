@@ -56,3 +56,38 @@ The "default" tag chooses the scheduler to use when no scheduler is specified by
 have different names across different clusters or environments.
 Using this simple scheme the user can define one name that is translated differently in each platform 
 to the name of the module.
+
+Examples of configurations file
+----------------------------
+
+1. Zenobe
+
+
+2. Mac computer
+
+.. code-block:: bash
+
+   { "default":"bash"
+   }
+
+3. Gaia
+
+.. code-block:: bash
+
+   { "default":"oar",
+     "bash" :
+     {
+      "modules": "None"
+     },
+     "oar" :
+     {
+      "mpirun": "mpirun",
+      "modules": {"abinit"  :"abinit/8.0",
+                  "espresso":"espresso/5.4.0-gcc",
+                  "yambo":"yambo/master-intel"},
+                  "pre_run": "file:pre_run_oar.sh",
+                  "pos_run": ["echo 'done!'"]
+     }
+   }
+
+
