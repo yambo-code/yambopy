@@ -10,4 +10,5 @@ from qepy.dynmat     import *
 from qepy.projwfc    import *
 from qepy.pwxml      import *
 from qepy.projwfcxml import *
-from qepy.auxiliary  import * 
+from qepy.auxiliary  import *
+from qepy.supercell  import * 
