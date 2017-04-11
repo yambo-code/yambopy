@@ -32,6 +32,7 @@ def get_inputfile():
 
     qe.control['prefix'] = "'%s'"%prefix
     qe.control['wf_collect'] = '.true.'
+    qe.control['pseudo_dir'] = "'../../../pseudos/'"
     qe.system['celldm(1)'] = 4.7
     qe.system['celldm(3)'] = 14/qe.system['celldm(1)']
     qe.system['ecutwfc'] = 60
@@ -40,7 +41,7 @@ def get_inputfile():
     qe.system['ntyp'] = 2
     qe.system['ibrav'] = 4
     qe.kpoints = [9, 9, 1]
-    qe.electrons['conv_thr'] = 1e-8
+    qe.electrons['conv_thr'] = 1e-10
     return qe
 
 #run the self consistent calculation

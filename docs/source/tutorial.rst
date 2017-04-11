@@ -27,7 +27,7 @@ We have set 50 bands and the k-grid ``12x12x1``.
 **(a) Calculations**
 
 We converge the main parameters of a GW calculation independently. We make use of the plasmon pole approximation for the dielectric function and the newton solver to find the GW correction to the LDA eigenvalues. The magnitude to converge
-is the bandgap of the BN (conduction and valence band at the K point of the Brillouin zone). We can select this calculation
+is the band gap of the BN (conduction and valence band at the K point of the Brillouin zone). We can select this calculation
 by calling the ``YamboIn`` with the right arguments:
 
 .. code-block:: python
@@ -201,7 +201,8 @@ Optical absorption using the Bethe-Salpeter Equation (BN)
 ----------------------------------------------------------------------------
 **by H. Miranda**
 
-In this tutorial we will deal with different aspects of running a BSE calculation with the help of yambopy:
+In this tutorial we will deal with different aspects of running a BSE calculation for
+optical absorption spectra using yambopy:
 
     1. Relevant parameters for the convergence
 
@@ -214,27 +215,31 @@ In this tutorial we will deal with different aspects of running a BSE calculatio
 
 1. Relevant parameters for the convergence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-To calculate the Bethe-Salpeter Kernel we need to first calculate the dielectric screening and then the screened coulomb interaction matrix elements.
-The relevant parameters for the two stages are:
+To calculate the Bethe-Salpeter Kernel we need to first calculate the static dielectric screening and then the screened coulomb interaction matrix elements.
+The relevant convergence parameters for these two stages are:
 
 **a. Static dielectric function**
 
-    ``FFTGvecs``: number of planewaves to include. This can in general be smaller than the number of planewaves used to calculate the density in the self-consistency cycle. A typical good value is around 30Ry (system dependent and hwnce should be always checked).
+    ``FFTGvecs``: number of planewaves to include. Can be smaller than the number of planewaves in the self-consistency cycle. A typical good value is around 30 Ry (should always be checked!).
 
-    ``BndsRnXs``: number of bands to calculate the screening. In general a very high number of bands is needed to reach convergence.
+    ``BndsRnXs``: number of bands to calculate the screening. A very high number of bands is needed.
 
-    ``NGsBlkXs``: number of components for the local fields . This averages the value of the dielectric screening over a number of periodic copies of the unit cell.
-This parameters greatly increases the cost of the calculation and hence should be increased slowly. A typical good value is 2Ry (highly system dependent!).
+    ``NGsBlkXs``: number of components for the local fields. Averages the value of the dielectric screening over a number of periodic copies of the unit cell. This parameter increases greatly increases the cost of the calculation and hence should be increased slowly. A typical good value is 2 Ry.
 
-To run the calculation do:
+
+To run these calculations, you need to have calculated the scf and nscf with quantum espresso:
 
 .. code-block:: bash
 
+    python gs_bn.py -s -n
+
+Once that is done, you can run:
+
     python bse_conv_bn.py -r -e
 
-Once the parameters are converged you can save the dielectric screening databases ``ndb.em1s*`` and re-use them in the subsequent calculations.
-To do so you can, for example, copy it to the SAVE folder. This is done in the ``run`` function inside the ``bse_conv_bn.py`` file.
-``yambo`` will only re-calculate if it does not find the databases or some parameter has changed.
+Once the parameters are converged, you can run a calculation with these converged parameters and save the dielectric screening databases ``ndb.em1s*`` for re-use them in the subsequent calculations.
+For that you can copy these files to the SAVE folder. This is done in the ``run`` function inside the ``bse_conv_bn.py`` file.
+``yambo`` will only re-calculate any database if it does not find it or some parameter has changed.
 
 Once the calculation is done you can plot the static dielectric function as a function of q points:
 
@@ -257,9 +262,9 @@ Once the calculation is done you can plot the static dielectric function as a fu
 
 **b. Optical absorption spectra**
 
-Once you obtained a converged dielectric screening function you can calculate the Bethe-Salpeter auxiliary Hamiltonian and obtain the excitonic stated and energies diagonalizing it or calculating the optical absorption spectra with a recursive method like the Haydock.
+Once you obtained a converged dielectric screening function you can calculate the Bethe-Salpeter auxiliary Hamiltonian and obtain the excitonic states and energies diagonalizing it or calculating the optical absorption spectra with a recursive technique like the Haydock method.
 
-    ``BSEBands``: number of bands to generate the transitions. This number should in general be as small as possible as the size of the BSE auxiliary hamiltonian has (in the resonant approximation) dimensions ``Nk*Nv*Nc``. Another way to converge the number of transitions is using ``BSEEhEny``. This value selects the number of bands based on the electron-hole energy difference.
+    ``BSEBands``: number of bands to generate the transitions. Should be as small as possible as the size of the BSE auxiliary hamiltonian has (in the resonant approximation) dimensions ``Nk*Nv*Nc``. Another way to converge the number of transitions is using ``BSEEhEny``. This variable selects the number of transitions based on the electron-hole energy difference.
 
     ``BSENGBlk`` is the number of blocks for the dielectric screening average over the unit cells. This has a similar meaning as ``NGsBlkXs``.
 
@@ -274,7 +279,7 @@ To run these calculations do:
 
     python bse_conv_bn.py -r -b
 
-Once the calculation is done you can plot the optical absorption spectra:
+Once the calculations are done you can plot the optical absorption spectra:
 
 .. code-block:: bash
 
@@ -307,20 +312,22 @@ Once the calculation is done you can plot the optical absorption spectra:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here we will check how the dielectric screening changes with vacuum spacing between layers and including a coulomb truncation technique.
-For that we define a loop where we do a self-consistent ground state calculation, non self-consistent calculation, create the databases
-and run a ``yambo`` BSE calculation for different vacuum spacings.
+For that we define a loop where we do a self-consistent ground state calculation, non self-consistent calculation, create the databases and run a ``yambo`` BSE calculation for different vacuum spacings.
 
-To analyse the data we will:
+To analyze the data we will:
     1. plot the dielectric screening
     2. check how the different values of the screening change the absorption spectra
 
 In the folder ``tutorials/bn/`` you find the python script ``bse_cutoff.py``.
-You can run this script with:
+You can run this script with :
 
 .. code-block:: bash
 
-    python bse_cutoff.py -r    # without coulomb cutoff
-    python bse_cutoff.py -r -c # with coulomb cutoff
+    python bse_cutoff.py -r -t4    # without coulomb cutoff
+    python bse_cutoff.py -r -c -t4 # with coulomb cutoff
+
+where ``-t`` specifies the number of threads to use. The threads in this script are managed
+using the ``multiprocessing`` module of python. The way it is implemented it will run as much simultaneous job as threads, once one of the jobs is done, if there are more jobs to run it will be submitted otherwise it will just wait for all the running jobs to complete.
 
 The main loop changes the ``layer_separation`` variable using values from a list.
 In the script you can find how the functions ``scf``, ``ncf`` and ``database`` are defined.
@@ -369,7 +376,7 @@ In the script you can find how the functions ``scf``, ``ncf`` and ``database`` a
 
 **3. Plot the dielectric function**
 
-In a similar way as what was done before we can now plot the dielctric funciton for different layer separations:
+In a similar way as what was done before we can now plot the dielectric function for different layer separations:
 
 .. code-block:: bash
 
@@ -386,7 +393,7 @@ In a similar way as what was done before we can now plot the dielctric funciton 
 
 **2. Plot the absorption**
 
-You can plot how the absorption spectra changes with the cutoff using:
+You can also plot how the absorption spectra changes with the cutoff using:
 
 .. code-block:: bash
 
@@ -405,16 +412,14 @@ You can plot how the absorption spectra changes with the cutoff using:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In this example we show how to use the ``yambopy`` to plot the excitonic wavefunctions that result from a BSE calculation.
-Beaware the parameters of the calculation are not high enough to obtain a converged calculation. To run the calculation do:
+Be aware the parameters of the calculation are not high enough to obtain a converged calculation. To run the calculation do:
 
 .. code-block:: bash
 
-    python gs_bn.py -s -n
     python bse_bn.py -r
 
 Afterwards you can run a basic analysis of the excitonic states and store the wavefunctions of the ones 
-that are more optically active and plot their wavefunctions in reciprocal space. Plots in real space are also possible
-using yambopy but won't be treated here. In the analysis code you have:
+that are more optically active and plot their wavefunctions in reciprocal space. Plots in real space are also possible using yambopy (by calling ypp) but that won't be treated here. In the analysis code you have:
 
 .. code-block:: python
 
@@ -427,21 +432,21 @@ using yambopy but won't be treated here. In the analysis code you have:
     a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1))
     a.write_json()
     
-The class ``YamboBSEAbsorptionSpectra()`` reads the absoprtion spectra obtained with explicit diagonalization of the
+The class ``YamboBSEAbsorptionSpectra()`` reads the absorption spectra obtained with explicit diagonalization of the
 BSE matrix. ``yambo`` if the ``job_string`` identifier used when running yambo, ``bse`` is the name of the folder where the job was run.
 The function ``get_excitons()`` runs ``ypp`` to obtain the exitonic states and their intensities.
 The function ``get_wavefunctions()`` also calls ``ypp`` and reads the
 reciprocal (and optionally real space) space wavefunctions and finally we store all the data in a ``json`` file.
 
-This file can then be easily ploted with another python script.
+This file can then be easily plotted with another python script.
 To run this part of the code you can do:
 
 .. code-block:: bash
 
-    python bse_bn.py -a
-    python plot_excitons.py
+    python bse_bn.py -a  #this will generate absorptionspectra.json
+    yambopy plotexcitons absorptionspectra.json #this will plot it
     
-You should then obtain plots similiar (these ones were generated on a 30x30 kpoint grid) to the figures presented here:
+You should then obtain plots similar (these ones were generated on a 30x30 k-point grid) to the figures presented here:
 
 .. image:: figures/absorption_bn.png
    :height: 500px
@@ -452,9 +457,9 @@ You should then obtain plots similiar (these ones were generated on a 30x30 kpoi
    :width: 600 px
 
 
-Again beaware this figures serve only to show the kind of representation 
-that can be obtained with ``yambo`` and ``yambopy``. Further convergence tests need to be performed to obtain
-accurate results, but that is left to the user.
+Again, be aware that this figures serves only to show the kind of representation 
+that can be obtained with ``yambo`` and ``yambopy``.
+Further convergence tests need to be performed to obtain accurate results, but that is left to the user.
 
 Some plots of excitonic wavefunctions in real space are show in a parallel project in:
 `http://henriquemiranda.github.io/excitonwebsite/ <http://henriquemiranda.github.io/excitonwebsite/>`_ 
@@ -562,7 +567,13 @@ calculate the absorption.
 
 **3. Collect and plot the results**
 
-You can then plot the data as before
+You can then plot the data as before:
+
+
+.. code-block:: bash
+      
+    python bse_par_bn.py -p
+
 
 .. code-block:: python
 
