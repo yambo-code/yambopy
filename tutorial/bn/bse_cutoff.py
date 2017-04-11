@@ -40,7 +40,7 @@ def get_inputfile():
     qe.system['ntyp'] = 2
     qe.system['ibrav'] = 4
     qe.kpoints = [9, 9, 1]
-    qe.electrons['conv_thr'] = 1e-10
+    qe.electrons['conv_thr'] = 1e-8
     return qe
 
 #run the self consistent calculation

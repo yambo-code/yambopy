@@ -70,7 +70,7 @@ def bse_convergence(what='dielectric'):
         y['BSEBands'] = [1,10]
 
         #list of variables to optimize the BSE
-        conv = { 'BSEEhEny': [[[1,10],[1,11],[1,12]],'eV'],
+        conv = { 'BSEEhEny': [[[0,10],[0,11],[0,12]],'eV'],
                  'BSENGBlk': [[0,1,2], 'Ry'],
                  'BSENGexx': [[10,15,20],'Ry']}
 
@@ -81,7 +81,7 @@ def bse_convergence(what='dielectric'):
         path = filename.split('.')[0]
         print(filename, path)
         shell = scheduler()        
-        shell.add_command('cd %s; yambo -F %s -J %s -C %s 2> %s.log'%(folder,filename,path,path,path))
+        shell.add_command('cd %s; %s -F %s -J %s -C %s 2> %s.log'%(folder,yambo,filename,path,path,path))
         shell.run()
         
         # if the variables are not exclusive to the BSE

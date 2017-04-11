@@ -74,7 +74,7 @@ def create_save(doublegrid=False):
 
 def run(nthreads=1,cut=False):
     #create the yambo input file
-    y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder='bse')
+    y = YamboIn('%s -r -b -o b -k sex -y d -V all'%yambo,folder='bse')
 
     if cut:
         y['CUTGeo'] = 'box z'
