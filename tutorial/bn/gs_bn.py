@@ -6,19 +6,23 @@ from __future__ import print_function, division
 import sys
 from qepy import *
 import argparse
+from schedulerpy import *
 
-kpoints = [24,24,1]
+kpoints = [12,12,1]
 kpoints_double = [24,24,1]
 qpoints = [3,3,1]
 layer_separation = 12
 pw = 'pw.x'
 prefix = 'bn'
 
-npoints = 100
+npoints = 10 
 p = Path([ [[0.0, 0.0, 0.0],'G'],
            [[0.5, 0.0, 0.0],'M'],
            [[1./3,1./3,0.0],'K'],
            [[0.0, 0.0, 0.0],'G']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
+
+# scheduler
+scheduler = Scheduler.factory
 
 # create the input files
 def get_inputfile():
@@ -41,7 +45,7 @@ def get_inputfile():
     qe.system['nat'] = 2
     qe.system['ntyp'] = 2
     qe.system['ibrav'] = 4
-    qe.kpoints = [9, 9, 1]
+    qe.kpoints = [6, 6, 1]
     qe.electrons['conv_thr'] = 1e-8
     return qe
 
@@ -71,7 +75,7 @@ def nscf(kpoints,folder='nscf'):
     qe = get_inputfile()
     qe.control['calculation'] = "'nscf'"
     qe.electrons['diago_full_acc'] = ".true."
-    qe.electrons['conv_thr'] = 1e-8
+    qe.electrons['conv_thr'] = 1e-6
     qe.system['nbnd'] = 50
     qe.system['force_symmorphic'] = ".true."
     qe.kpoints = kpoints
@@ -84,8 +88,8 @@ def bands():
     qe = get_inputfile()
     qe.control['calculation'] = "'bands'"
     qe.electrons['diago_full_acc'] = ".true."
-    qe.electrons['conv_thr'] = 1e-8
-    qe.system['nbnd'] = 13
+    qe.electrons['conv_thr'] = 1e-6
+    qe.system['nbnd'] = 6
     qe.system['force_symmorphic'] = ".true."
     qe.ktype = 'crystal'
     qe.set_path(p)
@@ -96,7 +100,7 @@ def phonon(kpoints,qpoints,folder='phonon'):
         os.mkdir(folder)
     ph = PhIn()
     ph['nq1'],ph['nq2'],ph['nq3'] = qpoints
-    ph['tr2_ph'] = 1e-12
+    ph['tr2_ph'] = 1e-6
     ph['prefix'] = "'%s'"%prefix
     ph['epsil'] = ".false."
     ph['trans'] = ".true."
@@ -131,8 +135,11 @@ def run_plot():
 
 def run_bands(nthreads=1):
     print("running bands:")
-    os.system("cp -r scf/%s.save bands/"%prefix)
-    os.system("cd bands; mpirun -np %d %s -inp %s.bands -nk %d > bands.log"%(nthreads,pw,prefix,nthreads))
+    qe_run = scheduler() 
+    qe_run.add_command("cp -r scf/%s.save bands/"%prefix)
+    qe_run.add_command("cd bands; mpirun -np %d %s -inp %s.bands -nk %d > bands.log"%(nthreads,pw,prefix,nthreads))
+    qe_run.run()
+    qe_run.clean()
     print("done!")
 
 if __name__ == "__main__":
@@ -158,37 +165,52 @@ if __name__ == "__main__":
     scf()
     nscf(kpoints)
     nscf(kpoints_double, folder='nscf_double')
-    phonon(kpoints,qpoints)
     bands()
+    phonon(kpoints,qpoints)
 
     if args.relax:
         print("running relax:")
-        os.system("cd relax; mpirun -np %d %s -inp %s.scf > relax.log"%(nthreads,pw,prefix))  #relax
+        qe_run = scheduler() 
+        qe_run.add_command("cd relax; %s -inp %s.scf > relax.log"%(pw,prefix))  #relax
+        qe_run.run()
+        qe_run.clean()
         update_positions('relax','scf') 
         print("done!")
 
     if args.scf:
         print("running scf:")
-        os.system("cd scf; mpirun -np %d %s -inp %s.scf > scf.log"%(nthreads,pw,prefix))  #scf
+        qe_run = scheduler() 
+        qe_run.add_command("cd scf; mpirun -np %d %s -inp %s.scf > scf.log"%(nthreads,pw,prefix))  #scf
+        qe_run.run()
+        qe_run.clean()
         print("done!")
    
     if args.nscf: 
         print("running nscf:")
-        os.system("cp -r scf/%s.save nscf/"%prefix) #nscf
-        os.system("cd nscf; mpirun -np %d %s -nk %d -inp %s.nscf > nscf.log"%(nthreads,pw,nthreads,prefix)) #nscf
+        qe_run = scheduler() 
+        qe_run.add_command("cp -r scf/%s.save nscf/"%prefix) #nscf
+        qe_run.add_command("cd nscf; mpirun -np %d %s -nk %d -inp %s.nscf > nscf.log"%(nthreads,pw,nthreads,prefix)) #nscf
+        qe_run.run()
+        qe_run.clean()
         print("done!")
 
     if args.nscf_double: 
         print("running nscf_double:")
-        os.system("cp -r scf/%s.save nscf_double/"%prefix) #nscf
-        os.system("cd nscf_double; mpirun -np %d %s -inp %s.nscf > nscf_double.log"%(nthreads,pw,prefix)) #nscf
+        qe_run = scheduler() 
+        qe_run.add_command("cp -r scf/%s.save nscf_double/"%prefix) #nscf
+        qe_run.add_command("cd nscf_double; mpirun -np %d %s -inp %s.nscf > nscf_double.log"%(nthreads,pw,prefix)) #nscf
+        qe_run.run()
+        qe_run.clean()
         print("done!")
     
     if args.phonon:
         print("running phonon:")
-        os.system("cp -r scf/%s.save phonon/"%prefix)
-        os.system("cd phonon; mpirun -np %d %s -inp %s.ph > phonon.log"%(nthreads,ph,prefix)) #phonon
-        os.system("cd phonon; dynmat.x -inp %s.dynmat > dynmat.log"%prefix) #matdyn
+        qe_run = scheduler() 
+        qe_run.add_command("cp -r scf/%s.save phonon/"%prefix)
+        qe_run.add_command("cd phonon; mpirun -np %d ph.x -inp %s.ph > phonon.log"%(nthreads,prefix)) #phonon
+        qe_run.add_command("dynmat.x < %s.dynmat > dynmat.log"%prefix) #matdyn
+        qe_run.run()
+        qe_run.clean()
         print("done!")
 
     if args.bands:
