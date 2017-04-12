@@ -6,6 +6,7 @@
 import xml.etree.ElementTree as ET
 from   qepy.auxiliary import *
 from   numpy import array
+from   lattice import *
 
 HatoeV = 27.2107
 
@@ -168,7 +169,7 @@ class PwXML():
         plt.axhline(0)
 
         #plot bands
-        eigen = self.eigen
+        eigen = array(self.eigen)
         for ib in range(self.nbands):
            plt.plot(xrange(self.nkpoints),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
 
