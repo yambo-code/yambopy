@@ -170,7 +170,7 @@ def update_positions(pathin,pathout):
 def run_relax(nthreads=1):
     print("running relax:")
     os.system("cd relax; mpirun -np %d %s -inp %s.scf > relax.log"%(nthreads,pw,prefix))
-    update_positions('relax','scf')
+    update_positions('scf', 'relax')
     print("done!")
 
 def run_scf(nthreads=1):
