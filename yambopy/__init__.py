@@ -15,6 +15,7 @@ from yambopy.lattice import *
 
 #yambo databases
 from yambopy.dbs.savedb import *
+from yambopy.dbs.dipolesdb import *
 from yambopy.dbs.qpdb import *
 from yambopy.dbs.em1sdb import *
 from yambopy.dbs.greendb import *
