@@ -26,6 +26,44 @@ def fermi_array(e_array,ef,invsmear):
     e_array = (e_array-ef)/invsmear
     return [ fermi(e) for e in e_array]
 
+def histogram_eiv(eiv,weights,emin=-5.0,emax=5.0,step=0.01,sigma=0.05,ctype='lorentzian'):
+    """
+    Histogram of eigenvalues
+    """
+    eiv = np.array(eiv)
+    #sigma = 0.005
+    x = np.arange(emin,emax,step,dtype=np.float32)
+    y = np.zeros([len(x)],dtype=np.float32)
+
+    if ctype == 'gaussian':
+        c =  1.0/(sigma*sqrt(2))
+        a = -1.0/(2*sigma)
+
+    else:
+        #lorentzian stuff
+        s2 = (.5*sigma)**2
+        c = (.5*sigma)
+
+    eiv     = eiv.flatten()
+    weights = weights.flatten()
+
+    weights = weights[emin < eiv]
+    eiv     = eiv[emin < eiv]
+    weights = weights[eiv < emax]
+    eiv     = eiv[eiv < emax]
+
+    if ctype == 'gaussian':
+        for e,w in zip(eiv,weights):
+            x1 = (x-e)**2
+            #add gaussian
+            y += c*np.exp(a*x1)
+    else:
+        #lorentzian stuff
+        for e,w in zip(eiv,weights):
+            x1 = (x-e)**2
+            #add lorentzian
+            y += w*c/(x1+s2)
+    return x, y
 
 class YamboElectronsDB():
     def __init__(self,lattice,save='SAVE',filename='ns.db1'):
@@ -79,6 +117,63 @@ class YamboElectronsDB():
         
         #kpoints weights
         self.weights = np.full((self.nkpoints), 1.0/self.nkpoints,dtype=np.float32)
+
+    def getDOS(self,broad=0.1,emin=-10,emax=10,step=0.01):
+        """
+        Calculate the density of states.
+        Should work for metals as well but untested for that case
+        """
+        eigenvalues = self.eigenvalues_ibz
+        weights = self.weights_ibz
+        nkpoints = self.nkpoints_ibz
+
+        na = np.newaxis
+        weights_bands = np.ones(eigenvalues.shape,dtype=np.float32)*weights[:,na]
+        energies, self.dos = histogram_eiv(eigenvalues,weights_bands,emin=emin,emax=emax,step=step,sigma=broad)
+
+        return energies, self.dos
+
+    def setLifetimes(self,broad=0.1):
+        """
+        Add electronic lifetimes using the DOS
+        """
+        self.lifetimes_ibz = np.ones(self.eigenvalues_ibz.shape,dtype=np.float32)*broad
+        self.lifetimes     = np.ones(self.eigenvalues.shape,dtype=np.float32)*broad
+
+    def setLifetimesDOS(self,broad=0.1,debug=False):
+        """
+        Approximate the electronic lifetimes using the DOS
+        """
+        eigenvalues = self.eigenvalues_ibz
+        weights = self.weights_ibz
+        nkpoints = self.nkpoints_ibz
+
+        #get dos
+        emin = np.min(eigenvalues)-broad
+        emax = np.max(eigenvalues)+broad
+        energies, dos = self.getDOS(emin=emin, emax=emax, step=0.1, broad=broad)
+
+        #normalize dos to broad
+        dos = dos/np.max(dos)*broad
+
+        #create a interpolation function to get the lifetimes for all the values
+        from scipy.interpolate import interp1d
+        f = interp1d(energies, dos, kind='cubic')
+
+        if debug:
+            """
+            plot the calculated values for the DOS and the interpolated values
+            """
+            import matplotlib.pyplot as plt
+            x = np.arange(emin+d,emax-d,0.001)
+            plt.plot(energies,dos,'o')
+            plt.plot(x,f(x))
+            plt.show()
+            exit()
+
+        #add imaginary part to the energies proportional to the DOS
+        self.lifetimes_ibz = np.array([ [f(eig) for eig in eigk] for eigk in self.eigenvalues_ibz],dtype=np.float32)
+        self.lifetimes     = np.array([ [f(eig) for eig in eigk] for eigk in self.eigenvalues],dtype=np.float32)
  
     def setFermi(self,fermi,invsmear):
         """
