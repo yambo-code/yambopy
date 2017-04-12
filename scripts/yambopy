@@ -74,30 +74,36 @@ class PlotEm1sCmd(Cmd):
 
         parser = argparse.ArgumentParser(description='Plot em1s calculation.')
         pa = parser.add_argument
-        pa('folders',      nargs='+', help='json file containing the absorption spectra. Default: \'absorptionspectra.json\'' )
-        pa('-w','--write', help='Write data file in a text file', default='em1s.dat', type=str)
+        pa('folders',        nargs='+', help='json file containing the absorption spectra. Default: \'absorptionspectra.json\'' )
+        pa('-w','--write',   help='Write data file in a text file', default='em1s.dat', type=str)
+        pa('-p','--plot',    help='Save the a file with the plot', default='em1s.pdf', type=str)
+        pa('-v','--verbose', help='Print which files are not folder', action='store_true')
+        pa('--fontsize',     help='Choose the font size of the plot', default=10, type=int)
         args = parser.parse_args(args)
         folders = args.folders
        
         #create plot
         fig = plt.figure(figsize=(6,5))
-        matplotlib.rcParams.update({'font.size': 15})
+        matplotlib.rcParams.update({'font.size': args.fontsize})
         ax = plt.gca()
 
         epsilons = []
         for folder in folders: 
             if os.path.isdir(folder) and os.path.isfile("%s/ndb.em1s"%folder):
                 ys = YamboStaticScreeningDB(save=folder)
+                #plot epsilon_{00} = [1/(1+vX)]_{00}
                 ys.plot(ax,marker='o',markersize=2,label=folder)
-                x,y = ys._geteq()
-                epsilons.append([folder,x,y])
+                #get epsilon^{-1}_{00} = [1+vX]_{00}
+                x,vX = ys._getvxq()
+                epsilons.append([folder,x,1+vX])
             else:
-                print "path %s is not a folder"%folder
+                if args.verbose:
+                    print "path %s is not a folder"%folder
 
         if args.write:
             #write a text file with the data
             f=open(args.write,'w')
-            f.write('# Real and imaginary part of \epsilon_{00}(\omega=0,q) as a funciton of |q|')
+            f.write('# Real and imaginary part of \epsilon^{-1}_{00}(\omega=0,q) = [1+vX]_{00} as a funciton of |q|')
             for folder,x,y in epsilons:
                 f.write('#%s\n'%folder)
                 for xi,yi in zip(x,y):
@@ -106,10 +112,10 @@ class PlotEm1sCmd(Cmd):
             f.close()
 
         plt.legend(frameon=False)
-        ax.set_ylabel('$\epsilon_{00}(\omega=0,q)$')
         plt.tight_layout()
 
         #final plot
+        if args.write: plt.savefig(args.plot) 
         plt.show()
 
 class AnalyseGWCmd(Cmd):
@@ -122,8 +128,7 @@ class AnalyseGWCmd(Cmd):
     and the location of the band extrema.
 
         Mandatory arguments are:
-            folder     -> Folder containing SAVE and convergence runs
-            variable   -> Variable tested for convergence (e.g. FFTGvecs)
+            folders    -> Folders containing SAVE and convergence runs
 
         Optional variables are:
             -bc, --bandc   (int)  -> Lowest conduction band number
@@ -145,8 +150,7 @@ class AnalyseGWCmd(Cmd):
         #all the other arguments are passed to the merge_qp function
 
         parser = argparse.ArgumentParser(description='Study GW convergence with regards to the band-gap value.')
-        parser.add_argument('folder'            , help='Folder containing SAVE and convergence runs.')
-        parser.add_argument('variable'          , help='Variable tested (e.g. FFTGvecs)'             )
+        parser.add_argument('folder'            , help='Folder containing SAVE and convergence runs.',nargs='+')
         parser.add_argument('-bc','--bandc'     , help='Lowest conduction band number'    , default=53, type=int)
         parser.add_argument('-kc','--kpointc'   , help='K-point index for conduction band', default=19, type=int)
         parser.add_argument('-bv','--bandv'     , help='Highest valence band number'      , default=52, type=int)

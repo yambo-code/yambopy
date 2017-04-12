@@ -1,4 +1,4 @@
-# Copyright (c) 2016, Henrique Miranda
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -9,6 +9,14 @@ from yambopy.netcdf import *
 class YamboStaticScreeningDB():
     """
     Class to handle static screening databases from Yambo
+    
+    This reads the databases ndb.em1s*
+    There vX is stored.
+    
+    To calculate epsilon (static dielectric function) we do:
+
+    epsilon = 1/(1-vX) or
+    epsilon^{-1} = 1-vX
     """
     def __init__(self,save='.',filename='ndb.em1s',db1='ns.db1'):
         self.save = save
@@ -103,7 +111,7 @@ class YamboStaticScreeningDB():
 
     def writetxt(self,filename='em1s.dat',ng1=0,ng2=0,volume=False):
         """
-        Write \epsilon_{g1=0,g2=0} (q) as a funciton of |q| on a text file
+        Write vVepsilon_{g1=0,g2=0} (q) as a funciton of |q| on a text file
         volume -> multiply by the volume
         """
         x,y = self._geteq(ng1=ng1,ng2=ng2,volume=volume)
@@ -119,9 +127,43 @@ class YamboStaticScreeningDB():
                 return ng
         return None
 
-    def _geteq(self,ng1=0,ng2=0,volume=False): 
+    def _geteq(self,volume=False): 
         """
-        get \epsilon_{g1=0,g2=0} (q) as a funciton of |q| 
+        Get epsilon_{0,0} = [1/(1+vX)]_{0,0} a function of |q|
+        vX is a matrix with size equal to the number of local fields components
+ 
+        In the database we find vX(\omega=0) where:
+        v -> coulomb interaction (truncated or not)
+        X -> electronic response function
+
+        Arguments:
+            ng1, ng2 -> Choose local field components
+            volume   -> Normalize with the volume of the cell
+        """
+        x = [np.linalg.norm(q) for q in self.qpoints]
+        y = [np.linalg.inv(1+xq)[0,0] for xq in self.X ]
+      
+        #order according to the distance
+        x, y = zip(*sorted(zip(x, y)))
+        y = np.array(y)
+
+        #scale by volume?
+        if volume: y *= self.volume 
+
+        return x,y
+
+    def _getvxq(self,ng1=0,ng2=0,volume=False): 
+        """
+        Get vX_{ng1,ng2} a function of |q|
+        vX is a matrix with size equal to the number of local fields components
+ 
+        In the database we find vX(\omega=0) where:
+        v -> coulomb interaction (truncated or not)
+        X -> electronic response function
+
+        Arguments:
+            ng1, ng2 -> Choose local field components
+            volume   -> Normalize with the volume of the cell
         """
         x = [np.linalg.norm(q) for q in self.qpoints]
         y = [xq[ng2,ng1] for xq in self.X ]
@@ -135,20 +177,22 @@ class YamboStaticScreeningDB():
 
         return x,y
     
-    def plot(self,ax,ng1=0,ng2=0,volume=False,**kwargs):
+    def plot(self,ax,volume=False,**kwargs):
         """
-        Plot the static screening
+        Plot the static screening as a function of |q|
         
         Arguments
         ax   -> Instance of the matplotlib axes or some other object with the plot method
         func -> Function to apply to the dielectric function
         """
 
-        x,y = self._geteq(ng1=ng1,ng2=ng2,volume=volume)
- 
+        #get vX
+        x,vX = self._getvxq(volume=volume)
+    
         #when plotting we apply a funciton to epsilon to represent it, by default the |x|
-        ax.plot(x,np.abs(y),**kwargs)
-        ax.set_xlabel('|q|')
+        ax.plot(x,(1+vX).real,**kwargs)
+        ax.set_xlabel('$|q|$')
+        ax.set_ylabel('$\epsilon^{-1}_{00}(\omega=0)$')
 
     def __str__(self):
         s = ""

@@ -372,7 +372,7 @@ class YamboAnalyser():
                         ax.plot(x,y,label=label,color=color)
                         plot = True
         if plot:
-            ax.set_ylabel('$\epsilon_{00}(\omega=0)$')
+            ax.set_ylabel('Im$[\\chi(\omega)]$')
             ax.set_xlabel('$\omega$ (eV)')
 
             ax.legend(frameon=False)

@@ -158,7 +158,7 @@ def run(nthreads=1,work_folder='bse_cutoff',cut=True):
         for layer_separation in layer_separations:
             run_job(layer_separation,work_folder,cut)
 
-def plot(work_folder):
+def plot(work_folder,filename):
     ax = plt.gca()
     for layer_separation in layer_separations:
         root_folder = "%s/%d"%(work_folder,layer_separation)
@@ -175,16 +175,19 @@ def plot(work_folder):
     else:   title = "without coulomb cutoff"
 
     plt.title(title)
+    if filename is None: filename = "%s.pdf"%work_folder
+    plt.savefig(filename)
     plt.show()
 
 if __name__ == "__main__":
 
     #parse options
     parser = argparse.ArgumentParser(description='Convergence test of the colomb cutoff')
-    parser.add_argument('-r' ,'--run',     action="store_true", help='Run the calculation')
-    parser.add_argument('-c' ,'--cut',     action="store_true", help='Use coulomb cutoff')
-    parser.add_argument('-p' ,'--plot',    action="store_true", help='Run the analysis')
-    parser.add_argument('-t' ,'--nthreads',                     help='Number of threads', default=1)
+    parser.add_argument('-r' ,'--run',      action="store_true", help='Run the calculation')
+    parser.add_argument('-c' ,'--cut',      action="store_true", help='Use coulomb cutoff')
+    parser.add_argument('-p' ,'--plot',     action="store_true", help='Run the analysis')
+    parser.add_argument('-f' ,'--plotfile', help='Name of the plot file', default=None)
+    parser.add_argument('-t' ,'--nthreads', help='Number of threads', default=1)
     args = parser.parse_args()
     nthreads = int(args.nthreads)
     print("Using %d threads"%nthreads)
@@ -204,4 +207,4 @@ if __name__ == "__main__":
     if args.run:
         run(nthreads,work_folder,cut)
     if args.plot:
-        plot(work_folder)
+        plot(work_folder,args.plotfile)

@@ -380,8 +380,8 @@ In a similar way as what was done before we can now plot the dielectric function
 
 .. code-block:: bash
 
-    python analyse_em1s.py bse_cutoff     # without coulomb cutoff  
-    python analyse_em1s.py bse_cutoff_cut # with coulomb cutoff
+   yambopy plotem1s bse_cutoff/*/*     # without coulomb cutoff  
+   yambopy plotem1s bse_cutoff_cut/*/* # with coulomb cutoff
 
 .. image:: figures/bn_em1s_cutoff.png
    :height: 200px
