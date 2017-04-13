@@ -41,6 +41,7 @@ class YamboDipolesDB():
         self.dipoles = self.readDB(dip_type)
 
         #expand the dipoles to the full brillouin zone
+        self.expand = expand
         if expand:
             self.expandDipoles(self.dipoles)
 
@@ -252,16 +253,17 @@ class YamboDipolesDB():
         s = ""
         s += "\nkpoints:\n"
         s += "nk_ibz : %d\n"%self.nk_ibz
-        s += "nk_bz  : %d\n"%self.nk_bz
+        if self.expand: s += "nk_bz  : %d\n"%self.nk_bz
         s += "\nnumber of bands:\n"
         s += "nbands : %d\n" % self.nbands
         s += "nbandsv: %d\n" % self.nbandsv
         s += "nbandsc: %d\n" % self.nbandsc
         s += "indexv : %d\n" % (self.min_band-1)
         s += "indexc : %d\n" % (self.indexc-1)
-        s += "field_dirx: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_dirx)
-        s += "field_diry: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_diry)
-        s += "field_dirz: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_dirz)
+        if self.expand:
+            s += "field_dirx: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_dirx)
+            s += "field_diry: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_diry)
+            s += "field_dirz: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_dirz)
         return s
 
 if __name__ == "__main__":
