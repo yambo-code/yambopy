@@ -189,7 +189,7 @@ class YamboDipolesDB():
     def plot(self,ax,kpoint=0,dir=0,func=abs2):
         return ax.matshow(func(self.dipoles[kpoint,dir]))
         
-    def ip_eps2(self,electrons,pol=0,ntot_dip=-1,GWshift=0.,broad=0.1,broadtype='l',nbnds=[-1,-1],emin=0.,emax=10.,esteps=500):
+    def ip_eps2(self,electrons,pols=(0,1),ntot_dip=-1,GWshift=0.,broad=0.1,broadtype='l',nbnds=[-1,-1],emin=0.,emax=10.,esteps=500):
         """
         Compute independent-particle absorption (by Fulvio Paleari)
 
@@ -234,12 +234,13 @@ class YamboDipolesDB():
         else:
             broadening = gaussian
 
+        pols = np.array(pols)
         na = np.newaxis
         #calculate epsilon
         for c,v in product(range(nv,lc),range(iv,nv)):
             #get electron-hole energy and dipoles
             ecv  = eiv[:,c]-eiv[:,v]
-            dip2 = abs2(dipoles[:,pol,c-nv,v])
+            dip2 = np.sum(abs2(dipoles[:,pols,c-nv,v]),axis=1)
 
             #make dimensions match
             dip2a = dip2[na,:]
