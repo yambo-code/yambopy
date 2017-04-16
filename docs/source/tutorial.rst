@@ -884,7 +884,7 @@ the QE format to the netCDF format used by yambo. It creates the folder ``elphon
 The second step requires the script ``elph_qp_si.py``. If the electron-phonon matrix elements have been successfully created and
 stored in ``elphon/SAVE`` we are ready to calculate the electron-phonon correction of the eigenvalues at several temperatures, 
 or to examine the spectral function of each quasi-particle state. A detailed tutorial of the capabilities of the module electron-phonon
-of yambo is also available in the `yambo website <http://www.yambo-code.org/tutorials/Electron_Phonon/index.php>`_.
+of yambo is also available in the `yambo electron-phonon tutorial <http://www.yambo-code.org/tutorials/Electron_Phonon/index.php>`_.
 
 If we run:
 

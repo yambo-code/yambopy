@@ -2,7 +2,7 @@ Installation
 =============
 
 Download
--------
+-----------
 
 To obtain the code you can clone the git repository:
 

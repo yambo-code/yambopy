@@ -1,6 +1,6 @@
 Schedulerpy
 ==========================
-Schedulerpy is a simple python script to run applications on different schedulers (PBS, OAR) and bash using the same python scripts.
+Schedulerpy is a simple set of python modules to run applications on different schedulers (PBS, OAR) and bash using the same python scripts.
 
 Basic concept
 --------------------------
@@ -58,7 +58,7 @@ Using this simple scheme the user can define one name that is translated differe
 to the name of the module.
 
 Examples of configurations file
-----------------------------
+--------------------------------------------
 
 1. Zenobe
 

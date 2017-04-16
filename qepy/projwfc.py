@@ -7,7 +7,8 @@
 import os
 
 class ProjwfcIn():
-    """ A class to generate and manipulate projwfc input files
+    """
+    A class to generate and manipulate projwfc input files.
     """    
     _projwfc = 'projwfc.x'
 
@@ -16,16 +17,17 @@ class ProjwfcIn():
         self.DeltaE = DeltaE
         
     def run(self,filename=None,procs=1,folder='.'):
-        """ this function is used to run this job locally
+        """ 
+        Function is used to run this job locally
         """
         filename = self.getfilename(filename)
         os.system('mkdir -p %s'%folder)
         self.write("%s/%s"%(folder,filename))
         print "Run projwfc..."
         if procs == 1:
-            os.system('cd %s; OMP_NUM_THREADS=1 %s -inp %s > projwfc.log' % (folder,self._projwfc,filename))
+            os.system('cd %s; %s -inp %s > projwfc.log' % (folder,self._projwfc,filename))
         else:
-            os.system('cd %s; OMP_NUM_THREADS=1 mpirun -np %d %s -inp %s > projwfc.log' % (folder,procs,self._projwfc,filename))
+            os.system('cd %s; mpirun -np %d %s -inp %s > projwfc.log' % (folder,procs,self._projwfc,filename))
         print "done!"
 
     def getfilename(self,filename):
@@ -34,6 +36,9 @@ class ProjwfcIn():
         return filename
 
     def write(self,filename=None,folder='.'):
+        """
+        Write the projwfc file
+        """
         filename = self.getfilename(filename)
         os.system('mkdir -p %s'%folder)
         f = open("%s/%s"%(folder,filename),'w')

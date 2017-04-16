@@ -13,18 +13,14 @@ ha2ev = 27.211396132
 atol = 1e-3
 
 def isbetween(a,b,c):
-    #check if c is between a and b
+    """
+    Check if cartesian point c is between point a and b
+    """
     return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0,rtol=1e-05, atol=1e-06)
 
-def err_handler(type, flag):
-    print "Floating point error (%s), with flag %s" % (type, flag)
-
-saved_handler = np.seterrcall(err_handler)
-
-np.seterr(all='call')
-
 def expand_kpts_val(kpts,syms,val):
-    """ Take a list of qpoints and symmetry operations and return the full brillouin zone
+    """
+    ake a list of qpoints and symmetry operations and return the full brillouin zone
     with the corresponding index in the irreducible brillouin zone
     """
     full_kpts = []
@@ -38,12 +34,14 @@ def expand_kpts_val(kpts,syms,val):
     return full_kpts, full_val
 
 def vec_in_list(veca,vec_list):
-    """ check if a vector exists in a list of vectors
+    """
+    Check if a vector exists in a list of vectors
     """
     return np.array([ np.allclose(veca,vecb,rtol=atol,atol=atol) for vecb in vec_list ]).any()
 
 def expand_kpts(kpts,syms):
-    """ Take a list of qpoints and symmetry operations and return the full brillouin zone
+    """
+    Take a list of qpoints and symmetry operations and return the full brillouin zone
     with the corresponding index in the irreducible brillouin zone
     """
     full_kpts = []
@@ -55,17 +53,44 @@ def expand_kpts(kpts,syms):
     return full_kpts
 
 class YamboSaveDB():
-    """ Read information from the SAVE database in Yambo
     """
-    def __init__(self,save='SAVE'):
-        #read database
+    Reads the information from the SAVE database in Yambo
+
+    Arguments:
+        
+        ``save``: Path with the save folder (default:SAVE)
+        ``filename``: name of the filename of the ns.db1 database created with yambo (default:ns.db1)
+
+    **Properties:**
+    
+        ``atomic_numbers`` : atomic number of the species
+        ``eigenvalues`` : eigenvalues of the electrons in eV
+        ``nkpoints`` : number of kpoints
+    """
+    def __init__(self,save='SAVE',filename='ns.db1'):
+        self.save = save
+        self.filename = filename
+        path_filename = '%s/%s'%(save,filename)
+
+        #read the database
+        self.readDB(path_filename)
+
+        #status
+        self.expanded = False
+        self.efermi = None
+
+    def readDB(self,filename):
+        """
+        Read the ns.db1 database
+        """
         try:
-            filename = '%s/ns.db1'%save
             database    = Dataset(filename)
         except:
-            raise ValueError( "Error reading %s database"%filename )
+            raise ValueError( "Error reading %s database in YamboSaveDB"%filename )
+
         self.atomic_numbers   = database.variables['atomic_numbers'][:]
         self.atomic_positions = database.variables['ATOM_POS'][0,:]
+        # we convert the eigenvalues to eV
         self.eigenvalues      = database.variables['EIGENVALUES'][0,:]*ha2ev
         self.sym_car          = database.variables['SYMMETRY'][:]
         self.kpts_iku         = database.variables['K-POINTS'][:].T
@@ -114,10 +139,6 @@ class YamboSaveDB():
         self.sym_rec = np.zeros([self.nsym,3,3])
         for n,s in enumerate(self.sym_car):
             self.sym_rec[n] = inv(s).T
-
-        #status
-        self.expanded = False
-        self.efermi = None
 
     def get_fermi(self,inv_smear=0.001):
         """ Determine the fermi energy

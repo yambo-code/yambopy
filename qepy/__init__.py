@@ -4,6 +4,12 @@
 # This file is part of yambopy
 #
 #
+"""
+Scripts to manipulate Quantum Espresso input files
+
+Also able to read output files in xml format (datafile.xml or datafile-schema.xml)
+
+"""
 from qepy.lattice    import *
 from qepy.pw         import *
 from qepy.ph         import *

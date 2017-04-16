@@ -18,15 +18,21 @@ from yambopy.plot import *
 
 class YamboOut():
     """ 
-    Class to read yambo output files and pack them in a JSON file
+    Class to read yambo output files and pack them in a .json file
 
-    Input:
-    folder      -> The relative path of the folder where yambo dumped its input files
-    save_folder -> The path were the SAVE folder is localized 
+    **Arguments:**
+
+    folder:      The relative path of the folder where yambo dumped its input files
+
+    save_folder: The path were the SAVE folder is localized 
+
     """
     _lock = "lock" #name of the lockfile
 
     def __init__(self,folder,save_folder='.'):
+        """
+        """
+
         self.folder = folder
 
         #check if the save folder is in save_folder if not try folder

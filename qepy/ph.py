@@ -9,7 +9,8 @@ import re
 from math import sqrt
 
 class PhIn():
-    """ A class to generate an manipulate quantum espresso input files for ph.x
+    """
+    A class to generate an manipulate quantum espresso input files for ph.x
     """
     def __init__(self):
         self.variable = dict()
