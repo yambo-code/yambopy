@@ -10,13 +10,17 @@ class YamboStaticScreeningDB():
     """
     Class to handle static screening databases from Yambo
     
-    This reads the databases ndb.em1s*
-    There vX is stored.
+    This reads the databases ``ndb.em1s*``
+    There :math:`v\chi(\omega=0)` is stored.
     
     To calculate epsilon (static dielectric function) we do:
 
-    epsilon = 1/(1-vX) or
-    epsilon^{-1} = 1-vX
+    .. math::
+
+        \epsilon = \\frac{1}{1-v\chi}
+
+        \epsilon^{-1} = 1-v\chi
+
     """
     def __init__(self,save='.',filename='ndb.em1s',db1='ns.db1'):
         self.save = save

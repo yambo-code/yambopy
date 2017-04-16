@@ -8,7 +8,7 @@
 Schedulerpy is a simple set of python modules to run 
 commands on different environments (clusters, local computers, etc..)
 
- Currently available schedulers are:
+ **Currently available schedulers are:**
 
  * bash: Execute the job in the bash
  * oar : Use the OAR scheduler

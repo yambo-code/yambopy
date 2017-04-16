@@ -22,16 +22,14 @@ class YamboOut():
 
     **Arguments:**
 
-    folder:      The relative path of the folder where yambo dumped its input files
+    ``folder``:      The relative path of the folder where yambo dumped its input files
 
-    save_folder: The path were the SAVE folder is localized 
+    ``save_folder``: The path were the SAVE folder is localized 
 
     """
     _lock = "lock" #name of the lockfile
 
     def __init__(self,folder,save_folder='.'):
-        """
-        """
 
         self.folder = folder
 

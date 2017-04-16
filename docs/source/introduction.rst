@@ -2,6 +2,7 @@ Introduction
 =============
 
 A typical `yambo` calculation proceeds as follows:
+
     - Obtain the ground state proprieties from a DFT code (`pw.x` or `abinit`)
     - Create the `yambo` netCDF databases using the corresponding interface: (`p2y` for `pw.x` or `a2y` for `abinit`)
     - Run `yambo` once to complete the database

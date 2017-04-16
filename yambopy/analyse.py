@@ -23,7 +23,10 @@ def red_car(red,lat):
     lat = np.array(lat)
     return np.array(map( lambda coord: coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2], red))
 
-def car_red(car,lat): return np.array(map( lambda coord: np.linalg.solve(np.array(lat).T,coord), car))
+def car_red(car,lat): 
+    lat = np.array(lat)
+    return np.array(map( lambda coord: np.linalg.solve(np.array(lat).T,coord), car))
+
 def rec_lat(lat):
     """
     Calculate the reciprocal lattice vectors
@@ -53,11 +56,9 @@ def isbetween(a,b,c):
     return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0)
 
 class YamboAnalyser():
-    """ This class can open multiple yambo files, organize them and plot
-    convergence graphs.
-
-    TODO:
-    plot convergence of variables according to differences in the input files
+    """
+    Class to open multiple ``.json`` files, organize them and plot the data together.
+    Useful to perform convergence tests
     """
     _colormap = 'rainbow'
 

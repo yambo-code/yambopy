@@ -1,12 +1,31 @@
-Classes
+Modules
 =======
 
 yambopy
 ---------
 .. automodule:: yambopy
+.. autoclass:: YamboAnalyser
+
+io
+~~~
 .. autoclass:: YamboIn
 .. autoclass:: YamboOut
-.. autoclass:: YamboAnalyser
+
+dbs
+~~~~~
+.. autoclass:: YamboSaveDB
+.. autoclass:: YamboLatticeDB
+.. autoclass:: YamboDipolesDB
+.. autoclass:: YamboQPDB
+.. autoclass:: YamboGreenDB
+.. autoclass:: YamboElectronsDB
+.. autoclass:: YamboStaticScreeningDB
+
+bse
+~~~~
+.. autoclass:: YamboBSEAbsorptionSpectra
+.. autoclass:: YamboExcitonWeight
+.. autoclass:: YamboExcitonWaveFunctionXSF
 
 qepy
 ---------

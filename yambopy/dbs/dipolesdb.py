@@ -26,7 +26,10 @@ def gaussian(x,x0,s):
 
 class YamboDipolesDB():
     """
-    Open the dipoles databases and store it in a DipolesDB class
+    Class to read the dipoles databases from the ``ndb.dip*`` files
+    
+    Can be used to for exapmle plot the imaginary part of the dielectric
+    function which corresponds to the optical absorption
     """
     def __init__(self,lattice,save='SAVE',filename='ndb.dip_iR_and_P',dip_type='iR'):
         self.lattice = lattice
