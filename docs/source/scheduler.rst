@@ -4,6 +4,11 @@ Schedulerpy is a simple set of python modules to run applications on different s
 
 Basic concept
 --------------------------
+The idea is to allow the user to create a python script describing a worflow that can be used in different environments
+with minor modifications. For that, there is an abstract ``scheduler`` class that takes all the commands to be executed.
+Once all the commands are specified, the scheduler class reads from a ``config.json`` file that should be
+created in ``~/.yambopy/config.json``. In this file the user can choose which scheduler should be used by default and
+other configurations.
 We initialize the python scheduler with:
 
 .. code-block:: python
@@ -13,16 +18,17 @@ We initialize the python scheduler with:
     s.add_command('yambo -F yambo.in')
     s.run()
 
-The class will read the environment to run the command from a ``config.json`` file present in ``~/.yambopy/config.json``.
 If the job is to be run through a scheduler (OAR or PBS), the script will submit a job to it with the indicated requirements.
-If the job is to be run locally using BASH, then the code will do that.
+If the job is to be run locally using BASH, then the code use ``os.system`` from the standard python distribution to do that
 
 The handling of the command is made using different python classes that define the different interfaces.
 There is one class per interface, and the currently implemented interfaces are OAR, PBS and BASH.
 Different interfaces can easily be added. We can for example create a class to run jobs remotely through ssh.
 
-The main goal is to create only one python script that says which code to execute and to be able to run it on different computers, schedulers and environments.
-For that we define a local configuration file that instructs schedulerpy how to run the jobs, be it through a scheduler or BASH.
+The main goal is to have only one python script that says which code to execute and to be able to
+run it on different computers, schedulers and environments.
+For that we specify the configuration in the local ``~/.yambopy/config.json`` file that instructs 
+schedulerpy how to run the jobs, be it through a scheduler or BASH.
 
 Configurations file
 ----------------------------
@@ -53,7 +59,8 @@ This file has the following information:
 
 The "default" tag chooses the scheduler to use when no scheduler is specified by the user.
 
-`"<tag>"` and `"<value>"` in are additional variables that are handled differently for each scheduler. They are stored as arguments in the variable kwargs.
+`"<tag>"` and `"<value>"` in are additional variables that are handled differently for each scheduler.
+They are stored as arguments in the variable kwargs.
 
 `"modules"` is a dictionary that matches a tag to a local module. A certain module might
 have different names across different clusters or environments.
@@ -62,6 +69,7 @@ to the name of the module.
 
 Examples of configurations file
 --------------------------------------------
+Here are some example configuration files that we are currently using.
 
 1. Local computer (Linux, Mac)
 ~~~~~~~~~~~~~~~~~~~

@@ -11,25 +11,25 @@ Analyse results from yambo calculations
 
 Modules:
     io
-        - inputfile: read, write and manipulate yambo input files
-        - outputfile: read yambo output files and save in .json
+        - YamboIn: read, write and manipulate yambo input files
+        - YamboOut: read yambo output files and save in .json
     dbs
-        - savedb: read information in the nx.db1
-        - latticedb: read lattice parameters, symmetries and k-points from ns.db1
-        - dipolesdb: dipole matrix elements from ndb.dip*
-        - em1sd: static dielectric screening from ndb.em1s*
-        - electronsdb: read the electronic states from ns.db1
-        - qpdb: read the quasiparticle energies db ndb.QP
-        - electronsdb: read the electronic states from ns.db1
+        - YamboSaveDB: read information in the ns.db1
+        - YamboLatticeDB: read lattice parameters, symmetries and k-points from ns.db1
+        - YamboDipolesDB: dipole matrix elements from ndb.dip*
+        - YamboStaticScreeningDB: static dielectric screening from ndb.em1s*
+        - YamboElectronsDB: read the electronic states from ns.db1
+        - YamboQPDB: read the quasiparticle energies db ndb.QP
+        - YamboGreenDB: read the green's functions calculated using yambo
 
     bse
-        - excitonwf: read the excitonic
-        - excitonweight: read the excitonic weights from the ypp output file
-        - bse_absorption: generate a .json file with the bse absorption calculation (including information about the excitons)
+        - YamboExcitonWaveFunctionXSF: read the excitonic
+        - YamboExcitonWeight: read the excitonic weights from the ypp output file
+        - YamboBSEAbsorptionSpectra: generate a .json file with the bse absorption calculation (including information about the excitons)
 
     analyse:
-        - analyse: read .json files generated with yamboout and plot them together
-        - recipes: user contibuted scripts
+        - YamboAnalyser: read .json files generated with yamboout and plot them together
+        - recipes: user contributed scripts
 """
 import numpy as np
 from yambopy.jsonencoder import *

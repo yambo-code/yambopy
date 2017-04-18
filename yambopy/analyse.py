@@ -179,9 +179,11 @@ class YamboAnalyser():
         return bands_kpoints, bands_indexes, bands_highsym_qpts
 
     def plot_gw_path(self,tags,path_label,cols=(lambda x: x[2]+x[3],),rows=None):
-        """ Create a path of k-points and find the points in the regular mesh that correspond to points in the path
-            Use these points to plot the GW band structure.
         """
+        Create a path of k-points and find the points in the regular mesh that correspond to points in the path
+        Use these points to plot the GW band structure.
+        """
+        if type(tags) == str: tags = (tags,)
         path = np.array([p[0] for p in path_label])
         labels = [p[1] for p in path_label]
         plot = False
@@ -209,16 +211,17 @@ class YamboAnalyser():
         #obtain the bands for the output files and plot
         for json_filename in self.jsonfiles.keys():
             for output_filename in self.jsonfiles[json_filename]['data']:
-                kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
+                if all(i in output_filename for i in tags):
+                    kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
 
-                #plot
-                for ib,bands in enumerate(bands_cols):
-                    label = output_filename
-                    for band in bands:
-                        plt.plot(bands_distances,[band[k] for k in bands_indexes],linestyle=lstyles[ib%len(lstyles)],label=label,color=colors[n])
-                        label=None
-                plot = True
-                n+=1
+                    #plot
+                    for ib,bands in enumerate(bands_cols):
+                        label = output_filename
+                        for band in bands:
+                            plt.plot(bands_distances,[band[k] for k in bands_indexes],linestyle=lstyles[ib%len(lstyles)],label=label,color=colors[n])
+                            label=None
+                    plot = True
+                    n+=1
 
         if plot:
             #plot high-symmetry q-points
@@ -240,15 +243,19 @@ class YamboAnalyser():
             plt.show()
 
     def get_gw_bands(self,json_filename,output_filename,cols=(lambda x: x[2]+x[3],),rows=None):
-        """ Get the gw bands from a gw calculation from a filename
-            json_filename the name of the json file
-            output_filename the name of the output filename that is in the json file
-
-            The list of quaisparticle energies in yambo is organized as follows:
-            K-point Band E0 E-E0 Sc(E0)
-            if we want to plot the bandstructure we have to plot in the same k-point
-            the values of the required column for the different bands
         """
+        Get the gw bands from a gw calculation from a filename
+        
+        Arguments:
+            json_filename: the name of the json file
+            output_filename: the name of the output filename that is in the json file
+
+        The list of quaisparticle energies in yambo is organized as follows:
+        K-point Band E0 E-E0 Sc(E0)
+        if we want to plot the bandstructure we have to plot in the same k-point
+        the values of the required column for the different bands
+        """
+
         data = np.array( self.jsonfiles[json_filename]["data"][output_filename] )
         # first we get the number of bands to plot
         bands = data[:,1]
@@ -275,42 +282,49 @@ class YamboAnalyser():
         return kpoint_index, bands_cols
 
     def plot_qp_correction(self,tags=('qp',),lda=2,qp=3):
-       ax = plt.axes([0.1, 0.1, .7, .7])
-       for json_filename in sorted(self.jsonfiles.keys()):
+        
+        if type(tags) == str: tags = (tags,)
+
+        ax = plt.axes([0.1, 0.1, .7, .7])
+        for json_filename in sorted(self.jsonfiles.keys()):
             for output_filename in self.jsonfiles[json_filename]["data"]:
                 if all(i in output_filename for i in tags):
                     data = np.array( self.jsonfiles[json_filename]["data"][output_filename] )
 
                     plt.plot(data[:,lda],data[:,qp],'o',label=output_filename)
                     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
-       xmin, xmax = ax.get_xlim()
-       ymin, ymax = ax.get_ylim()
-       plt.plot([xmin,xmax],[ymin,ymax],'k--',lw=2)
+        xmin, xmax = ax.get_xlim()
+        ymin, ymax = ax.get_ylim()
+        plt.plot([xmin,xmax],[ymin,ymax],'k--',lw=2)
 
-       box = ax.get_position()
-       ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-       ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
-       plt.plot()
-       plt.show()
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
+        plt.plot()
+        plt.show()
 
     def plot_gw(self,tags=('qp',),cols=(lambda x: x[2]+x[3],),rows=None):
-        """ Use this function to plot the quasiparticle energies from a GW calculation
+        """
+        Use this function to plot the quasiparticle energies from a GW calculation
+
+        Arguments:
             cols: a list of indexes or functions
             the functions that take as input each column of the o.QP file and the output will be plotted
             the index is used to select the columns to plot
             rows: the same as cols but for the electronic bands in the file o.QP
 
-            Example:
-                a.plot_gw('qp',cols=(lambda x: x[2]+x[3],),rows=(lambda x: x[1]-x[2],))
+        Example:
+            a.plot_gw('qp',cols=(lambda x: x[2]+x[3],),rows=(lambda x: x[1]-x[2],))
 
-                Will plot only files with 'qp' in their filename
-                Will add the second and third columns (DFT eigenvalues + GW corrections)
-                Will subtract the 2nd and 1st bands (usefull to study the convergence of the gap)
+            Will plot only files with 'qp' in their filename
+            Will add the second and third columns (DFT eigenvalues + GW corrections)
+            Will subtract the 2nd and 1st bands (usefull to study the convergence of the gap)
         """
         plot = False
         fig = plt.figure()
         ax = plt.subplot(111)
         colors = self.get_colors(tags)
+        if type(tags) == str: tags = (tags,)
 
         n=0
         for json_filename in sorted(self.jsonfiles.keys()):
