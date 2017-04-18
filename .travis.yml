@@ -6,7 +6,7 @@ python:
     - 3.5
 os: trusty
 env:
-    - YAMBO_VERSION=4.1 PW_version=5.4
+    - YAMBO_VERSION=4.1 PW_VERSION=5.4
 #    - any combination of versions
 
 matrix:
@@ -23,7 +23,7 @@ matrix:
 install:
   - "./tests/install.sh -y YAMBO_VERSION -pw PW_VERSION"
 script:
-  - "./tests/run.sh"
+    - "python ./tests/test_si.py -f"
 
 # safelist
 branches:
