@@ -1,0 +1,34 @@
+sudo: false # or required
+language: python
+
+python:
+    - 2.7
+    - 3.5
+os: trusty
+env:
+    - YAMBO_VERSION=4.1 PW_version=5.4
+#    - any combination of versions
+
+matrix:
+    allow_failures:
+        - python: 3.5 # Builds using this version can fail without compromising the end result
+    fast_finish: true # Don't wait for the test on Py3.5 to finish to ack
+# Add to the matrix of jobs
+#    - os: osx
+#      language: objective-c
+#      env: PYENV_VERSION=2.7.12
+#    - os: osx
+#      language: objective-c
+#      env: PYENV_VERSION=3.5.2
+install:
+  - "./tests/install.sh -y YAMBO_VERSION -pw PW_VERSION"
+script:
+  - "./tests/run.sh"
+
+# safelist
+branches:
+  only:
+    - travis
+
+deploy:
+    skip_cleanup: true
