@@ -24,23 +24,12 @@ matrix:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install gfortran libopenmpi-dev openmpi-bin libblas-dev liblapack-dev libfftw3-dev libnetcdf-dev libhdf5-serial-dev
-#addons:
-#    apt:
-#        packages:
-#            - gfortran
-#            - libopenmpi-dev
-#            - openmpi-bin
-#            - libblas-dev
-#            - liblapack-dev
-#            - libfftw3-dev
-#            - libnetcdf-dev
-#            - libhdf5-serial-dev
 
 install:
   - "pip install -r ./tests/requirements.txt"
-  - "./tests/install.sh -y YAMBO_VERSION -pw PW_VERSION"
-#script:
-#    - "python ./tests/test_si.py -f"
+  - "./tests/install.sh"
+script:
+    - "python ./tests/test_si.py -f"
 
 # safelist
 branches:
