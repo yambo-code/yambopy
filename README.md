@@ -2,6 +2,8 @@ yambopy
 =======
 
 Create automatic workflows for yambo using python
+Yambo official website: http://www.yambo-code.org/ 
+Yambo Githup page: https://github.com/yambo-code/yambo
 
 Documentation
 -------------
