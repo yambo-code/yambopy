@@ -22,17 +22,17 @@ matrix:
 #      env: PYENV_VERSION=3.5.2
 
 before_install:
-  addons:
-    apt:
-      packages:
-          - gfortran
-          - libopenmpi-dev
-          - openmpi-bin
-          - libblas-dev
-          - liblapack-dev
-          - libfftw3-dev
-          - libnetcdf-dev
-          - libhdf5-serial-dev
+    - addons:
+        - apt:
+            - packages:
+                - gfortran
+                - libopenmpi-dev
+                - openmpi-bin
+                - libblas-dev
+                - liblapack-dev
+                - libfftw3-dev
+                - libnetcdf-dev
+                - libhdf5-serial-dev
 
 install:
   - "pip install -r ./tests/requirements.txt"
