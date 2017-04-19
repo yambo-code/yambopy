@@ -30,12 +30,11 @@ install:
   - "./tests/install.sh"
   - "python setup.py install"
 script:
-    - "python ./tests/test_si.py -f"
+    - "cd ./tests/"
+    - "python ./test_si.py -f"
 
 # safelist
 branches:
   only:
     - travis
 
-deploy:
-    skip_cleanup: true
