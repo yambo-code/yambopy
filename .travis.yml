@@ -1,4 +1,4 @@
-sudo: false # or required
+sudo: required # or false
 language: python
 
 python:
@@ -21,22 +21,22 @@ matrix:
 #      language: objective-c
 #      env: PYENV_VERSION=3.5.2
 
-addons:
-    apt:
-        packages:
-            - gfortran
-            - libopenmpi-dev
-            - openmpi-bin
-            - libblas-dev
-            - liblapack-dev
-            - libfftw3-dev
-            - libnetcdf-dev
-            - libhdf5-serial-dev
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install gfortran libopenmpi-dev openmpi-bin libblas-dev liblapack-dev libfftw3-dev libnetcdf-dev libhdf5-serial-dev
+#addons:
+#    apt:
+#        packages:
+#            - gfortran
+#            - libopenmpi-dev
+#            - openmpi-bin
+#            - libblas-dev
+#            - liblapack-dev
+#            - libfftw3-dev
+#            - libnetcdf-dev
+#            - libhdf5-serial-dev
 
-after_success:
-  - "which gfortran"
-  - "sudo apt-get install time -qq -y"
-  - "which time"
+install:
   - "pip install -r ./tests/requirements.txt"
   - "./tests/install.sh -y YAMBO_VERSION -pw PW_VERSION"
 #script:
