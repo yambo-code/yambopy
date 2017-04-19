@@ -33,13 +33,14 @@ addons:
             - libnetcdf-dev
             - libhdf5-serial-dev
 
-before_script:
+after_success:
   - "which gfortran"
+  - "sudo apt-get install time -qq -y"
   - "which time"
   - "pip install -r ./tests/requirements.txt"
   - "./tests/install.sh -y YAMBO_VERSION -pw PW_VERSION"
-script:
-    - "python ./tests/test_si.py -f"
+#script:
+#    - "python ./tests/test_si.py -f"
 
 # safelist
 branches:
