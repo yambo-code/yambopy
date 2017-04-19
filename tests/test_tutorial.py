@@ -26,7 +26,7 @@ class TestGW_Convergence(unittest.TestCase):
         gs_si.scf()
         gs_si.nscf()
         gs_si.bands()
-   
+
     def test_calcs(self):
         gs_si.run_relax()
         gs_si.run_scf()
@@ -38,7 +38,7 @@ class TestGW_Convergence(unittest.TestCase):
     def test_convergence(self):
         gw_conv_si.create_save()
         gw_conv_si.gw_convergence()
- 
+
     def test_plot(self):
         gw_conv_si.plot_convergence()
 
@@ -51,7 +51,7 @@ import bse_cutoff
 class TestCoulomb_Cutoff(unittest.TestCase):
     def test_calcs(self):
         bse_cutoff.run()
- 
+
     def test_plot(self):
         bse_cutoff.plot()
 
@@ -70,7 +70,7 @@ class TestParallel_BSE(unittest.TestCase):
     def test_calcs(self):
         gs_mos2.run_scf()
         gs_mos2.run_nscf()
- 
+
     def test_parallel(self):
         bse_par_mos2.run()
 
@@ -107,25 +107,29 @@ if __name__ == '__main__':
     if is_exe('pw.x'):
         print "pw.x not found, please install it before running the tests"
         exit()
-   
+
+    # Count the number of errors
+    nerrors = 0
+
     # Test for tutorial 1
     if args.tutorial1:
         clean()
         suite = unittest.TestLoader().loadTestsFromTestCase(TestGW_Convergence)
-        unittest.TextTestRunner(verbosity=2).run(suite)
+        nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     # Test for tutorial 2
     if args.tutorial2:
         clean()
         suite = unittest.TestLoader().loadTestsFromTestCase(TestCoulomb_Cutoff)
-        unittest.TextTestRunner(verbosity=2).run(suite)
+        nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     # Test for tutorial 3
     if args.tutorial3:
         clean()
         suite = unittest.TestLoader().loadTestsFromTestCase(TestParallel_BSE)
-        unittest.TextTestRunner(verbosity=2).run(suite)
+        nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     if args.clean:
         clean()
 
+    sys.exit(nerrors)
