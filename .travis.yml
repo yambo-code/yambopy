@@ -33,7 +33,7 @@ addons:
             - libnetcdf-dev
             - libhdf5-serial-dev
 
-install:
+before_script:
   - "which gfortran"
   - "which time"
   - "pip install -r ./tests/requirements.txt"
