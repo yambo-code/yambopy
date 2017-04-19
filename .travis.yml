@@ -23,11 +23,12 @@ matrix:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install gfortran libopenmpi-dev openmpi-bin libblas-dev liblapack-dev libfftw3-dev libnetcdf-dev libhdf5-serial-dev
+  - sudo apt-get install -qq gfortran libopenmpi-dev openmpi-bin libblas-dev liblapack-dev libfftw3-dev libnetcdf-dev libhdf5-serial-dev
 
 install:
   - "pip install -r ./tests/requirements.txt"
   - "./tests/install.sh"
+  - "python setup.py install"
 script:
     - "python ./tests/test_si.py -f"
 
