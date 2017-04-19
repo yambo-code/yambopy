@@ -4,9 +4,9 @@
 # This file is part of the yambopy project
 #
 from yambopy import *
-from yambopy.netcdf import *
 from yambopy.plot import *
 from itertools import product
+from netCDF4 import Dataset
 
 max_exp = 50
 ha2ev = 27.211396132

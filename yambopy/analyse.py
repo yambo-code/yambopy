@@ -4,56 +4,11 @@
 # This file is part of yambopy
 #
 #
+from yambopy import *
 import os
 import json
-import numpy as np
 import re
 from itertools import product
-from yambopy import *
-
-#we try to use matplotlib, if not present we won't use it
-try:
-    from matplotlib import pyplot as plt
-except ImportError:
-    _has_matplotlib = False
-else:
-    _has_matplotlib = True
-
-def red_car(red,lat):
-    lat = np.array(lat)
-    return np.array(map( lambda coord: coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2], red))
-
-def car_red(car,lat): 
-    lat = np.array(lat)
-    return np.array(map( lambda coord: np.linalg.solve(np.array(lat).T,coord), car))
-
-def rec_lat(lat):
-    """
-    Calculate the reciprocal lattice vectors
-    """
-    a1,a2,a3 = np.array(lat)
-    v = np.dot(a1,np.cross(a2,a3))
-    b1 = np.cross(a2,a3)/v
-    b2 = np.cross(a3,a1)/v
-    b3 = np.cross(a1,a2)/v
-    return np.array([b1,b2,b3])
-
-def expand_kpts(kpts,syms):
-    """ Take a list of qpoints and symmetry operations and return the full brillouin zone
-    with the corresponding index in the irreducible brillouin zone
-    """
-    full_kpts = []
-    print "nkpoints:", len(kpts)
-    for nk,k in enumerate(kpts):
-        for sym in syms:
-            full_kpts.append((nk,np.dot(sym,k)))
-
-    return full_kpts
-
-def isbetween(a,b,c):
-    """ Check if c is between a and b
-    """
-    return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0)
 
 class YamboAnalyser():
     """
@@ -241,7 +196,10 @@ class YamboAnalyser():
             ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
             plt.xlim(0,max(bands_distances))
             ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
-            plt.show()
+            if 'DISPLAY' in os.environ:
+                plt.show()
+            else:
+                plt.savefig('gw.png')
 
     def get_gw_bands(self,json_filename,output_filename,cols=(lambda x: x[2]+x[3],),rows=None):
         """

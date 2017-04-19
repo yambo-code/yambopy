@@ -5,6 +5,23 @@
 #
 from yambopy import *
 
+def expand_kpts(kpts,syms):
+    """ Take a list of qpoints and symmetry operations and return the full brillouin zone
+    with the corresponding index in the irreducible brillouin zone
+    """
+    full_kpts = []
+    print "nkpoints:", len(kpts)
+    for nk,k in enumerate(kpts):
+        for sym in syms:
+            full_kpts.append((nk,np.dot(sym,k)))
+
+    return full_kpts
+
+def isbetween(a,b,c):
+    """ Check if c is between a and b
+    """
+    return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0)
+
 def red_car(red,lat):
     """
     Convert reduced coordinates to cartesian

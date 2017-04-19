@@ -33,6 +33,7 @@ def get_inputfile():
 
     qe.control['prefix'] = "'%s'"%prefix
     qe.control['wf_collect'] = '.true.'
+    qe.control['pseudo_dir'] = "'../pseudos'"
     qe.system['celldm(1)'] = 10.3
     qe.system['ecutwfc'] = 30
     qe.system['occupations'] = "'fixed'"
@@ -170,7 +171,7 @@ def update_positions(pathin,pathout):
 def run_relax(nthreads=1):
     print("running relax:")
     os.system("cd relax; mpirun -np %d %s -inp %s.scf > relax.log"%(nthreads,pw,prefix))
-    update_positions('scf', 'relax')
+    update_positions('relax', 'scf')
     print("done!")
 
 def run_scf(nthreads=1):

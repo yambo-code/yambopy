@@ -23,7 +23,7 @@ class TestPW_Si(unittest.TestCase):
 
         qe.control['prefix'] = "'si'"
         qe.control['wf_collect'] = '.true.'
-        qe.control['pseudo_dir'] = "'..'"
+        qe.control['pseudo_dir'] = "'../pseudos'"
         qe.system['celldm(1)'] = 10.3
         qe.system['ecutwfc'] = 40
         qe.system['occupations'] = "'fixed'"
@@ -83,7 +83,7 @@ class TestPW_Si_Run(unittest.TestCase):
         e = PwXML('si',path='relax')
         pos = e.get_scaled_positions()
 
-        q = PwIn('relax/si.scf')
+        q = PwIn('scf/si.scf')
         print "old celldm(1)", q.system['celldm(1)']
         q.system['celldm(1)'] = e.cell[0][2]*2
         print "new celldm(1)", q.system['celldm(1)']

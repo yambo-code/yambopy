@@ -140,7 +140,9 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         plt.plot(array[:,0],array[:,1],'o-')
         plt.xlabel(var+' ('+unit+')')
         plt.ylabel('E_gw = E_lda + \Delta E')
-        plt.show()
+        plt.savefig('%s.png'%var)
+        if 'DISPLAY' in os.environ:
+            plt.show()
 
     print 'Done.'
 
@@ -290,7 +292,6 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
         print '-nt flag : no text produced.'
 
     if draw:
-        import matplotlib
         ## Exciton energy plots
         filename = outname+'_excitons.png'
         excitons = np.array(excitons)
@@ -499,7 +500,11 @@ def plot_excitons(filename,cut=0.2,size=20):
     
     plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.01, hspace=0.01)
 
-    plt.show()
+    #remove extension from file
+    figure_filename = os.path.splitext(filename)
+    plt.savefig('%s.png'%figure_filename)
+    if 'DISPLAY' in os.environ:
+        plt.show()
 
 
 

@@ -4,7 +4,7 @@
 # This file is part of the yambopy project
 #
 from yambopy import *
-from yambopy.netcdf import *
+from netCDF4 import Dataset
 
 class YamboStaticScreeningDB():
     """
@@ -79,15 +79,21 @@ class YamboStaticScreeningDB():
             filename = "%s/%s_fragment_%d"%(self.save,self.filename,nq+1)
             try:
                 db = Dataset(filename)
-
-                #static screening means we have only one frequency
-                re, im = db['X_Q_%d'%(nq+1)][0,:]
-                self.X[nq] = re + 1j*im
-     
-                #close database
-                db.close()
             except:
                 print "warning: failed to read %s"%filename
+
+
+            #static screening means we have only one frequency
+            # this try except is because the way this is sotored has changed in yambo
+            try:
+                re, im = db['X_Q_%d'%(nq+1)][0,:]
+            except:
+                re, im = db['X_Q_%d'%(nq+1)][0,:].T
+
+            self.X[nq] = re + 1j*im
+         
+            #close database
+            db.close()
 
     def saveDBS(self,path):
         """

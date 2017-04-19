@@ -15,8 +15,10 @@ prefix = "bn"
 yambo = "yambo"
 p2y = 'p2y'
 layer_separations = [10,15,20,25,30,35,40] #,45,50]
-kpoints = [24,24,1]
+scf_kpoints  = [ 9, 9,1]
+nscf_kpoints = [24,24,1]
 nbands = 20 #should be larger! we use 30 for demonstration
+ecutwf = 60
 
 scheduler = Scheduler.factory
 
@@ -35,12 +37,12 @@ def get_inputfile():
     qe.control['pseudo_dir'] = "'../../../pseudos/'"
     qe.system['celldm(1)'] = 4.7
     qe.system['celldm(3)'] = 14/qe.system['celldm(1)']
-    qe.system['ecutwfc'] = 60
+    qe.system['ecutwfc'] = ecutwf
     qe.system['occupations'] = "'fixed'"
     qe.system['nat'] = 2
     qe.system['ntyp'] = 2
     qe.system['ibrav'] = 4
-    qe.kpoints = [9, 9, 1]
+    qe.kpoints = scf_kpoints
     qe.electrons['conv_thr'] = 1e-10
     return qe
 
@@ -64,7 +66,7 @@ def nscf(layer_separation,folder='nscf'):
     qe.system['nbnd'] = nbands
     qe.system['force_symmorphic'] = ".true."
     qe.system['celldm(3)'] = layer_separation/qe.system['celldm(1)']
-    qe.kpoints = kpoints
+    qe.kpoints = nscf_kpoints
     qe.write('%s/%s.nscf'%(folder,prefix))
     
 def database(shell,output_folder,nscf_folder='nscf'):
@@ -76,7 +78,7 @@ def database(shell,output_folder,nscf_folder='nscf'):
         shell.add_command('mv %s/%s.save/SAVE %s'%(nscf_folder,prefix,output_folder))
         print('done!')
 
-def run_job(layer_separation,work_folder='bse_cutoff',cut=False):
+def run_job(layer_separation,nthreads=1,work_folder='bse_cutoff',cut=False):
     """
     Given a layer separation run the calculation
     1. scf calculation with QE
@@ -97,12 +99,14 @@ def run_job(layer_separation,work_folder='bse_cutoff',cut=False):
 
     # 1. run the ground state calculation
     print("scf cycle")
+    print("kpoints",scf_kpoints)
     scf(layer_separation,folder="%s/scf"%root_folder)
     shell.add_command("pushd %s/scf; pw.x < %s.scf > scf.log"%(root_folder,prefix))
     shell.add_command("popd")
 
     # 2. run the non self consistent calculation
     print("nscf cycle")
+    print("kpoints",nscf_kpoints)
     src ='%s/scf/%s.save'%(root_folder,prefix)
     dst ='%s/nscf/%s.save'%(root_folder,prefix)
     nscf(layer_separation,folder="%s/nscf"%root_folder)
@@ -141,11 +145,11 @@ def run_job(layer_separation,work_folder='bse_cutoff',cut=False):
     shell.add_command('touch done')
     shell.run()
 
-def run(nthreads=1,work_folder='bse_cutoff',cut=True):
+def run(mpthreads=1,nthreads=1,work_folder='bse_cutoff',cut=True):
 
-    if (nthreads > 1):
+    if (mpthreads > 1):
         p = multiprocessing.Pool(nthreads)
-        run = partial(run_job,work_folder=work_folder,cut=cut)
+        run = partial(run_job,nthreads=nthreads,work_folder=work_folder,cut=cut)
         try:
             #reversed list because of load imbalance
             p.map(run, reversed(layer_separations))
@@ -156,9 +160,9 @@ def run(nthreads=1,work_folder='bse_cutoff',cut=True):
 
     else:
         for layer_separation in layer_separations:
-            run_job(layer_separation,work_folder,cut)
+            run_job(layer_separation,nthreads=nthreads,work_folder=work_folder,cut=cut)
 
-def plot(work_folder,filename):
+def plot(work_folder,filename,cut):
     ax = plt.gca()
     for layer_separation in layer_separations:
         root_folder = "%s/%d"%(work_folder,layer_separation)
@@ -186,11 +190,12 @@ if __name__ == "__main__":
     parser.add_argument('-r' ,'--run',      action="store_true", help='Run the calculation')
     parser.add_argument('-c' ,'--cut',      action="store_true", help='Use coulomb cutoff')
     parser.add_argument('-p' ,'--plot',     action="store_true", help='Run the analysis')
-    parser.add_argument('-f' ,'--plotfile', help='Name of the plot file', default=None)
-    parser.add_argument('-t' ,'--nthreads', help='Number of threads', default=1)
+    parser.add_argument('-f' ,'--plotfile', help='name of the plot file', default=None)
+    parser.add_argument('-t' ,'--nthreads', help='threads for yambo', default=1, type=int)
+    parser.add_argument('-mp' ,'--mpthreads', help='theads using python multiprocessing module', default=1, type=int)
     args = parser.parse_args()
-    nthreads = int(args.nthreads)
-    print("Using %d threads"%nthreads)
+    print("yambo using %d threads"%args.nthreads)
+    print("multiprocessing using %d threads"%args.mpthreads)
 
     if len(sys.argv)==1:
         parser.print_help()
@@ -205,6 +210,6 @@ if __name__ == "__main__":
         work_folder = "bse_cutoff"
 
     if args.run:
-        run(nthreads,work_folder,cut)
+        run(args.mpthreads,args.nthreads,work_folder,cut)
     if args.plot:
-        plot(work_folder,args.plotfile)
+        plot(work_folder,args.plotfile,cut)

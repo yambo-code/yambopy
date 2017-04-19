@@ -24,12 +24,19 @@ class PwXML():
         datafiles = {'data-file.xml':        self.read_datafile,
                      'data-file-schema.xml': self.read_datafile_schema}
 
+        done_reading = False
         #check if the name is data-file.xml or data-file-schema.xml or whatever....
         for filename,read in datafiles.items():
             path_filename = "%s/%s.save/%s"%(path, prefix, filename)
             if os.path.isfile(path_filename):
                 print "reading %s"%filename
-                read(path_filename)
+                done_reading = read(path_filename)
+                break
+        
+        #trap errors
+        if not done_reading:
+            possible_files = " or ".join(datafiles.keys())
+            raise ValueError('Failed to read %s in %s/%s.save'%(possible_files,path,prefix))
 
     def read_datafile(self,filename):
         """
@@ -79,7 +86,8 @@ class PwXML():
 
         #get fermi
         self.fermi = float(self.datafile_xml.find("BAND_STRUCTURE_INFO/FERMI_ENERGY").text)
- 
+
+        return True 
 
     def read_datafile_schema(self,filename):
         """
@@ -133,6 +141,8 @@ class PwXML():
  
         #get fermi
         self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)
+
+        return True
 
     def get_scaled_positions(self):
         """ get the atomic positions in reduced coordinates

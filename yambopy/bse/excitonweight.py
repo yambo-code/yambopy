@@ -4,8 +4,8 @@
 # This file is part of the yambopy project
 #
 from yambopy import *
-from yambopy.netcdf import *
 from itertools import product
+from netCDF4 import Dataset
 
 class YamboExcitonWeight(YamboSaveDB):
     """

@@ -33,7 +33,6 @@ Modules:
 """
 import numpy as np
 from yambopy.jsonencoder import *
-from yambopy.netcdf import *
 from yambopy.plot import *
 from yambopy.units import *
 

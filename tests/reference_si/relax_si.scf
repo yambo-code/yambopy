@@ -1,7 +1,7 @@
 &control
          calculation = 'vc-relax'
               prefix = 'si'
-          pseudo_dir = '..'
+          pseudo_dir = '../pseudos'
           wf_collect = .true.
 /&end
 &system

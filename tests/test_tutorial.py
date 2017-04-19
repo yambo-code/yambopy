@@ -23,8 +23,8 @@ import gw_conv_si
 
 class TestGW_Convergence(unittest.TestCase):
     def test_ainputs(self):
-        gs_si.relax()
         gs_si.scf()
+        gs_si.relax()
         gs_si.nscf()
         gs_si.bands()
 
@@ -44,17 +44,30 @@ class TestGW_Convergence(unittest.TestCase):
         gw_conv_si.plot_convergence()
 
 #######################################################
-# Boron Nitride Coulomb Cutoff
+# Boron Nitride
 #######################################################
 sys.path.append('../tutorial/bn')
+import gs_bn 
 import bse_cutoff
 
 class TestCoulomb_Cutoff(unittest.TestCase):
+    def test_ainputs(self):
+        gs_si.scf()
+        gs_si.relax()
+        gs_si.nscf()
+        gs_si.bands()
+
     def test_calcs(self):
-        bse_cutoff.run()
+        bse_cutoff.layer_separations= [12,15,20]
+        bse_cutoff.scf_kpoints  = [9,9,1]
+        bse_cutoff.nscf_kpoints = [6,6,1]
+        bse_cutoff.nbands = 10
+        bse_cutoff.ecutwf = 40
+
+        bse_cutoff.run(work_folder='bse_cutoff_cut',cut=True)
 
     def test_plot(self):
-        bse_cutoff.plot()
+        bse_cutoff.plot('bse_cutoff_cut','cutoff_test',cut=True)
 
 #######################################################
 # Parallel Bethe-Salpeter MoS2

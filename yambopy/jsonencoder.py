@@ -1,6 +1,15 @@
+"""
+import a special json encoder to do slightly readable files
+"""
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda
+# All rights reserved.
+#
+# This file is part of yambopy
+#
+#
 import json
-import numpy as np
 import re
+import numpy as np
 
 class MyEncoder(json.JSONEncoder):
     def default(self, obj):
