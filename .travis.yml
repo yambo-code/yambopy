@@ -33,7 +33,10 @@ install:
 script:
     - "cd ./tests/"
     - "coverage run -a --source=yambopy ./test_tutorial.py -t1 -t2 -t3"
+    - "python ./test_tutorial.py -c"
     - "coverage run -a --source=yambopy ./test_si.py -f"
+    - "python ./test_si.py -c"
+    - "coverage run -a --source=yambopy ./test_scheduler.py -f"
     - "coverage report -m"
 
 # safelist
