@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
@@ -80,7 +81,7 @@ class YamboStaticScreeningDB():
             try:
                 db = Dataset(filename)
             except:
-                print "warning: failed to read %s"%filename
+                print("warning: failed to read %s"%filename)
 
 
             #static screening means we have only one frequency
@@ -215,7 +216,7 @@ class YamboStaticScreeningDB():
 if __name__ == "__main__":
 
     ys = YamboStaticScreeningDB()
-    print ys
+    print(ys)
   
     #plot static screening 
     ax = plt.gca()

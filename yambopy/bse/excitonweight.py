@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (c) 2016, Henrique Miranda
 # All rights reserved.
 #
@@ -116,7 +117,7 @@ class YamboExcitonWeight(YamboSaveDB):
           self.transitions_v_to_c[(int(v),int(c))] += self.transitions[(v,c,k,s)]
         for v,c in self.transitions_v_to_c:
           self.transitions_v_to_c[(v,c)] = self.transitions_v_to_c[(v,c)]/norm
-          print('v ', v,' ==>>>', ' c ',c)
+          print(('v ', v,' ==>>>', ' c ',c))
 
         #rename symmetries and kpoints
         sym = self.sym_car
@@ -251,7 +252,7 @@ class YamboExcitonWeight(YamboSaveDB):
 
 if __name__ == "__main__":
     ye = YamboExciton('o-yambo.exc_weights_at_1_02')
-    print ye
+    print(ye)
     ye.write_irr()
     ye.write_full()
     #ye.plot_contour()

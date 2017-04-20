@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
@@ -156,7 +157,7 @@ class YamboOut():
         """
         data = {}
         for key in self.data.keys():
-            print key
+            print(key)
             if all(tag in key for tag in tags):
                 data[key] = dict(zip(self.tags[key],np.array(self.data[key]).T))
         return data
@@ -181,7 +182,7 @@ class YamboOut():
         """
         timing = self.get_runtime()
         for t in timing.items():
-            print t[0], '\n', t[1], '\n'
+            print(t[0], '\n', t[1], '\n')
 
     def pack(self,filename=None):
         """

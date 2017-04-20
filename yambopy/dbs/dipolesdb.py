@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
@@ -282,4 +283,4 @@ class YamboDipolesDB():
 if __name__ == "__main__":
     ddb = DipolesDB()
     ddb.get_databases()
-    print ddb
+    print(ddb)

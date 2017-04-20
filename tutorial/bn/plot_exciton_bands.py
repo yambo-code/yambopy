@@ -1,3 +1,4 @@
+from __future__ import print_function
 from yambopy import *
 
 
@@ -8,7 +9,7 @@ p = [ [0.0, 0.0, 0.0],
 
 
 yw = YamboExcitonWeight('bse/o-yambo.exc_weights_at_1')
-print yw
+print(yw)
 
 yw.plot_exciton_bs(p,8)
 #yw.plot_transitions()

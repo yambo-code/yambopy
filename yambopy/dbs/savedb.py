@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (c) 2016, Henrique Miranda
 # All rights reserved.
 #
@@ -25,7 +26,7 @@ def expand_kpts_val(kpts,syms,val):
     """
     full_kpts = []
     full_val  = []
-    print "nkpoints:", len(kpts)
+    print("nkpoints:", len(kpts))
     for nk,k in enumerate(kpts):
         for sym in syms:
             full_kpts.append((nk,np.dot(sym,k)))
@@ -45,7 +46,7 @@ def expand_kpts(kpts,syms):
     with the corresponding index in the irreducible brillouin zone
     """
     full_kpts = []
-    print "nkpoints:", len(kpts)
+    print("nkpoints:", len(kpts))
     for nk,k in enumerate(kpts):
         for sym in syms:
             full_kpts.append((nk,np.dot(sym,k)))
@@ -168,7 +169,7 @@ class YamboSaveDB():
 
         self.efermi = bisect(occupation_minus_ne,self.min_eival,self.max_eival)
 
-        print "fermi: %lf eV"%self.efermi
+        print("fermi: %lf eV"%self.efermi)
 
         self.eigenvalues -= self.efermi
         self.min_eival -= self.efermi
@@ -248,7 +249,7 @@ class YamboSaveDB():
             for index, disp, kpt in kpoints_in_path:
                 bands_kpoints.append( kpt )
                 bands_indexes.append( index )
-                print ("%12.8lf "*3)%tuple(kpt), index
+                print(("%12.8lf "*3)%tuple(kpt), index)
 
         self.bands_kpoints = bands_kpoints
         self.bands_indexes = bands_indexes
@@ -304,7 +305,7 @@ class YamboSaveDB():
         self.kpoints_indexes  = np.array(kpoints_indexes)
         self.symmetry_indexes = np.array(symmetry_indexes)
 
-        print "%d kpoints expanded to %d"%(len(self.kpts_car),len(kpoints_full))
+        print("%d kpoints expanded to %d"%(len(self.kpts_car),len(kpoints_full)))
 
         return self.kpoints_full, self.kpoints_indexes, self.symmetry_indexes
 
@@ -340,10 +341,10 @@ class YamboSaveDB():
         cmap = plt.get_cmap("viridis")
 
         eigenvalues = self.eigenvalues
-        print "tansitions %d -> %d"%(bandv,bandc)
+        print("tansitions %d -> %d"%(bandv,bandc))
         weights = (eigenvalues[:,bandc-1]-eigenvalues[:,bandv-1])
-        print "min:", min(weights)
-        print "max:", max(weights)
+        print("min:", min(weights))
+        print("max:", max(weights))
         weights = weights/max(weights)
 
         if expand:

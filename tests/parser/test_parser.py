@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Author:
 # Tests for the yambopy library
 # 
@@ -58,12 +59,12 @@ class TestFileT2(unittest.TestCase):
 
     def test_ndb_qp_parsing(self):
         fl = YamboFile('ndb.QP',folder+'t3_parse_netcdf')
-        print "fl type", fl.type
+        print("fl type", fl.type)
         assert fl.type=='netcdf_gw'
 
     def test_ndb_hf_parsing(self):
         fl = YamboFile('ndb.HF_and_locXC',folder+'t3_parse_netcdf')
-        print "fl type", fl.type
+        print("fl type", fl.type)
         assert fl.type=='netcdf_hf'
 
 if __name__ == "__main__":

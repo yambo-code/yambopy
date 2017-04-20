@@ -1,3 +1,4 @@
+from __future__ import print_function
 import matplotlib
 #matplotlib.use('Agg') # prevents crashes if no X server present (clusters)
 from yambopy import *
@@ -39,18 +40,18 @@ kpointv= args.kpointv
 nopack = args.nopack
 text   = args.text
 
-print 'Valence band: ',bandv,'conduction band: ',bandc
-print 'K-point VB: ',kpointv, ' k-point CB: ',kpointc
+print('Valence band: ',bandv,'conduction band: ',bandc)
+print('K-point VB: ',kpointv, ' k-point CB: ',kpointc)
 
 
 # Packing results (o-* files) from the calculations into yambopy-friendly .json files
 if nopack: # True by default, False if -np used
-    print 'Packing ...'
+    print('Packing ...')
     pack_files_in_folder(folder)
-    print 'Packing done.'
+    print('Packing done.')
 
 # importing data from .json files in <folder>
-print 'Importing...'
+print('Importing...')
 data = YamboAnalyser(folder)
 
 # extract data according to relevant variable
@@ -67,7 +68,7 @@ for key in invars:
 # Ordered to help plotting with lines
 keys=sorted(keys)
 
-print 'Preparing output...'
+print('Preparing output...')
 ### Output
 
 # Unit of the variable :
@@ -107,7 +108,7 @@ if text:
     filename = folder+'_'+var+'.dat'
     header = 'Variable: '+var+', unit: '+str(unit)
     np.savetxt(filename,array,delimiter='\t',header=header)
-    print filename
+    print(filename)
 
 plt.plot(array[:,0],array[:,1],'o-')
 plt.xlabel(var+' ('+unit+')')

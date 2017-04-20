@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (c) 2016, Henrique Miranda
 # All rights reserved.
 #
@@ -112,8 +113,8 @@ class YamboExcitonWaveFunctionXSF():
         for i in range(3):
             self.norm[i] = np.linalg.norm(self.lattice[i])
 
-        print self.norm
-        print self.nx, self.ny, self.nz
+        print(self.norm)
+        print(self.nx, self.ny, self.nz)
 
         # find the average position in each direction (geometric center)
         pos = np.zeros([3])

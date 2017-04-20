@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 # Author: Henrique Pereira Coutada Miranda
 # Example script to plot the weigth of the atomic species in the bandstructure
@@ -37,14 +38,14 @@ if args.calc:
 if args.analyse:
     pxml = ProjwfcXML('mos2',path=folder)
     # obtain the list of orbitals and quantum numbers
-    print pxml
-    print "Writting projections"
+    print(pxml)
+    print("Writting projections")
     pxml.write_proj()
-    print "done!"
+    print("done!")
 
 if args.plot_size:
     pxml = ProjwfcXML('mos2',path=folder)
-    print pxml
+    print(pxml)
 
     # select orbitals to plot
     # example1 mo, s2 and mos2
@@ -61,7 +62,7 @@ if args.plot_size:
 
 if args.plot_orbital:
     pxml = ProjwfcXML('mos2',path=folder)
-    print pxml
+    print(pxml)
 
     # select orbitals to plot
     # example1 mo, s2

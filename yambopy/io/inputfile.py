@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
 # All rights reserved.
 #
@@ -221,7 +222,7 @@ class YamboIn():
             self.write( "%s/reference.in"%(self.folder) )
             run('reference.in')
         else:
-            print 'Reference run disabled.'
+            print('Reference run disabled.')
 
         #converge one by one
         for key in [var for var in conv.keys() if var in variables]:

@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (c) 2015, Henrique Miranda
 # All rights reserved.
 #
@@ -25,7 +26,7 @@ class YamboLatticeDB():
         try:
             database = Dataset(self.filename)
         except:
-            print "error opening %s in YamboLatticeDB"%self.filename
+            print("error opening %s in YamboLatticeDB"%self.filename)
             exit()
 
         self.lat         = database.variables['LATTICE_VECTORS'][:].T
@@ -113,7 +114,7 @@ class YamboLatticeDB():
         for nk in kpoints_full_i:
             weights[nk] = float(len(kpoints_full_i[nk]))/self.full_nkpoints
 
-        print "%d kpoints expanded to %d"%(len(self.car_kpoints),len(kpoints_full))
+        print("%d kpoints expanded to %d"%(len(self.car_kpoints),len(kpoints_full)))
 
         #set the variables
         self.weights_ibz      = np.array(weights)

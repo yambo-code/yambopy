@@ -1,3 +1,4 @@
+from __future__ import print_function
 ##############################################################################
 #
 # Author: Alejandro Molina-Sanchez
@@ -37,16 +38,16 @@ folder   = 'rt-6x6'
 #os.system('cd %s; mkdir -p inputs' % folder)
 
 if args.collisions:
-  print 'Collisions'
+  print('Collisions')
   run = YamboIn('%s -r -e -v hsex'%yambo_rt,folder=folder)
 elif args.pump:
-  print 'Time-dependent with electric field'
+  print('Time-dependent with electric field')
   run = YamboIn('%s -q p'%yambo_rt,folder=folder)
 elif args.dissipation:
-  print 'Time-dependent with electric field and electron-phonon scattering'
+  print('Time-dependent with electric field and electron-phonon scattering')
   run = YamboIn('%s -s p -q p'%yambo_rt,folder=folder)
 else:
-  print 'Invalid calculation type'
+  print('Invalid calculation type')
   exit()
 
 # Proportionality constant of the DOS(T)
@@ -132,9 +133,9 @@ if args.dissipation:
 
 # Run -- Creating
 
-print 'Collisions        ',job['folder-col']
-print 'Number of nodes   ',job['nodes']
-print 'Number of cores   ',job['cores']
+print('Collisions        ',job['folder-col'])
+print('Number of nodes   ',job['nodes'])
+print('Number of cores   ',job['cores'])
 
 oarsub = oarsub(nodes=job['nodes'],core=job['cores'],dependent=0,name=job['name'],walltime="24:00:00")
 oarsub.add_command('module load %s'%job['yambo_module'])
@@ -187,7 +188,7 @@ if args.dissipation:
   # submission script
   if job['DG'][0]:
     oarsub.add_command('cd %s/%s; mpirun -hostfile \$OAR_NODEFILE %s -F pulse.in -J \'pulse,..//%s,..//%s,..//%s\' -C pulse -I \'../\''%(folder,job['folder-run'],yambo_rt,job['folder-col'],job['folder-gkkp'],job['DG'][1]) )
-    print 'Double Grid enabled'
+    print('Double Grid enabled')
   else:
     oarsub.add_command('cd %s/%s; mpirun -hostfile \$OAR_NODEFILE %s -F pulse.in -J \'pulse,..//%s,..//%s\' -C pulse -I \'../\''%(folder,job['folder-run'],yambo_rt,job['folder-col'],job['folder-gkkp']) )
   oarsub.write('%s/%s/pulse.ll'%(folder,job['folder-run']))

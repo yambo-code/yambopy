@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (c) 2015, Henrique Miranda
 # All rights reserved.
 #
@@ -200,6 +201,6 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
     def write_json(self,filename="absorptionspectra"):
         """ Write a jsonfile with the absorption spectra and the wavefunctions of certain excitons
         """
-        print "writing json file...",
+        print("writing json file...", end=' ')
         JsonDumper(self.data,"%s.json"%filename)
-        print "done!"
+        print("done!")
