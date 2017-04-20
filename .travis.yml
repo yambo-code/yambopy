@@ -32,9 +32,9 @@ install:
   - "python setup.py install"
 script:
     - "cd ./tests/"
-    - "coverage run ./test_tutorial.py -t1 -t2 -t3"
+    - "coverage run --source=yambopy ./test_tutorial.py -t1 -t2 -t3"
     - "coverage report -m"
-    - "coverage run ./test_si.py -f"
+    - "coverage run --source=yambopy ./test_si.py -f"
     - "coverage report -m"
 
 # safelist
