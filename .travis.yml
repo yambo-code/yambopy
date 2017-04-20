@@ -3,7 +3,7 @@ language: python
 
 python:
     - 2.7
-     - 3.5
+    - 3.5
 dist: precise # reached EOL but still available
               # software sources for tests are compiled for precise
 env:
