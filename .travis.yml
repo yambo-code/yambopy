@@ -32,10 +32,10 @@ install:
   - "python setup.py install"
 script:
     - "cd ./tests/"
-    - "coverage run python ./test_tutorial.py -t1 -t2 -t3"
-    - "coverage report"
-    - "coverage run python ./test_si.py -f"
-    - "coverage report"
+    - "coverage run ./test_tutorial.py -t1 -t2 -t3"
+    - "coverage report -m"
+    - "coverage run ./test_si.py -f"
+    - "coverage report -m"
 
 # safelist
 branches:
