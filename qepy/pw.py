@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
@@ -183,7 +184,7 @@ class PwIn():
                 self.atomic_pos_type = re.findall('([A-Za-z]+)',line)[-1]
                 for i in xrange(int(self.system["nat"])):
                     atype, x,y,z = lines.next().split()
-                    self.atoms.append([atype,[float(i) for i in x,y,z]])
+                    self.atoms.append([atype,[float(i) for i in (x,y,z)]])
         self.atomic_pos_type = atomic_pos_type.replace('{','').replace('}','').strip().split()[1]
 
     def read_cell_parameters(self):
@@ -214,7 +215,7 @@ class PwIn():
                                     [    0, a/2, a/2],
                                     [ -a/2, a/2,   0]]
         else:
-            print 'ibrav = %d not implemented'%ibrav
+            print('ibrav = %d not implemented'%ibrav)
             exit(1)
         
     def read_kpoints(self):
@@ -239,7 +240,7 @@ class PwIn():
                             vals = lines_list[n].split()[:4]
                             self.klist.append( map(float,vals) )
                     except IndexError:
-                        print "wrong k-points list format"
+                        print("wrong k-points list format")
                         exit()
 
     def slicefile(self, keyword):

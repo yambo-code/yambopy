@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez, Alexandre Morlet, Fulvio Paleari
 # All rights reserved.
 #
@@ -21,7 +22,7 @@ def pack_files_in_folder(folder,save_folder=None,mask='',verbose=True):
         if mask in dirpath:
             #check if there are some output files in the folder
             if ([ f for f in filenames if 'o-' in f ]):
-                print dirpath
+                print(dirpath)
                 y = YamboOut(dirpath,save_folder=save_folder)
                 y.pack()
 
@@ -64,17 +65,17 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
     the location of the band extrema.
     """
 
-    print 'Valence band: ',bandv,'conduction band: ',bandc
-    print 'K-point VB: ',kpointv, ' k-point CB: ',kpointc
+    print('Valence band: ',bandv,'conduction band: ',bandc)
+    print('K-point VB: ',kpointv, ' k-point CB: ',kpointc)
 
     # Packing results (o-* files) from the calculations into yambopy-friendly .json files
     if pack:
-        print 'Packing ...'
+        print('Packing ...')
         pack_files_in_folder(folder,mask=var)
         pack_files_in_folder(folder,mask='reference')
 
     # importing data from .json files in <folder>
-    print 'Importing data...'
+    print('Importing data...')
     data = YamboAnalyser(folder)
 
     # extract data according to relevant variable
@@ -91,9 +92,9 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         key=sorted_invars[i][0]
         if key.startswith(var) or key=='reference.json':
             keys.append(key)
-    print 'Files detected: ',keys
+    print('Files detected: ',keys)
 
-    print 'Computing values...'
+    print('Computing values...')
     ### Output
 
     # Unit of the variable :
@@ -134,7 +135,7 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         outname = './analyse_%s/%s_%s.dat'%(folder,folder,var)
         header = var+' ('+str(unit)+'), gap'
         np.savetxt(outname,array,delimiter='\t',header=header)
-        print 'Data saved to ',outname
+        print('Data saved to ',outname)
 
     if draw:
         plt.plot(array[:,0],array[:,1],'o-')
@@ -144,7 +145,7 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         if 'DISPLAY' in os.environ:
             plt.show()
 
-    print 'Done.'
+    print('Done.')
 
 #
 # by Alexandre Morlet
@@ -177,12 +178,12 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
 
     # Packing results (o-* files) from the calculations into yambopy-friendly .json files
     if pack: # True by default, False if -np used
-        print 'Packing ...'
+        print('Packing ...')
         pack_files_in_folder(folder,mask=var)
         pack_files_in_folder(folder,mask='reference')
 
     # importing data from .json files in <folder>
-    print 'Importing data...'
+    print('Importing data...')
     data = YamboAnalyser(folder)
 
     # extract data according to relevant var
@@ -197,9 +198,9 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
         key=sorted_invars[i][0]
         if key.startswith(var) or key=='reference.json':
             keys.append(key)
-    print 'Files detected:'
+    print('Files detected:')
     for key in keys:
-        print key
+        print(key)
 
     # unit of the input value
     unit = invars[keys[0]]['variables'][var][1]
@@ -217,7 +218,7 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
     # Loop over all calculations
     for key in keys:
         jobname=key.replace('.json','')
-        print jobname
+        print(jobname)
 
         # input value
         v = invars[key]['variables'][var][0]
@@ -226,7 +227,7 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
         else:
             inp = v
            
-        print 'Preparing JSON file. Calling ypp if necessary.'
+        print('Preparing JSON file. Calling ypp if necessary.')
         ### Creating the 'absorptionspectra.json' file
         # It will contain the exciton energies
         y = YamboOut(folder=folder,save_folder=folder)
@@ -265,16 +266,16 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
 
         ## Excitons energies
         #output on the screen
-        print header
+        print(header)
         for exc in excitons:
             x = exc[0]
             e = exc[1:]
-            print "%8.4lf "%x+("%8.4lf"*len(e))%tuple(e)
+            print("%8.4lf "%x+("%8.4lf"*len(e))%tuple(e))
 
         #save file
         filename = outname+'_excitons.dat'
         np.savetxt(filename,excitons,header=header)
-        print filename
+        print(filename)
         
         ## Spectra
         filename = outname+'_spectra.dat'
@@ -286,10 +287,10 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
                 f.write("%12.8e %12.8e\n"%(x,y))
             f.write('\n\n')
         f.close()
-        print filename
+        print(filename)
 
     else:
-        print '-nt flag : no text produced.'
+        print('-nt flag : no text produced.')
 
     if draw:
         ## Exciton energy plots
@@ -305,7 +306,7 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
         plt.savefig(filename, dpi=300, bbox_inches='tight')
         if 'DISPLAY' in os.environ:
             plt.show()
-        print filename
+        print(filename)
 
         ## Spectra plots
         filename = outname+'_spectra.png'
@@ -320,11 +321,11 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
         plt.savefig(filename, dpi=300, bbox_inches='tight')
         if 'DISPLAY' in os.environ:
             plt.show()
-        print filename
+        print(filename)
     else:
-        print '-nd flag : no plot produced.'
+        print('-nd flag : no plot produced.')
 
-    print 'Done.'
+    print('Done.')
     
     return excitons, spectras
 
@@ -333,20 +334,20 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
 #
 def merge_qp(output,files,verbose=False):
     #read all the files and display main info in each of them
-    print "=========input========="
+    print("=========input=========")
     filenames = [ f.name for f in files]
     datasets  = [ Dataset(filename) for filename in filenames]
     QP_table, QP_kpts, QP_E_E0_Z = [], [], []
     for d,filename in zip(datasets,filenames):
         _, nkpoints, nqps, _, nstrings = map(int,d['PARS'][:])
-        print "filename:    ", filename
+        print("filename:    ", filename)
         if verbose:
-            print "description:"
+            print("description:")
             for i in xrange(1,nstrings+1):
-                print ''.join(d['DESC_strings_%05d'%i][0])
+                print(''.join(d['DESC_strings_%05d'%i][0]))
         else:
-            print "description:", ''.join(d['DESC_strings_%05d'%(nstrings)][0])
-        print
+            print("description:", ''.join(d['DESC_strings_%05d'%(nstrings)][0]))
+        print()
         QP_table.append( d['QP_table'][:].T )
         QP_kpts.append( d['QP_kpts'][:].T )
         QP_E_E0_Z.append( d['QP_E_Eo_Z'][:] )
@@ -385,9 +386,9 @@ def merge_qp(output,files,verbose=False):
     description_save = np.array([i for i in " %s"%description])
 
     #output data
-    print "========output========="
-    print "filename:    ", output
-    print "description: ", description
+    print("========output=========")
+    print("filename:    ", output)
+    print("description: ", description)
 
     #copy dimensions
     for dname, the_dim in fin.dimensions.iteritems():
@@ -456,7 +457,7 @@ def plot_excitons(filename,cut=0.2,size=20):
     # plot the absorption spectra
     #
     nexcitons = len(data['excitons'])
-    print "nexitons", nexcitons
+    print("nexitons", nexcitons)
     plt.plot(get_var(data,['E/ev','E/ev[1]']), get_var(data,['EPS-Im[2]' ]),label='BSE',lw=2)
     plt.plot(get_var(data,['E/ev','E/ev[1]']), get_var(data,['EPSo-Im[4]']),label='IP',lw=2)
     for n,exciton in enumerate(data['excitons']):
@@ -473,8 +474,8 @@ def plot_excitons(filename,cut=0.2,size=20):
     #dimensions
     nx = int(ceil(sqrt(nexcitons)))
     ny = int(ceil(nexcitons*1.0/nx))
-    print "cols:",nx
-    print "rows:",ny
+    print("cols:",nx)
+    print("rows:",ny)
     cmap = plt.get_cmap("gist_heat_r")
 
     fig = plt.figure(figsize=(nx*3,ny*3))

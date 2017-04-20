@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (C) 2016 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
 # All rights reserved.
 #
@@ -136,7 +137,7 @@ class Pbs(Scheduler):
         command = self.get_bash()
         
         if dry:
-            print command
+            print(command)
         else:
             p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,executable='/bin/bash')
             self.stdout,self.stderr = p.communicate()
@@ -145,10 +146,10 @@ class Pbs(Scheduler):
             if self.stderr: raise Exception(self.stderr)
             
             #check if there is stdout
-            if not silent: print self.stdout
+            if not silent: print(self.stdout)
             
             #get jobid
             self.jobid = self.stdout.split('\n')[0]
-            print "jobid:",self.jobid
+            print("jobid:",self.jobid)
 
         

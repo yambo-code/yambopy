@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
@@ -129,7 +130,7 @@ class YamboAnalyser():
             for index, disp, kpt in kpoints_in_path:
                 bands_kpoints.append( kpt )
                 bands_indexes.append( index )
-                print ("%12.8lf "*3)%tuple(kpt), index
+                print(("%12.8lf "*3)%tuple(kpt), index)
             bands_highsym_qpts.append(kpt)
         return bands_kpoints, bands_indexes, bands_highsym_qpts
 
@@ -372,9 +373,9 @@ class YamboAnalyser():
     def print_timing(self,tags=""):
         for k in self.jsonfiles.keys():
             if all(i in k for i in tags):
-                print "\n%s"%k
+                print("\n%s"%k)
                 for key,val in self.jsonfiles[k]["runtime"].items():
-                    print "%40s %10s %10s %10s"%(key,val[0],val[1],val[2])
+                    print("%40s %10s %10s %10s"%(key,val[0],val[1],val[2]))
 
     def get_inputfiles_tag(self,tags):
         """
@@ -429,18 +430,18 @@ class YamboAnalyser():
         """
         #iterate over the json files
         for k in self.jsonfiles.keys():
-            print "jsonfile: ", k
+            print("jsonfile: ", k)
 
             #get the jsonfile
             jsonfile = self.jsonfiles[k]
 
             for inputfile,content in jsonfile['inputfile'].items():
-                print "inputfile:", inputfile
+                print("inputfile:", inputfile)
                 y = YamboIn(filename=None)
                 y.arguments = content["arguments"]
                 y.variables = content["variables"]
-                print y
-                print
+                print(y)
+                print()
 
     def __str__(self):
         s = ""

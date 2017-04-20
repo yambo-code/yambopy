@@ -1,3 +1,4 @@
+from __future__ import print_function
 import matplotlib
 #matplotlib.use('Agg') # prevents crashes if no X server present (clusters)
 from yambopy import *
@@ -36,21 +37,21 @@ kpointv= args.kpointv
 nopack = args.nopack
 text   = args.text
 
-print 'Valence band: ',bandv,'conduction band: ',bandc
-print 'K-point VB: ',kpointv, ' k-point CB: ',kpointc
+print('Valence band: ',bandv,'conduction band: ',bandc)
+print('K-point VB: ',kpointv, ' k-point CB: ',kpointc)
 
 
 # Packing results (o-* files) from the calculations into yambopy-friendly .json files
 if nopack: # True by default, False if -np used
-    print 'Packing ...'
+    print('Packing ...')
     pack_files_in_folder(folder,mask=var)
     pack_files_in_folder(folder,mask='reference')
-    print 'Packing done.'
+    print('Packing done.')
 else:
-    print 'Packing skipped.'
+    print('Packing skipped.')
 
 # importing data from .json files in <folder>
-print 'Importing...'
+print('Importing...')
 data = YamboAnalyser(folder)
 
 # extract data according to relevant variable
@@ -67,9 +68,9 @@ for i in range(0,len(sorted_invars)):
     key=sorted_invars[i][0]
     if key.startswith(var) or key=='reference.json':
         keys.append(key)
-print 'Files detected: ',keys
+print('Files detected: ',keys)
 
-print 'Preparing output...'
+print('Preparing output...')
 ### Output
 
 # Unit of the variable :
@@ -109,7 +110,7 @@ if text:
     filename = folder+'_'+var+'.dat'
     header = +var+'('+str(unit)+'), gap'
     np.savetxt(filename,array,delimiter='\t',header=header)
-    print filename
+    print(filename)
 
 plt.plot(array[:,0],array[:,1],'o-')
 plt.xlabel(var+' ('+unit+')')

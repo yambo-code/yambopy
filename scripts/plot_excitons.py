@@ -7,6 +7,7 @@
 Plot the excitonic weights on the brillouin zone using ypp
 Plot the absorption spectrum with the excitonic energies
 '''
+from __future__ import print_function
 
 import matplotlib
 matplotlib.use('Agg') # prevents crashes if no X server present
@@ -48,7 +49,7 @@ def get_var(dictionary,variables):
     raise ValueError( 'Could not find the variables %s in the output file'%str(variables) )
 
 if args.noypp:
-    print 'Preparing JSON file. Calling ypp ...'
+    print('Preparing JSON file. Calling ypp ...')
     ### Creating the 'absorptionspectra.json' file
     y = YamboOut(folder=path,save_folder=path)
     # Args : name of job, SAVE folder path, folder where job was run path
@@ -60,23 +61,23 @@ if args.noypp:
     # Write .json file
     a.write_json(filename=path+'_'+jobname)
 else:
-    print 'YPP call disabled.'
+    print('YPP call disabled.')
 
 ### Loading data from .json file
 f = open(path+'_'+jobname+'.json')
 data = json.load(f)
 f.close()
-print 'JSON file loaded.'
+print('JSON file loaded.')
 
 ### Plotting the absorption spectra
-print 'Absorption spectra ...'
+print('Absorption spectra ...')
 # BSE spectra
 plt.plot(get_var(data,['E/ev','E/ev[1]']), get_var(data,['EPS-Im[2]' ]),label='BSE',lw=4)
 # IP spectra
 plt.plot(get_var(data,['E/ev','E/ev[1]']), get_var(data,['EPSo-Im[4]']),label='IP',lw=4)
 # Axes : lines for exciton energies, labels
 nexcitons = len(data['excitons'])
-print 'Number of excitons: ', nexcitons 
+print('Number of excitons: ', nexcitons) 
 for n,exciton in enumerate(data['excitons']):
     plt.axvline(exciton['energy'])
 plt.xlabel('$\omega$ (eV)')
@@ -86,10 +87,10 @@ plt.legend()
 #plt.draw()
 #plt.show()
 plt.savefig(path+'_'+jobname+'_abs.png', bbox_inches='tight')
-print path+'_'+jobname+'_abs.png'
+print(path+'_'+jobname+'_abs.png')
 
 ### Lattice : necessary to determine bounds of exciton weights plot
-print 'Reciprocal lattice ...'
+print('Reciprocal lattice ...')
 lat = np.array(data['lattice'])
 rlat = rec_lat(lat)
 x,y,z = np.array(rlat )
@@ -98,11 +99,11 @@ xmax,ymax,_ = +(x+y)*cut
 
 
 ### Plot excitons
-print 'Excitons weights ...'
+print('Excitons weights ...')
 nx = int(ceil(sqrt(nexcitons)))
 ny = int(ceil(nexcitons*1.0/nx))
-print "cols:",nx
-print "rows:",ny
+print("cols:",nx)
+print("rows:",ny)
 cmap = plt.get_cmap("gist_heat_r")
 
 fig = plt.figure(figsize=(nx*4,ny*4))
@@ -127,5 +128,5 @@ for n,exciton in enumerate(sorted_excitons):
 #plt.draw()
 #plt.show()
 plt.savefig(path+'_'+jobname+'_ex.png', bbox_inches='tight')
-print 'path'+'_'+jobname+'_ex.png'
-print 'Done.'
+print('path'+'_'+jobname+'_ex.png')
+print('Done.')

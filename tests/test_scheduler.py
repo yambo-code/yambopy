@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 # Author: Henrique Pereira Coutada Miranda
 # Tests for the yambopy library
@@ -100,8 +101,8 @@ class TestScheduler(unittest.TestCase):
         s = Scheduler.factory(cores=1)
         s.add_module("abinit")
         s.add_command("echo 'hello'")
-        print "\n",header("default: %s"%s.__class__)
-        print s
+        print("\n",header("default: %s"%s.__class__))
+        print(s)
         s.write(_test_file)
 
         #remove files
@@ -116,11 +117,11 @@ class TestScheduler(unittest.TestCase):
 
         #run using that configuration file
         for schedulername in ["oar","pbs","bash"]:
-            print "\n",header(schedulername)
+            print("\n",header(schedulername))
             s = Scheduler.factory(scheduler=schedulername,cores=1,nodes=2)
             s.add_module("abinit")
             s.add_command("echo 'hello'")
-            print s
+            print(s)
 
         #remove files
         clean_config()
@@ -137,7 +138,7 @@ class TestSchedulerRun(unittest.TestCase):
         """
         #run using that configuration file
         s = Scheduler.factory(cores=1)
-        print "\n",header("default: %s"%s.__class__)
+        print("\n",header("default: %s"%s.__class__))
         s.add_module("abinit")
         s.add_command("echo 'hello world'")
         s.run()
@@ -149,7 +150,7 @@ class TestSchedulerRun(unittest.TestCase):
         init_config()
 
         for schedulername in ["oar","pbs","bash"]:
-            print "\n",header(schedulername)
+            print("\n",header(schedulername))
             s = Scheduler.factory(scheduler=schedulername,cores=1)
             s._config = _test_config_file
             s.add_module("abinit")
@@ -177,9 +178,9 @@ if __name__ == '__main__':
 
     #clean tests
     if args.clean:
-        print "cleaning..."
+        print("cleaning...")
         os.system('rm -rf scf')
-        print "done!"
+        print("done!")
         exit()
 
     # Count the number of errors

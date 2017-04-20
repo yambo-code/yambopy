@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 #
 #
@@ -127,7 +128,7 @@ class supercell():
         #New lattice vectors and actual supercell size
         new_latvec = np.einsum('ij,jx->ix',self.S,self.latvec)
         R          = [self.S[0,0],self.S[1,1],self.S[2,2]]
-        print self.S
+        print(self.S)
         return R, new_latvec
 
     def reciprocal(self,mode):

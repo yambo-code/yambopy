@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
 # All rights reserved.
 #
@@ -6,7 +8,7 @@
 import xml.etree.ElementTree as ET
 from   qepy.auxiliary import *
 from   numpy import array
-from   lattice import *
+from   .lattice import *
 
 HatoeV = 27.2107
 
@@ -29,7 +31,7 @@ class PwXML():
         for filename,read in datafiles.items():
             path_filename = "%s/%s.save/%s"%(path, prefix, filename)
             if os.path.isfile(path_filename):
-                print "reading %s"%filename
+                print("reading %s"%filename)
                 done_reading = read(path_filename)
                 break
         
@@ -202,4 +204,4 @@ class PwXML():
                 f.write("\n")
             f.close()
         else:
-            print 'fmt %s not implemented'%fmt
+            print('fmt %s not implemented'%fmt)

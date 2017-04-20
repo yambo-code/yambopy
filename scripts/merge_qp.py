@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (C) 2016 Fulvio Paleari, Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
@@ -10,20 +11,20 @@ import argparse
 
 def merge_qp(output,files,verbose=False):
     #read all the files and display main info in each of them
-    print "=========input========="
+    print("=========input=========")
     filenames = [ f.name for f in files]
     datasets  = [ Dataset(filename) for filename in filenames]
     QP_table, QP_kpts, QP_E_E0_Z = [], [], []
     for d,filename in zip(datasets,filenames):
         _, nkpoints, nqps, _, nstrings = map(int,d['PARS'][:])
-        print "filename:    ", filename
+        print("filename:    ", filename)
         if verbose:
-            print "description:"
+            print("description:")
             for i in xrange(1,nstrings+1):
-                print ''.join(d['DESC_strings_%05d'%i][0])
+                print(''.join(d['DESC_strings_%05d'%i][0]))
         else:
-            print "description:", ''.join(d['DESC_strings_%05d'%(nstrings)][0])
-        print 
+            print("description:", ''.join(d['DESC_strings_%05d'%(nstrings)][0]))
+        print() 
         QP_table.append( d['QP_table'][:].T )
         QP_kpts.append( d['QP_kpts'][:].T )
         QP_E_E0_Z.append( d['QP_E_Eo_Z'][:] )
@@ -62,9 +63,9 @@ def merge_qp(output,files,verbose=False):
     description_save = np.array([i for i in " %s"%description])
 
     #output data
-    print "========output========="
-    print "filename:    ", output
-    print "description: ", description
+    print("========output=========")
+    print("filename:    ", output)
+    print("description: ", description)
 
     #copy dimensions
     for dname, the_dim in fin.dimensions.iteritems():

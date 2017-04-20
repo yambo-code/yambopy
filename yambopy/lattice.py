@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (c) 2015, Henrique Miranda
 # All rights reserved.
 #
@@ -10,7 +11,7 @@ def expand_kpts(kpts,syms):
     with the corresponding index in the irreducible brillouin zone
     """
     full_kpts = []
-    print "nkpoints:", len(kpts)
+    print("nkpoints:", len(kpts))
     for nk,k in enumerate(kpts):
         for sym in syms:
             full_kpts.append((nk,np.dot(sym,k)))

@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (C) 2016 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
 # All rights reserved.
 #
@@ -34,10 +35,10 @@ class Bash(Scheduler):
         
     def run(self,dry=False):
         if dry:
-            print str(self)
+            print(str(self))
         else:
             p = subprocess.Popen(str(self),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,executable='/bin/bash')
             self.stdout, self.stderr = p.communicate()
             if self.stderr != "":
                 raise ValueError("ERROR:\n%s"%self.stderr)
-            print self.stdout
+            print(self.stdout)

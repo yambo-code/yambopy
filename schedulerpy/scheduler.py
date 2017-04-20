@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 # Copyright (C) 2016 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
@@ -76,9 +78,9 @@ class Scheduler():
         **kwargs - Additional tags specific for each scheduler
         """
         
-        import oar
-        import pbs
-        import bash
+        from . import oar
+        from . import pbs
+        from . import bash
         
         schedulers = { "oar":  oar.Oar,
                        "pbs":  pbs.Pbs,

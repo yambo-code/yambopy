@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (C) 2015  Alejandro Molina-Sanchez, Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
@@ -44,7 +45,7 @@ class ProjwfcXML():
         try:
             f = open("%s/%s"%(path,output_filename),'r')
         except:
-            print "The output file of projwfc.x: %s was not found"%output_filename
+            print("The output file of projwfc.x: %s was not found"%output_filename)
             exit(1)
 
         states = []

@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (C) 2016 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
@@ -32,10 +33,10 @@ class YamboFolder():
         """
         data = {}
         for yambofile in self.yambofiles:
-            print yambofile.filename
-            print "data:",yambofile.data.keys()
-            print "memo:",yambofile.memstats
-            print "warn:",yambofile.warnings
+            print(yambofile.filename)
+            print("data:",yambofile.data.keys())
+            print("memo:",yambofile.memstats)
+            print("warn:",yambofile.warnings)
  
     def __str__(self):
         s = ''

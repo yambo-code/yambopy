@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
@@ -23,12 +24,12 @@ class ProjwfcIn():
         filename = self.getfilename(filename)
         os.system('mkdir -p %s'%folder)
         self.write("%s/%s"%(folder,filename))
-        print "Run projwfc..."
+        print("Run projwfc...")
         if procs == 1:
             os.system('cd %s; %s -inp %s > projwfc.log' % (folder,self._projwfc,filename))
         else:
             os.system('cd %s; mpirun -np %d %s -inp %s > projwfc.log' % (folder,procs,self._projwfc,filename))
-        print "done!"
+        print("done!")
 
     def getfilename(self,filename):
         if filename is None:

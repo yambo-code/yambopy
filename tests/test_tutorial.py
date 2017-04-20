@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 # Author: Henrique Pereira Coutada Miranda
 # Tests for yambopy
@@ -95,9 +96,9 @@ def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 def clean():
-        print "cleaning..."
+        print("cleaning...")
         os.system('rm -rf relax gw bse_conv bse_cutoff bse_par bse gw_conv bands scf nscf database proj.in')
-        print "done!"
+        print("done!")
 
 if __name__ == '__main__':
     #parse options
@@ -114,12 +115,12 @@ if __name__ == '__main__':
 
     #first test if yambo is installed
     if is_exe('yambo'):
-        print "yambo not found, please install it before running the tests"
+        print("yambo not found, please install it before running the tests")
         exit()
 
     #first test if pw.x is installed
     if is_exe('pw.x'):
-        print "pw.x not found, please install it before running the tests"
+        print("pw.x not found, please install it before running the tests")
         exit()
 
     # Count the number of errors
