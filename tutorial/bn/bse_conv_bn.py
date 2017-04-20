@@ -43,7 +43,8 @@ def create_save():
 
 def bse_convergence(what='dielectric',threads=1,nohup=False):
     if nohup: nohup = 'nohup'
-
+    else:     nohup = ''
+ 
     #create the yambo input file
     y = YamboIn('%s -b -o b -k sex -y d -V all'%yambo,folder=folder)
 
