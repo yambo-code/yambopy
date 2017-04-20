@@ -3,7 +3,7 @@ language: python
 
 python:
     - 2.7
-      #- 3.5
+    - 3.5
 dist: trusty
 env:
     - YAMBO_VERSION=4.1 PW_VERSION=5.4
@@ -38,3 +38,5 @@ script:
 branches:
   only:
     - master
+    - travis
+    - py3
