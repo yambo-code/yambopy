@@ -7,7 +7,7 @@ from qepy import *
 import argparse
 import sys
 
-scf_kpoints  = [12,12,1]
+scf_kpoints  = [ 9, 9,1]
 nscf_kpoints = [12,12,1]
 dg_kpoints   = [24,24,1]
 pw = 'pw.x'
@@ -28,7 +28,7 @@ def get_inputfile():
     """
     qe = PwIn()
     a = 5.838
-    c = 20
+    c = 18
     qe.atoms = [['Mo',[2/3,1/3,0.5]],
                 [ 'S',[1/3,2/3, 2.92781466/c+0.5]],
                 [ 'S',[1/3,2/3,-2.92781466/c+0.5]]]
@@ -38,6 +38,7 @@ def get_inputfile():
     qe.control['prefix'] = "'mos2'"
     qe.control['wf_collect'] = '.true.'
     qe.control['verbosity'] = "'high'"
+    qe.control['pseudo_dir'] = "'../pseudos'"
     qe.system['celldm(1)'] = a
     qe.system['celldm(3)'] = c/qe.system['celldm(1)']
     qe.system['ecutwfc'] = 60
