@@ -250,7 +250,7 @@ if __name__ == '__main__':
     #first test if yambo is installed
     if not subprocess.call("yambo", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
         print "yambo not found, please install it before running the tests"
-        exit()
+        sys.exit(1)
 
     #clean tests
     if args.clean:
