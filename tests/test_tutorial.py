@@ -47,7 +47,7 @@ class TestGW_Convergence(unittest.TestCase):
 # Boron Nitride
 #######################################################
 sys.path.append('../tutorial/bn')
-import gs_bn 
+import gs_bn
 import bse_cutoff
 
 class TestCoulomb_Cutoff(unittest.TestCase):
@@ -129,19 +129,19 @@ if __name__ == '__main__':
     if args.tutorial1:
         clean()
         suite = unittest.TestLoader().loadTestsFromTestCase(TestGW_Convergence)
-        nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     # Test for tutorial 2
     if args.tutorial2:
         clean()
         suite = unittest.TestLoader().loadTestsFromTestCase(TestCoulomb_Cutoff)
-        nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     # Test for tutorial 3
     if args.tutorial3:
         clean()
         suite = unittest.TestLoader().loadTestsFromTestCase(TestParallel_BSE)
-        nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     if args.clean:
         clean()
