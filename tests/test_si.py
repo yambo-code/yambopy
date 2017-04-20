@@ -3,6 +3,8 @@
 # Tests for yambopy
 # Si
 #
+import matplotlib
+matplotlib.use('Agg')
 import unittest
 import sys
 import os
@@ -264,40 +266,40 @@ if __name__ == '__main__':
 
     # Test pw.x
     suite = unittest.TestLoader().loadTestsFromTestCase(TestPW_Si)
-    nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+    nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     if args.full:
         suite = unittest.TestLoader().loadTestsFromTestCase(TestPW_Si_Run)
-        nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     # Test p2y and yambo
     if args.full:
         suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboPrep_Si)
-        nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     # Test GW on yambo
     suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_GW_Si)
-    nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+    nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     if args.full:
         suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_GW_Si_Run)
-        nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     # Test BSE on yambo
     suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_BSE_Si)
-    nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+    nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     if args.full:
         suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_BSE_Si_Run)
-        nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     if args.full:
         # Test packaging output files in json files
         suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboOut_GW_Si)
-        nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
         # Test analyse json files
         suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboOut_BSE_Si)
-        nerrors += unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     sys.exit(nerrors)
