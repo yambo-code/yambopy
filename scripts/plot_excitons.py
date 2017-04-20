@@ -9,6 +9,8 @@ Plot the absorption spectrum with the excitonic energies
 '''
 from __future__ import print_function
 
+from builtins import str
+from builtins import range
 import matplotlib
 matplotlib.use('Agg') # prevents crashes if no X server present
 from yambopy import *
@@ -57,7 +59,7 @@ if args.noypp:
     # Get excitons values
     a.get_excitons(min_intensity=exc_int,max_energy=exc_max_E,Degen_Step=exc_degen)
     # Get excitonic WFs
-    a.get_wavefunctions(Degen_Step=exc_degen,repx=range(-1,2),repy=range(-1,2),repz=range(1))
+    a.get_wavefunctions(Degen_Step=exc_degen,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(1)))
     # Write .json file
     a.write_json(filename=path+'_'+jobname)
 else:

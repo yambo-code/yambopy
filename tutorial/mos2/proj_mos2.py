@@ -1,8 +1,12 @@
 from __future__ import print_function
+from __future__ import division
 #
 # Author: Henrique Pereira Coutada Miranda
 # Example script to plot the weigth of the atomic species in the bandstructure
 #
+from builtins import zip
+from builtins import range
+from past.utils import old_div
 from qepy import *
 import sys
 import argparse
@@ -14,7 +18,7 @@ folder = 'bands'
 npoints = 20
 p = Path([ [[0.0, 0.0, 0.0],'G'],
            [[0.5, 0.0, 0.0],'M'],
-           [[1./3,1./3,0.0],'K'],
+           [[old_div(1.,3),old_div(1.,3),0.0],'K'],
            [[0.0, 0.0, 0.0],'G']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
 #parse options
@@ -49,8 +53,8 @@ if args.plot_size:
 
     # select orbitals to plot
     # example1 mo, s2 and mos2
-    mo = list(xrange(16))     #list containing the indexes of all the orbitals of mo
-    s  = list(xrange(16,48))  #list containing the indexes of all the orbitals of s
+    mo = list(range(16))     #list containing the indexes of all the orbitals of mo
+    s  = list(range(16,48))  #list containing the indexes of all the orbitals of s
 
     fig = plt.figure(figsize=(30,10))
     for n,(orb,title) in enumerate(zip([mo,s,mo+s],['mo','s','mos2'])):
@@ -66,8 +70,8 @@ if args.plot_orbital:
 
     # select orbitals to plot
     # example1 mo, s2
-    mo = list(xrange(16))     #list containing the indexes of all the orbitals of mo
-    s  = list(xrange(16,48))  #list containing the indexes of all the orbitals of s
+    mo = list(range(16))     #list containing the indexes of all the orbitals of mo
+    s  = list(range(16,48))  #list containing the indexes of all the orbitals of s
 
     fig = plt.figure(figsize=(8,10))
     ax = plt.subplot(1,1,1)

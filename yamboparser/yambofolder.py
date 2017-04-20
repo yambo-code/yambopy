@@ -4,11 +4,13 @@ from __future__ import print_function
 #
 # This file is part of yamboparser
 # 
+from builtins import str
+from builtins import object
 from .yambofile import *
 import os
 import numpy as np
 
-class YamboFolder():
+class YamboFolder(object):
     """
     Takes as input a folder name that is the folder where yambo saved r-* o-* l-* and netcdf files
     """
@@ -34,7 +36,7 @@ class YamboFolder():
         data = {}
         for yambofile in self.yambofiles:
             print(yambofile.filename)
-            print("data:",yambofile.data.keys())
+            print("data:",list(yambofile.data.keys()))
             print("memo:",yambofile.memstats)
             print("warn:",yambofile.warnings)
  

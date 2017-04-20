@@ -11,6 +11,7 @@ from __future__ import print_function
 #
 ##############################################################################
 #from __future__ import print_function
+from builtins import range
 from yambopy import *
 from qepy    import *
 from numpy import loadtxt,ones

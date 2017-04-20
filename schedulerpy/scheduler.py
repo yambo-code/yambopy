@@ -6,6 +6,8 @@ from __future__ import absolute_import
 # This file is part of yambopy
 #
 #
+from builtins import str
+from builtins import object
 import subprocess
 import json
 from abc import ABCMeta, abstractmethod
@@ -14,7 +16,7 @@ from copy import deepcopy
 import os
 
 
-class Scheduler():
+class Scheduler(object):
     """
     Generic scheduler class
 
@@ -110,7 +112,7 @@ class Scheduler():
                              "Please specify it in the name of the scheduler or using the 'type' tag.")
 
         #sanity check
-        if schedulername not in schedulers.keys():
+        if schedulername not in list(schedulers.keys()):
             raise ValueError("Scheduler name %s is invalid"%schedulername)
 
         if "nodes" in schedulerconfig and nodes is None:
@@ -202,7 +204,7 @@ class Scheduler():
                 return True
             elif arg == "false" or arg == False:
                 return False
-            elif type(arg) in [str,unicode] and "file:" in arg:
+            elif type(arg) in [str,str] and "file:" in arg:
                 #load the text from a textfile
                 filename = arg.split(":")[-1]
                 f = open("%s/%s"%(self._config_path,filename),'r')

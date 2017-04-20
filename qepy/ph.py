@@ -4,11 +4,13 @@
 # This file is part of yambopy
 #
 #
+from builtins import str
+from builtins import object
 import os
 import re
 from math import sqrt
 
-class PhIn():
+class PhIn(object):
     """
     A class to generate an manipulate quantum espresso input files for ph.x
     """

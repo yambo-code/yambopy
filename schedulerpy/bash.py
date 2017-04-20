@@ -5,6 +5,7 @@ from __future__ import print_function
 # This file is part of yambopy
 #
 #
+from builtins import str
 import subprocess
 from schedulerpy import *
 

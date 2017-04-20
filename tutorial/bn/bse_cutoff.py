@@ -3,6 +3,8 @@
 # Check the convergence of the coulomb cutoff for a BSE calculation using yambo
 #
 from __future__ import print_function
+from __future__ import division
+from past.utils import old_div
 from yambopy import *
 from qepy import *
 from schedulerpy import *
@@ -28,7 +30,7 @@ def get_inputfile():
     """ 
     qe = PwIn()
     qe.atoms = [['N',[ 0.0, 0.0,0.5]],
-                ['B',[1./3,2./3,0.5]]]
+                ['B',[old_div(1.,3),old_div(2.,3),0.5]]]
     qe.atypes = {'B': [10.811, "B.pbe-mt_fhi.UPF"],
                  'N': [14.0067,"N.pbe-mt_fhi.UPF"]}
 
@@ -36,7 +38,7 @@ def get_inputfile():
     qe.control['wf_collect'] = '.true.'
     qe.control['pseudo_dir'] = "'../../../pseudos/'"
     qe.system['celldm(1)'] = 4.7
-    qe.system['celldm(3)'] = 14/qe.system['celldm(1)']
+    qe.system['celldm(3)'] = old_div(14,qe.system['celldm(1)'])
     qe.system['ecutwfc'] = ecutwf
     qe.system['occupations'] = "'fixed'"
     qe.system['nat'] = 2
@@ -51,7 +53,7 @@ def scf(layer_separation,folder='scf'):
     if not os.path.isdir(folder):
         os.makedirs(folder)
     qe = get_inputfile()
-    qe.system['celldm(3)'] = layer_separation/qe.system['celldm(1)']
+    qe.system['celldm(3)'] = old_div(layer_separation,qe.system['celldm(1)'])
     qe.control['calculation'] = "'scf'"
     qe.write('%s/%s.scf'%(folder,prefix))
 
@@ -65,7 +67,7 @@ def nscf(layer_separation,folder='nscf'):
     qe.electrons['conv_thr'] = 1e-8
     qe.system['nbnd'] = nbands
     qe.system['force_symmorphic'] = ".true."
-    qe.system['celldm(3)'] = layer_separation/qe.system['celldm(1)']
+    qe.system['celldm(3)'] = old_div(layer_separation,qe.system['celldm(1)'])
     qe.kpoints = nscf_kpoints
     qe.write('%s/%s.nscf'%(folder,prefix))
     

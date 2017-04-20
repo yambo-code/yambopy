@@ -1,17 +1,23 @@
 from __future__ import print_function
+from __future__ import division
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
+from builtins import str
+from builtins import zip
+from builtins import range
+from builtins import object
+from past.utils import old_div
 from yambopy import *
 import os
 import json
 import re
 from itertools import product
 
-class YamboAnalyser():
+class YamboAnalyser(object):
     """
     Class to open multiple ``.json`` files, organize them and plot the data together.
     Useful to perform convergence tests
@@ -30,11 +36,11 @@ class YamboAnalyser():
         for f in files: f.close()
 
     def get_data_file(self,calculation,tags):
-        for filename in self.jsonfiles[calculation]["data"].keys():
+        for filename in list(self.jsonfiles[calculation]["data"].keys()):
             if all(i in filename for i in tags):
                 tags = self.jsonfiles[calculation]["tags"][filename]
                 data = np.array( self.jsonfiles[calculation]["data"][filename] )
-                return dict( zip(tags, data.T) )
+                return dict( list(zip(tags, data.T)) )
 
     def get_data(self,tags):
         """ Get a dictionary with all the data from the files under analysis
@@ -43,7 +49,7 @@ class YamboAnalyser():
             tags=(tags,)
         data = dict()
         for k in sorted(self.jsonfiles.keys()):
-            for filename in self.jsonfiles[k]["data"].keys():
+            for filename in list(self.jsonfiles[k]["data"].keys()):
                 if all(i in filename for i in tags):
                     data[k] = np.array( self.jsonfiles[k]["data"][filename] )
         return data
@@ -53,7 +59,7 @@ class YamboAnalyser():
         """
         tagslist = dict()
         for k in sorted(self.jsonfiles.keys()):
-            for filename in self.jsonfiles[k]["tags"].keys():
+            for filename in list(self.jsonfiles[k]["tags"].keys()):
                 if all(i in filename for i in tags):
                     tagslist[k] = np.array( self.jsonfiles[k]["tags"][filename] )
         return tagslist
@@ -62,7 +68,7 @@ class YamboAnalyser():
         """ select the colors according to the number of files to plot
         the files to plot are the ones that have all the tags in their name
         """
-        nfiles=sum([all(i in filename for i in tags) for k in self.jsonfiles.keys() for filename in self.jsonfiles[k]["data"].keys()])
+        nfiles=sum([all(i in filename for i in tags) for k in list(self.jsonfiles.keys()) for filename in list(self.jsonfiles[k]["data"].keys())])
         cmap = plt.get_cmap(self._colormap) #get color map
         colors = [cmap(i) for i in np.linspace(0, 1, nfiles)]
         return colors
@@ -91,7 +97,7 @@ class YamboAnalyser():
             raise ValueError('Information about the lattice is not present, cannot determine the path')
 
         #convert to cartesian coordinates
-        kpts_car = np.array([ k/alat for k in kpts_iku ])
+        kpts_car = np.array([ old_div(k,alat) for k in kpts_iku ])
 
         #get the full list of kpoints
         full_kpts = expand_kpts(kpts_car,sym_car)
@@ -112,7 +118,7 @@ class YamboAnalyser():
             start_kpt = path_car[k]
             end_kpt = path_car[k+1]
             #find the collinear points
-            for x,y,z in product(range(-1,2),repeat=3):
+            for x,y,z in product(list(range(-1,2)),repeat=3):
                 shift = red_car(np.array([[x,y,z]]),reciprocal_lattice)[0]
                 for index, kpt in full_kpts:
                     kpt_shift = kpt+shift
@@ -123,7 +129,7 @@ class YamboAnalyser():
                         kpoints_in_path[key] = value
 
             #sort the points acoording to distance to the start of the path
-            kpoints_in_path = sorted(kpoints_in_path.values(),key=lambda i: i[1])
+            kpoints_in_path = sorted(list(kpoints_in_path.values()),key=lambda i: i[1])
 
             #get kpoints_in_pathpoints
             if k==0: bands_highsym_qpts.append(kpoints_in_path[0][2])
@@ -150,10 +156,10 @@ class YamboAnalyser():
         n=0
 
         #select one of the files to obtain the points in the path
-        json_filename = self.jsonfiles.keys()[0]
+        json_filename = list(self.jsonfiles.keys())[0]
 
         #find the points along the high symmetry lines
-        json_filename = self.jsonfiles.keys()[0]
+        json_filename = list(self.jsonfiles.keys())[0]
         bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path,json_filename)
 
         #calculate distances
@@ -165,7 +171,7 @@ class YamboAnalyser():
 
 
         #obtain the bands for the output files and plot
-        for json_filename in self.jsonfiles.keys():
+        for json_filename in list(self.jsonfiles.keys()):
             for output_filename in self.jsonfiles[json_filename]['data']:
                 if all(i in output_filename for i in tags):
                     kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
@@ -229,9 +235,9 @@ class YamboAnalyser():
             #get the y's
             #to choose what to plot we can have either a function or an index
             if hasattr(col, '__call__'):
-                bands = np.array([[ col(c) for c in data[data[:,1]==b,:] ] for b in xrange(bmin,bmax+1)])
+                bands = np.array([[ col(c) for c in data[data[:,1]==b,:] ] for b in range(bmin,bmax+1)])
             elif isinstance( col, int ):
-                bands = np.array([ data[data[:,1]==b,col] for b in xrange(bmin,bmax+1) ])
+                bands = np.array([ data[data[:,1]==b,col] for b in range(bmin,bmax+1) ])
             else:
                 raise ValueError( "The col datatype: %s is not known"%str(type(col)) )
 
@@ -332,7 +338,7 @@ class YamboAnalyser():
 
         n=0
         for k in sorted(self.jsonfiles.keys()):
-            for filename in self.jsonfiles[k]["data"].keys():
+            for filename in list(self.jsonfiles[k]["data"].keys()):
                 if all(i in filename for i in tags):
                     data = np.array( self.jsonfiles[k]["data"][filename] )
 
@@ -371,10 +377,10 @@ class YamboAnalyser():
         plt.show()
 
     def print_timing(self,tags=""):
-        for k in self.jsonfiles.keys():
+        for k in list(self.jsonfiles.keys()):
             if all(i in k for i in tags):
                 print("\n%s"%k)
-                for key,val in self.jsonfiles[k]["runtime"].items():
+                for key,val in list(self.jsonfiles[k]["runtime"].items()):
                     print("%40s %10s %10s %10s"%(key,val[0],val[1],val[2]))
 
     def get_inputfiles_tag(self,tags):
@@ -390,7 +396,7 @@ class YamboAnalyser():
         inputfiles = self.get_inputfiles()
         inputfiles_tags = dict()
 
-        for k in inputfiles.keys():
+        for k in list(inputfiles.keys()):
             inputfiles_tags[k] = dict()
 
             # get the current inputfile
@@ -404,7 +410,7 @@ class YamboAnalyser():
 
                     # We look for the tag both in the variable and in the arguments
                     # look in variables
-                    if tag in this_inputfile[filename]['variables'].keys():
+                    if tag in list(this_inputfile[filename]['variables'].keys()):
                         inputfiles_tags[k]['variables'][tag] = this_inputfile[filename]['variables'][tag]
                     #look in arguments
                     if tag in this_inputfile[filename]['arguments']:
@@ -420,7 +426,7 @@ class YamboAnalyser():
         inputfiles = dict()
         for k in self.jsonfiles:
             inputfiles[k] = dict()
-            for key,val in self.jsonfiles[k]["inputfile"].items():
+            for key,val in list(self.jsonfiles[k]["inputfile"].items()):
                 inputfiles[k][key] = val
         return inputfiles
 
@@ -429,13 +435,13 @@ class YamboAnalyser():
         Print all the inputfiles from all the json files
         """
         #iterate over the json files
-        for k in self.jsonfiles.keys():
+        for k in list(self.jsonfiles.keys()):
             print("jsonfile: ", k)
 
             #get the jsonfile
             jsonfile = self.jsonfiles[k]
 
-            for inputfile,content in jsonfile['inputfile'].items():
+            for inputfile,content in list(jsonfile['inputfile'].items()):
                 print("inputfile:", inputfile)
                 y = YamboIn(filename=None)
                 y.arguments = content["arguments"]

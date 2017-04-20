@@ -5,6 +5,8 @@ from __future__ import print_function
 # This file is part of yambopy
 #
 #
+from builtins import zip
+from builtins import str
 import subprocess
 from schedulerpy import *
 from textwrap import dedent
@@ -102,7 +104,7 @@ class Pbs(Scheduler):
         mem = self.get_mem()
         if mem: resources["vmem"]  = "%dMB"%mem
         
-        resources_line = ":".join(["%s=%s"%(item,value) for item,value in resources.items()])
+        resources_line = ":".join(["%s=%s"%(item,value) for item,value in list(resources.items())])
        
         return resources_line
     

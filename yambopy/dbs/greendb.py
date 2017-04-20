@@ -1,13 +1,17 @@
+from __future__ import division
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
+from builtins import range
+from builtins import object
+from past.utils import old_div
 from yambopy import *
 
 ha2ev  = 27.211396132
 
-class YamboGreenDB():
+class YamboGreenDB(object):
     """
     Read the green's functions calculated using yambo
     These green's functions describe the spectral function of the quasiparticles.
@@ -89,7 +93,7 @@ class YamboGreenDB():
             #plot omega-e0
             emin = min(self.energies[nqp].real)
             emax = max(self.energies[nqp].real)
-            x = np.arange(emin,emax,(emax-emin)/100)
+            x = np.arange(emin,emax,old_div((emax-emin),100))
             plt.plot(x,x-e0[nqp])
 
             #plot imaginary part of greens funciton
@@ -106,7 +110,7 @@ class YamboGreenDB():
  
         self.eqp = np.zeros([self.nqps],dtype=complex) 
         self.z   = np.zeros([self.nqps],dtype=complex) 
-        for nqp in xrange(self.nqps):
+        for nqp in range(self.nqps):
 
             #get x and y
             x = self.energies[nqp].real
@@ -124,7 +128,7 @@ class YamboGreenDB():
             #calculate Z factors
             #Z = (1-dSE/de)^(-1)
             dse = derivative(f,eqp,dx=1e-8)
-            z = 1./(1-dse)
+            z = old_div(1.,(1-dse))
 
             #find Im(Se(EQP)) which corresponds to the lifetime
             lif = f(eqp).imag

@@ -1,14 +1,19 @@
 from __future__ import print_function
+from __future__ import division
 # Copyright (c) 2016, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
+from builtins import map
+from builtins import range
+from builtins import object
+from past.utils import old_div
 from yambopy import *
 from itertools import product
 from yambopy.plot import *
 
-def red_car(red,lat): return np.array(map( lambda coord: coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2], red))
+def red_car(red,lat): return np.array([coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2] for coord in red])
 
 def jump_to(f,tag):
     """ Jump to a line in file
@@ -20,7 +25,7 @@ def jump_to(f,tag):
 def v2str(v):
     return ("%12.8lf "*len(v))%tuple(v)
 
-class YamboExcitonWaveFunctionXSF():
+class YamboExcitonWaveFunctionXSF(object):
     """
     Class to read excitonic wavefunctions from yambo in the 3D xsf format
     """
@@ -33,20 +38,20 @@ class YamboExcitonWaveFunctionXSF():
     def read_file(self,filename):
         f = open(filename)
         jump_to(f,"PRIMVEC")
-        self.lattice.append( map(float,f.readline().strip().split()) )
-        self.lattice.append( map(float,f.readline().strip().split()) )
-        self.lattice.append( map(float,f.readline().strip().split()) )
+        self.lattice.append( list(map(float,f.readline().strip().split())) )
+        self.lattice.append( list(map(float,f.readline().strip().split())) )
+        self.lattice.append( list(map(float,f.readline().strip().split())) )
 
         jump_to(f,"PRIMCOORD")
         self.natoms = int(f.readline().split()[0])-1
 
         #read the hole position
-        self.hole = map(float,f.readline().strip().split())
+        self.hole = list(map(float,f.readline().strip().split()))
 
         #read the atoms positions
         self.atoms = []
         for i in range(self.natoms):
-            self.atoms.append( map(float,f.readline().strip().split()) )
+            self.atoms.append( list(map(float,f.readline().strip().split())) )
 
         #get atypes
         self.atypes = np.unique([a[0] for a in self.atoms]).tolist()
@@ -54,17 +59,17 @@ class YamboExcitonWaveFunctionXSF():
         self.atoms = [ [atypes_dict[a[0]]]+a[1:] for a in self.atoms]
 
         jump_to(f,"BEGIN_DATAGRID_3D")
-        self.nx, self.ny, self.nz = map(int, f.readline().strip().split())
+        self.nx, self.ny, self.nz = list(map(int, f.readline().strip().split()))
         f.readline() #ignore
 
         #read cell
-        self.cell.append( map(float,f.readline().strip().split()) )
-        self.cell.append( map(float,f.readline().strip().split()) )
-        self.cell.append( map(float,f.readline().strip().split()) )
+        self.cell.append( list(map(float,f.readline().strip().split())) )
+        self.cell.append( list(map(float,f.readline().strip().split())) )
+        self.cell.append( list(map(float,f.readline().strip().split())) )
 
         #read data
         self.datagrid = np.zeros([self.nz,self.ny,self.nx])
-        for k,j,i in product(range(self.nz),range(self.ny),range(self.nx)):
+        for k,j,i in product(list(range(self.nz)),list(range(self.ny)),list(range(self.nx))):
             self.datagrid[k,j,i] = float(f.readline())
         self.initialized = True
 
@@ -120,7 +125,7 @@ class YamboExcitonWaveFunctionXSF():
         pos = np.zeros([3])
         for atom in self.atoms:
             pos += atom[1:]
-        pos = pos/len(self.atoms)
+        pos = old_div(pos,len(self.atoms))
 
         # center the atoms around that position using the center of the unit cell
         displecement = pos

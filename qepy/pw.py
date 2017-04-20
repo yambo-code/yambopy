@@ -1,16 +1,23 @@
 from __future__ import print_function
+from __future__ import division
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
+from builtins import str
+from builtins import zip
+from builtins import map
+from builtins import range
+from builtins import object
+from past.utils import old_div
 from qepy import *
 import os
 import re
 from math import sqrt
 
-class PwIn():
+class PwIn(object):
     """
     Class to generate an manipulate Quantum Espresso input files
     Can be initialized either reading from a file or starting from a new file.
@@ -97,7 +104,7 @@ class PwIn():
         #find ATOMIC_SPECIES keyword in file and read next line
         for line in lines:
             if "ATOMIC_SPECIES" in line:
-                for i in xrange(int(self.system["ntyp"])):
+                for i in range(int(self.system["ntyp"])):
                     atype, mass, psp = lines.next().split()
                     self.atypes[atype] = [mass,psp]
 
@@ -111,7 +118,7 @@ class PwIn():
         lat = np.array(lat)
 
         at = np.unique(atypes)
-        an = dict(zip(at,xrange(len(at))))
+        an = dict(list(zip(at,range(len(at)))))
         atypes = [an[a] for a in atypes]
 
         cell = (lat,positions,atypes)
@@ -152,7 +159,7 @@ class PwIn():
         atoms_str = [line.strip().split() for line in string.strip().split('\n')]
         self.atoms = []
         for atype,x,y,z in atoms_str:
-            self.atoms.append([atype,map(float,[x,y,z])])
+            self.atoms.append([atype,list(map(float,[x,y,z]))])
 
     def set_atoms(self,atoms):
         """ set the atomic postions using a Atoms datastructure from ase
@@ -161,7 +168,7 @@ class PwIn():
         self.system['ibrav'] = 0
         if 'celldm(1)' in self.system: del self.system['celldm(1)']
         self.cell_parameters = atoms.get_cell()
-        self.atoms = zip(atoms.get_chemical_symbols(),atoms.get_scaled_positions())
+        self.atoms = list(zip(atoms.get_chemical_symbols(),atoms.get_scaled_positions()))
         self.system['nat'] = len(self.atoms)
 
     def displace(self,mode,displacement,masses=None):
@@ -172,7 +179,7 @@ class PwIn():
             small_mass = 1
         else:
             small_mass = min(masses) #we scale all the displacements to the bigger mass
-        for i in xrange(len(self.atoms)):
+        for i in range(len(self.atoms)):
             self.atoms[i][1] = self.atoms[i][1] + mode[i].real*displacement*sqrt(small_mass)/sqrt(masses[i])
 
     def read_atoms(self):
@@ -182,7 +189,7 @@ class PwIn():
             if "ATOMIC_POSITIONS" in line:
                 atomic_pos_type = line
                 self.atomic_pos_type = re.findall('([A-Za-z]+)',line)[-1]
-                for i in xrange(int(self.system["nat"])):
+                for i in range(int(self.system["nat"])):
                     atype, x,y,z = lines.next().split()
                     self.atoms.append([atype,[float(i) for i in (x,y,z)]])
         self.atomic_pos_type = atomic_pos_type.replace('{','').replace('}','').strip().split()[1]
@@ -190,7 +197,7 @@ class PwIn():
     def read_cell_parameters(self):
         ibrav = int(self.system['ibrav'])
         if ibrav == 0:
-            if 'celldm(1)' in self.system.keys():
+            if 'celldm(1)' in list(self.system.keys()):
                 a = float(self.system['celldm(1)'])
             else:
                 a = 1
@@ -199,7 +206,7 @@ class PwIn():
                 if "CELL_PARAMETERS" in line:
                     self.cell_units = line.translate(None, '{}()').split()[1]
                     self.cell_parameters = [[1,0,0],[0,1,0],[0,0,1]]
-                    for i in xrange(3):
+                    for i in range(3):
                         self.cell_parameters[i] = [ float(x)*a for x in lines.next().split() ]
             if self.cell_units == 'angstrom' or self.cell_units == 'bohr':
                 if 'celldm(1)' in self.system: del self.system['celldm(1)']
@@ -207,13 +214,13 @@ class PwIn():
             a = float(self.system['celldm(1)'])
             c = float(self.system['celldm(3)'])
             self.cell_parameters = [[   a,          0,  0],
-                                    [-a/2,sqrt(3)/2*a,  0],
+                                    [old_div(-a,2),sqrt(3)/2*a,  0],
                                     [   0,          0,c*a]]
         elif ibrav == 2:
             a = float(self.system['celldm(1)'])
-            self.cell_parameters = [[ -a/2,   0, a/2],
-                                    [    0, a/2, a/2],
-                                    [ -a/2, a/2,   0]]
+            self.cell_parameters = [[ old_div(-a,2),   0, old_div(a,2)],
+                                    [    0, old_div(a,2), old_div(a,2)],
+                                    [ old_div(-a,2), old_div(a,2),   0]]
         else:
             print('ibrav = %d not implemented'%ibrav)
             exit(1)
@@ -226,7 +233,7 @@ class PwIn():
                 #chack if the type is automatic
                 if "automatic" in line:
                     self.ktype = "automatic"
-                    vals = map(float, lines.next().split())
+                    vals = list(map(float, lines.next().split()))
                     self.kpoints, self.shiftk = vals[0:3], vals[3:6]
                 #otherwise read a list
                 else:
@@ -236,9 +243,9 @@ class PwIn():
                     self.ktype = ""
                     try:
                         lines_list = list(lines)
-                        for n in xrange(nkpoints):
+                        for n in range(nkpoints):
                             vals = lines_list[n].split()[:4]
-                            self.klist.append( map(float,vals) )
+                            self.klist.append( list(map(float,vals)) )
                     except IndexError:
                         print("wrong k-points list format")
                         exit()
@@ -268,7 +275,7 @@ class PwIn():
     def remove_key(self,group,key):
         """ if a certain key exists in the group, remove it
         """
-        if key in group.items():
+        if key in list(group.items()):
             del group[key]
 
     def run(self,filename,procs=1,folder='.'):
@@ -321,6 +328,6 @@ class PwIn():
                 string += (("%12.8lf "*4)+"\n")%tuple(i)
         if self.system['ibrav'] == 0 or self.system['ibrav'] == '0':
             string += "CELL_PARAMETERS %s\n"%self.cell_units
-            for i in xrange(3):
+            for i in range(3):
                 string += ("%14.10lf "*3+"\n")%tuple(self.cell_parameters[i])
         return string

@@ -4,6 +4,9 @@
 # This file is part of yamboparser
 #
 #
+from builtins import str
+from builtins import range
+from builtins import object
 import os
 import re
 import numpy as np
@@ -16,7 +19,7 @@ except ImportError:
 else:
     _has_netcdf = True
 
-class YamboFile():
+class YamboFile(object):
     """
     This is the Yambo file class.
     It takes as input a filename produced by yambo.
@@ -100,7 +103,7 @@ class YamboFile():
         k_index =[ str(int(i)) for i in table[:,0]] # first column  has kpoints
         for ind in range(len(k_index)):
             for itag in range(len(tags)):
-                 if k_index[ind] not in _kdata.keys():
+                 if k_index[ind] not in list(_kdata.keys()):
                      _kdata[k_index[ind]] = {}
                  try:
                      _kdata[k_index[ind]][tags[itag]].append(table[ind,itag])

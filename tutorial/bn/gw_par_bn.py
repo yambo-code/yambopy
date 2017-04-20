@@ -8,6 +8,9 @@
 # modify it accordingly
 #
 from __future__ import print_function
+from __future__ import division
+from builtins import range
+from past.utils import old_div
 from yambopy import *
 from qepy import *
 
@@ -65,7 +68,7 @@ y['EnRngeXd'] = [[1,-1],'eV']
 
 #prepare the q-points input files
 f = open('jobs.sh','w')
-for nq in xrange(1,int(nqpoints)+1):
+for nq in range(1,int(nqpoints)+1):
     y['QpntsRXd'] = [[nq,nq],'']
     y.write('gw_par/yambo_q%d.in'%nq)
     if nq != 1:
@@ -111,7 +114,7 @@ ya.plot_gw('qp')
 print('plot along a path')
 path = [[   0,   0,   0],
         [ 0.5,   0,   0],
-        [1./3, 1/3,   0],
+        [old_div(1.,3), old_div(1,3),   0],
         [   0,   0,   0]]
 ya.plot_gw_path('qp',path)
 

@@ -5,9 +5,11 @@ from __future__ import print_function
 # This file is part of yambopy
 #
 #
+from builtins import str
+from builtins import object
 import os
 
-class ProjwfcIn():
+class ProjwfcIn(object):
     """
     A class to generate and manipulate projwfc input files.
     """    

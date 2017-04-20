@@ -1,9 +1,14 @@
 from __future__ import print_function
+from __future__ import division
 # Copyright (c) 2016, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
+from builtins import zip
+from builtins import range
+from builtins import object
+from past.utils import old_div
 from netCDF4 import Dataset
 import numpy as np
 from itertools import product
@@ -22,13 +27,13 @@ def fermi(e):
         return 0
     elif e < -max_exp:
         return 1
-    return 1/(np.exp(e)+1)
+    return old_div(1,(np.exp(e)+1))
 
 def fermi_array(e_array,ef,invsmear):
     """ 
     Fermi dirac function for an array
     """
-    e_array = (e_array-ef)/invsmear
+    e_array = old_div((e_array-ef),invsmear)
     return [ fermi(e) for e in e_array]
 
 def histogram_eiv(eiv,weights,emin=-5.0,emax=5.0,step=0.01,sigma=0.05,ctype='lorentzian'):
@@ -41,8 +46,8 @@ def histogram_eiv(eiv,weights,emin=-5.0,emax=5.0,step=0.01,sigma=0.05,ctype='lor
     y = np.zeros([len(x)],dtype=np.float32)
 
     if ctype == 'gaussian':
-        c =  1.0/(sigma*sqrt(2))
-        a = -1.0/(2*sigma)
+        c =  old_div(1.0,(sigma*sqrt(2)))
+        a = old_div(-1.0,(2*sigma))
 
     else:
         #lorentzian stuff
@@ -70,7 +75,7 @@ def histogram_eiv(eiv,weights,emin=-5.0,emax=5.0,step=0.01,sigma=0.05,ctype='lor
             y += w*c/(x1+s2)
     return x, y
 
-class YamboElectronsDB():
+class YamboElectronsDB(object):
     """
     Class to read information about the electrons from the ``ns.db1`` produced by yambo
     
@@ -112,7 +117,7 @@ class YamboElectronsDB():
         self.spin_degen = [0,2,1][int(self.spin)]
         
         #number of occupied bands
-        self.nbandsv = self.nelectrons / self.spin_degen
+        self.nbandsv = old_div(self.nelectrons, self.spin_degen)
         self.nbandsc = self.nbands-self.nbandsv
 
     def expandEigenvalues(self):
@@ -127,11 +132,11 @@ class YamboElectronsDB():
         self.nkpoints = len(self.eigenvalues)
         
         #counter counts the number of occurences of element in a list
-        for nk_ibz,inv_weight in collections.Counter(self.lattice.kpoints_indexes).items():
-            self.weights_ibz[nk_ibz] = float(inv_weight)/self.nkpoints
+        for nk_ibz,inv_weight in list(collections.Counter(self.lattice.kpoints_indexes).items()):
+            self.weights_ibz[nk_ibz] = old_div(float(inv_weight),self.nkpoints)
         
         #kpoints weights
-        self.weights = np.full((self.nkpoints), 1.0/self.nkpoints,dtype=np.float32)
+        self.weights = np.full((self.nkpoints), old_div(1.0,self.nkpoints),dtype=np.float32)
 
     def getDOS(self,broad=0.1,emin=-10,emax=10,step=0.01):
         """
@@ -200,13 +205,13 @@ class YamboElectronsDB():
         #full brillouin zone
         self.eigenvalues     -= self.efermi
         self.occupations = np.zeros([self.nkpoints,self.nbands],dtype=np.float32)
-        for nk in xrange(self.nkpoints):
+        for nk in range(self.nkpoints):
             self.occupations[nk] = fermi_array(self.eigenvalues[nk,:],0,self.invsmear)
         
         #for the ibz
         self.eigenvalues_ibz -= self.efermi
         self.occupations_ibz = np.zeros([self.nkpoints_ibz,self.nbands],dtype=np.float32)
-        for nk in xrange(self.nkpoints_ibz):
+        for nk in range(self.nkpoints_ibz):
             self.occupations_ibz[nk] = fermi_array(self.eigenvalues_ibz[nk,:],0,self.invsmear)
         
         return self.efermi
@@ -220,12 +225,12 @@ class YamboElectronsDB():
         weights     = self.weights_ibz
         nkpoints    = self.nkpoints_ibz
 
-        nbands = self.nelectrons/self.spin_degen
+        nbands = old_div(self.nelectrons,self.spin_degen)
         #top of valence
         top = np.max(eigenvalues[:,nbands])
         #bottom of conduction
         bot = np.max(eigenvalues[:,nbands-1])
-        self.efermi = (top+bot)/2
+        self.efermi = old_div((top+bot),2)
         self.setFermi(self.efermi,broad)
     
     def energy_gaps(self,GWshift=0.):
@@ -269,7 +274,7 @@ class YamboElectronsDB():
             """ 
             The total occupation minus the total number of electrons
             """
-            return sum([sum(self.spin_degen*fermi_array(eigenvalues[nk],ef,self.invsmear))*weights[nk] for nk in xrange(nkpoints)])-self.nelectrons
+            return sum([sum(self.spin_degen*fermi_array(eigenvalues[nk],ef,self.invsmear))*weights[nk] for nk in range(nkpoints)])-self.nelectrons
 
         fermi = bisect(occupation_minus_ne,min_eival,max_eival)
         if setfermi: self.setFermi(fermi,invsmear)

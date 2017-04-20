@@ -1,13 +1,18 @@
 from __future__ import print_function
+from __future__ import division
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
+from builtins import zip
+from builtins import range
+from builtins import object
+from past.utils import old_div
 from yambopy import *
 from netCDF4 import Dataset
 
-class YamboStaticScreeningDB():
+class YamboStaticScreeningDB(object):
     """
     Class to handle static screening databases from Yambo
     
@@ -54,12 +59,12 @@ class YamboStaticScreeningDB():
 
         #read gvectors
         gvectors = np.rint(database['X_RL_vecs'][:].T)
-        self.gvectors = np.array([g/self.alat  for g in gvectors])
+        self.gvectors = np.array([old_div(g,self.alat)  for g in gvectors])
         self.ngvectors = len(self.gvectors)
         
         #read q-points
         qpoints = database['HEAD_QPT'][:].T
-        self.qpoints = np.array([q/self.alat  for q in qpoints])
+        self.qpoints = np.array([old_div(q,self.alat)  for q in qpoints])
         self.nqpoints = len(self.qpoints)
         
         #are we usign coulomb cutoff?
@@ -107,13 +112,13 @@ class YamboStaticScreeningDB():
         oldpath = self.save
         filename = self.filename
         shutil.copyfile("%s/%s"%(oldpath,filename),"%s/%s"%(path,filename))
-        for nq in xrange(self.nqpoints):
+        for nq in range(self.nqpoints):
             fname = "%s_fragment_%d"%(filename,nq+1)
             shutil.copyfile("%s/%s"%(oldpath,fname),"%s/%s"%(path,fname))
 
         #edit with the new wfs
         X = self.X
-        for nq in xrange(self.nqpoints):
+        for nq in range(self.nqpoints):
             fname = "%s_fragment_%d"%(filename,nq+1)
             db = Dataset("%s/%s"%(path,fname),'r+')
             db['X_Q_%d'%(nq+1)][0,0,:] = X[nq].real
@@ -155,7 +160,7 @@ class YamboStaticScreeningDB():
         y = [np.linalg.inv(1+xq)[0,0] for xq in self.X ]
       
         #order according to the distance
-        x, y = zip(*sorted(zip(x, y)))
+        x, y = list(zip(*sorted(zip(x, y))))
         y = np.array(y)
 
         #scale by volume?
@@ -180,7 +185,7 @@ class YamboStaticScreeningDB():
         y = [xq[ng2,ng1] for xq in self.X ]
       
         #order according to the distance
-        x, y = zip(*sorted(zip(x, y)))
+        x, y = list(zip(*sorted(zip(x, y))))
         y = np.array(y)
 
         #scale by volume?

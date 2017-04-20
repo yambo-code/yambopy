@@ -24,7 +24,7 @@ class TestFileT1(unittest.TestCase):
 
     def test_qp_parsing(self):
         fl = YamboFile('o-GW_run.10.720.qp',folder+'t1_errors_warnings')
-        assert len(fl.data.keys()) == 4  # more intelligent test needed
+        assert len(list(fl.data.keys())) == 4  # more intelligent test needed
         assert  fl.type == 'output_gw'
 
     def test_l_parsing(self):

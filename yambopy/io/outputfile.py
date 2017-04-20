@@ -5,6 +5,8 @@ from __future__ import print_function
 # This file is part of yambopy
 #
 #
+from builtins import zip
+from builtins import object
 from yambopy import *
 from yambopy.plot import *
 import os
@@ -12,7 +14,7 @@ import re
 from copy import *
 from netCDF4 import Dataset
 
-class YamboOut():
+class YamboOut(object):
     """ 
     Class to read yambo output files and pack them in a .json file
 
@@ -156,17 +158,17 @@ class YamboOut():
         Search for a tag in the output files and obtain the data
         """
         data = {}
-        for key in self.data.keys():
+        for key in list(self.data.keys()):
             print(key)
             if all(tag in key for tag in tags):
-                data[key] = dict(zip(self.tags[key],np.array(self.data[key]).T))
+                data[key] = dict(list(zip(self.tags[key],np.array(self.data[key]).T)))
         return data
 
     def plot(self,tag,cols=(2,),xlabel=None):
         """
         Search in the output files a certain tag and plot it
         """
-        for key in self.data.keys():
+        for key in list(self.data.keys()):
             if tag in key:
                 data = self.data[key]
         for col in cols:
@@ -181,7 +183,7 @@ class YamboOut():
         Print the runtime in a string
         """
         timing = self.get_runtime()
-        for t in timing.items():
+        for t in list(timing.items()):
             print(t[0], '\n', t[1], '\n')
 
     def pack(self,filename=None):
@@ -191,7 +193,7 @@ class YamboOut():
         #if no filename is specified we use the same name as the folder
         if not filename: filename = self.folder
 
-        jsondata = {"data"     : dict(zip(self.data.keys(),[d.tolist() for d in self.data.values()])),
+        jsondata = {"data"     : dict(list(zip(list(self.data.keys()),[d.tolist() for d in list(self.data.values())]))),
                     "tags"     : self.tags,
                     "runtime"  : self.runtime,
                     "inputfile": self.inputfile,

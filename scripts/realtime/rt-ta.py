@@ -1,6 +1,8 @@
 from __future__ import print_function
 #import matplotlib
 #matplotlib.use('Agg') # prevents crashes if no X server present
+from builtins import str
+from builtins import range
 from yambopy import *
 import sys
 import os
@@ -35,7 +37,7 @@ data = YamboAnalyser(source)
 output = data.get_data((prefix,'eps'))
 
 # keys to read the outputs in order
-keys=output.keys()
+keys=list(output.keys())
 
 # sorting
 s=[]

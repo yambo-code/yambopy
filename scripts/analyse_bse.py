@@ -5,6 +5,7 @@ from __future__ import print_function
 # This file is part of yambopy
 #
 #
+from builtins import range
 from yambopy import *
 from qepy import *
 import json
@@ -46,7 +47,7 @@ def analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, pack ):
     # Get only files related to the convergence study of the variable,
     # ordered to have a smooth plot
     keys=[]
-    sorted_invars = sorted(invars.items(), key=operator.itemgetter(1))
+    sorted_invars = sorted(list(invars.items()), key=operator.itemgetter(1))
 
     for i in range(0,len(sorted_invars)):
         key=sorted_invars[i][0]

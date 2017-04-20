@@ -4,6 +4,7 @@ from __future__ import print_function
 # Tests for yambopy
 # Si
 #
+from builtins import zip
 import matplotlib
 matplotlib.use('Agg')
 import unittest
@@ -90,7 +91,7 @@ class TestPW_Si_Run(unittest.TestCase):
         print("old celldm(1)", q.system['celldm(1)'])
         q.system['celldm(1)'] = e.cell[0][2]*2
         print("new celldm(1)", q.system['celldm(1)'])
-        q.atoms = zip([a[0] for a in q.atoms],pos)
+        q.atoms = list(zip([a[0] for a in q.atoms],pos))
         q.write('scf/si.scf')
 
         print("step 2: scf")

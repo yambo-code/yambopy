@@ -3,6 +3,7 @@
 # Run a Silicon groundstate calculation using Quantum Espresso
 #
 from __future__ import print_function, division
+from builtins import zip
 import sys
 from qepy import *
 import argparse
@@ -125,7 +126,7 @@ def update_positions(pathin,pathout):
     print("old celldm(1)", q.system['celldm(1)'])
     q.system['celldm(1)'] = e.cell[0][0]
     print("new celldm(1)", q.system['celldm(1)'])
-    q.atoms = zip([a[0] for a in q.atoms],pos)
+    q.atoms = list(zip([a[0] for a in q.atoms],pos))
     q.write('%s/%s.scf'%(pathout,prefix))
 
 def run_plot():

@@ -1,8 +1,12 @@
 from __future__ import print_function
+from __future__ import division
 #
 #
 #
 #
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import os
 import re
 import math
@@ -14,7 +18,7 @@ import copy
 from math import *
 import fractions as frc
 
-class supercell():
+class supercell(object):
     """A class to generate custom supercells from a quantum espresso input file
     """
 
@@ -62,7 +66,7 @@ class supercell():
         atoms      = red_car(atoms,latvec) 
         #new_atoms[cell][basis][direction]
         new_atoms      = np.array([atoms for n in range(self.sup_size)])
-        for nz,ny,nx,b in product(range(R[2]),range(R[1]),range(R[0]),range(self.basis)): 
+        for nz,ny,nx,b in product(list(range(R[2])),list(range(R[1])),list(range(R[0])),list(range(self.basis))): 
             cell=nx+ny*R[0]+nz*R[0]*R[1]
             new_atoms[cell,b]=new_atoms[cell,b] +nx*latvec[0] +ny*latvec[1] +nz*latvec[2]
         #new_atoms[super_basis][directions]$
@@ -82,9 +86,9 @@ class supercell():
                     p=i
                     break
          #Compute q
-        g12_r = g12/g123
-        g23_r = g23/g123
-        g31_r = g31/g123
+        g12_r = old_div(g12,g123)
+        g23_r = old_div(g23,g123)
+        g31_r = old_div(g31,g123)
         if g12_r == 1: q = 0
         else:
             for i in range(1,g12_r):
@@ -119,7 +123,7 @@ class supercell():
         p,q,r = self.find_integers(Q[0],g23,g12,g31,g123)            
         #Matrix elements (in order of derivation) and supercell matrix
         S_33 =        Q[1,2]
-        S_22 =        Q[1,1]/g23
+        S_22 =        old_div(Q[1,1],g23)
         S_23 =      p*Q[1,2]/g23
         S_11 =   g123*Q[1,0]/(g12*g31)
         S_12 = q*g123*Q[1,1]/(g12*g23)
@@ -137,9 +141,9 @@ class supercell():
         #Unit cell
         repvec = rec_lat(self.latvec)
         alat=np.array(self.lattice_constants(self.latvec))
-        self.repvec = 2.*np.pi*np.multiply(1./alat,repvec)
+        self.repvec = 2.*np.pi*np.multiply(old_div(1.,alat),repvec)
         #Supercell
-        if mode=='diagonal': self.new_repvec = np.array([self.repvec[i]/float(R[i]) for i in range(3)])
+        if mode=='diagonal': self.new_repvec = np.array([old_div(self.repvec[i],float(R[i])) for i in range(3)])
         else: 
             self.S_inv_T = np.linalg.inv(self.S).T
             self.new_repvec = np.einsum('ij,jx->ix',self.S_inv_T,self.repvec)
@@ -163,7 +167,7 @@ class supercell():
         qe = self.qe_input
         if mode=='diagonal':
             #A suggestion for a consistent new kpoint mesh 
-            new_kpoints = [ceil(qe.kpoints[0]/R[0]), ceil(qe.kpoints[1]/R[1]), ceil(qe.kpoints[2]/R[2])]
+            new_kpoints = [ceil(old_div(qe.kpoints[0],R[0])), ceil(old_div(qe.kpoints[1],R[1])), ceil(old_div(qe.kpoints[2],R[2]))]
         else:
             #The compulsory new kpoint mesh - (sub)multiples of it are also fine but not consistent
             self.reciprocal('nondiagonal')
@@ -174,8 +178,8 @@ class supercell():
         qe_s.control['prefix'] = qe.control['prefix'][:-1]+"_s'"
         if 'celldm(1)' in qe.system:
             qe_s.system['celldm(1)'] = alat[0]
-            qe_s.system['celldm(2)'] = alat[1]/alat[0]
-            qe_s.system['celldm(3)'] = alat[2]/alat[0]
+            qe_s.system['celldm(2)'] = old_div(alat[1],alat[0])
+            qe_s.system['celldm(3)'] = old_div(alat[2],alat[0])
         if not (mode=='diagonal'and R[0]==R[1]==R[2]): qe_s.system['ibrav']=0
         qe_s.cell_units = 'bohr'
         qe_s.cell_parameters = new_latvec

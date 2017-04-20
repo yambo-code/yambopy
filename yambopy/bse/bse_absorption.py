@@ -4,6 +4,7 @@ from __future__ import print_function
 #
 # This file is part of the yambopy project
 #
+from builtins import range
 from yambopy import *
 from yambopy.plot  import *
 import os
@@ -53,7 +54,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
         #we just use one of them
         key = list(absorptionspectra)[0]
-        for key,value in absorptionspectra[key].items():
+        for key,value in list(absorptionspectra[key].items()):
             self.data[key] = value
 
     def get_excitons(self,min_intensity=0.1,max_energy=4,Degen_Step=0.0):
@@ -106,7 +107,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                           Direction="123", Format="x",
                           Degen_Step=0.0100,
                           MinWeight=1e-8,
-                          repx=range(-1,2), repy=range(-1,2), repz=range(-1,2),
+                          repx=list(range(-1,2)), repy=list(range(-1,2)), repz=list(range(-1,2)),
                           wf=False):
         """
         Collect all the wavefuncitons with an intensity larger than self.threshold

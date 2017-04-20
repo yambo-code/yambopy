@@ -21,7 +21,7 @@ fold.yambofiles
 fl = YamboFile('o-GW_run.10.720.qp',folder)
 print() 
 print(fl.type)
-print(fl.data.keys())
+print(list(fl.data.keys()))
 
 fl = YamboFile('l-GW_run.8.480_em1d_ppa_HF_and_locXC_gw0_rim_cut_CPU_1',folder)
 print() 
@@ -45,7 +45,7 @@ folder = os.path.dirname(os.path.realpath(__file__))+'/testdata/t2_parse_qps'
 fl = YamboFile('o-yambo.qp',folder)
 print() 
 print(fl.type)
-print(fl.data.keys())
+print(list(fl.data.keys()))
 
 fl = YamboFile('l-yambo_em1d_HF_and_locXC_gw0',folder)
 print() 

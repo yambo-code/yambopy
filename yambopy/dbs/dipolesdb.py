@@ -1,9 +1,14 @@
 from __future__ import print_function
+from __future__ import division
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
+from builtins import zip
+from builtins import range
+from builtins import object
+from past.utils import old_div
 from yambopy import *
 from math import sqrt
 from time import time
@@ -15,17 +20,17 @@ def abs2(x):
     return x.real**2 + x.imag**2
  
 def lorentzian(x,x0,g):
-    height=1./(np.pi*g)
+    height=old_div(1.,(np.pi*g))
     return height*(g**2)/((x-x0)**2+g**2)
 
 def gaussian(x,x0,s):
-    height=1./(np.sqrt(2.*np.pi)*s)
-    argument=-0.5*((x-x0)/s)**2
+    height=old_div(1.,(np.sqrt(2.*np.pi)*s))
+    argument=-0.5*(old_div((x-x0),s))**2
     #Avoiding undeflow errors...
     np.place(argument,argument<min_exp,min_exp)
     return height*np.exp(argument)
 
-class YamboDipolesDB():
+class YamboDipolesDB(object):
     """
     Class to read the dipoles databases from the ``ndb.dip*`` files
     
@@ -67,7 +72,7 @@ class YamboDipolesDB():
         """
         eiv = electrons.eigenvalues
         nkpoints, nbands = eiv.shape
-        for nk in xrange(nkpoints):
+        for nk in range(nkpoints):
             
             eivk = eiv[nk]
             
@@ -75,11 +80,11 @@ class YamboDipolesDB():
             norm = np.array([ [ec-ev for ev in eivk] for ec in eivk  ])
             
             #normalize
-            for i,j in product(xrange(nbands),repeat=2):
+            for i,j in product(range(nbands),repeat=2):
                 if norm[i,j] == 0: 
                     self.dipoles[nk,:,i,j] = 0
                 else:
-                    self.dipoles[nk,:,i,j] = self.dipoles[nk,:,i,j]/norm[i,j]
+                    self.dipoles[nk,:,i,j] = old_div(self.dipoles[nk,:,i,j],norm[i,j])
         dipoles = self.dipoles
 
     def readDB(self,dip_type):
@@ -95,9 +100,9 @@ class YamboDipolesDB():
         db = Dataset(filename)
         tag1 = 'DIP_iR_k_0001_spin_0001'
         tag2 = 'DIP_iR_k_0001_xyz_0001_spin_0001'
-        if tag1 in db.variables.keys():
+        if tag1 in list(db.variables.keys()):
             dipoles_format = 1
-        elif tag2 in db.variables.keys():
+        elif tag2 in list(db.variables.keys()):
             dipoles_format = 2
         db.close()
         
@@ -109,10 +114,10 @@ class YamboDipolesDB():
 
             if dipoles_format == 1:
                 dip = db.variables['DIP_%s_k_%04d_spin_%04d'%(dip_type,nk+1,1)][:].view(dtype=np.complex64)[:,:,:,0]
-                for i in xrange(3):
+                for i in range(3):
                     dipoles[nk,i] = dip[:,:,i].T
             elif dipoles_format == 2:
-                for i in xrange(3):
+                for i in range(3):
                     dip = db.variables['DIP_%s_k_%04d_xyz_%04d_spin_%04d'%(dip_type,nk+1,i+1,1)][:]
                     dipoles[nk,i] = dip[0].T+dip[1].T*1j
 
@@ -136,9 +141,9 @@ class YamboDipolesDB():
         
         #normalize the fields
         field_dir  = np.array(field_dir)
-        field_dir  = field_dir/np.linalg.norm(field_dir)
+        field_dir  = old_div(field_dir,np.linalg.norm(field_dir))
         field_dir3 = np.array(field_dir3)
-        field_dir3 = field_dir3/np.linalg.norm(field_dir3)
+        field_dir3 = old_div(field_dir3,np.linalg.norm(field_dir3))
         
         #calculate polarization directions
         field_dirx = field_dir
@@ -161,7 +166,7 @@ class YamboDipolesDB():
         self.dipoles_ibz = dipoles 
         #get dipoles in the full Brilouin zone
         self.dipoles = np.zeros([nkpoints,3,nbands,nbands],dtype=np.complex64)
-        for nk_fbz,nk_ibz,ns in zip(xrange(nkpoints),nks,nss):
+        for nk_fbz,nk_ibz,ns in zip(range(nkpoints),nks,nss):
             
             #if time rev we conjugate
             if lattice.time_rev_list[ns]:
@@ -176,12 +181,12 @@ class YamboDipolesDB():
             #transformation
             tra = np.dot(pro,sym)
             
-            for c,v in product(xrange(self.nbandsc),xrange(self.nbandsv)):
+            for c,v in product(range(self.nbandsc),range(self.nbandsv)):
                 #rotate dipoles
                 self.dipoles[nk_fbz,:,indexc+c,indexv+v] = np.dot(tra,dip[:,c,v])
         
             #make hermitian
-            for c,v in product(xrange(self.nbandsc),xrange(self.nbandsv)):
+            for c,v in product(range(self.nbandsc),range(self.nbandsv)):
                 self.dipoles[nk_fbz,:,indexv+v,indexc+c] = factor*np.conjugate(self.dipoles[nk_fbz,:,indexc+c,indexv+v])
                         
         self.field_dirx = field_dirx
@@ -241,7 +246,7 @@ class YamboDipolesDB():
         pols = np.array(pols)
         na = np.newaxis
         #calculate epsilon
-        for c,v in product(range(nv,lc),range(iv,nv)):
+        for c,v in product(list(range(nv,lc)),list(range(iv,nv))):
             #get electron-hole energy and dipoles
             ecv  = eiv[:,c]-eiv[:,v]
             dip2 = np.sum(abs2(dipoles[:,pols,c-nv,v]),axis=1)

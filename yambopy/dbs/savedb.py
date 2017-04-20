@@ -1,9 +1,14 @@
 from __future__ import print_function
+from __future__ import division
 # Copyright (c) 2016, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
+from builtins import zip
+from builtins import range
+from builtins import object
+from past.utils import old_div
 from yambopy import *
 from yambopy.plot import *
 from itertools import product
@@ -53,7 +58,7 @@ def expand_kpts(kpts,syms):
 
     return full_kpts
 
-class YamboSaveDB():
+class YamboSaveDB(object):
     """
     Reads the information from the SAVE database in Yambo
 
@@ -111,8 +116,8 @@ class YamboSaveDB():
         #get a list of symmetries with time reversal
         nsym = len(self.sym_car)
         self.time_rev_list = [False]*nsym
-        for i in xrange(nsym):
-            self.time_rev_list[i] = ( i >= nsym/(self.time_rev+1) )
+        for i in range(nsym):
+            self.time_rev_list[i] = ( i >= old_div(nsym,(self.time_rev+1)) )
 
         #spin degeneracy if 2 components degen 1 else degen 2
         self.spin_degen = [0,2,1][int(self.spin)]
@@ -127,7 +132,7 @@ class YamboSaveDB():
         self.nsym  = len(self.sym_car)
 
         #convert form internal yambo units to cartesian lattice units
-        self.kpts_car = np.array([ k/self.alat for k in self.kpts_iku ])
+        self.kpts_car = np.array([ old_div(k,self.alat) for k in self.kpts_iku ])
 
         #convert cartesian transformations to reduced transformations
         inv = np.linalg.inv
@@ -154,18 +159,18 @@ class YamboSaveDB():
                 return 0
             elif e < -max_exp:
                 return 1
-            return 1/(np.exp(e)+1)
+            return old_div(1,(np.exp(e)+1))
 
         def fermi_array(e_array,ef):
             """ Fermi dirac function for an array
             """
-            e_array = (e_array-ef)/inv_smear
+            e_array = old_div((e_array-ef),inv_smear)
             return [ fermi(e) for e in e_array]
 
         def occupation_minus_ne(ef):
             """ The total occupation minus the total number of electrons
             """
-            return sum([sum(self.spin_degen*fermi_array(self.eigenvalues[nk],ef))*self.weights[nk] for nk in xrange(self.nkpoints)])-self.electrons
+            return sum([sum(self.spin_degen*fermi_array(self.eigenvalues[nk],ef))*self.weights[nk] for nk in range(self.nkpoints)])-self.electrons
 
         self.efermi = bisect(occupation_minus_ne,self.min_eival,self.max_eival)
 
@@ -176,7 +181,7 @@ class YamboSaveDB():
         self.max_eival -= self.efermi
 
         self.occupations = np.zeros([self.nkpoints,self.nbands],dtype=np.float32)
-        for nk in xrange(self.nkpoints):
+        for nk in range(self.nkpoints):
             self.occupations[nk] = fermi_array(self.eigenvalues[nk,:self.nbands],0)
 
         return self.efermi
@@ -202,7 +207,7 @@ class YamboSaveDB():
         if kpts is None:
             kpts, nks, nss = self.expand_kpts()
         else:
-            nks = range(len(kpts))
+            nks = list(range(len(kpts)))
 
         #points in cartesian coordinates
         path_car = red_car(path, self.rlat)
@@ -226,7 +231,7 @@ class YamboSaveDB():
             end_kpt   = path_car[k+1] #end point of the path
 
             #generate repetitions of the brillouin zone
-            for x,y,z in product(range(-1,2),range(-1,2),range(1)):
+            for x,y,z in product(list(range(-1,2)),list(range(-1,2)),list(range(1))):
 
                 #shift the brillouin zone
                 shift = red_car([np.array([x,y,z])],self.rlat)[0]
@@ -243,7 +248,7 @@ class YamboSaveDB():
                         kpoints_in_path[key] = value
 
             #sort the points acoording to distance to the start of the path
-            kpoints_in_path = sorted(kpoints_in_path.values(),key=lambda i: i[1])
+            kpoints_in_path = sorted(list(kpoints_in_path.values()),key=lambda i: i[1])
 
             #for all the kpoints in the path
             for index, disp, kpt in kpoints_in_path:
@@ -296,7 +301,7 @@ class YamboSaveDB():
         self.full_nkpoints = len(kpoints_full)
         weights = np.zeros([self.nkpoints])
         for nk in kpoints_full_i:
-            weights[nk] = float(len(kpoints_full_i[nk]))/self.full_nkpoints
+            weights[nk] = old_div(float(len(kpoints_full_i[nk])),self.full_nkpoints)
 
         #set the variables
         self.expanded = True
@@ -333,7 +338,7 @@ class YamboSaveDB():
         plt.plot(bands_distances,self.eigenvalues[bands_indexes])
         plt.show()
 
-    def plot_bs_bz(self,size=20,bandc=1,bandv=None,expand=True,repx=range(3),repy=range(3),repz=range(3)):
+    def plot_bs_bz(self,size=20,bandc=1,bandv=None,expand=True,repx=list(range(3)),repy=list(range(3)),repz=list(range(3))):
         """ Plot the difference in energies of two bands
         """
         if bandv is None: bandv = self.nbandsv
@@ -345,7 +350,7 @@ class YamboSaveDB():
         weights = (eigenvalues[:,bandc-1]-eigenvalues[:,bandv-1])
         print("min:", min(weights))
         print("max:", max(weights))
-        weights = weights/max(weights)
+        weights = old_div(weights,max(weights))
 
         if expand:
             kpts, nks = self.expand_kpts(repx=repx,repy=repy,repz=repz)

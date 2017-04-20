@@ -3,10 +3,12 @@
 #
 # This file is part of the yambopy project
 #
+from builtins import range
+from builtins import object
 from yambopy import *
 from yamboparser import *
 
-class YamboQPDB():
+class YamboQPDB(object):
     """
     Class to read yambo ndb.QP files
     
@@ -26,14 +28,14 @@ class YamboQPDB():
 
         #get kpoints
         kpts=[]
-        for nk in xrange(self.nkpoints):
+        for nk in range(self.nkpoints):
             kpts.append(qps['Kpoint'][nk])
         self.kpoints = np.array(kpts)
 
         #get nbands
         min_band = int(qps['Band'][0])
         max_band = int(qps['Band'][0])
-        for iqp in xrange(self.nqps):
+        for iqp in range(self.nqps):
             band  = int(qps['Band'][iqp])
             if min_band > band: min_band = band
             if max_band < band: max_band = band
@@ -55,7 +57,7 @@ class YamboQPDB():
         eigenvalues_lda = np.zeros([nkpts,nbands])
         eigenvalues_qp  = np.zeros([nkpts,nbands])
         lifetimes       = np.zeros([nkpts,nbands])
-        for iqp in xrange(nqps):
+        for iqp in range(nqps):
             kindx = int(qps['Kpoint_index'][iqp])
             e     = qps['E'][iqp]
             e0    = qps['Eo'][iqp]

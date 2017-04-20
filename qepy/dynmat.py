@@ -1,10 +1,16 @@
 from __future__ import print_function
+from __future__ import division
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
+from builtins import str
+from builtins import zip
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import os
 import re
 from math import sqrt
@@ -13,7 +19,7 @@ from   qepy.auxiliary import *
 
 meVtocm = 8.06573
 
-class DynmatIn():
+class DynmatIn(object):
     """
     Generate an manipulate quantum espresso input files for matdyn.x
     """
@@ -52,7 +58,7 @@ class DynmatIn():
             return ''
 
 
-class Matdyn():
+class Matdyn(object):
     """ Class to read and plot the data from matdyn.modes files 
     """
     _datafile = 'matdyn.modes'
@@ -64,15 +70,15 @@ class Matdyn():
         self.nqpoints = len(path.get_klist()) 
         self.eigen, self.modes = [], []
         self.qpoints  = []
-        for j in xrange(self.nqpoints):
+        for j in range(self.nqpoints):
           frec, v_frec = [], []
           k=2 + j*(self.nmodes*(natoms+1)+5)
           self.qpoints.append(float_from_string(data_phon[k]))
-          for i in xrange(self.nmodes):
+          for i in range(self.nmodes):
             k=4 + j*(self.nmodes*(natoms+1)+5) + i*(natoms+1)
             y = float_from_string(data_phon[k])
             v_mode = []
-            for ii in xrange(1,natoms+1):
+            for ii in range(1,natoms+1):
               z      = float_from_string(data_phon[k+ii])
               v_atom = array([complex(z[0],z[1]),complex(z[2],z[3]),complex(z[4],z[5])])
               v_mode.append(v_atom)
@@ -93,7 +99,7 @@ class Matdyn():
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
-            plt.xticks( *zip(*path) )
+            plt.xticks( *list(zip(*path)) )
         plt.ylabel('\\omega (cm$^{-1}$)')
 
         #plot vertical line
@@ -104,16 +110,16 @@ class Matdyn():
         #plot bands
         eigen = array(self.eigen)
         for ib in range(self.nmodes):
-           plt.plot(xrange(self.nqpoints),eigen[:,ib], 'r-', lw=2)
+           plt.plot(range(self.nqpoints),eigen[:,ib], 'r-', lw=2)
         plt.show()
   
     def __str__(self):
         s = ''
-        for nq in xrange(self.nqpoints):
+        for nq in range(self.nqpoints):
             s+="\n\n q = "+("%12.8lf "*3)%tuple(self.qpoints[nq])+"\n"
-            for n in xrange(self.nmodes):
+            for n in range(self.nmodes):
                 s+= "freq (cm-1): %4.3lf\n"%self.eigen[nq][n]
-                for na in xrange(self.nmodes/3):
+                for na in range(old_div(self.nmodes,3)):
                     xr = self.modes[nq][n][na].real
                     xi = self.modes[nq][n][na].imag
                     s+=("%12.8lf %12.8lfj    "*3)%(xr[0],xi[0],xr[1],xi[1],xr[2],xi[2])+"\n"
@@ -121,8 +127,8 @@ class Matdyn():
     
     def write_freq_file(self,filename='freq.dat'):
         f = open(filename,'w') 
-        for n in xrange(self.nmodes):
-          for nq in xrange(self.nqpoints):
+        for n in range(self.nmodes):
+          for nq in range(self.nqpoints):
             f.write("%4.3lf   %4.3lf\n"%(float(nq),self.eigen[nq][n])) 
           f.write("\n") 
         f.close()

@@ -1,4 +1,6 @@
 from __future__ import print_function
+from builtins import str
+from builtins import range
 import matplotlib
 #matplotlib.use('Agg') # prevents crashes if no X server present (clusters)
 from yambopy import *
@@ -62,7 +64,7 @@ tags = data.get_tags(var)
 # Get only files related to the convergence study of the variable,
 # ordered to have a smooth plot
 keys=[]
-sorted_invars = sorted(invars.items(), key=operator.itemgetter(1))
+sorted_invars = sorted(list(invars.items()), key=operator.itemgetter(1))
 
 for i in range(0,len(sorted_invars)):
     key=sorted_invars[i][0]

@@ -4,6 +4,8 @@
 # This file is part of yambopy
 #
 #
+from builtins import range
+from builtins import object
 import numpy as np
 import os
 
@@ -19,7 +21,7 @@ def float_from_string(x):
       pass
   return y
 
-class Path():
+class Path(object):
     """ Class that defines a path in the brillouin zone
     """
     def __init__(self,klist,intervals):

@@ -4,13 +4,16 @@ from __future__ import print_function
 #
 # This file is part of yambopy
 #
+from builtins import str
+from builtins import map
+from builtins import object
 from subprocess import Popen, PIPE
 import os
 import json
 from time import sleep
 import re
 
-class YamboIn():
+class YamboIn(object):
     """
     Class to read, write, create and manipulate yambo input files with python.
 
@@ -104,7 +107,7 @@ class YamboIn():
         """ Set the value of a variable in the input file
         """
         #if the units are not specified, add them
-        if type(value) == list and str not in map(type,value):
+        if type(value) == list and str not in list(map(type,value)):
             value = [value,'']
         if type(value) in [int,float,complex]:
             value = [value,'']
@@ -199,7 +202,7 @@ class YamboIn():
 
         #check which variables to optimize
         if 'all' in variables:
-            variables = conv.keys()
+            variables = list(conv.keys())
 
         #save all the variables
         backup = {}
@@ -207,13 +210,13 @@ class YamboIn():
             backup[var] = self[var]
 
         #add units to all the variables (to be improved!)
-        for key,value in conv.items():
+        for key,value in list(conv.items()):
             if type(value[-1]) != str and type(value[0]) == list:
                 conv[key] = [value,'']
 
         #make a first run with all the first elements
         reference = {}
-        for key,value in conv.items():
+        for key,value in list(conv.items()):
             values, unit = value
             reference[key] = [values[0],unit]
             self[key] = [values[0],unit]
@@ -225,7 +228,7 @@ class YamboIn():
             print('Reference run disabled.')
 
         #converge one by one
-        for key in [var for var in conv.keys() if var in variables]:
+        for key in [var for var in list(conv.keys()) if var in variables]:
             values, unit = conv[key]
             #put back the original values of the variables
             for var in variables:
@@ -299,8 +302,8 @@ class YamboIn():
         #arguments
         s += "\n".join(self.arguments)+'\n'
 
-        for key,value in self.variables.items():
-            if type(value)==str or type(value)==unicode:
+        for key,value in list(self.variables.items()):
+            if type(value)==str or type(value)==str:
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue
             if type(value[0])==float:
@@ -324,7 +327,7 @@ class YamboIn():
                 continue
             if type(value[0])==str:
                 array = value
-                s+="%% %s\n %s \n%%\n"%(key," | ".join(map(lambda x: "'%s'"%x.replace("'","").replace("\"",""),array))+' | ')
+                s+="%% %s\n %s \n%%\n"%(key," | ".join(["'%s'"%x.replace("'","").replace("\"","") for x in array])+' | ')
                 continue
             if type(value[0])==complex:
                 value, unit = value
