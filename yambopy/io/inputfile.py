@@ -34,7 +34,7 @@ class YamboIn(object):
             y = YamboIn('yambo -o c',folder='ip')
             print y
 
-    If the argument ``args`` was used then the filename should be left as ``yambo.in`` because that's the default input filename that yambo will create. 
+    If the argument ``args`` was used then the filename should be left as ``yambo.in`` because that's the default input filename that yambo will create.
 
     Call ypp to initialize the input file:
 
@@ -43,7 +43,7 @@ class YamboIn(object):
             y = YamboIn('yyp -e w'args=,filename='ypp.in')
             print y
 
-    **Arguments:** 
+    **Arguments:**
 
         ``args``:     if specified yambopy will run yambo, read the generated input file and initialize the class with those variables.
 
@@ -139,7 +139,7 @@ class YamboIn(object):
         self.variables.update(variables)
 
     def read_string(self,inputfile):
-        """ 
+        """
         Read the input variables from a string
         """
         var_real     = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp +
@@ -303,6 +303,7 @@ class YamboIn(object):
         s += "\n".join(self.arguments)+'\n'
 
         for key,value in list(self.variables.items()):
+            print(type(value))
             if type(value)==str or type(value)==str:
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue
