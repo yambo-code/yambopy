@@ -126,7 +126,7 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--run',        action="store_true", help='Run BSE calculation')
     parser.add_argument('-c', '--cut',        action="store_true", help='Use coulomb truncation')
     parser.add_argument('-a', '--analyse',    action="store_true", help='plot the results')
-    parser.add_argument('-t' ,'--nthreads',                     help='Number of threads', default=1)
+    parser.add_argument('-t' ,'--nthreads',                        help='Number of threads', default=1)
     args = parser.parse_args()
     nthreads = int(args.nthreads)
 

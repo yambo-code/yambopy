@@ -123,12 +123,20 @@ def update_positions(pathin,pathout):
     e = PwXML(prefix,path=pathin)
     pos = e.get_scaled_positions()
 
-    q = PwIn('%s/%s.scf'%(pathin,prefix))
-    print("old celldm(1)", q.system['celldm(1)'])
-    q.system['celldm(1)'] = e.cell[0][0]
-    print("new celldm(1)", q.system['celldm(1)'])
-    q.atoms = zip([a[0] for a in q.atoms],pos)
-    q.write('%s/%s.scf'%(pathout,prefix))
+    #open relaxed cell
+    qin  = PwIn('%s/%s.scf'%(pathin,prefix))
+
+    #open scf file
+    qout = PwIn('%s/%s.scf'%(pathout,prefix))
+
+    #update positions on scf file
+    print("old celldm(1)", qin.system['celldm(1)'])
+    qout.system['celldm(1)'] = e.cell[0][0]
+    print("new celldm(1)", qout.system['celldm(1)'])
+    qout.atoms = zip([a[0] for a in qin.atoms],pos)
+    
+    #write scf
+    qout.write('%s/%s.scf'%(pathout,prefix))
 
 def run_plot():
     print("running plotting:")
