@@ -151,9 +151,10 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                 ##############################################################
                 #create ypp input for the wavefunction file and run
                 yppwf["States"] = "%d - %d"%(i,i)
-                yppwf.write("yppwf_%d.in"%i)
+                yppwf.write("%s/yppwf_%d.in"%(self.path,i))
 
                 filename = "o-%s.exc_%dd_%d%s"%(self.job_string,len(Direction),i,{"g":"","x":".xsf"}[Format] )
+                print filename
                 if not os.path.isfile(filename):
                     os.system("cd %s; ypp -F yppwf_%d.in -J %s"%(self.path,i,self.job_string))
 
@@ -162,7 +163,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                     ewf = YamboExcitonWaveFunctionXSF()
                 else:
                     ewf = YamboExcitonWaveFunctionGnuplot()
-                ewf.read_file(filename)
+                ewf.read_file("%s/%s"%(self.path,filename))
                 data = ewf.get_data()
                 for word in keywords:
                     if word in data:

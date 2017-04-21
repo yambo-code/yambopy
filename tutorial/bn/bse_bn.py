@@ -82,8 +82,8 @@ def run(nthreads=1,cut=False):
 
     y['FFTGvecs'] = [30,'Ry']
     y['NGsBlkXs'] = [1,'Ry']
-    y['BndsRnXs'] = [1,10]
-    y['BSEBands'] = [4,5]
+    y['BndsRnXs'] = [1,80]
+    y['BSEBands'] = [3,6]
     y['BEnSteps'] = 500
     y['BEnRange'] = [[0.0,10.0],'eV']
     y['KfnQP_E']  = [2.91355133,1.0,1.0] #some scissor shift
@@ -114,7 +114,8 @@ def analyse():
     print( "nexcitons: %d"%len(excitons) )
     print( "excitons:" )
     print( excitons )
-    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1))
+    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1),
+                        Cells=[13,13,1],Hole=[0,0,6+.5], FFTGvecs=10,wf=True)
     a.write_json()
 
 if __name__ == "__main__":
