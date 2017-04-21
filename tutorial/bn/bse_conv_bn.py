@@ -73,7 +73,7 @@ def bse_convergence(what='dielectric',threads=1,nohup=False):
         y['BSEBands'] = [1,10]
 
         #list of variables to optimize the BSE
-        conv = { 'BSEEhEny': [[[1,10],[1,11],[1,12]],'eV'],
+        conv = { 'BSEEhEny': [[[1,10],[1,12],[1,14]],'eV'],
                  'BSENGBlk': [[0,1,2], 'Ry'],
                  'BSENGexx': [[10,15,20],'Ry']}
 

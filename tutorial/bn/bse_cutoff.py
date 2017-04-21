@@ -14,6 +14,7 @@ import sys
 prefix = "bn"
 yambo = "yambo"
 p2y = 'p2y'
+pw = 'pw.x'
 layer_separations = [10,15,20,25,30,35,40]
 scf_kpoints  = [ 9, 9,1]
 nscf_kpoints = [12,12,1]
@@ -101,7 +102,7 @@ def run_job(layer_separation,nthreads=1,work_folder='bse_cutoff',cut=False):
     print("scf cycle")
     print("kpoints",scf_kpoints)
     scf(layer_separation,folder="%s/scf"%root_folder)
-    shell.add_command("pushd %s/scf; pw.x < %s.scf > scf.log"%(root_folder,prefix))
+    shell.add_command("pushd %s/scf; mpirun -np %d %s < %s.scf > scf.log"%(root_folder,nthreads,pw,prefix))
     shell.add_command("popd")
 
     # 2. run the non self consistent calculation
@@ -112,7 +113,7 @@ def run_job(layer_separation,nthreads=1,work_folder='bse_cutoff',cut=False):
     nscf(layer_separation,folder="%s/nscf"%root_folder)
 
     shell.add_command('cp -r %s %s'%(src,dst) )
-    shell.add_command("pushd %s/nscf; pw.x < %s.nscf > nscf.log"%(root_folder,prefix))
+    shell.add_command("pushd %s/nscf; mpirun -np %d %s < %s.nscf > nscf.log"%(root_folder,nthreads,pw,prefix))
     shell.add_command('popd')
 
     # generate the database

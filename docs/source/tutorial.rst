@@ -227,21 +227,26 @@ The relevant convergence parameters for these two stages are:
     ``NGsBlkXs``: number of components for the local fields. Averages the value of the dielectric screening over a number of periodic copies of the unit cell. This parameter increases greatly increases the cost of the calculation and hence should be increased slowly. A typical good value is 2 Ry.
 
 
-To run these calculations, you need to have calculated the scf and nscf with quantum espresso:
+To run these calculations, you need to relax the structure ``-r``, calculate the scf ``-s`` and nscf ``-n`` with Quantum Espresso:
 
 .. code-block:: bash
 
-    python gs_bn.py -s -n
+    python gs_bn.py -r -s -n
 
-Once that is done, you can run:
+When that is done, you can converge the dielectric function, for this run:
+
+.. code-block:: bash
 
     python bse_conv_bn.py -r -e
 
-Once the parameters are converged, you can run a calculation with these converged parameters and save the dielectric screening databases ``ndb.em1s*`` for re-use them in the subsequent calculations.
-For that you can copy these files to the SAVE folder. This is done in the ``run`` function inside the ``bse_conv_bn.py`` file.
-``yambo`` will only re-calculate any database if it does not find it or some parameter has changed.
+Using the optimal parameters, you can run a calculation and save the dielectric screening
+databases ``ndb.em1s*`` to re-use them in the subsequent calculations.
+For that you can copy these files to the SAVE folder. This is done in
+the ``run`` function inside the ``bse_conv_bn.py`` file.
+``yambo`` will only re-calculate any database if it does not find it
+or some parameter has changed.
 
-Once the calculation is done you can plot the static dielectric function as a function of q points:
+Once the calculations are done you can plot the static dielectric function as a function of q points:
 
 .. code-block:: bash
 
@@ -262,7 +267,9 @@ Once the calculation is done you can plot the static dielectric function as a fu
 
 **b. Optical absorption spectra**
 
-Once you obtained a converged dielectric screening function you can calculate the Bethe-Salpeter auxiliary Hamiltonian and obtain the excitonic states and energies diagonalizing it or calculating the optical absorption spectra with a recursive technique like the Haydock method.
+Once you obtained a converged dielectric screening function you can calculate the Bethe-Salpeter
+auxiliary Hamiltonian and obtain the excitonic states and energies diagonalizing it or
+calculating the optical absorption spectra with a recursive technique like the Haydock method.
 
     ``BSEBands``: number of bands to generate the transitions. Should be as small as possible as the size of the BSE auxiliary hamiltonian has (in the resonant approximation) dimensions ``Nk*Nv*Nc``. Another way to converge the number of transitions is using ``BSEEhEny``. This variable selects the number of transitions based on the electron-hole energy difference.
 
@@ -331,48 +338,6 @@ using the ``multiprocessing`` module of python. The way it is implemented it wil
 
 The main loop changes the ``layer_separation`` variable using values from a list.
 In the script you can find how the functions ``scf``, ``ncf`` and ``database`` are defined.
-
-.. code-block:: python
-
-    #for each separation run the ground state calculation and
-    for layer_separation in layer_separations:
-
-      root_folder = "%s/%d"%(work_folder,layer_separation)
-      if not os.path.isdir(root_folder):
-          os.makedirs(root_folder)
-
-      # run the ground state calculation
-      print("scf cycle")
-      scf(layer_separation,folder="%s/scf"%root_folder)
-      os.system("cd %s/scf; pw.x < %s.scf > scf.log"%(root_folder,prefix))
-
-      # run the non self consistent calculation
-      print("nscf cycle")
-      src ='%s/scf/%s.save'%(root_folder,prefix)
-      dst ='%s/nscf/%s.save'%(root_folder,prefix)
-      nscf(layer_separation,folder="%s/nscf"%root_folder)
-      os.system( 'cp -r %s %s'%(src,dst) )
-      os.system("cd %s/nscf; pw.x < %s.nscf > nscf.log"%(root_folder,prefix))
-
-      # generate the database
-      database('%s'%root_folder,nscf_folder="%s/nscf"%root_folder)
-
-      # calculate the absorption spectra using yambo
-      y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder=root_folder)
-
-      y['FFTGvecs'] = [30,'Ry']
-      y['NGsBlkXs'] = [1,'Ry']
-      y['BndsRnXs'] = [1,30]
-
-      y['CUTGeo'] = 'box z'
-      y['CUTBox'] = [0,0,layer_separation-1]
-
-      y['KfnQP_E']  = [1.0,1.0,1.0] #scissor operator
-      y['BSEBands'] = [3,6]
-      y['BEnSteps'] = 500
-      y['BEnRange'] = [[1.0,6.0],'eV']
-      y.write('%s/yambo_run.in'%root_folder)
-      os.system('cd %s; %s -F yambo_run.in -J %d'%(root_folder,yambo,layer_separation))
 
 **3. Plot the dielectric function**
 
@@ -457,11 +422,11 @@ You should then obtain plots similar (these ones were generated on a 30x30 k-poi
    :width: 600 px
 
 
-Again, be aware that this figures serves only to show the kind of representation 
+Again, be aware that this figures serve only to show the kind of representation 
 that can be obtained with ``yambo`` and ``yambopy``.
 Further convergence tests need to be performed to obtain accurate results, but that is left to the user.
 
-Some plots of excitonic wavefunctions in real space are show in a parallel project in:
+You can now visualize these wavefunctions using our online tool:
 `http://henriquemiranda.github.io/excitonwebsite/ <http://henriquemiranda.github.io/excitonwebsite/>`_ 
 
 4. Parallel static screening
