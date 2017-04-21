@@ -1,4 +1,5 @@
 from __future__ import print_function
+from past.builtins import basestring
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
 # All rights reserved.
 #
@@ -107,7 +108,8 @@ class YamboIn(object):
         """ Set the value of a variable in the input file
         """
         #if the units are not specified, add them
-        if type(value) == list and str not in list(map(type,value)):
+        is_string = [isinstance(v,basestring) for v in value]
+        if type(value) == list and not any( is_string ):
             value = [value,'']
         if type(value) in [int,float,complex]:
             value = [value,'']
@@ -188,15 +190,16 @@ class YamboIn(object):
         return {"arguments": self.arguments, "variables": self.variables}
 
     def optimize(self,conv,variables=('all',),run=lambda x: None,ref_run=True):
-        """ Function to to make multiple runs of yambo to converge calculation parameters
-            Input:
+        """ 
+        Function to to make multiple runs of yambo to converge calculation parameters
+        
+        Arguments:
+
             A dictionary conv that has all the variables to be optimized
             A list fo the name of the variables in the dicitonary that are to be optimized
             A function run that takes as input the name of the inputfile (used to run yambo)
             A boolean ref_run that can disable the submitting of the reference run (see scripts/analyse_gw.py)
-            .. code-block:: python
-                def run(filename):
-                    os.system('yambo -F %s'%filename)
+
         """
         name_files = []
 
@@ -211,7 +214,7 @@ class YamboIn(object):
 
         #add units to all the variables (to be improved!)
         for key,value in list(conv.items()):
-            if type(value[-1]) != str and type(value[0]) == list:
+            if not isinstance(value[-1],basestring) and type(value[0]) == list:
                 conv[key] = [value,'']
 
         #make a first run with all the first elements
@@ -234,7 +237,7 @@ class YamboIn(object):
             for var in variables:
                 self[var] = reference[var]
             #change the other variables
-            if type(values[0])==str:
+            if isinstance(values[0],basestring):
                 for string in values[1:]:
                     filename = "%s_%s"%(key,string)
                     self[key] = string
@@ -303,8 +306,7 @@ class YamboIn(object):
         s += "\n".join(self.arguments)+'\n'
 
         for key,value in list(self.variables.items()):
-            print(type(value))
-            if type(value)==str or type(value)==str:
+            if isinstance(value,basestring):
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue
             if type(value[0])==float:
@@ -326,13 +328,13 @@ class YamboIn(object):
                 else:
                     s+="%% %s\n %s %s \n%%\n"%(key," | ".join(map(str,array))+' | ',unit)
                 continue
-            if type(value[0])==str:
+            if isinstance(value[0],basestring):
                 array = value
                 s+="%% %s\n %s \n%%\n"%(key," | ".join(["'%s'"%x.replace("'","").replace("\"","") for x in array])+' | ')
                 continue
             if type(value[0])==complex:
-                value, unit = value
-                s+="%s = (%lf,%lf) %s\n"%(key,value.real,value.imag,unit)
+                c, unit = value
+                s+="%s = (%lf,%lf) %s\n"%(key,c.real,c.imag,unit)
                 continue
             raise ValueError( "Unknown type %s for variable: %s" %( type(value), key) )
         return s
