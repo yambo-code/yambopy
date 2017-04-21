@@ -127,11 +127,11 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
         self.data["excitons"] = []
 
         #create a ypp file using YamboIn for reading the wavefunction
-        yppwf = YamboIn('ypp -e w',filename='ypp.in',folder=self.path)
+        yppwf = YamboIn('ypp -e w -V all',filename='ypp.in',folder=self.path)
         yppwf['Format'] = Format
         yppwf['Direction'] = Direction
-        yppwf['FFTGvecs'] = FFTGvecs
-        yppwf['Degen_Step'] = Degen_Step
+        yppwf['FFTGvecs'] = [FFTGvecs,'Ry']
+        yppwf['Degen_Step'] = [Degen_Step,'eV']
         yppwf['Hole'] = [Hole,'']
         yppwf['Cells'] = [Cells,'']
 

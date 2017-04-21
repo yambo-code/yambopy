@@ -14,11 +14,11 @@ import sys
 prefix = "bn"
 yambo = "yambo"
 p2y = 'p2y'
-layer_separations = [10,15,20,25,30,35,40] #,45,50]
+layer_separations = [10,15,20,25,30,35,40]
 scf_kpoints  = [ 9, 9,1]
-nscf_kpoints = [24,24,1]
-nbands = 20 #should be larger! we use 30 for demonstration
-ecutwf = 60
+nscf_kpoints = [12,12,1]
+nbands = 20
+ecutwf = 50
 
 scheduler = Scheduler.factory
 

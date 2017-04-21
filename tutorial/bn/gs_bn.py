@@ -13,6 +13,8 @@ kpoints_double = [24,24,1]
 qpoints = [3,3,1]
 layer_separation = 12
 pw = 'pw.x'
+q2r = 'q2r.x'
+matdyn = 'matdyn.x'
 prefix = 'bn'
 
 npoints = 10 
@@ -45,8 +47,8 @@ def get_inputfile():
     qe.system['nat'] = 2
     qe.system['ntyp'] = 2
     qe.system['ibrav'] = 4
-    qe.kpoints = [6, 6, 1]
-    qe.electrons['conv_thr'] = 1e-8
+    qe.kpoints = [9, 9, 1]
+    qe.electrons['conv_thr'] = 1e-10
     return qe
 
 #relax
@@ -100,7 +102,7 @@ def phonon(kpoints,qpoints,folder='phonon'):
         os.mkdir(folder)
     ph = PhIn()
     ph['nq1'],ph['nq2'],ph['nq3'] = qpoints
-    ph['tr2_ph'] = 1e-6
+    ph['tr2_ph'] = 1e-8
     ph['prefix'] = "'%s'"%prefix
     ph['epsil'] = ".false."
     ph['trans'] = ".true."
@@ -152,6 +154,7 @@ if __name__ == "__main__":
     parser.add_argument('-n2','--nscf_double', action="store_true", help='Non-self consistent calculation for the double grid')
     parser.add_argument('-b' ,'--bands',       action="store_true", help='Calculate band-structure')
     parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
+    parser.add_argument('-d' ,'--dispersion',  action="store_true", help='Phonon dispersion')
     parser.add_argument('-t' ,'--nthreads',                         help='Number of threads', default=2 )
     args = parser.parse_args()
     nthreads = int(args.nthreads)
@@ -173,7 +176,6 @@ if __name__ == "__main__":
         qe_run = scheduler() 
         qe_run.add_command("cd relax; %s -inp %s.scf > relax.log"%(pw,prefix))  #relax
         qe_run.run()
-        qe_run.clean()
         update_positions('relax','scf') 
         print("done!")
 
@@ -182,7 +184,6 @@ if __name__ == "__main__":
         qe_run = scheduler() 
         qe_run.add_command("cd scf; mpirun -np %d %s -inp %s.scf > scf.log"%(nthreads,pw,prefix))  #scf
         qe_run.run()
-        qe_run.clean()
         print("done!")
    
     if args.nscf: 
@@ -191,7 +192,6 @@ if __name__ == "__main__":
         qe_run.add_command("cp -r scf/%s.save nscf/"%prefix) #nscf
         qe_run.add_command("cd nscf; mpirun -np %d %s -nk %d -inp %s.nscf > nscf.log"%(nthreads,pw,nthreads,prefix)) #nscf
         qe_run.run()
-        qe_run.clean()
         print("done!")
 
     if args.nscf_double: 
@@ -200,7 +200,6 @@ if __name__ == "__main__":
         qe_run.add_command("cp -r scf/%s.save nscf_double/"%prefix) #nscf
         qe_run.add_command("cd nscf_double; mpirun -np %d %s -inp %s.nscf > nscf_double.log"%(nthreads,pw,prefix)) #nscf
         qe_run.run()
-        qe_run.clean()
         print("done!")
     
     if args.phonon:
@@ -210,9 +209,34 @@ if __name__ == "__main__":
         qe_run.add_command("cd phonon; mpirun -np %d ph.x -inp %s.ph > phonon.log"%(nthreads,prefix)) #phonon
         qe_run.add_command("dynmat.x < %s.dynmat > dynmat.log"%prefix) #matdyn
         qe_run.run()
-        qe_run.clean()
         print("done!")
 
+    if args.dispersion:
+        qe_run = scheduler() 
+
+        #q2r
+        disp = DynmatIn()
+        disp['fildyn']= "'%s.dyn'" % prefix
+        disp['zasr']  = "'simple'"
+        disp['flfrc'] = "'%s.fc'"  % prefix
+        disp.write('phonon/q2r.in')
+        qe_run.add_command('cd phonon; %s < q2r.in'%q2r)
+
+        #dynmat
+        dyn = DynmatIn()
+        dyn['flfrc'] = "'%s.fc'" % prefix
+        dyn['asr']   = "'simple'"
+        dyn['flfrq'] = "'%s.freq'" % prefix
+        dyn['q_in_cryst_coord'] = '.true.'
+        dyn.qpoints = p.get_klist()
+        dyn.write('phonon/matdyn.in')
+        qe_run.add_command('%s < matdyn.in'%matdyn)
+        qe_run.run()
+
+        # matdyn class to read and plot the frequencies
+        m = Matdyn(natoms=2,path=p,folder='phonon')
+        m.plot_eigen()
+ 
     if args.bands:
         run_bands(nthreads)
         run_plot()

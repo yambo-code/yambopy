@@ -98,15 +98,31 @@ def run():
     print('running yambo')
     os.system('cd %s; %s -F yambo_run.in -J yambo'%(folder,yambo))
 
+def analyse():
+    #pack in a json file
+    y = YamboOut('bse')
+    y.pack()
+
+    #get the absorption spectra
+    a = YamboBSEAbsorptionSpectra('yambo',path='bse')
+    excitons = a.get_excitons(min_intensity=0.5,max_energy=5,Degen_Step=0.001)
+    print( "nexcitons: %d"%len(excitons) )
+    print( "excitons:" )
+    print( excitons )
+    a.get_wavefunctions(Degen_Step=0.001,repx=range(-1,2),repy=range(-1,2),repz=range(1),
+                        Cells=[13,13,1],Hole=[0,0,9+.5], FFTGvecs=10,wf=True)
+    a.write_json()
+
 if __name__ == '__main__':
     #parse options
     parser = argparse.ArgumentParser(description='Test the yambopy script.')
     parser.add_argument('-r'  ,'--run',       action="store_true", help='Use double grid')
     parser.add_argument('-dg' ,'--doublegrid', action="store_true", help='Use double grid')
+    parser.add_argument('-a', '--analyse',    action="store_true", help='plot the results')
     args = parser.parse_args()
 
     if args.doublegrid:
         doublegrid()        
 
-    if args.run:
-        run()
+    if args.run: run()
+    if args.analyse: analyse()
