@@ -80,7 +80,7 @@ class YamboDipolesDB(object):
             norm = np.array([ [ec-ev for ev in eivk] for ec in eivk  ])
             
             #normalize
-            for i,j in product(range(nbands),repeat=2):
+            for i,j in product(list(range(nbands)),repeat=2):
                 if norm[i,j] == 0: 
                     self.dipoles[nk,:,i,j] = 0
                 else:
@@ -166,7 +166,7 @@ class YamboDipolesDB(object):
         self.dipoles_ibz = dipoles 
         #get dipoles in the full Brilouin zone
         self.dipoles = np.zeros([nkpoints,3,nbands,nbands],dtype=np.complex64)
-        for nk_fbz,nk_ibz,ns in zip(range(nkpoints),nks,nss):
+        for nk_fbz,nk_ibz,ns in zip(list(range(nkpoints)),nks,nss):
             
             #if time rev we conjugate
             if lattice.time_rev_list[ns]:
@@ -181,12 +181,12 @@ class YamboDipolesDB(object):
             #transformation
             tra = np.dot(pro,sym)
             
-            for c,v in product(range(self.nbandsc),range(self.nbandsv)):
+            for c,v in product(list(range(self.nbandsc)),list(range(self.nbandsv))):
                 #rotate dipoles
                 self.dipoles[nk_fbz,:,indexc+c,indexv+v] = np.dot(tra,dip[:,c,v])
         
             #make hermitian
-            for c,v in product(range(self.nbandsc),range(self.nbandsv)):
+            for c,v in product(list(range(self.nbandsc)),list(range(self.nbandsv))):
                 self.dipoles[nk_fbz,:,indexv+v,indexc+c] = factor*np.conjugate(self.dipoles[nk_fbz,:,indexc+c,indexv+v])
                         
         self.field_dirx = field_dirx

@@ -71,7 +71,7 @@ def merge_qp(output,files,verbose=False):
     print("description: ", description)
 
     #copy dimensions
-    for dname, the_dim in fin.dimensions.items():
+    for dname, the_dim in list(fin.dimensions.items()):
         fout.createDimension(dname, len(the_dim) if not the_dim.isunlimited() else None)
 
     #get dimensions
@@ -85,7 +85,7 @@ def merge_qp(output,files,verbose=False):
                 fout.createDimension(dname, d)
 
     #copy variables
-    for v_name, varin in fin.variables.items():
+    for v_name, varin in list(fin.variables.items()):
         if v_name in variables_update:
             #get the variable
             merged = variables_dict[v_name]

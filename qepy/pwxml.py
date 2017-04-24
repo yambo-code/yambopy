@@ -187,7 +187,7 @@ class PwXML(object):
         #plot bands
         eigen = array(self.eigen)
         for ib in range(self.nbands):
-           plt.plot(range(self.nkpoints),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
+           plt.plot(list(range(self.nkpoints)),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
 
         #plot options
         if xlim:

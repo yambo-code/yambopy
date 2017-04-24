@@ -156,7 +156,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                 yppwf.write("%s/yppwf_%d.in"%(self.path,i))
 
                 filename = "o-%s.exc_%dd_%d%s"%(self.job_string,len(Direction),i,{"g":"","x":".xsf"}[Format] )
-                print filename
+                print(filename)
                 if not os.path.isfile(filename):
                     os.system("cd %s; ypp -F yppwf_%d.in -J %s"%(self.path,i,self.job_string))
 

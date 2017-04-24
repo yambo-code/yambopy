@@ -118,7 +118,7 @@ class PwIn(object):
         lat = np.array(lat)
 
         at = np.unique(atypes)
-        an = dict(list(zip(at,range(len(at)))))
+        an = dict(list(zip(at,list(range(len(at))))))
         atypes = [an[a] for a in atypes]
 
         cell = (lat,positions,atypes)

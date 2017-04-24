@@ -214,7 +214,7 @@ class YamboExcitonWeight(YamboSaveDB):
         """
         Plot the excitonic weights of a given transition in the band-structure
         """
-        kpts, t_v_c, kidx = self.calc_kpts_transitions(repx=range(1),repy=range(1),repz=range(1))
+        kpts, t_v_c, kidx = self.calc_kpts_transitions(repx=list(range(1)),repy=list(range(1)),repz=list(range(1)))
         t_v_c = np.array(t_v_c)
 
         #get_path is provided by savedb

@@ -141,7 +141,7 @@ def update_positions(pathin,pathout):
     print("old celldm(1)", qin.system['celldm(1)'])
     qout.system['celldm(1)'] = e.cell[0][0]
     print("new celldm(1)", qout.system['celldm(1)'])
-    qout.atoms = zip([a[0] for a in qin.atoms],pos)
+    qout.atoms = list(zip([a[0] for a in qin.atoms],pos))
     
     #write scf
     qout.write('%s/%s.scf'%(pathout,prefix))

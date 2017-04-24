@@ -110,7 +110,7 @@ class Matdyn(object):
         #plot bands
         eigen = array(self.eigen)
         for ib in range(self.nmodes):
-           plt.plot(range(self.nqpoints),eigen[:,ib], 'r-', lw=2)
+           plt.plot(list(range(self.nqpoints)),eigen[:,ib], 'r-', lw=2)
         plt.show()
   
     def __str__(self):
