@@ -108,10 +108,10 @@ class YamboIn(object):
         """ Set the value of a variable in the input file
         """
         #if the units are not specified, add them
-        is_string = [isinstance(v,basestring) for v in value]
-        if type(value) == list and not any( is_string ):
-            value = [value,'']
-        if type(value) in [int,float,complex]:
+        if isinstance(value,list):
+            if not any( [isinstance(v,basestring) for v in value] ):
+                value = [value,'']
+        if isinstance(value,(int,float,complex)):
             value = [value,'']
         self.variables[key] = value
 
@@ -190,9 +190,9 @@ class YamboIn(object):
         return {"arguments": self.arguments, "variables": self.variables}
 
     def optimize(self,conv,variables=('all',),run=lambda x: None,ref_run=True):
-        """ 
+        """
         Function to to make multiple runs of yambo to converge calculation parameters
-        
+
         Arguments:
 
             A dictionary conv that has all the variables to be optimized
