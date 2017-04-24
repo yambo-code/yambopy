@@ -23,8 +23,6 @@ class YamboStaticScreeningDB(object):
 
     .. math::
 
-        \epsilon = \\frac{1}{1-v\chi}
-
         \epsilon^{-1} = 1-v\chi
 
     """

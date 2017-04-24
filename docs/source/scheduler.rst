@@ -38,7 +38,7 @@ Currently available options for schedulersare:
 * ``oar``  - Use the OAR scheduler
 * ``pbs``  - Use the PBS scheduler
 
-Initialize the class, by default we look for a config file in ``~/.yambopy/configure.json``
+Initialize the class, by default we look for a config file in ``~/.yambopy/config.json``
 
 This file has the following information:
   
@@ -133,4 +133,13 @@ https://hpc.uni.lu/systems/gaia/
      }
    }
 
+
+Also add the ``pre_run_oar.sh`` file in  ``~/.yambopy/`` with the following
+
+.. code-block:: bash
+
+    if [ -f  /etc/profile ]; then
+        . /etc/profile;
+    fi;
+    module use /work/projects/tss-physics/modules/
 

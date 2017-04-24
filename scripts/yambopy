@@ -62,7 +62,11 @@ class PlotEm1sCmd(Cmd):
         possible arguments are:
         
         Arguments:
-        folder   -> Folder containing the ndb.ems1 files
+        folders        -> Folders containing the ndb.ems1 files
+        -w, --write    -> Write data file in a text file
+        -p, --plot     -> Save a file with the plot
+        -v, --verbose  -> Print which files are not folder
+        --fontsize     -> Choose the font size of the plot
     """
     def __init__(self,args):
         import matplotlib
@@ -76,7 +80,7 @@ class PlotEm1sCmd(Cmd):
         pa = parser.add_argument
         pa('folders',        nargs='+', help='json file containing the absorption spectra. Default: \'absorptionspectra.json\'' )
         pa('-w','--write',   help='Write data file in a text file', default='em1s.dat', type=str)
-        pa('-p','--plot',    help='Save the a file with the plot', default='em1s.pdf', type=str)
+        pa('-p','--plot',    help='Save a file with the plot', default='em1s.pdf', type=str)
         pa('-v','--verbose', help='Print which files are not folder', action='store_true')
         pa('--fontsize',     help='Choose the font size of the plot', default=10, type=int)
         args = parser.parse_args(args)
