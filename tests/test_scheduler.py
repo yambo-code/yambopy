@@ -48,7 +48,7 @@ _test_config =  { "default":"bash",
                                     "espresso":"espresso/5.4.0"}
                     },
                   "pbs":
-                    {   
+                    {
                         "mpirun": "mpirun",
                         "pre_run": "file:%s"%_pre_run_pbs_file,
                         "pos_run": ["qstat -f $PBS_JOBID"],
@@ -64,8 +64,8 @@ _test_config =  { "default":"bash",
 _test_file = "test.sh"
 
 def header(text):
-    return "%s\n%s\n%s\n"%("="*10,text,"="*10) 
-    
+    return "%s\n%s\n%s\n"%("="*10,text,"="*10)
+
 def init_config():
     """
     create basic configuration file
@@ -81,11 +81,11 @@ def init_config():
     #scheduler
     Scheduler._config_path     = os.getcwd()
     Scheduler._config_filename = _test_config_file
-    
+
 def clean_config():
     os.remove(_pre_run_pbs_file)
     os.remove(_test_config_file)
-    
+
 class TestScheduler(unittest.TestCase):
     """
     This class tests the scheduler from yambnopy.
@@ -103,17 +103,17 @@ class TestScheduler(unittest.TestCase):
         print "\n",header("default: %s"%s.__class__)
         print s
         s.write(_test_file)
-        
+
         #remove files
         os.remove(_test_file)
-        
+
     def test_print(self):
         """
         run the echo command on the different schedulers
         """
         #create basic configuration file
         init_config()
-        
+
         #run using that configuration file
         for schedulername in ["oar","pbs","bash"]:
             print "\n",header(schedulername)
@@ -121,7 +121,7 @@ class TestScheduler(unittest.TestCase):
             s.add_module("abinit")
             s.add_command("echo 'hello'")
             print s
-        
+
         #remove files
         clean_config()
 
@@ -141,13 +141,13 @@ class TestSchedulerRun(unittest.TestCase):
         s.add_module("abinit")
         s.add_command("echo 'hello world'")
         s.run()
-        
+
     def test_run(self):
         """
         run a echo hello world on the different possible configurations
         """
         init_config()
-        
+
         for schedulername in ["oar","pbs","bash"]:
             print "\n",header(schedulername)
             s = Scheduler.factory(scheduler=schedulername,cores=1)
@@ -155,11 +155,11 @@ class TestSchedulerRun(unittest.TestCase):
             s.add_module("abinit")
             s.add_command("echo 'hello world'")
             s.run(dry=True)
-            
+
         #remove files
         clean_config()
 
-    
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Test the yambopy script.')
@@ -176,17 +176,22 @@ if __name__ == '__main__':
         sys.exit(1)
 
     #clean tests
-    if args.clean: 
+    if args.clean:
         print "cleaning..."
         os.system('rm -rf scf')
         print "done!"
         exit()
 
+    # Count the number of errors
+    nerrors = 0
+
     # Run the test
     if args.input:
         suite = unittest.TestLoader().loadTestsFromTestCase(TestScheduler)
-        unittest.TextTestRunner(verbosity=2).run(suite)
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful().wasSuccessful()
 
     if args.full:
         suite = unittest.TestLoader().loadTestsFromTestCase(TestSchedulerRun)
-        unittest.TextTestRunner(verbosity=2).run(suite)
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+
+    sys.exit(nerrors)

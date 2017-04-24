@@ -3,6 +3,8 @@
 # Tests for yambopy
 # Si
 #
+import matplotlib
+matplotlib.use('Agg')
 import unittest
 import sys
 import os
@@ -20,10 +22,10 @@ class TestPW_Si(unittest.TestCase):
         qe.atoms = [['Si',[0.125,0.125,0.125]],
                     ['Si',[-.125,-.125,-.125]]]
         qe.atypes = {'Si': [28.086,"Si.pbe-mt_fhi.UPF"]}
-        
+
         qe.control['prefix'] = "'si'"
         qe.control['wf_collect'] = '.true.'
-        qe.control['pseudo_dir'] = "'..'"
+        qe.control['pseudo_dir'] = "'../pseudos'"
         qe.system['celldm(1)'] = 10.3
         qe.system['ecutwfc'] = 40
         qe.system['occupations'] = "'fixed'"
@@ -32,7 +34,7 @@ class TestPW_Si(unittest.TestCase):
         qe.system['ibrav'] = 2
         qe.kpoints = [4, 4, 4]
         qe.electrons['conv_thr'] = 1e-8
-        return qe 
+        return qe
 
     def test_pw_input_relax(self):
         """ Generate a silicon pw.x input file for the relaxation cycle
@@ -75,7 +77,7 @@ class TestPW_Si_Run(unittest.TestCase):
     """ This class creates the input files and runs the pw.x code
     """
     def test_pw_si(sef):
-        """ Run relaxation, self consistent cycle and non self consistent cycle 
+        """ Run relaxation, self consistent cycle and non self consistent cycle
         """
         print "\nstep 1: relax"
         os.system('cd relax; pw.x < si.scf > si.scf.log')
@@ -83,7 +85,7 @@ class TestPW_Si_Run(unittest.TestCase):
         e = PwXML('si',path='relax')
         pos = e.get_scaled_positions()
 
-        q = PwIn('relax/si.scf')
+        q = PwIn('scf/si.scf')
         print "old celldm(1)", q.system['celldm(1)']
         q.system['celldm(1)'] = e.cell[0][2]*2
         print "new celldm(1)", q.system['celldm(1)']
@@ -125,7 +127,7 @@ class TestYamboIn_GW_Si(unittest.TestCase):
         """ Test if we can initialize the YamboIn class for a typical GW input file
         """
         y = YamboIn('yambo -p p -g n -V all',folder='gw')
- 
+
     def test_gw_convergence(self):
         """ Test if we can generate multiple input files changing some variables
         """
@@ -145,7 +147,7 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
                  'NGsBlkXp': [[1,2,5], 'Ry'],
                  'BndsRnXp': [[1,10],[1,20],[1,30]] }
         y.optimize(conv)
-  
+
         print
         def run(filename):
             folder = filename.split('.')[0]
@@ -225,7 +227,7 @@ class TestYamboOut_GW_Si(unittest.TestCase):
             if ([ f for f in filenames if 'o-' in f ]):
                 y = YamboOut(dirpath,save_folder='gw_conv')
                 y.pack()
-        
+
     def test_yamboanalyse_gw_si(self):
         """ Analyse the yambo GW .json output files
         """
@@ -250,50 +252,54 @@ if __name__ == '__main__':
     #first test if yambo is installed
     if not subprocess.call("yambo", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
         print "yambo not found, please install it before running the tests"
-        exit()
-   
+        sys.exit(1)
+
     #clean tests
-    if args.clean: 
+    if args.clean:
         print "cleaning..."
         os.system('rm -rf scf bse bse_conv gw gw_conv nscf relax database proj.in')
         print "done!"
         exit()
 
+    # Count the number of errors
+    nerrors = 0
+
     # Test pw.x
     suite = unittest.TestLoader().loadTestsFromTestCase(TestPW_Si)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     if args.full:
         suite = unittest.TestLoader().loadTestsFromTestCase(TestPW_Si_Run)
-        unittest.TextTestRunner(verbosity=2).run(suite)
-    
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+
     # Test p2y and yambo
     if args.full:
         suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboPrep_Si)
-        unittest.TextTestRunner(verbosity=2).run(suite)
-       
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+
     # Test GW on yambo
     suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_GW_Si)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     if args.full:
         suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_GW_Si_Run)
-        unittest.TextTestRunner(verbosity=2).run(suite)
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     # Test BSE on yambo
     suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_BSE_Si)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     if args.full:
         suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_BSE_Si_Run)
-        unittest.TextTestRunner(verbosity=2).run(suite)
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     if args.full:
         # Test packaging output files in json files
         suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboOut_GW_Si)
-        unittest.TextTestRunner(verbosity=2).run(suite)
-        
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+
         # Test analyse json files
         suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboOut_BSE_Si)
-        unittest.TextTestRunner(verbosity=2).run(suite)
+        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
+    sys.exit(nerrors)

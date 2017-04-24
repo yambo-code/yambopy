@@ -10,7 +10,47 @@ import re
 from math import sqrt
 
 class PwIn():
-    """ A class to generate an manipulate quantum espresso input files
+    """
+    Class to generate an manipulate Quantum Espresso input files
+    Can be initialized either reading from a file or starting from a new file.
+
+    Examples of use:
+
+    To read a local file with name "mos2.in"
+
+        .. code-block :: python
+        
+            qe = PwIn('mos2.scf')
+            print qe
+
+    To start a file from scratch
+
+        .. code-block :: python
+        
+            qe = PwIn('mos2.scf')
+            qe.atoms = [['N',[ 0.0, 0.0,0.0]],
+                        ['B',[1./3,2./3,0.0]]]
+            qe.atypes = {'B': [10.811, "B.pbe-mt_fhi.UPF"],
+                         'N': [14.0067,"N.pbe-mt_fhi.UPF"]}
+
+            qe.control['prefix'] = "'%s'"%prefix
+            qe.control['verbosity'] = "'high'"
+            qe.control['wf_collect'] = '.true.'
+            qe.control['pseudo_dir'] = "'../pseudos/'"
+            qe.system['celldm(1)'] = 4.7
+            qe.system['celldm(3)'] = layer_separation/qe.system['celldm(1)']
+            qe.system['ecutwfc'] = 60
+            qe.system['occupations'] = "'fixed'"
+            qe.system['nat'] = 2
+            qe.system['ntyp'] = 2
+            qe.system['ibrav'] = 4
+            qe.kpoints = [6, 6, 1]
+            qe.electrons['conv_thr'] = 1e-8
+
+            print qe
+     
+    Special care should be taken with string variables e.g. "'high'"
+ 
     """    
     _pw = 'pw.x'
 

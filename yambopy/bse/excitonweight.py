@@ -4,10 +4,14 @@
 # This file is part of the yambopy project
 #
 from yambopy import *
-from yambopy.netcdf import *
 from itertools import product
+from netCDF4 import Dataset
 
 class YamboExcitonWeight(YamboSaveDB):
+    """
+    Class to read the excitonic weight writen by ypp
+    """
+
     def __init__(self,filename,save='SAVE',path='.'):
         #read save database
         YamboSaveDB.__init__(self,save=save)

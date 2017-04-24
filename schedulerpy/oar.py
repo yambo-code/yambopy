@@ -10,7 +10,8 @@ from schedulerpy import *
 class Oar(Scheduler):
     """
     Class to submit jobs through the OAR scheduler
-    _vardict states the default assignement of the nodes and cores variables
+
+    ``_vardict`` states the default assignement of the nodes and cores variables
     from the schduler class to the variables needed in this class
     """
     _vardict = {"cores":"core",

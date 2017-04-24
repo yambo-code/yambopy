@@ -12,8 +12,9 @@ from collections import OrderedDict
 
 class Pbs(Scheduler):
     """
-    Class to submit jobs through the PBS scheduler
-    _vardict states the default assignement of the nodes and cores variables
+    Class to submit jobs through the PBS scheduler.
+
+    ``_vardict`` states the default assignement of the nodes and cores variables
     from the schduler class to the variables needed in this class
     """
     _vardict = {"cores":"core",

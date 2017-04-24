@@ -11,13 +11,17 @@ import re
 RytoeV = 13.605698066
 
 class ProjwfcXML():
-    """ Class to read data from a Quantum espresso XML file
+    """
+    Class to read data from a Quantum espresso projwfc XML file.
+    
+    This file contains the projection of the Kohn-Sham stated in
+    the atomic orbitals read from the pseudopotential
     """
     _proj_file = 'atomic_proj.xml'
 
     def __init__(self,prefix,output_filename='projwfc.log',path='.'):
-
-        """ Initialize the structure with the path where the atomic_proj.xml is
+        """
+        Initialize the structure with the path where the atomic_proj.xml is
         """
         self.prefix   = prefix
         self.path     = path
@@ -67,7 +71,8 @@ class ProjwfcXML():
         return s
 
     def get_indexes(self):
-        """ get indexes of the bands where the projection is maximal
+        """
+        Get indexes of the bands where the projection is maximal
         """
         # Selection of the bands
         proj = zeros([self.nkpoints,self.nproj],dtype=int)
@@ -78,14 +83,16 @@ class ProjwfcXML():
         return proj
 
     def plot_eigen(self, ax, size=20, cmap=None, color='r', path=[], selected_orbitals=[], selected_orbitals_2=[]):
-        """ Plot the band structure. The size of the points is the weigth of
-            the selected orbitals.
-            Options:
+        """ 
+        Plot the band structure. The size of the points is the weigth of the selected orbitals.
+
+        Options:
+
             (a) Relative weight between two compositions. Pass a second set of orbitals
             (b) Colormap enters as a string
 
-            Under development to include also colormap and a dictionary for the
-            selection of the orbitals...
+        Under development to include also colormap and a dictionary for the
+        selection of the orbitals...
         """
         import matplotlib.pyplot as plt
         if path:

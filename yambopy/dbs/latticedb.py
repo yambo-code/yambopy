@@ -11,6 +11,9 @@ import operator
 atol = 1e-6
 
 class YamboLatticeDB():
+    """
+    Class to read the lattice information from the netcdf file
+    """
     def __init__(self, save='SAVE',filename='ns.db1',expand=True):
         self.filename = '%s/%s'%(save,filename)
         self.readDB()
@@ -19,9 +22,6 @@ class YamboLatticeDB():
         if expand: self.expandKpoints()
             
     def readDB(self):
-        """
-        Read the lattice information from the netcdf file
-        """
         try:
             database = Dataset(self.filename)
         except:

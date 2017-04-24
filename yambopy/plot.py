@@ -1,14 +1,14 @@
-from yambopy import *
-
-#we try to use matplotlib, if not present we won't use it
-try:
-    # prevents crashes if no X server present
-    import os
-    if 'DISPLAY' not in os.environ:
-        import matplotlib
-        matplotlib.use('Agg')
-    from matplotlib import pyplot as plt
-except ImportError:
-    _has_matplotlib = False
-else:
-    _has_matplotlib = True
+"""
+Check if we are on a headless system and in that case use Agg interface
+"""
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda
+# All rights reserved.
+#
+# This file is part of yambopy
+#
+#
+import os
+import matplotlib
+if 'DISPLAY' not in os.environ:
+    matplotlib.use('Agg')
+from matplotlib import pyplot as plt

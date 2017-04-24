@@ -9,7 +9,9 @@ ha2ev  = 27.211396132
 
 class YamboGreenDB():
     """
-    Read self-energies
+    Read the green's functions calculated using yambo
+    These green's functions describe the spectral function of the quasiparticles.
+    The quasi-particles can be from electron-phonon or GW calculations
     """
     def __init__(self,save='SAVE',filename='ndb.G'):
         self.filename = "%s/%s"%(save,filename)

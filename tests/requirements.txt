@@ -1,0 +1,7 @@
+## pip install -r requirements.txt
+## installs the Python dep. for Yambopy
+numpy
+netcdf4
+matplotlib
+scipy
+coverage
