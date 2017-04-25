@@ -132,7 +132,8 @@ class AnalyseGWCmd(Cmd):
     and the location of the band extrema.
 
         Mandatory arguments are:
-            folders    -> Folders containing SAVE and convergence runs
+            folder   -> Folder containing SAVE and convergence runs.
+            var      -> Variable tested (e.g. FFTGvecs)
 
         Optional variables are:
             -bc, --bandc   (int)  -> Lowest conduction band number
@@ -154,14 +155,16 @@ class AnalyseGWCmd(Cmd):
         #all the other arguments are passed to the merge_qp function
 
         parser = argparse.ArgumentParser(description='Study GW convergence with regards to the band-gap value.')
-        parser.add_argument('folder'            , help='Folder containing SAVE and convergence runs.',nargs='+')
-        parser.add_argument('-bc','--bandc'     , help='Lowest conduction band number'    , default=53, type=int)
-        parser.add_argument('-kc','--kpointc'   , help='K-point index for conduction band', default=19, type=int)
-        parser.add_argument('-bv','--bandv'     , help='Highest valence band number'      , default=52, type=int)
-        parser.add_argument('-kv','--kpointv'   , help='K-point index for valence band'   , default=1 , type=int)
-        parser.add_argument('-np','--no-pack'   , help='Skip the packing of output files'        , dest='pack', action='store_false')
-        parser.add_argument('-nt','--no-text'   , help='Skip the writing of the analysis result' , dest='text', action='store_false')
-        parser.add_argument('-nd','--no-draw'   , help='Skip the plotting of the analysis result', dest='draw', action='store_false')
+        pa = parser.add_arguments
+        pa('folder'            , help='Folder containing SAVE and convergence runs.',nargs='+')
+        pa('variable'          , help='Variable tested (e.g. FFTGvecs)' )
+        pa('-bc','--bandc'     , help='Lowest conduction band number'    , default=53, type=int)
+        pa('-kc','--kpointc'   , help='K-point index for conduction band', default=19, type=int)
+        pa('-bv','--bandv'     , help='Highest valence band number'      , default=52, type=int)
+        pa('-kv','--kpointv'   , help='K-point index for valence band'   , default=1 , type=int)
+        pa('-np','--no-pack'   , help='Skip the packing of output files'        , dest='pack', action='store_false')
+        pa('-nt','--no-text'   , help='Skip the writing of the analysis result' , dest='text', action='store_false')
+        pa('-nd','--no-draw'   , help='Skip the plotting of the analysis result', dest='draw', action='store_false')
         parser.set_defaults(pack=True,text=True,draw=True)
         args = parser.parse_args(args)
 
