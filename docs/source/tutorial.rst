@@ -10,7 +10,7 @@ GW. Basic usage: Convergence and approximations (BN)
 ----------------------------------------------------
 **by A. Molina-Sanchez and H. P. C. Miranda**
 
-We chosen hexagonal boron nitride to explain the use of yambopy. Along this tutorial we show how to use yambopy to make efficient convergence tests, to compare different approximations and to analyze the results.
+We have chosen hexagonal boron nitride to explain the use of yambopy. Along this tutorial we show how to use yambopy to make efficient convergence tests, to compare different approximations and to analyze the results.
 
 The initial step is the ground state calculation and the non self-consistent calculation using the ``gs_bn.py`` file:
 
@@ -26,9 +26,9 @@ We have set 50 bands and the k-grid ``12x12x1``.
 
 **(a) Calculations**
 
-We converge the main parameters of a GW calculation independently. We make use of the plasmon pole approximation for the dielectric function and the newton solver to find the GW correction to the LDA eigenvalues. The magnitude to converge
-is the band gap of the BN (conduction and valence band at the K point of the Brillouin zone). We can select this calculation
-by calling the ``YamboIn`` with the right arguments:
+We converge the main parameters of a GW calculation independently. We make use of the plasmon pole approximation for the dielectric function and the Newton solver to find the GW correction to the LDA eigenvalues. The quantity to converge
+is the band gap of the BN (conduction and valence band at the K point of the Brillouin zone).
+We can select this calculation by calling the ``YamboIn`` with the right arguments:
 
 .. code-block:: python
 
@@ -36,12 +36,16 @@ by calling the ``YamboIn`` with the right arguments:
 
 The main variables are:
 
-* FFTGvecs: Global cutoff
-* BndsRnXp: Number of bands in the calculation of the dielectric function (PPA).
-* NGsBlkXp: Cutoff of the dielectric function.
-* GbndRnge: Self-energy. Number of bands.
+    ``FFTGvecs``: Global cutoff
 
-The convergence with the k-grid is done after these variables are converged and in principle is also independent of them. The convergence is set with a dictionary in which we choose the parameter and the values. Be aware of setting the right units and format for each parameter.
+    ``BndsRnXp``: Number of bands in the calculation of the dielectric function (PPA).
+
+    ``NGsBlkXp``: Cutoff of the dielectric function.
+
+    ``GbndRnge``: Self-energy. Number of bands.
+
+The convergence with the k-grid is done after these variables are converged and in principle is also independent of them.
+The convergence is set with a dictionary in which we choose the parameter and the values. Be aware of setting the right units and format for each parameter.
 
 .. code-block:: python
 
@@ -50,13 +54,13 @@ The convergence with the k-grid is done after these variables are converged and 
              'BndsRnXp': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] ,
              'GbndRnge': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] }
 
-The class ``YamboIn`` includes the function ``optimize``, which is call here:
+The class ``YamboIn`` includes the function ``optimize``, which is called here:
 
 .. code-block:: python
 
     y.optimize(conv,run=run,ref_run=False)
 
-This optimization function just need the convergence dictionary and the run instructions, given by the function:
+This optimization function just needs the convergence dictionary and the run instructions, given by the function:
 
 .. code-block:: python
 
@@ -96,6 +100,9 @@ Yambopy provides the function ``analyse_gw.py`` to perform the analysis of the `
 .. code-block:: python
 
     python analyse_gw.py -bc 5 -kc 19 -bv 4 -kv 19 gw_conv FFTGvecs
+    python analyse_gw.py -bc 5 -kc 19 -bv 4 -kv 19 gw_conv NGsBlkXp
+    python analyse_gw.py -bc 5 -kc 19 -bv 4 -kv 19 gw_conv BndsRnXp
+    python analyse_gw.py -bc 5 -kc 19 -bv 4 -kv 19 gw_conv GbndRnge
 
 .. image:: figures/GW_CONV_FFTGvecs.png
    :width: 45%
@@ -109,7 +116,7 @@ Yambopy provides the function ``analyse_gw.py`` to perform the analysis of the `
 From the convergence plot we can choose now a set of parameters and repeat the calculation for finer k-grids until we
 reach convergence with the k-points. The convergence criteria are left to the user.
 
-2. GW calculation in a regular grid and plot in a bath in the Brillouin zone
+2. GW calculation in a regular grid and plot in a path in the Brillouin zone
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We will work in the PPA for the screening. We have chosen the following parameters:
@@ -138,7 +145,7 @@ The first image show all the GW energies along all the k-points of the Brillouin
 
 We first pack the results in a json file and subsequently we use the analyser to create the object which contains all the information. 
 
-.. code-block:: bash
+.. code-block:: python
    
    pack_files_in_folder('gw')
    ya = YamboAnalyser('gw')
@@ -191,7 +198,7 @@ The PPA and the RA results are basically on top of each other. On the contrary, 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The solvers to find the QP correction from the self-energy can also be tested. We have included the Newton and the secant method. In the resulting band structures we do not
-appreciate big differences. In anycase it is worthy to test during the convergence procedure.
+appreciate big differences. In anycase it is worth to test during the convergence procedure.
 
 .. image:: figures/GW-newton-secant.png
    :width: 65%
