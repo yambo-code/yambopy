@@ -65,7 +65,9 @@ def gw_convergence():
         folder = filename.split('.')[0]
         print(filename,folder)
         shell = bash() 
-        shell.add_command('cd gw_conv; %s -F %s -J %s -C %s 2> %s.log'%(yambo,filename,folder,folder,folder))
+        shell.add_command('cd gw_conv')
+        shell.add_command('rm -f *.json %s/o-*'%folder) #cleanup
+        shell.add_command('%s -F %s -J %s -C %s 2> %s.log'%(yambo,filename,folder,folder,folder))
         shell.run()
         shell.clean()
 
