@@ -7,6 +7,7 @@ from __future__ import print_function
 #
 from builtins import str
 import subprocess
+import sys
 from schedulerpy import *
 
 class Bash(Scheduler):
