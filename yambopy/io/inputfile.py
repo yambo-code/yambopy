@@ -89,7 +89,6 @@ class YamboIn(object):
             os.chdir(folder)
             os.system('rm -f %s'%filename)
             yambo = Popen(args+' -Q', stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
-            print('YAMBOPY: yambo command: %s'%(args+' -Q'))
             yambo.wait()
             os.chdir(workdir)
             self.read_file(filename="%s/%s"%(folder,filename))
