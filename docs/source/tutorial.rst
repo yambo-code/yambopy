@@ -99,12 +99,12 @@ Yambopy provides the function ``yambopy analysegw`` to perform the analysis of t
 
 .. code-block:: python
 
-    yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv FFTGvecs
+    yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv EXXRLvcs 
     yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv NGsBlkXp
     yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv BndsRnXp
     yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv GbndRnge
 
-.. image:: figures/GW_CONV_FFTGvecs.png
+.. image:: figures/GW_CONV_EXXRLvcs.png
    :width: 45%
 .. image:: figures/GW_CONV_NGsBlkXp.png
    :width: 45%
