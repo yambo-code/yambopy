@@ -186,8 +186,6 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                 center_atom_red = center_atom_red * np.array([nx,ny,nz])
                 center_atom_red_int = [int(x) for x in center_atom_red]
                 displacement = np.array([nx,ny,nz])/2-center_atom_red_int
-                print displacement
-                print np.array([nx,ny,nz])
                 dx,dy,dz = displacement
 
                 # shift grid
