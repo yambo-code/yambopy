@@ -36,7 +36,7 @@ We can select this calculation by calling the ``YamboIn`` with the right argumen
 
 The main variables are:
 
-    ``FFTGvecs``: Global cutoff
+    ``EXXRLvcs``: Exchange self-energy cutoff 
 
     ``BndsRnXp``: Number of bands in the calculation of the dielectric function (PPA).
 
@@ -49,10 +49,10 @@ The convergence is set with a dictionary in which we choose the parameter and th
 
 .. code-block:: python
 
-    conv = { 'FFTGvecs': [[2,5,10,15,20],'Ha'],
-             'NGsBlkXp': [[0,500,1000,1500,2000], 'mHa'],
-             'BndsRnXp': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] ,
-             'GbndRnge': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] }
+    conv = { 'EXXRLvcs': [[1,20,40,60,80,100],'Ry'],
+             'NGsBlkXp': [[0,1,2,3,4], 'Ry'],
+             'BndsRnXp': [[[1,5],[1,10],[1,20],[1,30],[1,40]]],''] ,
+             'GbndRnge': [[[1,5],[1,10],[1,20],[1,30],[1,40]],''] }
 
 The class ``YamboIn`` includes the function ``optimize``, which is called here:
 
@@ -95,14 +95,14 @@ This snippet of code can be called using the function:
 
     pack_files_in_folder('gw_conv',save_folder='gw_conv')
 
-Yambopy provides the function ``analyse_gw.py`` to perform the analysis of the ``json`` files in an automatic way. By running the script selecting the bands and kpoints, together with the parameter we will obtain the convergence plot.
+Yambopy provides the function ``yambopy analysegw`` to perform the analysis of the ``json`` files in an automatic way. By running the script selecting the bands and kpoints, together with the parameter we will obtain the convergence plot.
 
 .. code-block:: python
 
-    python analyse_gw.py -bc 5 -kc 19 -bv 4 -kv 19 gw_conv FFTGvecs
-    python analyse_gw.py -bc 5 -kc 19 -bv 4 -kv 19 gw_conv NGsBlkXp
-    python analyse_gw.py -bc 5 -kc 19 -bv 4 -kv 19 gw_conv BndsRnXp
-    python analyse_gw.py -bc 5 -kc 19 -bv 4 -kv 19 gw_conv GbndRnge
+    yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv FFTGvecs
+    yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv NGsBlkXp
+    yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv BndsRnXp
+    yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv GbndRnge
 
 .. image:: figures/GW_CONV_FFTGvecs.png
    :width: 45%
@@ -123,11 +123,10 @@ We will work in the PPA for the screening. We have chosen the following paramete
 
 .. code-block:: bash
 
-   FFTGvecs = 20 Ha
-   BndsRnXp = 24 bands
-   NGsBlkXp = 500 mHa
-   GbndRnge = 20 bands
-   EXXRLvcs = 20 Ha
+   EXXRLvcs = 80 Ry 
+   BndsRnXp = 25 bands
+   NGsBlkXp = 3  Ry 
+   GbndRnge = 25 bands
    QPkrange = [1,19,2,6]
 
 We can just simply run the code to calculate the GW corrections for all the points of the Brillouin zone by setting the convergence parameters in the function gw of the
@@ -168,13 +167,13 @@ each run, just changing the variable name for the number of bands and the cut-of
 
    COHSEX
    BndsRnXs = 24 bands
-   NGsBlkXs = 500 mHa
+   NGsBlkXs = 3  Ry
    PPA 
    BndsRnXp = 24 bands
-   NGsBlkXp = 500 mHa
+   NGsBlkXp = 3  Ry
    RA 
    BndsRnXd = 24 bands
-   NGsBlkXd = 500 mHa
+   NGsBlkXd = 3  Ry 
 
 We have set the converged parameters and the function works by running:
 
