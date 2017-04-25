@@ -1,5 +1,6 @@
 from __future__ import print_function
 from __future__ import division
+from future.builtins import next
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
@@ -27,14 +28,14 @@ class PwIn(object):
     To read a local file with name "mos2.in"
 
         .. code-block :: python
-        
+
             qe = PwIn('mos2.scf')
             print qe
 
     To start a file from scratch
 
         .. code-block :: python
-        
+
             qe = PwIn('mos2.scf')
             qe.atoms = [['N',[ 0.0, 0.0,0.0]],
                         ['B',[1./3,2./3,0.0]]]
@@ -56,10 +57,10 @@ class PwIn(object):
             qe.electrons['conv_thr'] = 1e-8
 
             print qe
-     
+
     Special care should be taken with string variables e.g. "'high'"
- 
-    """    
+
+    """
     _pw = 'pw.x'
 
     def __init__(self, filename=None):
@@ -105,7 +106,7 @@ class PwIn(object):
         for line in lines:
             if "ATOMIC_SPECIES" in line:
                 for i in range(int(self.system["ntyp"])):
-                    atype, mass, psp = lines.next().split()
+                    atype, mass, psp = next(lines).split()
                     self.atypes[atype] = [mass,psp]
 
     def get_symmetry_spglib(self):
@@ -133,7 +134,7 @@ class PwIn(object):
         for atom in self.atoms:
             atype = self.atypes[atom[0]]
             mass = float(atype[0])
-            masses.append(mass) 
+            masses.append(mass)
         return masses
 
     def set_path(self,path):
@@ -190,7 +191,7 @@ class PwIn(object):
                 atomic_pos_type = line
                 self.atomic_pos_type = re.findall('([A-Za-z]+)',line)[-1]
                 for i in range(int(self.system["nat"])):
-                    atype, x,y,z = lines.next().split()
+                    atype, x,y,z = next(lines).split()
                     self.atoms.append([atype,[float(i) for i in (x,y,z)]])
         self.atomic_pos_type = atomic_pos_type.replace('{','').replace('}','').strip().split()[1]
 
@@ -207,7 +208,7 @@ class PwIn(object):
                     self.cell_units = line.translate(None, '{}()').split()[1]
                     self.cell_parameters = [[1,0,0],[0,1,0],[0,0,1]]
                     for i in range(3):
-                        self.cell_parameters[i] = [ float(x)*a for x in lines.next().split() ]
+                        self.cell_parameters[i] = [ float(x)*a for x in next(lines).split() ]
             if self.cell_units == 'angstrom' or self.cell_units == 'bohr':
                 if 'celldm(1)' in self.system: del self.system['celldm(1)']
         elif ibrav == 4:
@@ -224,7 +225,7 @@ class PwIn(object):
         else:
             print('ibrav = %d not implemented'%ibrav)
             exit(1)
-        
+
     def read_kpoints(self):
         lines = iter(self.file_lines)
         #find K_POINTS keyword in file and read next line
@@ -233,12 +234,12 @@ class PwIn(object):
                 #chack if the type is automatic
                 if "automatic" in line:
                     self.ktype = "automatic"
-                    vals = list(map(float, lines.next().split()))
+                    vals = list(map(float, next(lines).split()))
                     self.kpoints, self.shiftk = vals[0:3], vals[3:6]
                 #otherwise read a list
                 else:
                     #read number of kpoints
-                    nkpoints = int(lines.next().split()[0])
+                    nkpoints = int(next(lines).split()[0])
                     self.klist = []
                     self.ktype = ""
                     try:
@@ -253,7 +254,7 @@ class PwIn(object):
     def slicefile(self, keyword):
         lines = re.findall('&%s(?:.?)+\n((?:.+\n)+?)(?:\s+)?\/'%keyword,"".join(self.file_lines),re.MULTILINE)
         return lines
-    
+
     def store(self,group,name):
         """
         Save the variables specified in each of the groups on the structure
@@ -264,7 +265,7 @@ class PwIn(object):
 
     def stringify_group(self, keyword, group):
         if group != {}:
-            string='&%s\n' % keyword 
+            string='&%s\n' % keyword
             for keyword in group:
                 string += "%20s = %s\n" % (keyword, group[keyword])
             string += "/&end\n"
