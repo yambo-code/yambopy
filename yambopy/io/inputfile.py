@@ -72,7 +72,7 @@ class YamboIn(object):
                    'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid','gkkp','el_ph_corr','WRbsWF','Select_energy', 'RTDBs','photolum','kpts_map',
                    'RTtime','RToccupations','RTfitbands']
 
-    def __init__(self,args='',folder='.',vim=True,filename='yambo.in'):
+    def __init__(self,args='',folder='.',filename='yambo.in'):
         """
         Initalize the class
         """
@@ -88,10 +88,8 @@ class YamboIn(object):
             workdir = os.getcwd()
             os.chdir(folder)
             os.system('rm -f %s'%filename)
-            yambo = Popen(args, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
-            # if yambo calls vim we have to close it. We just want the generic input file
-            # that yambo generates.
-            if vim: yambo.stdin.write(":q!\n")
+            yambo = Popen(args+' -Q', stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
+            print('YAMBOPY: yambo command: %s'%(args+' -Q'))
             yambo.wait()
             os.chdir(workdir)
             self.read_file(filename="%s/%s"%(folder,filename))
@@ -309,17 +307,17 @@ class YamboIn(object):
             if isinstance(value,basestring):
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue
-            if type(value[0])==float:
+            if isinstance(value[0],float):
                 val, unit = value
                 s+="%s = %lf %s\n"%(key,val,unit)
                 continue
-            if type(value[0])==int:
+            if isinstance(value[0],int):
                 val, unit = value
                 s+="%s = %d %s\n"%(key,val,unit)
                 continue
-            if type(value[0])==list:
+            if isinstance(value[0],list):
                 array, unit = value
-                if type(array[0])==list:
+                if isinstance(array[0],list):
                     s+='%% %s\n'%key
                     for l in array:
                         s+="%s \n"%(" | ".join(map(str,l))+' | ')
@@ -332,7 +330,7 @@ class YamboIn(object):
                 array = value
                 s+="%% %s\n %s \n%%\n"%(key," | ".join(["'%s'"%x.replace("'","").replace("\"","") for x in array])+' | ')
                 continue
-            if type(value[0])==complex:
+            if isinstance(value[0],complex):
                 c, unit = value
                 s+="%s = (%lf,%lf) %s\n"%(key,c.real,c.imag,unit)
                 continue
