@@ -84,7 +84,9 @@ def bse_convergence(what='dielectric',threads=1,nohup=False):
         path = filename.split('.')[0]
         print(filename, path)
         shell = scheduler()        
-        shell.add_command('cd %s; %s mpirun -np %d %s -F %s -J %s -C %s 2> %s.log'%(folder,nohup,threads,yambo,filename,path,path,path))
+        shell.add_command('cd %s'%folder)
+        shell.add_command('rm -f *.json %s/o-*'%path) #cleanup`
+        shell.add_command('%s mpirun -np %d %s -F %s -J %s -C %s 2> %s.log'%(nohup,threads,yambo,filename,path,path,path))
         shell.run()
 
     y.optimize(conv,run=run)

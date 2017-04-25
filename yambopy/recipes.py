@@ -91,8 +91,12 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         key=sorted_invars[i][0]
         if key.startswith(var) or key=='reference.json':
             keys.append(key)
-    print 'Files detected: ',keys
 
+    if len(keys) == 0: raise ValueError('No files with this variable were found')
+    print 'Files detected:'
+    for key in keys:
+        print key
+ 
     print 'Computing values...'
     ### Output
 
@@ -197,6 +201,8 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
         key=sorted_invars[i][0]
         if key.startswith(var) or key=='reference.json':
             keys.append(key)
+
+    if len(keys) == 0: raise ValueError('No files with this variable were found')
     print 'Files detected:'
     for key in keys:
         print key
