@@ -17,7 +17,7 @@ class Bash(Scheduler):
                 "nodes":"nodes"}
     def initialize(self):
         self.get_vardict()
-        
+
     def __str__(self):
         return self.get_commands()
 
@@ -33,13 +33,14 @@ class Bash(Scheduler):
         mpirun = self.get_arg("mpirun")
         if mpirun is None: mpirun = "mpirun"
         self.add_command("%s -np %d %s"%(mpirun,threads,cmd))
-        
+
     def run(self,dry=False):
         if dry:
             print(str(self))
         else:
             p = subprocess.Popen(str(self),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,executable='/bin/bash')
             self.stdout, self.stderr = p.communicate()
-            if self.stderr != "":
+            # In Python 3, Popen.communicate() can return an empty byte
+            if ( sys.version_info.major < 3 and self.stderr != '') or self.stderr != b'':
                 raise ValueError("ERROR:\n%s"%self.stderr)
             print(self.stdout)
