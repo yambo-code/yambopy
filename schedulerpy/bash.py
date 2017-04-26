@@ -41,7 +41,13 @@ class Bash(Scheduler):
         else:
             p = subprocess.Popen(str(self),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,executable='/bin/bash')
             self.stdout, self.stderr = p.communicate()
-            # In Python 3, Popen.communicate() can return an empty byte
-            if ( sys.version_info.major < 3 and self.stderr != '') or self.stderr != b'':
+            # In Python 3, Popen.communicate() returns bytes
+            try:
+                self.stdout = self.stdout.decode()
+                self.stderr = self.stderr.decode()
+            # If Python 2, <str>.decode() will raise an error that we ignore
+            except AttributeError:
+                pass
+            if  self.stderr != '':
                 raise ValueError("ERROR:\n%s"%self.stderr)
             print(self.stdout)
