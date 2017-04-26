@@ -221,10 +221,10 @@ class YamboAnalyser(object):
         path = np.array([p[0] for p in path_label])
 
         #select one of the files to obtain the points in the path
-        json_filename = self.jsonfiles.keys()[0]
+        json_filename = list(self.jsonfiles.keys())[0]
 
         #find the points along the high symmetry lines
-        json_filename = self.jsonfiles.keys()[0]
+        json_filename = list(self.jsonfiles.keys())[0]
         bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path,json_filename)
 
         #calculate distances
@@ -236,7 +236,7 @@ class YamboAnalyser(object):
 
 
         #obtain the bands for the output files and plot
-        for json_filename in self.jsonfiles.keys():
+        for json_filename in list(self.jsonfiles.keys()):
             for output_filename in self.jsonfiles[json_filename]['data']:
                 kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
 

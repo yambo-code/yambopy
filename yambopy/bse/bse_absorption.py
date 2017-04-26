@@ -1,9 +1,11 @@
 from __future__ import print_function
+from __future__ import division
 # Copyright (c) 2015, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
+from past.utils import old_div
 from builtins import range
 from yambopy import *
 from yambopy.plot  import *
@@ -187,7 +189,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                 #make center_atom_red commensurate with fft
                 center_atom_red = center_atom_red * np.array([nx,ny,nz])
                 center_atom_red_int = [int(x) for x in center_atom_red]
-                displacement = np.array([nx,ny,nz])/2-center_atom_red_int
+                displacement = old_div(np.array([nx,ny,nz]),2)-center_atom_red_int
                 dx,dy,dz = displacement
 
                 # shift grid
@@ -200,7 +202,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
                 #shift atoms
                 atoms = []
-                dx,dy,dz = red_car([displacement/np.array([nx,ny,nz],dtype=float)],lat)[0]
+                dx,dy,dz = red_car([old_div(displacement,np.array([nx,ny,nz],dtype=float))],lat)[0]
                 for atype,x,y,z in data["atoms"]:
                     atoms.append([atype,x+dx,y+dy,z+dz])
                 self.data["atoms"] = atoms

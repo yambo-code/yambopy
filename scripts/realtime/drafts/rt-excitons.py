@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Version : dec 2nd
 import os
 import re
@@ -13,7 +14,7 @@ for f in dirfiles:
         files.append(f)
 
 files.sort()
-print files
+print(files)
 
 # Get times
 times=[]
@@ -28,7 +29,7 @@ exc_list = (1,2) # excitons wanted (here 1st and 2nd one that respect the thresh
 
 for p,f in enumerate(files):
     n=1
-    print files[p],times[p]
+    print(files[p],times[p])
     content = np.loadtxt(f)
     for e,i,index in content:
         if i>i_thr:
