@@ -103,8 +103,13 @@ def run(nthreads=1,cut=False):
     else:
         shell.add_command('cd bse; mpirun -np %d %s -F yambo_run.in -J yambo'%(nthreads,yambo))
     shell.run()
+<<<<<<< HEAD
 
 def analyse():
+=======
+
+def analyse(dry=False):
+>>>>>>> henrique/master
     #pack in a json file
     y = YamboOut('bse')
     y.pack()
@@ -118,18 +123,21 @@ def analyse():
     # min_intensity -> choose the excitons that have at least this intensity
     # max_energy    -> choose excitons with energy lower than this
     # Degen_Step    -> take only excitons that have energies more different than Degen_Step
-    excitons = a.get_excitons(min_intensity=0.0005,max_energy=7,Degen_Step=0.01)
+    excitons = a.get_excitons(min_intensity=0.001,max_energy=8.0,Degen_Step=0.01)
     print( "nexcitons: %d"%len(excitons) )
     print( "excitons:" )
-    print( excitons )
+    print( "  Energy  Intensity Index")
+    for exciton in excitons:
+        print( "%8.4lf %8.4lf %5d"%tuple(exciton) )
 
-    # read the wavefunctions
-    # Cells=[13,13,1]   #number of cell repetitions
-    # Hole=[0,0,6+.5]   #position of the hole in cartesian coordinates (Bohr units)
-    # FFTGvecs=10       #number of FFT vecs to use, larger makes the
-    #                   #image smoother, but takes more time to plot
-    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1),
-                        Cells=[13,13,1],Hole=[0,0,6+.5], FFTGvecs=10,wf=True)
+    if dry:
+        # read the wavefunctions
+        # Cells=[13,13,1]   #number of cell repetitions
+        # Hole=[0,0,6+.5]   #position of the hole in cartesian coordinates (Bohr units)
+        # FFTGvecs=10       #number of FFT vecs to use, larger makes the
+        #                   #image smoother, but takes more time to plot
+        a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1),
+                            Cells=[13,13,1],Hole=[0,0,6+.5], FFTGvecs=10,wf=True)
 
     a.write_json()
 
@@ -141,6 +149,7 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--run',        action="store_true", help='Run BSE calculation')
     parser.add_argument('-c', '--cut',        action="store_true", help='Use coulomb truncation')
     parser.add_argument('-a', '--analyse',    action="store_true", help='plot the results')
+    parser.add_argument('-d', '--dry',        action="store_false", help='print excitons only')
     parser.add_argument('-t' ,'--nthreads',                        help='Number of threads', default=1)
     args = parser.parse_args()
     nthreads = int(args.nthreads)
@@ -153,4 +162,4 @@ if __name__ == "__main__":
     dg = args.doublegrid
     create_save(dg)
     if args.run:     run(nthreads,cut)
-    if args.analyse: analyse()
+    if args.analyse: analyse(args.dry)

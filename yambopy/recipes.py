@@ -511,7 +511,7 @@ def plot_excitons(filename,cut=0.2,size=20):
     plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.01, hspace=0.01)
 
     #remove extension from file
-    figure_filename = os.path.splitext(filename)
+    figure_filename = os.path.splitext(filename)[0]
     plt.savefig('%s.png'%figure_filename)
     if 'DISPLAY' in os.environ:
         plt.show()

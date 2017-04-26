@@ -435,10 +435,7 @@ Plots in real space are also possible using yambopy (by calling ypp). In the ana
     # min_intensity -> choose the excitons that have at least this intensity
     # max_energy    -> choose excitons with energy lower than this
     # Degen_Step    -> take only excitons that have energies more different than Degen_Step
-    excitons = a.get_excitons(min_intensity=0.0005,max_energy=7,Degen_Step=0.01)
-    print( "nexcitons: %d"%len(excitons) )
-    print( "excitons:" )
-    print( excitons )
+    excitons = a.get_excitons(min_intensity=0.001,max_energy=7,Degen_Step=0.01)
 
     # read the wavefunctions
     # Cells=[13,13,1]   #number of cell repetitions
@@ -463,6 +460,8 @@ To run this part of the code you can do:
     python bse_bn.py -a  #this will generate absorptionspectra.json
     yambopy plotexcitons absorptionspectra.json #this will plot it
     
+You can tune the parameters ``min_intensity`` and ``max_energy`` and obtain more or less excitons.
+``Degen_Step`` is used to not consider excitons that are degenerate in energy. The reason is that when representing the excitonic wavefunction, degenerate states should be represented together. This value should in general be very small in order to not combine excitons that have energies close to each other but are not exactly degenerate.
 You should then obtain plots similar (these ones were generated on a 30x30 k-point grid) to the figures presented here:
 
 .. image:: figures/absorption_bn.png
@@ -476,14 +475,15 @@ You should then obtain plots similar (these ones were generated on a 30x30 k-poi
 
 Again, be aware that this figures serve only to show the kind of representation 
 that can be obtained with ``yambo``, ``ypp`` and ``yambopy``.
-Further convergence tests need to be performed to obtain accurate results, but that is left to the user.
+Further convergence tests need to be performed to obtain accurate results, but that is left to the user. You are invited to re-run the nscf loop with more k-points and represent the resulting
+wavefunctions.
 
 You can now visualize these wavefunctions in real space using our online tool:
 `http://henriquemiranda.github.io/excitonwebsite/ <http://henriquemiranda.github.io/excitonwebsite/>`_ 
 
 For that, go to the website, and in the ``Excitons`` section select ``absorptionspectra.json`` file using the ``Custom File``.
-You shuold see on the right part the absorption spectra and on the right the representation of the wavefunction in real space.
-Alternatively you can vizualize the generated ``.xsf`` files using xcrysden.
+You shuold see on the right part the absorption spectra and on the left the representation of the wavefunction in real space.
+Alternatively you can vizualize the individually generated ``.xsf`` files using xcrysden.
 
 4. Parallel static screening
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
