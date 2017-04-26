@@ -48,24 +48,24 @@ def gw_convergence():
     y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw_conv')
     k_f = y['QPkrange'][0][1]         # Read the last k-points in the uniform k-grid
 
-    y['FFTGvecs'] = [2,'Ha']                # Global Cutoff
-    y['EXXRLvcs'] = [20,'Ha']               # Self-energy. Exchange
-    y['NGsBlkXp'] = [1,10]                  # Screening. Number of bands
-    y['NGsBlkXp'] = [0,'mHa']               # Cutoff Screening
-    y['GbndRnge'] = [1,10]                  # Self-energy. Number of bands
+    y['BndsRnXp'] = [[1,10],'']             # Screening. Number of bands
+    y['NGsBlkXp'] = [0,'Ry']                # Cutoff Screening
+    y['GbndRnge'] = [[1,10],'']             # Self-energy. Number of bands
     y['QPkrange'] = [ [k_f,k_f,4,5], '' ]
 
-    conv = { 'FFTGvecs': [[2,5,10,15,20],'Ha'],
-             'NGsBlkXp': [[0,500,1000,1500,2000], 'mHa'],
-             'BndsRnXp': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] ,
-             'GbndRnge': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] }
+    conv = { 'EXXRLvcs': [[10,10,20,40,60,80,100],'Ry'],
+             'NGsBlkXp': [[0,0,1,2,3], 'Ry'],
+             'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] ,
+             'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] }
 
     def run(filename):
         """ Function to be called by the optimize function """
         folder = filename.split('.')[0]
         print(filename,folder)
         shell = bash() 
-        shell.add_command('cd gw_conv; %s -F %s -J %s -C %s 2> %s.log'%(yambo,filename,folder,folder,folder))
+        shell.add_command('cd gw_conv')
+        shell.add_command('rm -f *.json %s/o-*'%folder) #cleanup
+        shell.add_command('%s -F %s -J %s -C %s 2> %s.log'%(yambo,filename,folder,folder,folder))
         shell.run()
         shell.clean()
 
@@ -80,10 +80,10 @@ def plot_convergence():
 
     print('Select the converged value for each variable')
     shell = bash() 
-    shell.add_command('python analyse_gw.py -bc 5 -kc %s -bv 4 -kv %s gw_conv FFTGvecs' % (k_f, k_f))
-    shell.add_command('python analyse_gw.py -bc 5 -kc %s -bv 4 -kv %s gw_conv NGsBlkXp' % (k_f, k_f))
-    shell.add_command('python analyse_gw.py -bc 5 -kc %s -bv 4 -kv %s gw_conv BndsRnXp' % (k_f, k_f))
-    shell.add_command('python analyse_gw.py -bc 5 -kc %s -bv 4 -kv %s gw_conv GbndRnge' % (k_f, k_f))
+    shell.add_command('yambopy analysegw -bc 5 -kc %s -bv 4 -kv %s gw_conv EXXRLvcs' % (k_f, k_f))
+    shell.add_command('yambopy analysegw -bc 5 -kc %s -bv 4 -kv %s gw_conv NGsBlkXp' % (k_f, k_f))
+    shell.add_command('yambopy analysegw -bc 5 -kc %s -bv 4 -kv %s gw_conv BndsRnXp' % (k_f, k_f))
+    shell.add_command('yambopy analysegw -bc 5 -kc %s -bv 4 -kv %s gw_conv GbndRnge' % (k_f, k_f))
     shell.run()
     shell.clean()
 
@@ -99,11 +99,10 @@ def gw():
     # GW calculation. PPA Screening. Newton method
     y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw')
 
-    y['FFTGvecs'] = [20,'Ha']       # Global Cutoff
-    y['EXXRLvcs'] = [20,'Ha']       # Self-energy. Exchange
-    y['NGsBlkXp'] = [1,24]          # Screening. Number of bands
-    y['NGsBlkXp'] = [500,'mHa']     # Cutoff Screening
-    y['GbndRnge'] = [1,20]          # Self-energy. Number of bands
+    y['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
+    y['NGsBlkXp'] = [1,25]          # Screening. Number of bands
+    y['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
+    y['GbndRnge'] = [1,25]          # Self-energy. Number of bands
     y['QPkrange'][0][2:] = [2,6]
     y.write('gw/yambo_gw.in')
 
@@ -140,12 +139,11 @@ def xi():
     cohsex = YamboIn('%s -p c -g n -V all'%yambo,folder='gw-xi')
 
     print ('COHSEX')
-    cohsex['FFTGvecs'] = [20,'Ha']           # Global Cutoff
-    cohsex['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    cohsex['BndsRnXs'] = [1,24]              # Screening. Number of bands
-    cohsex['NGsBlkXs'] = [ 500,'mHa']        # Cutoff Screening
-    cohsex['GbndRnge'] = [1,20]              # Self-energy. Number of bands
-    cohsex['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
+    cohsex['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
+    cohsex['NGsBlkXs'] = [1,25]          # Screening. Number of bands
+    cohsex['NGsBlkXs'] = [3,'Ry']        # Cutoff Screening
+    cohsex['GbndRnge'] = [1,25]          # Self-energy. Number of bands
+    cohsex['QPkrange'][0][2:] = [2,6]
     cohsex.write('gw-xi/yambo_cohsex.in')
     shell = bash() 
     shell.add_command('cd gw-xi; %s -F yambo_cohsex.in -J coh -C coh' % yambo)
@@ -154,11 +152,10 @@ def xi():
 
     ppa = YamboIn('%s -p p -g n -V all'%yambo,folder='gw-xi')
     print ('PPA')
-    ppa['FFTGvecs'] = [20,'Ha']           # Global Cutoff
-    ppa['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    ppa['BndsRnXp'] = [1,24]              # Screening. Number of bands
-    ppa['NGsBlkXp'] = [ 500,'mHa']        # Cutoff Screening
-    ppa['GbndRnge'] = [1,20]              # Self-energy. Number of bands
+    ppa['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
+    ppa['NGsBlkXp'] = [1,25]          # Screening. Number of bands
+    ppa['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
+    ppa['GbndRnge'] = [1,25]          # Self-energy. Number of bands
     ppa['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
     ppa.write('gw-xi/yambo_ppa.in')
     shell = bash() 
@@ -168,11 +165,10 @@ def xi():
 
     ra = YamboIn('%s -d -g n -V all'%yambo,folder='gw-xi')
     print ('Real Axis')
-    ra['FFTGvecs'] = [20,'Ha']           # Global Cutoff
-    ra['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    ra['BndsRnXd'] = [1,24]              # Screening. Number of bands
-    ra['NGsBlkXd'] = [ 500,'mHa']        # Cutoff Screening
-    ra['GbndRnge'] = [1,20]              # Self-energy. Number of bands
+    ra['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
+    ra['NGsBlkXd'] = [1,25]          # Screening. Number of bands
+    ra['NGsBlkXd'] = [3,'Ry']        # Cutoff Screening
+    ra['GbndRnge'] = [1,25]          # Self-energy. Number of bands
     ra['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
     ra.write('gw-xi/yambo_ra.in')
     shell = bash() 
@@ -203,11 +199,10 @@ def dyson_eq():
 
     dyson = YamboIn('%s -d -g n -V all'%yambo,folder=folder_dyson)
 
-    dyson['FFTGvecs'] = [20,'Ha']           # Global Cutoff
-    dyson['EXXRLvcs'] = [20,'Ha']           # Self-energy. Exchange
-    dyson['BndsRnXd'] = [1,10]              # Screening. Number of bands
-    dyson['NGsBlkXd'] = [ 500,'mHa']        # Cutoff Screening
-    dyson['GbndRnge'] = [1,20]              # Self-energy. Number of bands
+    dyson['EXXRLvcs'] = [80,'Ry']           # Self-energy. Exchange
+    dyson['BndsRnXd'] = [1,25]              # Screening. Number of bands
+    dyson['NGsBlkXd'] = [ 3,'Ry']        # Cutoff Screening
+    dyson['GbndRnge'] = [1,25]              # Self-energy. Number of bands
     dyson['QPkrange'][0][2:] = [2, 6]
 
     dyson['DysSolver'] = "n" 

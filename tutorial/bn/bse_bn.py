@@ -103,20 +103,34 @@ def run(nthreads=1,cut=False):
     else:
         shell.add_command('cd bse; mpirun -np %d %s -F yambo_run.in -J yambo'%(nthreads,yambo))
     shell.run()
-    
+
 def analyse():
     #pack in a json file
     y = YamboOut('bse')
     y.pack()
 
     #get the absorption spectra
+    #'yambo' -> was the jobstring '-J' used when running yambo
+    #'bse'   -> folder where the job was run
     a = YamboBSEAbsorptionSpectra('yambo',path='bse')
+
+    # Here we choose which excitons to read
+    # min_intensity -> choose the excitons that have at least this intensity
+    # max_energy    -> choose excitons with energy lower than this
+    # Degen_Step    -> take only excitons that have energies more different than Degen_Step
     excitons = a.get_excitons(min_intensity=0.0005,max_energy=7,Degen_Step=0.01)
     print( "nexcitons: %d"%len(excitons) )
     print( "excitons:" )
     print( excitons )
-    a.get_wavefunctions(Degen_Step=0.01,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(1)),
+
+    # read the wavefunctions
+    # Cells=[13,13,1]   #number of cell repetitions
+    # Hole=[0,0,6+.5]   #position of the hole in cartesian coordinates (Bohr units)
+    # FFTGvecs=10       #number of FFT vecs to use, larger makes the
+    #                   #image smoother, but takes more time to plot
+    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1),
                         Cells=[13,13,1],Hole=[0,0,6+.5], FFTGvecs=10,wf=True)
+
     a.write_json()
 
 if __name__ == "__main__":
@@ -138,5 +152,5 @@ if __name__ == "__main__":
     cut = args.cut
     dg = args.doublegrid
     create_save(dg)
-    if args.run:     run(nthreads,cut) 
+    if args.run:     run(nthreads,cut)
     if args.analyse: analyse()

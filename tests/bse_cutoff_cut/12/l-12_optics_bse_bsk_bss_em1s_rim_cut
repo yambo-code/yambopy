@@ -1,0 +1,100 @@
+
+
+____    ____    ___      .___  ___.  .______     ______
+\   \  /   /   /   \     |   \/   |  |   _  \   /  __  \
+ \   \/   /   /  ^  \    |  \  /  |  |  |_)  | |  |  |  |
+  \_    _/   /  /_\  \   |  |\/|  |  |   _  <  |  |  |  |
+    |  |    /  _____  \  |  |  |  |  |  |_)  | |  `--"  |
+    |__|   /__/     \__\ |__|  |__|  |______/   \______/
+
+
+
+ <---> [01] CPU structure, Files & I/O Directories
+ <---> CPU-Threads:1(CPU)-16(threads)-16(threads@X)-16(threads@DIP)
+ <---> [02] CORE Variables Setup
+ <---> [02.01] Unit cells
+ <---> [02.02] Symmetries
+ <---> [02.03] RL shells
+ <---> [02.04] K-grid lattice
+ <---> [02.05] Energies [ev] & Occupations
+ <---> [03] Transferred momenta grid
+ <---> [RL indx] Q-grid:User defined / from ndb.kindx.
+ <---> X indexes |                                        | [000%] --(E) --(X)
+ <---> X indexes |########################################| [100%] --(E) --(X)
+ <---> SE indexes |                                        | [000%] --(E) --(X)
+ <---> SE indexes |########################################| [100%] --(E) --(X)
+ <---> [04] Coloumb potential Random Integration (RIM)
+ <---> [04.01] RIM initialization
+ <---> Random points |                                        | [000%] --(E) --(X)
+ <03s> Random points |########################################| [100%] 03s(E) 03s(X)
+ <03s> [04.02] RIM integrals
+ <03s> Momenta loop |                                        | [000%] --(E) --(X)
+ <07s> Momenta loop |########################################| [100%] 03s(E) 03s(X)
+ <07s> [05] Coloumb potential CutOff :box
+ <07s> Box |                                        | [000%] --(E) --(X)
+ <07s> Box |########################################| [100%] --(E) --(X)
+ <07s> [06] External corrections
+ <07s> [06.01] External QP corrections (X)
+ <07s> [06.02] External QP corrections (K)
+ <07s> [07] Static Dielectric Matrix
+ <07s> [LA] SERIAL linear algebra
+ <07s> [DIP] Checking dipoles header
+ <07s> [x,Vnl] computed using 22 projectors
+ <07s> [WF] Performing Wave-Functions I/O from ./SAVE
+ <07s> Dipoles: P and iR (T): |                                        | [000%] --(E) --(X)
+ <12s> Dipoles: P and iR (T): |###############                         | [038%] 05s(E) 13s(X)
+ <17s> Dipoles: P and iR (T): |##############################          | [075%] 10s(E) 13s(X)
+ <21s> Dipoles: P and iR (T): |########################################| [100%] 13s(E) 13s(X)
+ <21s> [DIP] Writing dipoles header
+ <21s> [WF] Performing Wave-Functions I/O from ./SAVE
+ <21s> [FFT-X] Mesh size:  7   7  18
+ <21s> [X-CG] R(p) Tot o/o(of R)  :  159   864   100
+ <21s> Xo@q[1] |                                        | [000%] --(E) --(X)
+ <21s> Xo@q[1] |########################################| [100%] --(E) --(X)
+ <21s> X@q[1] |                                        | [000%] --(E) --(X)
+ <21s> X@q[1] |########################################| [100%] --(E) --(X)
+ <21s> [X-CG] R(p) Tot o/o(of R)  :  469   864   100
+ <21s> Xo@q[2] |                                        | [000%] --(E) --(X)
+ <21s> Xo@q[2] |########################################| [100%] --(E) --(X)
+ <21s> X@q[2] |                                        | [000%] --(E) --(X)
+ <21s> X@q[2] |########################################| [100%] --(E) --(X)
+ <21s> [X-CG] R(p) Tot o/o(of R)  :  396   864   100
+ <21s> Xo@q[3] |                                        | [000%] --(E) --(X)
+ <21s> Xo@q[3] |########################################| [100%] --(E) --(X)
+ <21s> X@q[3] |                                        | [000%] --(E) --(X)
+ <21s> X@q[3] |########################################| [100%] --(E) --(X)
+ <22s> [X-CG] R(p) Tot o/o(of R)  :  302   864   100
+ <22s> Xo@q[4] |                                        | [000%] --(E) --(X)
+ <22s> Xo@q[4] |########################################| [100%] --(E) --(X)
+ <22s> X@q[4] |                                        | [000%] --(E) --(X)
+ <22s> X@q[4] |########################################| [100%] --(E) --(X)
+ <22s> [X-CG] R(p) Tot o/o(of R)  :  398   864   100
+ <22s> Xo@q[5] |                                        | [000%] --(E) --(X)
+ <22s> Xo@q[5] |########################################| [100%] --(E) --(X)
+ <22s> X@q[5] |                                        | [000%] --(E) --(X)
+ <22s> X@q[5] |########################################| [100%] --(E) --(X)
+ <23s> [X-CG] R(p) Tot o/o(of R)  :  586   864   100
+ <23s> Xo@q[6] |                                        | [000%] --(E) --(X)
+ <23s> Xo@q[6] |########################################| [100%] --(E) --(X)
+ <23s> X@q[6] |                                        | [000%] --(E) --(X)
+ <23s> X@q[6] |########################################| [100%] --(E) --(X)
+ <23s> [X-CG] R(p) Tot o/o(of R)  :  230   864   100
+ <23s> Xo@q[7] |                                        | [000%] --(E) --(X)
+ <23s> Xo@q[7] |########################################| [100%] --(E) --(X)
+ <23s> X@q[7] |                                        | [000%] --(E) --(X)
+ <23s> X@q[7] |########################################| [100%] --(E) --(X)
+ <24s> [08] Response Functions in Transition space
+ <24s> [08.01] Transition Groups build-up
+ <24s> [08.02] CPU-dependent Block structure
+ <24s> [BSK] Size (resonant)  36
+ <24s> [BSK]         (total)  36
+ <24s> [08.03] Independent Particles absorption
+ <24s> [DIP] Checking dipoles header
+ <24s> [08.04] Bethe-Salpeter (Resonant CORRRELATION EXCHANGE)
+ <24s> [08.04.01] Screened interaction header I/O
+ <24s> [WARNING] Hartree S/K FFT size is too big. NG_H reduced: 7897 --> 413
+ <24s> [WARNING] Bigger FFT discarded to avoid slow XC S/K computation.
+ <24s> [WF] Performing Wave-Functions I/O from ./SAVE
+ <24s> [FFT-BSK] Mesh size:  7   7  18
+ <24s> [08.04.02] Wave-Function Phases
+ <43s> [08.04.03] Kernel loop

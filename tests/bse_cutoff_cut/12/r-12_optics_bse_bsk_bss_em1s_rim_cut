@@ -1,0 +1,501 @@
+                                                                
+     __  __   ________   ___ __ __    _______   ______          
+    /_/\/_/\ /_______/\ /__//_//_/\ /_______/\ /_____/\         
+    \ \ \ \ \\::: _  \ \\::\| \| \ \\::: _  \ \\:::_ \ \        
+     \:\_\ \ \\::(_)  \ \\:.      \ \\::(_)  \/_\:\ \ \ \       
+      \::::_\/ \:: __  \ \\:.\-/\  \ \\::  _  \ \\:\ \ \ \      
+        \::\ \  \:.\ \  \ \\. \  \  \ \\::(_)  \ \\:\_\ \ \     
+         \__\/   \__\/\__\/ \__\/ \__\/ \_______\/ \_____\/     
+                                                                
+                                                                
+           Version 4.2.0 Revision 14302 Hash 5708178            
+                       MPI+OpenMP Build                         
+                   http://www.yambo-code.org                    
+ 
+ 04/21/2017 at 11:31 YAMBO @ ithaki
+
+ [01] CPU structure, Files & I/O Directories
+ ===========================================
+
+ * CPU-Threads     :1(CPU)-16(threads)-16(threads@X)-16(threads@DIP)
+ * MPI CPU         : 1
+ * THREADS    (max): 16
+ * THREADS TOT(max): 16
+ * I/O NODES       : 1
+ * Fragmented WFs  :yes
+
+ CORE databases in   .
+ Additional I/O in   .
+ Communications in   .
+ Input file     is   yambo_run.in
+ Report file    is   ./r-12_optics_bse_bsk_bss_em1s_rim_cut
+ Job string(main): 12
+ Log files      in ./LOG
+  
+ [RD./SAVE//ns.db1]------------------------------------------
+  Bands                           : 10
+  K-points                        :  7
+  G-vectors             [RL space]:  7897
+  Components       [wavefunctions]:  988
+  Symmetries       [spatial+T-rev]: 24
+  Spinor components               : 1
+  Spin polarizations              : 1
+  Temperature                 [ev]: 0.000000
+  Electrons                       : 8.000000
+  WF G-vectors                    : 1405
+  Max atoms/species               : 1
+  No. of atom species             : 2
+  Magnetic symmetries             : no
+ - S/N 002180 -------------------------- v.04.02.00 r.14302 -
+
+ [02] CORE Variables Setup
+ =========================
+
+
+  [02.01] Unit cells
+  ==================
+
+  Unit cell is HCP
+
+  ... containing 1B1N atoms
+
+  ... with scaling factors [a.u.]:  4.70000   4.07032  12.00000
+
+  Direct Lattice(DL) unit cell [iru  /  cc(a.u.)]
+  A1 = 1.000000  0.000000  0.000000      4.700000  0.000000  0.000000
+  A2 =-0.500000  1.000000  0.000000     -2.350000  4.070319  0.000000
+  A3 = 0.000000  0.000000  1.000000      0.000000  0.000000  12.00000
+
+  DL volume [au]: 229.5660
+
+  Reciprocal Lattice(RL) unit cell [iku  /  cc]
+  B1 = 1.000000  0.500000  0.000000      1.336848  0.771830 -0.000000
+  B2 = 0.000000  1.000000  0.000000      0.000000  1.543659  0.000000
+  B3 = 0.000000  0.000000  1.000000      0.000000 -0.000000  0.523599
+
+
+  [02.02] Symmetries
+  ==================
+
+  DL (S)ymmetries [cc]
+  [S1] 1.000000  0.000000  0.000000  0.000000  1.000000  0.000000  0.000000  0.000000  1.000000
+  [S2]-1.000000  0.000000  0.000000  0.000000  1.000000  0.000000  0.000000  0.000000 -1.000000
+  [S3]-0.500000  0.866025  0.000000 -0.866025 -0.500000  0.000000  0.000000  0.000000  1.000000
+  [S4]-0.500000 -0.866025  0.000000  0.866025 -0.500000  0.000000  0.000000  0.000000  1.000000
+  [S5] 0.500000 -0.866025  0.000000 -0.866025 -0.500000  0.000000  0.000000  0.000000 -1.000000
+  [S6] 0.500000  0.866025  0.000000  0.866025 -0.500000  0.000000  0.000000  0.000000 -1.000000
+  [S7] 1.000000  0.000000  0.000000  0.000000  1.000000  0.000000  0.000000  0.000000 -1.000000
+  [S8]-1.000000  0.000000  0.000000  0.000000  1.000000  0.000000  0.000000  0.000000  1.000000
+  [S9]-0.500000 -0.866025  0.000000  0.866025 -0.500000  0.000000  0.000000  0.000000 -1.000000
+  [S10]-0.500000  0.866025  0.000000 -0.866025 -0.500000  0.000000  0.000000  0.000000 -1.000000
+  [S11] 0.500000  0.866025  0.000000  0.866025 -0.500000  0.000000  0.000000  0.000000  1.000000
+  [S12] 0.500000 -0.866025  0.000000 -0.866025 -0.500000  0.000000  0.000000  0.000000  1.000000
+
+  [SYMs] Time-reversal derived K-space symmetries: 13  24
+  [SYMs] Spatial inversion 13 is NOT a symmetry
+  [SYMs] Group table built correctly
+
+  [02.03] RL shells
+  =================
+
+  Shells, format: [S#] G_RL(mHa)
+
+   [S463]:7897(0.8000E+5) [S462]:7873(0.7996E+5) [S461]:7849(0.7985E+5) [S460]:7825(0.7983E+5)
+   [S459]:7813(0.7968E+5) [S458]:7801(0.7951E+5) [S457]:7789(0.7939E+5) [S456]:7765(0.7927E+5)
+   [S455]:7753(0.7918E+5) [S454]:7729(0.7902E+5) [S453]:7705(0.7896E+5) [S452]:7703(0.7854E+5)
+   [S451]:7679(0.7849E+5) [S450]:7655(0.7845E+5) [S449]:7643(0.7812E+5) [S448]:7607(0.7810E+5)
+   [S447]:7583(0.7798E+5) [S446]:7571(0.7777E+5) [S445]:7547(0.7761E+5) [S444]:7523(0.7749E+5)
+   [S443]:7511(0.7747E+5) [S442]:7487(0.7731E+5) [S441]:7463(0.7728E+5) [S440]:7451(0.7725E+5)
+   [S439]:7427(0.7707E+5) [S438]:7415(0.7693E+5) [S437]:7403(0.7680E+5) [S436]:7391(0.7669E+5)
+   ...
+   [S12]:71( 3574.) [S11]:65( 3427.) [S10]:63( 3385.) [S9]:51( 2425.)
+   [S8]:39( 2193.) [S7]:37( 1740.) [S6]:25( 1329.) [S5]:13( 1234.)
+   [S4]:11( 1191.) [S3]:5( 548.3112) [S2]:3( 137.0778) [S1]:1( 0.000000)
+
+  [02.04] K-grid lattice
+  ======================
+
+  Compatible Grid is 2D
+  B1 [rlu]= 0.000000  0.166667  0.000000
+  B2      =-0.166667  0.000000  0.000000
+  Grid dimensions               :  6   6
+  K lattice UC volume       [au]:  0.03001
+
+  [02.05] Energies [ev] & Occupations
+  ===================================
+
+  Fermi Level        [ev]: -0.162572
+  VBM / CBm          [ev]:  0.000000  3.580300
+  Electronic Temp. [ev K]:  0.00      0.00    
+  Bosonic    Temp. [ev K]:  0.00      0.00    
+  El. density      [cm-3]: 0.235E+24
+  States summary         : Full        Metallic    Empty
+                           0001-0004               0005-0010
+  Indirect Gaps      [ev]: 3.580300  6.865409
+  Direct Gaps        [ev]: 4.690068  9.740898
+  X BZ K-points :  36
+
+  Energy unit is electronVolt [eV]
+
+  *X* K [1] : 0.000000  0.000000  0.000000 ( cc) * Comp.s 985 * weight   0.02778
+              0.000000  0.000000  0.000000 (rlu)
+  E -17.95128  -5.37859  -1.37400  -1.37400   3.58030   8.58999  10.49516  11.69312
+  E  11.69312  14.07488
+   
+  *X* K [2] : 0.000000  0.257277  0.000000 ( cc) * Comp.s 974 * weight  0.166667
+              0.000000  0.166667  0.000000 (rlu)
+  E -17.41436  -4.65354  -3.35858  -2.27542   4.48868   8.97530  10.84311  12.19168
+  E  12.67738  13.96730
+   
+  *X* K [3] : 0.000000  0.514553  0.000000 ( cc) * Comp.s 984 * weight  0.166667
+              0.000000  0.333333  0.000000 (rlu)
+  E -15.97399  -6.97690  -3.67024  -2.66975   7.07114   7.23021  10.52865  12.69978
+  E  14.70046  17.32995
+   
+  *X* K [4] : 0.000000 -0.771830  0.000000 ( cc) * Comp.s 988 * weight   0.08333
+              0.000000 -0.500000  0.000000 (rlu)
+  E -14.81466  -9.01737  -4.23772  -0.93551   4.80699   9.74285  11.54149  12.08840
+  E  14.86569  17.24638
+   
+  *X* K [5] : 0.222808  0.385915  0.000000 ( cc) * Comp.s 981 * weight  0.166667
+              0.166667  0.250000  0.000000 (rlu)
+  E -16.41195  -5.60201  -4.00267  -3.28511   6.25572   8.26555  12.19866  12.43250
+  E  12.80554  15.95420
+   
+  *X* K [6] : 0.222808  0.643191  0.000000 ( cc) * Comp.s 975 * weight  0.333333
+              0.166667  0.416667  0.000000 (rlu)
+  E -14.90675  -8.18226  -5.39410  -1.10833   5.52601   9.66337  12.47712  13.59766
+  E  14.74038  16.86033
+   
+  *X* K [7] : 0.445616  0.771830  0.000000 ( cc) * Comp.s 975 * weight   0.05556
+              0.333333  0.500000  0.000000 (rlu)
+  E -14.22200  -8.07003  -7.22408   0.00000   4.69007  12.52619  13.06619  13.92537
+  E  14.25874  17.17313
+
+ [03] Transferred momenta grid
+ =============================
+
+ [RD./SAVE//ndb.kindx]---------------------------------------
+  Fragmentation                    :no
+  Polarization last K   :  7
+  QP states             :  1   7
+  X grid is uniform     :yes
+ *ERR* BS scattering         :no
+  COLL scattering       :no
+ - S/N 002180 -------------------------- v.04.02.00 r.14302 -
+ [RL indx] Q-grid:User defined / from ndb.kindx.
+
+ IBZ Q-points :  7
+ BZ  Q-points :  36
+
+ Q [00001] : 0.00      0.00      0.00     (iku) * weight   0.02778
+ Q [00002] : 0.000000  0.166667  0.000000 (iku) * weight  0.166667
+ Q [00003] : 0.000000  0.333333  0.000000 (iku) * weight  0.166667
+ Q [00004] : 0.000000 -0.500000  0.000000 (iku) * weight   0.08333
+ Q [00005] : 0.166667  0.250000  0.000000 (iku) * weight  0.166667
+ Q [00006] : 0.166667  0.416667  0.000000 (iku) * weight  0.333333
+ Q [00007] : 0.333333  0.500000  0.000000 (iku) * weight   0.05556
+  
+ Q [00001] : 0.00      0.00      0.00     (cc ) * weight   0.02778
+ Q [00002] : 0.000000  0.257277  0.000000 (cc ) * weight  0.166667
+ Q [00003] : 0.000000  0.514553  0.000000 (cc ) * weight  0.166667
+ Q [00004] : 0.000000 -0.771829  0.000000 (cc ) * weight   0.08333
+ Q [00005] : 0.222808  0.385915  0.000000 (cc ) * weight  0.166667
+ Q [00006] : 0.222808  0.643191  0.000000 (cc ) * weight  0.333333
+ Q [00007] : 0.445616  0.771829  0.000000 (cc ) * weight   0.05556
+
+ :: Indices: polarization function + BSE
+ :: Indices: Self-Energy
+
+ [WR./SAVE//ndb.kindx]---------------------------------------
+  Fragmentation                    :no
+  Polarization last K   :  7
+  QP states             :  1   7
+  X grid is uniform     :yes
+  BS scattering         :yes
+  COLL scattering       :no
+ - S/N 002180 -------------------------- v.04.02.00 r.14302 -
+
+ [04] Coloumb potential Random Integration (RIM)
+ ===============================================
+
+
+  [04.01] RIM initialization
+  ==========================
+
+  * Diagonal components only detected *
+
+  8 x (sBL volume)    [au]: 0.240115
+  sBZ random points       : 1000000
+  Points outside the sBZ  :  8001899
+  RL volume           [au]: 1.080518
+  Integrated volume   [au]: 1.080261
+
+
+  [04.02] RIM integrals
+  =====================
+
+  Gamma point sphere radius         [au]: 0.112743
+  Points outside the sphere             :  799246
+  [Int_sBZ(q=0) 1/q^2]*(Vol_sBZ)^(-1/3) = 7.216699
+                                 should be < 7.795600
+  [WR./12//ndb.RIM]-------------------------------------------
+   Brillouin Zone Q/K grids (IBZ/BZ):   7   36    7   36
+   Coulombian RL components        :  5
+   Coulombian diagonal components  :yes
+   RIM random points               : 1000000
+   RIM  RL volume             [a.u.]: 1.080261
+   Real RL volume             [a.u.]: 1.080518
+   Eps^-1 reference component       :0
+   Eps^-1 components                : 0.00      0.00      0.00    
+   RIM anysotropy factor            : 0.000000
+  - S/N 002180 -------------------------- v.04.02.00 r.14302 -
+
+  Summary of Coulomb integrals for non-metallic bands |Q|[au] RIM/Bare:
+
+  Q [1]:0.1000E-40.9257 * Q [2]: 0.257277 0.847625
+  Q [5]: 0.445616 0.937633 * Q [3]: 0.514553 0.951748
+  Q [6]: 0.680690 0.971557 * Q [4]: 0.771829 0.977542
+  Q [7]: 0.891232 0.983078
+
+ CpuTiming [Min/Max/Average]: 06s/06s/06s
+
+ [05] Coloumb potential CutOff :box
+ ==================================
+
+ Cut directions       :Z
+ Box sides        [au]: 10.00000
+ Symmetry test passed :yes
+
+ [WR./12//ndb.cutoff]----------------------------------------
+  Brillouin Zone Q/K grids (IBZ/BZ):   7   36    7   36
+  CutOff Geometry                 :box z
+  Coulomb cutoff potential        :box z 10.000
+  Box sides length            [au]:  0.00000   0.00000  10.00000
+  Sphere/Cylinder radius      [au]: 0.000000
+  Cylinder length             [au]: 0.000000
+  RL components                   :  371
+  RL components used in the sum   :  7897
+  RIM corrections included        :yes
+  RIM RL components               :  5
+  RIM random points               : 1000000
+ - S/N 002180 -------------------------- v.04.02.00 r.14302 -
+
+ [06] External corrections
+ =========================
+
+
+  [06.01] External QP corrections (X)
+  ===================================
+
+
+  [06.02] External QP corrections (K)
+  ===================================
+
+  -- [QP@K] DOS/Linear/Quadratic extrapolation -------------------
+  === QP/DB derived ===
+  === Additional ===
+   Energies 0th order c/v [ev]: 2.913551  0.000000
+   Energies 1st order         : 1.000000  1.000000
+  ------------------------------------------------------------
+  [QP] Fermi level variation [ev]: 0.000000
+  [QP] Last Filled/Metallic band :  4   4
+  [QP] Ind. Gap Correction  [ev]: 2.913551
+
+ [07] Static Dielectric Matrix
+ =============================
+
+ [RD./SAVE//ns.kb_pp_pwscf]----------------------------------
+  Fragmentation                    :yes
+ - S/N 002180 -------------------------- v.04.02.00 r.14302 -
+ [WF] Performing Wave-Functions I/O from ./SAVE
+
+ [WF loader] Normalization (few states)  min/max  :0.388E-09  1.00    
+
+ [WR./12//ndb.dip_iR_and_P]----------------------------------
+  Brillouin Zone Q/K grids (IBZ/BZ):   7   36    7   36
+  RL vectors                   (WF):  371
+  Fragmentation                    :yes
+  Electronic Temperature        [K]: 0.000000
+  Bosonic    Temperature        [K]: 0.000000
+  X band range           :  1  10
+  X band range limits    :  4   5
+  X e/h energy range [ev]:-1.000000 -1.000000
+  RL vectors in the sum  :  371
+  [r,Vnl] included       :yes
+  Using shifted grids    :no
+  Using covariant dipoles:no
+  Using G-space approach :yes
+  Using R-space approach :no
+  Direct v evaluation    :no
+  Field momentum norm    :0.1000E-4
+  Wavefunctions          :Perdew, Burke & Ernzerhof(X)+Perdew, Burke & Ernzerhof(C)
+ - S/N 002180 -------------------------- v.04.02.00 r.14302 -
+ [WF] Performing Wave-Functions I/O from ./SAVE
+
+ [FFT-X] Mesh size:  7   7  18
+
+ [X-CG] R(p) Tot o/o(of R)  :  159   864   100
+ [WR./12//ndb.em1s]------------------------------------------
+  Brillouin Zone Q/K grids (IBZ/BZ):   7   36    7   36
+  RL vectors                   (WF):  371
+  Coulomb cutoff potential         :box z 10.000
+  Fragmentation                    :yes
+  Electronic Temperature        [K]: 0.000000
+  Bosonic    Temperature        [K]: 0.000000
+  Static diel. fun.  energies      :Perdew, Burke & Ernzerhof(X)+Perdew, Burke & Ernzerhof(C)
+                     wavefunctions :Perdew, Burke & Ernzerhof(X)+Perdew, Burke & Ernzerhof(C)
+  Global Gauge                     :length
+  X matrix size          :  5
+  X band range           :  1  10
+  X e/h energy range [ev]:-1.000000 -1.000000
+  X Time ordering        :T
+  X xc-Kernel            :none
+  X Drude frequency      : 0.00      0.00    
+  X poles           [o/o]: 100.0000
+  RL vectors in the sum  :  371
+  [r,Vnl] included       :yes
+  Field direction        :0.1000E-4  0.000     0.000   
+  BZ energy Double Grid  :no
+  BZ energy DbGd points  :0
+  :: Current Q-pt index     : 1
+  :: X energy range     [ev]: 0.00      0.00    
+  :: X damping range    [ev]:  0.10000   0.10000
+  :: Number of frequencies  : 1
+ - S/N 002180 -------------------------- v.04.02.00 r.14302 -
+ [X-CG] R(p) Tot o/o(of R)  :  469   864   100
+ [X-CG] R(p) Tot o/o(of R)  :  396   864   100
+ [X-CG] R(p) Tot o/o(of R)  :  302   864   100
+ [X-CG] R(p) Tot o/o(of R)  :  398   864   100
+ [X-CG] R(p) Tot o/o(of R)  :  586   864   100
+ [X-CG] R(p) Tot o/o(of R)  :  230   864   100
+
+ CpuTiming [Min/Max/Average]: 16s/16s/16s
+
+ [08] Response Functions in Transition space
+ ===========================================
+
+
+  [08.01] Transition Groups build-up
+  ==================================
+
+  [BSK] Transition groups (total)  7
+
+  [08.02] CPU-dependent Block structure
+  =====================================
+
+  [BSK] Size (resonant)  36
+  [BSK]         (total)  36
+
+  [08.03] Independent Particles absorption
+  ========================================
+
+  [RD./12//ndb.dip_iR_and_P]----------------------------------
+   Brillouin Zone Q/K grids (IBZ/BZ):   7   36    7   36
+   RL vectors                   (WF):  371
+   Fragmentation                    :yes
+   Electronic Temperature        [K]: 0.000000
+   Bosonic    Temperature        [K]: 0.000000
+   X band range           :  1  10
+   X band range limits    :  4   5
+   X e/h energy range [ev]:-1.000000 -1.000000
+   RL vectors in the sum  :  371
+   [r,Vnl] included       :yes
+   Using shifted grids    :no
+   Using covariant dipoles:no
+   Using G-space approach :yes
+   Using R-space approach :no
+   Direct v evaluation    :no
+   Field momentum norm    :0.1000E-4
+   Wavefunctions          :Perdew, Burke & Ernzerhof(X)+Perdew, Burke & Ernzerhof(C)
+  - S/N 002180 -------------------------- v.04.02.00 r.14302 -
+
+  [08.04] Bethe-Salpeter (Resonant CORRRELATION EXCHANGE)
+  =======================================================
+
+  [BSE] Exchange components :  7897
+
+   [08.04.01] Screened interaction header I/O
+   ==========================================
+
+   [RD./12//ndb.em1s]------------------------------------------
+    Brillouin Zone Q/K grids (IBZ/BZ):   7   36    7   36
+    RL vectors                   (WF):  371
+    Coulomb cutoff potential         :box z 10.000
+    Fragmentation                    :yes
+    Electronic Temperature        [K]: 0.000000
+    Bosonic    Temperature        [K]: 0.000000
+    Static diel. fun.  energies      :Perdew, Burke & Ernzerhof(X)+Perdew, Burke & Ernzerhof(C)
+                       wavefunctions :Perdew, Burke & Ernzerhof(X)+Perdew, Burke & Ernzerhof(C)
+    Global Gauge                     :length
+    X matrix size          :  5
+    X band range           :  1  10
+    X e/h energy range [ev]:-1.000000 -1.000000
+    X Time ordering        :T
+    X xc-Kernel            :none
+    X Drude frequency      : 0.00      0.00    
+    X poles           [o/o]: 100.0000
+    RL vectors in the sum  :  371
+    [r,Vnl] included       :yes
+    Field direction        :0.1000E-4  0.000     0.000   
+    BZ energy Double Grid  :no
+    BZ energy DbGd points  :0
+    :: Current Q-pt index     : 1
+    :: X energy range     [ev]: 0.00      0.00    
+    :: X damping range    [ev]:  0.10000   0.10000
+    :: Number of frequencies  : 1
+   - S/N 002180 -------------------------- v.04.02.00 r.14302 -
+
+   [WARNING] Hartree S/K FFT size is too big. NG_H reduced: 7897 --> 413
+
+   [WARNING] Bigger FFT discarded to avoid slow XC S/K computation.
+   [WF] Performing Wave-Functions I/O from ./SAVE
+
+   [FFT-BSK] Mesh size:  7   7  18
+
+
+   [08.04.02] Wave-Function Phases
+   ===============================
+
+   [BSE] WF phases found  [o/o]: 44.34524
+   [WR./12//ndb.BS_Q1_CPU_0]-----------------------------------
+    Brillouin Zone Q/K grids (IBZ/BZ):   7   36    7   36
+    RL vectors                   (WF):  371
+    Coulomb cutoff potential         :box z 10.000
+    Parallel CPUs                    :
+    Parallel Roles                   :
+    Fragmentation                    :no
+    BS kernel          wavefunctions :Perdew, Burke & Ernzerhof(X)+Perdew, Burke & Ernzerhof(C)
+    Static diel. fun.  energies      :Perdew, Burke & Ernzerhof(X)+Perdew, Burke & Ernzerhof(C)
+                       wavefunctions :Perdew, Burke & Ernzerhof(X)+Perdew, Burke & Ernzerhof(C)
+    BSK|Identifier              :  555
+       |Dimension               :  36
+       |Bands                   :  4   5
+       |Exchange           [res]:yes
+       |Correlation        [res]:yes
+       |Kernel`s coupling       :no
+       |Exchange           [cpl]:no
+       |Correlation        [cpl]:no
+       |W interaction is bare   :no
+       |ALDA kernel in R-space  :no
+       |RL vectors    [exchange]:  413
+       |RL vectors [correlation]: 1
+       |E/h energy range    [ev]:-1.000000 -1.000000
+       |Coupling range     [o/o]: 100.0000  100.0000
+     W |Interaction is diagonal :no
+       |Matrix size             :  5
+       |Bands                   :  1  10
+       |e/h energy range    [ev]:-1.000000 -1.000000
+       |Poles              [o/o]: 100.0000
+       |RL vectors in the sum   :  371
+       |[r,Vnl] included        :yes
+       |Field direction         :0.1000E-4  0.000     0.000   
+       |Coulomb Cutoff          :box z
+       |xc-Kernel               :none
+    RIM|RL components      [col]:  5
+       |Random points      [col]: 1000000
+   - S/N 002180 -------------------------- v.04.02.00 r.14302 -
+
+   [08.04.03] Kernel loop
+   ======================
+

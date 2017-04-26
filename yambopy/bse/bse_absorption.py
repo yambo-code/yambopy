@@ -171,6 +171,40 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                     if word in data:
                         self.data[word] = data[word]
 
+                #calculate center of mass of atoms
+                lat = np.array(data["lattice"])
+                center_atom = np.zeros([3])
+                for atype,x,y,z in data["atoms"]:
+                    center_atom += np.array([x,y,z])
+                center_atom /= len(data["atoms"])
+                center_atom_red = car_red([center_atom],lat)[0]
+
+                #shift wavefunctions grid to center of mass
+                nx = data['nx'] 
+                ny = data['ny'] 
+                nz = data['nz']
+
+                #make center_atom_red commensurate with fft
+                center_atom_red = center_atom_red * np.array([nx,ny,nz])
+                center_atom_red_int = [int(x) for x in center_atom_red]
+                displacement = np.array([nx,ny,nz])/2-center_atom_red_int
+                dx,dy,dz = displacement
+
+                # shift grid
+                # http://www.xcrysden.org/doc/XSF.html 
+                dg  = np.array(data["datagrid"]).reshape([nz,ny,nx])
+                dg  = np.roll(dg,dx,axis=2)
+                dg  = np.roll(dg,dy,axis=1)
+                dg  = np.roll(dg,dz,axis=0)
+                data["datagrid"] = dg.flatten()
+
+                #shift atoms
+                atoms = []
+                dx,dy,dz = red_car([displacement/np.array([nx,ny,nz],dtype=float)],lat)[0]
+                for atype,x,y,z in data["atoms"]:
+                    atoms.append([atype,x+dx,y+dy,z+dz])
+                self.data["atoms"] = atoms
+
             ##############################################################
             # Excitonic Amplitudes
             ##############################################################

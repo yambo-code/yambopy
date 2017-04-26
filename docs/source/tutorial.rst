@@ -10,7 +10,7 @@ GW. Basic usage: Convergence and approximations (BN)
 ----------------------------------------------------
 **by A. Molina-Sanchez and H. P. C. Miranda**
 
-We chosen hexagonal boron nitride to explain the use of yambopy. Along this tutorial we show how to use yambopy to make efficient convergence tests, to compare different approximations and to analyze the results.
+We have chosen hexagonal boron nitride to explain the use of yambopy. Along this tutorial we show how to use yambopy to make efficient convergence tests, to compare different approximations and to analyze the results.
 
 The initial step is the ground state calculation and the non self-consistent calculation using the ``gs_bn.py`` file:
 
@@ -19,16 +19,17 @@ The initial step is the ground state calculation and the non self-consistent cal
     python gs_bn.py
     python gs_bn.py -sn
 
-We have set 50 bands and the k-grid ``12x12x1``.
+We have set the non-self-consistent run with a wave-function cutoff
+of 60 Ry, 70 bands and a k-grid ``12x12x1``.
 
 1. GW convergence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **(a) Calculations**
 
-We converge the main parameters of a GW calculation independently. We make use of the plasmon pole approximation for the dielectric function and the newton solver to find the GW correction to the LDA eigenvalues. The magnitude to converge
-is the band gap of the BN (conduction and valence band at the K point of the Brillouin zone). We can select this calculation
-by calling the ``YamboIn`` with the right arguments:
+We converge the main parameters of a GW calculation independently. We make use of the plasmon pole approximation for the dielectric function and the Newton solver to find the GW correction to the LDA eigenvalues. The quantity to converge
+is the band gap of the BN (conduction and valence band at the K point of the Brillouin zone).
+We can select this calculation by calling the ``YamboIn`` with the right arguments:
 
 .. code-block:: python
 
@@ -36,27 +37,37 @@ by calling the ``YamboIn`` with the right arguments:
 
 The main variables are:
 
-* FFTGvecs: Global cutoff
-* BndsRnXp: Number of bands in the calculation of the dielectric function (PPA).
-* NGsBlkXp: Cutoff of the dielectric function.
-* GbndRnge: Self-energy. Number of bands.
+    ``EXXRLvcs``: Exchange self-energy cutoff. Pay attention to the magnitue of this cut-off. The maximum value is the electronic-density cutoff from QE, which is larger than the wave-function cutoff (``ecutwfc``). 
 
-The convergence with the k-grid is done after these variables are converged and in principle is also independent of them. The convergence is set with a dictionary in which we choose the parameter and the values. Be aware of setting the right units and format for each parameter.
+    ``BndsRnXp``: Number of bands in the calculation of the dielectric function (PPA).
+    ``NGsBlkXp``: Cutoff of the dielectric function.
+
+    ``GbndRnge``: Self-energy. Number of bands.
+
+The convergence with the k-grid is done after these variables are converged and in principle is also independent of them.
+The convergence is set with a dictionary in which we choose the parameter and the values. Be aware of setting the right units and format for each parameter.
 
 .. code-block:: python
 
-    conv = { 'FFTGvecs': [[2,5,10,15,20],'Ha'],
-             'NGsBlkXp': [[0,500,1000,1500,2000], 'mHa'],
-             'BndsRnXp': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] ,
-             'GbndRnge': [[[1,5],[1,10],[1,20],[1,30],[1,40],[1,50]],''] }
+    conv = { 'EXXRLvcs': [[1,20,40,60,80,100],'Ry'],
+             'NGsBlkXp': [[0,0,1,2,3], 'Ry'],
+             'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30],[1,40]]],''] ,
+             'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30],[1,40]],''] }
 
-The class ``YamboIn`` includes the function ``optimize``, which is call here:
+Note that when we converge a variable, let' say ``EXXRLvcs``, we set all the
+other present in the dictionary to the given minimum value.
+             
+Be awared that some variables have a interdependence in the convergence and you
+should double check that changing the value of a variable does not affect the
+convergence of others.
+
+The class ``YamboIn`` includes the function ``optimize``, which is called here:
 
 .. code-block:: python
 
     y.optimize(conv,run=run,ref_run=False)
 
-This optimization function just need the convergence dictionary and the run instructions, given by the function:
+This optimization function just needs the convergence dictionary and the run instructions, given by the function:
 
 .. code-block:: python
 
@@ -91,13 +102,16 @@ This snippet of code can be called using the function:
 
     pack_files_in_folder('gw_conv',save_folder='gw_conv')
 
-Yambopy provides the function ``analyse_gw.py`` to perform the analysis of the ``json`` files in an automatic way. By running the script selecting the bands and kpoints, together with the parameter we will obtain the convergence plot.
+Yambopy provides the function ``yambopy analysegw`` to perform the analysis of the ``json`` files in an automatic way. By running the script selecting the bands and kpoints, together with the parameter we will obtain the convergence plot.
 
 .. code-block:: python
 
-    python analyse_gw.py -bc 5 -kc 19 -bv 4 -kv 19 gw_conv FFTGvecs
+    yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv EXXRLvcs 
+    yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv NGsBlkXp
+    yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv BndsRnXp
+    yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv GbndRnge
 
-.. image:: figures/GW_CONV_FFTGvecs.png
+.. image:: figures/GW_CONV_EXXRLvcs.png
    :width: 45%
 .. image:: figures/GW_CONV_NGsBlkXp.png
    :width: 45%
@@ -106,21 +120,24 @@ Yambopy provides the function ``analyse_gw.py`` to perform the analysis of the `
 .. image:: figures/GW_CONV_GbndRnge.png
    :width: 45%
 
-From the convergence plot we can choose now a set of parameters and repeat the calculation for finer k-grids until we
-reach convergence with the k-points. The convergence criteria are left to the user.
+From the convergence plot we can choose now a set of parameters and repeat the calculation for finer k-grids until we reach convergence with the k-points. We have
+intentionally used non-converged parameters. Nevertheless, along this week
+you should have got enough expertise to push the convergence of the parameters
+and determine the correct convergence set of parameters.
+We invite you to enter in the python script, increase the parameters and check
+again the convergence for larger values!
 
-2. GW calculation in a regular grid and plot in a bath in the Brillouin zone
+2. GW calculation in a regular grid and plot in a path in the Brillouin zone
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We will work in the PPA for the screening. We have chosen the following parameters:
 
 .. code-block:: bash
 
-   FFTGvecs = 20 Ha
-   BndsRnXp = 24 bands
-   NGsBlkXp = 500 mHa
-   GbndRnge = 20 bands
-   EXXRLvcs = 20 Ha
+   EXXRLvcs = 80 Ry 
+   BndsRnXp = 25 bands
+   NGsBlkXp = 3  Ry 
+   GbndRnge = 25 bands
    QPkrange = [1,19,2,6]
 
 We can just simply run the code to calculate the GW corrections for all the points of the Brillouin zone by setting the convergence parameters in the function gw of the
@@ -138,7 +155,7 @@ The first image show all the GW energies along all the k-points of the Brillouin
 
 We first pack the results in a json file and subsequently we use the analyser to create the object which contains all the information. 
 
-.. code-block:: bash
+.. code-block:: python
    
    pack_files_in_folder('gw')
    ya = YamboAnalyser('gw')
@@ -161,13 +178,13 @@ each run, just changing the variable name for the number of bands and the cut-of
 
    COHSEX
    BndsRnXs = 24 bands
-   NGsBlkXs = 500 mHa
+   NGsBlkXs = 3  Ry
    PPA 
    BndsRnXp = 24 bands
-   NGsBlkXp = 500 mHa
+   NGsBlkXp = 3  Ry
    RA 
    BndsRnXd = 24 bands
-   NGsBlkXd = 500 mHa
+   NGsBlkXd = 3  Ry 
 
 We have set the converged parameters and the function works by running:
 
@@ -191,7 +208,7 @@ The PPA and the RA results are basically on top of each other. On the contrary, 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The solvers to find the QP correction from the self-energy can also be tested. We have included the Newton and the secant method. In the resulting band structures we do not
-appreciate big differences. In anycase it is worthy to test during the convergence procedure.
+appreciate big differences. In anycase it is worth to test during the convergence procedure.
 
 .. image:: figures/GW-newton-secant.png
    :width: 65%
@@ -231,9 +248,21 @@ To run these calculations, you need to relax the structure ``-r``, calculate the
 
 .. code-block:: bash
 
-    python gs_bn.py -r -s -n
+    python gs_bn.py -s -n
 
-When that is done, you can converge the dielectric function, for this run:
+When that is done, you can converge the dielectric function.
+To run the convergence we create a dictionary with different values to try.
+The script will create a reference input file with the first value of each parameter and then create input files with the other parameters changing according to the values specified in the list.
+
+.. code-block:: python
+
+        conv = { 'FFTGvecs': [[10,15,20,30],'Ry'],
+                 'NGsBlkXs': [[1,2,3,5,6], 'Ry'],
+                 'BndsRnXs': [[1,10],[1,20],[1,30],[1,40]] }
+
+The scripts are written in the ``bse_conv_bn.py`` file.
+You are free to open it and modify it accoridng to your own needs.
+To run the convergence with the static dielectric function do:
 
 .. code-block:: bash
 
@@ -250,9 +279,9 @@ Once the calculations are done you can plot the static dielectric function as a 
 
 .. code-block:: bash
 
-    yambopy plotem1s bse_run/FFTGvecs* bse_run/reference
-    yambopy plotem1s bse_run/BndsRnXs* bse_run/reference
-    yambopy plotem1s bse_run/NGsBlkXs* bse_run/reference
+    yambopy plotem1s bse_conv/FFTGvecs* bse_conv/reference
+    yambopy plotem1s bse_conv/BndsRnXs* bse_conv/reference
+    yambopy plotem1s bse_conv/NGsBlkXs* bse_conv/reference
 
 .. image:: figures/bse_bn_FFTGvecs.png
    :height: 200px
@@ -280,6 +309,14 @@ calculating the optical absorption spectra with a recursive technique like the H
     ``KfnQP_E`` is the scissor operator for the BSE. The first value is the rigid scissor, the second and third the stretching for the conduction and valence respectively.
     The optical absorption spectra is obtained in a range of energies given by ``BEnRange`` and the number of frequencies in the interval is ``BEnSteps``.
 
+The dictionary of convergence in this case is:
+
+.. code-block:: python
+
+        conv = { 'BSEEhEny': [[[1,10],[1,12],[1,14],[1,16]],'eV'],
+                 'BSENGBlk': [[0,1,2], 'Ry'],
+                 'BSENGexx': [[10,15,20],'Ry']}
+
 To run these calculations do:
 
 .. code-block:: bash
@@ -290,9 +327,9 @@ Once the calculations are done you can plot the optical absorption spectra:
 
 .. code-block:: bash
 
-    yambopy analysebse bse_run BSENGBlk
-    yambopy analysebse bse_run BSENGexx
-    yambopy analysebse bse_run BSEEhEny
+    yambopy analysebse bse_conv BSENGBlk
+    yambopy analysebse bse_conv BSENGexx
+    yambopy analysebse bse_conv BSEEhEny
 
 .. image:: figures/bse_bn_BSENGBlk_spectra.png
    :height: 200px
@@ -384,18 +421,33 @@ Be aware the parameters of the calculation are not high enough to obtain a conve
     python bse_bn.py -r
 
 Afterwards you can run a basic analysis of the excitonic states and store the wavefunctions of the ones 
-that are more optically active and plot their wavefunctions in reciprocal space. Plots in real space are also possible using yambopy (by calling ypp) but that won't be treated here. In the analysis code you have:
+that are more optically active and plot their wavefunctions in reciprocal space.
+Plots in real space are also possible using yambopy (by calling ypp). In the analysis code you have:
 
 .. code-block:: python
 
     #get the absorption spectra
-    a = YamboBSEAbsorptionSpectra('yambo',save='bse/SAVE',path='bse')
-    excitons = a.get_excitons(min_intensity=0.0005,max_energy=6,Degen_Step=0.01)
+    #'yambo' -> was the jobstring '-J' used when running yambo
+    #'bse'   -> folder where the job was run
+    a = YamboBSEAbsorptionSpectra('yambo',path='bse')
+
+    # Here we choose which excitons to read
+    # min_intensity -> choose the excitons that have at least this intensity
+    # max_energy    -> choose excitons with energy lower than this
+    # Degen_Step    -> take only excitons that have energies more different than Degen_Step
+    excitons = a.get_excitons(min_intensity=0.0005,max_energy=7,Degen_Step=0.01)
     print( "nexcitons: %d"%len(excitons) )
     print( "excitons:" )
     print( excitons )
-    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1))
-    a.write_json()
+
+    # read the wavefunctions
+    # Cells=[13,13,1]   #number of cell repetitions
+    # Hole=[0,0,6+.5]   #position of the hole in cartesian coordinates (Bohr units)
+    # FFTGvecs=10       #number of FFT vecs to use, larger makes the
+    #                   #image smoother, but takes more time to plot
+    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1),
+                        Cells=[13,13,1],Hole=[0,0,6+.5], FFTGvecs=10,wf=True)
+
     
 The class ``YamboBSEAbsorptionSpectra()`` reads the absorption spectra obtained with explicit diagonalization of the
 BSE matrix. ``yambo`` if the ``job_string`` identifier used when running yambo, ``bse`` is the name of the folder where the job was run.
@@ -423,11 +475,15 @@ You should then obtain plots similar (these ones were generated on a 30x30 k-poi
 
 
 Again, be aware that this figures serve only to show the kind of representation 
-that can be obtained with ``yambo`` and ``yambopy``.
+that can be obtained with ``yambo``, ``ypp`` and ``yambopy``.
 Further convergence tests need to be performed to obtain accurate results, but that is left to the user.
 
-You can now visualize these wavefunctions using our online tool:
+You can now visualize these wavefunctions in real space using our online tool:
 `http://henriquemiranda.github.io/excitonwebsite/ <http://henriquemiranda.github.io/excitonwebsite/>`_ 
+
+For that, go to the website, and in the ``Excitons`` section select ``absorptionspectra.json`` file using the ``Custom File``.
+You shuold see on the right part the absorption spectra and on the right the representation of the wavefunction in real space.
+Alternatively you can vizualize the generated ``.xsf`` files using xcrysden.
 
 4. Parallel static screening
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
