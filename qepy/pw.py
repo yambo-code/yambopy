@@ -266,7 +266,7 @@ class PwIn(object):
     def stringify_group(self, keyword, group):
         if group != {}:
             string='&%s\n' % keyword
-            for keyword in group:
+            for keyword in sorted(group): # Py2/3 discrepancy in keyword order
                 string += "%20s = %s\n" % (keyword, group[keyword])
             string += "/&end\n"
             return string
