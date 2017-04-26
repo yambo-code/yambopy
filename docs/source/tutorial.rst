@@ -19,7 +19,7 @@ The initial step is the ground state calculation and the non self-consistent cal
     python gs_bn.py
     python gs_bn.py -sn
 
-We have set 50 bands and the k-grid ``12x12x1``.
+We have set 60 bands and the k-grid ``12x12x1``.
 
 1. GW convergence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,9 +50,16 @@ The convergence is set with a dictionary in which we choose the parameter and th
 .. code-block:: python
 
     conv = { 'EXXRLvcs': [[1,20,40,60,80,100],'Ry'],
-             'NGsBlkXp': [[0,1,2,3,4], 'Ry'],
-             'BndsRnXp': [[[1,5],[1,10],[1,20],[1,30],[1,40]]],''] ,
-             'GbndRnge': [[[1,5],[1,10],[1,20],[1,30],[1,40]],''] }
+             'NGsBlkXp': [[0,0,1,2,3], 'Ry'],
+             'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30],[1,40]]],''] ,
+             'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30],[1,40]],''] }
+
+Note that when we converge a variable, let' say ``EXXRLvcs``, we set all the
+other present in the dictionary to the given minimum value.
+             
+Be awared that some variables have a interdependence in the convergence and you
+should double check that changing the value of a variable does not affect the
+convergence of others.
 
 The class ``YamboIn`` includes the function ``optimize``, which is called here:
 
@@ -113,8 +120,12 @@ Yambopy provides the function ``yambopy analysegw`` to perform the analysis of t
 .. image:: figures/GW_CONV_GbndRnge.png
    :width: 45%
 
-From the convergence plot we can choose now a set of parameters and repeat the calculation for finer k-grids until we
-reach convergence with the k-points. The convergence criteria are left to the user.
+From the convergence plot we can choose now a set of parameters and repeat the calculation for finer k-grids until we reach convergence with the k-points. We have
+intentionally used non-converged parameters. Nevertheless, along this week
+you should have get enough expertise to push the convergence of the parameters
+and determine the correct convergence set of parameters.
+We invite you to enter in the python script, increase the parameters and check
+again the convergence for larger values!
 
 2. GW calculation in a regular grid and plot in a path in the Brillouin zone
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

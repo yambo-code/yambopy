@@ -53,10 +53,10 @@ def gw_convergence():
     y['GbndRnge'] = [[1,10],'']             # Self-energy. Number of bands
     y['QPkrange'] = [ [k_f,k_f,4,5], '' ]
 
-    conv = { 'EXXRLvcs': [[1,20,40,60,80,100],'Ry'],
-             'NGsBlkXp': [[0, 1, 2, 3,4], 'Ry'],
-             'BndsRnXp': [[[1,10],[1,15],[1,20],[1,30],[1,40]],''] ,
-             'GbndRnge': [[[1,10],[1,15],[1,20],[1,30],[1,40]],''] }
+    conv = { 'EXXRLvcs': [[10,10,20,40,60,80,100],'Ry'],
+             'NGsBlkXp': [[0,0,1,2,3], 'Ry'],
+             'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] ,
+             'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] }
 
     def run(filename):
         """ Function to be called by the optimize function """
