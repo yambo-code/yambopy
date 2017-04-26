@@ -19,7 +19,8 @@ The initial step is the ground state calculation and the non self-consistent cal
     python gs_bn.py
     python gs_bn.py -sn
 
-We have set 60 bands and the k-grid ``12x12x1``.
+We have set the non-self-consistent run with a wave-function cutoff
+of 60 Ry, 70 bands and a k-grid ``12x12x1``.
 
 1. GW convergence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -36,10 +37,9 @@ We can select this calculation by calling the ``YamboIn`` with the right argumen
 
 The main variables are:
 
-    ``EXXRLvcs``: Exchange self-energy cutoff 
+    ``EXXRLvcs``: Exchange self-energy cutoff. Pay attention to the magnitue of this cut-off. The maximum value is the electronic-density cutoff from QE, which is larger than the wave-function cutoff (``ecutwfc``). 
 
     ``BndsRnXp``: Number of bands in the calculation of the dielectric function (PPA).
-
     ``NGsBlkXp``: Cutoff of the dielectric function.
 
     ``GbndRnge``: Self-energy. Number of bands.
@@ -122,7 +122,7 @@ Yambopy provides the function ``yambopy analysegw`` to perform the analysis of t
 
 From the convergence plot we can choose now a set of parameters and repeat the calculation for finer k-grids until we reach convergence with the k-points. We have
 intentionally used non-converged parameters. Nevertheless, along this week
-you should have get enough expertise to push the convergence of the parameters
+you should have got enough expertise to push the convergence of the parameters
 and determine the correct convergence set of parameters.
 We invite you to enter in the python script, increase the parameters and check
 again the convergence for larger values!
