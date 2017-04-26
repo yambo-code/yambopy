@@ -237,9 +237,21 @@ To run these calculations, you need to relax the structure ``-r``, calculate the
 
 .. code-block:: bash
 
-    python gs_bn.py -r -s -n
+    python gs_bn.py -s -n
 
-When that is done, you can converge the dielectric function, for this run:
+When that is done, you can converge the dielectric function.
+To run the convergence we create a dictionary with different values to try.
+The script will create a reference input file with the first value of each parameter and then create input files with the other parameters changing according to the values specified in the list.
+
+.. code-block:: python
+
+        conv = { 'FFTGvecs': [[10,15,20,30],'Ry'],
+                 'NGsBlkXs': [[1,2,3,5,6], 'Ry'],
+                 'BndsRnXs': [[1,10],[1,20],[1,30],[1,40]] }
+
+The scripts are written in the ``bse_conv_bn.py`` file.
+You are free to open it and modify it accoridng to your own needs.
+To run the convergence with the static dielectric function do:
 
 .. code-block:: bash
 
@@ -256,9 +268,9 @@ Once the calculations are done you can plot the static dielectric function as a 
 
 .. code-block:: bash
 
-    yambopy plotem1s bse_run/FFTGvecs* bse_run/reference
-    yambopy plotem1s bse_run/BndsRnXs* bse_run/reference
-    yambopy plotem1s bse_run/NGsBlkXs* bse_run/reference
+    yambopy plotem1s bse_conv/FFTGvecs* bse_conv/reference
+    yambopy plotem1s bse_conv/BndsRnXs* bse_conv/reference
+    yambopy plotem1s bse_conv/NGsBlkXs* bse_conv/reference
 
 .. image:: figures/bse_bn_FFTGvecs.png
    :height: 200px
@@ -286,6 +298,14 @@ calculating the optical absorption spectra with a recursive technique like the H
     ``KfnQP_E`` is the scissor operator for the BSE. The first value is the rigid scissor, the second and third the stretching for the conduction and valence respectively.
     The optical absorption spectra is obtained in a range of energies given by ``BEnRange`` and the number of frequencies in the interval is ``BEnSteps``.
 
+The dictionary of convergence in this case is:
+
+.. code-block:: python
+
+        conv = { 'BSEEhEny': [[[1,10],[1,12],[1,14],[1,16]],'eV'],
+                 'BSENGBlk': [[0,1,2], 'Ry'],
+                 'BSENGexx': [[10,15,20],'Ry']}
+
 To run these calculations do:
 
 .. code-block:: bash
@@ -296,9 +316,9 @@ Once the calculations are done you can plot the optical absorption spectra:
 
 .. code-block:: bash
 
-    yambopy analysebse bse_run BSENGBlk
-    yambopy analysebse bse_run BSENGexx
-    yambopy analysebse bse_run BSEEhEny
+    yambopy analysebse bse_conv BSENGBlk
+    yambopy analysebse bse_conv BSENGexx
+    yambopy analysebse bse_conv BSEEhEny
 
 .. image:: figures/bse_bn_BSENGBlk_spectra.png
    :height: 200px
@@ -390,18 +410,33 @@ Be aware the parameters of the calculation are not high enough to obtain a conve
     python bse_bn.py -r
 
 Afterwards you can run a basic analysis of the excitonic states and store the wavefunctions of the ones 
-that are more optically active and plot their wavefunctions in reciprocal space. Plots in real space are also possible using yambopy (by calling ypp) but that won't be treated here. In the analysis code you have:
+that are more optically active and plot their wavefunctions in reciprocal space.
+Plots in real space are also possible using yambopy (by calling ypp). In the analysis code you have:
 
 .. code-block:: python
 
     #get the absorption spectra
-    a = YamboBSEAbsorptionSpectra('yambo',save='bse/SAVE',path='bse')
-    excitons = a.get_excitons(min_intensity=0.0005,max_energy=6,Degen_Step=0.01)
+    #'yambo' -> was the jobstring '-J' used when running yambo
+    #'bse'   -> folder where the job was run
+    a = YamboBSEAbsorptionSpectra('yambo',path='bse')
+
+    # Here we choose which excitons to read
+    # min_intensity -> choose the excitons that have at least this intensity
+    # max_energy    -> choose excitons with energy lower than this
+    # Degen_Step    -> take only excitons that have energies more different than Degen_Step
+    excitons = a.get_excitons(min_intensity=0.0005,max_energy=7,Degen_Step=0.01)
     print( "nexcitons: %d"%len(excitons) )
     print( "excitons:" )
     print( excitons )
-    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1))
-    a.write_json()
+
+    # read the wavefunctions
+    # Cells=[13,13,1]   #number of cell repetitions
+    # Hole=[0,0,6+.5]   #position of the hole in cartesian coordinates (Bohr units)
+    # FFTGvecs=10       #number of FFT vecs to use, larger makes the
+    #                   #image smoother, but takes more time to plot
+    a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1),
+                        Cells=[13,13,1],Hole=[0,0,6+.5], FFTGvecs=10,wf=True)
+
     
 The class ``YamboBSEAbsorptionSpectra()`` reads the absorption spectra obtained with explicit diagonalization of the
 BSE matrix. ``yambo`` if the ``job_string`` identifier used when running yambo, ``bse`` is the name of the folder where the job was run.
@@ -429,11 +464,15 @@ You should then obtain plots similar (these ones were generated on a 30x30 k-poi
 
 
 Again, be aware that this figures serve only to show the kind of representation 
-that can be obtained with ``yambo`` and ``yambopy``.
+that can be obtained with ``yambo``, ``ypp`` and ``yambopy``.
 Further convergence tests need to be performed to obtain accurate results, but that is left to the user.
 
-You can now visualize these wavefunctions using our online tool:
+You can now visualize these wavefunctions in real space using our online tool:
 `http://henriquemiranda.github.io/excitonwebsite/ <http://henriquemiranda.github.io/excitonwebsite/>`_ 
+
+For that, go to the website, and in the ``Excitons`` section select ``absorptionspectra.json`` file using the ``Custom File``.
+You shuold see on the right part the absorption spectra and on the right the representation of the wavefunction in real space.
+Alternatively you can vizualize the generated ``.xsf`` files using xcrysden.
 
 4. Parallel static screening
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
