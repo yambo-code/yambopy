@@ -177,27 +177,29 @@ again the convergence for larger values!
 
 We will work in the PPA for the screening. We have chosen the following parameters:
 
-.. code-block:: bash
+.. code-block:: python
+    
+    y = YamboIn('yambo -p p -g n -V all',folder='gw')
 
-   EXXRLvcs = 80 Ry 
-   BndsRnXp = 25 bands
-   NGsBlkXp = 3  Ry 
-   GbndRnge = 25 bands
-   QPkrange = [1,19,2,6]
+    y['EXXRLvcs'] = [80, 'Ry']
+    y['BndsRnXp'] = [1,25]
+    y['NGsBlkXp'] = [3, 'Ry']
+    y['GbndRnge'] = [1,25]
+    y['QPkrange'] = [1,19,2,6]
 
-We can simply run the code to calculate the GW corrections for all the points of the Brillouin zone by setting the convergence parameters in the function gw of the
-script and doing:
+We can simply run the code to calculate the GW corrections for all the points of the Brillouin zone by setting the convergence parameters in the function gw of the script and doing:
 
 .. code-block:: bash
 
    python gw_conv_bn.py -g
 
-The first image show all the GW energies along all the k-points of the Brillouin zone. A clearer picture can be obtained by plotting the band structure along the symmetry points GMKG by using the analyser:
+A clearer picture can be obtained by plotting the band structure along the symmetry points GMKG by using the analyser:
 
 .. code-block:: bash
 
    python gw_conv_bn.py -r
 
+The image will show all the GW energies along all the k-points of the Brillouin zone. 
 We first pack the results in a json file and subsequently we use the analyser to create the object which contains all the information. 
 
 .. code-block:: python

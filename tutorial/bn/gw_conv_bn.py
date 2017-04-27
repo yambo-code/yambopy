@@ -103,7 +103,11 @@ def gw():
     y['NGsBlkXp'] = [1,25]          # Screening. Number of bands
     y['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
     y['GbndRnge'] = [1,25]          # Self-energy. Number of bands
-    y['QPkrange'][0][2:] = [2,6]
+    #read values from QPkrange
+    values, units = y['QPkrange']
+    kpoint_start, kpoint_end, band_start, band_end = values
+    #set the values of QPkrange
+    y['QPkrange'] = [kpoint_start,kpoint_end,2,6]
     y.write('gw/yambo_gw.in')
 
     shell = bash() 
