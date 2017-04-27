@@ -111,7 +111,9 @@ def gw():
     y.write('gw/yambo_gw.in')
 
     shell = bash() 
-    shell.add_command('cd gw; %s -F yambo_gw.in -J gw -C gw' % yambo)
+    shell.add_command('cd gw')
+    shell.add_command('rm -f *.json %s/o-*'%folder) #cleanup
+    shell.add_command('%s -F yambo_gw.in -J gw -C gw' % yambo)
     shell.run()
     shell.clean()
 
@@ -150,7 +152,9 @@ def xi():
     cohsex['QPkrange'][0][2:] = [2,6]
     cohsex.write('gw-xi/yambo_cohsex.in')
     shell = bash() 
-    shell.add_command('cd gw-xi; %s -F yambo_cohsex.in -J coh -C coh' % yambo)
+    shell.add_command('cd gw-xi')
+    shell.add_command('rm -f coh.json coh/o-coh*') #cleanup
+    shell.add_command('%s -F yambo_cohsex.in -J coh -C coh' % yambo)
     shell.run()
     shell.clean()
 
@@ -163,7 +167,9 @@ def xi():
     ppa['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
     ppa.write('gw-xi/yambo_ppa.in')
     shell = bash() 
-    shell.add_command('cd gw-xi; %s -F yambo_ppa.in -J pp -C pp' % yambo)
+    shell.add_command('cd gw-xi')
+    shell.add_command('rm -f pp.json pp/o-pp*') #cleanup
+    shell.add_command('%s -F yambo_ppa.in -J pp -C pp' % yambo)
     shell.run()
     shell.clean()
 
@@ -176,7 +182,9 @@ def xi():
     ra['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
     ra.write('gw-xi/yambo_ra.in')
     shell = bash() 
-    shell.add_command('cd gw-xi; %s -F yambo_ra.in -J ra -C ra' % yambo)
+    shell.add_command('cd gw-xi')
+    shell.add_command('rm -f ra.json ra/o-ra*') #cleanup
+    shell.add_command('%s -F yambo_ra.in -J ra -C ra' % yambo)
     shell.run()
     shell.clean()
 
@@ -201,11 +209,11 @@ def dyson_eq():
         shell.run()
         shell.clean()
 
-    dyson = YamboIn('%s -d -g n -V all'%yambo,folder=folder_dyson)
+    dyson = YamboIn('%s -p p -g n -V all'%yambo,folder=folder_dyson)
 
     dyson['EXXRLvcs'] = [80,'Ry']           # Self-energy. Exchange
-    dyson['BndsRnXd'] = [1,25]              # Screening. Number of bands
-    dyson['NGsBlkXd'] = [ 3,'Ry']        # Cutoff Screening
+    dyson['BndsRnXp'] = [1,25]              # Screening. Number of bands
+    dyson['NGsBlkXp'] = [ 3,'Ry']        # Cutoff Screening
     dyson['GbndRnge'] = [1,25]              # Self-energy. Number of bands
     dyson['QPkrange'][0][2:] = [2, 6]
 
@@ -213,12 +221,12 @@ def dyson_eq():
     dyson.write('%s/yambo_newton.in' % folder_dyson)
     dyson['DysSolver'] = "s" 
     dyson.write('%s/yambo_secant.in' % folder_dyson)
-    dyson['DysSolver'] = "g" 
-    dyson.write('%s/yambo_gf.in' % folder_dyson)
     shell = bash() 
-    shell.add_command('cd %s; %s -F yambo_newton.in -J newton -C newton' % (folder_dyson, yambo))
-    shell.add_command('cd %s; %s -F yambo_secant.in -J secant -C secant' % (folder_dyson, yambo))
-    shell.add_command('cd %s; %s -F yambo_gf.in     -J gf     -C gf'     % (folder_dyson, yambo))
+
+    shell.add_command('cd %s' % folder_dyson)
+    shell.add_command('rm -f *.json newton/o-* secant/o-*') #cleanup
+    shell.add_command('%s -F yambo_newton.in -J newton -C newton' % yambo)
+    shell.add_command('%s -F yambo_secant.in -J secant -C secant' % yambo)
     shell.run()
     shell.clean()
 
