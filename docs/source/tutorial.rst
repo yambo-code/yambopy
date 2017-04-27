@@ -10,7 +10,7 @@ GW. Basic usage: Convergence and approximations (BN)
 ----------------------------------------------------
 **by A. Molina-Sanchez and H. P. C. Miranda**
 
-We have chosen hexagonal boron nitride to explain the use of yambopy. Along this tutorial we show how to use yambopy to make efficient convergence tests, to compare different approximations and to analyze the results.
+We have chosen hexagonal boron nitride to explain the use of yambopy. Along with this tutorial we show how to use yambopy to make efficient convergence tests, to compare different approximations and to analyze the results.
 
 The initial step is the ground state calculation and the non self-consistent calculation using the ``gs_bn.py`` file:
 
@@ -27,7 +27,7 @@ These would be the ``get_inputfile`` to change the overall parameters and the ``
 1. GW convergence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We will now have a look at the ``gw_conv_bn.py`` in which all the steps we will mention during this tutorial have their own function.
+We will now have a look at the ``gw_conv_bn.py`` in which all the steps we will mention during this tutorial have their own functions.
 
 **(a) Calculations**
 
@@ -41,14 +41,14 @@ You can start the calculations using:
     python gw_conv_bn.py -c
     
 While the calculations are running, take the time to have a look at what the script is doing by having a look at the source code ``gw_conv_bn.py`` and the explanation here.
-We can select this calculation by calling the ``YamboIn`` with the right arguments:
+We can start the input file for a GW calculation by calling the ``YamboIn`` with the right arguments:
 
 .. code-block:: python
 
     y = YamboIn('yambo -d -g n -p p -V all',folder='gw_conv')
 
 Find in the ``gw_conv_bn.py`` file the ``gw_convergence`` function where this line is defined.
-The main variables are:
+The main variables for converging the GW calculation are:
 
     ``EXXRLvcs``: Exchange self-energy cutoff. Pay attention to the magnitue of this cut-off. The maximum value is the electronic-density cutoff from QE, which is larger than the wave-function cutoff (``ecutwfc``). 
 
@@ -63,10 +63,10 @@ Be aware of setting the right units and format for each parameter.
 
 .. code-block:: python
 
-    conv = { 'EXXRLvcs': [[1,20,40,60,80,100],'Ry'],
+    conv = { 'EXXRLvcs': [[10,10,20,40,60,80,100],'Ry'],
              'NGsBlkXp': [[0,0,1,2,3], 'Ry'],
-             'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30],[1,40]]],''] ,
-             'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30],[1,40]],''] }
+             'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30]]],''] ,
+             'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] }
 
 The script will create a reference input file with the first value of each parameter and then create
 input files with the other parameters changing according to the values specified in the list.
@@ -113,21 +113,22 @@ there is a recipe in yambopy to automatically perform this task on a folder:
 
 Besides the python module, yambopy can also be called in the terminal to perform some post-analysis tasks:
 
-.. code-blocks:: bash
+.. code-block:: bash
 
     $ yambopy
              analysebse ->     Using ypp, you can study the convergence of BSE calculations in 2 ways:
                plotem1s ->     Plot em1s calculation
-              analysegw ->     Study the convergence of GW calculations by looking at the change in band-gap value.
+              analysegw ->     Study the convergence of GW calculations by looking at the change in band gap value.
                 mergeqp ->     Merge QP databases
                    test ->     Run yambopy tests
            plotexcitons ->     Plot excitons calculation
 
 
 Calling ``yambopy analysegw`` will display the help of the function:
-.. code-blocks:: bash
 
-    Study the convergence of GW calculations by looking at the change in band-gap value.
+.. code-block:: bash
+
+    Study the convergence of GW calculations by looking at the change in band gap value.
 
     The script reads from <folder> all results from <variable> calculations and display them.
 
@@ -147,6 +148,9 @@ Calling ``yambopy analysegw`` will display the help of the function:
             -nt, --notext  (flag) -> Do not print a text file
             -nd, --nodraw  (flag) -> Do not draw (plot) the result
 
+
+Running the function selecting the bands and kpoints, together with the parameter of convergence we will obtain the convergence plot.
+
 .. code-block:: python
 
     yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv EXXRLvcs 
@@ -163,7 +167,7 @@ Calling ``yambopy analysegw`` will display the help of the function:
 .. image:: figures/GW_CONV_GbndRnge.png
    :width: 45%
 
-By calling ``python gw_conv_bn.py -p`` in the terminal, these steps will be performed automatically for this tutorial and you will see the above plots.
+By calling ``python gw_conv_bn.py -p`` in the terminal, these steps will be performed automatically for this tutorial.
 
 From the convergence plot we can choose now a set of parameters and repeat the calculation for finer k-grids until we reach convergence with the k-points. We have
 intentionally used non-converged parameters. Nevertheless, along this week
@@ -172,32 +176,34 @@ and determine the correct convergence set of parameters.
 We invite you to enter in the python script, increase the parameters and check
 again the convergence for larger values!
 
-2. GW calculation in a regular grid and plot in a path in the Brillouin zone
+2. GW calculation on a regular grid and plot in a path in the Brillouin zone
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We will work in the PPA for the screening. We have chosen the following parameters:
 
-.. code-block:: bash
+.. code-block:: python
+    
+    y = YamboIn('yambo -p p -g n -V all',folder='gw')
 
-   EXXRLvcs = 80 Ry 
-   BndsRnXp = 25 bands
-   NGsBlkXp = 3  Ry 
-   GbndRnge = 25 bands
-   QPkrange = [1,19,2,6]
+    y['EXXRLvcs'] = [80, 'Ry']
+    y['BndsRnXp'] = [1,25]
+    y['NGsBlkXp'] = [3, 'Ry']
+    y['GbndRnge'] = [1,25]
+    y['QPkrange'] = [1,19,2,6]
 
-We can simply run the code to calculate the GW corrections for all the points of the Brillouin zone by setting the convergence parameters in the function gw of the
-script and doing:
+We can simply run the code to calculate the GW corrections for all the points of the Brillouin zone by setting the convergence parameters in the function gw of the script and doing:
 
 .. code-block:: bash
 
    python gw_conv_bn.py -g
 
-The first image show all the GW energies along all the k-points of the Brillouin zone. A clearer picture can be obtained by plotting the band structure along the symmetry points GMKG by using the analyser:
+A clearer picture can be obtained by plotting the band structure along the symmetry points ``GMKG`` by using the analyser:
 
 .. code-block:: bash
 
    python gw_conv_bn.py -r
 
+The image will show all the GW energies along all the k-points of the Brillouin zone. 
 We first pack the results in a json file and subsequently we use the analyser to create the object which contains all the information. 
 
 .. code-block:: python
@@ -205,7 +211,7 @@ We first pack the results in a json file and subsequently we use the analyser to
    pack_files_in_folder('gw')
    ya = YamboAnalyser('gw')
 
-The object ``ya`` contains all the results written in the output. We can plot any output variable. In yambopy we provide a function to plot the band structure along a given path. The BN band structure is shown below. The GW correction opens the LDA bandgap as expected.
+The object ``ya`` contains all the results written in the output. We can plot any output variable. In yambopy we provide a function to plot the band structure along a given path. The BN band structure is shown below. The GW correction opens the LDA band gap as expected.
 
 .. image:: figures/GW-LDA-BN-bands.png
    :width: 65%
@@ -215,21 +221,33 @@ The object ``ya`` contains all the results written in the output. We can plot an
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can use yambopy to examine different run levels. For instance, the approximations
-used to obtain the screening are the: (i) static screening or COHSEX, plasmon-pole
-approximations (PPA), or real axis integration. We have set the same parameters for
-each run, just changing the variable name for the number of bands and the cut-off of the screening.
+used to obtain the screening are the:
 
-.. code-block:: bash
+    (i) Static screening or COHSEX
 
-   COHSEX
-   BndsRnXs = 24 bands
-   NGsBlkXs = 3  Ry
-   PPA 
-   BndsRnXp = 24 bands
-   NGsBlkXp = 3  Ry
-   RA 
-   BndsRnXd = 24 bands
-   NGsBlkXd = 3  Ry 
+    (ii) Plasmon-pole approximation (PPA)
+
+    (iii) Real axis integration. 
+
+We have set the same parameters for each run, just changing the variable name
+for the number of bands and the cut-off of the screening.
+
+.. code-block:: python
+
+    # COHSEX
+    y = YamboIn('yambo -p c -g n -V all',folder='gw')
+    y['BndsRnXs'] = [1,24]
+    y['NGsBlkXs'] = [3,'Ry']
+
+    # PPA (Plasmon Pole Approximation) 
+    y = YamboIn('yambo -p p -g n -V all',folder='gw')
+    y['BndsRnXp'] = [1,24]
+    y['NGsBlkXp'] = [3,'Ry']
+
+    # Real-Axis 
+    y = YamboIn('yambo -d -g n -V all',folder='gw')
+    y['BndsRnXd'] = [1,24]
+    y['NGsBlkXd'] = [3,'Ry'] 
 
 We have set the converged parameters and the function works by running:
 
@@ -252,8 +270,22 @@ The PPA and the RA results are basically on top of each other. On the contrary, 
 4. Solvers (Newton, Secant, Green's function)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The solvers to find the QP correction from the self-energy can also be tested. We have included the Newton and the secant method. In the resulting band structures we do not
-appreciate big differences. In anycase it is worth to test during the convergence procedure.
+The solvers to find the QP correction from the self-energy can also be tested.
+We have included the Newton and the secant method.
+In the resulting band structures we do not appreciate big differences.
+In any case it is worth to test during the convergence procedure.
+To run the calculation using the different solvers use:
+
+.. code-block:: bash
+
+   python gw_conv_bn.py -z
+
+Once the calculation is done, you can plot the results using:
+
+.. code-block:: bash
+
+   python gw_conv_bn.py -zp
+
 
 .. image:: figures/GW-newton-secant.png
    :width: 65%
