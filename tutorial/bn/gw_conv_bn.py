@@ -143,9 +143,8 @@ def xi():
         shell.run()
         shell.clean()
 
+    print ("Running COHSEX in folder 'gw-xi/coh'")
     cohsex = YamboIn('%s -p c -g n -V all'%yambo,folder='gw-xi')
-
-    print ('COHSEX')
     cohsex['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
     cohsex['NGsBlkXs'] = [1,25]          # Screening. Number of bands
     cohsex['NGsBlkXs'] = [3,'Ry']        # Cutoff Screening
@@ -159,8 +158,8 @@ def xi():
     shell.run()
     shell.clean()
 
+    print ("Running COHSEX in folder 'gw-xi/pp'")
     ppa = YamboIn('%s -p p -g n -V all'%yambo,folder='gw-xi')
-    print ('PPA')
     ppa['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
     ppa['NGsBlkXp'] = [1,25]          # Screening. Number of bands
     ppa['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
@@ -174,8 +173,8 @@ def xi():
     shell.run()
     shell.clean()
 
+    print ("Running Real Axis in folder 'gw-xi/ra'")
     ra = YamboIn('%s -d -g n -V all'%yambo,folder='gw-xi')
-    print ('Real Axis')
     ra['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
     ra['NGsBlkXd'] = [1,25]          # Screening. Number of bands
     ra['NGsBlkXd'] = [3,'Ry']        # Cutoff Screening
@@ -224,6 +223,7 @@ def dyson_eq():
     dyson.write('%s/yambo_secant.in' % folder_dyson)
     shell = bash() 
 
+    print("calculating with Newton and Secant solver in folder 'gw-zeros/newton' and 'gw-zeros/secant'...")
     shell.add_command('cd %s' % folder_dyson)
     shell.add_command('rm -f *.json newton/o-* secant/o-*') #cleanup
     shell.add_command('%s -F yambo_newton.in -J newton -C newton' % yambo)
