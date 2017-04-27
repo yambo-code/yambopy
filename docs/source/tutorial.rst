@@ -113,7 +113,7 @@ there is a recipe in yambopy to automatically perform this task on a folder:
 
 Besides the python module, yambopy can also be called in the terminal to perform some post-analysis tasks:
 
-.. code-blocks:: bash
+.. code-block:: bash
 
     $ yambopy
              analysebse ->     Using ypp, you can study the convergence of BSE calculations in 2 ways:
@@ -125,7 +125,8 @@ Besides the python module, yambopy can also be called in the terminal to perform
 
 
 Calling ``yambopy analysegw`` will display the help of the function:
-.. code-blocks:: bash
+
+.. code-block:: bash
 
     Study the convergence of GW calculations by looking at the change in band-gap value.
 
@@ -146,6 +147,7 @@ Calling ``yambopy analysegw`` will display the help of the function:
             -np, --nopack  (flag) -> Do not call 'pack_files_in_folder'
             -nt, --notext  (flag) -> Do not print a text file
             -nd, --nodraw  (flag) -> Do not draw (plot) the result
+
 
 .. code-block:: python
 
@@ -193,7 +195,7 @@ We can simply run the code to calculate the GW corrections for all the points of
 
    python gw_conv_bn.py -g
 
-A clearer picture can be obtained by plotting the band structure along the symmetry points GMKG by using the analyser:
+A clearer picture can be obtained by plotting the band structure along the symmetry points ``GMKG`` by using the analyser:
 
 .. code-block:: bash
 
@@ -217,9 +219,16 @@ The object ``ya`` contains all the results written in the output. We can plot an
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can use yambopy to examine different run levels. For instance, the approximations
-used to obtain the screening are the: (i) static screening or COHSEX, plasmon-pole
-approximations (PPA), or real axis integration. We have set the same parameters for
-each run, just changing the variable name for the number of bands and the cut-off of the screening.
+used to obtain the screening are the:
+
+    (i) static screening or COHSEX
+
+    (ii) plasmon-pole approximation (PPA)
+
+    (iii) Real axis integration. 
+
+We have set the same parameters for each run, just changing the variable name
+for the number of bands and the cut-off of the screening.
 
 .. code-block:: bash
 

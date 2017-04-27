@@ -110,9 +110,10 @@ def gw():
     y['QPkrange'] = [kpoint_start,kpoint_end,2,6]
     y.write('gw/yambo_gw.in')
 
+    print('calculating...')
     shell = bash() 
     shell.add_command('cd gw')
-    shell.add_command('rm -f *.json %s/o-*'%folder) #cleanup
+    shell.add_command('rm -f *.json gw/o-*') #cleanup
     shell.add_command('%s -F yambo_gw.in -J gw -C gw' % yambo)
     shell.run()
     shell.clean()
