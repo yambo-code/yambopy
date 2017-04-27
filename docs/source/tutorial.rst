@@ -10,7 +10,7 @@ GW. Basic usage: Convergence and approximations (BN)
 ----------------------------------------------------
 **by A. Molina-Sanchez and H. P. C. Miranda**
 
-We have chosen hexagonal boron nitride to explain the use of yambopy. Along this tutorial we show how to use yambopy to make efficient convergence tests, to compare different approximations and to analyze the results.
+We have chosen hexagonal boron nitride to explain the use of yambopy. Along with this tutorial we show how to use yambopy to make efficient convergence tests, to compare different approximations and to analyze the results.
 
 The initial step is the ground state calculation and the non self-consistent calculation using the ``gs_bn.py`` file:
 
@@ -118,7 +118,7 @@ Besides the python module, yambopy can also be called in the terminal to perform
     $ yambopy
              analysebse ->     Using ypp, you can study the convergence of BSE calculations in 2 ways:
                plotem1s ->     Plot em1s calculation
-              analysegw ->     Study the convergence of GW calculations by looking at the change in band-gap value.
+              analysegw ->     Study the convergence of GW calculations by looking at the change in band gap value.
                 mergeqp ->     Merge QP databases
                    test ->     Run yambopy tests
            plotexcitons ->     Plot excitons calculation
@@ -128,7 +128,7 @@ Calling ``yambopy analysegw`` will display the help of the function:
 
 .. code-block:: bash
 
-    Study the convergence of GW calculations by looking at the change in band-gap value.
+    Study the convergence of GW calculations by looking at the change in band gap value.
 
     The script reads from <folder> all results from <variable> calculations and display them.
 
@@ -165,7 +165,7 @@ Calling ``yambopy analysegw`` will display the help of the function:
 .. image:: figures/GW_CONV_GbndRnge.png
    :width: 45%
 
-By calling ``python gw_conv_bn.py -p`` in the terminal, these steps will be performed automatically for this tutorial and you will see the above plots.
+By calling ``python gw_conv_bn.py -p`` in the terminal, these steps will be performed automatically for this tutorial.
 
 From the convergence plot we can choose now a set of parameters and repeat the calculation for finer k-grids until we reach convergence with the k-points. We have
 intentionally used non-converged parameters. Nevertheless, along this week
@@ -209,7 +209,7 @@ We first pack the results in a json file and subsequently we use the analyser to
    pack_files_in_folder('gw')
    ya = YamboAnalyser('gw')
 
-The object ``ya`` contains all the results written in the output. We can plot any output variable. In yambopy we provide a function to plot the band structure along a given path. The BN band structure is shown below. The GW correction opens the LDA bandgap as expected.
+The object ``ya`` contains all the results written in the output. We can plot any output variable. In yambopy we provide a function to plot the band structure along a given path. The BN band structure is shown below. The GW correction opens the LDA band gap as expected.
 
 .. image:: figures/GW-LDA-BN-bands.png
    :width: 65%
