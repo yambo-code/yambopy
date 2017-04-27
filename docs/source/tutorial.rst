@@ -63,10 +63,10 @@ Be aware of setting the right units and format for each parameter.
 
 .. code-block:: python
 
-    conv = { 'EXXRLvcs': [[1,20,40,60,80,100],'Ry'],
+    conv = { 'EXXRLvcs': [[10,10,20,40,60,80,100],'Ry'],
              'NGsBlkXp': [[0,0,1,2,3], 'Ry'],
-             'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30],[1,40]]],''] ,
-             'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30],[1,40]],''] }
+             'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30]]],''] ,
+             'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] }
 
 The script will create a reference input file with the first value of each parameter and then create
 input files with the other parameters changing according to the values specified in the list.
