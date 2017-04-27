@@ -21,20 +21,33 @@ The initial step is the ground state calculation and the non self-consistent cal
 
 We have set the non-self-consistent run with a wave-function cutoff
 of 60 Ry, 70 bands and a k-grid ``12x12x1``.
+Open the file ``gs_bn.py`` and indentify where you can change the relevant parameters of your calculation.
+These would be the ``get_inputfile`` to change the overall parameters and the ``scf`` for the self-consistent loop and ``nscf`` functions for the non-self consistent.
 
 1. GW convergence
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+We will now have a look at the ``gw_conv_bn.py`` in which all the steps we will mention during this tutorial have their own function.
+
 **(a) Calculations**
 
-We converge the main parameters of a GW calculation independently. We make use of the plasmon pole approximation for the dielectric function and the Newton solver to find the GW correction to the LDA eigenvalues. The quantity to converge
-is the band gap of the BN (conduction and valence band at the K point of the Brillouin zone).
+We converge the main parameters of a GW calculation independently.
+We make use of the plasmon pole approximation for the dielectric function and the Newton solver to find the GW correction to the LDA eigenvalues.
+The quantity to converge is the band gap of the BN (conduction and valence band at the K point of the Brillouin zone).
+You can start the calculations using:
+
+.. code-block:: bash
+
+    python gw_conv_bn.py -c
+    
+While the calculations are running, take the time to have a look at what the script is doing by having a look at the source code ``gw_conv_bn.py`` and the explanation here.
 We can select this calculation by calling the ``YamboIn`` with the right arguments:
 
 .. code-block:: python
 
     y = YamboIn('yambo -d -g n -p p -V all',folder='gw_conv')
 
+Find in the ``gw_conv_bn.py`` file the ``gw_convergence`` function where this line is defined.
 The main variables are:
 
     ``EXXRLvcs``: Exchange self-energy cutoff. Pay attention to the magnitue of this cut-off. The maximum value is the electronic-density cutoff from QE, which is larger than the wave-function cutoff (``ecutwfc``). 
@@ -45,7 +58,8 @@ The main variables are:
     ``GbndRnge``: Self-energy. Number of bands.
 
 The convergence with the k-grid is done after these variables are converged and in principle is also independent of them.
-The convergence is set with a dictionary in which we choose the parameter and the values. Be aware of setting the right units and format for each parameter.
+The convergence is set with a dictionary in which we choose the parameter and the values.
+Be aware of setting the right units and format for each parameter.
 
 .. code-block:: python
 
@@ -54,9 +68,11 @@ The convergence is set with a dictionary in which we choose the parameter and th
              'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30],[1,40]]],''] ,
              'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30],[1,40]],''] }
 
-Note that when we converge a variable, let' say ``EXXRLvcs``, we set all the
+The script will create a reference input file with the first value of each parameter and then create
+input files with the other parameters changing according to the values specified in the list.
+Note that when we converge a variable, let's say ``EXXRLvcs``, we set all the
 other present in the dictionary to the given minimum value.
-             
+            
 Be awared that some variables have a interdependence in the convergence and you
 should double check that changing the value of a variable does not affect the
 convergence of others.
@@ -80,35 +96,62 @@ This optimization function just needs the convergence dictionary and the run ins
         shell.run()
         shell.clean()
 
-We set an interactive run, in the folder ``gw_conv``. All the calculations will be made there with the corresponding jobname.
+We set an interactive run, in the folder ``gw_conv``.
+All the calculations will be made there with the corresponding jobname.
 
 **(b) Analysis**
 
-Once all the calculations are finished it's time to pack all the files in the ``json`` format for posterior analysis.
-For this use the ``YamboOut()`` class:
+Once all the calculations are finished it's time to analyse them. Before we do that, let's look at the tools yambopy offers.
 
-.. code-block:: python
 
-  #pack the files in .json files
-  for dirpath,dirnames,filenames in os.walk('gw_conv'):
-    #check if there are some output files in the folder
-    if ([ f for f in filenames if 'o-' in f ]):
-        y = YamboOut(dirpath,save_folder=dirpath)
-        y.pack()
-
-This snippet of code can be called using the function:
+Yambopy uses the ``json`` format for posterior analysis of the results. To pack all the files in this format,
+there is a recipe in yambopy to automatically perform this task on a folder:
 
 .. code-block:: python
 
     pack_files_in_folder('gw_conv',save_folder='gw_conv')
 
-Yambopy provides the function ``yambopy analysegw`` to perform the analysis of the ``json`` files in an automatic way. By running the script selecting the bands and kpoints, together with the parameter we will obtain the convergence plot.
+Besides the python module, yambopy can also be called in the terminal to perform some post-analysis tasks:
+
+.. code-blocks:: bash
+
+    $ yambopy
+             analysebse ->     Using ypp, you can study the convergence of BSE calculations in 2 ways:
+               plotem1s ->     Plot em1s calculation
+              analysegw ->     Study the convergence of GW calculations by looking at the change in band-gap value.
+                mergeqp ->     Merge QP databases
+                   test ->     Run yambopy tests
+           plotexcitons ->     Plot excitons calculation
+
+
+Calling ``yambopy analysegw`` will display the help of the function:
+.. code-blocks:: bash
+
+    Study the convergence of GW calculations by looking at the change in band-gap value.
+
+    The script reads from <folder> all results from <variable> calculations and display them.
+
+    Use the band and k-point options according to the size of your k-grid
+    and the location of the band extrema.
+
+        Mandatory arguments are:
+            folder   -> Folder containing SAVE and convergence runs.
+            var      -> Variable tested (e.g. FFTGvecs)
+
+        Optional variables are:
+            -bc, --bandc   (int)  -> Lowest conduction band number
+            -kc, --kpointc (int)  -> k-point index for conduction band
+            -bv, --bandv   (int)  -> Highest valence band number
+            -kv, --kpointv (int)  -> k-point index for valence band
+            -np, --nopack  (flag) -> Do not call 'pack_files_in_folder'
+            -nt, --notext  (flag) -> Do not print a text file
+            -nd, --nodraw  (flag) -> Do not draw (plot) the result
 
 .. code-block:: python
 
     yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv EXXRLvcs 
     yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv NGsBlkXp
-    yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv BndsRnXp
+    yambopy analysegw -bc 4 -kc 19 -bv 4 -kv 19 gw_conv BndsRnXp
     yambopy analysegw -bc 5 -kc 19 -bv 4 -kv 19 gw_conv GbndRnge
 
 .. image:: figures/GW_CONV_EXXRLvcs.png
@@ -120,9 +163,11 @@ Yambopy provides the function ``yambopy analysegw`` to perform the analysis of t
 .. image:: figures/GW_CONV_GbndRnge.png
    :width: 45%
 
+By calling ``python gw_conv_bn.py -p`` in the terminal, these steps will be performed automatically for this tutorial and you will see the above plots.
+
 From the convergence plot we can choose now a set of parameters and repeat the calculation for finer k-grids until we reach convergence with the k-points. We have
 intentionally used non-converged parameters. Nevertheless, along this week
-you should have got enough expertise to push the convergence of the parameters
+you should have gotten enough expertise to push the convergence of the parameters
 and determine the correct convergence set of parameters.
 We invite you to enter in the python script, increase the parameters and check
 again the convergence for larger values!
@@ -140,7 +185,7 @@ We will work in the PPA for the screening. We have chosen the following paramete
    GbndRnge = 25 bands
    QPkrange = [1,19,2,6]
 
-We can just simply run the code to calculate the GW corrections for all the points of the Brillouin zone by setting the convergence parameters in the function gw of the
+We can simply run the code to calculate the GW corrections for all the points of the Brillouin zone by setting the convergence parameters in the function gw of the
 script and doing:
 
 .. code-block:: bash
