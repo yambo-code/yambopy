@@ -53,7 +53,7 @@ def gw_convergence():
     y['GbndRnge'] = [[1,10],'']             # Self-energy. Number of bands
     y['QPkrange'] = [ [k_f,k_f,4,5], '' ]
 
-    conv = { 'EXXRLvcs': [[10,10,20,40,60,80,100],'Ry'],
+    conv = { 'EXXRLvcs': [[10,10,20,40,60,80,100,150],'Ry'],
              'NGsBlkXp': [[0,0,1,2,3], 'Ry'],
              'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] ,
              'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] }
@@ -100,7 +100,7 @@ def gw():
     y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw')
 
     y['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    y['NGsBlkXp'] = [1,25]          # Screening. Number of bands
+    y['BndsRnXp'] = [1,25]          # Screening. Number of bands
     y['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
     y['GbndRnge'] = [1,25]          # Self-energy. Number of bands
     #read values from QPkrange
@@ -146,7 +146,7 @@ def xi():
     print ("Running COHSEX in folder 'gw-xi/coh'")
     cohsex = YamboIn('%s -p c -g n -V all'%yambo,folder='gw-xi')
     cohsex['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    cohsex['NGsBlkXs'] = [1,25]          # Screening. Number of bands
+    cohsex['BndsRnXs'] = [1,25]          # Screening. Number of bands
     cohsex['NGsBlkXs'] = [3,'Ry']        # Cutoff Screening
     cohsex['GbndRnge'] = [1,25]          # Self-energy. Number of bands
     cohsex['QPkrange'][0][2:] = [2,6]
@@ -161,7 +161,7 @@ def xi():
     print ("Running COHSEX in folder 'gw-xi/pp'")
     ppa = YamboIn('%s -p p -g n -V all'%yambo,folder='gw-xi')
     ppa['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    ppa['NGsBlkXp'] = [1,25]          # Screening. Number of bands
+    ppa['BndsRnXp'] = [1,25]          # Screening. Number of bands
     ppa['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
     ppa['GbndRnge'] = [1,25]          # Self-energy. Number of bands
     ppa['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
@@ -176,7 +176,7 @@ def xi():
     print ("Running Real Axis in folder 'gw-xi/ra'")
     ra = YamboIn('%s -d -g n -V all'%yambo,folder='gw-xi')
     ra['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    ra['NGsBlkXd'] = [1,25]          # Screening. Number of bands
+    ra['BndsRnXd'] = [1,25]          # Screening. Number of bands
     ra['NGsBlkXd'] = [3,'Ry']        # Cutoff Screening
     ra['GbndRnge'] = [1,25]          # Self-energy. Number of bands
     ra['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
