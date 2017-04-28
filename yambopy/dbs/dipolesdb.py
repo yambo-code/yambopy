@@ -37,7 +37,7 @@ class YamboDipolesDB(object):
     Can be used to for exapmle plot the imaginary part of the dielectric
     function which corresponds to the optical absorption
     """
-    def __init__(self,lattice,save='SAVE',filename='ndb.dip_iR_and_P',dip_type='iR'):
+    def __init__(self,lattice,save='SAVE',filename='ndb.dip_iR_and_P',dip_type='iR',field_dir=[1,0,0],field_dir3=[0,0,1]):
         self.lattice = lattice
         self.filename = "%s/%s"%(save,filename)
         
@@ -198,7 +198,7 @@ class YamboDipolesDB(object):
     def plot(self,ax,kpoint=0,dir=0,func=abs2):
         return ax.matshow(func(self.dipoles[kpoint,dir]))
         
-    def ip_eps2(self,electrons,pols=(0,1),ntot_dip=-1,GWshift=0.,broad=0.1,broadtype='l',nbnds=[-1,-1],emin=0.,emax=10.,esteps=500):
+    def ip_eps2(self,electrons,pol=1,ntot_dip=-1,GWshift=0.,broad=0.1,broadtype='l',nbnds=[-1,-1],emin=0.,emax=10.,esteps=500):
         """
         Compute independent-particle absorption (by Fulvio Paleari)
 
@@ -211,15 +211,15 @@ class YamboDipolesDB(object):
         """
 
         #get eigenvalues and weights of electrons
-        eiv = electrons.eigenvalues_ibz
-        weights = electrons.weights_ibz
+        eiv = electrons.eigenvalues
+        weights = electrons.weights
         nv = electrons.nbandsv
         nc = electrons.nbandsc   
  
         #get dipoles
         dipoles = self.dipoles_ibz 
 
-        #get frequencies and im2
+        #get frequencies and im
         freq = np.linspace(emin,emax,esteps)
         eps2 = np.zeros([len(freq)])
 

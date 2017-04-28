@@ -122,7 +122,7 @@ def plot():
 
     #plot the results using yambo analyser
     y = YamboAnalyser()
-    y.plot_bse('eps')
+    y.plot_bse( ['eps','diago'] )
 
 if __name__ == "__main__":
     #parse options
