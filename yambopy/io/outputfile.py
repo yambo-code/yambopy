@@ -46,21 +46,20 @@ class YamboOut():
             logdir = outdir
 
         tags = ['refl','eel','eps','qp','sf']
-        netcdf_tags = ['QP']
         self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and any([tag in f for tag in tags]) and 'xsf' not in f]
         self.run    = ["%s"%f for f in outdir if f[:2] == 'r-']
         self.logs   = ["/LOG/%s"%f for f in logdir]
 
         # get data from netcdf file
-        #print (outdir)
-        #print (self.output)
-        #exit()
-        self.netout = []   # Jobname
+        netcdf_tags = ['QP']
         self.netdata = {}  # read netcdf file from YamboFile
+        self.nettags = {}
+        self.netval  = {}
         for f in outdir:
             if os.path.isdir('%s/%s'%(folder,f)) and not 'SAVE' in f:
-                self.netout.append(f) 
                 self.netdata[f] = YamboFile('ndb.QP',folder='%s/%s'%(folder,f)) 
+                self.nettags[f] = self.netdata[f].data.keys()
+                self.netval[f]  = self.netdata[f].data.values()
 
         #get data from output file
         self.get_runtime()
@@ -104,25 +103,11 @@ class YamboOut():
                 f.seek(0)
                 self.data[filename] = np.loadtxt(f)
                 self.tags[filename] = tags
-                print (tags)
             except:
                 raise ValueError('Error reading file %s'%"%s/%s"%(self.folder,filename))
         #close all the files
         for f in files: f.close()
         return self.data
-
-    # Mimic get_outputfile using netcdf files
-    # Access the data
-    #def get_netoutfile(self):
-    #    self.tagsnetcdf = {}
-    #    for filename in self.netout:
-    #        self.tagsnetcdf[filename] = self.netdata[filename].data.keys()
-    #
-    #    return self.data
-
-
-
-
 
     def get_inputfile(self):
         """
@@ -182,7 +167,6 @@ class YamboOut():
         """
         data = {}
         for key in self.data.keys():
-            print key
             if all(tag in key for tag in tags):
                 data[key] = dict(zip(self.tags[key],np.array(self.data[key]).T))
         return data
@@ -215,7 +199,6 @@ class YamboOut():
         """
         #if no filename is specified we use the same name as the folder
         if not filename: filename = self.folder
-
         jsondata = {"data"     : dict(zip(self.data.keys(),[d.tolist() for d in self.data.values()])),
                     "tags"     : self.tags,
                     "runtime"  : self.runtime,
@@ -249,8 +232,8 @@ class YamboOut():
         """
         #if no filename is specified we use the same name as the folder
         if not filename: filename = self.folder
-        jsondata = {"data"     : dict(zip(self.netdata.keys(),[d.tolist() for d in self.netdata.values()])),
-                    "tags"     : self.netdata.keys(),
+        jsondata = {"data"     : dict(zip(self.netval.keys(),[self.netval.values])),
+                    "tags"     : self.nettags,
                     "runtime"  : self.runtime,
                     "inputfile": self.inputfile,
                     "lattice"  : self.lat,
