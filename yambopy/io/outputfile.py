@@ -109,6 +109,43 @@ class YamboOut():
         for f in files: f.close()
         return self.data
 
+
+    def set_data_netcdf(self):
+        test = []
+        self.dictag = {}
+        self.dicnet = {}
+        self.newtag = []
+        self.newval = []
+        for d in self.netval.values():
+            for e in d:
+                test.append(e[0].tolist())
+
+        for item in self.nettags.keys():
+            for i,val in enumerate(self.nettags[item]):
+                if val == 'Eo':
+                  self.newtag.append(val)
+                  self.newval.append(test[i].real)
+                elif val == 'E':
+                  self.newtag.append(val)
+                  self.newval.append(test[i].real)
+                  self.newtag.append('Width[meV]')
+                  self.newval.append(test[i].imag*1000.0)
+                elif val == 'E-Eo':
+                  self.newtag.append(val)
+                  self.newval.append(test[i].real)
+                elif val == 'Z':
+                  self.newtag.append('Z(Re)')
+                  self.newval.append(test[i].real)
+                  self.newtag.append('Z(Im)')
+                  self.newval.append(test[i].real)
+                elif val == 'qp_table':
+                  pass
+                else:
+                  self.newtag.append(val)
+                  self.newval.append(test[i])
+            self.dictag[item] = self.newtag
+            self.dicnet[item] = self.newval
+
     def get_inputfile(self):
         """
         Get the input file from the o-* file
@@ -232,8 +269,8 @@ class YamboOut():
         """
         #if no filename is specified we use the same name as the folder
         if not filename: filename = self.folder
-        jsondata = {"data"     : dict(zip(self.netval.keys(),[self.netval.values])),
-                    "tags"     : self.nettags,
+        jsondata = {"data"     : dict(zip(self.dicnet.keys(),[self.dicnet])),
+                    "tags"     : self.dictag,
                     "runtime"  : self.runtime,
                     "inputfile": self.inputfile,
                     "lattice"  : self.lat,
