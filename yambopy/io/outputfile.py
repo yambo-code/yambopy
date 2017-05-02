@@ -50,8 +50,9 @@ class YamboOut():
         self.run    = ["%s"%f for f in outdir if f[:2] == 'r-']
         self.logs   = ["/LOG/%s"%f for f in logdir]
 
-        # get data from netcdf file
+        # get data from netcdf file ndb.QP
         netcdf_tags = ['QP']
+
         self.netdata = {}  # read netcdf file from YamboFile
         self.nettags = {}
         self.netval  = {}
@@ -66,6 +67,9 @@ class YamboOut():
         self.get_outputfile()
         self.get_inputfile()
         self.get_cell()
+
+        #fix data from netcdf in suitable format (remove complex type, etc.) 
+        self.set_data_netcdf()
 
     def get_cell(self):
         """ 
@@ -109,40 +113,47 @@ class YamboOut():
         for f in files: f.close()
         return self.data
 
-
     def set_data_netcdf(self):
+
         test = []
+        
         self.dictag = {}
         self.dicnet = {}
         self.newtag = []
         self.newval = []
-        for d in self.netval.values():
-            for e in d:
-                test.append(e[0].tolist())
 
-        for item in self.nettags.keys():
+        for d in self.netval.values():
+            aux = []
+            for e in d:
+                aux.append(e[0].tolist())
+            test.append(aux)
+
+        for j,item in enumerate(self.nettags.keys()):
             for i,val in enumerate(self.nettags[item]):
                 if val == 'Eo':
                   self.newtag.append(val)
-                  self.newval.append(test[i].real)
+                  self.newval.append(test[j][i].real)
                 elif val == 'E':
                   self.newtag.append(val)
-                  self.newval.append(test[i].real)
+                  self.newval.append(test[j][i].real)
                   self.newtag.append('Width[meV]')
-                  self.newval.append(test[i].imag*1000.0)
+                  self.newval.append(test[j][i].imag*1000.0)
                 elif val == 'E-Eo':
                   self.newtag.append(val)
-                  self.newval.append(test[i].real)
+                  self.newval.append(test[j][i].real)
                 elif val == 'Z':
                   self.newtag.append('Z(Re)')
-                  self.newval.append(test[i].real)
+                  self.newval.append(test[j][i].real)
                   self.newtag.append('Z(Im)')
-                  self.newval.append(test[i].real)
+                  self.newval.append(test[j][i].real)
                 elif val == 'qp_table':
+                  pass
+                elif val == 'Kpoint':
                   pass
                 else:
                   self.newtag.append(val)
-                  self.newval.append(test[i])
+                  self.newval.append(test[j][i])
+
             self.dictag[item] = self.newtag
             self.dicnet[item] = self.newval
 
