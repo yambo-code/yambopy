@@ -11,9 +11,7 @@ from scipy.optimize import curve_fit
 
 #save = 'rt-24x24/SAVE' # Save with the appropriate band structure
 folder = 'rt-24x24'
-#calc   = 'QSSIN-D-100.0fs-2.07eV-300K-DG' # Where RT carrier output is
 calc   = 'QSSIN-D-100.0fs-2.07eV-300K-DG' # Where RT carrier output is
-source = '%s/%s/pulse/'%(folder,calc)
 path = [[0.0,0.0,0.0],[0.5,0.0,0.0],[0.33333,0.33333,0.0],[0.0,0.0,0.0]]
 nbv = 2 ; nbc = 2 # nb of valence and conduction bands
 occ_scaling = 1 # max occupation will be 1eV high
@@ -23,18 +21,18 @@ occ_scaling = 1 # max occupation will be 1eV high
 # INIT #
 ########
 
-# Instances containing LDA bandstructure and occupations
+# Instance containing bandstructure (as used in RT sim) and occupations
 yrt = YamboRTDB(folder=folder,calc=calc)
-yrt.get_path(path)
+
+yrt.get_path(path) # Generates kindex
 
 # aliases
 kindex = yrt.bands_indexes # kpoint indexes (in order) to draw path
-eigenvalues = yrt.eigenvalues[kindex,:] # eigenvalues (LDA) of the band included in the RT simulation
-max_occ = np.amax(yrt.occupations[:,kindex,:])
-
+eigenvalues = yrt.eigenvalues[kindex,:] # eigenvalues of the bands included in the RT simulation
+max_occ = np.amax(yrt.occupations[:,kindex,:]) # used to size the distribution plots
 nbands = yrt.nbands # number of bands in the RT simulation
-times = [i * 1e15 for i in yrt.times] # times are now in fs
-occupations = yrt.occupations[:,kindex,:]/max_occ*occ_scaling # format time,kindex,band index (from 0 to nbands)
+times = [i * 1e15 for i in yrt.times] # carriers output times, in fs
+occupations = yrt.occupations[:,kindex,:]/max_occ*occ_scaling # format time,kindex,band index (from 0 to nbands, only on path)
 
 if nbv+nbc != nbands:
     raise NameError('Incompatible number of bands, set nbv and nbc in script.')
@@ -43,11 +41,7 @@ if nbv+nbc != nbands:
 # ENERGY DISTRIB #
 ##################
 
-### Idea
-## Now that histogram is mastered, I can split eigenvalues and occupations in CB and VB before doing the histogram, so that I can automatically use bins=len(array)
-
-# yrt.occupations[t,k,n]
-# yrt.eigenvalues[k,n]
+# Sort the (n,k) pairs between positive and negative energies
 i=0;j=0
 list_e=[] ; list_h=[]
 for k in range(yrt.nkpoints):
@@ -58,6 +52,8 @@ for k in range(yrt.nkpoints):
         else:
             list_e.append((k,n))
 
+
+# Build the occupation tables occ_x[t,(nk)_index,(e|occ)]
 
 occ_e = np.zeros((len(times),len(list_e),2))
 for t in range(len(times)):
@@ -80,53 +76,12 @@ def fermi_dirac(E,a,T): # declare E first for fit
 
 eVtoK=11599
 # TODO : check if degen is summed or not (looks like it when comparing to YPP)
-# TODO : print the error on the fit somewhere ? (specially bad at early times)
+# TODO : print the error on the fit somewhere ? (especially bad at early times)
 
 for i,t in enumerate(times):
-    if i == 0 or i==1: # t[0] : no field yet, cannot fit (starts here)
-                       # t[1] : first just started, also causes error
-        continue
     print times[i]
     # temperature is in fit[0]*eVtoK
 
-#### Plot not rotated
-#    fig,(ax,ax2) = plt.subplots(1, 2, sharey=True)
-#
-## 2 axes to make the broken axis
-#    fit,cov = curve_fit(fermi_dirac,occ_e[i,:,0],occ_e[i,:,1])
-#    ax2.plot(occ_e[i,:,0],fermi_dirac(occ_e[i,:,0],fit[0],fit[1]),'r+')
-#    ax2.scatter(occ_e[i,:,0],occ_e[i,:,1],color='black')
-#
-#    fit,cov = curve_fit(fermi_dirac,occ_h[i,:,0],occ_h[i,:,1])
-#    ax.plot(-occ_h[i,:,0],fermi_dirac(occ_h[i,:,0],fit[0],fit[1]),'g+')
-#    ax.scatter(-occ_h[i,:,0],occ_h[i,:,1],color='black')
-#
-## zoom-in / limit the view to different portions of the data
-#    ax2.set_xlim(min(occ_e[i,:,0])-0.1,max(occ_e[i,:,0])+0.1)
-#    ax.set_xlim(min(-occ_h[i,:,0])-0.1,max(-occ_h[i,:,0])+0.1)
-#
-#    ax.set_ylim(-0.1*max_occ,1.1*max_occ)
-#    ax2.set_ylim(-0.1*max_occ,1.1*max_occ)
-#
-## hide the spines between ax and ax2
-#    ax.spines['right'].set_visible(False)
-#    ax2.spines['left'].set_visible(False)
-#    ax.yaxis.tick_left()
-#    ax.tick_params(labeltop='off') # don't put tick labels at the top
-#    ax2.yaxis.tick_right()
-#
-## More ticks esthetics
-#    ax2.xaxis.tick_top()
-#    ax2.yaxis.tick_right()
-#    ax2.tick_params(labelright='off')
-#
-#    ax.xaxis.tick_top()
-#
-## Make the spacing between the two axes a bit smaller
-#    plt.subplots_adjust(wspace=0.15)
-#
-#    plt.show()
-###########
 
 ## Rotated version
     f, (ax, ax2) = plt.subplots(2, 1, sharex=True)
@@ -139,12 +94,20 @@ for i,t in enumerate(times):
     plt.subplots_adjust(wspace=0.1)
 
 # plot the same data on both axes
-    fit,cov = curve_fit(fermi_dirac,occ_e[i,:,0],occ_e[i,:,1])
+    try: # does not break if fit is not found
+        fit,cov = curve_fit(fermi_dirac,occ_e[i,:,0],occ_e[i,:,1])
+    except RuntimeError:
+        fit=np.array([0,0])
+
     ax.scatter(occ_e[i,:,1],occ_e[i,:,0],color='black')
     ax.plot(fermi_dirac(occ_e[i,:,0],fit[0],fit[1]),occ_e[i,:,0],'r+')
     ax.text(0.75,0.8,'Fitted T: %d K'%(fit[1]*eVtoK),transform=ax.transAxes)
 
-    fit,cov = curve_fit(fermi_dirac,occ_h[i,:,0],occ_h[i,:,1])
+    try:
+        fit,cov = curve_fit(fermi_dirac,occ_h[i,:,0],occ_h[i,:,1])
+    except RuntimeError:
+        fit=np.array([0,0])
+
     ax2.scatter(occ_h[i,:,1],-occ_h[i,:,0],color='black')
     ax2.plot(fermi_dirac(occ_h[i,:,0],fit[0],fit[1]),-occ_h[i,:,0],'g+')
     ax2.text(0.75,0.2,'Fitted T: %d K'%(fit[1]*eVtoK),transform=ax2.transAxes)
@@ -170,21 +133,6 @@ for i,t in enumerate(times):
     plt.show()
 
 exit()
-####################################################
-###### Comparison between ypp and python data ######
-#ypp = np.loadtxt('rt-24x24/QSSIN-100.0fs-2.07eV-300K/o-pulse.YPP-RT_occupations_DATA_1_of_7').T
-#plt.scatter(ypp[0,:],ypp[10,:],color='b',marker='o')        # The columns value have the same data
-#plt.scatter(occ_e[9,:,0],occ_e[9,:,1],color='r',marker='+') # So be careful w/ index if willing to do comparison
-#plt.show()
-#
-#plt.hist(occ_e[9,:,0], weights=occ_e[9,:,1],bins=len(occ_e[0]),color='b',edgecolor='none') # Not sure if ypp sums the almost degen C bands at
-#plt.hist(ypp[0,:]+0.1,weights=ypp[10,:],bins=len(ypp[0,:]),color='r',edgecolor='none')     # K or if it is artifact of plotting
-#plt.show()
-####################################################
-
-#### Latest question : should almost degenerate states be merged for the fitting ? What would be the energy threshold ?
-### Answer : no, use Counter to sum exactly (thr 10e-8) degenerate states and then plot normally
-
 
 
 #################
@@ -210,7 +158,7 @@ if nbv > 1:
 ##############
 
 # The external field is read from the o- file
-ext = np.loadtxt(source+'o-pulse.external_field')
+ext = np.loadtxt('%s/%s/o-pulse.external_field'%(folder,calc))
 field = ext[:,2]/max(abs(ext[:,2])) # polarization : x=1,y=2,z=3
 
 
@@ -249,3 +197,57 @@ for t in (10,):
     plt.plot(field[:int(times[t])])
     plt.show()
 
+
+
+
+##### Old snippets
+#### Distribution plot not rotated
+#    fig,(ax,ax2) = plt.subplots(1, 2, sharey=True)
+#
+## 2 axes to make the broken axis
+#    fit,cov = curve_fit(fermi_dirac,occ_e[i,:,0],occ_e[i,:,1])
+#    ax2.plot(occ_e[i,:,0],fermi_dirac(occ_e[i,:,0],fit[0],fit[1]),'r+')
+#    ax2.scatter(occ_e[i,:,0],occ_e[i,:,1],color='black')
+#
+#    fit,cov = curve_fit(fermi_dirac,occ_h[i,:,0],occ_h[i,:,1])
+#    ax.plot(-occ_h[i,:,0],fermi_dirac(occ_h[i,:,0],fit[0],fit[1]),'g+')
+#    ax.scatter(-occ_h[i,:,0],occ_h[i,:,1],color='black')
+#
+## zoom-in / limit the view to different portions of the data
+#    ax2.set_xlim(min(occ_e[i,:,0])-0.1,max(occ_e[i,:,0])+0.1)
+#    ax.set_xlim(min(-occ_h[i,:,0])-0.1,max(-occ_h[i,:,0])+0.1)
+#
+#    ax.set_ylim(-0.1*max_occ,1.1*max_occ)
+#    ax2.set_ylim(-0.1*max_occ,1.1*max_occ)
+#
+## hide the spines between ax and ax2
+#    ax.spines['right'].set_visible(False)
+#    ax2.spines['left'].set_visible(False)
+#    ax.yaxis.tick_left()
+#    ax.tick_params(labeltop='off') # don't put tick labels at the top
+#    ax2.yaxis.tick_right()
+#
+## More ticks esthetics
+#    ax2.xaxis.tick_top()
+#    ax2.yaxis.tick_right()
+#    ax2.tick_params(labelright='off')
+#
+#    ax.xaxis.tick_top()
+#
+## Make the spacing between the two axes a bit smaller
+#    plt.subplots_adjust(wspace=0.15)
+#
+#    plt.show()
+###########
+
+####################################################
+###### Comparison between ypp and python data ######
+#ypp = np.loadtxt('rt-24x24/QSSIN-100.0fs-2.07eV-300K/o-pulse.YPP-RT_occupations_DATA_1_of_7').T
+#plt.scatter(ypp[0,:],ypp[10,:],color='b',marker='o')        # The columns value have the same data
+#plt.scatter(occ_e[9,:,0],occ_e[9,:,1],color='r',marker='+') # So be careful w/ index if willing to do comparison
+#plt.show()
+#
+#plt.hist(occ_e[9,:,0], weights=occ_e[9,:,1],bins=len(occ_e[0]),color='b',edgecolor='none') # Not sure if ypp sums the almost degen C bands at
+#plt.hist(ypp[0,:]+0.1,weights=ypp[10,:],bins=len(ypp[0,:]),color='r',edgecolor='none')     # K or if it is artifact of plotting
+#plt.show()
+####################################################
