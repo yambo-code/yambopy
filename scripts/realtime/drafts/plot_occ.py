@@ -78,7 +78,8 @@ occ_h *= -1
 def fermi_dirac(E,a,T): # declare E first for fit
     return 1/(1+np.exp((E-a)/T))
 
-eVtoK=8.621738e-5
+eVtoK=11599
+# TODO : check if degen is summed or not (looks like it when comparing to YPP)
 # TODO : print the error on the fit somewhere ? (specially bad at early times)
 
 for i,t in enumerate(times):
@@ -141,10 +142,12 @@ for i,t in enumerate(times):
     fit,cov = curve_fit(fermi_dirac,occ_e[i,:,0],occ_e[i,:,1])
     ax.scatter(occ_e[i,:,1],occ_e[i,:,0],color='black')
     ax.plot(fermi_dirac(occ_e[i,:,0],fit[0],fit[1]),occ_e[i,:,0],'r+')
+    ax.text(0.75,0.8,'Fitted T: %d K'%(fit[1]*eVtoK),transform=ax.transAxes)
 
     fit,cov = curve_fit(fermi_dirac,occ_h[i,:,0],occ_h[i,:,1])
     ax2.scatter(occ_h[i,:,1],-occ_h[i,:,0],color='black')
     ax2.plot(fermi_dirac(occ_h[i,:,0],fit[0],fit[1]),-occ_h[i,:,0],'g+')
+    ax2.text(0.75,0.2,'Fitted T: %d K'%(fit[1]*eVtoK),transform=ax2.transAxes)
 
 # zoom-in / limit the view to different portions of the data
     ax.set_ylim(min(occ_e[i,:,0])-0.1,max(occ_e[i,:,0])+0.1)
