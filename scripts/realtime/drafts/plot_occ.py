@@ -3,7 +3,7 @@
 
 from yambopy import *
 import matplotlib.gridspec as gridspec
-
+from scipy.optimize import curve_fit
 
 ############
 # SETTINGS #
@@ -12,7 +12,7 @@ import matplotlib.gridspec as gridspec
 #save = 'rt-24x24/SAVE' # Save with the appropriate band structure
 folder = 'rt-24x24'
 #calc   = 'QSSIN-D-100.0fs-2.07eV-300K-DG' # Where RT carrier output is
-calc   = 'QSSIN-100.0fs-2.07eV-300K' # Where RT carrier output is
+calc   = 'QSSIN-D-100.0fs-2.07eV-300K-DG' # Where RT carrier output is
 source = '%s/%s/pulse/'%(folder,calc)
 path = [[0.0,0.0,0.0],[0.5,0.0,0.0],[0.33333,0.33333,0.0],[0.0,0.0,0.0]]
 nbv = 2 ; nbc = 2 # nb of valence and conduction bands
@@ -30,10 +30,11 @@ yrt.get_path(path)
 # aliases
 kindex = yrt.bands_indexes # kpoint indexes (in order) to draw path
 eigenvalues = yrt.eigenvalues[kindex,:] # eigenvalues (LDA) of the band included in the RT simulation
+max_occ = np.amax(yrt.occupations[:,kindex,:])
 
 nbands = yrt.nbands # number of bands in the RT simulation
 times = [i * 1e15 for i in yrt.times] # times are now in fs
-occupations = yrt.occupations[:,kindex,:]/np.amax(yrt.occupations[:,kindex,:])*occ_scaling # format time,kindex,band index (from 0 to nbands)
+occupations = yrt.occupations[:,kindex,:]/max_occ*occ_scaling # format time,kindex,band index (from 0 to nbands)
 
 if nbv+nbc != nbands:
     raise NameError('Incompatible number of bands, set nbv and nbc in script.')
@@ -57,6 +58,7 @@ for k in range(yrt.nkpoints):
         else:
             list_e.append((k,n))
 
+
 occ_e = np.zeros((len(times),len(list_e),2))
 for t in range(len(times)):
     for i,(k,n) in enumerate(list_e):
@@ -69,6 +71,102 @@ for t in range(len(times)):
         occ_h[t,i,0]=yrt.eigenvalues[k,n]
         occ_h[t,i,1]=yrt.occupations[t,k,n]
 
+
+# *(-1) on holes to fit the same way as electrons
+occ_h *= -1
+
+def fermi_dirac(E,a,T): # declare E first for fit
+    return 1/(1+np.exp((E-a)/T))
+
+eVtoK=8.621738e-5
+# TODO : print the error on the fit somewhere ? (specially bad at early times)
+
+for i,t in enumerate(times):
+    if i == 0 or i==1: # t[0] : no field yet, cannot fit (starts here)
+                       # t[1] : first just started, also causes error
+        continue
+    print times[i]
+    # temperature is in fit[0]*eVtoK
+
+#### Plot not rotated
+#    fig,(ax,ax2) = plt.subplots(1, 2, sharey=True)
+#
+## 2 axes to make the broken axis
+#    fit,cov = curve_fit(fermi_dirac,occ_e[i,:,0],occ_e[i,:,1])
+#    ax2.plot(occ_e[i,:,0],fermi_dirac(occ_e[i,:,0],fit[0],fit[1]),'r+')
+#    ax2.scatter(occ_e[i,:,0],occ_e[i,:,1],color='black')
+#
+#    fit,cov = curve_fit(fermi_dirac,occ_h[i,:,0],occ_h[i,:,1])
+#    ax.plot(-occ_h[i,:,0],fermi_dirac(occ_h[i,:,0],fit[0],fit[1]),'g+')
+#    ax.scatter(-occ_h[i,:,0],occ_h[i,:,1],color='black')
+#
+## zoom-in / limit the view to different portions of the data
+#    ax2.set_xlim(min(occ_e[i,:,0])-0.1,max(occ_e[i,:,0])+0.1)
+#    ax.set_xlim(min(-occ_h[i,:,0])-0.1,max(-occ_h[i,:,0])+0.1)
+#
+#    ax.set_ylim(-0.1*max_occ,1.1*max_occ)
+#    ax2.set_ylim(-0.1*max_occ,1.1*max_occ)
+#
+## hide the spines between ax and ax2
+#    ax.spines['right'].set_visible(False)
+#    ax2.spines['left'].set_visible(False)
+#    ax.yaxis.tick_left()
+#    ax.tick_params(labeltop='off') # don't put tick labels at the top
+#    ax2.yaxis.tick_right()
+#
+## More ticks esthetics
+#    ax2.xaxis.tick_top()
+#    ax2.yaxis.tick_right()
+#    ax2.tick_params(labelright='off')
+#
+#    ax.xaxis.tick_top()
+#
+## Make the spacing between the two axes a bit smaller
+#    plt.subplots_adjust(wspace=0.15)
+#
+#    plt.show()
+###########
+
+## Rotated version
+    f, (ax, ax2) = plt.subplots(2, 1, sharex=True)
+    f.suptitle('Occupation of the bands and fit to the Fermi-Dirac distribution')
+    ax.set_ylabel('Electrons')
+    ax2.set_ylabel('Holes')
+    f.text(0.98,0.5,'Energy (eV)',rotation='vertical')
+
+# Make the spacing between the two axes a bit smaller
+    plt.subplots_adjust(wspace=0.1)
+
+# plot the same data on both axes
+    fit,cov = curve_fit(fermi_dirac,occ_e[i,:,0],occ_e[i,:,1])
+    ax.scatter(occ_e[i,:,1],occ_e[i,:,0],color='black')
+    ax.plot(fermi_dirac(occ_e[i,:,0],fit[0],fit[1]),occ_e[i,:,0],'r+')
+
+    fit,cov = curve_fit(fermi_dirac,occ_h[i,:,0],occ_h[i,:,1])
+    ax2.scatter(occ_h[i,:,1],-occ_h[i,:,0],color='black')
+    ax2.plot(fermi_dirac(occ_h[i,:,0],fit[0],fit[1]),-occ_h[i,:,0],'g+')
+
+# zoom-in / limit the view to different portions of the data
+    ax.set_ylim(min(occ_e[i,:,0])-0.1,max(occ_e[i,:,0])+0.1)
+    ax2.set_ylim(min(-occ_h[i,:,0])-0.1,max(-occ_h[i,:,0])+0.1)
+
+    ax2.set_xlim(-0.1*max_occ,1.1*max_occ)
+    ax.set_xlim(-0.1*max_occ,1.1*max_occ)
+
+# hide the spines between ax and ax2, hide some ticks/labels
+    ax.yaxis.tick_right()
+    ax.spines['bottom'].set_visible(False)
+    ax.xaxis.tick_top()
+    ax.tick_params(labeltop='off')  # don't put tick labels at the top
+
+    ax2.yaxis.tick_right()
+    ax2.xaxis.tick_top()
+    ax2.tick_params(labeltop='off') # don't put tick labels at the top
+    ax2.spines['top'].set_visible(False)
+
+    plt.show()
+
+exit()
 ####################################################
 ###### Comparison between ypp and python data ######
 #ypp = np.loadtxt('rt-24x24/QSSIN-100.0fs-2.07eV-300K/o-pulse.YPP-RT_occupations_DATA_1_of_7').T
@@ -84,109 +182,7 @@ for t in range(len(times)):
 #### Latest question : should almost degenerate states be merged for the fitting ? What would be the energy threshold ?
 ### Answer : no, use Counter to sum exactly (thr 10e-8) degenerate states and then plot normally
 
-# occupation as f(E). occe[t] is (e,occ(t))
-#occe = [(yrt.eigenvalues.flatten(),occt.flatten()) for occt in yrt.occupations]
-## tuple (e,occ) @ t is (occe[t][0][i],occe[t][1][i])
-#occe =  np.array(occe)
 
-## Removing degeneracies
-## case for t 10
-#dic = {}
-#for i in range(len(occe[10][0])):
-#    if occe[10][0][i] not in dic:
-#        dic[ occe[10][0][i] ] = 0
-#    dic[ occe[10][0][i] ] += occe[10][1][i]
-#
-#result = list(dic.items())
-#print len(result)
-#print result[0]
-#
-#plt.scatter(result)
-#plt.show()
-#exit()
-#
-##occetest = occe[10]
-#print occetest[0][0],occetest[1][0]
-#print occetest[0][1],occetest[1][1]
-#print occetest[0][2],occetest[1][2]
-#print len(occetest)
-#print len(occetest[0])
-##occetest = sorted(occetest)
-##print occetest
-#plt.scatter(occetest[0],occetest[1])
-#plt.show()
-#
-#sum = {}
-#print len(occetest)
-#i = 0
-#for eocc in occetest:
-#    i+=1
-#    if not eocc[0] in sum:
-#        sum[eocc[0]]=0
-#    sum[eocc[0]]+=eocc[1]
-#print i
-#print sum
-#result = list(sum.items())
-#print result
-#plt.scatter(result)
-#plt.show()
-#exit()
-##np.savetxt('occe.dat',occe[10])
-#print occe
-#exit()
-###########
-## I can use scatter to plot, but still I have not solved the degeneracy problem
-## Either I put energies in order to have a correct histogram to which I can pass the energies in order to make the right bins
-## => Or I sum degenerate energies' occupations and I can scatter and fit easily
-#for t in range(len(times)):
-#    plt.scatter(occe[t][0],occe[t][1])
-#    plt.show()
-t=10
-print occe[t].shape
-print occe[t].T.shape
-#testarray = np.where( occe[t][0,:] <= 0.0)
-#print testarray
-#plt.hist(testarray[0],weights=testarray[1],bins=len(testarray[0]))
-#plt.show()
-hist = np.histogram(occe[t][0,:],weights=occe[t][1,:],bins=1200)
-print hist[0].shape
-#plt.hist(occe[t].T[:,0], weights=occe[t].T[:,1],bins=1200)  # plt.hist passes it's arguments to np.histogram
-plt.hist(occe[t][0,:], weights=occe[t][1,:],bins=1200)  # plt.hist passes it's arguments to np.histogram
-plt.show()
-exit()
-
-#occe = np.zeros((yrt.nkpoints*nbands)) # occ_energy
-#occo = np.zeros((len(times),yrt.nkpoints*nbands)) # occ_occ
-#
-#occe = yrt.eigenvalues.flatten()
-#for t in range(len(times)):
-#    occo[t]=yrt.occupations[t].flatten()
-#
-#array = np.stack((occo,occe),axis=-1)
-#print array
-#exit()
-#plt.hist(occo[10], bins=occe)  # plt.hist passes it's arguments to np.histogram
-#plt.show()
-#exit()
-
-## I want an array with, for each time, the occupation at a given energy level
-## The energies are constants
-## First, find (k,n) combinations that give degenerate energy levels
-## Degenerate eps => two id values in yrt.eigenvalues
-#degen_eigen = []
-#it = np.nditer(yrt.eigenvalues, flags=['multi_index']) # numpy way to go through an array
-#while not it.finished:
-#    # it[0] is current value
-#    # it.multi_index is tuple (k,n)
-#    if any(yrt.eigenvalues[it.multi_index] in tup for tup in degen_eigen):
-#        # already exists, just expand current tuple
-#        tup.append(it.multi_index)
-#    else:
-#        degen_eigen.append((yrt.eigenvalues[it.multi_index],it.multi_index))
-#    it.iternext() # next tuple (k,n)
-## Then, build the array
-print degen_eigen
-exit()
 
 #################
 # BAR PLOT DATA #
