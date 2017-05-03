@@ -13,7 +13,8 @@ from   qepy.auxiliary import *
 meVtocm = 8.06573
 
 class DynmatIn():
-    """ A class to generate an manipulate quantum espresso input files for matdyn.x
+    """
+    Generate an manipulate quantum espresso input files for matdyn.x
     """
     def __init__(self):
         self.variable = dict()

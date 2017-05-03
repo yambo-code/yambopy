@@ -5,28 +5,27 @@
 #
 #
 from yambopy import *
-from copy import *
+from yambopy.plot import *
 import os
 import re
-try:
-    from netCDF4 import Dataset
-    _has_netcdf = True
-except ImportError:
-    _has_netcdf = False
-
-from yambopy.plot import *
+from copy import *
+from netCDF4 import Dataset
 
 class YamboOut():
     """ 
-    Class to read yambo output files and pack them in a JSON file
+    Class to read yambo output files and pack them in a .json file
 
-    Input:
-    folder      -> The relative path of the folder where yambo dumped its input files
-    save_folder -> The path were the SAVE folder is localized 
+    **Arguments:**
+
+    ``folder``:      The relative path of the folder where yambo dumped its input files
+
+    ``save_folder``: The path were the SAVE folder is localized 
+
     """
     _lock = "lock" #name of the lockfile
 
     def __init__(self,folder,save_folder='.'):
+
         self.folder = folder
 
         #check if the save folder is in save_folder if not try folder
@@ -45,9 +44,12 @@ class YamboOut():
         else:
             logdir = outdir
 
-        self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and ('refl' in f or 'eel' in f or 'eps' in f or 'qp' in f or 'sf' in f) and 'xsf' not in f]
+        tags = ['refl','eel','eps','qp','sf']
+        self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and any([tag in f for tag in tags]) and 'xsf' not in f]
         self.run    = ["%s"%f for f in outdir if f[:2] == 'r-']
         self.logs   = ["/LOG/%s"%f for f in logdir]
+
+        #get data from output file
         self.get_runtime()
         self.get_outputfile()
         self.get_inputfile()
@@ -59,7 +61,7 @@ class YamboOut():
         kpoints and symmetry operations) from the SAVE folder.
         """
         path = self.save_folder+'/SAVE/ns.db1'
-        if os.path.isfile(path) and _has_netcdf:
+        if os.path.isfile(path):
             #read database
             self.nc_db         = Dataset(path)
             self.lat           = self.nc_db.variables['LATTICE_VECTORS'][:].T
@@ -70,15 +72,7 @@ class YamboOut():
             self.atomic_number = self.nc_db.variables['atomic_numbers'][:].T
 
         else:
-            if not _has_netcdf: 
-                print('YamboOut without netCDF4 support won\'t retrieve information about the structure')
-            print('Could not find ns.db1 in %s'%path)
-            self.lat = np.array([])
-            self.alat = np.array([])
-            self.sym_car = np.array([])
-            self.kpts_iku = np.array([])
-            self.apos = np.array([])
-            self.atomic_number = np.array([])
+            raise ValueError('Could not find ns.db1 in %s from YamboOut'%path)
 
     def get_outputfile(self):
         """ 

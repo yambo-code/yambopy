@@ -3,7 +3,6 @@
 #
 # This file is part of yambopy
 #
-#
 from subprocess import Popen, PIPE
 import os
 import json
@@ -11,9 +10,47 @@ from time import sleep
 import re
 
 class YamboIn():
-    """ Class to read, write, create and manipulate yambo input files with python.
     """
+    Class to read, write, create and manipulate yambo input files with python.
 
+    Examples of use:
+
+    Initialize an empty input file:
+
+        .. code-block:: python
+
+            y = YamboIn(filename='somefile.in')
+            print y
+
+    Call yambo to initialize the input file with variables according to the runlevel,
+    parse the input file and store the variables:
+
+        .. code-block:: python
+
+            y = YamboIn('yambo -o c',folder='ip')
+            print y
+
+    If the argument ``args`` was used then the filename should be left as ``yambo.in`` because that's the default input filename that yambo will create. 
+
+    Call ypp to initialize the input file:
+
+        .. code-block:: python
+
+            y = YamboIn('yyp -e w'args=,filename='ypp.in')
+            print y
+
+    **Arguments:** 
+
+        ``args``:     if specified yambopy will run yambo, read the generated input file and initialize the class with those variables.
+
+        ``folder``:   the folder where the SAVE directory is located
+
+        ``vim``:      if yambo is compiled using vim as an editor this variable should be set as True because then `yambopy` will close vim.
+        In newer versions an argument for yambo '-Q' tells it to not call vim
+
+        ``filename``: the name of the input file to be read
+
+    """
     #Regular expressions
     _variaexp   = '([A-Za-z\_0-9]+(?:\_[A-Za-z]+)?)' #variables names
     _numexp     = '([+-]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)' #number
@@ -32,18 +69,7 @@ class YamboIn():
 
     def __init__(self,args='',folder='.',vim=True,filename='yambo.in'):
         """
-        Initialize a yambo `input` file.
-
-        Arguments:
-            args: if specified yambopy will run yambo, read the generated input file and initialize the class with those variables.
-            folder: the folder where the SAVE directory is located
-            vim: if yambo is compiled using vim as an editor this variable should be set as True because then `yambopy` will close vim.
-            A new argument for yambo '-Q' tells yambo to not call vim.
-            filename: the name of the input file to be read. Can be used to read a file in the hardrive:
-            .. code-block:: python
-                y = YamboIn(filename='somefile.in')
-                print y
-            if the variable args was used then the filename should be left as `yambo.in` because that's the default input filename that yambo will write.
+        Initalize the class
         """
         self.folder = folder
         self.yamboargs = args

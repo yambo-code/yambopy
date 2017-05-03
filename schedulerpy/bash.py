@@ -9,7 +9,7 @@ from schedulerpy import *
 
 class Bash(Scheduler):
     """
-    Class to submit jobs using bash
+    Class to submit jobs using BASH
     """
     _vardict = {"cores":"core",
                 "nodes":"nodes"}

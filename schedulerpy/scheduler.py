@@ -10,36 +10,30 @@ from abc import ABCMeta, abstractmethod
 from textwrap import dedent
 from copy import deepcopy
 import os
-#
+
+
 class Scheduler():
     """
     Generic scheduler class
-    This class handles allows to run different applications in different environments
-    
-    Currently available options are:
-
-    * bash - Execute the job in the bash
-    * oar  - Use the OAR scheduler
-    * pbs  - Use the PBS scheduler
 
     Initialize the class, by default we look for a config file in `~/.yambopy/config.json`
 
     This file has the following information:
       
-    ```json
-    {
-        "default": "oar <or> bash <or> pbs",
-        "oar <or> bash <or> pbs": 
-        {
-            "mpirun": "<mpirun command>",
-            "modules": {"<module tag>":"<module name>"},
-            "pre_run": ["line1 to execute before the run",
-                        "line2 to execute before the run"],
-            "pos_run": "file:<file_in_config_folder>",
-            "<tag>":"<value>"
-        }
-    }
-    ```
+        .. code-block:: javascript
+
+            {
+                "default": "oar <or> bash <or> pbs",
+                "oar <or> bash <or> pbs":
+                {
+                    "mpirun": "<mpirun command>",
+                    "modules": {"<module tag>":"<module name>"},
+                    "pre_run": ["line1 to execute before the run",
+                                "line2 to execute before the run"],
+                    "pos_run": "file:<file_in_config_folder>",
+                    "<tag>":"<value>"
+                }
+            }
 
     The "default" tag chooses the scheduler to use when no scheduler is 
     specified by the user.

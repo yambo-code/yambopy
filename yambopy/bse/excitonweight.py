@@ -4,10 +4,14 @@
 # This file is part of the yambopy project
 #
 from yambopy import *
-from yambopy.netcdf import *
 from itertools import product
+from netCDF4 import Dataset
 
 class YamboExcitonWeight(YamboSaveDB):
+    """
+    Class to read the excitonic weight writen by ypp
+    """
+
     def __init__(self,filename,save='SAVE',path='.'):
         #read save database
         YamboSaveDB.__init__(self,save=save)
@@ -53,6 +57,39 @@ class YamboExcitonWeight(YamboSaveDB):
         """ Calculate the weights and kpoints of the excitons
         """
         self.weights     = dict()
+
+        #first run set everything to zero
+        for line in self.excitons:
+            v,c,k,sym,w,e = line
+            self.weights[(int(k),int(sym))] = 0
+
+        #add weights
+        for line in self.excitons:
+            v,c,k,sym,w,e = line
+            self.weights[(int(k),int(sym))] += w
+
+        #rename symmetries and kpoints
+        sym = self.sym_car
+        kpoints = self.kpts_car
+
+        qpts     = []
+        kidx     = []
+        weights  = []
+
+        for r in product(repx,repy,repz):
+          for k,s in self.weights.keys():
+            w   = self.weights[(k,s)]
+            weights.append( w )
+            qpt = np.dot(sym[s-1],kpoints[k-1])+red_car([r],self.rlat)[0]
+            qpts.append( qpt )
+            kidx.append( k )
+
+        return np.array(qpts), np.array(weights)
+
+    def calc_kpts_transitions(self,repx=range(-1,2),repy=range(-1,2),repz=range(-1,2)):
+        """ Calculate the transitions and kpoints of the excitons
+        """
+        self.weights     = dict()
         self.transitions = dict()
         self.transitions_v_to_c = dict()
 
@@ -67,6 +104,10 @@ class YamboExcitonWeight(YamboSaveDB):
         for line in self.excitons:
             v,c,k,sym,w,e = line
             self.weights[(int(k),int(sym))] += w
+
+        #add transitions
+        for line in self.excitons:
+            v,c,k,sym,w,e = line
             self.transitions[(int(v),int(c),int(k),int(sym))] += w
 
         #add percentage of a given v => c transition
@@ -83,13 +124,10 @@ class YamboExcitonWeight(YamboSaveDB):
 
         qpts     = []
         kidx     = []
-        weights  = []
         t_v_c    = []
 
         for r in product(repx,repy,repz):
           for k,s in self.weights.keys():
-            w   = self.weights[(k,s)]
-            weights.append( w )
             qpt = np.dot(sym[s-1],kpoints[k-1])+red_car([r],self.rlat)[0]
             qpts.append( qpt )
             kidx.append( k )
@@ -103,7 +141,7 @@ class YamboExcitonWeight(YamboSaveDB):
               aux.append(self.transitions[(v_ref,c_ref,k,s)])
           t_v_c.append(np.array(aux)) 
 
-        return np.array(qpts), np.array(weights), t_v_c, np.array(kidx)
+        return np.array(qpts), t_v_c, np.array(kidx)
 
     def plot_contour(self,resX=500,resY=500):
         """ plot a contour
@@ -127,7 +165,7 @@ class YamboExcitonWeight(YamboSaveDB):
         cmap = plt.get_cmap("gist_heat_r")
 
         fig = plt.figure(figsize=(20,20))
-        kpts, weights, transitions, _ = self.calc_kpts_weights()
+        kpts, weights = self.calc_kpts_weights()
         plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in weights])
 
         plt.xlim([-lim,lim])
@@ -157,7 +195,7 @@ class YamboExcitonWeight(YamboSaveDB):
         cmap = plt.get_cmap("gist_heat_r")
 
         fig = plt.figure(figsize=(10,10))
-        kpts, weights, t_v_c, _ = self.calc_kpts_weights()
+        kpts, t_v_c, _ = self.calc_kpts_transitions()
         for individual in t_v_c:   
           plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in individual])
 
@@ -169,9 +207,9 @@ class YamboExcitonWeight(YamboSaveDB):
 
     def plot_exciton_bs(self,path,nbands='all',space='transition',color='#1f77b4'):
         """
-        Plot the excitonic weights in the band-structure
+        Plot the excitonic weights of a given transition in the band-structure
         """
-        kpts, weights, t_v_c, kidx = self.calc_kpts_weights(repx=xrange(1),repy=xrange(1),repz=xrange(1))
+        kpts, t_v_c, kidx = self.calc_kpts_transitions(repx=xrange(1),repy=xrange(1),repz=xrange(1))
         t_v_c = np.array(t_v_c)
 
         #get_path is provided by savedb
@@ -210,17 +248,6 @@ class YamboExcitonWeight(YamboSaveDB):
         s += "alat:\n"
         s += ("%12.8lf "*3)%tuple(self.alat)+"\n"
         return s
-
-    def plot_exciton_band(self,path,prefix_gw='gw',json_filename='gw'):
-        """ For each transition gives a color and plot all of them in
-        the LDA or GW band structure. For instance (v=4, c=5, red),
-        (v=4,c=6, blue). Same weight associated to valence and cond.
-        """
-        band_gw = YamboAnalyser('gw')#prefix_gw)
-        
-        bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path,json_filename)
-        print( bands_highsym_qpts ) 
-
 
 if __name__ == "__main__":
     ye = YamboExciton('o-yambo.exc_weights_at_1_02')

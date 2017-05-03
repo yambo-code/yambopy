@@ -41,7 +41,10 @@ def create_save():
         shell.add_command('cp -r database/SAVE %s/'%folder)
         shell.run()
 
-def bse_convergence(what='dielectric'):
+def bse_convergence(what='dielectric',threads=1,nohup=False):
+    if nohup: nohup = 'nohup'
+    else:     nohup = ''
+ 
     #create the yambo input file
     y = YamboIn('%s -b -o b -k sex -y d -V all'%yambo,folder=folder)
 
@@ -81,21 +84,8 @@ def bse_convergence(what='dielectric'):
         path = filename.split('.')[0]
         print(filename, path)
         shell = scheduler()        
-        shell.add_command('cd %s; yambo -F %s -J %s -C %s 2> %s.log'%(folder,filename,path,path,path))
+        shell.add_command('cd %s; %s mpirun -np %d %s -F %s -J %s -C %s 2> %s.log'%(folder,nohup,threads,yambo,filename,path,path,path))
         shell.run()
-        
-        # if the variables are not exclusive to the BSE
-        # save the dielectric screening
-        if True:
-            if any([word not in filename for word in ['FFTGvecs','NGsBlkXs','BndsRnXs']]):
-                #check if em1s was calculated
-                em1s_dir = "%s/%s"%(folder,path) 
-                em1s     = "%s/ndb.em1s"%(em1s_dir)
-                if os.path.isfile(em1s):
-                    #copy all the files
-                    files = [f for f in os.listdir(em1s_dir) if 'ndb.em1s' in f]
-                    for f in files:
-                        shutil.copy("%s/%s"%(em1s_dir,f),'%s/SAVE/'%folder)
 
     y.optimize(conv,run=run)
 
@@ -125,26 +115,54 @@ def analyse():
         a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1))
         a.write_json(path)
 
+    print( "To plot the data run:" )
+    print( "python bse_conv_bn.py -p -e" )
+    print( "python bse_conv_bn.py -p -b" )
+
+def plot(what):
     #plot the results using yambo analyser
     y = YamboAnalyser(folder)
     print(y)
-    y.plot_bse('eps')
-    print('done!')
 
+    fig = plt.figure(figsize=(10,8))
+    if what == "dielectric":
+        ax = plt.subplot(3,1,1)
+        y.plot_bse(['eps','FFTGvecs'],ax=ax)
+        ax = plt.subplot(3,1,2)
+        y.plot_bse(['eps','NGsBlkXs'],ax=ax)
+        ax = plt.subplot(3,1,3)
+        y.plot_bse(['eps','BndsRnXs'],ax=ax)
+        plt.tight_layout()
+        plt.show()
+    else:
+        ax = plt.subplot(3,1,1)
+        y.plot_bse(['eps','BSEEhEny'],ax=ax)
+        ax = plt.subplot(3,1,2)
+        y.plot_bse(['eps','BSENGBlk'],ax=ax)
+        ax = plt.subplot(3,1,3)
+        y.plot_bse(['eps','BSENGexx'],ax=ax)
+        plt.tight_layout()
+        plt.show()
+    print('done!')
 
 if __name__ == "__main__":
     #parse options
     parser = argparse.ArgumentParser(description='Test the yambopy script.')
-    parser.add_argument('-r', '--run',        action="store_true",  help='run BSE convergence calculation')
-    parser.add_argument('-a', '--analyse',    action="store_true",  help='plot the results')
-    parser.add_argument('-e', '--epsilon',    action="store_true",  help='converge epsilon parameters')
-    parser.add_argument('-b', '--bse',        action="store_true",  help='converge bse parameters')
-    parser.add_argument('-f', '--folder',     default="bse_run",    help='choose folder to put the results')
-    parser.add_argument('-p', '--p2y',        default="store_true", help='p2y executable')
-    parser.add_argument('-y', '--yambo',      default="store_true", help='yambo executable')
+    parser.add_argument('-r', '--run',     action="store_true",  help='run BSE convergence calculation')
+    parser.add_argument('-a', '--analyse', action="store_true",  help='plot the results')
+    parser.add_argument('-p', '--plot',    action="store_true",  help='plot the results')
+    parser.add_argument('-e', '--epsilon', action="store_true",  help='converge epsilon parameters')
+    parser.add_argument('-b', '--bse',     action="store_true",  help='converge bse parameters')
+    parser.add_argument('-u', '--nohup',   action="store_true",  help='run the commands with nohup')
+    parser.add_argument('-f', '--folder',  default="bse_run",    help='choose folder to put the results')
+    parser.add_argument('-t', '--threads', default=4, type=int,  help='number of threads to use')
+    parser.add_argument('--p2y',     default="store_true", help='p2y executable')
+    parser.add_argument('--yambo',   default="store_true", help='yambo executable')
 
     args = parser.parse_args()
     folder = args.folder
+    threads = args.threads
+    nohup = args.nohup
 
     if len(sys.argv)==1:
         parser.print_help()
@@ -156,5 +174,6 @@ if __name__ == "__main__":
         what = 'dielectric'
 
     create_save()
-    if args.run:     bse_convergence(what=what)
+    if args.run:     bse_convergence(what=what,threads=threads,nohup=nohup)
     if args.analyse: analyse()
+    if args.plot:    plot(what)

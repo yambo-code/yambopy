@@ -13,6 +13,8 @@ yambopy documentation
    features
    install
    quickstart
+   qepy
+   yambopy
    scheduler
    tutorial
    autodoc

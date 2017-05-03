@@ -1,24 +1,46 @@
-Classes
+Modules
 =======
 
 yambopy
 ---------
 .. automodule:: yambopy
+.. autoclass:: YamboAnalyser
+
+io
+~~~
 .. autoclass:: YamboIn
 .. autoclass:: YamboOut
-.. autoclass:: YamboAnalyser
+
+dbs
+~~~~~
+.. autoclass:: YamboSaveDB
+.. autoclass:: YamboLatticeDB
+.. autoclass:: YamboDipolesDB
+.. autoclass:: YamboQPDB
+.. autoclass:: YamboGreenDB
+.. autoclass:: YamboElectronsDB
+.. autoclass:: YamboStaticScreeningDB
+
+bse
+~~~~
+.. autoclass:: YamboBSEAbsorptionSpectra
+.. autoclass:: YamboExcitonWeight
+.. autoclass:: YamboExcitonWaveFunctionXSF
 
 qepy
 ---------
 .. automodule:: qepy
 .. autoclass:: PwIn
-.. autoclass:: PhIn
 .. autoclass:: PwXML
+.. autoclass:: PhIn
+.. autoclass:: DynmatIn
+.. autoclass:: ProjwfcIn
+.. autoclass:: ProjwfcXML
 
 schedulerpy
 ------------
 .. automodule:: schedulerpy
-.. autoclass:: scheduler
-.. autoclass:: bash
-.. autoclass:: pbs
-.. autoclass:: oar
+.. autoclass:: Scheduler
+.. autoclass:: Bash
+.. autoclass:: Pbs
+.. autoclass:: Oar
