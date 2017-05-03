@@ -50,17 +50,8 @@ class YamboOut():
         self.run    = ["%s"%f for f in outdir if f[:2] == 'r-']
         self.logs   = ["/LOG/%s"%f for f in logdir]
 
-        # get data from netcdf file ndb.QP
+        # get data from netcdf file ndb.QP (not useful so far)
         netcdf_tags = ['QP']
-
-        self.netdata = {}  # read netcdf file from YamboFile
-        self.nettags = {}
-        self.netval  = {}
-        for f in outdir:
-            if os.path.isdir('%s/%s'%(folder,f)) and not 'SAVE' in f:
-                self.netdata[f] = YamboFile('ndb.QP',folder='%s/%s'%(folder,f)) 
-                self.nettags[f] = self.netdata[f].data.keys()
-                self.netval[f]  = self.netdata[f].data.values()
 
         #get data from output file
         self.get_runtime()
@@ -68,6 +59,21 @@ class YamboOut():
         self.get_inputfile()
         self.get_cell()
 
+        self.netdata = {}  # read netcdf file from YamboFile
+        self.nettags = {}
+        self.netval  = {}
+
+        nameout = self.output[0][2:-3]
+        self.netdata[nameout] = YamboFile('ndb.QP',folder=folder) 
+        self.nettags[nameout] = self.netdata[nameout].data.keys()
+        self.netval[nameout]  = self.netdata[nameout].data.values()
+
+        # Search of the ndb.QP files. I give the directory of calculations, not the jobname
+#        for f in outdir:
+#            if os.path.isdir('%s/%s'%(folder,f)) and not 'SAVE' in f:
+#                self.netdata[f] = YamboFile('ndb.QP',folder='%s/%s'%(folder,f)) 
+#                self.nettags[f] = self.netdata[f].data.keys()
+#                self.netval[f]  = self.netdata[f].data.values()
         #fix data from netcdf in suitable format (remove complex type, etc.) 
         self.set_data_netcdf()
 
@@ -257,22 +263,9 @@ class YamboOut():
                     "sym_car"  : self.sym_car,
                     "atompos"  : self.apos,
                     "atomtype" : self.atomic_number}
+        print (filename)
         filename = '%s.json'%filename
         JsonDumper(jsondata,filename)
-
-    def __str__(self):
-        s = ""
-        s+= "\nlogs:\n"
-        s+= ("%s\n"*len(self.logs))%tuple(self.logs)
-        s+= "\nrun:\n"
-        s+= ("%s\n"*len(self.run)%tuple(self.run))
-        s+= "\noutput:\n"
-        s+= ("%s\n"*len(self.output)%tuple(self.output))
-        s+= "\nlattice:\n"
-        s+= "\n".join([("%12.8lf "*3)%tuple(vec) for vec in self.lat])+"\n"
-        s+= "\natom positions:\n"
-        s+= "\n".join(["%3d "%self.atomic_number[n]+("%12.8lf "*3)%tuple(vec) for n,vec in enumerate(self.apos)])+"\n"
-        return s
 
     def pack_from_netcdf(self,filename=None):
         """
@@ -306,5 +299,4 @@ class YamboOut():
         s+= "\natom positions:\n"
         s+= "\n".join(["%3d "%self.atomic_number[n]+("%12.8lf "*3)%tuple(vec) for n,vec in enumerate(self.apos)])+"\n"
         return s
-
 

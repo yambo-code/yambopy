@@ -23,7 +23,7 @@ def pack_files_in_folder(folder,save_folder=None,mask='',verbose=True):
             if ([ f for f in filenames if 'o-' in f ]):
                 print dirpath
                 y = YamboOut(dirpath,save_folder=save_folder)
-                y.pack()
+                y.pack_from_netcdf()
 
 #
 # by Alejandro Molina-Sanchez
@@ -104,7 +104,8 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
     unit = invars[keys[0]]['variables'][var][1]
 
     # The following variables are used to make the script compatible with both short and extended output
-    kpindex = tags[keys[0]].tolist().index('K-point')
+    #kpindex = tags[keys[0]].tolist().index('K-point')
+    kpindex = tags[keys[0]].tolist().index('Kpoint_index') # netcdf from json
     bdindex = tags[keys[0]].tolist().index('Band')
     e0index = tags[keys[0]].tolist().index('Eo')
     gwindex = tags[keys[0]].tolist().index('E-Eo')
@@ -125,6 +126,8 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         # First the relevant lines are identified
         valence=[]
         conduction=[]
+        print (outvars)
+        exit()
         for j in range(len(outvars[key]+1)):
             if outvars[key][j][kpindex]==kpointc and outvars[key][j][bdindex]==bandc:
                     conduction=outvars[key][j]
