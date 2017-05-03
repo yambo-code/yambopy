@@ -42,99 +42,102 @@ if nbv+nbc != nbands:
 ##################
 # ENERGY DISTRIB #
 ##################
-#
-## Sort the (n,k) pairs between positive and negative energies
-#i=0;j=0
-#list_e=[] ; list_h=[]
-#for k in range(yrt.nkpoints):
-#    for n in range(yrt.nbands):
-#        e = yrt.eigenvalues[k,n]
-#        if e<=0.0:
-#            list_h.append((k,n))
-#        else:
-#            list_e.append((k,n))
-#
-#
-## Build the occupation tables occ_x[t,(nk)_index,(e|occ)]
-#
-#occ_e = np.zeros((len(times),len(list_e),2))
-#for t in range(len(times)):
-#    for i,(k,n) in enumerate(list_e):
-#        occ_e[t,i,0]=yrt.eigenvalues[k,n]
-#        occ_e[t,i,1]=yrt.occupations[t,k,n]
-#
-#occ_h = np.zeros((len(times),len(list_h),2))
-#for t in range(len(times)):
-#    for i,(k,n) in enumerate(list_h):
-#        occ_h[t,i,0]=yrt.eigenvalues[k,n]
-#        occ_h[t,i,1]=yrt.occupations[t,k,n]
-#
-#
-## *(-1) on holes to fit the same way as electrons
-#occ_h *= -1
-#
-#def fermi_dirac(E,a,T): # declare E first for fit
-#    return 1/(1+np.exp((E-a)/T))
-#
-#eVtoK=11599
-## TODO : check if degen is summed or not (looks like it when comparing to YPP)
-## TODO : print the error on the fit somewhere ? (especially bad at early times)
-#
-#for i,t in enumerate(times):
-#    print times[i]
-#    # temperature is in fit[0]*eVtoK
-#
-#
-### Rotated version
-#    f, (ax, ax2) = plt.subplots(2, 1, sharex=True)
-#    f.suptitle('Occupation of the bands and fit to the Fermi-Dirac distribution')
-#    ax.set_ylabel('Electrons')
-#    ax2.set_ylabel('Holes')
-#    f.text(0.98,0.5,'Energy (eV)',rotation='vertical')
-#
-## Make the spacing between the two axes a bit smaller
-#    plt.subplots_adjust(wspace=0.1)
-#
-## plot the same data on both axes
-#    try: # does not break if fit is not found
-#        fit,cov = curve_fit(fermi_dirac,occ_e[i,:,0],occ_e[i,:,1])
-#    except RuntimeError:
-#        fit=np.array([0,0])
-#
-#    ax.scatter(occ_e[i,:,1],occ_e[i,:,0],color='black')
-#    ax.plot(fermi_dirac(occ_e[i,:,0],fit[0],fit[1]),occ_e[i,:,0],'r+')
-#    ax.text(0.75,0.8,'Fitted T: %d K'%(fit[1]*eVtoK),transform=ax.transAxes)
-#
-#    try:
-#        fit,cov = curve_fit(fermi_dirac,occ_h[i,:,0],occ_h[i,:,1])
-#    except RuntimeError:
-#        fit=np.array([0,0])
-#
-#    ax2.scatter(occ_h[i,:,1],-occ_h[i,:,0],color='black')
-#    ax2.plot(fermi_dirac(occ_h[i,:,0],fit[0],fit[1]),-occ_h[i,:,0],'g+')
-#    ax2.text(0.75,0.2,'Fitted T: %d K'%(fit[1]*eVtoK),transform=ax2.transAxes)
-#
-## zoom-in / limit the view to different portions of the data
-#    ax.set_ylim(min(occ_e[i,:,0])-0.1,max(occ_e[i,:,0])+0.1)
-#    ax2.set_ylim(min(-occ_h[i,:,0])-0.1,max(-occ_h[i,:,0])+0.1)
-#
-#    ax2.set_xlim(-0.1*max_occ,1.1*max_occ)
-#    ax.set_xlim(-0.1*max_occ,1.1*max_occ)
-#
-## hide the spines between ax and ax2, hide some ticks/labels
-#    ax.yaxis.tick_right()
-#    ax.spines['bottom'].set_visible(False)
-#    ax.xaxis.tick_top()
-#    ax.tick_params(labeltop='off')  # don't put tick labels at the top
-#
-#    ax2.yaxis.tick_right()
-#    ax2.xaxis.tick_top()
-#    ax2.tick_params(labeltop='off') # don't put tick labels at the top
-#    ax2.spines['top'].set_visible(False)
-#
-#    plt.show()
-#
-#exit()
+
+# Sort the (n,k) pairs between positive and negative energies
+i=0;j=0
+list_e=[] ; list_h=[]
+for k in range(yrt.nkpoints):
+    for n in range(yrt.nbands):
+        e = yrt.eigenvalues[k,n]
+        if e<=0.0:
+            list_h.append((k,n))
+        else:
+            list_e.append((k,n))
+
+
+# Build the occupation tables occ_x[t,(nk)_index,(e|occ)]
+
+occ_e = np.zeros((len(times),len(list_e),2))
+for t in range(len(times)):
+    for i,(k,n) in enumerate(list_e):
+        occ_e[t,i,0]=yrt.eigenvalues[k,n]
+        occ_e[t,i,1]=yrt.occupations[t,k,n]
+
+occ_h = np.zeros((len(times),len(list_h),2))
+for t in range(len(times)):
+    for i,(k,n) in enumerate(list_h):
+        occ_h[t,i,0]=yrt.eigenvalues[k,n]
+        occ_h[t,i,1]=yrt.occupations[t,k,n]
+
+
+
+
+# *(-1) on holes to fit the same way as electrons
+occ_h *= -1
+
+# xeng is an array of values to plot the fit properly
+xeng = np.linspace(np.amin(eigenvalues[:,list(range(nbv))]), np.amax(eigenvalues[:,list(range(nbv,nbands))]),1000)
+
+def fermi_dirac(E,a,T): # declare E first for fit
+    return 1/(1+np.exp((E-a)/T))
+
+KtoeV = 8.61733e-5
+# TODO : print the error on the fit somewhere ? (especially bad at early times)
+
+for i,t in enumerate(times):
+    print times[i]
+    # temperature is in fit[0]/KtoeV
+
+
+## Rotated version
+    f, (ax, ax2) = plt.subplots(2, 1, sharex=True)
+    f.suptitle('Occupation of the bands and fit to the Fermi-Dirac distribution')
+    ax.set_ylabel('Electrons')
+    ax2.set_ylabel('Holes')
+    f.text(0.98,0.5,'Energy (eV)',rotation='vertical')
+
+# Make the spacing between the two axes a bit smaller
+    plt.subplots_adjust(wspace=0.1)
+
+# plot the same data on both axes
+    try: # does not break if fit is not found
+        fit,cov = curve_fit(fermi_dirac,occ_e[i,:,0],occ_e[i,:,1])
+    except RuntimeError:
+        fit=np.array([0,0])
+
+    ax.scatter(occ_e[i,:,1],occ_e[i,:,0],color='black')
+    ax.plot(fermi_dirac(xeng,fit[0],fit[1]),xeng,'r-')
+    ax.text(0.75,0.8,'Fitted T: %d K'%(fit[1]/KtoeV),transform=ax.transAxes)
+
+    try:
+        fit,cov = curve_fit(fermi_dirac,occ_h[i,:,0],occ_h[i,:,1])
+    except RuntimeError:
+        fit=np.array([0,0])
+
+    ax2.scatter(occ_h[i,:,1],-occ_h[i,:,0],color='black')
+    ax2.plot(fermi_dirac(xeng,fit[0],fit[1]),-xeng,'b-')
+    ax2.text(0.75,0.2,'Fitted T: %d K'%(fit[1]/KtoeV),transform=ax2.transAxes)
+
+# zoom-in / limit the view to different portions of the data
+    ax.set_ylim(min(occ_e[i,:,0])-0.1,max(occ_e[i,:,0])+0.1)
+    ax2.set_ylim(min(-occ_h[i,:,0])-0.1,max(-occ_h[i,:,0])+0.1)
+
+    ax2.set_xlim(-0.1*max_occ,1.1*max_occ)
+    ax.set_xlim(-0.1*max_occ,1.1*max_occ)
+
+# hide the spines between ax and ax2, hide some ticks/labels
+    ax.yaxis.tick_right()
+    ax.spines['bottom'].set_visible(False)
+    ax.xaxis.tick_top()
+    ax.tick_params(labeltop='off')  # don't put tick labels at the top
+
+    ax2.yaxis.tick_right()
+    ax2.xaxis.tick_top()
+    ax2.tick_params(labeltop='off')
+    ax2.spines['top'].set_visible(False)
+
+    plt.show()
+
 
 
 #################
@@ -198,7 +201,7 @@ for t in range(len(times)):
     plt.bar(xocc,occ_c[t,:,nbc],width=0.2,bottom=eigenvalues[:,nbands-1]+0.1,color='red',edgecolor='none')
 
     plt.ylabel('E (eV)')
-    plt.text(0.50,0.5, '%d fs'%times[t])
+    plt.text(0.10,0.05, '%d fs'%times[t],size=16,transform=ax1.transAxes)
 
 
     ax2 = plt.subplot(gs[-1, :])
