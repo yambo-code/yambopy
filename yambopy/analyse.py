@@ -250,23 +250,28 @@ class YamboAnalyser():
         if we want to plot the bandstructure we have to plot in the same k-point
         the values of the required column for the different bands
         """
-
         data = np.array( self.jsonfiles[json_filename]["data"][output_filename] )
+        print (data)
         # first we get the number of bands to plot
-        bands = data[:,1]
+        #bands = data[:,1]
+        bands = data[:,4] # new format
+        print (bands)
         bmin, bmax = int(min(bands)), int(max(bands))
 
         bands_cols = []
         for col in cols:
             #get x
-            kpoint_index = data[data[:,1]==bmin,0]
+            #kpoint_index = data[data[:,1]==bmin,0]
+            kpoint_index = data[data[:,4]==bmin,0]  # new format
 
             #get the y's
             #to choose what to plot we can have either a function or an index
             if hasattr(col, '__call__'):
-                bands = np.array([[ col(c) for c in data[data[:,1]==b,:] ] for b in xrange(bmin,bmax+1)])
+                #bands = np.array([[ col(c) for c in data[data[:,1]==b,:] ] for b in xrange(bmin,bmax+1)])
+                bands = np.array([[ col(c) for c in data[data[:,4]==b,:] ] for b in xrange(bmin,bmax+1)]) # new format
             elif isinstance( col, int ):
-                bands = np.array([ data[data[:,1]==b,col] for b in xrange(bmin,bmax+1) ])
+                #bands = np.array([ data[data[:,1]==b,col] for b in xrange(bmin,bmax+1) ])
+                bands = np.array([ data[data[:,4]==b,col] for b in xrange(bmin,bmax+1) ]) # new format
             else:
                 raise ValueError( "The col datatype: %s is not known"%str(type(col)) )
 
@@ -274,6 +279,7 @@ class YamboAnalyser():
             if rows:
                 bands = [ row(bands) for row in rows ]
             bands_cols.append(bands)
+        print ( kpoint_index, bands_cols )
         return kpoint_index, bands_cols
 
     def plot_qp_correction(self,tags=('qp',),lda=2,qp=3):
@@ -320,20 +326,22 @@ class YamboAnalyser():
         ax = plt.subplot(111)
         colors = self.get_colors(tags)
         if type(tags) == str: tags = (tags,)
-
         n=0
         for json_filename in sorted(self.jsonfiles.keys()):
-            for output_filename in self.jsonfiles[json_filename]["data"]:
-                if all(i in output_filename for i in tags):
-                    data = np.array( self.jsonfiles[json_filename]["data"][output_filename] )
+            #for output_filename in self.jsonfiles[json_filename]["data"]:
+                #if all(i in output_filename for i in tags):
+                    #data = np.array( self.jsonfiles[json_filename]["data"][output_filename] )
+                    data = np.array( self.jsonfiles[json_filename]["data"][json_filename[:-5]] )
+                    #exit() 
 
-                    kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
-
+                    #kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
+                    kpoint_index, bands_cols = self.get_gw_bands(json_filename,json_filename[:-5],cols=cols,rows=rows)
                     #plot
                     for bands in bands_cols:
-                        label = output_filename
+                        #label = output_filename
+                        label = json_filename[:-5]
                         for band in bands:
-                            ax.plot(kpoint_index,band,'-',label=label,color=colors[n])
+                            ax.plot(kpoint_index,band,'-',label=label)#,color=colors[n])
                             label = None
                     plot = True
                     n+=1

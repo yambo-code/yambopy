@@ -63,11 +63,13 @@ class YamboOut():
         self.nettags = {}
         self.netval  = {}
 
-        # get output name, open netcdf file
-        nameout = self.output[0][2:-3]
-        self.netdata[nameout] = YamboFile('ndb.QP',folder=folder) 
-        self.nettags[nameout] = self.netdata[nameout].data.keys()
-        self.netval[nameout]  = self.netdata[nameout].data.values()
+        # get output name, open netcdf file (only if QP file exists)
+        if os.path.exists('%s/ndb.QP' % folder):
+          nameout = self.output[0][2:-3]
+          self.netdata[nameout] = YamboFile('ndb.QP',folder=folder) 
+          self.nettags[nameout] = self.netdata[nameout].data.keys()
+          self.netval[nameout]  = self.netdata[nameout].data.values()
+          self.set_data_netcdf(nameout)
 
         # Search of the ndb.QP files. I give the directory of calculations, not the jobname
 #        for f in outdir:
@@ -78,7 +80,6 @@ class YamboOut():
         #fix data from netcdf in suitable format (remove complex type, etc.) 
 
         # Read data from netcdf file
-        self.set_data_netcdf(nameout)
 
     def get_cell(self):
         """ 

@@ -8,11 +8,32 @@ from yambopy import *
 import os
 
 #
-# by Henrique Miranda
+# by Henrique Miranda. 
 #
 def pack_files_in_folder(folder,save_folder=None,mask='',verbose=True):
     """
     Pack the output files in a folder to json files
+    """
+    if not save_folder: save_folder = folder
+    #pack the files in .json files
+    for dirpath,dirnames,filenames in os.walk(folder):
+        #check if the folder fits the mask
+        if mask in dirpath:
+            #check if there are some output files in the folder
+            if ([ f for f in filenames if 'o-' in f ]):
+                print dirpath
+                y = YamboOut(dirpath,save_folder=save_folder)
+                if os.path.exists('%s/ndb.QP' % dirpath):
+                  y.pack_from_netcdf()
+                else:
+                  y.pack()
+#
+# Developing version for packing many netcdf files. Alejandro Molina-Sanchez. 
+#
+
+def pack_netcdf_files_in_folder(folder,save_folder=None,mask='',verbose=True):
+    """
+    Pack the netcdf files in a folder to json files
     """
     if not save_folder: save_folder = folder
     #pack the files in .json files
@@ -80,7 +101,6 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
     # extract data according to relevant variable
     outvars = data.get_data(var)
     invars = data.get_inputfiles_tag(var)
-    print (invars)
     tags = data.get_tags(var)
 
     # Get only files related to the convergence study of the variable,
@@ -126,7 +146,6 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         valence=[]
         conduction=[]
         for j in range(len(outvars[key]+1)):
-            print(outvars[key][j][kpindex])
             if outvars[key][j][kpindex]==kpointc and outvars[key][j][bdindex]==bandc:
                conduction=outvars[key][j]
             elif outvars[key][j][kpindex]==kpointv and outvars[key][j][bdindex]==bandv:
