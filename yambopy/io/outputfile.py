@@ -63,6 +63,7 @@ class YamboOut():
         self.nettags = {}
         self.netval  = {}
 
+        # get output name, open netcdf file
         nameout = self.output[0][2:-3]
         self.netdata[nameout] = YamboFile('ndb.QP',folder=folder) 
         self.nettags[nameout] = self.netdata[nameout].data.keys()
@@ -75,7 +76,9 @@ class YamboOut():
 #                self.nettags[f] = self.netdata[f].data.keys()
 #                self.netval[f]  = self.netdata[f].data.values()
         #fix data from netcdf in suitable format (remove complex type, etc.) 
-        self.set_data_netcdf()
+
+        # Read data from netcdf file
+        self.set_data_netcdf(nameout)
 
     def get_cell(self):
         """ 
@@ -119,49 +122,57 @@ class YamboOut():
         for f in files: f.close()
         return self.data
 
-    def set_data_netcdf(self):
+    def set_data_netcdf(self,nameout):
 
-        test = []
-        
         self.dictag = {}
         self.dicnet = {}
         self.newtag = []
-        self.newval = []
 
-        for d in self.netval.values():
-            aux = []
-            for e in d:
-                aux.append(e[0].tolist())
-            test.append(aux)
+        val_aux = []
 
-        for j,item in enumerate(self.nettags.keys()):
-            for i,val in enumerate(self.nettags[item]):
-                if val == 'Eo':
-                  self.newtag.append(val)
-                  self.newval.append(test[j][i].real)
-                elif val == 'E':
-                  self.newtag.append(val)
-                  self.newval.append(test[j][i].real)
-                  self.newtag.append('Width[meV]')
-                  self.newval.append(test[j][i].imag*1000.0)
-                elif val == 'E-Eo':
-                  self.newtag.append(val)
-                  self.newval.append(test[j][i].real)
-                elif val == 'Z':
-                  self.newtag.append('Z(Re)')
-                  self.newval.append(test[j][i].real)
-                  self.newtag.append('Z(Im)')
-                  self.newval.append(test[j][i].real)
-                elif val == 'qp_table':
-                  pass
-                elif val == 'Kpoint':
-                  pass
-                else:
-                  self.newtag.append(val)
-                  self.newval.append(test[j][i])
+        for word in self.netdata[nameout].data.keys():
+            if word == 'Eo':
+              self.newtag.append(word)
+              val_aux.append( self.netdata[nameout].data[word].real.tolist() ) 
+            elif word == 'E':
+              self.newtag.append(word)
+              val_aux.append( self.netdata[nameout].data[word].real.tolist() ) 
+              self.newtag.append('Width[eV]')
+              val_aux.append( self.netdata[nameout].data[word].imag.tolist() ) 
+            elif word == 'qp_table':
+              pass
+            elif word == 'E-Eo':
+              self.newtag.append(word)
+              val_aux.append( self.netdata[nameout].data[word].real.tolist() )
+            elif word == 'Band':
+              self.newtag.append(word)
+              val_aux.append( self.netdata[nameout].data[word].tolist())
+            elif word == 'Kpoint_index':
+              self.newtag.append(word)
+              val_aux.append( self.netdata[nameout].data[word].tolist())
+            elif word == 'Kpoint':
+              pass
+            elif word == 'Z':
+              self.newtag.append('Z(Re)')
+              val_aux.append( self.netdata[nameout].data[word].real.tolist() )
+              self.newtag.append('Z(Im)')
+              val_aux.append( self.netdata[nameout].data[word].imag.tolist() )
 
-            self.dictag[item] = self.newtag
-            self.dicnet[item] = self.newval
+        # Order elements in a list of variables for each QP states (probably there is a better way)
+
+        n_var = len(val_aux)
+        n_qp  = len(val_aux[0])
+        aux2 = []
+        for i in range(n_qp):
+          aux = []
+          for j in range(n_var):
+            aux.append( val_aux[j][i]  )
+          aux2.append(aux)
+
+        # Create a dictionary for tags and another for data
+
+        self.dictag[nameout] = self.newtag
+        self.dicnet[nameout] = aux2 
 
     def get_inputfile(self):
         """
@@ -273,7 +284,7 @@ class YamboOut():
         """
         #if no filename is specified we use the same name as the folder
         if not filename: filename = self.folder
-        jsondata = {"data"     : dict(zip(self.dicnet.keys(),[self.dicnet])),
+        jsondata = {"data"     : dict(zip(self.dicnet.keys(),self.dicnet.values())),
                     "tags"     : self.dictag,
                     "runtime"  : self.runtime,
                     "inputfile": self.inputfile,

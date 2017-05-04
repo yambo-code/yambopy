@@ -76,7 +76,8 @@ print 'Preparing output...'
 unit = invars[keys[0]]['variables'][var][1]
 
 # The following variables are used to make the script compatible with both short and extended output
-kpindex = tags[keys[0]].tolist().index('K-point')
+#kpindex = tags[keys[0]].tolist().index('K-point')
+kpindex = tags[keys[0]].tolist().index('Kpoint_index')  # Alejandro
 bdindex = tags[keys[0]].tolist().index('Band')
 e0index = tags[keys[0]].tolist().index('Eo')
 gwindex = tags[keys[0]].tolist().index('E-Eo')

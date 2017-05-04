@@ -80,6 +80,7 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
     # extract data according to relevant variable
     outvars = data.get_data(var)
     invars = data.get_inputfiles_tag(var)
+    print (invars)
     tags = data.get_tags(var)
 
     # Get only files related to the convergence study of the variable,
@@ -109,8 +110,6 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
     bdindex = tags[keys[0]].tolist().index('Band')
     e0index = tags[keys[0]].tolist().index('Eo')
     gwindex = tags[keys[0]].tolist().index('E-Eo')
-
-
     array = np.zeros((len(keys),2))
 
     for i,key in enumerate(keys):
@@ -126,11 +125,10 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         # First the relevant lines are identified
         valence=[]
         conduction=[]
-        print (outvars)
-        exit()
         for j in range(len(outvars[key]+1)):
+            print(outvars[key][j][kpindex])
             if outvars[key][j][kpindex]==kpointc and outvars[key][j][bdindex]==bandc:
-                    conduction=outvars[key][j]
+               conduction=outvars[key][j]
             elif outvars[key][j][kpindex]==kpointv and outvars[key][j][bdindex]==bandv:
                     valence = outvars[key][j]
         # Then the gap can be calculated
