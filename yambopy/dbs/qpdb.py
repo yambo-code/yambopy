@@ -5,19 +5,23 @@
 #
 from yambopy import *
 from yamboparser import *
+import os
 
 class YamboQPDB():
     """
     Class to read yambo ndb.QP files
-    
+
     These files describe the quasiparticle states calculated from yambo
     Includes the quasi-particl energies, the lifetimes and the Z factors
     """
     def __init__(self,filename='ndb.QP',folder='.'):
         """
-        Read a QP file using the yamboparser 
+        Read a QP file using the yamboparser
         """
-        self.yfile = YamboFile('%s/%s' %(folder,filename))
+        if os.path.isfile('%s/%s'%(folder,filename)):
+            self.yfile = YamboFile(filename,folder)
+        else:
+            raise ValueError('File %s/%s not found'%(folder,filename))
 
         qps = self.yfile.data
         self.qps   = qps
@@ -50,8 +54,8 @@ class YamboQPDB():
 
         qps  = self.qps
         kpts = self.kpoints
-        
-        #start arrays 
+
+        #start arrays
         eigenvalues_lda = np.zeros([nkpts,nbands])
         eigenvalues_qp  = np.zeros([nkpts,nbands])
         lifetimes       = np.zeros([nkpts,nbands])
@@ -73,5 +77,5 @@ class YamboQPDB():
         s += "nqps:     %d\n"%self.nqps
         s += "nkpoints: %d\n"%self.nkpoints
         s += "nbands:   %d\n"%self.nbands
-        return s        
-        
+        return s
+
