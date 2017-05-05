@@ -149,7 +149,7 @@ class YamboStaticScreeningDB():
             volume   -> Normalize with the volume of the cell
         """
         x = [np.linalg.norm(q) for q in self.qpoints]
-        y = [np.linalg.inv(1+xq)[0,0] for xq in self.X ]
+        y = [np.linalg.inv(np.eye(self.ngvectors)+xq)[0,0] for xq in self.X ]
       
         #order according to the distance
         x, y = zip(*sorted(zip(x, y)))
@@ -194,7 +194,7 @@ class YamboStaticScreeningDB():
         func -> Function to apply to the dielectric function
         """
 
-        #get vX
+        #get vX_{00}
         x,vX = self._getvxq(volume=volume)
     
         #when plotting we apply a funciton to epsilon to represent it, by default the |x|

@@ -48,10 +48,12 @@ def bse_convergence(what='dielectric',threads=1,nohup=False):
     #create the yambo input file
     y = YamboIn('%s -b -o b -k sex -y d -V all'%yambo,folder=folder)
 
-    #common variables
+    #default variables
     y['BSEBands'] = [4,5]
     y['BEnSteps'] = 500
+    y['BSEEhEny'] = [[1.0,10.0],'eV']
     y['BEnRange'] = [[2.0,12.0],'eV']
+    y['BSENGexx'] = [10,'Ry']
     y['KfnQP_E']  = [2.91355133,1.0,1.0] #some scissor shift
     y['DBsIOoff'] = 'BS' #turn off writting BSE hamiltonian DB (better performance)
 
@@ -84,8 +86,11 @@ def bse_convergence(what='dielectric',threads=1,nohup=False):
         path = filename.split('.')[0]
         print(filename, path)
         shell = scheduler()        
-        shell.add_command('cd %s; %s mpirun -np %d %s -F %s -J %s -C %s 2> %s.log'%(folder,nohup,threads,yambo,filename,path,path,path))
-        shell.run()
+        shell.add_command('cd %s'%folder)
+        shell.add_command('%s mpirun -np %d %s -F %s -J %s -C %s 2> %s.log'%(nohup,threads,yambo,filename,path,path,path))
+        shell.add_command('touch %s/done'%path)
+        if not os.path.isfile("%s/%s/done"%(folder,path)):
+            shell.run()
 
     y.optimize(conv,run=run)
 
@@ -154,8 +159,8 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--epsilon', action="store_true",  help='converge epsilon parameters')
     parser.add_argument('-b', '--bse',     action="store_true",  help='converge bse parameters')
     parser.add_argument('-u', '--nohup',   action="store_true",  help='run the commands with nohup')
-    parser.add_argument('-f', '--folder',  default="bse_run",    help='choose folder to put the results')
-    parser.add_argument('-t', '--threads', default=4, type=int,  help='number of threads to use')
+    parser.add_argument('-f', '--folder',  default="bse_conv",    help='choose folder to put the results')
+    parser.add_argument('-t', '--threads', default=1, type=int,  help='number of threads to use')
     parser.add_argument('--p2y',     default="store_true", help='p2y executable')
     parser.add_argument('--yambo',   default="store_true", help='yambo executable')
 

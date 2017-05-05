@@ -178,11 +178,6 @@ class YamboAnalyser():
                     plot = True
                     n+=1
 
-        for ib,bands in enumerate(bands_cols):
-          for band in bands:
-            print(bands_distances, [band[k] for k in bands_indexes])
-
-
         if plot:
             #plot high-symmetry q-points
             distance = 0

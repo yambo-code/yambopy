@@ -99,7 +99,7 @@ class PlotEm1sCmd(Cmd):
                 ys.plot(ax,marker='o',markersize=2,label=folder)
                 #get epsilon^{-1}_{00} = [1+vX]_{00}
                 x,vX = ys._getvxq()
-                epsilons.append([folder,x,1+vX])
+                epsilons.append([folder,x,np.eye(ys.ngvectors)+vX])
             else:
                 if args.verbose:
                     print "path %s is not a folder"%folder
@@ -155,8 +155,8 @@ class AnalyseGWCmd(Cmd):
         #all the other arguments are passed to the merge_qp function
 
         parser = argparse.ArgumentParser(description='Study GW convergence with regards to the band-gap value.')
-        pa = parser.add_arguments
-        pa('folder'            , help='Folder containing SAVE and convergence runs.',nargs='+')
+        pa = parser.add_argument
+        pa('folder'            , help='Folder containing SAVE and convergence runs.')
         pa('variable'          , help='Variable tested (e.g. FFTGvecs)' )
         pa('-bc','--bandc'     , help='Lowest conduction band number'    , default=53, type=int)
         pa('-kc','--kpointc'   , help='K-point index for conduction band', default=19, type=int)
