@@ -4,7 +4,6 @@
 # This file is part of the yambopy project
 #
 from yambopy import *
-from yambopy.netcdf import *
 from cmath import polar 
 from yambopy.units import *
 from itertools import product
