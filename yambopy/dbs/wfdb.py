@@ -64,7 +64,7 @@ class YamboWFDB():
 
         return gvecs
 
-   def write(self,path):
+    def write(self,path):
         """
         write the wavefunctions in new files
         """
@@ -99,4 +99,4 @@ class YamboWFDB():
 
 
 if __name__ == "__main__":
-    ywf = YamboWF(path='database')
+    ywf = YamboWFDB(path='database')
