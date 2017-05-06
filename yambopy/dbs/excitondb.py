@@ -108,13 +108,13 @@ class YamboExcitonDB(YamboSaveDB):
         weights = np.zeros(energies.shape)
         for exciton in excitons:
             #get the eigenstate
-            eivec = self.eigenvectors[exciton]
+            eivec = self.eigenvectors[exciton-1]
 
             for t,transitions in self.transitions_v_to_c.items():
                 c,v = t
                 iks, ehs = transitions.T
-                weights[iks,c] += np.abs(eivec[ehs])
-                weights[iks,v] += np.abs(eivec[ehs])
+                weights[iks,c] += abs2(eivec[ehs])
+                weights[iks,v] += abs2(eivec[ehs])
 
         energies = energies[band_indexes]
         weights  = weights[band_indexes]
@@ -148,6 +148,8 @@ class YamboExcitonDB(YamboSaveDB):
             else:
                 ax.plot(bands_distances, energies[:,c]-energies[:,v], c='b')
                 ax.scatter(bands_distances, energies[:,c]-energies[:,v], s=weights[:,c]*size, c='r')
+
+        ax.set_title("exciton %d-%d"%(excitons[0],excitons[-1]))
 
     def get_amplitudes_phases(self,excitons=(0,)):
         """ get the excitonic amplitudes and phases
