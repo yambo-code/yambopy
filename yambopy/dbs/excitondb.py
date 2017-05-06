@@ -104,6 +104,12 @@ class YamboExcitonDB(YamboSaveDB):
             #exapnd eigenvalues to the bull brillouin zone
             energies = energies.eigenvalues[self.lattice.kpoints_indexes]
 
+        elif isinstance(energies,YamboQPDB):
+            #expand the quasiparticle energies to the bull brillouin zone
+            energies = energies.eigenvalues_qp[self.lattice.kpoints_indexes]
+        else:
+            raise ValueError("argument 'variables' must be an object of YamboSaveDB or YamboQPDB")
+
         #get weight of state in each band
         weights = np.zeros(energies.shape)
         for exciton in excitons:
@@ -121,7 +127,8 @@ class YamboExcitonDB(YamboSaveDB):
         
         return np.array(band_kpoints), energies, weights 
 
-    def plot_exciton_bs(self,ax,energies,path,excitons,size=500,space='bands'):
+    def plot_exciton_bs(self,ax,energies,path,excitons,size=500,space='bands',
+                        args_scatter={'c':'b'},args_plot={'c':'r'}):
         """
         Plot the excitons
         
@@ -141,10 +148,10 @@ class YamboExcitonDB(YamboSaveDB):
 
         for v,c in product(self.unique_vbands,self.unique_cbands):
             if space=='bands':
-                ax.plot(bands_distances, energies[:,c], c='b')
-                ax.plot(bands_distances, energies[:,v], c='b')
-                ax.scatter(bands_distances, energies[:,c], s=weights[:,c]*size, c='r')
-                ax.scatter(bands_distances, energies[:,v], s=weights[:,v]*size, c='r')
+                ax.plot(bands_distances, energies[:,c], **args_plot)
+                ax.plot(bands_distances, energies[:,v], **args_plot)
+                ax.scatter(bands_distances, energies[:,c], s=weights[:,c]*size, **args_scatter)
+                ax.scatter(bands_distances, energies[:,v], s=weights[:,v]*size, **args_scatter)
             else:
                 ax.plot(bands_distances, energies[:,c]-energies[:,v], c='b')
                 ax.scatter(bands_distances, energies[:,c]-energies[:,v], s=weights[:,c]*size, c='r')

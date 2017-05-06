@@ -127,12 +127,25 @@ class YamboFile():
             data['Kpoint']   = f.variables['QP_kpts'][:].T
 
             #quasi-particles
-            qp = f.variables['QP_E_Eo_Z'][:]
-            qp = qp[0]+qp[1]*1j
-            data['E'],  data['Eo'], data['Z'] = qp.T
-            data['E-Eo'] = data['E']  -  data['Eo'] 
-            self.data=data
-            f.close()
+            #old format
+            if 'QP_E_Eo_Z' in f.variables:
+                qp = f.variables['QP_E_Eo_Z'][:]
+                qp = qp[0]+qp[1]*1j
+                data['E'],  data['Eo'], data['Z'] = qp.T
+                data['E-Eo'] = data['E']  -  data['Eo'] 
+                self.data=data
+                f.close()
+            #new format
+            else:
+                E  = f.variables['QP_E'][:]
+                data['E'] = E[:,0] + E[:,1]*1j
+                Eo = f.variables['QP_Eo'][:]
+                data['Eo']= Eo
+                Z  = f.variables['QP_Z'][:]
+                data['Z'] = Z[:,0] + Z[:,1]*1j
+                data['E-Eo'] = data['E']  -  data['Eo'] 
+                self.data=data
+                f.close()
        
     def parse_netcdf_hf(self):
         """ Parse the netcdf hf file (ndb.HF_and_locXC)
