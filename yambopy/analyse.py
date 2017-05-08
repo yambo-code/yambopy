@@ -142,8 +142,9 @@ class YamboAnalyser():
         path = np.array([p[0] for p in path_label])
         labels = [p[1] for p in path_label]
         plot = False
-        colors = self.get_colors(tags)
+        #colors = self.get_colors(tags)
         lstyles = ['-', '--', '_', ':']
+        colors = ['b','r','g']
         fig = plt.figure()
         ax = plt.subplot(111)
         n=0
@@ -162,21 +163,24 @@ class YamboAnalyser():
             distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
             bands_distances.append(distance)
 
-
         #obtain the bands for the output files and plot
         for json_filename in self.jsonfiles.keys():
             for output_filename in self.jsonfiles[json_filename]['data']:
-                if all(i in output_filename for i in tags):
-                    kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
-
-                    #plot
-                    for ib,bands in enumerate(bands_cols):
-                        label = output_filename
-                        for band in bands:
-                            plt.plot(bands_distances,[band[k] for k in bands_indexes],linestyle=lstyles[ib%len(lstyles)],label=label,color=colors[n])
-                            label=None
-                    plot = True
-                    n+=1
+                print('json filename')
+                print(json_filename)
+                print('output_filename')
+                print(output_filename)
+                #if all(i in output_filename for i in tags):
+                    #kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
+                kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename)
+                #plot
+                for ib,bands in enumerate(bands_cols):
+                    label = output_filename
+                    for band in bands:
+                        plt.plot(bands_distances,[band[k] for k in bands_indexes],linestyle=lstyles[ib%len(lstyles)],label=label,color=colors[ib])
+                        label=None
+                        plot = True
+                        n+=1
 
         if plot:
             #plot high-symmetry q-points
