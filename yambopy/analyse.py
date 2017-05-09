@@ -43,7 +43,7 @@ class YamboAnalyser():
         data = dict()
         for k in sorted(self.jsonfiles.keys()):
             for filename in self.jsonfiles[k]["data"].keys():
-                if all(i in filename for i in tags):
+                if any(i in filename for i in tags):
                     data[k] = np.array( self.jsonfiles[k]["data"][filename] )
         return data
 

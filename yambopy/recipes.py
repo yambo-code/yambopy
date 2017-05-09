@@ -78,7 +78,7 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
     data = YamboAnalyser(folder)
 
     # extract data according to relevant variable
-    outvars = data.get_data(var)
+    outvars = data.get_data(tags=(var,'reference'))
     invars = data.get_inputfiles_tag(var)
     tags = data.get_tags(tags=(var,'reference'))
 
