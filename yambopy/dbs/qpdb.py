@@ -7,19 +7,23 @@ from builtins import range
 from builtins import object
 from yambopy import *
 from yamboparser import *
+import os
 
 class YamboQPDB(object):
     """
     Class to read yambo ndb.QP files
-    
+
     These files describe the quasiparticle states calculated from yambo
     Includes the quasi-particl energies, the lifetimes and the Z factors
     """
     def __init__(self,filename='ndb.QP',folder='.'):
         """
-        Read a QP file using the yamboparser 
+        Read a QP file using the yamboparser
         """
-        self.yfile = YamboFile('%s/%s' %(folder,filename))
+        if os.path.isfile('%s/%s'%(folder,filename)):
+            self.yfile = YamboFile(filename,folder)
+        else:
+            raise ValueError('File %s/%s not found'%(folder,filename))
 
         qps = self.yfile.data
         self.qps   = qps
@@ -41,6 +45,9 @@ class YamboQPDB(object):
             if max_band < band: max_band = band
         self.nbands = max_band-min_band+1
 
+        #read the database
+        self.eigenvalues_qp, self.eigenvalues_dft, self.lifetimes = self.get_qps()
+
     def get_qps(self,):
         """
         Get quasiparticle energies in a list
@@ -48,32 +55,32 @@ class YamboQPDB(object):
         #get dimensions
         nqps   = self.nqps
         nkpts  = self.nkpoints
-        nbands = self.nbands
 
         qps  = self.qps
         kpts = self.kpoints
-        
-        #start arrays 
-        eigenvalues_lda = np.zeros([nkpts,nbands])
+        nbands = int(np.max(qps['Band'][:]))
+
+        #start arrays
+        eigenvalues_dft = np.zeros([nkpts,nbands])
         eigenvalues_qp  = np.zeros([nkpts,nbands])
         lifetimes       = np.zeros([nkpts,nbands])
         for iqp in range(nqps):
             kindx = int(qps['Kpoint_index'][iqp])
-            e     = qps['E'][iqp]
-            e0    = qps['Eo'][iqp]
+            e     = qps['E'][iqp]*ha2ev
+            e0    = qps['Eo'][iqp]*ha2ev
             band  = int(qps['Band'][iqp])
             kpt   = ("%8.4lf "*3)%tuple(kpts[kindx-1])
             Z     = qps['Z'][iqp]
             eigenvalues_qp[kindx-1,band-1] = e.real
-            eigenvalues_lda[kindx-1,band-1] = e0.real
+            eigenvalues_dft[kindx-1,band-1] = e0.real
             lifetimes[kindx-1,band-1] = e.imag
 
-        return eigenvalues_qp, eigenvalues_lda, lifetimes
+        return eigenvalues_qp, eigenvalues_dft, lifetimes
 
     def __str__(self):
         s = ""
         s += "nqps:     %d\n"%self.nqps
         s += "nkpoints: %d\n"%self.nkpoints
         s += "nbands:   %d\n"%self.nbands
-        return s        
-        
+        return s
+

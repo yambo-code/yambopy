@@ -231,7 +231,7 @@ class Scheduler(object):
         """
         add commands to be run by the scheduler
         """
-        mpirun = get_arg("mpirun")
+        mpirun = self.get_arg("mpirun")
         if mpirun is None: mpirun = "mpirun"
         self.commands.append("%s %s"%(mpirun,cmd))
 

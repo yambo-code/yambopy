@@ -47,6 +47,8 @@ from yambopy.dbs.em1sdb import *
 from yambopy.dbs.greendb import *
 from yambopy.dbs.latticedb import *
 from yambopy.dbs.electronsdb import *
+from yambopy.dbs.excitondb import *
+from yambopy.dbs.wfdb import *
 
 #input/output files
 from yambopy.io.inputfile import *

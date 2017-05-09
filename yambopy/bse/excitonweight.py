@@ -8,6 +8,7 @@ from __future__ import division
 from builtins import zip
 from builtins import range
 from past.utils import old_div
+from __future__ import print_function
 from yambopy import *
 from itertools import product
 from netCDF4 import Dataset
@@ -55,7 +56,7 @@ class YamboExcitonWeight(YamboSaveDB):
                  "weights": weights,
                  "lattice": self.lat,
                  "reciprocal_lattice": self.rlat,
-                 "transitions": transitions 
+                 "transitions": transitions
                  }
 
     def calc_kpts_weights(self,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(-1,2))):
@@ -91,7 +92,7 @@ class YamboExcitonWeight(YamboSaveDB):
 
         return np.array(qpts), np.array(weights)
 
-    def calc_kpts_transitions(self,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(-1,2))):
+    def calc_kpts_transitions(self,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(-1,2)),debug=False):
         """ Calculate the transitions and kpoints of the excitons
         """
         self.weights     = dict()
@@ -119,9 +120,10 @@ class YamboExcitonWeight(YamboSaveDB):
         norm = sum(self.excitons[:,4])
         for v,c,k,s in list(self.transitions.keys()):
           self.transitions_v_to_c[(int(v),int(c))] += self.transitions[(v,c,k,s)]
+        if debug: print('transitions (valence > condution):')
         for v,c in self.transitions_v_to_c:
           self.transitions_v_to_c[(v,c)] = old_div(self.transitions_v_to_c[(v,c)],norm)
-          print(('v ', v,' ==>>>', ' c ',c))
+          if debug: print('%3d > %3d'%(v,c))
 
         #rename symmetries and kpoints
         sym = self.sym_car
@@ -138,13 +140,13 @@ class YamboExcitonWeight(YamboSaveDB):
             kidx.append( k )
             #print (v_ref,c_ref,k,s)
             #aux.append(self.transitions[(v_ref,c_ref,k,s)])
-         
+
         for v_ref,c_ref in list(self.transitions_v_to_c.keys()):
           aux = []
           for r in product(repx,repy,repz):
             for k,s in list(self.weights.keys()):
               aux.append(self.transitions[(v_ref,c_ref,k,s)])
-          t_v_c.append(np.array(aux)) 
+          t_v_c.append(np.array(aux))
 
         return np.array(qpts), t_v_c, np.array(kidx)
 
@@ -201,7 +203,7 @@ class YamboExcitonWeight(YamboSaveDB):
 
         fig = plt.figure(figsize=(10,10))
         kpts, t_v_c, _ = self.calc_kpts_transitions()
-        for individual in t_v_c:   
+        for individual in t_v_c:
           plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in individual])
 
         plt.xlim([-lim,lim])
@@ -210,7 +212,7 @@ class YamboExcitonWeight(YamboSaveDB):
         ax.set_aspect('equal')
         plt.show()
 
-    def plot_exciton_bs(self,path,nbands='all',space='transition',color='#1f77b4'):
+    def plot_exciton_bs(self,ax,path,nbands='all',space='transition',color='#1f77b4'):
         """
         Plot the excitonic weights of a given transition in the band-structure
         """
@@ -235,14 +237,13 @@ class YamboExcitonWeight(YamboSaveDB):
         for tw,t in zip(transition_weight,list(self.transitions_v_to_c.keys())):
             v,c = t
             if space == 'transition':
-                plt.plot(bands_distances,eig[:,c-1]-eig[:,v-1])
-                plt.scatter(bands_distances,eig[:,c-1]-eig[:,v-1],s=tw*1e4)
+                ax.plot(bands_distances,eig[:,c-1]-eig[:,v-1])
+                ax.scatter(bands_distances,eig[:,c-1]-eig[:,v-1],s=tw*1e4)
             else:
-                plt.plot(bands_distances,eig[:,c-1],c=color)
-                plt.plot(bands_distances,eig[:,v-1],c=color)
-                plt.scatter(bands_distances,eig[:,c-1],s=tw*1e4,c=color)
-                plt.scatter(bands_distances,eig[:,v-1],s=tw*1e4,c=color)
-        plt.show()
+                ax.plot(bands_distances,eig[:,c-1],c=color)
+                ax.plot(bands_distances,eig[:,v-1],c=color)
+                ax.scatter(bands_distances,eig[:,c-1],s=tw*1e4,c=color)
+                ax.scatter(bands_distances,eig[:,v-1],s=tw*1e4,c=color)
 
     def __str__(self):
         s = ""

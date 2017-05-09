@@ -63,12 +63,12 @@ class YamboSaveDB(object):
     Reads the information from the SAVE database in Yambo
 
     Arguments:
-        
+
         ``save``: Path with the save folder (default:SAVE)
         ``filename``: name of the filename of the ns.db1 database created with yambo (default:ns.db1)
 
     **Properties:**
-    
+
         ``atomic_numbers`` : atomic number of the species
         ``eigenvalues`` : eigenvalues of the electrons in eV
         ``nkpoints`` : number of kpoints
@@ -126,7 +126,7 @@ class YamboSaveDB(object):
         eiv = self.eigenvalues.flatten()
         self.min_eival = min(eiv)
         self.max_eival = max(eiv)
-        
+
         #caclulate the reciprocal lattice
         self.rlat  = rec_lat(self.lat)
         self.nsym  = len(self.sym_car)
@@ -201,7 +201,7 @@ class YamboSaveDB(object):
             f.write(("%12.8lf "*3)%tuple(k)+"\n")
         f.close()
 
-    def get_path(self,path,kpts=None):
+    def get_path(self,path,kpts=None,debug=False):
         """ Obtain a list of indexes and kpoints that belong to the regular mesh
         """
         if kpts is None:
@@ -254,7 +254,7 @@ class YamboSaveDB(object):
             for index, disp, kpt in kpoints_in_path:
                 bands_kpoints.append( kpt )
                 bands_indexes.append( index )
-                print(("%12.8lf "*3)%tuple(kpt), index)
+                if debug: print ("%12.8lf "*3)%tuple(kpt), index
 
         self.bands_kpoints = bands_kpoints
         self.bands_indexes = bands_indexes
