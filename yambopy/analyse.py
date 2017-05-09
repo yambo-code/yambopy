@@ -4,6 +4,7 @@
 # This file is part of yambopy
 #
 #
+from past.builtins import basestring
 from yambopy import *
 import os
 import json
@@ -38,7 +39,7 @@ class YamboAnalyser():
     def get_data(self,tags):
         """ Get a dictionary with all the data from the files under analysis
         """
-        if type(tags) is str:
+        if isinstance(tags,basestring):
             tags=(tags,)
         data = dict()
         for k in sorted(self.jsonfiles.keys()):
@@ -50,7 +51,7 @@ class YamboAnalyser():
     def get_tags(self,tags):
         """ Get a dictionary with the tags of the output file colomns
         """
-        if type(tags) is str:
+        if isinstance(tags,basestring):
             tags=(tags,)
         tagslist = dict()
         for k in sorted(self.jsonfiles.keys()):
@@ -141,7 +142,7 @@ class YamboAnalyser():
         Create a path of k-points and find the points in the regular mesh that correspond to points in the path
         Use these points to plot the GW band structure.
         """
-        if type(tags) == str: tags = (tags,)
+        if isinstance(tags,basestring): tags = (tags,)
         path = np.array([p[0] for p in path_label])
         labels = [p[1] for p in path_label]
         plot = False
@@ -281,7 +282,7 @@ class YamboAnalyser():
 
     def plot_qp_correction(self,tags=('qp',),lda=2,qp=3):
 
-        if type(tags) == str: tags = (tags,)
+        if isinstance(tags,basestring): tags = (tags,)
 
         ax = plt.axes([0.1, 0.1, .7, .7])
         for json_filename in sorted(self.jsonfiles.keys()):
@@ -322,7 +323,7 @@ class YamboAnalyser():
         fig = plt.figure()
         ax = plt.subplot(111)
         colors = self.get_colors(tags)
-        if type(tags) == str: tags = (tags,)
+        if isinstance(tags,basestring): tags = (tags,)
 
         n=0
         for json_filename in sorted(self.jsonfiles.keys()):
@@ -393,7 +394,7 @@ class YamboAnalyser():
         return ax
 
     def plot_spectral_function(self,tags):
-        if type(tags) == str:
+        if isinstance(tags,basestring):
             tags = (tags,)
         ax = plt.axes([0.1, 0.1, .7, .7])
         for json_filename in sorted(self.jsonfiles.keys()):
@@ -422,7 +423,7 @@ class YamboAnalyser():
         The tags are both for variables in the input file and arguments (meaning runlevels)
         """
         #check if a string was passed and in that case we make it a tuple
-        if type(tags) == str:
+        if isinstance(tags,basestring):
             tags = (tags,)
 
         inputfiles = self.get_inputfiles()
