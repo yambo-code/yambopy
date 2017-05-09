@@ -1,14 +1,13 @@
-from __future__ import print_function
-from __future__ import division
 # Copyright (c) 2016, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
+from __future__ import print_function
+from __future__ import division
 from builtins import zip
 from builtins import range
 from past.utils import old_div
-from __future__ import print_function
 from yambopy import *
 from itertools import product
 from netCDF4 import Dataset
