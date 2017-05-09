@@ -5,6 +5,7 @@ from __future__ import division
 #
 # This file is part of the yambopy project
 #
+from builtins import zip
 from builtins import range
 from builtins import object
 from past.utils import old_div
@@ -25,7 +26,7 @@ class YamboLatticeDB(object):
         # generate additional structure using the data read from the DBs
         self.process()
         if expand: self.expandKpoints()
-            
+
     def readDB(self):
         try:
             database = Dataset(self.filename)
@@ -53,29 +54,29 @@ class YamboLatticeDB(object):
         self.atomic_masses = [atomic_mass[a] for a in self.atomic_numbers]
 
         database.close()
-        
+
     def process(self):
         inv = np.linalg.inv
         #caclulate the reciprocal lattice
         self.rlat  = rec_lat(self.lat)
         self.nsym  = len(self.sym_car)
-        
+
         #convert form internal yambo units to cartesian lattice units
         self.car_kpoints = np.array([ old_div(k,self.alat) for k in self.iku_kpoints ])
         self.red_kpoints = car_red(self.car_kpoints,self.rlat)
         self.nkpoints = len(self.car_kpoints)
-        
+
         #convert cartesian transformations to reciprocal transformations
         self.sym_rec = np.zeros([self.nsym,3,3])
         for n,s in enumerate(self.sym_car):
             self.sym_rec[n] = inv(s).T
-            
+
         #get a list of symmetries with time reversal
         nsym = len(self.sym_car)
         self.time_rev_list = [False]*nsym
         for i in range(nsym):
             self.time_rev_list[i] = ( i >= old_div(nsym,(self.time_rev+1)) )
-        
+
     def expandKpoints(self):
         """
         Take a list of qpoints and symmetry operations and return the full brillouin zone
@@ -95,15 +96,15 @@ class YamboLatticeDB(object):
             #if the index in not in the dicitonary add a list
             if nk not in kpoints_full_i:
                 kpoints_full_i[nk] = []
-                    
+
             for ns,sym in enumerate(self.sym_car):
-                
+
                 new_k = np.dot(sym,k)
 
                 #check if the point is inside the bounds
                 k_red = car_red([new_k],self.rlat)[0]
                 k_bz = (k_red+atol)%1
-                
+
                 #if the vector is not in the list of this index add it
                 if not vec_in_list(k_bz,kpoints_full_i[nk]):
                     kpoints_full_i[nk].append(k_bz)
@@ -131,10 +132,10 @@ class YamboLatticeDB(object):
         """
         Obtain a list of indexes and kpoints that belong to the regular mesh
         """
-        nks  = range(self.nkpoints)
+        nks  = list(range(self.nkpoints))
         kpts = self.car_kpoints
-        print nks
-        print kpts
+        print(nks)
+        print(kpts)
 
         #points in cartesian coordinates
         path_car = red_car(path, self.rlat)
@@ -158,7 +159,7 @@ class YamboLatticeDB(object):
             end_kpt   = path_car[k+1] #end point of the path
 
             #generate repetitions of the brillouin zone
-            for x,y,z in product(range(-1,2),range(-1,2),range(1)):
+            for x,y,z in product(list(range(-1,2)),list(range(-1,2)),list(range(1))):
 
                 #shift the brillouin zone
                 shift = red_car([np.array([x,y,z])],self.rlat)[0]
@@ -175,13 +176,13 @@ class YamboLatticeDB(object):
                         kpoints_in_path[key] = value
 
             #sort the points acoording to distance to the start of the path
-            kpoints_in_path = sorted(kpoints_in_path.values(),key=lambda i: i[1])
+            kpoints_in_path = sorted(list(kpoints_in_path.values()),key=lambda i: i[1])
 
             #for all the kpoints in the path
             for index, disp, kpt in kpoints_in_path:
                 bands_kpoints.append( kpt )
                 bands_indexes.append( index )
-                if debug: print ("%12.8lf "*3)%tuple(kpt), index
+                if debug: print(("%12.8lf "*3)%tuple(kpt), index)
 
         self.bands_kpoints = bands_kpoints
         self.bands_indexes = bands_indexes

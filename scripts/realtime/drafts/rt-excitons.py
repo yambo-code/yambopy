@@ -1,5 +1,7 @@
 from __future__ import print_function
 # Version : dec 2nd
+from builtins import str
+from builtins import range
 import os
 import re
 import numpy as np

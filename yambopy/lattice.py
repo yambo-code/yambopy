@@ -5,6 +5,7 @@ from __future__ import division
 #
 # This file is part of the yambopy project
 #
+from builtins import range
 from past.utils import old_div
 from yambopy import *
 from itertools import product
@@ -90,7 +91,7 @@ def get_path(kmesh,path,debug=False):
 
     return np.array(bands_indexes)
 
-def replicate_red_kmesh(kmesh,repx=range(1),repy=range(1),repz=range(1)):
+def replicate_red_kmesh(kmesh,repx=list(range(1)),repy=list(range(1)),repz=list(range(1))):
     """
     copy a kmesh in the tree directions
     the kmesh has to be in reduced coordinates
@@ -103,7 +104,7 @@ def replicate_red_kmesh(kmesh,repx=range(1),repy=range(1),repz=range(1)):
     for x,y,z in product(repx,repy,repz):
         kmesh_shift = kmesh + np.array([x,y,z])
         kmesh_full.append(kmesh_shift)
-        kmesh_idx.append(range(kmesh_nkpoints))
+        kmesh_idx.append(list(range(kmesh_nkpoints)))
 
     return np.vstack(kmesh_full), np.hstack(kmesh_idx)
 

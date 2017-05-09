@@ -1,5 +1,6 @@
 from __future__ import print_function
 from __future__ import division
+from builtins import next
 from future.builtins import next
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
