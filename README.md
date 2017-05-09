@@ -5,7 +5,7 @@ Create automatic workflows for yambo using python.
 
 Yambo official website: http://www.yambo-code.org/ 
 
-Yambo Githup page: https://github.com/yambo-code/yambo
+Yambo Github page: https://github.com/yambo-code/yambo
 
 Documentation
 -------------
@@ -43,8 +43,6 @@ Authors
 ------
 - [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/)
 - [Alejandro Molina Sanchez](http://alexmoratalla.github.io/)
-
-Additional collaborators:
 - Fulvio Paleari
 - Alexandre Morlet
 

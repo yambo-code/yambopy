@@ -43,6 +43,9 @@ class YamboQPDB():
             if max_band < band: max_band = band
         self.nbands = max_band-min_band+1
 
+        #read the database
+        self.eigenvalues_qp, self.eigenvalues_dft, self.lifetimes = self.get_qps()
+
     def get_qps(self,):
         """
         Get quasiparticle energies in a list
@@ -50,27 +53,27 @@ class YamboQPDB():
         #get dimensions
         nqps   = self.nqps
         nkpts  = self.nkpoints
-        nbands = self.nbands
 
         qps  = self.qps
         kpts = self.kpoints
+        nbands = int(np.max(qps['Band'][:]))
 
         #start arrays
-        eigenvalues_lda = np.zeros([nkpts,nbands])
+        eigenvalues_dft = np.zeros([nkpts,nbands])
         eigenvalues_qp  = np.zeros([nkpts,nbands])
         lifetimes       = np.zeros([nkpts,nbands])
         for iqp in xrange(nqps):
             kindx = int(qps['Kpoint_index'][iqp])
-            e     = qps['E'][iqp]
-            e0    = qps['Eo'][iqp]
+            e     = qps['E'][iqp]*ha2ev
+            e0    = qps['Eo'][iqp]*ha2ev
             band  = int(qps['Band'][iqp])
             kpt   = ("%8.4lf "*3)%tuple(kpts[kindx-1])
             Z     = qps['Z'][iqp]
             eigenvalues_qp[kindx-1,band-1] = e.real
-            eigenvalues_lda[kindx-1,band-1] = e0.real
+            eigenvalues_dft[kindx-1,band-1] = e0.real
             lifetimes[kindx-1,band-1] = e.imag
 
-        return eigenvalues_qp, eigenvalues_lda, lifetimes
+        return eigenvalues_qp, eigenvalues_dft, lifetimes
 
     def __str__(self):
         s = ""

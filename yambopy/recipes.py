@@ -91,8 +91,12 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         key=sorted_invars[i][0]
         if key.startswith(var) or key=='reference.json':
             keys.append(key)
-    print 'Files detected: ',keys
 
+    if len(keys) == 0: raise ValueError('No files with this variable were found')
+    print 'Files detected:'
+    for key in keys:
+        print key
+ 
     print 'Computing values...'
     ### Output
 
@@ -197,6 +201,8 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
         key=sorted_invars[i][0]
         if key.startswith(var) or key=='reference.json':
             keys.append(key)
+
+    if len(keys) == 0: raise ValueError('No files with this variable were found')
     print 'Files detected:'
     for key in keys:
         print key
@@ -501,7 +507,7 @@ def plot_excitons(filename,cut=0.2,size=20):
     plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.01, hspace=0.01)
 
     #remove extension from file
-    figure_filename = os.path.splitext(filename)
+    figure_filename = os.path.splitext(filename)[0]
     plt.savefig('%s.png'%figure_filename)
     if 'DISPLAY' in os.environ:
         plt.show()
