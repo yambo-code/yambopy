@@ -138,6 +138,7 @@ class TestYamboIn_GW_Si(unittest.TestCase):
         y.optimize(conv)
         return y
 
+
 class TestYamboIn_GW_Si_Run(unittest.TestCase):
     def test_yambo_gw_si(self):
         """ Run GW calculation with yambo
@@ -155,6 +156,15 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
             os.system('cd gw_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
 
         y.optimize(conv,run=run)
+
+    def test_yambopy_analysegw(self):
+        """ Test the yambopy analysegw executable 
+        """
+        os.system('yambopy analysegw gw_conv FFTGvecs -bc 5 -kc 3 -bv 4 -kv 1 -nd')
+        self.assertEqual(filecmp.cmp('analyse_gw_conv/gw_conv_FFTGvecs.dat', 'reference_si/analyse_gw_conv/gw_conv_FFTGvecs.dat'),True)
+        os.system('yambopy analysegw gw_conv BndsRnXp -bc 5 -kc 3 -bv 4 -kv 1 -nd')
+        self.assertEqual(filecmp.cmp('analyse_gw_conv/gw_conv_BndsRnXp.dat', 'reference_si/analyse_gw_conv/gw_conv_BndsRnXp.dat'),True)
+
 
 class TestYamboIn_BSE_Si(unittest.TestCase):
     def setUp(self):
@@ -257,7 +267,7 @@ if __name__ == '__main__':
     #clean tests
     if args.clean:
         print "cleaning..."
-        os.system('rm -rf scf bse bse_conv gw gw_conv nscf relax database proj.in')
+        os.system('rm -rf scf bse bse_conv gw gw_conv analyse_gw_conv nscf relax database proj.in')
         print "done!"
         exit()
 
