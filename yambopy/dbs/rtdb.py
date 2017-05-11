@@ -4,7 +4,6 @@
 # This file is part of the yambopy project
 #
 from yambopy import *
-from yambopy.netcdf import *
 from yambopy.plot import *
 
 ha2ev = 27.211396132
