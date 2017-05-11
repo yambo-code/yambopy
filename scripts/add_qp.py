@@ -76,8 +76,8 @@ def add_qp(output,add,substract=[],addimg=[],verbose=False):
     QP_E_E0_Z_save[1,:,2] = 1
     
 
-    # Add corrections in real part (-a, -ai files)
-    for filename in addf+addimgf:
+    # Add corrections in real part (-a files)
+    for filename in addf:
         print('Add E corr for real part :  %s'%filename)
         for (n1,n2,k),(E,Eo,Z) in zip(QP_table[filename],QP_E_E0_Z[filename][0]):
             qpdic[(n1,n2,k)]+=E-Eo
@@ -88,8 +88,8 @@ def add_qp(output,add,substract=[],addimg=[],verbose=False):
         for (n1,n2,k),(E,Eo,Z) in zip(QP_table[filename],QP_E_E0_Z[filename][0]):
             qpdic[(n1,n2,k)]-=E-Eo
 
-    # Add corrections in img part (-a, -ai files)
-    for filename in addf+addimgf:
+    # Add corrections in img part (-ai files)
+    for filename in addimgf:
         print('Add E corr for img part :  %s'%filename)
         for (n1,n2,k),(E,Eo,Z) in zip(QP_table[filename],QP_E_E0_Z[filename][1]):
             qpdici[(n1,n2,k)]+=E-Eo
