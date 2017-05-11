@@ -2,17 +2,19 @@
 # and display it along a path in histogram form
 # along with a representation of the carriers in energy space
 
+from __future__ import print_function
 from yambopy import *
 import matplotlib.gridspec as gridspec
 from matplotlib.colors import Normalize
 from scipy.optimize import curve_fit
+import os
 
 ############
 # SETTINGS #
 ############
 
-folder = 'rt-24x24'
-calc   = 'QSSIN-100.0fs-2.07eV-300K' # Where RT carrier output is
+folder = 'rt-30x30'
+calc   = 'QSSIN-100.0fs-2.08eV-300K-DG' # Where RT carrier output is
 path = [[0.0,0.0,0.0],[0.5,0.0,0.0],[0.33333,0.33333,0.0],[0.0,0.0,0.0]]
 nbv = 2 ; nbc = 2 # nb of valence and conduction bands
 occ_scaling = 1 # max occupation will be 1eV high
@@ -21,6 +23,9 @@ degen_thres = 0.1 # Energy below which two bands are considered degenerate
 ########
 # INIT #
 ########
+
+# For saving pictures
+os.system('mkdir -p occupations/%s/%s'%(folder,calc))
 
 # Instance containing bandstructure (as used in RT sim) and occupations
 yrt = YamboRTDB(folder=folder,calc=calc)
@@ -137,7 +142,9 @@ ymax_c= max(np.amin(eigenvalues[:,nbv:])+np.amax(occ_c[:,:,nbv:])+0.1, np.amax(e
 
 for t in range(len(times)):
     i=t
-    print times[i]
+    print(times[i])
+
+    name = 'occupations/'+folder+'/'+calc+'/%d.png' % (times[t])
 
     fig = plt.figure()
 
@@ -242,7 +249,10 @@ for t in range(len(times)):
     ax4.tick_params(axis='x',which='both',bottom='off',top='off',labelbottom='off')
     ax4.tick_params(axis='y',labelleft='off',labelright='off')
 
-    plt.show()
+    plt.savefig( name ,transparent=False,dpi=300)
+    print(name)
+    #plt.show()
+    plt.close(fig)
 
 
 
