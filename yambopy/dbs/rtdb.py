@@ -5,6 +5,7 @@
 #
 from yambopy import *
 from yambopy.plot import *
+import os
 
 ha2ev = 27.211396132
 
@@ -13,11 +14,28 @@ class YamboRTDB():
     Open the RT databases and store it in a RTDB class
     """
     def __init__(self,folder='.',calc='.',save=None,referencedb='ndb.RT_reference_components',carriersdb='ndb.RT_carriers'):
-        self.path = '%s/%s/pulse'%(folder,calc)
-        if save==None:
-            self.save = '%s/SAVE'%folder
+        # Find path with RT data
+        # Yambopy's realtime scripts folder-structure
+        if os.path.exists('%s/%s/pulse/%s'%(folder,calc,referencedb)):
+            self.path = '%s/%s/pulse'%(folder,calc)
+        # Custom path
+        elif os.path.exists('%s/%s/%s'%(folder,calc,referencedb)):
+            self.path = '%s/%s'%(folder,calc)
         else:
-            self.save = save
+            raise ValueError('Cannot find file %s in %s/%s'%(referencedb,folder,calc))
+
+        # Set save path
+        if save==None:
+            if os.path.exists('%s/SAVE'%folder):
+                self.save = '%s/SAVE'%folder
+            else:
+                raise ValueError('Cannot find SAVE in folder %s'%folder)
+        else:
+            if os.path.exists(save):
+                self.save = save
+            else:
+                raise ValueError('Cannot find SAVE in folder %s'%save)
+
         self.referencedb = referencedb
         self.carriersdb = carriersdb
 
@@ -35,7 +53,7 @@ class YamboRTDB():
         database.close()
 
         #read reference database
-        db = Dataset("%s/%s"%(self.path,referencedb))
+        db = Dataset("%s/%s"%(self.path,self.referencedb))
         self.nband_min, self.nband_max, self.nkpoints = db['RT_vars'][:].astype(int)
         self.nbands = self.nband_max - self.nband_min + 1
         db.close()
@@ -45,7 +63,7 @@ class YamboRTDB():
         self.eigenvalues = db['RT_carriers_E_bare'][:].reshape([self.nkpoints,self.nbands])*ha2ev
 
         #get kpoints coordinates
-        self.kpts_iku = db['RT_kpt'][:].T#.reshape([self.nkpoints,3])
+        self.kpts_iku = db['RT_kpt'][:].T
 
         db.close()
 
