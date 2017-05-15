@@ -9,6 +9,12 @@ import os
 
 ha2ev = 27.211396132
 
+def isbetween(a,b,c):
+    """
+    Check if cartesian point c is between point a and b
+    """
+    return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0,rtol=1e-05, atol=1e-06)
+
 class YamboRTDB():
     """
     Open the RT databases and store it in a RTDB class
@@ -203,6 +209,15 @@ class YamboRTDB():
         self.bands_highsym_qpts = path_car
 
         print 'Path generated using %d kpoints.'%len(bands_kpoints)
+
+        # Calculate distances
+        bands_distances = [0]
+        distance = 0
+        for nk in range(1,len(bands_kpoints)):
+            distance += np.linalg.norm(bands_kpoints[nk]-bands_kpoints[nk-1])
+            bands_distances.append(distance)
+
+        self.bands_distances = bands_distances
 
         return bands_kpoints, bands_indexes, path_car
 
