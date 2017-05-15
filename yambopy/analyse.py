@@ -62,6 +62,8 @@ class YamboAnalyser():
         the files to plot are the ones that have all the tags in their name
         """
         nfiles=sum([all(i in filename for i in tags) for k in self.jsonfiles.keys() for filename in self.jsonfiles[k]["data"].keys()])
+        print('nfiles')
+        print(nfiles)
         cmap = plt.get_cmap(self._colormap) #get color map
         colors = [cmap(i) for i in np.linspace(0, 1, nfiles)]
         return colors
@@ -321,18 +323,19 @@ class YamboAnalyser():
         """
         edata = ['lda','gw']
         line_type = ['-','--','-.']
-        colors = ['b','r','g']
         plot = False
         fig = plt.figure()
         ax = plt.subplot(111)
-        #colors = self.get_colors(tags)
         #n=0
+        json_label = [ word[:-5] for word in self.jsonfiles.keys() ]
+
+
         for json_filename in sorted(self.jsonfiles.keys()):
             kpoint_index, bands_cols = self.get_gw_bands(json_filename,json_filename[:-5])
             label = json_filename[:-5]
             for iplot,bands in enumerate(bands_cols):
                 for band in bands:
-                    ax.plot(kpoint_index,band,line_type[iplot],label=label+'-%s'%edata[iplot],color=colors[iplot])
+                    ax.plot(kpoint_index,band,line_type[iplot],label=label+'-%s'%edata[iplot],color='b')
                     plot = True
         #            n+=1
         if plot:
