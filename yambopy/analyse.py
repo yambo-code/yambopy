@@ -4,7 +4,9 @@
 # This file is part of yambopy
 #
 #
-from past.builtins import basestring
+import sys
+if sys.version_info.major > 2:
+    from past.builtins import basestring
 from yambopy import *
 import os
 import json
