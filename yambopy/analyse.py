@@ -1,6 +1,5 @@
 from __future__ import print_function
 from __future__ import division
-from past.builtins import basestring
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
@@ -11,7 +10,10 @@ from builtins import str
 from builtins import zip
 from builtins import range
 from builtins import object
-from past.utils import old_div
+import sys
+if sys.version_info.major > 2:
+    from past.builtins import basestring
+    from past.utils import old_div
 from yambopy import *
 import os
 import json
@@ -58,11 +60,14 @@ class YamboAnalyser(object):
     def get_tags(self,tags):
         """ Get a dictionary with the tags of the output file colomns
         """
+        if isinstance(tags,basestring):
+            tags=(tags,)
         tagslist = dict()
         for k in sorted(self.jsonfiles.keys()):
             for filename in list(self.jsonfiles[k]["tags"].keys()):
                 if all(i in filename for i in tags):
                     tagslist[k] = np.array( self.jsonfiles[k]["tags"][filename] )
+
         return tagslist
 
     def get_colors(self,tags):
@@ -87,7 +92,7 @@ class YamboAnalyser(object):
         sym_car  = np.array(jsonfile['sym_car'])
         alat     = np.array(jsonfile['alat'])
         lattice  = np.array(jsonfile['lattice'])
-        
+
         #check if the lattice data is present
         if not lattice.any():
             print('Information about the lattice is not present, cannot determine the path')
@@ -241,14 +246,14 @@ class YamboAnalyser(object):
                     band_aux = []
                     for band in bands:
                         band_aux.append([band[k] for k in bands_indexes])
-                    band_in_path.append(band_aux) 
+                    band_in_path.append(band_aux)
 
-        return bands_distances, band_in_path 
+        return bands_distances, band_in_path
 
     def get_gw_bands(self,json_filename,output_filename,cols=(lambda x: x[2]+x[3],),rows=None):
         """
         Get the gw bands from a gw calculation from a filename
-        
+
         Arguments:
             json_filename: the name of the json file
             output_filename: the name of the output filename that is in the json file
@@ -285,7 +290,7 @@ class YamboAnalyser(object):
         return kpoint_index, bands_cols
 
     def plot_qp_correction(self,tags=('qp',),lda=2,qp=3):
-        
+
         if isinstance(tags,basestring): tags = (tags,)
 
         ax = plt.axes([0.1, 0.1, .7, .7])
@@ -354,7 +359,7 @@ class YamboAnalyser(object):
             plt.show()
 
     def plot_bse(self,tags,cols=(2,),ax=None):
-        """ 
+        """
         Use this function to plot the absorption spectrum calculated using the BSE
         cols: a list of indexes to select which columns from the file to plot
 

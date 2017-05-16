@@ -140,6 +140,7 @@ class TestYamboIn_GW_Si(unittest.TestCase):
         y.optimize(conv)
         return y
 
+
 class TestYamboIn_GW_Si_Run(unittest.TestCase):
     def test_yambo_gw_si(self):
         """ Run GW calculation with yambo
@@ -157,6 +158,15 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
             os.system('cd gw_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
 
         y.optimize(conv,run=run)
+
+    def test_yambopy_analysegw(self):
+        """ Test the yambopy analysegw executable
+        """
+        os.system('yambopy analysegw gw_conv FFTGvecs -bc 5 -kc 3 -bv 4 -kv 1 -nd')
+        self.assertEqual(filecmp.cmp('analyse_gw_conv/gw_conv_FFTGvecs.dat', 'reference_si/analyse_gw_conv/gw_conv_FFTGvecs.dat'),True)
+        os.system('yambopy analysegw gw_conv BndsRnXp -bc 5 -kc 3 -bv 4 -kv 1 -nd')
+        self.assertEqual(filecmp.cmp('analyse_gw_conv/gw_conv_BndsRnXp.dat', 'reference_si/analyse_gw_conv/gw_conv_BndsRnXp.dat'),True)
+
 
 class TestYamboIn_BSE_Si(unittest.TestCase):
     def setUp(self):
@@ -180,7 +190,7 @@ class TestYamboIn_BSE_Si(unittest.TestCase):
     def test_bse_convergence(self):
         """ Test if we can generate multiple input files changing some variables
         """
-        y = YamboIn('yambo -b -o b -k sex -y h -V all',folder='bse_conv')
+        y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse_conv')
         conv = { 'FFTGvecs': [[5,10,15],'Ry'],
                  'NGsBlkXs': [[1,2,5], 'Ry'],
                  'BndsRnXs': [[1,10],[1,20],[1,30]] }
@@ -191,7 +201,7 @@ class TestYamboIn_BSE_Si_Run(unittest.TestCase):
     def test_yambo_bse_si(self):
         """ Run BSE calculation with yambo
         """
-        y = YamboIn('yambo -b -o b -k sex -y h -V all',folder='bse_conv')
+        y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse_conv')
         conv = { 'FFTGvecs': [[5,10,15],'Ry'],
                  'NGsBlkXs': [[1,2,5], 'Ry'],
                  'BndsRnXs': [[1,10],[1,20],[1,30]] }
@@ -219,6 +229,14 @@ class TestYamboOut_BSE_Si(unittest.TestCase):
         """
         y = YamboAnalyser('bse_conv')
         y.plot_bse('eps')
+
+    def test_yambopy_analysebse(self):
+        """ Test the yambopy analysebse executable
+        """
+        os.system('yambopy analysebse bse_conv FFTGvecs -nd')
+        self.assertEqual(filecmp.cmp('analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat', 'reference_si/analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat'),True)
+        os.system('yambopy analysebse bse_conv BndsRnXs -nd')
+        self.assertEqual(filecmp.cmp('analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat', 'reference_si/analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat'),True)
 
 class TestYamboOut_GW_Si(unittest.TestCase):
     def test_yamboout_gw_si(self):
@@ -259,7 +277,7 @@ if __name__ == '__main__':
     #clean tests
     if args.clean:
         print("cleaning...")
-        os.system('rm -rf scf bse bse_conv gw gw_conv nscf relax database proj.in')
+        os.system('rm -rf scf bse bse_conv analyse_bse_conv gw gw_conv analyse_gw_conv nscf relax database proj.in')
         print("done!")
         exit()
 

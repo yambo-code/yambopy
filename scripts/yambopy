@@ -152,7 +152,7 @@ class AnalyseGWCmd(Cmd):
             print(self.__doc__)
             exit(0)
 
-        #all the other arguments are passed to the merge_qp function
+        #all the other arguments are passed to the analysegw function
 
         parser = argparse.ArgumentParser(description='Study GW convergence with regards to the band-gap value.')
         pa = parser.add_argument
@@ -295,7 +295,7 @@ class MergeQPCmd(Cmd):
         files   = args.files
         verbose = args.verbose
         
-        #call merge_qp fomr recipes.py
+        #call merge_qp from recipes.py
         merge_qp(output,files,verbose)
 
     def info(self):
@@ -303,6 +303,55 @@ class MergeQPCmd(Cmd):
         display help to use this command 
         """
         print self.__doc__
+
+
+class AddQPCmd(Cmd):
+    """
+    Add corrections from QP databases.
+    This function reads the QP correction from Yambo databases and add them together. Pass a list of files (separated by a space) after each flag to get the total correction you need.
+    The k-grid must be the same, the number of bands can be different. There will always be at least the LDA value. The Z factor is taken as one.
+
+    Optional arguments are:
+
+        -a,  --add       -> Add the real-part of a QP correction
+        -s,  --substract -> Substract the real-part of a QP correction
+        -ai, --addimg    -> Add the imaginary-part of a QP correction
+        -o,  --output    -> Output filename
+        -v,  --verbose   -> Increased verbosity
+
+    """
+
+    def __init__(self,args):
+        #check for args
+        if len(args) <= 1:
+            print(self.__doc__)
+            exit(0)
+
+        parser = argparse.ArgumentParser(description='Join different NetCDF quasi-particle databases')
+        parser.add_argument('-a','--add', nargs='+', type=argparse.FileType('r'), help="Add the real part to the final db",default=[])
+        parser.add_argument('-s','--substract', nargs='+', type=argparse.FileType('r'), help="Substract the real part to the final db", default=[])
+        parser.add_argument('-ai','--addimg', nargs='+', type=argparse.FileType('r'), help="Add the imaginary part to the final db",default=[])
+        parser.add_argument('-o','--output',                       help='Output filename', default='ndb_out.QP')
+        parser.add_argument('-v','--verbose', action="store_true", help='Verbose mode')
+        args = parser.parse_args(args)
+
+
+        output  = args.output
+        add     = args.add
+        substract = args.substract
+        addimg  = args.addimg
+        verbose = args.verbose
+
+
+        #call add_qp from recipes.py
+        add_qp(output,add,substract,addimg,verbose)
+
+    def info(self):
+        """
+        display help
+        """
+        print self.__doc__
+
 
 class YambopyCmd(Cmd):
     """
@@ -313,6 +362,7 @@ class YambopyCmd(Cmd):
                  'analysebse':   AnalyseBSECmd,
                  'analysegw':    AnalyseGWCmd,
                  'plotexcitons': PlotExcitons,
+                 'addqp':        AddQPCmd,
                  'mergeqp':      MergeQPCmd,
                  'test':         TestCmd}
 
