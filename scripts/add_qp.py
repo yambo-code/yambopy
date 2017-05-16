@@ -9,12 +9,16 @@ from os import *
 import argparse
 from operator import itemgetter
 
-def add_qp(output,add,substract=[],addimg=[],verbose=False):
+def add_qp(output,add=[],substract=[],addimg=[],verbose=False):
     # Define filenames
     addf=[f.name for f in add]
     subf=[f.name for f in substract]
     addimgf=[f.name for f in addimg]
     filenames = addf+subf+addimgf
+
+    if len(filenames) is 0:
+        raise ValueError('No files passed to function.')
+
 
     # Init empty lists and dics
     sizes=[] # contains the various 'PARS'
@@ -26,19 +30,19 @@ def add_qp(output,add,substract=[],addimg=[],verbose=False):
     datasets  = [ Dataset(filename) for filename in filenames]
 
     print "\n    Reading input files\n"
-    for d,filename in zip(datasets,filenames):
-        print "filename:    ", filename
+    for d,f in zip(datasets,filenames):
+        print "filename:    ", f
         # read sizes
         _, nkpoints, nqps, _, nstrings = map(int,d['PARS'][:])
-        sizes.append((filename,(nkpoints,nqps,nstrings)))
+        sizes.append((f,(nkpoints,nqps,nstrings)))
 
         # Check if the number of kpoints is consistent
         # (Don't forget to break symmetries on every file for RT)
         if nkpoints!=sizes[0][1][0]:
-            print 'File %s does not have the same number of kpoints'%filename
+            raise ValueError('File %s does not have the same number of kpoints'%f)
 
         # printing the description string
-        # (breaking the symmetries don't update the descr)
+        # (breaking the symmetries doesn't update the descr)
         if verbose:
             print "description:"
             for i in xrange(1,nstrings+1):
@@ -47,13 +51,13 @@ def add_qp(output,add,substract=[],addimg=[],verbose=False):
             print "description:", ''.join(d['DESC_strings_%05d'%(nstrings)][0])
 
         # fill dictionaries with data for all files
-        QP_table[filename] = d['QP_table'][:].T 
-        QP_kpts[filename]  = d['QP_kpts'][:].T 
-        QP_E_E0_Z[filename]= d['QP_E_Eo_Z'][:] 
+        QP_table[f] = d['QP_table'][:].T
+        QP_kpts[f]  = d['QP_kpts'][:].T
+        QP_E_E0_Z[f]= d['QP_E_Eo_Z'][:]
 
         # Init qpdic & qpdici (going through each file in case the number of bands is different)
         # For qpdici, we assume Im(Eo)=0
-        for (n1,n2,k),(E,Eo,Z) in zip(QP_table[filename],QP_E_E0_Z[filename][0]):
+        for (n1,n2,k),(E,Eo,Z) in zip(QP_table[f],QP_E_E0_Z[f][0]):
             qpdic[(n1,n2,k)]=Eo
             qpdici[(n1,n2,k)]=0
 
@@ -74,24 +78,24 @@ def add_qp(output,add,substract=[],addimg=[],verbose=False):
     QP_E_E0_Z_save[0,:,2] = 1
     QP_E_E0_Z_save[1,:,1] = 0
     QP_E_E0_Z_save[1,:,2] = 1
-    
+
 
     # Add corrections in real part (-a files)
-    for filename in addf:
-        print('Add E corr for real part :  %s'%filename)
-        for (n1,n2,k),(E,Eo,Z) in zip(QP_table[filename],QP_E_E0_Z[filename][0]):
+    for f in addf:
+        print('Add E corr for real part :  %s'%f)
+        for (n1,n2,k),(E,Eo,Z) in zip(QP_table[f],QP_E_E0_Z[f][0]):
             qpdic[(n1,n2,k)]+=E-Eo
 
     # Sub corrections in real part (-s files)
-    for filename in subf:
-        print('Sub E corr for real part :  %s'%filename)
-        for (n1,n2,k),(E,Eo,Z) in zip(QP_table[filename],QP_E_E0_Z[filename][0]):
+    for f in subf:
+        print('Sub E corr for real part :  %s'%f)
+        for (n1,n2,k),(E,Eo,Z) in zip(QP_table[f],QP_E_E0_Z[f][0]):
             qpdic[(n1,n2,k)]-=E-Eo
 
     # Add corrections in img part (-ai files)
-    for filename in addimgf:
-        print('Add E corr for img part :  %s'%filename)
-        for (n1,n2,k),(E,Eo,Z) in zip(QP_table[filename],QP_E_E0_Z[filename][1]):
+    for f in addimgf:
+        print('Add E corr for img part :  %s'%f)
+        for (n1,n2,k),(E,Eo,Z) in zip(QP_table[f],QP_E_E0_Z[f][1]):
             qpdici[(n1,n2,k)]+=E-Eo
 
 
@@ -111,11 +115,11 @@ def add_qp(output,add,substract=[],addimg=[],verbose=False):
     #create reference file from one of the files
     netcdf_format = datasets[0].data_model
     fin  = datasets[0]
-    fout = Dataset(output,'w',format=netcdf_format) 
+    fout = Dataset(output,'w',format=netcdf_format)
 
     variables_update = ['QP_table', 'QP_kpts', 'QP_E_Eo_Z']
     variables_save   = [QP_table_save.T, QP_kpts_save.T, QP_E_E0_Z_save]
-    variables_dict   = dict(zip(variables_update,variables_save)) 
+    variables_dict   = dict(zip(variables_update,variables_save))
     PARS_save = fin['PARS'][:]
     PARS_save[1:3] = sizes[0][1][0],len(QP_table_save)
 
@@ -168,12 +172,12 @@ def add_qp(output,add,substract=[],addimg=[],verbose=False):
                 outVar[:,:len(description_save)] = description_save.T
             else:
                 outVar[:] = varin[:]
-            
+
     fout.close()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Join different NetCDF quasi-particle databases')
-    parser.add_argument('-a','--add', nargs='+', type=argparse.FileType('r'), help="Add the real part to the final db")
+    parser.add_argument('-a','--add', nargs='+', type=argparse.FileType('r'), help="Add the real part to the final db",default=[])
     parser.add_argument('-s','--substract', nargs='+', type=argparse.FileType('r'), help="Substract the real part to the final db", default=[])
     parser.add_argument('-ai','--addimg', nargs='+', type=argparse.FileType('r'), help="Add the imaginary part to the final db",default=[])
     parser.add_argument('-o','--output',                       help='Output filename', default='ndb_out.QP')
