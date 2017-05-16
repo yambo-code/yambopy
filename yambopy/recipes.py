@@ -376,8 +376,9 @@ def merge_qp(output,files,verbose=False):
     QP_E_E0_Z_save = np.concatenate(QP_E_E0_Z,axis=1)
 
     #create reference file from one of the files
+    netcdf_format = datasets[0].data_model
     fin  = datasets[0]
-    fout = Dataset(output,'w')
+    fout = Dataset(output,'w',format=netcdf_format)
 
     variables_update = ['QP_table', 'QP_kpts', 'QP_E_Eo_Z']
     variables_save   = [QP_table_save.T, QP_kpts_save.T, QP_E_E0_Z_save]
