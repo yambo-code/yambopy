@@ -3,6 +3,9 @@
 # along with a representation of the carriers in energy space
 
 from __future__ import print_function
+from __future__ import division
+from builtins import range
+from past.utils import old_div
 from yambopy import *
 import matplotlib.gridspec as gridspec
 from scipy.optimize import curve_fit
@@ -42,14 +45,14 @@ distances = yrt.bands_distances
 eigenvalues = yrt.eigenvalues[kindex,:] # eigenvalues of the bands included in the RT simulation
 #
 max_occ = np.amax(yrt.occupations[:,kindex,:]) # used to size the distribution plots
-occupations = yrt.occupations[:,kindex,:]/max_occ # format time,kindex,band index (from 0 to nbands, only on path)
+occupations = old_div(yrt.occupations[:,kindex,:],max_occ) # format time,kindex,band index (from 0 to nbands, only on path)
 #
 ##
 
 ## 'fit' variables and function
 # FD distrib for fit
 def fermi_dirac(E,a,T): # declare E first for fit
-    return 1/(1+np.exp((E-a)/T))
+    return old_div(1,(1+np.exp(old_div((E-a),T))))
 #
 KtoeV = 8.61733e-5
 #
@@ -63,7 +66,7 @@ xeng = np.linspace(np.amin(eigenvalues[:,list(range(nbv))]), np.amax(eigenvalues
 
 # The external field is read from the o- file
 ext = np.loadtxt('%s/%s/pulse/o-pulse.external_field'%(folder,calc))
-field = ext[:,2]/max(abs(ext[:,2])) # polarization : x=1,y=2,z=3
+field = old_div(ext[:,2],max(abs(ext[:,2]))) # polarization : x=1,y=2,z=3
 
 ##################
 # ENERGY DISTRIB #
@@ -217,7 +220,7 @@ for t in range(len(times)):
 
     ax3.fill_betweenx(occ_e[i,:,0],0,occ_e[i,:,1],color='red')
     ax3.plot(fermi_dirac(xeng,fit[0],fit[1]),xeng,'k-')
-    ax3.text(0.5,0.9,'Electrons\nT = %d K'%(fit[1]/KtoeV),transform=ax3.transAxes,ha='center',va='center')
+    ax3.text(0.5,0.9,'Electrons\nT = %d K'%(old_div(fit[1],KtoeV)),transform=ax3.transAxes,ha='center',va='center')
 
     try:
         fit,cov = curve_fit(fermi_dirac,occ_h[i,:,0],occ_h[i,:,1])
@@ -226,7 +229,7 @@ for t in range(len(times)):
 
     ax4.fill_betweenx(-occ_h[i,:,0],0,occ_h[i,:,1],color='blue')
     ax4.plot(fermi_dirac(xeng,fit[0],fit[1]),-xeng,'k-')
-    ax4.text(0.5,0.1,'Holes\nT = %d K'%(fit[1]/KtoeV),transform=ax4.transAxes,ha='center',va='center')
+    ax4.text(0.5,0.1,'Holes\nT = %d K'%(old_div(fit[1],KtoeV)),transform=ax4.transAxes,ha='center',va='center')
 
 # set x and y range
     ax4.set_xlim(-0.1*max_occ,1.1*max_occ)

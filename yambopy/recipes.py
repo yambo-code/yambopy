@@ -466,11 +466,11 @@ def add_qp(output,add=[],substract=[],addimg=[],verbose=False):
     # Read the files
     datasets  = [ Dataset(filename) for filename in filenames]
 
-    print "\n    Reading input files\n"
+    print("\n    Reading input files\n")
     for d,f in zip(datasets,filenames):
-        print "filename:    ", f
+        print("filename: %s"%f)
         # read sizes
-        _, nkpoints, nqps, _, nstrings = map(int,d['PARS'][:])
+        _, nkpoints, nqps, _, nstrings = list(map(int,d['PARS'][:]))
         sizes.append((f,(nkpoints,nqps,nstrings)))
 
         # Check if the number of kpoints is consistent
@@ -481,11 +481,11 @@ def add_qp(output,add=[],substract=[],addimg=[],verbose=False):
         # printing the description string
         # (breaking the symmetries doesn't update the descr)
         if verbose:
-            print "description:"
-            for i in xrange(1,nstrings+1):
-                print ''.join(d['DESC_strings_%05d'%i][0])
+            print("description:")
+            for i in range(1,nstrings+1):
+                print(''.join(d['DESC_strings_%05d'%i][0]))
         else:
-            print "description:", ''.join(d['DESC_strings_%05d'%(nstrings)][0])
+            print("description:", ''.join(d['DESC_strings_%05d'%(nstrings)][0]))
 
         # fill dictionaries with data for all files
         QP_table[f] = d['QP_table'][:].T
@@ -498,10 +498,10 @@ def add_qp(output,add=[],substract=[],addimg=[],verbose=False):
             qpdic[(n1,n2,k)]=Eo
             qpdici[(n1,n2,k)]=0
 
-    print "Number of k points: %s\n"%nkpoints
+    print("Number of k points: %s\n"%nkpoints)
 
     # keys are sorted in the order yambo usually writes DBs
-    qpkeys = sorted(qpdic.keys(),key=itemgetter(2,1))
+    qpkeys = sorted(list(qpdic.keys()),key=itemgetter(2,1))
 
     # For E, [0,:,:] is real part and [1,:,:] is img part
     QP_E_E0_Z_save = np.zeros((2,len(qpkeys),3))
@@ -556,7 +556,7 @@ def add_qp(output,add=[],substract=[],addimg=[],verbose=False):
 
     variables_update = ['QP_table', 'QP_kpts', 'QP_E_Eo_Z']
     variables_save   = [QP_table_save.T, QP_kpts_save.T, QP_E_E0_Z_save]
-    variables_dict   = dict(zip(variables_update,variables_save))
+    variables_dict   = dict(list(zip(variables_update,variables_save)))
     PARS_save = fin['PARS'][:]
     PARS_save[1:3] = sizes[0][1][0],len(QP_table_save)
 
@@ -567,12 +567,12 @@ def add_qp(output,add=[],substract=[],addimg=[],verbose=False):
     description_save = np.array([i for i in " %s"%description])
 
     #output data
-    print "\n    Producing output file\n"
-    print "filename:    ", output
-    print "description: ", description
+    print("\n    Producing output file\n")
+    print("filename:    ", output)
+    print("description: ", description)
 
     #copy dimensions
-    for dname, the_dim in fin.dimensions.iteritems():
+    for dname, the_dim in fin.dimensions.items():
         fout.createDimension(dname, len(the_dim) if not the_dim.isunlimited() else None)
 
     #get dimensions
@@ -582,11 +582,11 @@ def add_qp(output,add=[],substract=[],addimg=[],verbose=False):
     #create missing dimensions
     for v in variables_save:
         for dname,d in zip( dimensions(v),v.shape ):
-            if dname not in fout.dimensions.keys():
+            if dname not in list(fout.dimensions.keys()):
                 fout.createDimension(dname, d)
 
     #copy variables
-    for v_name, varin in fin.variables.iteritems():
+    for v_name, varin in fin.variables.items():
         if v_name in variables_update:
             #get the variable
             merged = variables_dict[v_name]

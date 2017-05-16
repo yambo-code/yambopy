@@ -1,8 +1,14 @@
+from __future__ import print_function
+from __future__ import division
 # Copyright (c) 2016, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
+from builtins import zip
+from builtins import range
+from builtins import object
+from past.utils import old_div
 from yambopy import *
 from yambopy.plot import *
 import os
@@ -15,7 +21,7 @@ def isbetween(a,b,c):
     """
     return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0,rtol=1e-05, atol=1e-06)
 
-class YamboRTDB():
+class YamboRTDB(object):
     """
     Open the RT databases and store it in a RTDB class
     """
@@ -81,7 +87,7 @@ class YamboRTDB():
         self.nsym  = len(self.sym_car)
 
         #convert form internal yambo units to cartesian lattice units
-        self.kpts_car = np.array([ k/self.alat for k in self.kpts_iku ])
+        self.kpts_car = np.array([ old_div(k,self.alat) for k in self.kpts_iku ])
         #convert cartesian transformations to reduced transformations
         inv = np.linalg.inv
         self.sym_rlu = np.zeros([self.nsym,3,3])
@@ -109,13 +115,13 @@ class YamboRTDB():
 
         #get how many rt databases exist
         files = [ filename for filename in  os.listdir(self.path) if 'ndb.RT_carriers_Time' in filename]
-        print "Number of RT carrier files:", len(files)
+        print("Number of RT carrier files:", len(files))
 
         # sorting
         units = {'as':1e-18,'fs':1e-15,'ps':1e-12}
         s = []
         for filename in files:
-            for unit in units.keys():
+            for unit in list(units.keys()):
                 if unit in filename:
                     factor = units[unit]
             s.append((float(re.findall("\d+\.\d+", filename)[0])*factor,filename))
@@ -144,7 +150,7 @@ class YamboRTDB():
     def integrate(self):
         self.occupations = np.zeros([self.ntimes,self.nkpoints,self.nbands])
 
-        for t in xrange(0,self.ntimes):
+        for t in range(0,self.ntimes):
 
             #"delta_f" is df(t)-df(t0), so total occupation
             self.occupations[t] = self.RT_carriers_delta_f[t]
@@ -155,7 +161,7 @@ class YamboRTDB():
         if kpts is None:
             kpts, nks, nss = self.expand_kpts()
         else:
-            nks = range(len(kpts))
+            nks = list(range(len(kpts)))
 
         #points in cartesian coordinates
         path_car = red_car(path, self.rlat)
@@ -179,7 +185,7 @@ class YamboRTDB():
             end_kpt   = path_car[k+1] #end point of the path
 
             #generate repetitions of the brillouin zone
-            for x,y,z in product(range(-1,2),range(-1,2),range(1)):
+            for x,y,z in product(list(range(-1,2)),list(range(-1,2)),list(range(1))):
 
                 #shift the brillouin zone
                 shift = red_car([np.array([x,y,z])],self.rlat)[0]
@@ -196,7 +202,7 @@ class YamboRTDB():
                         kpoints_in_path[key] = value
 
             #sort the points acoording to distance to the start of the path
-            kpoints_in_path = sorted(kpoints_in_path.values(),key=lambda i: i[1])
+            kpoints_in_path = sorted(list(kpoints_in_path.values()),key=lambda i: i[1])
 
             #for all the kpoints in the path
             for index, disp, kpt in kpoints_in_path:
@@ -208,7 +214,7 @@ class YamboRTDB():
         self.bands_indexes = bands_indexes
         self.bands_highsym_qpts = path_car
 
-        print 'Path generated using %d kpoints.'%len(bands_kpoints)
+        print('Path generated using %d kpoints.'%len(bands_kpoints))
 
         # Calculate distances
         bands_distances = [0]
@@ -260,7 +266,7 @@ class YamboRTDB():
         self.full_nkpoints = len(kpoints_full)
         weights = np.zeros([self.nkpoints])
         for nk in kpoints_full_i:
-            weights[nk] = float(len(kpoints_full_i[nk]))/self.full_nkpoints
+            weights[nk] = old_div(float(len(kpoints_full_i[nk])),self.full_nkpoints)
 
         #set the variables
         self.expanded = True
@@ -269,7 +275,7 @@ class YamboRTDB():
         self.kpoints_indexes  = np.array(kpoints_indexes)
         self.symmetry_indexes = np.array(symmetry_indexes)
 
-        print "%d kpoints expanded to %d"%(len(self.kpts_car),len(kpoints_full))
+        print("%d kpoints expanded to %d"%(len(self.kpts_car),len(kpoints_full)))
 
         return self.kpoints_full, self.kpoints_indexes, self.symmetry_indexes
 

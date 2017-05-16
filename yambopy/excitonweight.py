@@ -1,8 +1,10 @@
+from __future__ import print_function
 # Copyright (c) 2016, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
+from builtins import range
 from yambopy import *
 from itertools import product
 
@@ -46,7 +48,7 @@ class YamboExcitonWeight(YamboSaveDB):
                  "lattice": self.lat,
                  "reciprocal_lattice": self.rlat }
 
-    def calc_kpts_weights(self,repx=range(3),repy=range(3),repz=range(3)):
+    def calc_kpts_weights(self,repx=list(range(3)),repy=list(range(3)),repz=list(range(3))):
         """ Calculate the weights and kpoints of the excitons
         """
         self.weights = dict()
@@ -68,7 +70,7 @@ class YamboExcitonWeight(YamboSaveDB):
         qpts = []
         weights = []
         for r in product(repx,repy,repz):
-            for k,s in self.weights.keys():
+            for k,s in list(self.weights.keys()):
                 w   = self.weights[(k,s)]
                 weights.append( w )
                 qpt = np.dot(sym[s-1],kpoints[k-1])+red_car([r],self.rlat)[0]
@@ -114,7 +116,7 @@ class YamboExcitonWeight(YamboSaveDB):
 
 if __name__ == "__main__":
     ye = YamboExciton('o-yambo.exc_weights_at_1_02')
-    print ye
+    print(ye)
     ye.write_irr()
     ye.write_full()
     #ye.plot_contour()
