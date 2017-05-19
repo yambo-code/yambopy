@@ -4,7 +4,6 @@
 # This file is part of the yambopy project
 #
 from yambopy import *
-
 ha2ev  = 27.211396132
 
 class YamboGreenDB():
@@ -23,28 +22,30 @@ class YamboGreenDB():
             raise IOError("Error opening %s in YamboGreenDB"%self.filename)
 
         #read the Green's functions energies
-        re,im = database['Green_Functions_Energies'][:]*ha2ev
+        re,im = database['Green_Functions_Energies'][:]
         self.energies = (re+im*1j).T
 
         #read the Green's Functions
-        re,im = database['Green_Functions'][:]*ha2ev
+        re,im = database['Green_Functions'][:]
         self.green = (re+im*1j).T
         
         #read the self-energy operator
-        re,im = database['SE_Operator'][:]*ha2ev
+        re,im = database['SE_Operator'][:]
         self.se = (re+im*1j).T
 
         self.nqps, self.nenergies = self.green.shape
 
         #read QP_table
-        qptable = database['QP_table'][:]
+        qptable = database['QP_table'][:].astype(int)
         self.band1, self.band2, self.kindex = qptable
+        self.bandmax = max(self.band1)
+        self.bandmin = min(self.band1)
 
         #read QP_kpts
         kpts = database['QP_kpts'][:].T
         self.qpoints = kpts.shape
 
-    def plot(self,ax,nqp=0,nb=0,what='SE',**kwargs):
+    def plot(self,ax,nqp=0,what='SE',e0=None,**kwargs):
         """
         Plot quantities from this database
         """
@@ -53,17 +54,24 @@ class YamboGreenDB():
                    'green':self.green}
         y = options[what][nqp]
 
+        #get band and k-point
+        band = self.band1[nqp]
+        kpt  = self.kindex[nqp]
+
+        ax.set_title('kpt=%d band=%d'%(kpt,band))
         ax.plot(x.real,y.real,label='Re(%s)'%what,**kwargs)
         ax.plot(x.real,y.imag,label='Im(%s)'%what,**kwargs)
+        if e0 is not None:
+            ax.plot(x.real,e0[nqp]-x.real)
 
-    def getQP(self,e0,debug=False):
+    def getQP(self,e0,bandmin=None,bandmax=None,debug=False,secant=True,braket=None):
         """
         Get quasiparticle states
     
         Arguments:
-        e0 -> bare eigenvalues
+        e0 -> bare eigenvalues in eV
         """
-        from scipy.optimize import bisect
+        from scipy.optimize import bisect, newton
         from scipy.interpolate import interp1d
         from scipy.misc import derivative
 
@@ -89,7 +97,7 @@ class YamboGreenDB():
             #plot omega-e0
             emin = min(self.energies[nqp].real)
             emax = max(self.energies[nqp].real)
-            x = np.arange(emin,emax,(emax-emin)/100)
+            x = np.linspace(emin,emax,100)
             plt.plot(x,x-e0[nqp])
 
             #plot imaginary part of greens funciton
@@ -103,10 +111,20 @@ class YamboGreenDB():
 
             plt.legend(frameon=False)
             plt.show()
+
+        if bandmin is None: bandmin = self.bandmin
+        if bandmax is None: bandmax = self.bandmax
  
         self.eqp = np.zeros([self.nqps],dtype=complex) 
         self.z   = np.zeros([self.nqps],dtype=complex) 
         for nqp in xrange(self.nqps):
+
+            band = self.band1[nqp]
+            kpt  = self.kindex[nqp]
+            if debug: print "%3d %3d %3d %8.4lf"%(nqp, kpt, band, e0[nqp])
+
+            if not (bandmin < band < bandmax):
+                continue
 
             #get x and y
             x = self.energies[nqp].real
@@ -116,13 +134,26 @@ class YamboGreenDB():
             f = interp1d(x,y.real-x+e0[nqp],kind='slinear')
 
             #find zero
-            eqp = bisect(f,min(x),max(x)) 
+            if secant:
+                try:
+                    eqp = newton(f,e0[nqp],maxiter=200)
+                except ValueError, msg:
+                    print msg
+                    error(nqp)
+            else:
+                if braket:
+                    emin = e0[nqp]-braket
+                    emax = e0[nqp]+braket
+                else:
+                    emin = min(x)
+                    emax = max(x)
+
+                eqp = bisect(f,emin,emax) 
 
             #interpolate whole function
             f = interp1d(x,y)
 
             #calculate Z factors
-            #Z = (1-dSE/de)^(-1)
             dse = derivative(f,eqp,dx=1e-8)
             z = 1./(1-dse)
 
@@ -136,7 +167,8 @@ class YamboGreenDB():
 
             #cehck for potential errors
             if z>1 and debug:
-                error(nqp)            
+                print z
+                error(nqp)
 
         return self.eqp, self.z
  
