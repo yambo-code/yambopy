@@ -4,6 +4,7 @@
 # This file is part of the yambopy project
 #
 from yambopy import *
+import shutil
 ha2ev  = 27.211396132
 
 class YamboGreenDB():
@@ -63,6 +64,35 @@ class YamboGreenDB():
         ax.plot(x.real,y.imag,label='Im(%s)'%what,**kwargs)
         if e0 is not None:
             ax.plot(x.real,e0[nqp]-x.real)
+
+    def modQP(self,filename_reference,filename_new):
+        """
+        Take a QP file as reference and modify the values of the energies, lifetimes and Z factors
+        according to the ones calculated from ndb.Green.
+        
+        Arguments:
+            filename_reference : name of the reference file
+            filename_new : name of the new file with the calculated data
+        """
+
+        #copy ref file to new file
+        shutil.copy(filename_reference, filename_new)
+
+        #read QP file
+        qp = Dataset(filename_new,'r+')
+
+        #check dimensions
+        #print qp.variables['QP_E_Eo_Z'][:].shape
+        #print self.eqp.shape
+        #print self.z.shape
+
+        qp.variables['QP_E_Eo_Z'][0,:,0] = self.eqp.real
+        qp.variables['QP_E_Eo_Z'][1,:,0] = self.eqp.imag
+        qp.variables['QP_E_Eo_Z'][0,:,2] = self.z.real
+        qp.variables['QP_E_Eo_Z'][1,:,2] = self.z.imag
+
+        #write 
+        qp.close()
 
     def getQP(self,e0,bandmin=None,bandmax=None,debug=False,secant=True,braket=None):
         """
