@@ -134,7 +134,6 @@ class YamboFile():
                 data['E'],  data['Eo'], data['Z'] = qp.T
                 data['E-Eo'] = data['E']  -  data['Eo']
                 self.data=data
-                f.close()
             #new format
             else:
                 E  = f.variables['QP_E'][:]
@@ -145,7 +144,7 @@ class YamboFile():
                 data['Z'] = Z[:,0] + Z[:,1]*1j
                 data['E-Eo'] = data['E']  -  data['Eo']
                 self.data=data
-                f.close()
+            f.close()
 
     def parse_netcdf_hf(self):
         """ Parse the netcdf hf file (ndb.HF_and_locXC)

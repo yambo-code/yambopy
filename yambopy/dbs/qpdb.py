@@ -18,6 +18,8 @@ class YamboQPDB():
         """
         Read a QP file using the yamboparser
         """
+        self.folder = folder
+        self.filename = filename
         if os.path.isfile('%s/%s'%(folder,filename)):
             self.yfile = YamboFile(filename,folder)
         else:
