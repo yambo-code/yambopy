@@ -75,7 +75,7 @@ class YamboGreenDB():
 
             #plot 0
             ax.axhline(0,c='k',lw=1)
-            
+
             #set axis
             rmin, rmax = min(y.real),max(y.real)
             imin, imax = min(y.imag),max(y.imag)
@@ -169,7 +169,7 @@ class YamboGreenDB():
             kpt  = self.kindex[nqp]
             if debug: print "%3d %3d %3d %8.4lf"%(nqp, kpt, band, e0[nqp])
 
-            if not (bandmin < band < bandmax):
+            if not (bandmin <= band <= bandmax):
                 continue
 
             #get x and y
@@ -214,13 +214,15 @@ class YamboGreenDB():
             #cehck for potential errors
             if z>1 and debug:
                 print z
-                error(nqp)
+                error(nqp)            
 
         return self.eqp, self.z
- 
+
     def __str__(self):
         s = ""
         s += "nenergies: %d\n"%self.nenergies
-        s += "nqps:      %d"%self.nqps
+        s += "nqps:      %d\n"%self.nqps
+        s += "bandmin:   %d\n"%self.bandmin
+        s += "bandmax:   %d"%self.bandmax
         return s
 
