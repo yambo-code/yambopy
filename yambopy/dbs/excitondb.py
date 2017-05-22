@@ -128,14 +128,14 @@ class YamboExcitonDB(YamboSaveDB):
         return np.array(band_kpoints), energies, weights 
 
     def plot_exciton_bs(self,ax,energies,path,excitons,size=500,space='bands',
-                        args_scatter={'c':'b'},args_plot={'c':'r'}):
+                        args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
         """
         Plot the excitons
         
             Arguments:
             ax -> axis extance of matplotlib to add the plot to
         """
-        bands_kpoints, energies, weights = self.exciton_bs(energies, path, excitons)
+        bands_kpoints, energies, weights = self.exciton_bs(energies, path, excitons, debug)
         
         weights /= np.max(weights)
 
