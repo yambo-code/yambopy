@@ -18,10 +18,10 @@ def expand_kpts(kpts,syms):
 
     return full_kpts
 
-def isbetween(a,b,c):
+def isbetween(a,b,c,eps=1e-5):
     """ Check if c is between a and b
     """
-    return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0)
+    return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0,atol=eps)
 
 def red_car(red,lat):
     """
