@@ -12,8 +12,9 @@ class YamboGreenDB():
     These green's functions describe the spectral function of the quasiparticles.
     The quasi-particles can be from electron-phonon or GW calculations
     """
-    def __init__(self,save='SAVE',filename='ndb.G'):
-        self.filename = "%s/%s"%(save,filename)
+    def __init__(self,filename='ndb.G',folder='.'):
+        self.folder = folder
+        self.filename = "%s/%s"%(folder,filename)
 
         #read em1s database
         try:
@@ -41,14 +42,21 @@ class YamboGreenDB():
         self.bandmax = max(self.band1)
         self.bandmin = min(self.band1)
 
+        #qp dictionary
+        self.qp_dict = {}
+        for nqp,(b1,b2,kindex) in enumerate(qptable.T):
+            self.qp_dict[(b1,b2,kindex)] = nqp
+
         #read QP_kpts
         kpts = database['QP_kpts'][:].T
         self.qpoints = kpts.shape
 
-    def plot(self,ax,nqp=0,what='SE',e0=None,**kwargs):
+    def plot(self,ax,kpt=0,band=0,what='SE',e0=None,**kwargs):
         """
         Plot quantities from this database
         """
+        nqp = self.qp_dict[(band,band,kpt)]
+        
         x = self.energies[nqp]
         options = {'SE':self.se,
                    'green':self.green}
@@ -63,6 +71,14 @@ class YamboGreenDB():
         ax.plot(x.real,y.imag,label='Im(%s)'%what,**kwargs)
         if e0 is not None:
             ax.plot(x.real,e0[nqp]-x.real)
+
+            #plot 0
+            ax.axhline(0,c='k',lw=1)
+            
+            #set axis
+            rmin, rmax = min(y.real),max(y.real)
+            imin, imax = min(y.imag),max(y.imag)
+            ax.set_ylim(min(rmin,imin),max(rmax,imax))
 
     def getQP(self,e0,bandmin=None,bandmax=None,debug=False,secant=True,braket=None):
         """
@@ -139,7 +155,7 @@ class YamboGreenDB():
                     eqp = newton(f,e0[nqp],maxiter=200)
                 except ValueError, msg:
                     print msg
-                    error(nqp)
+                    if debug: error(nqp)
             else:
                 if braket:
                     emin = e0[nqp]-braket
