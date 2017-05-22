@@ -50,6 +50,7 @@ from yambopy.dbs.electronsdb import *
 from yambopy.dbs.rtdb import *
 from yambopy.dbs.excitondb import *
 from yambopy.dbs.wfdb import *
+from yambopy.dbs.elphondb import *
 
 #input/output files
 from yambopy.io.inputfile import *

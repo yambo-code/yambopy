@@ -18,7 +18,7 @@ class YamboElectronPhononDB():
     """
     Python class to read the electron-phonon matrix elements from yambo
     """
-    def __init__(self,lattice,filename='ndb.elph_gkkp',save='SAVE'):
+    def __init__(self,lattice,filename='ndb.elph_gkkp',save='SAVE',only_freqs=False):
         self.lattice = lattice
         
         self.save = save
@@ -51,33 +51,35 @@ class YamboElectronPhononDB():
 
         return gkkp, kpts
 
-    def readDB(self):
+    def readDB(self,only_freqs=False):
         """ 
         Load all the gkkp databases to memory
         """
 
-        self.gkkp = np.zeros([self.nqpoints,self.nkpoints,self.nmodes,self.nbands,self.nbands],dtype=np.complex64)
+        self.ph_eigenvalues  = np.zeros([self.nqpoints,self.nmodes])
+        self.ph_eigenvectors = np.zeros([self.nqpoints,self.nmodes,self.nmodes/3,3],dtype=np.complex64)
+        if not only_freqs:
+            self.gkkp = np.zeros([self.nqpoints,self.nkpoints,self.nmodes,self.nbands,self.nbands],dtype=np.complex64)
         
         for nq in xrange(self.nqpoints):
             filename = '%s_fragment_%d'%(self.filename,nq+1)
 
             db = Dataset(filename)
 
-            self.ph_eigenvalues = np.sqrt(db['PH_FREQS1'][:])
+            self.ph_eigenvalues[nq] = np.sqrt(db.variables['PH_FREQS%d'%(nq+1)][:])
 
-            p_re = db['POLARIZATION_VECTORS_REAL'][:].T
-            p_im = db['POLARIZATION_VECTORS_IMAG'][:].T
-            self.ph_eigenvectors = p_re + p_im*I
+            p_re = db.variables['POLARIZATION_VECTORS_REAL'][:].T
+            p_im = db.variables['POLARIZATION_VECTORS_IMAG'][:].T
+            self.ph_eigenvectors[nq] = p_re + p_im*I
             
-            gkkp = db['ELPH_GKKP_Q%d'%(nq+1)][:]
-            self.gkkp[nq] = (gkkp[:,0,:,:] + I*gkkp[:,1,:,:]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
+            if not only_freqs:
+                gkkp = db.variables['ELPH_GKKP_Q%d'%(nq+1)][:]
+                self.gkkp[nq] = (gkkp[:,0,:,:] + I*gkkp[:,1,:,:]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
             
             db.close()
 
-        #use gamma only
-        self.gkkp = self.gkkp[0]
-        
-        return self.gkkp
+        if not only_freqs:
+            return self.gkkp
         
     def __str__(self):
         if self.ph_eigenvalues is None:
@@ -87,10 +89,12 @@ class YamboElectronPhononDB():
         s+= 'nmodes: %d\n'%self.nmodes
         s+= 'natoms: %d\n'%self.natoms
         s+= 'nbands: %d\n'%self.nbands
-        for n,mode in enumerate(self.ph_eigenvectors):
-            s+= 'mode %d freq: %lf cm-1\n'%(n,self.ph_eigenvalues[n]*ha2ev*ev2cm1)
-            for a in xrange(self.natoms):
-                s += ("%12.8lf "*3+'\n')%tuple(mode[a].real)
+        for nq in xrange(self.nqpoints):
+            s+= 'nqpoint %d\n'%nq
+            for n,mode in enumerate(self.ph_eigenvectors[nq]):
+                s+= 'mode %d freq: %lf cm-1\n'%(n,self.ph_eigenvalues[nq][n]*ha2ev*ev2cm1)
+                for a in xrange(self.natoms):
+                    s += ("%12.8lf "*3+'\n')%tuple(mode[a].real)
         return s
 
 if __name__ == '__main__':
