@@ -82,7 +82,6 @@ class YamboQPDB():
         energies_dft = self.eigenvalues_dft[lattice.kpoints_indexes]
         #energies_dft = self.eigenvalues_dft
 
-        print band_indexes 
         energies_dft = energies_dft[band_indexes]
         energies_qp  = energies_qp[band_indexes]
 
@@ -96,17 +95,21 @@ class YamboQPDB():
         bands_kpoints, energies_dft, energies_qp = self.qp_bs(lattice, path, debug)
 
         #calculate distances
-        bands_distances = [0]
-        distance = 0
-        for nk in range(1,len(bands_kpoints)):
-            distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
-            bands_distances.append(distance)
+        bands_distances = calculate_distances(bands_kpoints)
 
+        #make the plots
         for b in xrange(self.min_band-1,self.max_band):
             if 'DFT' in what: 
                 ax.plot(bands_distances, energies_dft[:,b], label='dft', **args)
             if 'QP' in what:
                 ax.plot(bands_distances, energies_qp[:,b],  label='qp', **args)
+
+        #add high-symmetry k-points vertical bars
+        kpath_car = red_car(path,lattice.rlat)
+        #calculate distances for high-symmetry points
+        kpath_distances = calculate_distances( path ) 
+        for d in kpath_distances:
+            ax.axvline(d)
 
         xmin = np.min(bands_distances)
         xmax = np.max(bands_distances)

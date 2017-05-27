@@ -6,8 +6,21 @@
 from yambopy import *
 from itertools import product
 
+def calculate_distances(kpoints):
+    """
+    take a list of k-points and calculate the distances between all of them
+    """
+    kpoints = np.array(kpoints)
+    distances = [0]
+    distance = 0
+    for nk in range(1,len(kpoints)):
+        distance += np.linalg.norm(kpoints[nk-1]-kpoints[nk])
+        distances.append(distance)   
+    return distances
+ 
 def expand_kpts(kpts,syms):
-    """ Take a list of qpoints and symmetry operations and return the full brillouin zone
+    """ 
+    Take a list of qpoints and symmetry operations and return the full brillouin zone
     with the corresponding index in the irreducible brillouin zone
     """
     full_kpts = []
