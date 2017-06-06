@@ -88,7 +88,7 @@ class YamboQPDB():
         return np.array(band_kpoints), energies_dft, energies_qp
  
 
-    def plot_qp_bs(self,ax,lattice,path,what='DFT,QP',debug=False,**args):
+    def plot_qp_bs(self,ax,lattice,path,what='DFT,QP',debug=False,label=False,**args):
         """
         Calculate the quasiparticle band-structure
         """
@@ -98,11 +98,16 @@ class YamboQPDB():
         bands_distances = calculate_distances(bands_kpoints)
 
         #make the plots
-        for b in xrange(self.min_band-1,self.max_band):
+        for b in xrange(self.min_band-1,self.max_band-1):
             if 'DFT' in what: 
-                ax.plot(bands_distances, energies_dft[:,b], label='dft', **args)
+                ax.plot(bands_distances, energies_dft[:,b], **args)
             if 'QP' in what:
-                ax.plot(bands_distances, energies_qp[:,b],  label='qp', **args)
+                ax.plot(bands_distances, energies_qp[:,b],  **args)
+
+        if 'DFT' in what: 
+            ax.plot(bands_distances, energies_dft[:,self.max_band-1], label=label, **args)
+        if 'QP' in what: 
+            ax.plot(bands_distances, energies_qp[:,self.max_band-1],  label=label, **args)
 
         #add high-symmetry k-points vertical bars
         kpath_car = red_car(path,lattice.rlat)
@@ -114,6 +119,7 @@ class YamboQPDB():
         xmin = np.min(bands_distances)
         xmax = np.max(bands_distances)
         plt.xlim([xmin,xmax])
+        return kpath_distances
 
     def get_qps(self):
         """
