@@ -62,13 +62,90 @@ class YamboExcitonDB(YamboSaveDB):
 
         #make an array 
         for t,v in transitions_v_to_c.items():
-            transitions_v_to_c[t] = np.array(v)
+            if len(np.array(v)):
+                transitions_v_to_c[t] = np.array(v)
+            else:
+                del transitions_v_to_c[t]
 
         self.transitions_v_to_c = transitions_v_to_c 
         self.nexcitons    = len(self.eigenvalues)
         self.ntransitions = len(self.table)
         db.close()
-    
+   
+    def write_sorted(self,prefix='yambo'):
+        """
+        Write the sorted energies and intensities to a file
+        """
+        #get intensities
+        eig = self.eigenvalues.real
+        intensities = self.get_intensities()
+
+        #get sorted energies
+        sort_e, sort_i = self.get_sorted()     
+
+        #write excitons sorted by energy
+        f = open('%s_E.dat'%prefix, 'w')
+        for e,n in sort_e:
+            f.write("%3d %12.8lf %12.8e\n"%(n+1,e,intensities[n])) 
+        f.close()
+
+        #write excitons sorted by intensities
+        f = open('%s_I.dat'%prefix,'w')
+        for i,n in sort_i:
+            f.write("%3d %12.8lf %12.8e\n"%(n+1,eig[n],i)) 
+        f.close()
+
+    def get_nondegenerate(self,eps=1e-4):
+        """
+        get a list of non-degenerate excitons
+        """
+        non_deg_e   = [0]
+        non_deg_idx = [] 
+
+        #iterate over the energies
+        for n,e in enumerate(self.eigenvalues):
+            if not np.isclose(e,non_deg_e[-1],atol=eps):
+                non_deg_e.append(e)
+                non_deg_idx.append(n)
+
+        return np.array(non_deg_e[1:]), np.array(non_deg_idx)
+
+    def get_intensities(self):
+        """
+        get the intensities of the excitons
+        """
+        intensities = abs2(self.l_residual*self.r_residual)
+        intensities /= np.max(intensities)
+        return intensities
+
+    def get_sorted(self):
+        """
+        Return the excitonic weights sorted according to energy and intensity
+        """
+        #get intensities
+        eig = self.eigenvalues.real
+        intensities = self.get_intensities()
+
+        #list ordered with energy
+        sort_e = sorted(zip(eig, range(self.nexcitons)))
+
+        #list ordered with intensity
+        sort_i = sorted(zip(intensities, range(self.nexcitons)),reverse=True)
+
+        return sort_e, sort_i 
+
+    def get_degenerate(self,index,eps=1e-4):
+        """
+        Get degenerate excitons
+        """
+
+        energy = self.eigenvalues[index-1]
+        excitons = [] 
+        for n,e in enumerate(self.eigenvalues):
+            if np.isclose(energy,e,atol=eps):
+                excitons.append(n+1)
+        return excitons
+
     def exciton_bs(self,energies,path,excitons=(0,),debug=False):
         """
         Calculate exciton band-structure
@@ -116,6 +193,7 @@ class YamboExcitonDB(YamboSaveDB):
             #get the eigenstate
             eivec = self.eigenvectors[exciton-1]
 
+            #add weights
             for t,transitions in self.transitions_v_to_c.items():
                 c,v = t
                 iks, ehs = transitions.T
@@ -156,21 +234,22 @@ class YamboExcitonDB(YamboSaveDB):
                 ax.plot(bands_distances, energies[:,c]-energies[:,v], c='b')
                 ax.scatter(bands_distances, energies[:,c]-energies[:,v], s=weights[:,c]*size, c='r')
 
+        ax.set_xlim([min(bands_distances),max(bands_distances)])
         ax.set_title("exciton %d-%d"%(excitons[0],excitons[-1]))
 
-    def get_amplitudes_phases(self,excitons=(0,)):
+    def get_amplitudes_phases(self,excitons=(0,),repx=range(1),repy=range(1),repz=range(1)):
         """ get the excitonic amplitudes and phases
         """
         if isinstance(excitons, int):
             excitons = (excitons,)
-        car_kpoints = self.lattice.car_kpoints
        
+        car_kpoints = self.lattice.car_kpoints
         nkpoints = len(car_kpoints)
         amplitudes = np.zeros([nkpoints])
         phases     = np.zeros([nkpoints],dtype=np.complex64)
         for exciton in excitons:
             #the the eigenstate
-            eivec = self.eigenvectors[exciton]
+            eivec = self.eigenvectors[exciton-1]
            
             total = 0
             for eh,kvc in enumerate(self.table):
@@ -179,9 +258,13 @@ class YamboExcitonDB(YamboSaveDB):
                 phases[ikbz]     += Acvk
                 amplitudes[ikbz] += np.abs(Acvk)
 
-        return car_kpoints, amplitudes, np.angle(phases)
+        #replicate kmesh
+        red_kmesh,kindx = replicate_red_kmesh(self.lattice.red_kpoints,repx=repx,repy=repy,repz=repz)
+        car_kpoints = red_car(red_kmesh,self.lattice.rlat)
 
-    def chi(self,dipoles,dir=0,emin=0,emax=8,estep=0.01,broad=0.1,nexcitons='all'):
+        return car_kpoints, amplitudes[kindx], np.angle(phases)[kindx]
+
+    def chi(self,dipoles=None,dir=0,emin=0,emax=8,estep=0.01,broad=0.1,nexcitons='all'):
         """
         Calculate the dielectric response function using excitonic states
         """
@@ -197,13 +280,15 @@ class YamboExcitonDB(YamboSaveDB):
         #initialize the susceptibility intensity
         chi = np.zeros([len(w)],dtype=np.complex64)
 
-        #calculate exciton-light coupling
-        print "calculate exciton-light coupling"
-        EL1,EL2 = self.project1(dipoles.dipoles[:,dir],nexcitons) 
+        if dipoles is None:
+            #get dipole
+            EL1 = self.l_residual
+            EL2 = self.r_residual
+        else:
+            #calculate exciton-light coupling
+            print "calculate exciton-light coupling"
+            EL1,EL2 = self.project1(dipoles.dipoles[:,dir],nexcitons) 
 
-        #get dipole
-        #dip1 = self.l_residual
-        #dip2 = self.r_residual
 
         #iterate over the excitonic states
         for s in xrange(nexcitons):
