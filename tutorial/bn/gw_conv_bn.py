@@ -130,7 +130,7 @@ def plot_gw():
             [[0.5, 0,   0],'M'],
             [[0.3333,0.3333, 0.0],'K'],
             [[0.0, 0.0, 0.0],'$\Gamma$']]
-    ya.plot_gw_path(path,'qp',('lda','gw') )
+    ya.plot_gw_path(path,'qp',('lda','gw'))
 
 def xi():
     #create the folder to run the calculation
@@ -195,7 +195,7 @@ def plot_xi():
             [[0.5, 0,   0],'M'],
             [[0.3333,0.3333, 0.0],'K'],
             [[0.0, 0.0, 0.0],'$\Gamma$']]
-    ya.plot_gw_path('qp',path, cols=(lambda x: x[2]+x[3],))
+    ya.plot_gw_path(path,'qp',path,('lda','gw'))
 
 def dyson_eq():
     #create the folder to run the calculation
@@ -238,7 +238,7 @@ def plot_dyson():
             [[0.5, 0,   0],'M'],
             [[0.3333,0.3333, 0.0],'K'],
             [[0.0, 0.0, 0.0],'$\Gamma$']]
-    ya.plot_gw_path('qp',path, cols=(lambda x: x[2]+x[3],))
+    ya.plot_gw_path(path,'qp',path,('lda','gw'))
 
 if __name__ == "__main__":
     #parse options
