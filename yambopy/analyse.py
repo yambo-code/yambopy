@@ -153,7 +153,7 @@ class YamboAnalyser():
 
         #select one of the files to obtain the points in the path
         json_filename = self.jsonfiles.keys()[0]
-
+        print 'number of files', len(self.jsonfiles.keys())
         #find the points along the high symmetry lines
         json_filename = self.jsonfiles.keys()[0]
         bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path,json_filename)
@@ -166,7 +166,8 @@ class YamboAnalyser():
             bands_distances.append(distance)
 
         #obtain the bands for the output files and plot
-        for json_filename in self.jsonfiles.keys():
+        for i_json,json_filename in enumerate(self.jsonfiles.keys()):
+            print 'json_filename', i_json,json_filename
             for output_filename in self.jsonfiles[json_filename]['data']:
                 print('json filename')
                 print(json_filename)
@@ -243,7 +244,7 @@ class YamboAnalyser():
 
         return bands_distances, band_in_path 
 
-    def get_gw_bands(self,json_filename,output_filename):
+    def get_gw_bands(self,json_filename,type_calc,output_filename):
         """
         Get the gw bands from a gw calculation from a filename
         
@@ -271,11 +272,13 @@ class YamboAnalyser():
         kpoint_index = data[data[:,b_index]==bmin,k_index]
 
         #if 'lda' in evalues:
-        bands = [data[data[:,b_index]==b,Eo_index] for b in xrange(bmin,bmax+1)]
-        bands_cols.append(bands)
+        if type_calc == 'lda':
+          bands = [data[data[:,b_index]==b,Eo_index] for b in xrange(bmin,bmax+1)]
+          bands_cols.append(bands)
+        elif type_calc == 'gw':
         #elif 'gw' in evalues:
-        bands = [data[data[:,b_index]==b,E_index] for b in xrange(bmin,bmax+1)]
-        bands_cols.append(bands)
+          bands = [data[data[:,b_index]==b,E_index] for b in xrange(bmin,bmax+1)]
+          bands_cols.append(bands)
         #elif 'corr' in evalues:
         #bands = [data[data[:,b_index]==b,DE_index] for b in xrange(bmin,bmax+1)]
         #bands_cols.append(bands)
@@ -304,7 +307,8 @@ class YamboAnalyser():
         plt.plot()
         plt.show()
 
-    def plot_gw(self,tags=('qp',),cols=(lambda x: x[2]+x[3],),rows=None):
+    #def plot_gw(self,tags=('qp',),cols=(lambda x: x[2]+x[3],),rows=None):
+    def plot_gw(self,tags=('qp',),type_calc=('lda',),rows=None):
         """
         Use this function to plot the quasiparticle energies from a GW calculation
 
@@ -321,22 +325,42 @@ class YamboAnalyser():
             Will add the second and third columns (DFT eigenvalues + GW corrections)
             Will subtract the 2nd and 1st bands (usefull to study the convergence of the gap)
         """
-        edata = ['lda','gw']
-        line_type = ['-','--','-.']
+        '''
+        Assign type of line
+        '''
+        line_dict  = {'lda':'-','gw':'--','corr':'-.'}
+        '''
+        Assign color with the number of calculations
+        '''
+        n_calculations = len(self.jsonfiles.keys())
+        cmap = plt.get_cmap(self._colormap) #get color map
+        colors = [cmap(i) for i in np.linspace(0, 1, n_calculations)]
+
+
         plot = False
         fig = plt.figure()
         ax = plt.subplot(111)
         #n=0
+
         json_label = [ word[:-5] for word in self.jsonfiles.keys() ]
 
+        print json_label
 
-        for json_filename in sorted(self.jsonfiles.keys()):
-            kpoint_index, bands_cols = self.get_gw_bands(json_filename,json_filename[:-5])
-            label = json_filename[:-5]
-            for iplot,bands in enumerate(bands_cols):
-                for band in bands:
-                    ax.plot(kpoint_index,band,line_type[iplot],label=label+'-%s'%edata[iplot],color='b')
-                    plot = True
+        for i_json,json_filename in enumerate(sorted(self.jsonfiles.keys())):
+            if 'EXXRLvcs' in json_filename:
+              for i_type,e_data in enumerate(type_calc):
+                kpoint_index, bands_cols = self.get_gw_bands(json_filename,e_data,json_filename[:-5])
+                label_data = '%s-%s' % (json_filename[:-5],e_data)
+
+              for i_bands,bands in enumerate(bands_cols):
+                 for i_band,band in enumerate(bands): 
+                   if i_band == 0:
+                     ax.plot(kpoint_index,band,color=colors[i_json],linestyle=line_dict[e_data],label=label_data)
+                   else:
+                     ax.plot(kpoint_index,band,color=colors[i_json],linestyle=line_dict[e_data])
+ 
+                     plot = True
+
         #            n+=1
         if plot:
             box = ax.get_position()
