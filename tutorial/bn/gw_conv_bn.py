@@ -120,19 +120,17 @@ def gw():
 
 def plot_gw():
     #pack the files in .json files
-    pack_files_in_folder('gw')
-
-    #plot the results using yambm analyser
-    ya = YamboAnalyser('gw')
     print('plot all qpoints')
-    ya.plot_gw('qp')
-
+    pack_files_in_folder('gw')
+    ya = YamboAnalyser('gw')
+    ya.plot_gw('qp',('lda','gw'))
+    #plot the results using yambm analyser
     print('plot along a path')
     path = [[[0,   0,   0],'$\Gamma$'],
             [[0.5, 0,   0],'M'],
             [[0.3333,0.3333, 0.0],'K'],
             [[0.0, 0.0, 0.0],'$\Gamma$']]
-    ya.plot_gw_path('qp',path, cols=(lambda x: x[2]+x[3],2))
+    ya.plot_gw_path(path,'qp',('lda','gw') )
 
 def xi():
     #create the folder to run the calculation
