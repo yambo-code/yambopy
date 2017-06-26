@@ -53,7 +53,7 @@ def gw_convergence():
     y['GbndRnge'] = [[1,10],'']             # Self-energy. Number of bands
     y['QPkrange'] = [ [k_f,k_f,4,5], '' ]
 
-    conv = { 'EXXRLvcs': [[10,10,20,40,60,80,100],'Ry'],
+    conv = { 'EXXRLvcs': [[10,10,20,40,60,80,100,150],'Ry'],
              'NGsBlkXp': [[0,0,1,2,3], 'Ry'],
              'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] ,
              'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] }
@@ -100,7 +100,7 @@ def gw():
     y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw')
 
     y['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    y['NGsBlkXp'] = [1,25]          # Screening. Number of bands
+    y['BndsRnXp'] = [1,25]          # Screening. Number of bands
     y['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
     y['GbndRnge'] = [1,25]          # Self-energy. Number of bands
     #read values from QPkrange
@@ -120,19 +120,17 @@ def gw():
 
 def plot_gw():
     #pack the files in .json files
-    pack_files_in_folder('gw')
-
-    #plot the results using yambm analyser
-    ya = YamboAnalyser('gw')
     print('plot all qpoints')
-    ya.plot_gw('qp')
-
+    pack_files_in_folder('gw')
+    ya = YamboAnalyser('gw')
+    ya.plot_gw('qp',('lda','gw'))
+    #plot the results using yambm analyser
     print('plot along a path')
     path = [[[0,   0,   0],'$\Gamma$'],
             [[0.5, 0,   0],'M'],
             [[0.3333,0.3333, 0.0],'K'],
             [[0.0, 0.0, 0.0],'$\Gamma$']]
-    ya.plot_gw_path('qp',path, cols=(lambda x: x[2]+x[3],2))
+    ya.plot_gw_path(path,'qp',('lda','gw'))
 
 def xi():
     #create the folder to run the calculation
@@ -146,7 +144,7 @@ def xi():
     print ("Running COHSEX in folder 'gw-xi/coh'")
     cohsex = YamboIn('%s -p c -g n -V all'%yambo,folder='gw-xi')
     cohsex['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    cohsex['NGsBlkXs'] = [1,25]          # Screening. Number of bands
+    cohsex['BndsRnXs'] = [1,25]          # Screening. Number of bands
     cohsex['NGsBlkXs'] = [3,'Ry']        # Cutoff Screening
     cohsex['GbndRnge'] = [1,25]          # Self-energy. Number of bands
     cohsex['QPkrange'][0][2:] = [2,6]
@@ -161,7 +159,7 @@ def xi():
     print ("Running COHSEX in folder 'gw-xi/pp'")
     ppa = YamboIn('%s -p p -g n -V all'%yambo,folder='gw-xi')
     ppa['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    ppa['NGsBlkXp'] = [1,25]          # Screening. Number of bands
+    ppa['BndsRnXp'] = [1,25]          # Screening. Number of bands
     ppa['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
     ppa['GbndRnge'] = [1,25]          # Self-energy. Number of bands
     ppa['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
@@ -176,7 +174,7 @@ def xi():
     print ("Running Real Axis in folder 'gw-xi/ra'")
     ra = YamboIn('%s -d -g n -V all'%yambo,folder='gw-xi')
     ra['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    ra['NGsBlkXd'] = [1,25]          # Screening. Number of bands
+    ra['BndsRnXd'] = [1,25]          # Screening. Number of bands
     ra['NGsBlkXd'] = [3,'Ry']        # Cutoff Screening
     ra['GbndRnge'] = [1,25]          # Self-energy. Number of bands
     ra['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
@@ -197,7 +195,7 @@ def plot_xi():
             [[0.5, 0,   0],'M'],
             [[0.3333,0.3333, 0.0],'K'],
             [[0.0, 0.0, 0.0],'$\Gamma$']]
-    ya.plot_gw_path('qp',path, cols=(lambda x: x[2]+x[3],))
+    ya.plot_gw_path(path,'qp',path,('lda','gw'))
 
 def dyson_eq():
     #create the folder to run the calculation
@@ -240,7 +238,7 @@ def plot_dyson():
             [[0.5, 0,   0],'M'],
             [[0.3333,0.3333, 0.0],'K'],
             [[0.0, 0.0, 0.0],'$\Gamma$']]
-    ya.plot_gw_path('qp',path, cols=(lambda x: x[2]+x[3],))
+    ya.plot_gw_path(path,'qp',path,('lda','gw'))
 
 if __name__ == "__main__":
     #parse options

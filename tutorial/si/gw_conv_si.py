@@ -60,14 +60,14 @@ def plot_convergence():
     ya = YamboAnalyser('gw_conv')
     print(ya)
     print('plot all qpoints')
-    ya.plot_gw('qp')
+    ya.plot_gw('qp',('lda','gw'))
     print('plot along a path')
 
     path = [[[0.5,   0,   0],'L'],
             [[  0,   0,   0],'$\Gamma$'],
             [[  0, 0.5, 0.5],'X'],
             [[1.0, 1.0, 1.0],'$\Gamma$']]
-    ya.plot_gw_path('qp',path)
+    ya.plot_gw_path(path,'qp',('gw',))
 
 if __name__ == "__main__":
     #parse options

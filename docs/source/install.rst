@@ -8,7 +8,7 @@ To obtain the code you can clone the git repository:
 
 .. code-block:: bash
 
-    git clone https://github.com/henriquemiranda/yambo-py.git
+    git clone https://github.com/henriquemiranda/yambopy.git
 
 Or download the `zip` file from:
 

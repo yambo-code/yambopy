@@ -8,7 +8,7 @@ from yambopy import *
 import os
 
 #
-# by Henrique Miranda
+# by Henrique Miranda. 
 #
 def pack_files_in_folder(folder,save_folder=None,mask='',verbose=True):
     """
@@ -23,7 +23,28 @@ def pack_files_in_folder(folder,save_folder=None,mask='',verbose=True):
             if ([ f for f in filenames if 'o-' in f ]):
                 print dirpath
                 y = YamboOut(dirpath,save_folder=save_folder)
-                y.pack()
+                if os.path.exists('%s/ndb.QP' % dirpath):
+                  y.pack_from_netcdf()
+                else:
+                  y.pack()
+#
+# Developing version for packing many netcdf files. Alejandro Molina-Sanchez. 
+#
+
+def pack_netcdf_files_in_folder(folder,save_folder=None,mask='',verbose=True):
+    """
+    Pack the netcdf files in a folder to json files
+    """
+    if not save_folder: save_folder = folder
+    #pack the files in .json files
+    for dirpath,dirnames,filenames in os.walk(folder):
+        #check if the folder fits the mask
+        if mask in dirpath:
+            #check if there are some output files in the folder
+            if ([ f for f in filenames if 'o-' in f ]):
+                print dirpath
+                y = YamboOut(dirpath,save_folder=save_folder)
+                y.pack_from_netcdf()
 
 #
 # by Alejandro Molina-Sanchez
@@ -104,12 +125,11 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
     unit = invars[keys[0]]['variables'][var][1]
 
     # The following variables are used to make the script compatible with both short and extended output
-    kpindex = tags[keys[0]].tolist().index('K-point')
+    #kpindex = tags[keys[0]].tolist().index('K-point')
+    kpindex = tags[keys[0]].tolist().index('Kpoint_index') # netcdf from json
     bdindex = tags[keys[0]].tolist().index('Band')
     e0index = tags[keys[0]].tolist().index('Eo')
     gwindex = tags[keys[0]].tolist().index('E-Eo')
-
-
     array = np.zeros((len(keys),2))
 
     for i,key in enumerate(keys):
@@ -127,7 +147,7 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         conduction=[]
         for j in range(len(outvars[key]+1)):
             if outvars[key][j][kpindex]==kpointc and outvars[key][j][bdindex]==bandc:
-                    conduction=outvars[key][j]
+               conduction=outvars[key][j]
             elif outvars[key][j][kpindex]==kpointv and outvars[key][j][bdindex]==bandv:
                     valence = outvars[key][j]
         # Then the gap can be calculated
