@@ -232,14 +232,11 @@ class YamboAnalyser():
             else:
                 plt.savefig('gw.png')
 
-    def get_gw_path_bands(self,tags,path_label,cols=(lambda x: x[2]+x[3],),rows=None):
+    def get_gw_path_bands(self,path_label,tags=('qp',),type_calc=('lda',),rows=None):
 
         """ Get the bands a path of k-points and find the points in the regular mesh that correspond to points in the path
         """
         path = np.array([p[0] for p in path_label])
-
-        #select one of the files to obtain the points in the path
-        json_filename = self.jsonfiles.keys()[0]
 
         #find the points along the high symmetry lines
         json_filename = self.jsonfiles.keys()[0]
@@ -252,12 +249,11 @@ class YamboAnalyser():
             distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
             bands_distances.append(distance)
 
-
         #obtain the bands for the output files and plot
         for json_filename in self.jsonfiles.keys():
-            for output_filename in self.jsonfiles[json_filename]['data']:
-                kpoint_index, bands_cols = self.get_gw_bands(json_filename,output_filename,cols=cols,rows=rows)
-
+            #for output_filename in self.jsonfiles[json_filename]['data']:
+            for e_data in type_calc:
+                kpoint_index, bands_cols = self.get_gw_bands(json_filename,e_data,json_filename[:-5])
                 # Pass path and bands in arrays
                 band_in_path = []
                 for ib,bands in enumerate(bands_cols):
