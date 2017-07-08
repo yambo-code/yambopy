@@ -61,20 +61,14 @@ class Matdyn():
     Class to read and plot the data from matdyn.modes files 
     """
 
-    def __init__(self,natoms,path,folder='.',filename='matdyn.modes'):
+    def __init__(self,filename='matdyn.modes',path=None,folder='.',natoms=None):
+        """
+        natoms is to be removed, but for now is left for legacy purposes
+        """
         self.folder   = folder
-        self.path     = path
-        self.nmodes   = natoms*3
-        self.natoms   = natoms
-        try:
-            self.nqpoints = len(path.get_klist()) 
-        except:
-            self.nqpoints = 1
         self.filename = filename
         self.folder   = folder
-        self.qpoints = []
-        self.eig = []
-        self.eiv = []
+        self.path     = path
 
         self.read_modes(filename)
 
@@ -82,15 +76,42 @@ class Matdyn():
         """
         read the modes        
         """
-        data_phon = open("%s/%s"%(self.folder, self.filename),'r').readlines()
-        natoms = self.natoms
+        f = open("%s/%s"%(self.folder, self.filename),'r')        
+        data_phon = f.readlines()
+        f.close()
 
-        for j in xrange(self.nqpoints):
+        #detect dimensions of the file
+        #qpoints
+        nqpoints = 0
+        for line in data_phon:
+            if 'q =' in line:
+                nqpoints+=1
+        nqpoints = nqpoints
+
+        #modes
+        nline = 0
+        while 'freq' not in data_phon[nline]:
+            nline += 1
+        start_line = nline
+        nline +=1
+        while 'freq' not in data_phon[nline]:
+            nline += 1
+        end_line = nline
+        natoms = end_line-start_line-1
+        nmodes = natoms*3
+
+        #empty stuff
+        eig = []
+        eiv = []
+        qpoints = []
+
+        #read qpoints, modes and energies
+        for j in range(nqpoints):
             frec, v_frec = [], []
-            k=2 + j*(self.nmodes*(self.natoms+1)+5)
-            self.qpoints.append( float_from_string(data_phon[k]) )
-            for i in xrange(self.nmodes):
-                k=4 + j*(self.nmodes*(natoms+1)+5) + i*(natoms+1)
+            k=2 + j*(nmodes*(natoms+1)+5)
+            qpoints.append( float_from_string(data_phon[k]) )
+            for i in range(nmodes):
+                k=4 + j*(nmodes*(natoms+1)+5) + i*(natoms+1)
                 y = float_from_string(data_phon[k])
                 v_mode = []
                 for ii in xrange(1,natoms+1):
@@ -99,11 +120,16 @@ class Matdyn():
                     v_mode.append(v_atom)
                 v_frec.append(v_mode)
                 frec.append(y[1])
-            self.eig.append(frec)
-            self.eiv.append(v_frec)
-        self.qpoints = np.array(self.qpoints)
-        self.eig     = np.array(self.eig)
-        self.eiv     = np.array(self.eiv).reshape(self.nqpoints,self.nmodes,self.nmodes)
+            eig.append(frec)
+            eiv.append(v_frec)
+
+        #store info
+        self.natoms  = natoms
+        self.nmodes  = nmodes
+        self.nqpoints= nqpoints
+        self.qpoints = np.array(qpoints)
+        self.eig     = np.array(eig)
+        self.eiv     = np.array(eiv).reshape(nqpoints,nmodes,nmodes)
 
     def write_modes(self,filename=None):
         """
@@ -188,10 +214,6 @@ class Matdyn():
         """
         import matplotlib.pyplot as plt
 
-        if self.eigen is None:
-            print('Error')
-            #self.get_eigen()
-      
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
@@ -204,9 +226,9 @@ class Matdyn():
             plt.axvline(x)
 
         #plot bands
-        eigen = np.array(self.eigen)
+        eig = np.array(self.eig)
         for ib in range(self.nmodes):
-           plt.plot(xrange(self.nqpoints),eigen[:,ib], 'r-', lw=2)
+           plt.plot(xrange(self.nqpoints),eig[:,ib], 'r-', lw=2)
         plt.show()
 
     def get_phonon_freq(self,nq,n,unit="eV"):
