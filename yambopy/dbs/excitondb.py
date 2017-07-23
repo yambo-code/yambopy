@@ -202,18 +202,24 @@ class YamboExcitonDB(YamboSaveDB):
 
         energies = energies[band_indexes]
         weights  = weights[band_indexes]
+
+        #make top valence band to be zero
+        energies -= max(energies[:,max(self.unique_vbands)])
         
         return np.array(band_kpoints), energies, weights 
 
-    def plot_exciton_bs(self,ax,energies,path,excitons,size=500,space='bands',
+    def plot_exciton_bs(self,ax,lattice,energies_db,path,excitons,size=500,space='bands',
                         args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
         """
         Plot the excitons
         
             Arguments:
-            ax -> axis extance of matplotlib to add the plot to
+            ax          -> axis extance of matplotlib to add the plot to
+            lattice     -> Lattice database
+            energies_db -> Energies database, can be either a SaveDB or QPDB
+            path        -> Path in the brillouin zone
         """
-        bands_kpoints, energies, weights = self.exciton_bs(energies, path, excitons, debug)
+        bands_kpoints, energies, weights = self.exciton_bs(energies_db, path, excitons, debug)
         
         weights /= np.max(weights)
 
@@ -234,8 +240,17 @@ class YamboExcitonDB(YamboSaveDB):
                 ax.plot(bands_distances, energies[:,c]-energies[:,v], c='b')
                 ax.scatter(bands_distances, energies[:,c]-energies[:,v], s=weights[:,c]*size, c='r')
 
+        #add high-symmetry k-points vertical bars
+        kpath_car = red_car(path,lattice.rlat)
+        #calculate distances for high-symmetry points
+        kpath_distances = calculate_distances( path )
+        for d in kpath_distances:
+            ax.axvline(d,c='k')
+
+        ax.set
         ax.set_xlim([min(bands_distances),max(bands_distances)])
         ax.set_title("exciton %d-%d"%(excitons[0],excitons[-1]))
+        return kpath_distances
 
     def get_amplitudes_phases(self,excitons=(0,),repx=range(1),repy=range(1),repz=range(1)):
         """ get the excitonic amplitudes and phases

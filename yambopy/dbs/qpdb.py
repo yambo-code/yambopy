@@ -114,7 +114,7 @@ class YamboQPDB():
         #calculate distances for high-symmetry points
         kpath_distances = calculate_distances( path ) 
         for d in kpath_distances:
-            ax.axvline(d)
+            ax.axvline(d,c='k')
 
         xmin = np.min(bands_distances)
         xmax = np.max(bands_distances)
