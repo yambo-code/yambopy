@@ -41,7 +41,7 @@ class YamboDipolesDB():
         except:
             raise IOError("Error opening %s in YamboDipolesDB"%self.filename)
             
-        self.nq_ibz, self.nq_ibz, self.nk_ibz, self.nk_bz = database.variables['HEAD_R_LATT'][:].astype(int)
+        self.nq_ibz, self.nq_bz, self.nk_ibz, self.nk_bz = database.variables['HEAD_R_LATT'][:].astype(int)
         self.spin = database.variables['SPIN_VARS'][1].astype(int)
 
         # indexv is the maximum partially occupied band
