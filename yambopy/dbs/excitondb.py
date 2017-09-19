@@ -22,30 +22,30 @@ class YamboExcitonDB(YamboSaveDB):
         """
         try:
             filename = "%s/%s"%(self.path,self.filename)
-            db = Dataset(filename)
+            database = Dataset(filename)
         except:
             print "failed to read database %s"%filename
             exit(1)
         if 'BS_left_Residuals' in db.variables.keys():
             #residuals
-            rel,iml = db['BS_left_Residuals'][:].T
-            rer,imr = db['BS_right_Residuals'][:].T
+            rel,iml = database.variables['BS_left_Residuals'][:].T
+            rer,imr = database.variables['BS_right_Residuals'][:].T
             self.l_residual = rel+iml*I
             self.r_residual = rer+imr*I
         if 'BS_Residuals' in db.variables.keys():
             #residuals
-            rel,iml,rer,imr = db['BS_Residuals'][:].T
+            rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
             self.l_residual = rel+iml*I
             self.r_residual = rer+imr*I
         #energies
-        eig =  db['BS_Energies'][:]*ha2ev
+        eig =  database.variables['BS_Energies'][:]*ha2ev
         self.eigenvalues = eig[:,0]+eig[:,1]*I
         #eigenvectors
-        eiv = db['BS_EIGENSTATES'][:]
+        eiv = database.variables['BS_EIGENSTATES'][:]
         eiv = eiv[:,:,0] + eiv[:,:,1]*I
         self.eigenvectors = eiv
         #indexes
-        self.table = db['BS_TABLE'][:].T.astype(int)
+        self.table = database.variables['BS_TABLE'][:].T.astype(int)
 
         #transitions dictionary
         #bs table k, v, c

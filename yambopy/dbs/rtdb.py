@@ -35,17 +35,17 @@ class YamboRTDB():
         database.close()
 
         #read reference database
-        db = Dataset("%s/%s"%(self.path,referencedb))
-        self.nband_min, self.nband_max, self.nkpoints = db['RT_vars'][:].astype(int)
+        database = Dataset("%s/%s"%(self.path,referencedb))
+        self.nband_min, self.nband_max, self.nkpoints = database.variables['RT_vars'][:].astype(int)
         self.nbands = self.nband_max - self.nband_min + 1
         db.close()
 
         #get energies of bands
-        db = Dataset("%s/%s"%(self.path,carriersdb))
-        self.eigenvalues = db['RT_carriers_E_bare'][:].reshape([self.nkpoints,self.nbands])*ha2ev
+        database = Dataset("%s/%s"%(self.path,carriersdb))
+        self.eigenvalues = database.variables['RT_carriers_E_bare'][:].reshape([self.nkpoints,self.nbands])*ha2ev
 
         #get kpoints coordinates
-        self.kpts_iku = db['RT_kpt'][:].T#.reshape([self.nkpoints,3])
+        self.kpts_iku = database.variables['RT_kpt'][:].T#.reshape([self.nkpoints,3])
 
         db.close()
 
@@ -107,12 +107,12 @@ class YamboRTDB():
         for n,(time,filename) in enumerate(ordered_files):
 
             #open database for each k-point
-            db = Dataset("%s/%s"%(self.path,filename))
+            database = Dataset("%s/%s"%(self.path,filename))
 
-            self.RT_carriers_delta_f[n]          = db['RT_carriers_delta_f'][:].reshape([self.nkpoints,self.nbands])
+            self.RT_carriers_delta_f[n]          = database.variables['RT_carriers_delta_f'][:].reshape([self.nkpoints,self.nbands])
 
-            #self.RT_carriers_dE_Self_Energy[n]   = db['RT_carriers_dE_Self_Energy'][:].reshape([self.nkpoints,self.nbands])
-            #self.RT_carriers_dE_V_xc[n]          = db['RT_carriers_dE_V_xc'][:].reshape([self.nbands,self.nkpoints])
+            #self.RT_carriers_dE_Self_Energy[n]   = database.variables['RT_carriers_dE_Self_Energy'][:].reshape([self.nkpoints,self.nbands])
+            #self.RT_carriers_dE_V_xc[n]          = database.variables['RT_carriers_dE_V_xc'][:].reshape([self.nbands,self.nkpoints])
 
             #close database
             db.close()

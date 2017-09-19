@@ -39,9 +39,9 @@ class YamboWFDB():
         while True:
             try:
                 fname = "%s/%s_fragments_%d_1"%(path,filename,nk)
-                db = Dataset(fname)
-                re = db['WF_REAL_COMPONENTS_@_K%d_BAND_GRP_1'%nk][:]
-                im = db['WF_IM_COMPONENTS_@_K%d_BAND_GRP_1'%nk][:]
+                database = Dataset(fname)
+                re = database.variables['WF_REAL_COMPONENTS_@_K%d_BAND_GRP_1'%nk][:]
+                im = database.variables['WF_IM_COMPONENTS_@_K%d_BAND_GRP_1'%nk][:]
                 a = re+1j*im
                 wf.append(a)
                 nk+=1
@@ -83,9 +83,9 @@ class YamboWFDB():
         wf = self.wf
         for nk in xrange(self.nkpoints):
             fname = "%s_fragments_%d_1"%(filename,nk+1)
-            db = Dataset("%s/%s"%(path,fname),'r+')
-            db['WF_REAL_COMPONENTS_@_K%d_BAND_GRP_1'%(nk+1)][:] = wf[nk].real
-            db['WF_IM_COMPONENTS_@_K%d_BAND_GRP_1'%(nk+1)][:] = wf[nk].imag
+            database = Dataset("%s/%s"%(path,fname),'r+')
+            database.variables['WF_REAL_COMPONENTS_@_K%d_BAND_GRP_1'%(nk+1)][:] = wf[nk].real
+            database.variables['WF_IM_COMPONENTS_@_K%d_BAND_GRP_1'%(nk+1)][:] = wf[nk].imag
             db.close()
         print 'new wavefunctions written in %s'%path
 

@@ -24,21 +24,21 @@ class YamboGreenDB():
             raise IOError("Error opening %s in YamboGreenDB"%self.filename)
 
         #read the Green's functions energies
-        re,im = database['Green_Functions_Energies'][:]
+        re,im = database.variables['Green_Functions_Energies'][:]
         self.energies = (re+im*1j).T
 
         #read the Green's Functions
-        re,im = database['Green_Functions'][:]
+        re,im = database.variables['Green_Functions'][:]
         self.green = (re+im*1j).T
         
         #read the self-energy operator
-        re,im = database['SE_Operator'][:]
+        re,im = database.variables['SE_Operator'][:]
         self.se = (re+im*1j).T
 
         self.nqps, self.nenergies = self.green.shape
 
         #read QP_table
-        qptable = database['QP_table'][:].astype(int)
+        qptable = database.variables['QP_table'][:].astype(int)
         self.band1, self.band2, self.kindex = qptable
         self.bandmax = max(self.band1)
         self.bandmin = min(self.band1)
@@ -49,7 +49,7 @@ class YamboGreenDB():
             self.qp_dict[(b1,b2,kindex)] = nqp
 
         #read QP_kpts
-        kpts = database['QP_kpts'][:].T
+        kpts = database.variables['QP_kpts'][:].T
         self.qpoints = kpts.shape
 
     def plot(self,ax,kpt=0,band=0,what='SE',e0=None,**kwargs):

@@ -30,13 +30,13 @@ class YamboElectronPhononDB():
         
         #read dimensions of electron phonon parameters
         try:
-            db = Dataset(self.filename)
+            database = Dataset(self.filename)
         except:
             print "error opening %s in YamboElectronPhononDB"%self.filename
             exit()
             
-        self.qpoints = db.variables['PH_Q'][:].T
-        self.nmodes, self.nqpoints, self.nkpoints, self.nbands = db.variables['PARS'][:4].astype(int)
+        self.qpoints = database.variables['PH_Q'][:].T
+        self.nmodes, self.nqpoints, self.nkpoints, self.nbands = database.variables['PARS'][:4].astype(int)
         self.natoms = self.nmodes/3
         db.close()
         
@@ -64,16 +64,16 @@ class YamboElectronPhononDB():
         for nq in xrange(self.nqpoints):
             filename = '%s_fragment_%d'%(self.filename,nq+1)
 
-            db = Dataset(filename)
+            database = Dataset(filename)
 
-            self.ph_eigenvalues[nq] = np.sqrt(db.variables['PH_FREQS%d'%(nq+1)][:])
+            self.ph_eigenvalues[nq] = np.sqrt(database.variables['PH_FREQS%d'%(nq+1)][:])
 
-            p_re = db.variables['POLARIZATION_VECTORS_REAL'][:].T
-            p_im = db.variables['POLARIZATION_VECTORS_IMAG'][:].T
+            p_re = database.variables['POLARIZATION_VECTORS_REAL'][:].T
+            p_im = database.variables['POLARIZATION_VECTORS_IMAG'][:].T
             self.ph_eigenvectors[nq] = p_re + p_im*I
             
             if not only_freqs:
-                gkkp = db.variables['ELPH_GKKP_Q%d'%(nq+1)][:]
+                gkkp = database.variables['ELPH_GKKP_Q%d'%(nq+1)][:]
                 self.gkkp[nq] = (gkkp[:,0,:,:] + I*gkkp[:,1,:,:]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
             
             db.close()
