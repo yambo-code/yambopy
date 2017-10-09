@@ -63,3 +63,6 @@ from yambopy.bse.bse_absorption import *
 #analyse stuff
 from yambopy.analyse import *
 from yambopy.recipes import *
+
+#realtime files
+from yambopy.rt.rt_movie import *

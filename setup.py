@@ -4,6 +4,7 @@ packages_yambopy = ['yambopy',
                     'yambopy.io',
                     'yambopy.dbs',
                     'yambopy.bse',
+                    'yambopy.rt',
                     'qepy',
                     'schedulerpy',
                     'yamboparser']
