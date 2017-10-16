@@ -53,6 +53,7 @@ class DynmatIn():
 
 class Matdyn():
     """ Class to read and plot the data from matdyn.modes files 
+    Copy the features of the function to plot the electronic structure
     """
     _datafile = 'matdyn.modes'
     def __init__(self,natoms,path,folder='.'):

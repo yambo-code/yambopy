@@ -159,21 +159,32 @@ class YamboExcitonWeight(YamboSaveDB):
         plt.contourf(X, Y, Z, cmap='gist_heat_r')
         plt.show()
 
-    def plot_weights(self,size=30,lim=0.2):
+    def plot_weights(self,ax,size=30,lim=0.2,cmap=None):
         """
         Plot the weights in a scatter plot of this exciton
+        Options:
+        cmap : colormap. Default gist_heat_r
         """
         from numpy import sqrt
-        cmap = plt.get_cmap("gist_heat_r")
+        import matplotlib.pyplot as plt
 
-        fig = plt.figure(figsize=(20,20))
+        cmap = plt.get_cmap(cmap)
+
+        #fig = plt.figure(figsize=(20,20))
         kpts, weights = self.calc_kpts_weights()
-        plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in weights])
+        #plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in weights])
 
-        plt.xlim([-lim,lim])
-        plt.ylim([-lim,lim])
+        #plt.xlim([-lim,lim])
+        #plt.ylim([-lim,lim])
 
-        ax = plt.axes()
+        #ax = plt.axes()
+        #ax.set_aspect('equal')
+        #plt.xlim([-lim,lim])
+        #plt.ylim([-lim,lim])
+
+        ax.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in weights])
+        ax.set_xlim(-lim,lim)
+        ax.set_ylim(-lim,lim)
         ax.set_aspect('equal')
         plt.show()
 
