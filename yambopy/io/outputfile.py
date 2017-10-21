@@ -131,7 +131,8 @@ class YamboOut(object):
         """
         Get the runtime from the r-* file
         """
-        files = sorted([open("%s/%s"%(self.folder,f)) for f in self.run])
+        filenames = sorted(["%s/%s"%(self.folder,f) for f in self.run])
+        files = [open(filename) for filename in filenames]
 
         #empty timing
         timing = dict()
