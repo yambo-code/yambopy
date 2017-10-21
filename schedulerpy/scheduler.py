@@ -196,9 +196,9 @@ class Scheduler():
         """
         if argument in self.kwargs:
             arg = self.kwargs[argument]
-            if arg == "true" or arg == True:
+            if arg == "true":
                 return True
-            elif arg == "false" or arg == False:
+            elif arg == "false":
                 return False
             elif type(arg) in [str,unicode] and "file:" in arg:
                 #load the text from a textfile
