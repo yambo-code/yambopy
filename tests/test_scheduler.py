@@ -100,8 +100,8 @@ class TestScheduler(unittest.TestCase):
         s = Scheduler.factory(cores=1)
         s.add_module("abinit")
         s.add_command("echo 'hello'")
-        print "\n",header("default: %s"%s.__class__)
-        print s
+        print("\n",header("default: %s"%s.__class__))
+        print(s)
         s.write(_test_file)
 
         #remove files
@@ -116,11 +116,11 @@ class TestScheduler(unittest.TestCase):
 
         #run using that configuration file
         for schedulername in ["oar","pbs","bash"]:
-            print "\n",header(schedulername)
+            print("\n",header(schedulername))
             s = Scheduler.factory(scheduler=schedulername,cores=1,nodes=2)
             s.add_module("abinit")
             s.add_command("echo 'hello'")
-            print s
+            print(s)
 
         #remove files
         clean_config()
@@ -137,7 +137,7 @@ class TestSchedulerRun(unittest.TestCase):
         """
         #run using that configuration file
         s = Scheduler.factory(cores=1)
-        print "\n",header("default: %s"%s.__class__)
+        print("\n",header("default: %s"%s.__class__))
         s.add_module("abinit")
         s.add_command("echo 'hello world'")
         s.run()
@@ -149,7 +149,7 @@ class TestSchedulerRun(unittest.TestCase):
         init_config()
 
         for schedulername in ["oar","pbs","bash"]:
-            print "\n",header(schedulername)
+            print("\n",header(schedulername))
             s = Scheduler.factory(scheduler=schedulername,cores=1)
             s._config = _test_config_file
             s.add_module("abinit")
@@ -175,23 +175,25 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(1)
 
-    #clean tests
-    if args.clean:
-        print "cleaning..."
-        os.system('rm -rf scf')
-        print "done!"
-        exit()
-
     # Count the number of errors
     nerrors = 0
 
+    ul = unittest.TestLoader()
+    tr = unittest.TextTestRunner(verbosity=2)
+
     # Run the test
     if args.input:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestScheduler)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful().wasSuccessful()
+        suite = ul.loadTestsFromTestCase(TestScheduler)
+        nerrors += not tr.run(suite).wasSuccessful()
 
     if args.full:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestSchedulerRun)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        suite = ul.loadTestsFromTestCase(TestSchedulerRun)
+        nerrors += not tr.run(suite).wasSuccessful()
+
+    #clean tests
+    if args.clean:
+        print("cleaning...")
+        os.system('rm -rf scf')
+        print("done!")
 
     sys.exit(nerrors)
