@@ -149,8 +149,9 @@ def point_matching(a,b,double_check=True,debug=False,eps=1e-8):
         current_dist,index = kdtree.query(xb, k=1, distance_upper_bound=6)
         map_b_to_a.append(index)
     map_b_to_a = np.array(map_b_to_a)
-
-    if debug: print "took %4.2lfs"%(time()-start_time)
+    
+    if debug:
+        print("took %4.2lfs"%(time()-start_time))
 
     if double_check:
         for ib,ia in enumerate(map_b_to_a):

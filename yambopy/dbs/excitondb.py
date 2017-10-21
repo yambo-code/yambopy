@@ -306,7 +306,7 @@ class YamboExcitonDB(YamboSaveDB):
             EL2 = self.r_residual
         else:
             #calculate exciton-light coupling
-            print "calculate exciton-light coupling"
+            print("calculate exciton-light coupling")
             EL1,EL2 = self.project1(dipoles.dipoles[:,dir],nexcitons) 
 
 
