@@ -1,16 +1,10 @@
-from __future__ import print_function
-from __future__ import division
-# Copyright (C) 2015  Alejandro Molina-Sanchez, Henrique Pereira Coutada Miranda
+from __future__ import print_function, division
+#
+# Copyright (C) 2017  Alejandro Molina-Sanchez, Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
 #
-from builtins import zip
-from builtins import str
-from builtins import map
-from builtins import range
-from builtins import object
-from past.utils import old_div
 import xml.etree.ElementTree as ET
 from   qepy.auxiliary import *
 from   numpy import array, zeros
@@ -152,7 +146,9 @@ class ProjwfcXML(object):
         w_rel = zeros([self.nkpoints,self.nbands])
         for ik in range(self.nkpoints):
           for ib in range(self.nbands):
-            w_rel[ik,ib] = old_div(sum(abs(self.proj[ik,selected_orbitals,ib])**2),(sum(abs(self.proj[ik,selected_orbitals,ib])**2)+sum(abs(self.proj[ik,selected_orbitals_2,ib])**2)))
+            a = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
+            b = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
+            w_rel[ik,ib] = a/(a+b)
         return w_rel
 
     def get_eigen(self):

@@ -1,10 +1,10 @@
 from __future__ import division
-# Copyright (c) 2015, Henrique Miranda
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
-from past.utils import old_div
 import numpy as np
 
 atol = 1e-6
@@ -32,7 +32,7 @@ def rec_lat(lat):
     """
     a1,a2,a3 = np.array(lat)
     v = np.dot(a1,np.cross(a2,a3))
-    b1 = old_div(np.cross(a2,a3),v)
-    b2 = old_div(np.cross(a3,a1),v)
-    b3 = old_div(np.cross(a1,a2),v)
+    b1 = np.cross(a2,a3)/v
+    b2 = np.cross(a3,a1)/v
+    b3 = np.cross(a1,a2)/v
     return np.array([b1,b2,b3])

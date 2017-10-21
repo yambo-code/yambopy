@@ -1,16 +1,11 @@
-from __future__ import print_function
-from __future__ import division
+from __future__ import print_function, division
+#
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
-from builtins import str
-from builtins import zip
-from builtins import range
-from past.utils import old_div
-from builtins import object
 import os
 import re
 from math import sqrt

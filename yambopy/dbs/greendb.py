@@ -1,12 +1,9 @@
-from __future__ import division
+
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
-from builtins import range
-from builtins import object
-from past.utils import old_div
 from yambopy import *
 import shutil
 ha2ev  = 27.211396132
@@ -171,7 +168,7 @@ class YamboGreenDB(object):
 
             band = self.band1[nqp]
             kpt  = self.kindex[nqp]
-            if debug: print "%3d %3d %3d %8.4lf"%(nqp, kpt, band, e0[nqp])
+            if debug: print("%3d %3d %3d %8.4lf"%(nqp, kpt, band, e0[nqp]))
 
             if not (bandmin <= band <= bandmax):
                 continue
@@ -187,8 +184,8 @@ class YamboGreenDB(object):
             if secant:
                 try:
                     eqp = newton(f,e0[nqp],maxiter=200)
-                except ValueError, msg:
-                    print msg
+                except ValueError as msg:
+                    print(msg)
                     if debug: error(nqp)
             else:
                 if braket:
@@ -205,7 +202,7 @@ class YamboGreenDB(object):
 
             #calculate Z factors
             dse = derivative(f,eqp,dx=1e-8)
-            z = old_div(1.,(1-dse))
+            z = 1./(1-dse)
 
             #find Im(Se(EQP)) which corresponds to the lifetime
             lif = f(eqp).imag
@@ -217,7 +214,7 @@ class YamboGreenDB(object):
 
             #cehck for potential errors
             if z>1 and debug:
-                print z
+                print(z)
                 error(nqp)            
 
         return self.eqp, self.z

@@ -1,3 +1,4 @@
+from __future__ import print_function, import division
 #
 # Author: Henrique Pereira Coutada Miranda
 # Date: 18/10/2015
@@ -7,10 +8,6 @@
 # These example runs locally, if you want to make it work behind a queing system you need to
 # modify it accordingly
 #
-from __future__ import print_function
-from __future__ import division
-from builtins import range
-from past.utils import old_div
 from yambopy import *
 from qepy import *
 
@@ -114,7 +111,7 @@ ya.plot_gw('qp')
 print('plot along a path')
 path = [[   0,   0,   0],
         [ 0.5,   0,   0],
-        [old_div(1.,3), old_div(1,3),   0],
+        [1./3, 1/3,   0],
         [   0,   0,   0]]
 ya.plot_gw_path('qp',path)
 

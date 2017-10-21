@@ -1,13 +1,10 @@
-# Copyright (c) 2016, Henrique Miranda
+from __future__ import print_function, division
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
-from __future__ import print_function
-from __future__ import division
-from builtins import zip
-from builtins import range
-from past.utils import old_div
 from yambopy import *
 from itertools import product
 from netCDF4 import Dataset
@@ -121,7 +118,7 @@ class YamboExcitonWeight(YamboSaveDB):
           self.transitions_v_to_c[(int(v),int(c))] += self.transitions[(v,c,k,s)]
         if debug: print('transitions (valence > condution):')
         for v,c in self.transitions_v_to_c:
-          self.transitions_v_to_c[(v,c)] = old_div(self.transitions_v_to_c[(v,c)],norm)
+          self.transitions_v_to_c[(v,c)] = self.transitions_v_to_c[(v,c)]/norm
           if debug: print('%3d > %3d'%(v,c))
 
         #rename symmetries and kpoints

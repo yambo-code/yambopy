@@ -1,13 +1,11 @@
-from __future__ import print_function
-from __future__ import absolute_import
-# Copyright (C) 2016 Henrique Pereira Coutada Miranda
+from __future__ import print_function, absolute_import
+#
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
-from builtins import str
-from builtins import object
 import subprocess
 import json
 from abc import ABCMeta, abstractmethod

@@ -1,14 +1,9 @@
-from __future__ import print_function
-from __future__ import division
-# Copyright (c) 2016, Henrique Miranda
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
-from builtins import zip
-from builtins import range
-from builtins import object
-from past.utils import old_div
 from yambopy import *
 from yambopy.plot import *
 import os
@@ -87,7 +82,7 @@ class YamboRTDB(object):
         self.nsym  = len(self.sym_car)
 
         #convert form internal yambo units to cartesian lattice units
-        self.kpts_car = np.array([ old_div(k,self.alat) for k in self.kpts_iku ])
+        self.kpts_car = np.array([ k/self.alat for k in self.kpts_iku ])
         #convert cartesian transformations to reduced transformations
         inv = np.linalg.inv
         self.sym_rlu = np.zeros([self.nsym,3,3])
@@ -266,7 +261,7 @@ class YamboRTDB(object):
         self.full_nkpoints = len(kpoints_full)
         weights = np.zeros([self.nkpoints])
         for nk in kpoints_full_i:
-            weights[nk] = old_div(float(len(kpoints_full_i[nk])),self.full_nkpoints)
+            weights[nk] = float(len(kpoints_full_i[nk]))/self.full_nkpoints
 
         #set the variables
         self.expanded = True

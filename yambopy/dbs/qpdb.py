@@ -60,7 +60,7 @@ class YamboQPDB(object):
         kpoints = lattice.red_kpoints
         path = np.array(path)
 
-        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=range(-1,2),repy=range(-1,2),repz=range(-1,2))
+        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(-1,2)))
         band_indexes = get_path(kpoints_rep,path)
         band_kpoints = kpoints_rep[band_indexes]
         band_indexes = kpoints_idx_rep[band_indexes]
@@ -100,7 +100,7 @@ class YamboQPDB(object):
         bands_distances = calculate_distances(bands_kpoints)
 
         #make the plots
-        for b in xrange(self.min_band-1,self.max_band-1):
+        for b in range(self.min_band-1,self.max_band-1):
             if 'DFT' in what: 
                 ax.plot(bands_distances, energies_dft[:,b], **args)
             if 'QP' in what:

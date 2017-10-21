@@ -1,19 +1,14 @@
-from __future__ import print_function
-from __future__ import division
-# Copyright (c) 2016, Henrique Miranda
+from __future__ import print_function, division
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
-from builtins import map
-from builtins import range
-from builtins import object
-from past.utils import old_div
 from yambopy import *
 from itertools import product
 from yambopy.plot import *
-
-def red_car(red,lat): return np.array([coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2] for coord in red])
+from yambopy.lattice import red_car
 
 def jump_to(f,tag):
     """ Jump to a line in file
@@ -125,7 +120,7 @@ class YamboExcitonWaveFunctionXSF(object):
         pos = np.zeros([3])
         for atom in self.atoms:
             pos += atom[1:]
-        pos = old_div(pos,len(self.atoms))
+        pos = pos/len(self.atoms)
 
         # center the atoms around that position using the center of the unit cell
         displecement = pos

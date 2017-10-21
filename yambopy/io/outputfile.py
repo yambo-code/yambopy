@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #

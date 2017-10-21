@@ -1,13 +1,10 @@
-from __future__ import print_function
-from __future__ import division
+
+
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
-from builtins import zip
-from builtins import range
-from past.utils import old_div
 from yambopy import *
 from cmath import polar 
 from yambopy.units import *
@@ -66,7 +63,7 @@ class YamboExcitonDB(YamboSaveDB):
             transitions_v_to_c[(v,c)].append((k,eh))
 
         #make an array 
-        for t,v in transitions_v_to_c.items():
+        for t,v in list(transitions_v_to_c.items()):
             if len(np.array(v)):
                 transitions_v_to_c[t] = np.array(v)
             else:
@@ -132,10 +129,10 @@ class YamboExcitonDB(YamboSaveDB):
         intensities = self.get_intensities()
 
         #list ordered with energy
-        sort_e = sorted(zip(eig, range(self.nexcitons)))
+        sort_e = sorted(zip(eig, list(range(self.nexcitons))))
 
         #list ordered with intensity
-        sort_i = sorted(zip(intensities, range(self.nexcitons)),reverse=True)
+        sort_i = sorted(zip(intensities, list(range(self.nexcitons))),reverse=True)
 
         return sort_e, sort_i 
 
@@ -199,7 +196,7 @@ class YamboExcitonDB(YamboSaveDB):
             eivec = self.eigenvectors[exciton-1]
 
             #add weights
-            for t,transitions in self.transitions_v_to_c.items():
+            for t,transitions in list(self.transitions_v_to_c.items()):
                 c,v = t
                 iks, ehs = transitions.T
                 weights[iks,c] += abs2(eivec[ehs])
@@ -257,7 +254,7 @@ class YamboExcitonDB(YamboSaveDB):
         ax.set_title("exciton %d-%d"%(excitons[0],excitons[-1]))
         return kpath_distances
 
-    def get_amplitudes_phases(self,excitons=(0,),repx=range(1),repy=range(1),repz=range(1)):
+    def get_amplitudes_phases(self,excitons=(0,),repx=list(range(1)),repy=list(range(1)),repz=list(range(1))):
         """ get the excitonic amplitudes and phases
         """
         if isinstance(excitons, int):
@@ -316,8 +313,8 @@ class YamboExcitonDB(YamboSaveDB):
             es = self.eigenvalues[s]
  
             #calculate the green's functions
-            G1 = old_div(1,(   w - es - broad*I)) 
-            G2 = old_div(1,( - w - es - broad*I))
+            G1 = 1/(   w - es - broad*I)
+            G2 = 1/( - w - es - broad*I)
 
             r = EL1[s]*EL2[s]
             chi += r*G1 + r*G2

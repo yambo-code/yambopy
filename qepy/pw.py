@@ -1,19 +1,10 @@
-from __future__ import print_function
-from __future__ import division
-from builtins import next
-from future.builtins import next
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
+from __future__ import print_function, division
+#
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
-#
-from builtins import str
-from builtins import zip
-from builtins import map
-from builtins import range
-from builtins import object
-from past.utils import old_div
 from qepy import *
 import os
 import re
@@ -216,13 +207,13 @@ class PwIn(object):
             a = float(self.system['celldm(1)'])
             c = float(self.system['celldm(3)'])
             self.cell_parameters = [[   a,          0,  0],
-                                    [old_div(-a,2),sqrt(3)/2*a,  0],
+                                    [-a/2,sqrt(3)/2*a,  0],
                                     [   0,          0,c*a]]
         elif ibrav == 2:
             a = float(self.system['celldm(1)'])
-            self.cell_parameters = [[ old_div(-a,2),   0, old_div(a,2)],
-                                    [    0, old_div(a,2), old_div(a,2)],
-                                    [ old_div(-a,2), old_div(a,2),   0]]
+            self.cell_parameters = [[ -a/2,   0, a/2],
+                                    [    0, a/2, a/2],
+                                    [ -a/2, a/2,   0]]
         else:
             print('ibrav = %d not implemented'%ibrav)
             exit(1)

@@ -1,5 +1,5 @@
-from __future__ import print_function
-from __future__ import division
+
+
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
@@ -8,7 +8,6 @@ from __future__ import division
 from builtins import zip
 from builtins import range
 from builtins import object
-from past.utils import old_div
 from yambopy import *
 from math import sqrt
 from time import time
@@ -20,12 +19,12 @@ def abs2(x):
     return x.real**2 + x.imag**2
  
 def lorentzian(x,x0,g):
-    height=old_div(1.,(np.pi*g))
+    height=1./(np.pi*g)
     return height*(g**2)/((x-x0)**2+g**2)
 
 def gaussian(x,x0,s):
-    height=old_div(1.,(np.sqrt(2.*np.pi)*s))
-    argument=-0.5*(old_div((x-x0),s))**2
+    height=1./(np.sqrt(2.*np.pi)*s)
+    argument=-0.5*((x-x0)/s)**2
     #Avoiding undeflow errors...
     np.place(argument,argument<min_exp,min_exp)
     return height*np.exp(argument)
@@ -84,7 +83,7 @@ class YamboDipolesDB(object):
                 if norm[i,j] == 0: 
                     self.dipoles[nk,:,i,j] = 0
                 else:
-                    self.dipoles[nk,:,i,j] = old_div(self.dipoles[nk,:,i,j],norm[i,j])
+                    self.dipoles[nk,:,i,j] = self.dipoles[nk,:,i,j]/norm[i,j]
         dipoles = self.dipoles
 
     def readDB(self,dip_type):
@@ -114,10 +113,10 @@ class YamboDipolesDB(object):
 
             if dipoles_format == 1:
                 dip = database.variables['DIP_%s_k_%04d_spin_%04d'%(dip_type,nk+1,1)][:].view(dtype=np.complex64)[:,:,:,0]
-                for i in xrange(3):
+                for i in range(3):
                     dipoles[nk,i] = dip[:,:,i].T
             elif dipoles_format == 2:
-                for i in xrange(3):
+                for i in range(3):
                     dip = database.variables['DIP_%s_k_%04d_xyz_%04d_spin_%04d'%(dip_type,nk+1,i+1,1)][:]
                     dipoles[nk,i] = dip[0].T+dip[1].T*1j
 
@@ -141,9 +140,9 @@ class YamboDipolesDB(object):
         
         #normalize the fields
         field_dir  = np.array(field_dir)
-        field_dir  = old_div(field_dir,np.linalg.norm(field_dir))
+        field_dir  = field_dir/np.linalg.norm(field_dir)
         field_dir3 = np.array(field_dir3)
-        field_dir3 = old_div(field_dir3,np.linalg.norm(field_dir3))
+        field_dir3 = field_dir3/np.linalg.norm(field_dir3)
         
         #calculate polarization directions
         field_dirx = field_dir

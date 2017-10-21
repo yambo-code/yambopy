@@ -1,14 +1,9 @@
-from __future__ import print_function
-from __future__ import division
-# Copyright (c) 2016, Henrique Miranda
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
-from builtins import map
-from builtins import range
-from past.utils import old_div
-from builtins import object
 from yambopy import *
 from itertools import product
 from yambopy.plot import *
@@ -138,7 +133,7 @@ class YamboExcitonWaveFunctionXSF(object):
         pos = np.zeros([3])
         for atom in self.atoms:
             pos += atom[1:]
-        pos = old_div(pos,len(self.atoms))
+        pos = pos/len(self.atoms)
 
         # center the atoms around that position using the center of the unit cell
         displecement = pos

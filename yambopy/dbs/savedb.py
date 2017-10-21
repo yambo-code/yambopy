@@ -1,6 +1,5 @@
-from __future__ import print_function
-from __future__ import division
-# Copyright (c) 2016, Henrique Miranda
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -8,7 +7,6 @@ from __future__ import division
 from builtins import zip
 from builtins import range
 from builtins import object
-from past.utils import old_div
 from yambopy import *
 from yambopy.plot import *
 from itertools import product
@@ -117,7 +115,7 @@ class YamboSaveDB(object):
         nsym = len(self.sym_car)
         self.time_rev_list = [False]*nsym
         for i in range(nsym):
-            self.time_rev_list[i] = ( i >= old_div(nsym,(self.time_rev+1)) )
+            self.time_rev_list[i] = ( i >= nsym/(self.time_rev+1) )
 
         #spin degeneracy if 2 components degen 1 else degen 2
         self.spin_degen = [0,2,1][int(self.spin)]
@@ -132,7 +130,7 @@ class YamboSaveDB(object):
         self.nsym  = len(self.sym_car)
 
         #convert form internal yambo units to cartesian lattice units
-        self.kpts_car = np.array([ old_div(k,self.alat) for k in self.kpts_iku ])
+        self.kpts_car = np.array([ k/self.alat for k in self.kpts_iku ])
 
         #convert cartesian transformations to reduced transformations
         inv = np.linalg.inv
@@ -159,12 +157,12 @@ class YamboSaveDB(object):
                 return 0
             elif e < -max_exp:
                 return 1
-            return old_div(1,(np.exp(e)+1))
+            return 1/(np.exp(e)+1)
 
         def fermi_array(e_array,ef):
             """ Fermi dirac function for an array
             """
-            e_array = old_div((e_array-ef),inv_smear)
+            e_array = (e_array-ef)/inv_smear
             return [ fermi(e) for e in e_array]
 
         def occupation_minus_ne(ef):
@@ -301,7 +299,7 @@ class YamboSaveDB(object):
         self.full_nkpoints = len(kpoints_full)
         weights = np.zeros([self.nkpoints])
         for nk in kpoints_full_i:
-            weights[nk] = old_div(float(len(kpoints_full_i[nk])),self.full_nkpoints)
+            weights[nk] = float(len(kpoints_full_i[nk]))/self.full_nkpoints
 
         #set the variables
         self.expanded = True
@@ -350,7 +348,7 @@ class YamboSaveDB(object):
         weights = (eigenvalues[:,bandc-1]-eigenvalues[:,bandv-1])
         print("min:", min(weights))
         print("max:", max(weights))
-        weights = old_div(weights,max(weights))
+        weights = weights/max(weights)
 
         if expand:
             kpts, nks = self.expand_kpts(repx=repx,repy=repy,repz=repz)

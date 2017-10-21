@@ -1,13 +1,9 @@
-from __future__ import print_function
-from past.builtins import basestring
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
+#
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
-from builtins import str
-from builtins import map
-from builtins import object
 from subprocess import Popen, PIPE
 import os
 import json
@@ -106,7 +102,7 @@ class YamboIn(object):
         """
         #if the units are not specified, add them
         if isinstance(value,list):
-            if not any( [isinstance(v,basestring) for v in value] ):
+            if not any( [isinstance(v,str) for v in value] ):
                 value = [value,'']
         if isinstance(value,(int,float,complex)):
             value = [value,'']
@@ -211,7 +207,7 @@ class YamboIn(object):
 
         #add units to all the variables (to be improved!)
         for key,value in list(conv.items()):
-            if not isinstance(value[-1],basestring) and type(value[0]) == list:
+            if not isinstance(value[-1],str) and type(value[0]) == list:
                 conv[key] = [value,'']
 
         #make a first run with all the first elements
@@ -234,7 +230,7 @@ class YamboIn(object):
             for var in variables:
                 self[var] = reference[var]
             #change the other variables
-            if isinstance(values[0],basestring):
+            if isinstance(values[0],str):
                 for string in values[1:]:
                     filename = "%s_%s"%(key,string)
                     self[key] = string
@@ -303,7 +299,7 @@ class YamboIn(object):
         s += "\n".join(self.arguments)+'\n'
 
         for key,value in list(self.variables.items()):
-            if isinstance(value,basestring):
+            if isinstance(value,str):
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue
             if isinstance(value[0],float):
@@ -328,7 +324,7 @@ class YamboIn(object):
                 else:
                     s+="%% %s\n %s %s \n%%\n"%(key," | ".join(map(str,array))+' | ',unit)
                 continue
-            if isinstance(value[0],basestring):
+            if isinstance(value[0],str):
                 array = value
                 s+="%% %s\n %s \n%%\n"%(key," | ".join(["'%s'"%x.replace("'","").replace("\"","") for x in array])+' | ')
                 continue

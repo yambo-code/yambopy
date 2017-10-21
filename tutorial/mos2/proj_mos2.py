@@ -1,12 +1,8 @@
-from __future__ import print_function
-from __future__ import division
+from __future__ import print_function, division
 #
 # Author: Henrique Pereira Coutada Miranda
 # Example script to plot the weigth of the atomic species in the bandstructure
 #
-from builtins import zip
-from builtins import range
-from past.utils import old_div
 from qepy import *
 import sys
 import argparse
@@ -16,10 +12,10 @@ import matplotlib.pyplot as plt
 folder = 'bands'
 
 npoints = 20
-p = Path([ [[0.0, 0.0, 0.0],'G'],
-           [[0.5, 0.0, 0.0],'M'],
-           [[old_div(1.,3),old_div(1.,3),0.0],'K'],
-           [[0.0, 0.0, 0.0],'G']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
+p = Path([ [[0.0,  0.0, 0.0],'G'],
+           [[0.5,  0.0, 0.0],'M'],
+           [[1./3,1./3, 0.0],'K'],
+           [[0.0,  0.0, 0.0],'G']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
 #parse options
 parser = argparse.ArgumentParser(description='Test the yambopy script.')

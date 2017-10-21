@@ -1,5 +1,5 @@
-from __future__ import print_function
-# Copyright (c) 2016, Henrique Miranda
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project

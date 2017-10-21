@@ -1,8 +1,5 @@
-from __future__ import print_function
-from __future__ import division
-from past.utils import old_div
+from __future__ import print_function, division
 from yambopy import *
-
 
 #define path in reduced coordinates
 path = [ [0.0, 0.0, 0.0],

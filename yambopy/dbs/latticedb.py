@@ -1,14 +1,10 @@
-from __future__ import print_function
-from __future__ import division
+
+
 # Copyright (c) 2015, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
-from builtins import zip
-from builtins import range
-from builtins import object
-from past.utils import old_div
 from yambopy import *
 from netCDF4 import Dataset
 import itertools
@@ -62,7 +58,7 @@ class YamboLatticeDB(object):
         self.nsym  = len(self.sym_car)
 
         #convert form internal yambo units to cartesian lattice units
-        self.car_kpoints = np.array([ old_div(k,self.alat) for k in self.iku_kpoints ])
+        self.car_kpoints = np.array([ k/self.alat for k in self.iku_kpoints ])
         self.red_kpoints = car_red(self.car_kpoints,self.rlat)
         self.nkpoints = len(self.car_kpoints)
 
@@ -75,7 +71,7 @@ class YamboLatticeDB(object):
         nsym = len(self.sym_car)
         self.time_rev_list = [False]*nsym
         for i in range(nsym):
-            self.time_rev_list[i] = ( i >= old_div(nsym,(self.time_rev+1)) )
+            self.time_rev_list[i] = ( i >= nsym/(self.time_rev+1) )
 
     def expandKpoints(self):
         """
@@ -117,7 +113,7 @@ class YamboLatticeDB(object):
         self.full_nkpoints = len(kpoints_full)
         weights = np.zeros([self.nkpoints])
         for nk in kpoints_full_i:
-            weights[nk] = old_div(float(len(kpoints_full_i[nk])),self.full_nkpoints)
+            weights[nk] = float(len(kpoints_full_i[nk]))/self.full_nkpoints
 
         print("%d kpoints expanded to %d"%(len(self.car_kpoints),len(kpoints_full)))
 
