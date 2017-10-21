@@ -258,8 +258,6 @@ class TestYamboOut_GW_Si(unittest.TestCase):
 if __name__ == '__main__':
     #parse options
     parser = argparse.ArgumentParser(description='Test the yambopy script.')
-    parser.add_argument('-i','--input', action="store_true",
-                        help='Generate the input files and compare with the reference ones')
     parser.add_argument('-f','--full',  action="store_true",
                         help='Generate the input files, run them and compare the results')
     parser.add_argument('-c','--clean',  action="store_true",

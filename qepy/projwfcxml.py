@@ -147,7 +147,7 @@ class ProjwfcXML(object):
         for ik in range(self.nkpoints):
           for ib in range(self.nbands):
             a = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
-            b = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
+            b = sum(abs(self.proj[ik,selected_orbitals_2,ib])**2)
             w_rel[ik,ib] = a/(a+b)
         return w_rel
 

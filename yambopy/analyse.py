@@ -12,8 +12,9 @@ import re
 from itertools import product
 import numpy as np
 import matplotlib.pyplot as plt
-from yambopy.lattice import red_car
+from yambopy.lattice import red_car, rec_lat, expand_kpts, isbetween
 from yambopy.io.inputfile import YamboIn
+from yambopy.duck import isstring
 
 class YamboAnalyser(object):
     """
@@ -43,8 +44,9 @@ class YamboAnalyser(object):
     def get_data(self,tags):
         """ Get a dictionary with all the data from the files under analysis
         """
-        if isinstance(tags,basestring):
+        if isstring(tags):
             tags=(tags,)
+
         data = dict()
         for k in sorted(self.jsonfiles.keys()):
             for filename in list(self.jsonfiles[k]["data"].keys()):
@@ -55,8 +57,9 @@ class YamboAnalyser(object):
     def get_tags(self,tags):
         """ Get a dictionary with the tags of the output file colomns
         """
-        if isinstance(tags,basestring):
+        if isstring(tags):
             tags=(tags,)
+
         tagslist = dict()
         for k in sorted(self.jsonfiles.keys()):
             for filename in list(self.jsonfiles[k]["tags"].keys()):
@@ -98,7 +101,7 @@ class YamboAnalyser(object):
             raise ValueError('Information about the lattice is not present, cannot determine the path')
 
         #convert to cartesian coordinates
-        kpts_car = np.array([ old_div(k,alat) for k in kpts_iku ])
+        kpts_car = np.array([ k/alat for k in kpts_iku ])
 
         #get the full list of kpoints
         full_kpts = expand_kpts(kpts_car,sym_car)
@@ -146,7 +149,7 @@ class YamboAnalyser(object):
         Create a path of k-points and find the points in the regular mesh that correspond to points in the path
         Use these points to plot the GW band structure.
         """
-        if isinstance(tags,basestring): 
+        if isstring(tags): 
             tags = (tags,)
 
         path = np.array([p[0] for p in path_label])
