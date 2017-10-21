@@ -99,7 +99,7 @@ class PlotEm1sCmd(Cmd):
                 ys.plot(ax,marker='o',markersize=2,label=folder)
                 #get epsilon^{-1}_{00} = [1+vX]_{00}
                 x,vX = ys._getvxq()
-                epsilons.append([folder,x,np.eye(ys.ngvectors)+vX])
+                epsilons.append([folder,x,1+vX])
             else:
                 if args.verbose:
                     print "path %s is not a folder"%folder

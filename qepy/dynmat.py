@@ -14,10 +14,15 @@ from builtins import object
 import os
 import re
 from math import sqrt
-from numpy import array
-from   qepy.auxiliary import *
+import numpy as np
+from qepy.auxiliary import *
 
-meVtocm = 8.06573
+eVtocm1 = 8065.54429
+cm1toeV = 1.0/eVtocm1
+ha2ev  = 27.211396132
+ev2ha  = 1.0/ha2ev
+Thz2cm1 = 33.35641
+cm12Thz = 1.0/33.35641
 
 class DynmatIn(object):
     """
@@ -58,44 +63,164 @@ class DynmatIn(object):
             return ''
 
 
-class Matdyn(object):
-    """ Class to read and plot the data from matdyn.modes files 
+class Matdyn():
     """
-    _datafile = 'matdyn.modes'
-    def __init__(self,natoms,path,folder='.'):
+    Class to read and plot the data from matdyn.modes files 
+    """
+
+    def __init__(self,filename='matdyn.modes',path=None,folder='.',natoms=None):
+        """
+        natoms is to be removed, but for now is left for legacy purposes
+        """
+        self.folder   = folder
+        self.filename = filename
         self.folder   = folder
         self.path     = path
-        data_phon     = open("%s/%s"%(folder, self._datafile),'r').readlines()
-        self.nmodes   = natoms*3
-        self.nqpoints = len(path.get_klist()) 
-        self.eigen, self.modes = [], []
-        self.qpoints  = []
-        for j in range(self.nqpoints):
-          frec, v_frec = [], []
-          k=2 + j*(self.nmodes*(natoms+1)+5)
-          self.qpoints.append(float_from_string(data_phon[k]))
-          for i in range(self.nmodes):
-            k=4 + j*(self.nmodes*(natoms+1)+5) + i*(natoms+1)
-            y = float_from_string(data_phon[k])
-            v_mode = []
-            for ii in range(1,natoms+1):
-              z      = float_from_string(data_phon[k+ii])
-              v_atom = array([complex(z[0],z[1]),complex(z[2],z[3]),complex(z[4],z[5])])
-              v_mode.append(v_atom)
-            v_frec.append(array(v_mode))
-            frec.append(y[1])
-          self.eigen.append(frec)
-          self.modes.append(array(v_frec))
+
+        self.read_modes(filename)
+
+    def read_modes(self,filename):
+        """
+        read the modes        
+        """
+        f = open("%s/%s"%(self.folder, self.filename),'r')        
+        data_phon = f.readlines()
+        f.close()
+
+        #detect dimensions of the file
+        #qpoints
+        nqpoints = 0
+        for line in data_phon:
+            if 'q =' in line:
+                nqpoints+=1
+        nqpoints = nqpoints
+
+        #modes
+        nline = 0
+        while 'freq' not in data_phon[nline]:
+            nline += 1
+        start_line = nline
+        nline +=1
+        while 'freq' not in data_phon[nline]:
+            nline += 1
+        end_line = nline
+        natoms = end_line-start_line-1
+        nmodes = natoms*3
+
+        #empty stuff
+        eig = []
+        eiv = []
+        qpoints = []
+
+        #read qpoints, modes and energies
+        for j in range(nqpoints):
+            frec, v_frec = [], []
+            k=2 + j*(nmodes*(natoms+1)+5)
+            qpoints.append( float_from_string(data_phon[k]) )
+            for i in range(nmodes):
+                k=4 + j*(nmodes*(natoms+1)+5) + i*(natoms+1)
+                y = float_from_string(data_phon[k])
+                v_mode = []
+                for ii in xrange(1,natoms+1):
+                    z      = float_from_string(data_phon[k+ii])
+                    v_atom = [complex(z[0],z[1]),complex(z[2],z[3]),complex(z[4],z[5])]
+                    v_mode.append(v_atom)
+                v_frec.append(v_mode)
+                frec.append(y[1])
+            eig.append(frec)
+            eiv.append(v_frec)
+
+        #store info
+        self.natoms  = natoms
+        self.nmodes  = nmodes
+        self.nqpoints= nqpoints
+        self.qpoints = np.array(qpoints)
+        self.eig     = np.array(eig)
+        self.eiv     = np.array(eiv).reshape(nqpoints,nmodes,nmodes)
+
+    def write_modes(self,filename=None):
+        """
+        save the phonon modes in a file
+        """
+        s = " matrix written with qepy\n\n"
+        for nq in xrange(self.nqpoints):
+            s += ("q =  "+"%12.6lf "*3+"\n")%tuple(self.qpoints[nq])
+            s += "*"*81+"\n"
+            for n,mode in enumerate(self.eiv[nq]):
+                phfreqmev = self.get_phonon_freq(nq,n+1,unit='THz')
+                phfreqcm1 = self.get_phonon_freq(nq,n+1,unit='cm-1')
+                s += '    freq ( %4d) = %12.6lf [ThZ] = %12.6lf [cm-1]\n'%(n+1,phfreqmev,phfreqcm1)
+                for a in xrange(self.natoms):
+                    xr,yr,zr = mode[a*3:(a+1)*3].real
+                    xi,yi,zi = mode[a*3:(a+1)*3].imag
+                    s += ("( "+"%12.6lf "*6+')\n')%(xr,xi,yr,yi,zr,zi)
+            s += "*"*81+"\n"
+            s += "\n\n"
+        
+        if filename:
+            f = open(filename,'w')
+            f.write(s)
+            f.close()
+        else:
+            print(s)
+
+    def rotate_phonons(self,eps=1e-5,debug=False):
+        """
+        Rotate the degenerate states to align then with the x,y axis
+        Arguments:
+        eps -> threshold for finding degeneracies
+        """
+        eig = self.eig
+        eiv = self.eiv
+        
+        #the eigenvalues are probably sorted but just in case...
+        eig, eiv = zip(*sorted(zip(eig,eiv), key=lambda x: x[0]))
+        eig = np.array(eig)
+        eiv = np.array(eiv)
+        
+        #iterate over qpoints
+        for nq,(eigq,eivq) in enumerate(zip(eig,eiv)):
+            #detect the degeneracies
+            keys = [group.mean() for group in np.split(eigq, np.where(np.diff(eigq) > eps)[0]+1)]
+            unique_frequencies = dict([(key,0) for key in keys])
+            #count degeneracies
+            for eig in eigq:
+                for key in keys:
+                    if np.isclose(key,eig,atol=eps):
+                        unique_frequencies[key] += 1
+            for val,deg in sorted(unique_frequencies.items()):
+                if debug: print("frequency: %12.8lf [Thz] %12.8lf [cm-1] degeneracy: %2d" % (val,val,deg))
+                if deg > 1:
+                    #get the indexes of the modes with the same frequency
+                    indexes = [n for n,f in enumerate(eigq) if np.isclose(f,val,atol=eps)]
+                    r = np.array(eivq[indexes])
+                    if debug:
+                        print("input basis:")
+                        for n in xrange(deg):
+                            print("mode: %3d"%n)
+                            for i in xrange(self.natoms):
+                               print("atom %3d"%i+("%12.8lf"*3)%tuple(r[n,i*3:(i+1)*3].real))
+                    #we make sure the first column vector the matrix r in non zero
+                    rows,cols = r.shape
+                    n = 0
+                    while np.isclose(r[:,n],np.zeros([len(r)])).all():
+                        n += 1
+                    q, a = np.linalg.qr(r[:,n:])
+                    r[:,n:] = a
+                    if debug:
+                        print("canonical basis:")
+                        for n in xrange(deg):
+                            print("mode: %3d"%n)
+                            for i in xrange(self.natoms):
+                                print("atom %3d"%i+("%12.8lf"*3)%tuple(r[n,i*3:(i+1)*3].real))
+                    eivq[indexes] = r
+                self.eiv[nq] = eivq
 
     def plot_eigen(self,path=[]):
         """ plot the phonon frequencies using matplotlib
         """
         import matplotlib.pyplot as plt
 
-        if self.eigen is None:
-            print('Error')
-            #self.get_eigen()
-      
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
@@ -108,27 +233,125 @@ class Matdyn(object):
             plt.axvline(x)
 
         #plot bands
-        eigen = array(self.eigen)
+        eig = np.array(self.eig)
         for ib in range(self.nmodes):
-           plt.plot(list(range(self.nqpoints)),eigen[:,ib], 'r-', lw=2)
+           plt.plot(xrange(self.nqpoints),eig[:,ib], 'r-', lw=2)
         plt.show()
-  
-    def __str__(self):
-        s = ''
-        for nq in range(self.nqpoints):
-            s+="\n\n q = "+("%12.8lf "*3)%tuple(self.qpoints[nq])+"\n"
-            for n in range(self.nmodes):
-                s+= "freq (cm-1): %4.3lf\n"%self.eigen[nq][n]
-                for na in range(old_div(self.nmodes,3)):
-                    xr = self.modes[nq][n][na].real
-                    xi = self.modes[nq][n][na].imag
-                    s+=("%12.8lf %12.8lfj    "*3)%(xr[0],xi[0],xr[1],xi[1],xr[2],xi[2])+"\n"
-        return s
+
+    def get_phonon_freq(self,nq,n,unit="eV"):
+        """
+        Get the value of the phonon frequency
+        nq -> q-point from where to get the frequency from
+        n  -> mode of the phonon
+        """
+        if   unit == "eV":
+            factor = cm1toeV
+        elif unit == "Ha":
+            factor = cm1toeV*eV2ha
+        elif unit == "THz":
+            factor = cm12Thz
+        elif unit == "cm-1":
+            factor = 1
+        else:
+            raise ValueError('Unit %s not known'%unit)
+
+        return self.eig[nq][n-1]*factor
+
+    def normalize(self):
+        """
+        Normalize the displacements u^n_{ai} according to:
+        
+        sum_ai ( u^n_{ai} )**2 = 1
+        """
+       
+        for nq in xrange(self.nqpoints):
+            for n in xrange(self.nmodes):
+                print(np.linalg.norm(self.eiv[nq,n]))
+                self.eiv[nq,n] /= np.linalg.norm(self.eiv[nq,n])
+
+    def normalize_with_masses(self,masses): 
+        """
+        Normalize the displacements u^n_{ai} according to:
+        
+        sum_{ai} M_a u^n_{ai} u^m_{ai} = delta_{nm}
+        
+        u -> displacement
+        n -> phonon mode
+        a -> atom index
+        i -> direction
+        M -> mass
+        """
+
+        masses = np.array(masses)
+        ref_mass = max(masses)
+        masses = masses/ref_mass
+
+        #divide by masses
+        if self.check_orthogonality():
+            for nq in xrange(self.nqpoints):
+                for n in xrange(self.nmodes):
+                    for a in xrange(self.natoms):
+                        self.eiv[nq,n,a*3:(a+1)*3] *= 1.0/sqrt(masses[a])
+        else:
+            print("These eigenvectors are non-orthogonal, probably they are already scaled by the masses so I won't do it")
+
+        #enforce delta_nm
+        for nq in xrange(self.nqpoints):
+            for n in xrange(self.nmodes):
+                s = 0
+                for a in xrange(self.natoms):
+                    e = self.eiv[nq,n,a*3:(a+1)*3]
+                    #get normalization constant
+                    s += masses[a]*np.vdot(e,e).real
+                self.eiv[nq,n] *= 1/sqrt(s)
     
-    def write_freq_file(self,filename='freq.dat'):
-        f = open(filename,'w') 
-        for n in range(self.nmodes):
-          for nq in range(self.nqpoints):
-            f.write("%4.3lf   %4.3lf\n"%(float(nq),self.eigen[nq][n])) 
-          f.write("\n") 
-        f.close()
+    def check_orthogonality(self,atol=1e-5):
+        """
+        Check if the eigenvectors are orthogonal
+        """
+
+        orth = np.zeros([self.nmodes,self.nmodes])
+        for nq in xrange(self.nqpoints):
+            for n in xrange(self.nmodes):
+                e1 = self.eiv[nq,n]
+                for m in xrange(self.nmodes):
+                    e2 = self.eiv[nq,m]
+                    orth[n,m] = np.vdot(e1,e2).real
+        
+        return np.isclose(orth,np.eye(self.nmodes),atol=atol).all()
+ 
+    def check_normalization(self,masses,atol=1e-5):
+        """
+        Check if the displacements are normalized according to:
+        
+        sum_{ai} M_a u^n_{ai} u^m_{ai} = delta_{nm}
+        """
+        
+        masses = np.array(masses)
+        ref_mass = max(masses)
+        masses = masses/ref_mass
+        
+        #check normalization
+        norm = np.zeros([self.nmodes])
+        for nq in xrange(self.nqpoints):
+            for n in xrange(self.nmodes):
+                s = 0
+                for a in xrange(self.natoms):
+                    e = self.eiv[nq,n,a*3:(a+1)*3]
+                    #get normalization constant
+                    s += masses[a]*np.vdot(e,e).real
+                norm[n] = s
+
+        return np.isclose(norm,np.ones(self.nmodes),atol=atol).all()
+ 
+    def __str__(self):
+        s = ""
+        for nq in xrange(self.nqpoints):
+            for n,mode in enumerate(self.eiv[nq]):
+                phfreqmev = self.get_phonon_freq(nq,n+1,unit='eV')*1000
+                phfreqcm1 = self.get_phonon_freq(nq,n+1,unit='cm-1')
+                s+= 'mode: %d freq: %8.2lf meV %8.2lf cm-1\n'%(n+1,phfreqmev,phfreqcm1)
+                for a in xrange(self.natoms):
+                    s += ("%12.8lf "*3+'\n')%tuple(mode[a*3:(a+1)*3].real)
+        return s
+

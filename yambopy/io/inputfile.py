@@ -308,7 +308,10 @@ class YamboIn(object):
                 continue
             if isinstance(value[0],float):
                 val, unit = value
-                s+="%s = %lf %s\n"%(key,val,unit)
+                if val > 1e-6:
+                    s+="%s = %lf %s\n"%(key,val,unit)
+                else:
+                    s+="%s = %e %s\n"%(key,val,unit)
                 continue
             if isinstance(value[0],int):
                 val, unit = value

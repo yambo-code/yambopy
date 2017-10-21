@@ -10,8 +10,21 @@ from past.utils import old_div
 from yambopy import *
 from itertools import product
 
+def calculate_distances(kpoints):
+    """
+    take a list of k-points and calculate the distances between all of them
+    """
+    kpoints = np.array(kpoints)
+    distances = [0]
+    distance = 0
+    for nk in range(1,len(kpoints)):
+        distance += np.linalg.norm(kpoints[nk-1]-kpoints[nk])
+        distances.append(distance)   
+    return distances
+ 
 def expand_kpts(kpts,syms):
-    """ Take a list of qpoints and symmetry operations and return the full brillouin zone
+    """ 
+    Take a list of qpoints and symmetry operations and return the full brillouin zone
     with the corresponding index in the irreducible brillouin zone
     """
     full_kpts = []
@@ -22,10 +35,10 @@ def expand_kpts(kpts,syms):
 
     return full_kpts
 
-def isbetween(a,b,c):
+def isbetween(a,b,c,eps=1e-5):
     """ Check if c is between a and b
     """
-    return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0)
+    return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0,atol=eps)
 
 def red_car(red,lat):
     """
@@ -109,5 +122,56 @@ def replicate_red_kmesh(kmesh,repx=list(range(1)),repy=list(range(1)),repz=list(
     return np.vstack(kmesh_full), np.hstack(kmesh_idx)
 
 
+def point_matching(a,b,double_check=True,debug=False,eps=1e-8):
+    """
+    Matches the points of list a to the points of list b
+    using a nearest neighbour finding algorithm
+
+    Arguments:
+
+        double_check: after the nearest neighbours are assigned check further
+        if the distance between points is within the precision eps
+
+        eps: precision for the double check (default: 1e-8)
+
+    """
+    #karma
+    from scipy.spatial import cKDTree
+    from time import time
+    a = np.array(a)
+    b = np.array(b)
+    start_time = time()
+
+    #initialize thd kdtree
+    kdtree = cKDTree(a, leafsize=10)
+    map_b_to_a = []
+    for xb in b:
+        current_dist,index = kdtree.query(xb, k=1, distance_upper_bound=6)
+        map_b_to_a.append(index)
+    map_b_to_a = np.array(map_b_to_a)
+
+    if debug: print "took %4.2lfs"%(time()-start_time)
+
+    if double_check:
+        for ib,ia in enumerate(map_b_to_a):
+            dist = np.linalg.norm(a[ia]-b[ib])
+            if dist > eps:
+                raise ValueError('point a %d: %s is far away from points b %d: %s  dist: %lf'%(ia,str(a[ia]),ib,str(b[ib]),dist))
+
+    return map_b_to_a
+
+
+def calculate_distances(kpoints):
+    """
+    Take a list of k-points and calculate a list with the
+    distances between them
+    """
+    kpoints = np.array(kpoints)
+    bands_distances = [0]
+    distance = 0
+    for nk in range(1,len(kpoints)):
+        distance += np.linalg.norm(kpoints[nk-1]-kpoints[nk])
+        bands_distances.append(distance)
+    return np.array(bands_distances)
 
 

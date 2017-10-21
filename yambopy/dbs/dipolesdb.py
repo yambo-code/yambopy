@@ -47,7 +47,7 @@ class YamboDipolesDB(object):
         except:
             raise IOError("Error opening %s in YamboDipolesDB"%self.filename)
             
-        self.nq_ibz, self.nq_ibz, self.nk_ibz, self.nk_bz = database.variables['HEAD_R_LATT'][:].astype(int)
+        self.nq_ibz, self.nq_bz, self.nk_ibz, self.nk_bz = database.variables['HEAD_R_LATT'][:].astype(int)
         self.spin = database.variables['SPIN_VARS'][1].astype(int)
 
         # indexv is the maximum partially occupied band
@@ -97,7 +97,7 @@ class YamboDipolesDB(object):
         
         #check dipole db format
         filename = "%s_fragment_1"%(self.filename)
-        db = Dataset(filename)
+        database = Dataset(filename)
         tag1 = 'DIP_iR_k_0001_spin_0001'
         tag2 = 'DIP_iR_k_0001_xyz_0001_spin_0001'
         if tag1 in list(db.variables.keys()):
@@ -110,15 +110,15 @@ class YamboDipolesDB(object):
 
             #open database for each k-point
             filename = "%s_fragment_%d"%(self.filename,nk+1)
-            db = Dataset(filename)
+            database = Dataset(filename)
 
             if dipoles_format == 1:
-                dip = db.variables['DIP_%s_k_%04d_spin_%04d'%(dip_type,nk+1,1)][:].view(dtype=np.complex64)[:,:,:,0]
-                for i in range(3):
+                dip = database.variables['DIP_%s_k_%04d_spin_%04d'%(dip_type,nk+1,1)][:].view(dtype=np.complex64)[:,:,:,0]
+                for i in xrange(3):
                     dipoles[nk,i] = dip[:,:,i].T
             elif dipoles_format == 2:
-                for i in range(3):
-                    dip = db.variables['DIP_%s_k_%04d_xyz_%04d_spin_%04d'%(dip_type,nk+1,i+1,1)][:]
+                for i in xrange(3):
+                    dip = database.variables['DIP_%s_k_%04d_xyz_%04d_spin_%04d'%(dip_type,nk+1,i+1,1)][:]
                     dipoles[nk,i] = dip[0].T+dip[1].T*1j
 
             #close database

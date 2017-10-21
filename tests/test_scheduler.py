@@ -164,35 +164,37 @@ class TestSchedulerRun(unittest.TestCase):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Test the yambopy script.')
-    parser.add_argument('-i','--input', action="store_true",
+    parser.add_argument('-i', '--input', action="store_true",
                         help='Generate the bash files and compare with the reference ones')
-    parser.add_argument('-f','--full',  action="store_true",
+    parser.add_argument('-f', '--full',  action="store_true",
                         help='Generate the bash files, run them and compare the results')
-    parser.add_argument('-c','--clean',  action="store_true",
+    parser.add_argument('-c', '--clean',  action="store_true",
                         help='Clean all the data from a previous run')
     args = parser.parse_args()
 
-    if len(sys.argv)==1:
+    if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
+
+    # Count the number of errors
+    nerrors = 0
+
+    ul = unittest.TestLoader()
+    tr = unittest.TextTestRunner(verbosity=2)
+
+    # Run the test
+    if args.input:
+        suite = ul.loadTestsFromTestCase(TestScheduler)
+        nerrors += not tr.run(suite).wasSuccessful()
+
+    if args.full:
+        suite = ul.loadTestsFromTestCase(TestSchedulerRun)
+        nerrors += not tr.run(suite).wasSuccessful()
 
     #clean tests
     if args.clean:
         print("cleaning...")
         os.system('rm -rf scf')
         print("done!")
-        exit()
-
-    # Count the number of errors
-    nerrors = 0
-
-    # Run the test
-    if args.input:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestScheduler)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful().wasSuccessful()
-
-    if args.full:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestSchedulerRun)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     sys.exit(nerrors)
