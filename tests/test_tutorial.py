@@ -98,7 +98,7 @@ def is_exe(fpath):
 def clean():
         print("cleaning...")
         os.system('rm -rf relax gw bse_conv bse_cutoff bse_cutoff_cut analyse_bse_conv '
-                  'bse_par bse gw_conv bands scf nscf database proj.in')
+                  'bse_par bse gw_conv bands scf nscf database proj.in cutoff_test.png')
         print("done!")
 
 if __name__ == '__main__':
@@ -130,29 +130,29 @@ if __name__ == '__main__':
 
     # Count the number of errors
     nerrors = 0
-
+    do_clean = False
     ul = unittest.TestLoader()
     tr = unittest.TextTestRunner(verbosity=2)
 
     # Test for tutorial 1
     if args.tutorial1:
-        clean()
+        do_clean = True
         suite = ul.loadTestsFromTestCase(TestGW_Convergence)
         nerrors += not tr.run(suite).wasSuccessful()
 
     # Test for tutorial 2
     if args.tutorial2:
-        clean()
+        do_clean = True
         suite = ul.loadTestsFromTestCase(TestCoulomb_Cutoff)
         nerrors += not tr.run(suite).wasSuccessful()
 
     # Test for tutorial 3
     if args.tutorial3:
-        clean()
+        do_clean = True
         suite = ul.loadTestsFromTestCase(TestParallel_BSE)
         nerrors += not tr.run(suite).wasSuccessful()
 
-    if args.clean:
+    if args.clean or do_clean:
         clean()
 
     sys.exit(nerrors)

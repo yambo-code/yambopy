@@ -10,5 +10,6 @@ scf
 bse_cutoff
 bse_par
 *.json
+*.png
 jobs.sh
 proj.in
