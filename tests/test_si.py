@@ -4,10 +4,10 @@
 # Si
 #
 import matplotlib
-matplotlib.use('Agg')
 import unittest
 import sys
 import os
+import shutil
 import argparse
 import subprocess
 import filecmp
@@ -98,6 +98,7 @@ class TestPW_Si_Run(unittest.TestCase):
 
         print "step 3: nscf"
         os.system('cd nscf; pw.x < si.nscf > si.nscf.log')
+
 
 class TestYamboPrep_Si(unittest.TestCase):
     def test_yambo_preparation(self):
@@ -250,56 +251,65 @@ if __name__ == '__main__':
         sys.exit(1)
 
     #first test if yambo is installed
-    if not subprocess.call("yambo", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
+    sp = subprocess.PIPE
+    yambo_not_available = subprocess.call("yambo", shell=True, stdout=sp, stderr=sp)
+    if yambo_not_available:
         print "yambo not found, please install it before running the tests"
         sys.exit(1)
+
+    # Count the number of errors
+    nerrors = 0
+
+    ul = unittest.TestLoader()
+    tr = unittest.TextTestRunner(verbosity=2)
+
+    #
+    # Test pw.x
+    #
+    suite = ul.loadTestsFromTestCase(TestPW_Si)
+    nerrors += not tr.run(suite).wasSuccessful()
+
+    if args.full:
+        suite = ul.loadTestsFromTestCase(TestPW_Si_Run)
+        nerrors += not tr.run(suite).wasSuccessful()
+
+    #
+    # Test p2y and yambo
+    #
+    if args.full:
+        suite = ul.loadTestsFromTestCase(TestYamboPrep_Si)
+        nerrors += not tr.run(suite).wasSuccessful()
+
+    #
+    # Test GW on yambo
+    #
+    suite = ul.loadTestsFromTestCase(TestYamboIn_GW_Si)
+    nerrors += not tr.run(suite).wasSuccessful()
+
+    if args.full:
+        suite = ul.loadTestsFromTestCase(TestYamboIn_GW_Si_Run)
+        nerrors += not tr.run(suite).wasSuccessful()
+
+    #
+    # Test BSE on yambo
+    #
+    suite = ul.loadTestsFromTestCase(TestYamboIn_BSE_Si)
+    nerrors += not tr.run(suite).wasSuccessful()
+
+    if args.full:
+        suite = ul.loadTestsFromTestCase(TestYamboIn_BSE_Si_Run)
+        nerrors += not tr.run(suite).wasSuccessful()
+
+        suite = ul.loadTestsFromTestCase(TestYamboOut_GW_Si)
+        nerrors += not tr.run(suite).wasSuccessful()
+
+        suite = ul.loadTestsFromTestCase(TestYamboOut_BSE_Si)
+        nerrors += not tr.run(suite).wasSuccessful()
 
     #clean tests
     if args.clean:
         print "cleaning..."
         os.system('rm -rf scf bse bse_conv gw gw_conv nscf relax database proj.in')
         print "done!"
-        exit()
-
-    # Count the number of errors
-    nerrors = 0
-
-    # Test pw.x
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestPW_Si)
-    nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
-
-    if args.full:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestPW_Si_Run)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
-
-    # Test p2y and yambo
-    if args.full:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboPrep_Si)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
-
-    # Test GW on yambo
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_GW_Si)
-    nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
-
-    if args.full:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_GW_Si_Run)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
-
-    # Test BSE on yambo
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_BSE_Si)
-    nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
-
-    if args.full:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_BSE_Si_Run)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
-
-    if args.full:
-        # Test packaging output files in json files
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboOut_GW_Si)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
-
-        # Test analyse json files
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboOut_BSE_Si)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
 
     sys.exit(nerrors)
