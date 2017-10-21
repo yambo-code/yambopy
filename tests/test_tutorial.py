@@ -95,17 +95,22 @@ def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 def clean():
-        print "cleaning..."
-        os.system('rm -rf relax gw bse_conv bse_cutoff bse_par bse gw_conv bands scf nscf database proj.in')
-        print "done!"
+        print("cleaning...")
+        os.system('rm -rf relax gw bse_conv bse_cutoff bse_cutoff_cut '
+                  'bse_par bse gw_conv bands scf nscf database proj.in')
+        print("done!")
 
 if __name__ == '__main__':
     #parse options
     parser = argparse.ArgumentParser(description='Run the tutorials to test yambopy.')
-    parser.add_argument('-t1', '--tutorial1', action="store_true", help='Run the GW convergence caluclation of Si')
-    parser.add_argument('-t2', '--tutorial2', action="store_true", help='Run the tutorial on Coulomb-cutoff in BN')
-    parser.add_argument('-t3', '--tutorial3', action="store_true", help='Run the tutorial in Parallel Bethe-Salpeter in MoS2')
-    parser.add_argument('-c',  '--clean',     action="store_true", help='Clean all the data from a previous run')
+    parser.add_argument('-t1', '--tutorial1', action="store_true", 
+                        help='Run the GW convergence caluclation of Si')
+    parser.add_argument('-t2', '--tutorial2', action="store_true", 
+                        help='Run the tutorial on Coulomb-cutoff in BN')
+    parser.add_argument('-t3', '--tutorial3', action="store_true", 
+                        help='Run the tutorial in Parallel Bethe-Salpeter in MoS2')
+    parser.add_argument('-c',  '--clean',     action="store_true", 
+                        help='Clean all the data from a previous run')
     args = parser.parse_args()
 
     if len(sys.argv)==1:
@@ -114,34 +119,37 @@ if __name__ == '__main__':
 
     #first test if yambo is installed
     if is_exe('yambo'):
-        print "yambo not found, please install it before running the tests"
+        print("yambo not found, please install it before running the tests")
         exit()
 
     #first test if pw.x is installed
     if is_exe('pw.x'):
-        print "pw.x not found, please install it before running the tests"
+        print("pw.x not found, please install it before running the tests")
         exit()
 
     # Count the number of errors
     nerrors = 0
 
+    ul = unittest.TestLoader()
+    tr = unittest.TextTestRunner(verbosity=2)
+
     # Test for tutorial 1
     if args.tutorial1:
         clean()
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestGW_Convergence)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        suite = ul.loadTestsFromTestCase(TestGW_Convergence)
+        nerrors += not tr.run(suite).wasSuccessful()
 
     # Test for tutorial 2
     if args.tutorial2:
         clean()
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestCoulomb_Cutoff)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        suite = ul.loadTestsFromTestCase(TestCoulomb_Cutoff)
+        nerrors += not tr.run(suite).wasSuccessful()
 
     # Test for tutorial 3
     if args.tutorial3:
         clean()
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestParallel_BSE)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        suite = ul.loadTestsFromTestCase(TestParallel_BSE)
+        nerrors += not tr.run(suite).wasSuccessful()
 
     if args.clean:
         clean()

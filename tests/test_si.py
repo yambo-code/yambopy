@@ -4,10 +4,10 @@
 # Si
 #
 import matplotlib
-matplotlib.use('Agg')
 import unittest
 import sys
 import os
+import shutil
 import argparse
 import subprocess
 import filecmp
@@ -79,25 +79,26 @@ class TestPW_Si_Run(unittest.TestCase):
     def test_pw_si(sef):
         """ Run relaxation, self consistent cycle and non self consistent cycle
         """
-        print "\nstep 1: relax"
+        print("\nstep 1: relax")
         os.system('cd relax; pw.x < si.scf > si.scf.log')
 
         e = PwXML('si',path='relax')
         pos = e.get_scaled_positions()
 
         q = PwIn('scf/si.scf')
-        print "old celldm(1)", q.system['celldm(1)']
+        print("old celldm(1)", q.system['celldm(1)'])
         q.system['celldm(1)'] = e.cell[0][2]*2
-        print "new celldm(1)", q.system['celldm(1)']
-        q.atoms = zip([a[0] for a in q.atoms],pos)
+        print("new celldm(1)", q.system['celldm(1)'])
+        q.atoms = list(zip([a[0] for a in q.atoms],pos))
         q.write('scf/si.scf')
 
-        print "step 2: scf"
+        print("step 2: scf")
         os.system('cd scf; pw.x < si.scf > si.scf.log')
         os.system('cp -r scf/si.save nscf')
 
-        print "step 3: nscf"
+        print("step 3: nscf")
         os.system('cd nscf; pw.x < si.nscf > si.nscf.log')
+
 
 class TestYamboPrep_Si(unittest.TestCase):
     def test_yambo_preparation(self):
@@ -148,10 +149,10 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
                  'BndsRnXp': [[1,10],[1,20],[1,30]] }
         y.optimize(conv)
 
-        print
+        print()
         def run(filename):
             folder = filename.split('.')[0]
-            print filename, folder
+            print(filename, folder)
             os.system('cd gw_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
 
         y.optimize(conv,run=run)
@@ -194,10 +195,10 @@ class TestYamboIn_BSE_Si_Run(unittest.TestCase):
                  'NGsBlkXs': [[1,2,5], 'Ry'],
                  'BndsRnXs': [[1,10],[1,20],[1,30]] }
 
-        print
+        print()
         def run(filename):
             folder = filename.split('.')[0]
-            print filename, folder
+            print(filename, folder)
             os.system('cd bse_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
 
         y.optimize(conv,run=run)
@@ -250,56 +251,65 @@ if __name__ == '__main__':
         sys.exit(1)
 
     #first test if yambo is installed
-    if not subprocess.call("yambo", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
-        print "yambo not found, please install it before running the tests"
+    sp = subprocess.PIPE
+    yambo_not_available = subprocess.call("yambo", shell=True, stdout=sp, stderr=sp)
+    if yambo_not_available:
+        print("yambo not found, please install it before running the tests")
         sys.exit(1)
-
-    #clean tests
-    if args.clean:
-        print "cleaning..."
-        os.system('rm -rf scf bse bse_conv gw gw_conv nscf relax database proj.in')
-        print "done!"
-        exit()
 
     # Count the number of errors
     nerrors = 0
 
+    ul = unittest.TestLoader()
+    tr = unittest.TextTestRunner(verbosity=2)
+
+    #
     # Test pw.x
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestPW_Si)
-    nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+    #
+    suite = ul.loadTestsFromTestCase(TestPW_Si)
+    nerrors += not tr.run(suite).wasSuccessful()
 
     if args.full:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestPW_Si_Run)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        suite = ul.loadTestsFromTestCase(TestPW_Si_Run)
+        nerrors += not tr.run(suite).wasSuccessful()
 
+    #
     # Test p2y and yambo
+    #
     if args.full:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboPrep_Si)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        suite = ul.loadTestsFromTestCase(TestYamboPrep_Si)
+        nerrors += not tr.run(suite).wasSuccessful()
 
+    #
     # Test GW on yambo
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_GW_Si)
-    nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+    #
+    suite = ul.loadTestsFromTestCase(TestYamboIn_GW_Si)
+    nerrors += not tr.run(suite).wasSuccessful()
 
     if args.full:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_GW_Si_Run)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        suite = ul.loadTestsFromTestCase(TestYamboIn_GW_Si_Run)
+        nerrors += not tr.run(suite).wasSuccessful()
 
+    #
     # Test BSE on yambo
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_BSE_Si)
-    nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+    #
+    suite = ul.loadTestsFromTestCase(TestYamboIn_BSE_Si)
+    nerrors += not tr.run(suite).wasSuccessful()
 
     if args.full:
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboIn_BSE_Si_Run)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        suite = ul.loadTestsFromTestCase(TestYamboIn_BSE_Si_Run)
+        nerrors += not tr.run(suite).wasSuccessful()
 
-    if args.full:
-        # Test packaging output files in json files
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboOut_GW_Si)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        suite = ul.loadTestsFromTestCase(TestYamboOut_GW_Si)
+        nerrors += not tr.run(suite).wasSuccessful()
 
-        # Test analyse json files
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestYamboOut_BSE_Si)
-        nerrors += not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+        suite = ul.loadTestsFromTestCase(TestYamboOut_BSE_Si)
+        nerrors += not tr.run(suite).wasSuccessful()
+
+    #clean tests
+    if args.clean:
+        print("cleaning...")
+        os.system('rm -rf scf bse bse_conv gw gw_conv nscf relax database proj.in')
+        print("done!")
 
     sys.exit(nerrors)

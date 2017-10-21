@@ -43,12 +43,85 @@ class YamboQPDB():
             band  = int(qps['Band'][iqp])
             if min_band > band: min_band = band
             if max_band < band: max_band = band
+        self.min_band = min_band
+        self.max_band = max_band
         self.nbands = max_band-min_band+1
 
         #read the database
         self.eigenvalues_qp, self.eigenvalues_dft, self.lifetimes = self.get_qps()
 
-    def get_qps(self,):
+    def qp_bs(self,lattice,path,debug=False):
+        """
+        Calculate qusi-particle band-structure
+        """
+        #get full kmesh
+        kpoints = lattice.red_kpoints
+        path = np.array(path)
+
+        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=range(-1,2),repy=range(-1,2),repz=range(-1,2))
+        band_indexes = get_path(kpoints_rep,path)
+        band_kpoints = kpoints_rep[band_indexes]
+        band_indexes = kpoints_idx_rep[band_indexes]
+
+        if debug:
+            for i,k in zip(band_indexes,band_kpoints):
+                x,y,z = k
+                plt.text(x,y,i)
+            plt.scatter(kpoints_rep[:,0],kpoints_rep[:,1])
+            plt.plot(path[:,0],path[:,1],c='r')
+            plt.scatter(band_kpoints[:,0],band_kpoints[:,1])
+            plt.show()
+            exit()
+
+        #get eigenvalues along the path
+        #expand eigenvalues to the bull brillouin zone
+        energies_qp = self.eigenvalues_qp[lattice.kpoints_indexes]
+        #energies_qp = self.eigenvalues_qp
+
+        #expand the quasiparticle energies to the bull brillouin zone
+        energies_dft = self.eigenvalues_dft[lattice.kpoints_indexes]
+        #energies_dft = self.eigenvalues_dft
+
+        energies_dft = energies_dft[band_indexes]
+        energies_qp  = energies_qp[band_indexes]
+
+        return np.array(band_kpoints), energies_dft, energies_qp
+ 
+
+    def plot_qp_bs(self,ax,lattice,path,what='DFT,QP',debug=False,label=False,**args):
+        """
+        Calculate the quasiparticle band-structure
+        """
+        bands_kpoints, energies_dft, energies_qp = self.qp_bs(lattice, path, debug)
+
+        #calculate distances
+        bands_distances = calculate_distances(bands_kpoints)
+
+        #make the plots
+        for b in xrange(self.min_band-1,self.max_band-1):
+            if 'DFT' in what: 
+                ax.plot(bands_distances, energies_dft[:,b], **args)
+            if 'QP' in what:
+                ax.plot(bands_distances, energies_qp[:,b],  **args)
+
+        if 'DFT' in what: 
+            ax.plot(bands_distances, energies_dft[:,self.max_band-1], label=label, **args)
+        if 'QP' in what: 
+            ax.plot(bands_distances, energies_qp[:,self.max_band-1],  label=label, **args)
+
+        #add high-symmetry k-points vertical bars
+        kpath_car = red_car(path,lattice.rlat)
+        #calculate distances for high-symmetry points
+        kpath_distances = calculate_distances( path ) 
+        for d in kpath_distances:
+            ax.axvline(d,c='k')
+
+        xmin = np.min(bands_distances)
+        xmax = np.max(bands_distances)
+        plt.xlim([xmin,xmax])
+        return kpath_distances
+
+    def get_qps(self):
         """
         Get quasiparticle energies in a list
         """

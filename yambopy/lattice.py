@@ -6,8 +6,21 @@
 from yambopy import *
 from itertools import product
 
+def calculate_distances(kpoints):
+    """
+    take a list of k-points and calculate the distances between all of them
+    """
+    kpoints = np.array(kpoints)
+    distances = [0]
+    distance = 0
+    for nk in range(1,len(kpoints)):
+        distance += np.linalg.norm(kpoints[nk-1]-kpoints[nk])
+        distances.append(distance)   
+    return distances
+ 
 def expand_kpts(kpts,syms):
-    """ Take a list of qpoints and symmetry operations and return the full brillouin zone
+    """ 
+    Take a list of qpoints and symmetry operations and return the full brillouin zone
     with the corresponding index in the irreducible brillouin zone
     """
     full_kpts = []
@@ -142,3 +155,19 @@ def point_matching(a,b,double_check=True,debug=False,eps=1e-8):
                 raise ValueError('point a %d: %s is far away from points b %d: %s  dist: %lf'%(ia,str(a[ia]),ib,str(b[ib]),dist))
 
     return map_b_to_a
+
+
+def calculate_distances(kpoints):
+    """
+    Take a list of k-points and calculate a list with the
+    distances between them
+    """
+    kpoints = np.array(kpoints)
+    bands_distances = [0]
+    distance = 0
+    for nk in range(1,len(kpoints)):
+        distance += np.linalg.norm(kpoints[nk-1]-kpoints[nk])
+        bands_distances.append(distance)
+    return np.array(bands_distances)
+
+

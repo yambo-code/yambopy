@@ -32,7 +32,7 @@ if args.run:
   # Check the existence of el-ph matrix elements
   if not os.path.isdir('%s/SAVE'%folder_ya):
     print('Electron-phonon matrix elemenst are missing...')
-    print('Run script elphon_pw.py')
+    print('Run script elph_pw_si.py')
     exit()
 
   # Generatio of yambo input-file 
