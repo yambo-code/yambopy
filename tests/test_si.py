@@ -164,11 +164,19 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
         os.system('yambopy analysegw gw_conv FFTGvecs -bc 5 -kc 3 -bv 4 -kv 1 -nd')
         out = np.loadtxt('analyse_gw_conv/gw_conv_FFTGvecs.dat')
         ref = np.loadtxt('reference_si/analyse_gw_conv/gw_conv_FFTGvecs.dat')
+        print("ref:")
+        print(ref)
+        print("out:")
+        print(out)
         self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
 
         os.system('yambopy analysegw gw_conv BndsRnXp -bc 5 -kc 3 -bv 4 -kv 1 -nd')
         out = np.loadtxt('analyse_gw_conv/gw_conv_BndsRnXp.dat')
         ref = np.loadtxt('reference_si/analyse_gw_conv/gw_conv_BndsRnXp.dat')
+        print("ref:")
+        print(ref)
+        print("out:")
+        print(out)
         self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
 
 
@@ -238,11 +246,19 @@ class TestYamboOut_BSE_Si(unittest.TestCase):
         os.system('yambopy analysebse bse_conv FFTGvecs -nd')
         out = np.loadtxt('analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat')
         ref = np.loadtxt('reference_si/analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat')
+        print("ref:")
+        print(ref)
+        print("out:")
+        print(out)
         self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
 
         os.system('yambopy analysebse bse_conv BndsRnXs -nd')
         out = np.loadtxt('analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat')
         ref = np.loadtxt('reference_si/analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat') 
+        print("ref:")
+        print(ref)
+        print("out:")
+        print(out)
         self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
 
 class TestYamboOut_GW_Si(unittest.TestCase):
