@@ -1,6 +1,9 @@
-
-from builtins import range
-from builtins import object
+#
+# Copyright (c) 2017, Henrique Miranda
+# All rights reserved.
+#
+# This file is part of the yambopy project
+#
 from yambopy import *
 import numpy as np
 import shutil
@@ -10,7 +13,7 @@ from netCDF4 import Dataset
 def abs2(x):
     return x.real**2 + x.imag**2
 
-class YamboWFDB(object):
+class YamboWFDB():
     def __init__(self,savedb,path=None,save='SAVE',filename='ns.wf'):
         """
         load wavefunction from yambo

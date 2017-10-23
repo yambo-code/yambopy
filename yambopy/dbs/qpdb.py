@@ -3,13 +3,11 @@
 #
 # This file is part of the yambopy project
 #
-from builtins import range
-from builtins import object
 from yambopy import *
 from yamboparser import *
 import os
 
-class YamboQPDB(object):
+class YamboQPDB():
     """
     Class to read yambo ndb.QP files
 

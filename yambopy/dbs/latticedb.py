@@ -1,6 +1,5 @@
-
-
-# Copyright (c) 2015, Henrique Miranda
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -12,7 +11,7 @@ import operator
 
 atol = 1e-6
 
-class YamboLatticeDB(object):
+class YamboLatticeDB():
     """
     Class to read the lattice information from the netcdf file
     """

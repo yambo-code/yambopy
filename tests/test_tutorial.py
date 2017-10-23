@@ -98,7 +98,8 @@ def is_exe(fpath):
 def clean():
         print("cleaning...")
         os.system('rm -rf relax gw bse_conv bse_cutoff bse_cutoff_cut analyse_bse_conv '
-                  'bse_par bse gw_conv bands scf nscf database proj.in cutoff_test.png')
+                  'bse_par bse gw_conv bands scf nscf database proj.in cutoff_test.png '
+                  'bse_par.json')
         print("done!")
 
 if __name__ == '__main__':

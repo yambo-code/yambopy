@@ -1,20 +1,18 @@
-
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda
+#
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
-from builtins import zip
-from builtins import object
-from yambopy import *
-from yambopy.plot import *
 import os
 import re
 from copy import *
 from netCDF4 import Dataset
+from yambopy import *
+from yambopy.plot import *
 
-class YamboOut(object):
+class YamboOut():
     """ 
     Class to read yambo output files and pack them in a .json file
 

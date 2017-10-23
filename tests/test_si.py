@@ -164,9 +164,14 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
         """ Test the yambopy analysegw executable
         """
         os.system('yambopy analysegw gw_conv FFTGvecs -bc 5 -kc 3 -bv 4 -kv 1 -nd')
-        self.assertEqual(filecmp.cmp('analyse_gw_conv/gw_conv_FFTGvecs.dat', 'reference_si/analyse_gw_conv/gw_conv_FFTGvecs.dat'),True)
+        out = np.loadtxt('analyse_gw_conv/gw_conv_FFTGvecs.dat')
+        ref = np.loadtxt('reference_si/analyse_gw_conv/gw_conv_FFTGvecs.dat')
+        self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
+
         os.system('yambopy analysegw gw_conv BndsRnXp -bc 5 -kc 3 -bv 4 -kv 1 -nd')
-        self.assertEqual(filecmp.cmp('analyse_gw_conv/gw_conv_BndsRnXp.dat', 'reference_si/analyse_gw_conv/gw_conv_BndsRnXp.dat'),True)
+        out = np.loadtxt('analyse_gw_conv/gw_conv_BndsRnXp.dat')
+        ref = np.loadtxt('reference_si/analyse_gw_conv/gw_conv_BndsRnXp.dat')
+        self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
 
 
 class TestYamboIn_BSE_Si(unittest.TestCase):
@@ -235,9 +240,14 @@ class TestYamboOut_BSE_Si(unittest.TestCase):
         """ Test the yambopy analysebse executable
         """
         os.system('yambopy analysebse bse_conv FFTGvecs -nd')
-        self.assertEqual(filecmp.cmp('analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat', 'reference_si/analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat'),True)
+        out = np.loadtxt('analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat')
+        ref = np.loadtxt('reference_si/analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat')
+        self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
+
         os.system('yambopy analysebse bse_conv BndsRnXs -nd')
-        self.assertEqual(filecmp.cmp('analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat', 'reference_si/analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat'),True)
+        out = np.loadtxt('analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat')
+        ref = np.loadtxt('reference_si/analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat') 
+        self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
 
 class TestYamboOut_GW_Si(unittest.TestCase):
     def test_yamboout_gw_si(self):
@@ -258,6 +268,8 @@ class TestYamboOut_GW_Si(unittest.TestCase):
 if __name__ == '__main__':
     #parse options
     parser = argparse.ArgumentParser(description='Test the yambopy script.')
+    parser.add_argument('-i','--input', action="store_true",
+                        help='Generate the input files and compare with the reference ones')
     parser.add_argument('-f','--full',  action="store_true",
                         help='Generate the input files, run them and compare the results')
     parser.add_argument('-c','--clean',  action="store_true",

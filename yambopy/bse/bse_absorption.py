@@ -6,7 +6,6 @@ from __future__ import print_function, division
 #
 # This file is part of the yambopy project
 #
-from builtins import range
 from yambopy import *
 from yambopy.plot  import *
 import os

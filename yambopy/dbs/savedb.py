@@ -4,9 +4,6 @@
 #
 # This file is part of the yambopy project
 #
-from builtins import zip
-from builtins import range
-from builtins import object
 from yambopy import *
 from yambopy.plot import *
 from itertools import product
@@ -56,7 +53,7 @@ def expand_kpts(kpts,syms):
 
     return full_kpts
 
-class YamboSaveDB(object):
+class YamboSaveDB():
     """
     Reads the information from the SAVE database in Yambo
 

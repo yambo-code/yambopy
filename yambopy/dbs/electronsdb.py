@@ -70,7 +70,7 @@ def histogram_eiv(eiv,weights,emin=-5.0,emax=5.0,step=0.01,sigma=0.05,ctype='lor
             y += w*c/(x1+s2)
     return x, y
 
-class YamboElectronsDB(object):
+class YamboElectronsDB():
     """
     Class to read information about the electrons from the ``ns.db1`` produced by yambo
     

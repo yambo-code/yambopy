@@ -1,14 +1,11 @@
-
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez, Alexandre Morlet, Fulvio Paleari
+#
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez, Alexandre Morlet, Fulvio Paleari
+#
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
-from builtins import zip
-from builtins import str
-from builtins import map
-from builtins import range
 from yambopy import *
 import os
 from operator import itemgetter
@@ -27,7 +24,7 @@ def pack_files_in_folder(folder,save_folder=None,mask='',verbose=True):
         if mask in dirpath:
             #check if there are some output files in the folder
             if ([ f for f in filenames if 'o-' in f ]):
-                print(dirpath)
+                if verbose: print(dirpath)
                 y = YamboOut(dirpath,save_folder=save_folder)
                 y.pack()
 
@@ -60,7 +57,7 @@ def breaking_symmetries(efield1,efield2=[0,0,0],folder='.',RmTimeRev=True):
 # by Alexandre Morlet & Henrique Miranda
 #
 
-def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
+def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose=False):
     """
     Study the convergence of GW calculations by looking at the change in band-gap value.
 
@@ -70,55 +67,54 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
     the location of the band extrema.
     """
 
-    print('Valence band: ',bandv,'conduction band: ',bandc)
-    print('K-point VB: ',kpointv, ' k-point CB: ',kpointc)
+    print('                  K-point   Band')
+    print('Conduction state   %6d %6d'%(kpointc, bandc))
+    print('   Valence state   %6d %6d'%(kpointv, bandv))
 
     # Packing results (o-* files) from the calculations into yambopy-friendly .json files
     if pack:
-        print('Packing ...')
-        pack_files_in_folder(folder,mask=var)
-        pack_files_in_folder(folder,mask='reference')
-
+        if verbose: print('\nPacking...')
+        pack_files_in_folder(folder,mask=var,verbose=verbose)
+        pack_files_in_folder(folder,mask='reference',verbose=verbose)
+        
     # importing data from .json files in <folder>
-    print('Importing data...')
-    data = YamboAnalyser(folder)
-
+    if verbose: print('\nImporting data...')
+    ya = YamboAnalyser(folder)
+    
     # extract data according to relevant variable
-    outvars = data.get_data(tags=(var,'reference'))
-    invars = data.get_inputfiles_tag(var)
-    tags = data.get_tags(tags=(var,'reference'))
+    outvars = ya.get_data(tags=(var,'reference'))
+    invars = ya.get_inputfiles_tag(var)
+    tags = ya.get_tags(tags=(var,'reference'))
 
     # Get only files related to the convergence study of the variable,
     # ordered to have a smooth plot
-    keys=[]
-    sorted_invars = sorted(list(invars.items()), key=operator.itemgetter(1))
+    keys=[key for key in invars.keys() if key.startswith(var) or key=='reference.json']
 
-    for i in range(0,len(sorted_invars)):
-        key=sorted_invars[i][0]
-        if key.startswith(var) or key=='reference.json':
-            keys.append(key)
+    if len(keys) == 0: 
+        raise ValueError('No files with this variable were found')
 
-    if len(keys) == 0: raise ValueError('No files with this variable were found')
-    print('Files detected:')
-    for key in keys:
-        print(key)
+    if verbose:
+        print('\nFiles detected:')
+        for key in keys:
+            print(" "*4,key)
 
-    print('Computing values...')
+    if verbose: print('\nComputing values...')
     ### Output
 
     # Unit of the variable :
     unit = invars[keys[0]]['variables'][var][1]
 
-    # The following variables are used to make the script compatible with both short and extended output
+    # The following variables are used to make the script 
+    # compatible with both short and extended output
     kpindex = tags[keys[0]].tolist().index('K-point')
     bdindex = tags[keys[0]].tolist().index('Band')
     e0index = tags[keys[0]].tolist().index('Eo')
     gwindex = tags[keys[0]].tolist().index('E-Eo')
 
-
     array = np.zeros((len(keys),2))
 
     for i,key in enumerate(keys):
+
         # input value
         # GbndRnge and BndsRnX_ are special cases
         if var.startswith('GbndRng') or var.startswith('BndsRnX'):
@@ -132,19 +128,25 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         valence=[]
         conduction=[]
         for j in range(len(outvars[key]+1)):
-            if outvars[key][j][kpindex]==kpointc and outvars[key][j][bdindex]==bandc:
-                    conduction=outvars[key][j]
-            elif outvars[key][j][kpindex]==kpointv and outvars[key][j][bdindex]==bandv:
-                    valence = outvars[key][j]
+            this_state = outvars[key][j]
+            current_kpoint = this_state[kpindex]
+            current_band   = this_state[bdindex]
+            if   current_kpoint == kpointc and current_band == bandc:
+                conduction = this_state
+            elif current_kpoint == kpointv and current_band == bandv:
+                valence = this_state
         # Then the gap can be calculated
         array[i][1] = conduction[e0index]+conduction[gwindex]-(valence[e0index]+valence[gwindex])
+
+    #ascending order
+    array = sorted( array, key=lambda x: x[0] )
 
     if text:
         os.system('mkdir -p analyse_%s'%folder)
         outname = './analyse_%s/%s_%s.dat'%(folder,folder,var)
         header = var+' ('+str(unit)+'), gap'
         np.savetxt(outname,array,delimiter='\t',header=header)
-        print('Data saved to ',outname)
+        if verbose: print('\nData saved to ',outname)
 
     if draw:
         plt.plot(array[:,0],array[:,1],'o-')
@@ -153,13 +155,12 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw):
         plt.savefig('%s.png'%var)
         if 'DISPLAY' in os.environ:
             plt.show()
-
-    print('Done.')
-
+    
+    if verbose: print("\nDone")
 #
 # by Alexandre Morlet
 #
-def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
+def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw,verbose=False):
     """
     Using ypp, you can study the convergence of BSE calculations in 2 ways:
       Create a .png of all absorption spectra relevant to the variable you study
@@ -200,17 +201,15 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
 
     # Get only files related to the convergence study of the variable,
     # ordered to have a smooth plot
-    keys=[]
-    sorted_invars = sorted(list(invars.items()), key=operator.itemgetter(1))
+    keys=[key for key in invars.keys() if key.startswith(var) or key=='reference.json']
 
-    for i in range(0,len(sorted_invars)):
-        key=sorted_invars[i][0]
-        if key.startswith(var) or key=='reference.json':
-            keys.append(key)
-    if len(keys) == 0: raise ValueError('No files with this variable were found')
-    print('Files detected:')
-    for key in keys:
-        print(key)
+    if len(keys) == 0: 
+        raise ValueError('No files with this variable were found')
+
+    if verbose:
+        print('Files detected:')
+        for key in keys:
+            print(key)
 
     # unit of the input value
     unit = invars[keys[0]]['variables'][var][1]
@@ -221,10 +220,10 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
     os.system('mkdir -p analyse_%s'%folder)
     outname = './analyse_%s/%s_%s'%(folder,folder,var)
 
-    # Array that will contain the output
+    # Arrays that will contain the output
     excitons = []
-
     spectras = []
+
     # Loop over all calculations
     for key in keys:
         jobname=key.replace('.json','')
@@ -249,9 +248,8 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
         a.write_json(filename=outname)
 
         ### Loading data from .json file
-        f = open(outname+'.json')
-        data = json.load(f)
-        f.close()
+        with open(outname+'.json') as f:
+            data = json.load(f)
 
         ### Plotting the absorption spectra
         spectras.append({'x': data['E/ev[1]'],
@@ -268,8 +266,10 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
         for n,exciton in enumerate(data['excitons']):
             if n <= numbexc-1:
                 l.append(exciton['energy'])
-
         excitons.append(l)
+    
+    #order in ascending order
+    excitons,spectras = zip(*sorted(zip(excitons,spectras),key=lambda x: x[0][1]))
 
     if text:
         header = 'Columns : '+var+' (in '+unit+') and "bright" excitons eigenenergies in order.'
@@ -289,14 +289,13 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
 
         ## Spectra
         filename = outname+'_spectra.dat'
-        f = open(filename,'w')
-        for spectra in spectras:
-            label = spectra['label']
-            f.write('#%s\n'%label)
-            for x,y in zip(spectra['x'],spectra['y']):
-                f.write("%12.8e %12.8e\n"%(x,y))
-            f.write('\n\n')
-        f.close()
+        with open(filename,'w') as f:
+            for spectra in spectras:
+                label = spectra['label']
+                f.write('#%s\n'%label)
+                for x,y in zip(spectra['x'],spectra['y']):
+                    f.write("%12.8e %12.8e\n"%(x,y))
+                f.write('\n\n')
         print(filename)
 
     else:
@@ -343,6 +342,9 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw):
 # by Fulvio Paleari & Henrique Miranda
 #
 def merge_qp(output,files,verbose=False):
+    """
+    Merge the quasiparticle databases produced by yambo
+    """
     #read all the files and display main info in each of them
     print("=========input=========")
     filenames = [ f.name for f in files]
@@ -447,6 +449,9 @@ def merge_qp(output,files,verbose=False):
 # by Alexandre Morlet, Fulvio Paleari & Henrique Miranda
 #
 def add_qp(output,add=[],substract=[],addimg=[],verbose=False):
+    """
+    Add quasiparticle lifetimes from multiple files
+    """
     # Define filenames
     addf=[f.name for f in add]
     subf=[f.name for f in substract]
@@ -509,7 +514,8 @@ def add_qp(output,add=[],substract=[],addimg=[],verbose=False):
 
     # create and init the QPs energies table
 
-    # The E0 is simply written in the real part (is 0 in the img part) and Z = 1 (since we merge different calculation types)
+    # The E0 is simply written in the real part (is 0 in the img part) 
+    # and Z = 1 (since we merge different calculation types)
     for i,(n1,n2,k) in enumerate(qpkeys):
         QP_E_E0_Z_save[0,i,1] = qpdic[(n1,n2,k)]
     QP_E_E0_Z_save[0,:,2] = 1
@@ -622,7 +628,7 @@ def plot_excitons(filename,cut=0.2,size=20):
 
     def get_var(dictionary,variables):
         """
-        To have compatibility with different version of yambo
+        To have compatibility with different versions of yambo
         We provide a list of different possible tags
         """
         for var in variables:

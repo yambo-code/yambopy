@@ -1,13 +1,9 @@
-
-
+#
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
-from builtins import zip
-from builtins import range
-from builtins import object
 from yambopy import *
 from math import sqrt
 from time import time
@@ -29,7 +25,7 @@ def gaussian(x,x0,s):
     np.place(argument,argument<min_exp,min_exp)
     return height*np.exp(argument)
 
-class YamboDipolesDB(object):
+class YamboDipolesDB():
     """
     Class to read the dipoles databases from the ``ndb.dip*`` files
     

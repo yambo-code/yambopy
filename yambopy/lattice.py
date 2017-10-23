@@ -1,11 +1,9 @@
-
-
-# Copyright (c) 2015, Henrique Miranda
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
-from builtins import range
 from yambopy import *
 from itertools import product
 

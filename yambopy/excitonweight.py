@@ -4,7 +4,6 @@
 #
 # This file is part of the yambopy project
 #
-from builtins import range
 from yambopy import *
 from itertools import product
 
