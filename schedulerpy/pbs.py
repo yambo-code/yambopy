@@ -99,7 +99,7 @@ class Pbs(Scheduler):
 
         # memory stuff
         mem = self.get_mem()
-        if mem: resources["vmem"]  = "%dMB"%mem
+        if mem: resources["mem"]  = "%dMB"%mem
         
         resources_line = ":".join(["%s=%s"%(item,value) for item,value in resources.items()])
        
