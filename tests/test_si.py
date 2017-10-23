@@ -13,6 +13,7 @@ import shutil
 import argparse
 import subprocess
 import filecmp
+import shutil as sh
 from yambopy import *
 from qepy import *
 
@@ -108,23 +109,21 @@ class TestYamboPrep_Si(unittest.TestCase):
         """
         if not os.path.isdir('database'):
             os.mkdir('database')
-        os.system('cd nscf/si.save; p2y 2> ../../database/p2y.log')
-        os.system('cd nscf/si.save; yambo 2> ../../database/yambo.log')
-        os.system('mv nscf/si.save/SAVE database')
+            os.system('cd nscf/si.save; p2y 2> ../../database/p2y.log')
+            os.system('cd nscf/si.save; yambo 2> ../../database/yambo.log')
+            os.system('mv nscf/si.save/SAVE database')
 
 class TestYamboIn_GW_Si(unittest.TestCase):
     def setUp(self):
         """ Prepare the databases
         """
-        if not os.path.isdir('gw/SAVE'):
-            os.makedirs('gw/SAVE')
-        if not os.path.isdir('gw_conv/SAVE'):
-            os.makedirs('gw_conv/SAVE')
         if not os.path.isdir('database/SAVE'):
             os.makedirs('database')
             os.system('cd database; tar xfz ../reference_si/yambo_gw_conv/gw_conv.tar.gz')
-        os.system('cp -r database/SAVE gw')
-        os.system('cp -r database/SAVE gw_conv')
+        if not os.path.isdir('gw_conv/SAVE'):
+            sh.copytree('database/SAVE','gw_conv/SAVE')
+        if not os.path.isdir('gw/SAVE'):
+            sh.copytree('database/SAVE','gw/SAVE')
 
     def test_gw_input(self):
         """ Test if we can initialize the YamboIn class for a typical GW input file
@@ -152,7 +151,6 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
                  'BndsRnXp': [[1,10],[1,20],[1,30]] }
         y.optimize(conv)
 
-        print()
         def run(filename):
             folder = filename.split('.')[0]
             print(filename, folder)
@@ -178,15 +176,13 @@ class TestYamboIn_BSE_Si(unittest.TestCase):
     def setUp(self):
         """ Prepare the databases
         """
-        if not os.path.isdir('bse/SAVE'):
-            os.makedirs('bse/SAVE')
-        if not os.path.isdir('bse_conv/SAVE'):
-            os.makedirs('bse_conv/SAVE')
         if not os.path.isdir('database/SAVE'):
             os.makedirs('database')
             os.system('cd database; tar xfz ../reference_si/yambo_bse_conv/bse_conv.tar.gz')
-        os.system('cp -r database/SAVE bse')
-        os.system('cp -r database/SAVE bse_conv')
+        if not os.path.isdir('bse/SAVE'):
+            sh.copytree('database/SAVE','bse/SAVE')
+        if not os.path.isdir('bse_conv/SAVE'):
+            sh.copytree('database/SAVE','bse_conv/SAVE')
 
     def test_bse_input(self):
         """ Test if we can initialize the YamboIn class for a typical BSE input file
@@ -289,7 +285,6 @@ if __name__ == '__main__':
 
     # Count the number of errors
     nerrors = 0
-    do_clean = False
     ul = unittest.TestLoader()
     tr = unittest.TextTestRunner(verbosity=2)
 
@@ -300,7 +295,6 @@ if __name__ == '__main__':
     nerrors += not tr.run(suite).wasSuccessful()
 
     if args.full:
-        do_clean = True
         suite = ul.loadTestsFromTestCase(TestPW_Si_Run)
         nerrors += not tr.run(suite).wasSuccessful()
 
@@ -308,7 +302,6 @@ if __name__ == '__main__':
     # Test p2y and yambo
     #
     if args.full:
-        do_clean = True
         suite = ul.loadTestsFromTestCase(TestYamboPrep_Si)
         nerrors += not tr.run(suite).wasSuccessful()
 
@@ -319,7 +312,6 @@ if __name__ == '__main__':
     nerrors += not tr.run(suite).wasSuccessful()
 
     if args.full:
-        do_clean = True
         suite = ul.loadTestsFromTestCase(TestYamboIn_GW_Si_Run)
         nerrors += not tr.run(suite).wasSuccessful()
 
@@ -330,7 +322,6 @@ if __name__ == '__main__':
     nerrors += not tr.run(suite).wasSuccessful()
 
     if args.full:
-        do_clean = True
         suite = ul.loadTestsFromTestCase(TestYamboIn_BSE_Si_Run)
         nerrors += not tr.run(suite).wasSuccessful()
 
@@ -341,7 +332,7 @@ if __name__ == '__main__':
         nerrors += not tr.run(suite).wasSuccessful()
 
     #clean tests
-    if args.clean or do_clean:
+    if args.clean or nerrors==0:
         print("cleaning...")
         os.system('rm -rf scf bse bse_conv gw gw_conv nscf relax database '
                   'analyse_bse_conv analyse_gw_conv proj.in')

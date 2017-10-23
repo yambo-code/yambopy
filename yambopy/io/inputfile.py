@@ -123,7 +123,7 @@ class YamboIn(object):
             print('Something is wrong, yambo did not create the input file. Or the file you are trying to read does not exist')
             print('command: %s'%self.yamboargs)
             print('folder:  %s/'%self.folder)
-            exit()
+            exit(1)
         inputfile = self.read_string(yambofile.read())
         yambofile.close()
 
