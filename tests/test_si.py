@@ -289,7 +289,7 @@ if __name__ == '__main__':
 
     # Count the number of errors
     nerrors = 0
-
+    do_clean = False
     ul = unittest.TestLoader()
     tr = unittest.TextTestRunner(verbosity=2)
 
@@ -300,6 +300,7 @@ if __name__ == '__main__':
     nerrors += not tr.run(suite).wasSuccessful()
 
     if args.full:
+        do_clean = True
         suite = ul.loadTestsFromTestCase(TestPW_Si_Run)
         nerrors += not tr.run(suite).wasSuccessful()
 
@@ -307,6 +308,7 @@ if __name__ == '__main__':
     # Test p2y and yambo
     #
     if args.full:
+        do_clean = True
         suite = ul.loadTestsFromTestCase(TestYamboPrep_Si)
         nerrors += not tr.run(suite).wasSuccessful()
 
@@ -317,6 +319,7 @@ if __name__ == '__main__':
     nerrors += not tr.run(suite).wasSuccessful()
 
     if args.full:
+        do_clean = True
         suite = ul.loadTestsFromTestCase(TestYamboIn_GW_Si_Run)
         nerrors += not tr.run(suite).wasSuccessful()
 
@@ -327,6 +330,7 @@ if __name__ == '__main__':
     nerrors += not tr.run(suite).wasSuccessful()
 
     if args.full:
+        do_clean = True
         suite = ul.loadTestsFromTestCase(TestYamboIn_BSE_Si_Run)
         nerrors += not tr.run(suite).wasSuccessful()
 
@@ -337,9 +341,10 @@ if __name__ == '__main__':
         nerrors += not tr.run(suite).wasSuccessful()
 
     #clean tests
-    if args.clean:
+    if args.clean or do_clean:
         print("cleaning...")
-        os.system('rm -rf scf bse bse_conv gw gw_conv nscf relax database proj.in')
+        os.system('rm -rf scf bse bse_conv gw gw_conv nscf relax database '
+                  'analyse_bse_conv analyse_gw_conv proj.in')
         print("done!")
 
     sys.exit(nerrors)
