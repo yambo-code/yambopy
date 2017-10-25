@@ -13,8 +13,9 @@ class YamboGreenDB():
     These green's functions describe the spectral function of the quasiparticles.
     The quasi-particles can be from electron-phonon or GW calculations
     """
-    def __init__(self,save='SAVE',filename='ndb.G'):
-        self.filename = "%s/%s"%(save,filename)
+    def __init__(self,filename='ndb.G',folder='.'):
+        self.folder = folder
+        self.filename = "%s/%s"%(folder,filename)
 
         #read em1s database
         try:
@@ -23,33 +24,40 @@ class YamboGreenDB():
             raise IOError("Error opening %s in YamboGreenDB"%self.filename)
 
         #read the Green's functions energies
-        re,im = database['Green_Functions_Energies'][:]
+        re,im = database.variables['Green_Functions_Energies'][:]
         self.energies = (re+im*1j).T
 
         #read the Green's Functions
-        re,im = database['Green_Functions'][:]
+        re,im = database.variables['Green_Functions'][:]
         self.green = (re+im*1j).T
         
         #read the self-energy operator
-        re,im = database['SE_Operator'][:]
+        re,im = database.variables['SE_Operator'][:]
         self.se = (re+im*1j).T
 
         self.nqps, self.nenergies = self.green.shape
 
         #read QP_table
-        qptable = database['QP_table'][:].astype(int)
+        qptable = database.variables['QP_table'][:].astype(int)
         self.band1, self.band2, self.kindex = qptable
         self.bandmax = max(self.band1)
         self.bandmin = min(self.band1)
 
+        #qp dictionary
+        self.qp_dict = {}
+        for nqp,(b1,b2,kindex) in enumerate(qptable.T):
+            self.qp_dict[(b1,b2,kindex)] = nqp
+
         #read QP_kpts
-        kpts = database['QP_kpts'][:].T
+        kpts = database.variables['QP_kpts'][:].T
         self.qpoints = kpts.shape
 
-    def plot(self,ax,nqp=0,what='SE',e0=None,**kwargs):
+    def plot(self,ax,kpt=0,band=0,what='SE',e0=None,**kwargs):
         """
         Plot quantities from this database
         """
+        nqp = self.qp_dict[(band,band,kpt)]
+        
         x = self.energies[nqp]
         options = {'SE':self.se,
                    'green':self.green}
@@ -64,6 +72,14 @@ class YamboGreenDB():
         ax.plot(x.real,y.imag,label='Im(%s)'%what,**kwargs)
         if e0 is not None:
             ax.plot(x.real,e0[nqp]-x.real)
+
+            #plot 0
+            ax.axhline(0,c='k',lw=1)
+
+            #set axis
+            rmin, rmax = min(y.real),max(y.real)
+            imin, imax = min(y.imag),max(y.imag)
+            ax.set_ylim(min(rmin,imin),max(rmax,imax))
 
     def modQP(self,filename_reference,filename_new):
         """
@@ -153,7 +169,7 @@ class YamboGreenDB():
             kpt  = self.kindex[nqp]
             if debug: print "%3d %3d %3d %8.4lf"%(nqp, kpt, band, e0[nqp])
 
-            if not (bandmin < band < bandmax):
+            if not (bandmin <= band <= bandmax):
                 continue
 
             #get x and y
@@ -169,7 +185,7 @@ class YamboGreenDB():
                     eqp = newton(f,e0[nqp],maxiter=200)
                 except ValueError, msg:
                     print msg
-                    error(nqp)
+                    if debug: error(nqp)
             else:
                 if braket:
                     emin = e0[nqp]-braket
@@ -198,13 +214,15 @@ class YamboGreenDB():
             #cehck for potential errors
             if z>1 and debug:
                 print z
-                error(nqp)
+                error(nqp)            
 
         return self.eqp, self.z
- 
+
     def __str__(self):
         s = ""
         s += "nenergies: %d\n"%self.nenergies
-        s += "nqps:      %d"%self.nqps
+        s += "nqps:      %d\n"%self.nqps
+        s += "bandmin:   %d\n"%self.bandmin
+        s += "bandmax:   %d"%self.bandmax
         return s
 
