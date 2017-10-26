@@ -5,18 +5,18 @@
           wf_collect = .true.
 /&end
 &system
-    force_symmorphic = .true.
-                nbnd = 30
-             ecutwfc = 40
-         occupations = 'fixed'
            celldm(1) = 10.3
+             ecutwfc = 40
+    force_symmorphic = .true.
                ibrav = 2
                  nat = 2
+                nbnd = 30
                 ntyp = 1
+         occupations = 'fixed'
 /&end
 &electrons
-      diago_full_acc = .true.
             conv_thr = 1e-08
+      diago_full_acc = .true.
 /&end
 ATOMIC_SPECIES
   Si   28.086    Si.pbe-mt_fhi.UPF

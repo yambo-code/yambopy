@@ -1,4 +1,6 @@
-# Copyright (C) 2016 Henrique Pereira Coutada Miranda
+from __future__ import print_function, absolute_import
+#
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
@@ -12,14 +14,14 @@ from copy import deepcopy
 import os
 
 
-class Scheduler():
+class Scheduler(object):
     """
     Generic scheduler class
 
     Initialize the class, by default we look for a config file in `~/.yambopy/config.json`
 
     This file has the following information:
-      
+
         .. code-block:: javascript
 
             {
@@ -35,14 +37,14 @@ class Scheduler():
                 }
             }
 
-    The "default" tag chooses the scheduler to use when no scheduler is 
+    The "default" tag chooses the scheduler to use when no scheduler is
     specified by the user.
 
-    "<tag>" and "<value>" in are additional variables that are handled 
+    "<tag>" and "<value>" in are additional variables that are handled
     differently for each scheduler. They are stored as arguments in the variable kwargs.
     """
 
-    #TODO: Add a way to get the home directory 
+    #TODO: Add a way to get the home directory
     _config_path     = os.path.expanduser("~") + "/.yambopy"
     _config_filename = "%s/config.json"%_config_path
 
@@ -55,7 +57,7 @@ class Scheduler():
 
         self.pre_run = self.get_arg("pre_run")
         self.pos_run = self.get_arg("pos_run")
-        
+
         #modules = self.get_arg("modules")
         #if modules is None: self.modules = []
         #else:               self.modules = modules
@@ -64,39 +66,39 @@ class Scheduler():
         self.commands  = []
 
         self.initialize()
-        
+
     def factory(scheduler=None,cores=None,nodes=None,walltime="1:00:00",**kwargs):
         """
         Initialize a schduler instance.
-        
+
         Default arguments:
         cores    - Number of cores to use
         nodes    - Number of nodes to use
         walltime - Walltime limit
         **kwargs - Additional tags specific for each scheduler
         """
-        
-        import oar
-        import pbs
-        import bash
-        
+
+        from . import oar
+        from . import pbs
+        from . import bash
+
         schedulers = { "oar":  oar.Oar,
                        "pbs":  pbs.Pbs,
                        "bash": bash.Bash }
-            
+
         #load configurations file
         config = Scheduler.load_config()
         if scheduler is None:
             schedulername = config['default']
         else:
             schedulername = scheduler
-            
+
         #load the configurations
         if schedulername in config:
             schedulerconfig = config[schedulername]
         else:
             schedulerconfig = {}
-        
+
         #determine the scheduler type
         if "type" in schedulerconfig:
             schedulertype = schedulerconfig["type"]
@@ -106,25 +108,25 @@ class Scheduler():
         else:
             raise ValueError("Could not determine the scheduler type. "
                              "Please specify it in the name of the scheduler or using the 'type' tag.")
-            
+
         #sanity check
-        if schedulername not in schedulers.keys():
+        if schedulername not in list(schedulers.keys()):
             raise ValueError("Scheduler name %s is invalid"%schedulername)
-        
-        if "nodes" in schedulerconfig and nodes is None: 
+
+        if "nodes" in schedulerconfig and nodes is None:
             nodes = int(schedulerconfig["nodes"])
             del schedulerconfig["nodes"]
-        if "cores" in schedulerconfig and cores is None: 
+        if "cores" in schedulerconfig and cores is None:
             cores = int(schedulerconfig["cores"])
             del schedulerconfig["cores"]
-       
+
         #add scheduler config arguments
-	kwargs.update(schedulerconfig)
+        kwargs.update(schedulerconfig)
 
         #create an instance of the scheduler to use
         return schedulers[schedulertype](cores=cores,nodes=nodes,walltime=walltime,**kwargs)
     factory = staticmethod(factory)
-    
+
     def load_config():
         """
         load the configuration file and check its sanity
@@ -142,26 +144,26 @@ class Scheduler():
                             "pre_run": ["echo 'running job...'"],
                             "pos_run": ["echo 'done!'"]
                         }
-                     }      
-        
+                     }
+
         #put sanity checks here
         schedulername = "bash"
         if 'default' in config:
             schedulername = config['default']
         #print json.dumps(config,indent=2)
- 
+
         return config
     load_config = staticmethod(load_config)
 
     def initialize(self):
         raise NotImplementedError("Initialize not implemented in this class!")
-        
+
     def clean(self):
         """
         clean the command list
         """
         self.commands = []
-	self.modules  = []
+        self.modules  = []
 
     def get_vardict(self):
         """
@@ -176,7 +178,7 @@ class Scheduler():
         if cores: self.vardict['cores'] = cores
         nodes = self.get_arg('var_nodes')
         if nodes: self.vardict['nodes'] = nodes
-        
+
     def write(self,filename):
         """
         write the bash file to a file in the disk
@@ -189,7 +191,7 @@ class Scheduler():
     def get_arg(self,argument):
         """
         get an argument from the list of optional variables kwargs
-        
+
         return:
         None - if the variable does not exist
         value - if the variable existe return the value of the variable
@@ -200,7 +202,7 @@ class Scheduler():
                 return True
             elif arg == "false":
                 return False
-            elif type(arg) in [str,unicode] and "file:" in arg:
+            elif type(arg) in [str,str] and "file:" in arg:
                 #load the text from a textfile
                 filename = arg.split(":")[-1]
                 f = open("%s/%s"%(self._config_path,filename),'r')
@@ -210,7 +212,7 @@ class Scheduler():
                 return self.kwargs[argument]
         else:
             return None
-        
+
     def add_command(self,cmd):
         """
         add commands to be run by the scheduler
@@ -254,7 +256,7 @@ class Scheduler():
         run the command in the bash
         """
         raise NotImplementedError('Run not implemented')
-    
+
     def get_commands(self):
         """
         get commands to execute
@@ -265,7 +267,7 @@ class Scheduler():
         s += "#commands\n"+ "\n".join(self.commands)+"\n\n"
         if self.pos_run: s += "#pos_run\n" + "\n".join(self.pos_run)+"\n\n"
         return s
-        
+
 if __name__ == "__main__":
     #after
     s = Scheduler(nodes=1,cores=4)

@@ -1,4 +1,5 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda
+#
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
@@ -55,6 +56,7 @@ from yambopy.dbs.elphondb import *
 #input/output files
 from yambopy.io.inputfile import *
 from yambopy.io.outputfile import *
+from yambopy.io.jsonfile import *
 
 #bse/excitons files
 from yambopy.bse.excitonwf import *

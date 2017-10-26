@@ -32,7 +32,7 @@ class YamboElectronPhononDB():
         try:
             database = Dataset(self.filename)
         except:
-            print "error opening %s in YamboElectronPhononDB"%self.filename
+            print("error opening %s in YamboElectronPhononDB"%self.filename)
             exit()
             
         self.qpoints = database.variables['PH_Q'][:].T
@@ -61,7 +61,7 @@ class YamboElectronPhononDB():
         if not only_freqs:
             self.gkkp = np.zeros([self.nqpoints,self.nkpoints,self.nmodes,self.nbands,self.nbands],dtype=np.complex64)
         
-        for nq in xrange(self.nqpoints):
+        for nq in range(self.nqpoints):
             filename = '%s_fragment_%d'%(self.filename,nq+1)
 
             database = Dataset(filename)
@@ -89,15 +89,15 @@ class YamboElectronPhononDB():
         s+= 'nmodes: %d\n'%self.nmodes
         s+= 'natoms: %d\n'%self.natoms
         s+= 'nbands: %d\n'%self.nbands
-        for nq in xrange(self.nqpoints):
+        for nq in range(self.nqpoints):
             s+= 'nqpoint %d\n'%nq
             for n,mode in enumerate(self.ph_eigenvectors[nq]):
                 s+= 'mode %d freq: %lf cm-1\n'%(n,self.ph_eigenvalues[nq][n]*ha2ev*ev2cm1)
-                for a in xrange(self.natoms):
+                for a in range(self.natoms):
                     s += ("%12.8lf "*3+'\n')%tuple(mode[a].real)
         return s
 
 if __name__ == '__main__':
     elph = ElectronPhononDB()
-    print elph
+    print(elph)
     elph.get_databases()

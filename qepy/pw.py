@@ -1,15 +1,16 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
+from __future__ import print_function, division
+#
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
-#
 #
 from qepy import *
 import os
 import re
 from math import sqrt
 
-class PwIn():
+class PwIn(object):
     """
     Class to generate an manipulate Quantum Espresso input files
     Can be initialized either reading from a file or starting from a new file.
@@ -19,14 +20,14 @@ class PwIn():
     To read a local file with name "mos2.in"
 
         .. code-block :: python
-        
+
             qe = PwIn('mos2.scf')
             print qe
 
     To start a file from scratch
 
         .. code-block :: python
-        
+
             qe = PwIn('mos2.scf')
             qe.atoms = [['N',[ 0.0, 0.0,0.0]],
                         ['B',[1./3,2./3,0.0]]]
@@ -48,10 +49,10 @@ class PwIn():
             qe.electrons['conv_thr'] = 1e-8
 
             print qe
-     
+
     Special care should be taken with string variables e.g. "'high'"
- 
-    """    
+
+    """
     _pw = 'pw.x'
 
     def __init__(self, filename=None):
@@ -96,8 +97,8 @@ class PwIn():
         #find ATOMIC_SPECIES keyword in file and read next line
         for line in lines:
             if "ATOMIC_SPECIES" in line:
-                for i in xrange(int(self.system["ntyp"])):
-                    atype, mass, psp = lines.next().split()
+                for i in range(int(self.system["ntyp"])):
+                    atype, mass, psp = next(lines).split()
                     self.atypes[atype] = [mass,psp]
 
     def get_symmetry_spglib(self):
@@ -110,7 +111,7 @@ class PwIn():
         lat = np.array(lat)
 
         at = np.unique(atypes)
-        an = dict(zip(at,xrange(len(at))))
+        an = dict(list(zip(at,list(range(len(at))))))
         atypes = [an[a] for a in atypes]
 
         cell = (lat,positions,atypes)
@@ -125,7 +126,7 @@ class PwIn():
         for atom in self.atoms:
             atype = self.atypes[atom[0]]
             mass = float(atype[0])
-            masses.append(mass) 
+            masses.append(mass)
         return masses
 
     def set_path(self,path):
@@ -151,7 +152,7 @@ class PwIn():
         atoms_str = [line.strip().split() for line in string.strip().split('\n')]
         self.atoms = []
         for atype,x,y,z in atoms_str:
-            self.atoms.append([atype,map(float,[x,y,z])])
+            self.atoms.append([atype,list(map(float,[x,y,z]))])
 
     def set_atoms(self,atoms):
         """ set the atomic postions using a Atoms datastructure from ase
@@ -160,7 +161,7 @@ class PwIn():
         self.system['ibrav'] = 0
         if 'celldm(1)' in self.system: del self.system['celldm(1)']
         self.cell_parameters = atoms.get_cell()
-        self.atoms = zip(atoms.get_chemical_symbols(),atoms.get_scaled_positions())
+        self.atoms = list(zip(atoms.get_chemical_symbols(),atoms.get_scaled_positions()))
         self.system['nat'] = len(self.atoms)
 
     def displace(self,mode,displacement,masses=None):
@@ -171,7 +172,7 @@ class PwIn():
             small_mass = 1
         else:
             small_mass = min(masses) #we scale all the displacements to the bigger mass
-        for i in xrange(len(self.atoms)):
+        for i in range(len(self.atoms)):
             self.atoms[i][1] = self.atoms[i][1] + mode[i].real*displacement*sqrt(small_mass)/sqrt(masses[i])
 
     def read_atoms(self):
@@ -181,15 +182,15 @@ class PwIn():
             if "ATOMIC_POSITIONS" in line:
                 atomic_pos_type = line
                 self.atomic_pos_type = re.findall('([A-Za-z]+)',line)[-1]
-                for i in xrange(int(self.system["nat"])):
-                    atype, x,y,z = lines.next().split()
-                    self.atoms.append([atype,[float(i) for i in x,y,z]])
+                for i in range(int(self.system["nat"])):
+                    atype, x,y,z = next(lines).split()
+                    self.atoms.append([atype,[float(i) for i in (x,y,z)]])
         self.atomic_pos_type = atomic_pos_type.replace('{','').replace('}','').strip().split()[1]
 
     def read_cell_parameters(self):
         ibrav = int(self.system['ibrav'])
         if ibrav == 0:
-            if 'celldm(1)' in self.system.keys():
+            if 'celldm(1)' in list(self.system.keys()):
                 a = float(self.system['celldm(1)'])
             else:
                 a = 1
@@ -198,8 +199,8 @@ class PwIn():
                 if "CELL_PARAMETERS" in line:
                     self.cell_units = line.translate(None, '{}()').split()[1]
                     self.cell_parameters = [[1,0,0],[0,1,0],[0,0,1]]
-                    for i in xrange(3):
-                        self.cell_parameters[i] = [ float(x)*a for x in lines.next().split() ]
+                    for i in range(3):
+                        self.cell_parameters[i] = [ float(x)*a for x in next(lines).split() ]
             if self.cell_units == 'angstrom' or self.cell_units == 'bohr':
                 if 'celldm(1)' in self.system: del self.system['celldm(1)']
         elif ibrav == 4:
@@ -214,9 +215,9 @@ class PwIn():
                                     [    0, a/2, a/2],
                                     [ -a/2, a/2,   0]]
         else:
-            print 'ibrav = %d not implemented'%ibrav
+            print('ibrav = %d not implemented'%ibrav)
             exit(1)
-        
+
     def read_kpoints(self):
         lines = iter(self.file_lines)
         #find K_POINTS keyword in file and read next line
@@ -225,27 +226,27 @@ class PwIn():
                 #chack if the type is automatic
                 if "automatic" in line:
                     self.ktype = "automatic"
-                    vals = map(float, lines.next().split())
+                    vals = list(map(float, next(lines).split()))
                     self.kpoints, self.shiftk = vals[0:3], vals[3:6]
                 #otherwise read a list
                 else:
                     #read number of kpoints
-                    nkpoints = int(lines.next().split()[0])
+                    nkpoints = int(next(lines).split()[0])
                     self.klist = []
                     self.ktype = ""
                     try:
                         lines_list = list(lines)
-                        for n in xrange(nkpoints):
+                        for n in range(nkpoints):
                             vals = lines_list[n].split()[:4]
-                            self.klist.append( map(float,vals) )
+                            self.klist.append( list(map(float,vals)) )
                     except IndexError:
-                        print "wrong k-points list format"
+                        print("wrong k-points list format")
                         exit()
 
     def slicefile(self, keyword):
         lines = re.findall('&%s(?:.?)+\n((?:.+\n)+?)(?:\s+)?\/'%keyword,"".join(self.file_lines),re.MULTILINE)
         return lines
-    
+
     def store(self,group,name):
         """
         Save the variables specified in each of the groups on the structure
@@ -256,8 +257,8 @@ class PwIn():
 
     def stringify_group(self, keyword, group):
         if group != {}:
-            string='&%s\n' % keyword 
-            for keyword in group:
+            string='&%s\n' % keyword
+            for keyword in sorted(group): # Py2/3 discrepancy in keyword order
                 string += "%20s = %s\n" % (keyword, group[keyword])
             string += "/&end\n"
             return string
@@ -267,7 +268,7 @@ class PwIn():
     def remove_key(self,group,key):
         """ if a certain key exists in the group, remove it
         """
-        if key in group.items():
+        if key in list(group.items()):
             del group[key]
 
     def run(self,filename,procs=1,folder='.'):
@@ -320,6 +321,6 @@ class PwIn():
                 string += (("%12.8lf "*4)+"\n")%tuple(i)
         if self.system['ibrav'] == 0 or self.system['ibrav'] == '0':
             string += "CELL_PARAMETERS %s\n"%self.cell_units
-            for i in xrange(3):
+            for i in range(3):
                 string += ("%14.10lf "*3+"\n")%tuple(self.cell_parameters[i])
         return string

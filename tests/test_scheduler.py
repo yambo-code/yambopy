@@ -1,5 +1,4 @@
-from __future__ import print_function, division, unicode_literals
-
+from __future__ import print_function
 #
 # Author: Henrique Pereira Coutada Miranda
 # Tests for the yambopy library
@@ -165,15 +164,15 @@ class TestSchedulerRun(unittest.TestCase):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Test the yambopy script.')
-    parser.add_argument('-i','--input', action="store_true",
+    parser.add_argument('-i', '--input', action="store_true",
                         help='Generate the bash files and compare with the reference ones')
-    parser.add_argument('-f','--full',  action="store_true",
+    parser.add_argument('-f', '--full',  action="store_true",
                         help='Generate the bash files, run them and compare the results')
-    parser.add_argument('-c','--clean',  action="store_true",
+    parser.add_argument('-c', '--clean',  action="store_true",
                         help='Clean all the data from a previous run')
     args = parser.parse_args()
 
-    if len(sys.argv)==1:
+    if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
 

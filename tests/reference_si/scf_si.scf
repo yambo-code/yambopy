@@ -5,12 +5,12 @@
           wf_collect = .true.
 /&end
 &system
-             ecutwfc = 40
-         occupations = 'fixed'
            celldm(1) = 10.3
+             ecutwfc = 40
                ibrav = 2
                  nat = 2
                 ntyp = 1
+         occupations = 'fixed'
 /&end
 &electrons
             conv_thr = 1e-08

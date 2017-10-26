@@ -7,7 +7,7 @@
 # These example runs locally, if you want to make it work behind a queing system you need to
 # modify it accordingly
 #
-from __future__ import print_function
+from __future__ import print_function, import division
 from yambopy import *
 from qepy import *
 
@@ -46,7 +46,7 @@ y['BndsRnXp'] = [[1,30],'']
 
 #prepare the q-points input files
 f = open('jobs.sh','w')
-for nq in xrange(1,int(nqpoints)+1):
+for nq in range(1,int(nqpoints)+1):
     y['QpntsRXp'] = [[nq,nq],'']
     y.write('%s/yambo_q%d.in'%(folder,nq))
     if nq != 1:

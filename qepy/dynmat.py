@@ -1,3 +1,5 @@
+from __future__ import print_function, division
+#
 # Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
@@ -17,7 +19,7 @@ ev2ha  = 1.0/ha2ev
 Thz2cm1 = 33.35641
 cm12Thz = 1.0/33.35641
 
-class DynmatIn():
+class DynmatIn(object):
     """
     Generate an manipulate quantum espresso input files for matdyn.x
     """
@@ -155,7 +157,7 @@ class Matdyn():
             f.write(s)
             f.close()
         else:
-            print s
+            print(s)
 
     def rotate_phonons(self,eps=1e-5,debug=False):
         """
@@ -217,7 +219,7 @@ class Matdyn():
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
-            plt.xticks( *zip(*path) )
+            plt.xticks( *list(zip(*path)) )
         plt.ylabel('\\omega (cm$^{-1}$)')
 
         #plot vertical line
@@ -259,7 +261,7 @@ class Matdyn():
        
         for nq in xrange(self.nqpoints):
             for n in xrange(self.nmodes):
-                print np.linalg.norm(self.eiv[nq,n])
+                print(np.linalg.norm(self.eiv[nq,n]))
                 self.eiv[nq,n] /= np.linalg.norm(self.eiv[nq,n])
 
     def normalize_with_masses(self,masses): 
@@ -286,7 +288,7 @@ class Matdyn():
                     for a in xrange(self.natoms):
                         self.eiv[nq,n,a*3:(a+1)*3] *= 1.0/sqrt(masses[a])
         else:
-            print "These eigenvectors are non-orthogonal, probably they are already scaled by the masses so I won't do it"
+            print("These eigenvectors are non-orthogonal, probably they are already scaled by the masses so I won't do it")
 
         #enforce delta_nm
         for nq in xrange(self.nqpoints):

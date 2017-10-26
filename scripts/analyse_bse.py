@@ -1,9 +1,11 @@
+from __future__ import print_function
 # Copyright (C) 2017 Alexandre Morlet, Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
+from builtins import range
 from yambopy import *
 from qepy import *
 import json
@@ -28,15 +30,15 @@ def analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, pack ):
             
     # Packing results (o-* files) from the calculations into yambopy-friendly .json files
     if pack: # True by default, False if -np used
-        print 'Packing ...'
+        print('Packing ...')
         pack_files_in_folder(folder,mask=var)
         pack_files_in_folder(folder,mask='reference')
-        print 'Packing done.'
+        print('Packing done.')
     else:
-        print 'Packing skipped.'
+        print('Packing skipped.')
 
     # importing data from .json files in <folder>
-    print 'Importing...'
+    print('Importing...')
     data = YamboAnalyser(folder)
 
     # extract data according to relevant var
@@ -45,13 +47,13 @@ def analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, pack ):
     # Get only files related to the convergence study of the variable,
     # ordered to have a smooth plot
     keys=[]
-    sorted_invars = sorted(invars.items(), key=operator.itemgetter(1))
+    sorted_invars = sorted(list(invars.items()), key=operator.itemgetter(1))
 
     for i in range(0,len(sorted_invars)):
         key=sorted_invars[i][0]
         if key.startswith(var) or key=='reference.json':
             keys.append(key)
-    print 'Files detected: ',keys
+    print('Files detected: ',keys)
 
     # unit of the input value
     unit = invars[keys[0]]['variables'][var][1]
@@ -68,7 +70,7 @@ def analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, pack ):
     # Loop over all calculations
     for key in keys:
         jobname=key.replace('.json','')
-        print jobname
+        print(jobname)
 
         # input value
         # BndsRn__ is a special case
@@ -78,7 +80,7 @@ def analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, pack ):
         else:
             inp = invars[key]['variables'][var][0]
 
-        print 'Preparing JSON file. Calling ypp if necessary.'
+        print('Preparing JSON file. Calling ypp if necessary.')
         ### Creating the 'absorptionspectra.json' file
         # It will contain the exciton energies
         y = YamboOut(folder=folder,save_folder=folder)
@@ -93,7 +95,7 @@ def analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, pack ):
         f = open(outname+'.json')
         data = json.load(f)
         f.close()
-        print 'JSON file prepared and loaded.'
+        print('JSON file prepared and loaded.')
 
         ### Plotting the absorption spectra
         # BSE spectra
@@ -112,12 +114,12 @@ def analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, pack ):
 
     if text:
         header = 'Columns : '+var+' (in '+unit+') and "bright" excitons eigenenergies in order.'
-        print excitons
+        print(excitons)
         np.savetxt(outname+'.dat',excitons,header=header)
         #np.savetxt(outname,excitons,header=header,fmt='%1f')
-        print outname+'.dat'
+        print(outname+'.dat')
     else:
-        print '-nt flag : no text produced.'
+        print('-nt flag : no text produced.')
 
     if draw:
         plt.xlabel('$\omega$ (eV)')
@@ -126,11 +128,11 @@ def analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, pack ):
         #plt.draw()
         #plt.show()
         plt.savefig(outname+'.png', bbox_inches='tight')
-        print outname+'.png'
+        print(outname+'.png')
     else:
-        print '-nd flag : no plot produced.'
+        print('-nd flag : no plot produced.')
 
-    print 'Done.'
+    print('Done.')
 
 if __name__ == "__main__":
 

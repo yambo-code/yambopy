@@ -1,4 +1,5 @@
-# Copyright (c) 2015, Henrique Miranda
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -24,7 +25,7 @@ def expand_kpts(kpts,syms):
     with the corresponding index in the irreducible brillouin zone
     """
     full_kpts = []
-    print "nkpoints:", len(kpts)
+    print("nkpoints:", len(kpts))
     for nk,k in enumerate(kpts):
         for sym in syms:
             full_kpts.append((nk,np.dot(sym,k)))
@@ -40,13 +41,13 @@ def red_car(red,lat):
     """
     Convert reduced coordinates to cartesian
     """
-    return np.array(map( lambda coord: coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2], red))
+    return np.array([coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2] for coord in red])
 
 def car_red(car,lat):
     """
     Convert cartesian coordinates to reduced
     """
-    return np.array(map( lambda coord: np.linalg.solve(np.array(lat).T,coord), car))
+    return np.array([np.linalg.solve(np.array(lat).T,coord) for coord in car])
 
 def rec_lat(lat):
     """
@@ -100,7 +101,7 @@ def get_path(kmesh,path,debug=False):
 
     return np.array(bands_indexes)
 
-def replicate_red_kmesh(kmesh,repx=range(1),repy=range(1),repz=range(1)):
+def replicate_red_kmesh(kmesh,repx=list(range(1)),repy=list(range(1)),repz=list(range(1))):
     """
     copy a kmesh in the tree directions
     the kmesh has to be in reduced coordinates
@@ -113,7 +114,7 @@ def replicate_red_kmesh(kmesh,repx=range(1),repy=range(1),repz=range(1)):
     for x,y,z in product(repx,repy,repz):
         kmesh_shift = kmesh + np.array([x,y,z])
         kmesh_full.append(kmesh_shift)
-        kmesh_idx.append(range(kmesh_nkpoints))
+        kmesh_idx.append(list(range(kmesh_nkpoints)))
 
     return np.vstack(kmesh_full), np.hstack(kmesh_idx)
 
@@ -145,8 +146,9 @@ def point_matching(a,b,double_check=True,debug=False,eps=1e-8):
         current_dist,index = kdtree.query(xb, k=1, distance_upper_bound=6)
         map_b_to_a.append(index)
     map_b_to_a = np.array(map_b_to_a)
-
-    if debug: print "took %4.2lfs"%(time()-start_time)
+    
+    if debug:
+        print("took %4.2lfs"%(time()-start_time))
 
     if double_check:
         for ib,ia in enumerate(map_b_to_a):

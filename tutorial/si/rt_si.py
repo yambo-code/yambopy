@@ -1,3 +1,4 @@
+from __future__ import print_function
 ##############################################################################
 #
 # Author: Alejandro Molina-Sanchez
@@ -69,16 +70,16 @@ if not os.path.isdir('%s/SAVE'%folder):
   breaking_symmetries([1,0,0],folder=folder)
 
 if args.collisions:
-  print 'Collisions'
+  print('Collisions')
   run = YamboIn('%s -r -e -v hsex'%yambo_rt,folder=folder)
 elif args.pump:
-  print 'Time-dependent with electric field'
+  print('Time-dependent with electric field')
   run = YamboIn('%s -q p'%yambo_rt,folder=folder)
 elif args.dissipation:
-  print 'Time-dependent with electric field and electron-phonon scattering'
+  print('Time-dependent with electric field and electron-phonon scattering')
   run = YamboIn('%s -s p -q p'%yambo_rt,folder=folder)
 else:
-  print 'Invalid calculation type'
+  print('Invalid calculation type')
   exit()
 
 run['DBsIOoff']= "J G"             # [IO] Space-separated list of DB with NO I/O. DB=(DIP,X,HF,COLLs,J,GF,CARRIERs,W,SC,BS,ALL)
@@ -154,7 +155,7 @@ if args.pump:
     print ('cd %s; %s -F 04_PUMP -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['DG'][1],jobname))
     os.system ('cd %s; %s -F 04_PUMP -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['DG'][1],jobname))
   else:
-    print 'cd %s ; %s -F 04_PUMP -J \'%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],jobname)
+    print('cd %s ; %s -F 04_PUMP -J \'%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],jobname))
     os.system ('cd %s; %s -F 04_PUMP -J \'%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],jobname))
 
 # Time-dependent with a pulse and dissipation and without/with Double Grid
@@ -174,5 +175,5 @@ if args.dissipation:
     print('%s -F 05_DISS -J \'%s,%s,%s,%s\''%(yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],job['DG'][1]))
     os.system('cd %s; %s -F 05_DISS -J \'%s,%s,%s,%s\''%(folder,yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],job['DG'][1]))
   else:
-    print 'cd %s; %s -F 05_DISS -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],jobname)
+    print('cd %s; %s -F 05_DISS -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],jobname))
     os.system( 'cd %s; %s -F 05_DISS -J \'%s,%s,%s\' -C %s'%(folder,yambo_rt,jobname,job['folder-col'],job['folder-gkkp'],jobname) )

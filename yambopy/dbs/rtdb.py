@@ -1,23 +1,48 @@
-# Copyright (c) 2016, Henrique Miranda
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
 from yambopy import *
 from yambopy.plot import *
+import os
 
 ha2ev = 27.211396132
 
-class YamboRTDB():
+def isbetween(a,b,c):
+    """
+    Check if cartesian point c is between point a and b
+    """
+    return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0,rtol=1e-05, atol=1e-06)
+
+class YamboRTDB(object):
     """
     Open the RT databases and store it in a RTDB class
     """
     def __init__(self,folder='.',calc='.',save=None,referencedb='ndb.RT_reference_components',carriersdb='ndb.RT_carriers'):
-        self.path = '%s/%s/pulse'%(folder,calc)
-        if save==None:
-            self.save = '%s/SAVE'%folder
+        # Find path with RT data
+        # Yambopy's realtime scripts folder-structure
+        if os.path.exists('%s/%s/pulse/%s'%(folder,calc,referencedb)):
+            self.path = '%s/%s/pulse'%(folder,calc)
+        # Custom path
+        elif os.path.exists('%s/%s/%s'%(folder,calc,referencedb)):
+            self.path = '%s/%s'%(folder,calc)
         else:
-            self.save = save
+            raise ValueError('Cannot find file %s in %s/%s'%(referencedb,folder,calc))
+
+        # Set save path
+        if save==None:
+            if os.path.exists('%s/SAVE'%folder):
+                self.save = '%s/SAVE'%folder
+            else:
+                raise ValueError('Cannot find SAVE in folder %s'%folder)
+        else:
+            if os.path.exists(save):
+                self.save = save
+            else:
+                raise ValueError('Cannot find SAVE in folder %s'%save)
+
         self.referencedb = referencedb
         self.carriersdb = carriersdb
 
@@ -85,13 +110,13 @@ class YamboRTDB():
 
         #get how many rt databases exist
         files = [ filename for filename in  os.listdir(self.path) if 'ndb.RT_carriers_Time' in filename]
-        print "Number of RT carrier files:", len(files)
+        print("Number of RT carrier files:", len(files))
 
         # sorting
         units = {'as':1e-18,'fs':1e-15,'ps':1e-12}
         s = []
         for filename in files:
-            for unit in units.keys():
+            for unit in list(units.keys()):
                 if unit in filename:
                     factor = units[unit]
             s.append((float(re.findall("\d+\.\d+", filename)[0])*factor,filename))
@@ -120,7 +145,7 @@ class YamboRTDB():
     def integrate(self):
         self.occupations = np.zeros([self.ntimes,self.nkpoints,self.nbands])
 
-        for t in xrange(0,self.ntimes):
+        for t in range(0,self.ntimes):
 
             #"delta_f" is df(t)-df(t0), so total occupation
             self.occupations[t] = self.RT_carriers_delta_f[t]
@@ -131,7 +156,7 @@ class YamboRTDB():
         if kpts is None:
             kpts, nks, nss = self.expand_kpts()
         else:
-            nks = range(len(kpts))
+            nks = list(range(len(kpts)))
 
         #points in cartesian coordinates
         path_car = red_car(path, self.rlat)
@@ -155,7 +180,7 @@ class YamboRTDB():
             end_kpt   = path_car[k+1] #end point of the path
 
             #generate repetitions of the brillouin zone
-            for x,y,z in product(range(-1,2),range(-1,2),range(1)):
+            for x,y,z in product(list(range(-1,2)),list(range(-1,2)),list(range(1))):
 
                 #shift the brillouin zone
                 shift = red_car([np.array([x,y,z])],self.rlat)[0]
@@ -172,7 +197,7 @@ class YamboRTDB():
                         kpoints_in_path[key] = value
 
             #sort the points acoording to distance to the start of the path
-            kpoints_in_path = sorted(kpoints_in_path.values(),key=lambda i: i[1])
+            kpoints_in_path = sorted(list(kpoints_in_path.values()),key=lambda i: i[1])
 
             #for all the kpoints in the path
             for index, disp, kpt in kpoints_in_path:
@@ -184,7 +209,16 @@ class YamboRTDB():
         self.bands_indexes = bands_indexes
         self.bands_highsym_qpts = path_car
 
-        print 'Path generated using %d kpoints.'%len(bands_kpoints)
+        print('Path generated using %d kpoints.'%len(bands_kpoints))
+
+        # Calculate distances
+        bands_distances = [0]
+        distance = 0
+        for nk in range(1,len(bands_kpoints)):
+            distance += np.linalg.norm(bands_kpoints[nk]-bands_kpoints[nk-1])
+            bands_distances.append(distance)
+
+        self.bands_distances = bands_distances
 
         return bands_kpoints, bands_indexes, path_car
 
@@ -236,7 +270,7 @@ class YamboRTDB():
         self.kpoints_indexes  = np.array(kpoints_indexes)
         self.symmetry_indexes = np.array(symmetry_indexes)
 
-        print "%d kpoints expanded to %d"%(len(self.kpts_car),len(kpoints_full))
+        print("%d kpoints expanded to %d"%(len(self.kpts_car),len(kpoints_full)))
 
         return self.kpoints_full, self.kpoints_indexes, self.symmetry_indexes
 

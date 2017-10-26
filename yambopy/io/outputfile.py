@@ -1,16 +1,17 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda
+#
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
-from yambopy import *
-from yambopy.plot import *
 import os
 import re
 from copy import *
 from netCDF4 import Dataset
 from yamboparser import *
+from yambopy import *
+from yambopy.plot import *
 
 class YamboOut():
     """ 
@@ -208,7 +209,8 @@ class YamboOut():
         """
         Get the runtime from the r-* file
         """
-        files = sorted([open("%s/%s"%(self.folder,f)) for f in self.run])
+        filenames = sorted(["%s/%s"%(self.folder,f) for f in self.run])
+        files = [open(filename) for filename in filenames]
 
         #empty timing
         timing = dict()
@@ -237,14 +239,14 @@ class YamboOut():
         data = {}
         for key in self.data.keys():
             if all(tag in key for tag in tags):
-                data[key] = dict(zip(self.tags[key],np.array(self.data[key]).T))
+                data[key] = dict(list(zip(self.tags[key],np.array(self.data[key]).T)))
         return data
 
     def plot(self,tag,cols=(2,),xlabel=None):
         """
         Search in the output files a certain tag and plot it
         """
-        for key in self.data.keys():
+        for key in list(self.data.keys()):
             if tag in key:
                 data = self.data[key]
         for col in cols:
@@ -259,8 +261,8 @@ class YamboOut():
         Print the runtime in a string
         """
         timing = self.get_runtime()
-        for t in timing.items():
-            print t[0], '\n', t[1], '\n'
+        for t in list(timing.items()):
+            print(t[0], '\n', t[1], '\n')
 
     def pack(self,filename=None):
         """

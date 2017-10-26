@@ -1,4 +1,6 @@
-# Copyright (C) 2015  Alejandro Molina-Sanchez, Henrique Pereira Coutada Miranda
+from __future__ import print_function, division
+#
+# Copyright (C) 2017  Alejandro Molina-Sanchez, Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
@@ -10,7 +12,7 @@ import re
 
 RytoeV = 13.605698066
 
-class ProjwfcXML():
+class ProjwfcXML(object):
     """
     Class to read data from a Quantum espresso projwfc XML file.
     
@@ -35,7 +37,7 @@ class ProjwfcXML():
         #get number of projections
         self.nproj    = int(self.datafile_xml.find("HEADER/NUMBER_OF_ATOMIC_WFC").text)
         #get weights of kpoints projections
-        self.weights  = map(float,self.datafile_xml.find("WEIGHT_OF_K-POINTS").text.split())
+        self.weights  = list(map(float,self.datafile_xml.find("WEIGHT_OF_K-POINTS").text.split()))
 
         self.eigen = self.get_eigen()
         self.proj  = self.get_proj()
@@ -44,7 +46,7 @@ class ProjwfcXML():
         try:
             f = open("%s/%s"%(path,output_filename),'r')
         except:
-            print "The output file of projwfc.x: %s was not found"%output_filename
+            print("The output file of projwfc.x: %s was not found"%output_filename)
             exit(1)
 
         states = []
@@ -98,7 +100,7 @@ class ProjwfcXML():
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
-        ticks, labels = zip(*path)
+        ticks, labels = list(zip(*path))
         ax.set_xticks(ticks)
         ax.set_xticklabels(labels)
         ax.set_ylabel('E (eV)')
@@ -120,13 +122,13 @@ class ProjwfcXML():
           w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
           #plot bands for fix size
           for ib in range(self.nbands):
-            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=size,c=w_rel[:,ib],cmap=color_map,edgecolors='none')
+            ax.scatter(list(range(self.nkpoints)),self.eigen[:,ib] - self.fermi,s=size,c=w_rel[:,ib],cmap=color_map,edgecolors='none')
 
         #plot bands for a varying size
         if not selected_orbitals_2:
           for ib in range(self.nbands):
             #ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,c='r',edgecolors='none')
-            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=w_proj[:,ib]*size,c=color,edgecolors='none')
+            ax.scatter(list(range(self.nkpoints)),self.eigen[:,ib] - self.fermi,s=w_proj[:,ib]*size,c=color,edgecolors='none')
 
         ax.set_xlim(0, self.nkpoints-1)
         ax.set_ylim(auto=True)
@@ -144,7 +146,9 @@ class ProjwfcXML():
         w_rel = zeros([self.nkpoints,self.nbands])
         for ik in range(self.nkpoints):
           for ib in range(self.nbands):
-            w_rel[ik,ib] = sum(abs(self.proj[ik,selected_orbitals,ib])**2)/(sum(abs(self.proj[ik,selected_orbitals,ib])**2)+sum(abs(self.proj[ik,selected_orbitals_2,ib])**2))
+            a = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
+            b = sum(abs(self.proj[ik,selected_orbitals_2,ib])**2)
+            w_rel[ik,ib] = a/(a+b)
         return w_rel
 
     def get_eigen(self):
@@ -152,8 +156,8 @@ class ProjwfcXML():
         """
         datafile_xml = self.datafile_xml
         eigen = []
-        for ik in xrange(self.nkpoints):
-          eigen.append( map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG"%(ik+1)).text.split() ))
+        for ik in range(self.nkpoints):
+          eigen.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG"%(ik+1)).text.split() )))
         self.eigen = np.array(eigen)*RytoeV
         return self.eigen
 

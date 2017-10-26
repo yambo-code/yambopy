@@ -32,14 +32,14 @@ class YamboQPDB():
 
         #get kpoints
         kpts=[]
-        for nk in xrange(self.nkpoints):
+        for nk in range(self.nkpoints):
             kpts.append(qps['Kpoint'][nk])
         self.kpoints = np.array(kpts)
 
         #get nbands
         min_band = int(qps['Band'][0])
         max_band = int(qps['Band'][0])
-        for iqp in xrange(self.nqps):
+        for iqp in range(self.nqps):
             band  = int(qps['Band'][iqp])
             if min_band > band: min_band = band
             if max_band < band: max_band = band
@@ -58,7 +58,7 @@ class YamboQPDB():
         kpoints = lattice.red_kpoints
         path = np.array(path)
 
-        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=range(-1,2),repy=range(-1,2),repz=range(-1,2))
+        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(-1,2)))
         band_indexes = get_path(kpoints_rep,path)
         band_kpoints = kpoints_rep[band_indexes]
         band_indexes = kpoints_idx_rep[band_indexes]
@@ -98,7 +98,7 @@ class YamboQPDB():
         bands_distances = calculate_distances(bands_kpoints)
 
         #make the plots
-        for b in xrange(self.min_band-1,self.max_band-1):
+        for b in range(self.min_band-1,self.max_band-1):
             if 'DFT' in what: 
                 ax.plot(bands_distances, energies_dft[:,b], **args)
             if 'QP' in what:
@@ -137,7 +137,7 @@ class YamboQPDB():
         eigenvalues_dft = np.zeros([nkpts,nbands])
         eigenvalues_qp  = np.zeros([nkpts,nbands])
         lifetimes       = np.zeros([nkpts,nbands])
-        for iqp in xrange(nqps):
+        for iqp in range(nqps):
             kindx = int(qps['Kpoint_index'][iqp])
             e     = qps['E'][iqp]*ha2ev
             e0    = qps['Eo'][iqp]*ha2ev

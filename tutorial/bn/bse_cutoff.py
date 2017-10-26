@@ -1,8 +1,8 @@
+from __future__ import print_function, division
 #
 # Author: Henrique Pereira Coutada Miranda
 # Check the convergence of the coulomb cutoff for a BSE calculation using yambo
 #
-from __future__ import print_function
 from yambopy import *
 from qepy import *
 from schedulerpy import *

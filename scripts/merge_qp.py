@@ -1,29 +1,33 @@
+from __future__ import print_function
 # Copyright (C) 2016 Fulvio Paleari, Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
+from builtins import zip
+from builtins import map
+from builtins import range
 from yamboparser import *
 from os import *
 import argparse
 
 def merge_qp(output,files,verbose=False):
     #read all the files and display main info in each of them
-    print "=========input========="
+    print("=========input=========")
     filenames = [ f.name for f in files]
     datasets  = [ Dataset(filename) for filename in filenames]
     QP_table, QP_kpts, QP_E_E0_Z = [], [], []
     for d,filename in zip(datasets,filenames):
-        _, nkpoints, nqps, _, nstrings = map(int,d['PARS'][:])
-        print "filename:    ", filename
+        _, nkpoints, nqps, _, nstrings = list(map(int,d['PARS'][:]))
+        print("filename:    ", filename)
         if verbose:
-            print "description:"
-            for i in xrange(1,nstrings+1):
-                print ''.join(d['DESC_strings_%05d'%i][0])
+            print("description:")
+            for i in range(1,nstrings+1):
+                print(''.join(d['DESC_strings_%05d'%i][0]))
         else:
-            print "description:", ''.join(d['DESC_strings_%05d'%(nstrings)][0])
-        print 
+            print("description:", ''.join(d['DESC_strings_%05d'%(nstrings)][0]))
+        print() 
         QP_table.append( d['QP_table'][:].T )
         QP_kpts.append( d['QP_kpts'][:].T )
         QP_E_E0_Z.append( d['QP_E_Eo_Z'][:] )
@@ -39,7 +43,7 @@ def merge_qp(output,files,verbose=False):
     for qp_file,kpts in zip(QP_table,QP_kpts):
         #iterate over the kpoints and save the coordinates on the list
         for qp in qp_file:
-            n1,n2,nk = map(int,qp)
+            n1,n2,nk = list(map(int,qp))
             QP_kpts_save[nk-1] = kpts[nk-1]
 
     # create the QPs energies table
@@ -51,7 +55,7 @@ def merge_qp(output,files,verbose=False):
 
     variables_update = ['QP_table', 'QP_kpts', 'QP_E_Eo_Z']
     variables_save   = [QP_table_save.T, QP_kpts_save.T, QP_E_E0_Z_save]
-    variables_dict   = dict(zip(variables_update,variables_save)) 
+    variables_dict   = dict(list(zip(variables_update,variables_save))) 
     PARS_save = fin['PARS'][:]
     PARS_save[1:3] = nkpoints,len(QP_table_save)
 
@@ -62,12 +66,12 @@ def merge_qp(output,files,verbose=False):
     description_save = np.array([i for i in " %s"%description])
 
     #output data
-    print "========output========="
-    print "filename:    ", output
-    print "description: ", description
+    print("========output=========")
+    print("filename:    ", output)
+    print("description: ", description)
 
     #copy dimensions
-    for dname, the_dim in fin.dimensions.iteritems():
+    for dname, the_dim in list(fin.dimensions.items()):
         fout.createDimension(dname, len(the_dim) if not the_dim.isunlimited() else None)
 
     #get dimensions
@@ -77,11 +81,11 @@ def merge_qp(output,files,verbose=False):
     #create missing dimensions
     for v in variables_save:
         for dname,d in zip( dimensions(v),v.shape ):
-            if dname not in fout.dimensions.keys():
+            if dname not in list(fout.dimensions.keys()):
                 fout.createDimension(dname, d)
 
     #copy variables
-    for v_name, varin in fin.variables.iteritems():
+    for v_name, varin in list(fin.variables.items()):
         if v_name in variables_update:
             #get the variable
             merged = variables_dict[v_name]

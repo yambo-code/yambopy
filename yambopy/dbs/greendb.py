@@ -1,3 +1,4 @@
+
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
@@ -7,7 +8,7 @@ from yambopy import *
 import shutil
 ha2ev  = 27.211396132
 
-class YamboGreenDB():
+class YamboGreenDB(object):
     """
     Read the green's functions calculated using yambo
     These green's functions describe the spectral function of the quasiparticles.
@@ -163,11 +164,11 @@ class YamboGreenDB():
  
         self.eqp = np.zeros([self.nqps],dtype=complex) 
         self.z   = np.zeros([self.nqps],dtype=complex) 
-        for nqp in xrange(self.nqps):
+        for nqp in range(self.nqps):
 
             band = self.band1[nqp]
             kpt  = self.kindex[nqp]
-            if debug: print "%3d %3d %3d %8.4lf"%(nqp, kpt, band, e0[nqp])
+            if debug: print("%3d %3d %3d %8.4lf"%(nqp, kpt, band, e0[nqp]))
 
             if not (bandmin <= band <= bandmax):
                 continue
@@ -183,8 +184,8 @@ class YamboGreenDB():
             if secant:
                 try:
                     eqp = newton(f,e0[nqp],maxiter=200)
-                except ValueError, msg:
-                    print msg
+                except ValueError as msg:
+                    print(msg)
                     if debug: error(nqp)
             else:
                 if braket:
@@ -213,7 +214,7 @@ class YamboGreenDB():
 
             #cehck for potential errors
             if z>1 and debug:
-                print z
+                print(z)
                 error(nqp)            
 
         return self.eqp, self.z

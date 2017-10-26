@@ -1,4 +1,6 @@
-# Copyright (c) 2015, Henrique Miranda
+from __future__ import division
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -16,13 +18,13 @@ def red_car(red,lat):
     """
     Convert reduced coordinates to cartesian
     """
-    return np.array(map( lambda coord: coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2], red))
+    return np.array([coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2] for coord in red])
 
 def car_red(car,lat):
     """
     Convert cartesian coordinates to reduced
     """
-    return np.array(map( lambda coord: np.linalg.solve(np.array(lat).T,coord), car))
+    return np.array([np.linalg.solve(np.array(lat).T,coord) for coord in car])
 
 def rec_lat(lat):
     """

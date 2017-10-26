@@ -1,3 +1,5 @@
+
+
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
@@ -24,15 +26,15 @@ class YamboExcitonDB(YamboSaveDB):
             filename = "%s/%s"%(self.path,self.filename)
             database = Dataset(filename)
         except:
-            print "failed to read database %s"%filename
+            print("failed to read database %s"%filename)
             exit(1)
-        if 'BS_left_Residuals' in db.variables.keys():
+        if 'BS_left_Residuals' in list(db.variables.keys()):
             #residuals
             rel,iml = database.variables['BS_left_Residuals'][:].T
             rer,imr = database.variables['BS_right_Residuals'][:].T
             self.l_residual = rel+iml*I
             self.r_residual = rer+imr*I
-        if 'BS_Residuals' in db.variables.keys():
+        if 'BS_Residuals' in list(db.variables.keys()):
             #residuals
             rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
             self.l_residual = rel+iml*I
@@ -61,7 +63,7 @@ class YamboExcitonDB(YamboSaveDB):
             transitions_v_to_c[(v,c)].append((k,eh))
 
         #make an array 
-        for t,v in transitions_v_to_c.items():
+        for t,v in list(transitions_v_to_c.items()):
             if len(np.array(v)):
                 transitions_v_to_c[t] = np.array(v)
             else:
@@ -127,10 +129,10 @@ class YamboExcitonDB(YamboSaveDB):
         intensities = self.get_intensities()
 
         #list ordered with energy
-        sort_e = sorted(zip(eig, range(self.nexcitons)))
+        sort_e = sorted(zip(eig, list(range(self.nexcitons))))
 
         #list ordered with intensity
-        sort_i = sorted(zip(intensities, range(self.nexcitons)),reverse=True)
+        sort_i = sorted(zip(intensities, list(range(self.nexcitons))),reverse=True)
 
         return sort_e, sort_i 
 
@@ -161,7 +163,7 @@ class YamboExcitonDB(YamboSaveDB):
         kpoints = self.lattice.red_kpoints
         path = np.array(path)
 
-        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=range(-1,2),repy=range(-1,2),repz=range(-1,2))
+        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(-1,2)))
         band_indexes = get_path(kpoints_rep,path)
         band_kpoints = kpoints_rep[band_indexes] 
         band_indexes = kpoints_idx_rep[band_indexes]
@@ -194,7 +196,7 @@ class YamboExcitonDB(YamboSaveDB):
             eivec = self.eigenvectors[exciton-1]
 
             #add weights
-            for t,transitions in self.transitions_v_to_c.items():
+            for t,transitions in list(self.transitions_v_to_c.items()):
                 c,v = t
                 iks, ehs = transitions.T
                 weights[iks,c] += abs2(eivec[ehs])
@@ -252,7 +254,7 @@ class YamboExcitonDB(YamboSaveDB):
         ax.set_title("exciton %d-%d"%(excitons[0],excitons[-1]))
         return kpath_distances
 
-    def get_amplitudes_phases(self,excitons=(0,),repx=range(1),repy=range(1),repz=range(1)):
+    def get_amplitudes_phases(self,excitons=(0,),repx=list(range(1)),repy=list(range(1)),repz=list(range(1))):
         """ get the excitonic amplitudes and phases
         """
         if isinstance(excitons, int):
@@ -289,8 +291,8 @@ class YamboExcitonDB(YamboSaveDB):
         w = np.arange(emin,emax,estep,dtype=np.float32)
         nenergies = len(w)
         
-        print "energy range: %lf -> +%lf -> %lf "%(emin,estep,emax)
-        print "energy steps: %lf"%nenergies
+        print("energy range: %lf -> +%lf -> %lf "%(emin,estep,emax))
+        print("energy steps: %lf"%nenergies)
 
         #initialize the susceptibility intensity
         chi = np.zeros([len(w)],dtype=np.complex64)
@@ -301,17 +303,17 @@ class YamboExcitonDB(YamboSaveDB):
             EL2 = self.r_residual
         else:
             #calculate exciton-light coupling
-            print "calculate exciton-light coupling"
+            print("calculate exciton-light coupling")
             EL1,EL2 = self.project1(dipoles.dipoles[:,dir],nexcitons) 
 
 
         #iterate over the excitonic states
-        for s in xrange(nexcitons):
+        for s in range(nexcitons):
             #get exciton energy
             es = self.eigenvalues[s]
  
             #calculate the green's functions
-            G1 = 1/(   w - es - broad*I) 
+            G1 = 1/(   w - es - broad*I)
             G2 = 1/( - w - es - broad*I)
 
             r = EL1[s]*EL2[s]

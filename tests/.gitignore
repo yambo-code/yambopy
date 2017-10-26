@@ -4,11 +4,14 @@ database
 gw
 bands
 gw_conv
+analyse_gw_conv
+analyse_bse_conv
 nscf
 relax
 scf
 bse_cutoff
 bse_par
 *.json
+*.png
 jobs.sh
 proj.in

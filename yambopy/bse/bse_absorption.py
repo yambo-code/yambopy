@@ -1,4 +1,7 @@
-# Copyright (c) 2015, Henrique Miranda
+from __future__ import print_function, division
+#
+# Copyright (c) 2017, Henrique Miranda
+#
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -48,11 +51,12 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
         #trap the errors here
         if absorptionspectra == {}:
-            raise ValueError('Could not find the o-*diago*eps files in %s. Make sure you diagonalized the BSE hamiltonian in yambo.'%paths)
+            raise ValueError('Could not find the o-*diago*eps files in %s.'
+                             'Make sure you diagonalized the BSE hamiltonian in yambo.'%paths)
 
         #we just use one of them
         key = list(absorptionspectra)[0]
-        for key,value in absorptionspectra[key].items():
+        for key,value in list(absorptionspectra[key].items()):
             self.data[key] = value
 
     def get_excitons(self,min_intensity=0.1,max_energy=4,Degen_Step=0.0):
@@ -105,7 +109,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                           Direction="123", Format="x",
                           Degen_Step=0.0100,
                           MinWeight=1e-8,
-                          repx=range(-1,2), repy=range(-1,2), repz=range(-1,2),
+                          repx=list(range(-1,2)), repy=list(range(-1,2)), repz=list(range(-1,2)),
                           wf=False):
         """
         Collect all the wavefuncitons with an intensity larger than self.threshold
@@ -154,7 +158,7 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
                 yppwf.write("%s/yppwf_%d.in"%(self.path,i))
 
                 filename = "o-%s.exc_%dd_%d%s"%(self.job_string,len(Direction),i,{"g":"","x":".xsf"}[Format] )
-                print filename
+                print(filename)
                 if not os.path.isfile(filename):
                     os.system("cd %s; ypp -F yppwf_%d.in -J %s"%(self.path,i,self.job_string))
 
@@ -235,6 +239,6 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
     def write_json(self,filename="absorptionspectra"):
         """ Write a jsonfile with the absorption spectra and the wavefunctions of certain excitons
         """
-        print "writing json file...",
+        print("writing json file...", end=' ')
         JsonDumper(self.data,"%s.json"%filename)
-        print "done!"
+        print("done!")

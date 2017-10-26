@@ -3,6 +3,7 @@
 # Run a GW calculation using Yambo
 #
 from __future__ import print_function
+from builtins import range
 import sys
 from yambopy import *
 from qepy import *
@@ -45,7 +46,7 @@ def gw_convergence():
     y['NGsBlkXp'] = [1, 'Ry']
     y['BndsRnXp'] = [1,20]
     y['GbndRnge'] = [1,20]
-    conv = { 'QPkrange': [[nk,nk,4,5] for nk in xrange(endk+1)] }
+    conv = { 'QPkrange': [[nk,nk,4,5] for nk in range(endk+1)] }
 
     def run(filename):
         """ Function to be called by the optimize function """

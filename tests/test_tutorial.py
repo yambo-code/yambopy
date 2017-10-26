@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 # Author: Henrique Pereira Coutada Miranda
 # Tests for yambopy
@@ -96,8 +97,9 @@ def is_exe(fpath):
 
 def clean():
         print("cleaning...")
-        os.system('rm -rf relax gw bse_conv bse_cutoff bse_cutoff_cut cutoff_test.png '
-                  'bse_par bse gw_conv bands scf nscf database proj.in')
+        os.system('rm -rf relax gw bse_conv bse_cutoff bse_cutoff_cut analyse_bse_conv '
+                  'bse_par bse gw_conv bands scf nscf database proj.in cutoff_test.png '
+                  'bse_par.json')
         print("done!")
 
 if __name__ == '__main__':
@@ -129,29 +131,25 @@ if __name__ == '__main__':
 
     # Count the number of errors
     nerrors = 0
-
     ul = unittest.TestLoader()
     tr = unittest.TextTestRunner(verbosity=2)
 
     # Test for tutorial 1
     if args.tutorial1:
-        clean()
         suite = ul.loadTestsFromTestCase(TestGW_Convergence)
         nerrors += not tr.run(suite).wasSuccessful()
 
     # Test for tutorial 2
     if args.tutorial2:
-        clean()
         suite = ul.loadTestsFromTestCase(TestCoulomb_Cutoff)
         nerrors += not tr.run(suite).wasSuccessful()
 
     # Test for tutorial 3
     if args.tutorial3:
-        clean()
         suite = ul.loadTestsFromTestCase(TestParallel_BSE)
         nerrors += not tr.run(suite).wasSuccessful()
 
-    if args.clean:
+    if args.clean or nerrors==0:
         clean()
 
     sys.exit(nerrors)

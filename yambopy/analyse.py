@@ -1,86 +1,144 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda
+from __future__ import print_function, division
+#
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
-import sys
-if sys.version_info.major > 2:
-    from past.builtins import basestring
-from yambopy import *
 import os
 import json
 import re
 from itertools import product
+import numpy as np
+import matplotlib.pyplot as plt
+from yambopy.lattice import red_car, rec_lat, expand_kpts, isbetween
+from yambopy.io.inputfile import YamboIn
+from yambopy.duck import isstring
 
 class YamboAnalyser():
     """
     Class to open multiple ``.json`` files, organize them and plot the data together.
-    Useful to perform convergence tests
+    Used to perform convergence tests
     """
     _colormap = 'rainbow'
 
-    def __init__(self,folder='.'):
+    def __init__(self, folder='.'):
         self.folder = folder
 
-        files = ["%s"%filename for filename in os.listdir(folder)]
-        self.filenames = [f for f in files if '.json' in f]
-        #read the files
-        files = [open("%s/%s"%(self.folder,f)) for f in self.filenames]
+        #get all the json files in the folder
+        all_filenames  = os.listdir(folder)
 
-        self.jsonfiles = dict([(filename,json.load(f)) for filename,f in zip(self.filenames,files)])
-        for f in files: f.close()
+        #filter for json files
+        json_filenames = [f for f in all_filenames if '.json' in f]
 
-    def get_data_file(self,calculation,tags):
-        for filename in self.jsonfiles[calculation]["data"].keys():
-            if all(i in filename for i in tags):
-                tags = self.jsonfiles[calculation]["tags"][filename]
-                data = np.array( self.jsonfiles[calculation]["data"][filename] )
-                return dict( zip(tags, data.T) )
+        #read all the json files
+        self.jsonfiles = dict()
+        for json_filename in json_filenames:
+            path = "%s/%s"%(folder, json_filename)
+            
+            with  open(path,'r') as f:
+                self.jsonfiles[json_filename] = json.load(f)
 
-    def get_data(self,tags):
-        """ Get a dictionary with all the data from the files under analysis
+    def _getter(self,tags,what):
         """
-        if isinstance(tags,basestring):
+        get data from the json files 
+        """
+        if isstring(tags):
             tags=(tags,)
+
         data = dict()
         for k in sorted(self.jsonfiles.keys()):
-            for filename in self.jsonfiles[k]["data"].keys():
+            for filename in list(self.jsonfiles[k][what].keys()):
                 if any(i in filename for i in tags):
-                    data[k] = np.array( self.jsonfiles[k]["data"][filename] )
+                    data[k] = np.array( self.jsonfiles[k][what][filename] )
         return data
 
-    def get_tags(self,tags):
-        """ Get a dictionary with the tags of the output file colomns
+    def get_data(self,tags):
+        """ 
+        Get a dictionary with all the data from the files under analysis
         """
-        if isinstance(tags,basestring):
-            tags=(tags,)
-        tagslist = dict()
-        for k in sorted(self.jsonfiles.keys()):
-            for filename in self.jsonfiles[k]["tags"].keys():
-                if any(i in filename for i in tags):
-                    tagslist[k] = np.array( self.jsonfiles[k]["tags"][filename] )
+        return self._getter(tags,"data")
 
-        return tagslist
+    def get_tags(self,tags):
+        """ 
+        Get a dictionary with the tags of the output file colomns
+        """
+        return self._getter(tags,"tags")
 
     def get_colors(self,tags):
-        """ select the colors according to the number of files to plot
+        """ 
+        Select the colors according to the number of files to plot
         the files to plot are the ones that have all the tags in their name
         """
-        nfiles=sum([all(i in filename for i in tags) for k in self.jsonfiles.keys() for filename in self.jsonfiles[k]["data"].keys()])
-        print('nfiles')
-        print(nfiles)
+        #count the number of files
+        nfiles = 0
+        for k in self.jsonfiles.keys():
+            for filename in list(self.jsonfiles[k]["data"].keys()):
+                nfiles+=all(i in filename for i in tags)
+
         cmap = plt.get_cmap(self._colormap) #get color map
         colors = [cmap(i) for i in np.linspace(0, 1, nfiles)]
         return colors
 
+    def get_inputfiles_tag(self,tags):
+        """
+        Get a specific tag from all the .json files from the folders
+        You need to write down all the tags that you want to find
+        The tags are both for variables in the input file and arguments (runlevels)
+        """
+        #check if a string was passed and in that case we make it a tuple
+        if isinstance(tags,str):
+            tags = (tags,)
+
+        inputfiles = self.get_inputfiles()
+        inputfiles_tags = dict()
+
+        for k in list(inputfiles.keys()):
+            inputfiles_tags[k] = dict()
+
+            # get the current inputfile
+            this_inputfile = inputfiles[k]
+
+            #initialize the dictionary
+            inputfiles_tags[k] = {'variables':{},'arguments':[]}
+
+            for tag in tags:
+                for filename in this_inputfile:
+                    
+                    # look in variables
+                    if tag in list(this_inputfile[filename]['variables'].keys()):
+                        variables = this_inputfile[filename]['variables'][tag]
+                        inputfiles_tags[k]['variables'][tag] = variables
+
+                    #look in arguments
+                    if tag in this_inputfile[filename]['arguments']:
+                        inputfiles_tags[k]['arguments'].append(tag)
+
+        return inputfiles_tags
+
+    def get_inputfiles(self):
+        """
+        Get all the inputfiles from the different .json files
+        Each .json file contains all the output files in a folder
+        """
+
+        inputfiles = dict()
+        for k in self.jsonfiles:
+            inputfiles[k] = dict()
+            for key,val in list(self.jsonfiles[k]["inputfile"].items()):
+                inputfiles[k][key] = val
+        return inputfiles
+
     def get_path(self,path,json_filename):
-        """ Obtain a list of indexes and kpoints that belong to the regular mesh
+        """
+        Obtain a list of indexes and kpoints that belong to the regular mesh
         """
         jsonfile = self.jsonfiles[json_filename]
 
         if 'kpts_iku' not in jsonfile or 'sym_car' not in jsonfile:
-            raise ValueError( "Could not find information about the k points in the json file %s."%json_filename )
+            raise ValueError( "Could not find information about the "
+                              "k points in the json file %s."%json_filename )
 
         #get data from json file
         kpts_iku = np.array(jsonfile['kpts_iku'])
@@ -90,12 +148,8 @@ class YamboAnalyser():
 
         #check if the lattice data is present
         if not lattice.any():
-            print('Information about the lattice is not present, cannot determine the path')
-            exit(1)
-
-        #check if the lattice data is present
-        if not lattice.any():
-            raise ValueError('Information about the lattice is not present, cannot determine the path')
+            raise ValueError('Information about the lattice is not present, '
+                             'cannot determine the path')
 
         #convert to cartesian coordinates
         kpts_car = np.array([ k/alat for k in kpts_iku ])
@@ -119,7 +173,7 @@ class YamboAnalyser():
             start_kpt = path_car[k]
             end_kpt = path_car[k+1]
             #find the collinear points
-            for x,y,z in product(range(-1,2),repeat=3):
+            for x,y,z in product(list(range(-1,2)),repeat=3):
                 shift = red_car(np.array([[x,y,z]]),reciprocal_lattice)[0]
                 for index, kpt in full_kpts:
                     kpt_shift = kpt+shift
@@ -130,20 +184,21 @@ class YamboAnalyser():
                         kpoints_in_path[key] = value
 
             #sort the points acoording to distance to the start of the path
-            kpoints_in_path = sorted(kpoints_in_path.values(),key=lambda i: i[1])
+            kpoints_in_path = sorted(list(kpoints_in_path.values()),key=lambda i: i[1])
 
             #get kpoints_in_pathpoints
             if k==0: bands_highsym_qpts.append(kpoints_in_path[0][2])
             for index, disp, kpt in kpoints_in_path:
                 bands_kpoints.append( kpt )
                 bands_indexes.append( index )
-                print ("%12.8lf "*3)%tuple(kpt), index
+                print(("%12.8lf "*3)%tuple(kpt), index)
             bands_highsym_qpts.append(kpt)
         return bands_kpoints, bands_indexes, bands_highsym_qpts
 
     def plot_gw_path(self,path_label,tags=('qp',),type_calc=('lda',),set_calc=(),rows=None):
         """
-        Create a path of k-points and find the points in the regular mesh that correspond to points in the path
+        Create a path of k-points and find the points in the 
+        regular mesh that correspond to points in the path
         Use these points to plot the GW band structure.
 
         """
@@ -167,7 +222,7 @@ class YamboAnalyser():
         n=0
 
         #find the points along the high symmetry lines
-        json_filename = self.jsonfiles.keys()[0]
+        json_filename = list(self.jsonfiles.keys())[0]
         bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path,json_filename)
 
         #calculate distances
@@ -239,7 +294,7 @@ class YamboAnalyser():
         path = np.array([p[0] for p in path_label])
 
         #find the points along the high symmetry lines
-        json_filename = self.jsonfiles.keys()[0]
+        json_filename = list(self.jsonfiles.keys())[0]
         bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path,json_filename)
 
         #calculate distances
@@ -306,8 +361,7 @@ class YamboAnalyser():
         return kpoint_index, bands_cols
 
     def plot_qp_correction(self,tags=('qp',),lda=2,qp=3):
-
-        if isinstance(tags,basestring): tags = (tags,)
+        if isinstance(tags,str): tags = (tags,)
 
         ax = plt.axes([0.1, 0.1, .7, .7])
         for json_filename in sorted(self.jsonfiles.keys()):
@@ -355,7 +409,6 @@ class YamboAnalyser():
 
 
         plot = False
-        fig = plt.figure()
         ax = plt.subplot(111)
 
         json_label = [ word[:-5] for word in self.jsonfiles.keys() ]
@@ -424,7 +477,7 @@ class YamboAnalyser():
 
         n=0
         for k in sorted(self.jsonfiles.keys()):
-            for filename in self.jsonfiles[k]["data"].keys():
+            for filename in list(self.jsonfiles[k]["data"].keys()):
                 if all(i in filename for i in tags):
                     data = np.array( self.jsonfiles[k]["data"][filename] )
 
@@ -447,8 +500,12 @@ class YamboAnalyser():
         return ax
 
     def plot_spectral_function(self,tags):
-        if isinstance(tags,basestring):
+        """
+        Plot the spectral function
+        """
+        if isinstance(tags,str):
             tags = (tags,)
+
         ax = plt.axes([0.1, 0.1, .7, .7])
         for json_filename in sorted(self.jsonfiles.keys()):
           for output_filename in self.jsonfiles[json_filename]["data"]:
@@ -463,77 +520,30 @@ class YamboAnalyser():
         plt.show()
 
     def print_timing(self,tags=""):
-        for k in self.jsonfiles.keys():
+        for k in list(self.jsonfiles.keys()):
             if all(i in k for i in tags):
-                print "\n%s"%k
-                for key,val in self.jsonfiles[k]["runtime"].items():
-                    print "%40s %10s %10s %10s"%(key,val[0],val[1],val[2])
-
-    def get_inputfiles_tag(self,tags):
-        """
-        Get a specific tag from all the .json files from the folders
-        You need to write down all the tags that you want to find
-        The tags are both for variables in the input file and arguments (meaning runlevels)
-        """
-        #check if a string was passed and in that case we make it a tuple
-        if isinstance(tags,basestring):
-            tags = (tags,)
-
-        inputfiles = self.get_inputfiles()
-        inputfiles_tags = dict()
-
-        for k in inputfiles.keys():
-            inputfiles_tags[k] = dict()
-
-            # get the current inputfile
-            this_inputfile = inputfiles[k]
-
-            #initialize the dictionary
-            inputfiles_tags[k] = {'variables':{},'arguments':[]}
-
-            for tag in tags:
-                for filename in this_inputfile:
-
-                    # We look for the tag both in the variable and in the arguments
-                    # look in variables
-                    if tag in this_inputfile[filename]['variables'].keys():
-                        inputfiles_tags[k]['variables'][tag] = this_inputfile[filename]['variables'][tag]
-                    #look in arguments
-                    if tag in this_inputfile[filename]['arguments']:
-                        inputfiles_tags[k]['arguments'].append(tag)
-        return inputfiles_tags
-
-    def get_inputfiles(self):
-        """
-        Get all the inputfiles from the different .json files
-        Each .json file contains all the output files in a folder
-        """
-
-        inputfiles = dict()
-        for k in self.jsonfiles:
-            inputfiles[k] = dict()
-            for key,val in self.jsonfiles[k]["inputfile"].items():
-                inputfiles[k][key] = val
-        return inputfiles
+                print("\n%s"%k)
+                for key,val in list(self.jsonfiles[k]["runtime"].items()):
+                    print("%40s %10s %10s %10s"%(key,val[0],val[1],val[2]))
 
     def print_inputfiles(self):
         """
         Print all the inputfiles from all the json files
         """
         #iterate over the json files
-        for k in self.jsonfiles.keys():
-            print "jsonfile: ", k
+        for k in list(self.jsonfiles.keys()):
+            print("jsonfile: ", k)
 
             #get the jsonfile
             jsonfile = self.jsonfiles[k]
 
-            for inputfile,content in jsonfile['inputfile'].items():
-                print "inputfile:", inputfile
+            for inputfile,content in list(jsonfile['inputfile'].items()):
+                print("inputfile:", inputfile)
                 y = YamboIn(filename=None)
                 y.arguments = content["arguments"]
                 y.variables = content["variables"]
-                print y
-                print
+                print(y)
+                print()
 
     def __str__(self):
         s = ""
