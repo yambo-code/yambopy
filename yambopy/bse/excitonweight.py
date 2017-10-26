@@ -159,23 +159,44 @@ class YamboExcitonWeight(YamboSaveDB):
         plt.contourf(X, Y, Z, cmap='gist_heat_r')
         plt.show()
 
-    def plot_weights(self,size=30,lim=0.2):
+    def plot_weights(self,ax,size=20,lim=0.2,cmap='viridis',log_scale=False,set_maximum=1.0):
         """
-        Plot the weights in a scatter plot of this exciton
+
+        Plot the weights in a scatter plot of this exciton (1st version tuned by A. Molina-Sanchez)
+        Options:
+        cmap : colormap. Default viridis 
+        log_scale : Logarithmic scale for the intensity (True or False)
+        set_maximum : Only applied for linear scale. Apply a cut for a selected intensity (values between 0 and 1)
+        Further development: Option for the colorbar
+ 
         """
         from numpy import sqrt
-        cmap = plt.get_cmap("gist_heat_r")
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as colors
 
-        fig = plt.figure(figsize=(20,20))
-        kpts, weights = self.calc_kpts_weights()
-        plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in weights])
-
-        plt.xlim([-lim,lim])
-        plt.ylim([-lim,lim])
-
-        ax = plt.axes()
+        """
+        These options can be decided by the user. In this first version we just:
+        remove axis
+        """
         ax.set_aspect('equal')
-        plt.show()
+        ax.set_xlim(-lim,lim)
+        ax.set_ylim(-lim,lim)
+        ax.axes.get_xaxis().set_visible(False)
+        ax.axes.get_yaxis().set_visible(False)
+
+        
+        kpts, weights = self.calc_kpts_weights()
+
+        if log_scale == True:
+           norm = colors.LogNorm(vmin=weights.min(),vmax=weights.max())
+        else:
+           if abs(set_maximum)>1.:
+              set_maximum = 1.
+           norm = colors.Normalize(vmin=weights.min(),vmax=abs(set_maximum)*weights.max())
+
+        cmap = plt.get_cmap(cmap)
+
+        ax.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=cmap(norm(weights)))
 
     def __str__(self):
         s = ""

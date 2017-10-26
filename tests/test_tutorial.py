@@ -29,7 +29,7 @@ class TestGW_Convergence(unittest.TestCase):
         gs_si.bands()
 
     def test_calcs(self):
-        gs_si.run_relax()
+        #gs_si.run_relax()
         gs_si.run_scf()
         gs_si.run_nscf()
         gs_si.run_bands()
@@ -96,7 +96,7 @@ def is_exe(fpath):
 
 def clean():
         print("cleaning...")
-        os.system('rm -rf relax gw bse_conv bse_cutoff bse_cutoff_cut '
+        os.system('rm -rf relax gw bse_conv bse_cutoff bse_cutoff_cut cutoff_test.png '
                   'bse_par bse gw_conv bands scf nscf database proj.in')
         print("done!")
 
