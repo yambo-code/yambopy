@@ -11,7 +11,7 @@ import subprocess
 import filecmp
 from yamboparser import YamboFile, YamboFolder
 
-folder = os.path.dirname(os.path.realpath(__file__))+'/testdata/' 
+folder = os.path.dirname(os.path.realpath(__file__))+'/reference/parser/' 
 
 class TestFolder(unittest.TestCase):
      
@@ -68,7 +68,7 @@ class TestFileT2(unittest.TestCase):
         assert fl.type=='netcdf_hf'
 
 if __name__ == "__main__":
-    
+
     #t1_errors_warnings
     suite = unittest.TestLoader().loadTestsFromTestCase(TestFileT1)
     unittest.TextTestRunner(verbosity=2).run(suite)

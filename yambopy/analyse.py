@@ -348,14 +348,14 @@ class YamboAnalyser():
 
         #if 'lda' in evalues:
         if type_calc == 'lda':
-          bands = [data[data[:,b_index]==b,Eo_index] for b in xrange(bmin,bmax+1)]
+          bands = [data[data[:,b_index]==b,Eo_index] for b in range(bmin,bmax+1)]
           bands_cols.append(bands)
         elif type_calc == 'gw':
         #elif 'gw' in evalues:
-          bands = [data[data[:,b_index]==b,E_index] for b in xrange(bmin,bmax+1)]
+          bands = [data[data[:,b_index]==b,E_index] for b in range(bmin,bmax+1)]
           bands_cols.append(bands)
         #elif 'corr' in evalues:
-        #bands = [data[data[:,b_index]==b,DE_index] for b in xrange(bmin,bmax+1)]
+        #bands = [data[data[:,b_index]==b,DE_index] for b in range(bmin,bmax+1)]
         #bands_cols.append(bands)
 
         return kpoint_index, bands_cols

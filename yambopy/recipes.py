@@ -45,7 +45,6 @@ def pack_netcdf_files_in_folder(folder,save_folder=None,mask='',verbose=True):
         if mask in dirpath:
             #check if there are some output files in the folder
             if ([ f for f in filenames if 'o-' in f ]):
-                print dirpath
                 y = YamboOut(dirpath,save_folder=save_folder)
                 y.pack_from_netcdf()
 

@@ -1,12 +1,10 @@
-# Copyright (C) 2016 Henrique Pereira Coutada Miranda
+#
+# Copyright (C) 2017 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yamboparser
 #
 #
-from builtins import str
-from builtins import range
-from builtins import object
 import os
 import re
 import numpy as np
@@ -98,7 +96,7 @@ class YamboFile(object):
         if self.type == "output_gw":
             tags = [line.replace('(meV)','').replace('Sc(Eo)','Sc|Eo') for line in self.lines if all(tag in line for tag in ['K-point','Band','Eo'])][0]
             tags = tags[2:].strip().split()
-        table = np.genfromtxt(self.lines)
+        table = np.loadtxt(self.lines)
         _kdata ={}
         k_index =[ str(int(i)) for i in table[:,0]] # first column  has kpoints
         for ind in range(len(k_index)):
@@ -118,7 +116,11 @@ class YamboFile(object):
         """
         if _has_netcdf:
             data = {}
-            f = Dataset('%s/%s'%(self.folder,self.filename))
+
+            filename = '%s/%s'%(self.folder,self.filename)
+            print(filename)
+            f = Dataset(filename)
+
             #quasiparticles table
             qp_table  = f.variables['QP_table'][:]
             data['Kpoint_index'] = qp_table[2]
@@ -154,7 +156,11 @@ class YamboFile(object):
         """
         if _has_netcdf:
             data = {}
-            f = Dataset('%s/%s'%(self.folder,self.filename))
+
+            filename = '%s/%s'%(self.folder,self.filename)
+            print(filename)
+            f = Dataset(filename)
+
             hf =  f.variables['Sx_Vxc'][:]
             if hf.shape[0]%8 ==0 :
                 qp =  hf.reshape(-1,8)

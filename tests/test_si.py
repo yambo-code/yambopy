@@ -49,7 +49,7 @@ class TestPW_Si(unittest.TestCase):
         qe.ions['ion_dynamics']  = "'bfgs'"
         qe.cell['cell_dynamics']  = "'bfgs'"
         qe.write('relax/si.scf')
-        self.assertEqual(filecmp.cmp('relax/si.scf', 'reference_si/relax_si.scf'),True)
+        self.assertEqual(filecmp.cmp('relax/si.scf', 'reference/si/relax_si.scf'),True)
 
     def test_pw_input_scf(self):
         """ Generate a silicon pw.x input file for the self consistent cycle
@@ -59,7 +59,7 @@ class TestPW_Si(unittest.TestCase):
         qe = self.get_inputfile()
         qe.control['calculation'] = "'scf'"
         qe.write('scf/si.scf')
-        self.assertEqual(filecmp.cmp('scf/si.scf', 'reference_si/scf_si.scf'),True)
+        self.assertEqual(filecmp.cmp('scf/si.scf', 'reference/si/scf_si.scf'),True)
 
     def test_pw_input_nscf(self):
         """ Generate a silicon pw.x input file for the non self consistent cycle
@@ -74,7 +74,7 @@ class TestPW_Si(unittest.TestCase):
         qe.system['force_symmorphic'] = ".true."
         qe.kpoints = [2, 2, 2]
         qe.write('nscf/si.nscf')
-        self.assertEqual(filecmp.cmp('nscf/si.nscf', 'reference_si/nscf_si.nscf'),True)
+        self.assertEqual(filecmp.cmp('nscf/si.nscf', 'reference/si/nscf_si.nscf'),True)
 
 class TestPW_Si_Run(unittest.TestCase):
     """ This class creates the input files and runs the pw.x code
@@ -119,7 +119,7 @@ class TestYamboIn_GW_Si(unittest.TestCase):
         """
         if not os.path.isdir('database/SAVE'):
             os.makedirs('database')
-            os.system('cd database; tar xfz ../reference_si/yambo_gw_conv/gw_conv.tar.gz')
+            os.system('cd database; tar xfz ../reference/si/yambo_gw_conv/gw_conv.tar.gz')
         if not os.path.isdir('gw_conv/SAVE'):
             sh.copytree('database/SAVE','gw_conv/SAVE')
         if not os.path.isdir('gw/SAVE'):
@@ -163,7 +163,7 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
         """
         os.system('yambopy analysegw gw_conv FFTGvecs -bc 5 -kc 3 -bv 4 -kv 1 -nd')
         out = np.loadtxt('analyse_gw_conv/gw_conv_FFTGvecs.dat')
-        ref = np.loadtxt('reference_si/analyse_gw_conv/gw_conv_FFTGvecs.dat')
+        ref = np.loadtxt('reference/si/analyse_gw_conv/gw_conv_FFTGvecs.dat')
         print("ref:")
         print(ref)
         print("out:")
@@ -172,7 +172,7 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
 
         os.system('yambopy analysegw gw_conv BndsRnXp -bc 5 -kc 3 -bv 4 -kv 1 -nd')
         out = np.loadtxt('analyse_gw_conv/gw_conv_BndsRnXp.dat')
-        ref = np.loadtxt('reference_si/analyse_gw_conv/gw_conv_BndsRnXp.dat')
+        ref = np.loadtxt('reference/si/analyse_gw_conv/gw_conv_BndsRnXp.dat')
         print("ref:")
         print(ref)
         print("out:")
@@ -186,7 +186,7 @@ class TestYamboIn_BSE_Si(unittest.TestCase):
         """
         if not os.path.isdir('database/SAVE'):
             os.makedirs('database')
-            os.system('cd database; tar xfz ../reference_si/yambo_bse_conv/bse_conv.tar.gz')
+            os.system('cd database; tar xfz ../reference/si/yambo_bse_conv/bse_conv.tar.gz')
         if not os.path.isdir('bse/SAVE'):
             sh.copytree('database/SAVE','bse/SAVE')
         if not os.path.isdir('bse_conv/SAVE'):
@@ -245,7 +245,7 @@ class TestYamboOut_BSE_Si(unittest.TestCase):
         """
         os.system('yambopy analysebse bse_conv FFTGvecs -nd')
         out = np.loadtxt('analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat')
-        ref = np.loadtxt('reference_si/analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat')
+        ref = np.loadtxt('reference/si/analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat')
         print("ref:")
         print(ref)
         print("out:")
@@ -254,7 +254,7 @@ class TestYamboOut_BSE_Si(unittest.TestCase):
 
         os.system('yambopy analysebse bse_conv BndsRnXs -nd')
         out = np.loadtxt('analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat')
-        ref = np.loadtxt('reference_si/analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat') 
+        ref = np.loadtxt('reference/si/analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat') 
         print("ref:")
         print(ref)
         print("out:")

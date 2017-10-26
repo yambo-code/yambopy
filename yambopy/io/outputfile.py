@@ -22,7 +22,6 @@ class YamboOut():
     ``folder``:      The relative path of the folder where yambo dumped its input files
 
     ``save_folder``: The path were the SAVE folder is localized 
-
     """
     _lock = "lock" #name of the lockfile
 
@@ -41,14 +40,15 @@ class YamboOut():
             outdir = os.listdir(folder)
         else:
             raise ValueError( "Invalid folder: %s"%folder )
+
+        #get the log dir
         if os.path.isdir(folder+"/LOG"):
             logdir = os.listdir(folder+"/LOG")
         else:
             logdir = outdir
+
         tags = ['refl','eel','eps','qp','sf','carriers','polarization','external']
-        # Problem in the name of variable inside the file external_field
-        #self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and any([tag in f for tag in tags]) and 'xsf' not in f]
-        #Line 49: Why the xsf condition? This makes the subroutine to fail
+
         self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and any([tag in f for tag in tags])]
         self.run    = ["%s"%f for f in outdir if f[:2] == 'r-']
         self.logs   = ["/LOG/%s"%f for f in logdir]
@@ -73,16 +73,6 @@ class YamboOut():
           self.nettags[nameout] = self.netdata[nameout].data.keys()
           self.netval[nameout]  = self.netdata[nameout].data.values()
           self.set_data_netcdf(nameout)
-
-        # Search of the ndb.QP files. I give the directory of calculations, not the jobname
-#        for f in outdir:
-#            if os.path.isdir('%s/%s'%(folder,f)) and not 'SAVE' in f:
-#                self.netdata[f] = YamboFile('ndb.QP',folder='%s/%s'%(folder,f)) 
-#                self.nettags[f] = self.netdata[f].data.keys()
-#                self.netval[f]  = self.netdata[f].data.values()
-        #fix data from netcdf in suitable format (remove complex type, etc.) 
-
-        # Read data from netcdf file
 
     def get_cell(self):
         """ 
@@ -111,7 +101,6 @@ class YamboOut():
         files = [open("%s/%s"%(self.folder,f)) for f in self.output]
         self.data = {}
         self.tags = {}
-        print self.output,files
         for filename,f in zip(self.output,files):
             #get the string with the file data
             try:
@@ -175,7 +164,6 @@ class YamboOut():
           aux2.append(aux)
 
         # Create a dictionary for tags and another for data
-
         self.dictag[nameout] = self.newtag
         self.dicnet[nameout] = aux2 
 
