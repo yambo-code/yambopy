@@ -7,11 +7,11 @@
 #
 import os
 import re
-from copy import *
+import numpy as np
 from netCDF4 import Dataset
-from yamboparser import *
-from yambopy import *
-from yambopy.plot import *
+from yamboparser import YamboFile
+from yambopy.jsonencoder import JsonDumper
+from yambopy import YamboIn
 
 class YamboOut():
     """ 
@@ -23,7 +23,10 @@ class YamboOut():
 
     ``save_folder``: The path were the SAVE folder is localized 
     """
-    _lock = "lock" #name of the lockfile
+
+    _tags = ['refl','eel','eps','qp','sf','carriers','polarization','external']
+    _netcdf = ['ndb.QP','ndb.HF_and_locXC']
+    _tagsexp = r'#\n#\s+((?:(?:[`0-9a-zA-Z\-\/\|\\(\)\_[\]]+)\s+)+)#\n\s'
 
     def __init__(self,folder,save_folder='.'):
 
@@ -35,45 +38,36 @@ class YamboOut():
         else:
             self.save_folder = save_folder
 
-        #get the output dir
+        #get all the files in the output dir
         if os.path.isdir(folder):
             outdir = os.listdir(folder)
         else:
             raise ValueError( "Invalid folder: %s"%folder )
 
         #get the log dir
-        if os.path.isdir(folder+"/LOG"):
-            logdir = os.listdir(folder+"/LOG")
+        logdir_path = os.path.join(folder,"LOG")
+        if os.path.isdir(logdir_path):
+            logdir = os.listdir(logdir_path)
         else:
             logdir = outdir
 
-        tags = ['refl','eel','eps','qp','sf','carriers','polarization','external']
+        def has_tag(filename):
+            """check if the filename has a tag in its name"""
+            return any([tag in filename for tag in self._tags])
 
-        self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and any([tag in f for tag in tags])]
-        self.run    = ["%s"%f for f in outdir if f[:2] == 'r-']
-        self.logs   = ["/LOG/%s"%f for f in logdir]
-
-        # get data from netcdf file ndb.QP (not useful so far)
-        netcdf_tags = ['QP']
+        #get output filenames 
+        self.netcdf = ["%s"%f for f in outdir if f in self._netcdf ]
+        self.output = ["%s"%f for f in outdir if f.startswith('o-') and has_tag(f)]
+        self.run    = ["%s"%f for f in outdir if f.startswith('r-')]
+        self.logs   = ["%s"%f for f in logdir if f.startswith('l-')]
 
         #get data from output file
         self.get_runtime()
         self.get_outputfile()
+        self.get_netcdffile()
         self.get_inputfile()
         self.get_cell()
-
-        self.netdata = {}  # read netcdf file from YamboFile
-        self.nettags = {}
-        self.netval  = {}
-
-        # get output name, open netcdf file (only if QP file exists)
-        if os.path.exists('%s/ndb.QP' % folder):
-          nameout = self.output[0][2:-3]
-          self.netdata[nameout] = YamboFile('ndb.QP',folder=folder) 
-          self.nettags[nameout] = self.netdata[nameout].data.keys()
-          self.netval[nameout]  = self.netdata[nameout].data.values()
-          self.set_data_netcdf(nameout)
-
+    
     def get_cell(self):
         """ 
         Get information about the unit cell (lattice vectors, atom types, positions,
@@ -81,15 +75,27 @@ class YamboOut():
         """
         path = self.save_folder+'/SAVE/ns.db1'
         if os.path.isfile(path):
-            #read database
             self.nc_db         = Dataset(path)
             self.lat           = self.nc_db.variables['LATTICE_VECTORS'][:].T
             self.alat          = self.nc_db.variables['LATTICE_PARAMETER'][:].T
             self.sym_car       = self.nc_db.variables['SYMMETRY'][:]
             self.kpts_iku      = self.nc_db.variables['K-POINTS'][:].T
-            self.apos          = self.nc_db.variables['ATOM_POS'][:,0,:]
-            self.atomic_number = self.nc_db.variables['atomic_numbers'][:].T
+            
+            #read atoms
+            atomic_pos         = self.nc_db.variables['ATOM_POS'][:]
+            atomic_number      = self.nc_db.variables['atomic_numbers'][:].T
+            self.nspecies      = self.nc_db.variables['number_of_atom_species'][0].astype(int)
 
+            atom_positions = []
+            atom_number    = []
+            for specie in range(self.nspecies):
+                atoms_specie = atomic_pos[specie]
+                for atom in atoms_specie:
+                    atom_positions.append(atom)
+                    atom_number.append(atomic_number[specie])
+
+            self.atomic_positions = atom_positions
+            self.atomic_number = atom_number
         else:
             raise ValueError('Could not find ns.db1 in %s from YamboOut'%path)
 
@@ -97,75 +103,39 @@ class YamboOut():
         """ 
         Get the data from the o-* files
         """
-        #open all the o-* files
-        files = [open("%s/%s"%(self.folder,f)) for f in self.output]
+
         self.data = {}
         self.tags = {}
-        for filename,f in zip(self.output,files):
-            #get the string with the file data
-            try:
+
+        #for all the o-* files
+        for filename in self.output:
+
+            with open("%s/%s"%(self.folder,filename)) as f:
                 string = f.read()
-                # Check this regexp
-                tags = [tag.strip() for tag in re.findall('#\n#\s+((?:(?:[`0-9a-zA-Z\-\/\|\\(\)\_[\]]+)\s+)+)#\n\s',string)[0].split()]
+
+                #get tags
+                tags = [tag.strip() for tag in re.findall(self._tagsexp,string)[0].split()]
                 f.seek(0)
-                self.data[filename] = np.loadtxt(f)
                 self.tags[filename] = tags
-            except:
-                raise ValueError('Error reading file %s'%"%s/%s"%(self.folder,filename))
-        #close all the files
-        for f in files: f.close()
-        return self.data
 
-    def set_data_netcdf(self,nameout):
+                #get data
+                self.data[filename] = np.loadtxt(f)
 
-        self.dictag = {}
-        self.dicnet = {}
-        self.newtag = []
+    def get_netcdffile(self):
+        """
+        Get the netcdf files
+            The supported netcdf files so far are:
+                ndb.QP
+                ndb.HF_and_locXC
+        """
+        for filename in self.netcdf:
+            yf = YamboFile(filename,self.folder)
+            
+            #from dictionary to tuple list
+            tags, data = zip(*yf.data.items())
 
-        val_aux = []
-
-        for word in self.netdata[nameout].data.keys():
-            if word == 'Eo':
-              self.newtag.append(word)
-              val_aux.append( self.netdata[nameout].data[word].real.tolist() ) 
-            elif word == 'E':
-              self.newtag.append(word)
-              val_aux.append( self.netdata[nameout].data[word].real.tolist() ) 
-              self.newtag.append('Width[eV]')
-              val_aux.append( self.netdata[nameout].data[word].imag.tolist() ) 
-            elif word == 'qp_table':
-              pass
-            elif word == 'E-Eo':
-              self.newtag.append(word)
-              val_aux.append( self.netdata[nameout].data[word].real.tolist() )
-            elif word == 'Band':
-              self.newtag.append(word)
-              val_aux.append( self.netdata[nameout].data[word].tolist())
-            elif word == 'Kpoint_index':
-              self.newtag.append(word)
-              val_aux.append( self.netdata[nameout].data[word].tolist())
-            elif word == 'Kpoint':
-              pass
-            elif word == 'Z':
-              self.newtag.append('Z(Re)')
-              val_aux.append( self.netdata[nameout].data[word].real.tolist() )
-              self.newtag.append('Z(Im)')
-              val_aux.append( self.netdata[nameout].data[word].imag.tolist() )
-
-        # Order elements in a list of variables for each QP states (probably there is a better way)
-
-        n_var = len(val_aux)
-        n_qp  = len(val_aux[0])
-        aux2 = []
-        for i in range(n_qp):
-          aux = []
-          for j in range(n_var):
-            aux.append( val_aux[j][i]  )
-          aux2.append(aux)
-
-        # Create a dictionary for tags and another for data
-        self.dictag[nameout] = self.newtag
-        self.dicnet[nameout] = aux2 
+            self.data[filename] = data
+            self.tags[filename] = tags
 
     def get_inputfile(self):
         """
@@ -230,20 +200,6 @@ class YamboOut():
                 data[key] = dict(list(zip(self.tags[key],np.array(self.data[key]).T)))
         return data
 
-    def plot(self,tag,cols=(2,),xlabel=None):
-        """
-        Search in the output files a certain tag and plot it
-        """
-        for key in list(self.data.keys()):
-            if tag in key:
-                data = self.data[key]
-        for col in cols:
-            plt.plot(data[:,0],data[:,col-1],label='col %d'%col)
-        plt.title(tag)
-        if xlabel: plt.xlabel(xlabel)
-        plt.legend()
-        plt.show()
-
     def print_runtime(self):
         """
         Print the runtime in a string
@@ -258,7 +214,9 @@ class YamboOut():
         """
         #if no filename is specified we use the same name as the folder
         if not filename: filename = self.folder
-        jsondata = {"data"     : dict(zip(self.data.keys(),[d.tolist() for d in self.data.values()])),
+        
+        #create json dictionary
+        jsondata = {"data"     : self.data,
                     "tags"     : self.tags,
                     "runtime"  : self.runtime,
                     "inputfile": self.inputfile,
@@ -266,42 +224,27 @@ class YamboOut():
                     "alat"     : self.alat,
                     "kpts_iku" : self.kpts_iku,
                     "sym_car"  : self.sym_car,
-                    "atompos"  : self.apos,
+                    "atompos"  : self.atomic_positions,
                     "atomtype" : self.atomic_number}
-        print (filename)
-        filename = '%s.json'%filename
-        JsonDumper(jsondata,filename)
 
-    def pack_from_netcdf(self,filename=None):
-        """
-        Pack up all the data in the structure in a json file
-        """
-        #if no filename is specified we use the same name as the folder
-        if not filename: filename = self.folder
-        jsondata = {"data"     : dict(zip(self.dicnet.keys(),self.dicnet.values())),
-                    "tags"     : self.dictag,
-                    "runtime"  : self.runtime,
-                    "inputfile": self.inputfile,
-                    "lattice"  : self.lat,
-                    "alat"     : self.alat,
-                    "kpts_iku" : self.kpts_iku,
-                    "sym_car"  : self.sym_car,
-                    "atompos"  : self.apos,
-                    "atomtype" : self.atomic_number}
+        #put the data in the file
         filename = '%s.json'%filename
         JsonDumper(jsondata,filename)
 
     def __str__(self):
         s = ""
         s+= "\nlogs:\n"
-        s+= ("%s\n"*len(self.logs))%tuple(self.logs)
+        s+= "\n".join(self.logs)+"\n"
         s+= "\nrun:\n"
-        s+= ("%s\n"*len(self.run)%tuple(self.run))
-        s+= "\noutput:\n"
-        s+= ("%s\n"*len(self.output)%tuple(self.output))
+        s+= "\n".join(self.run)+"\n"
+        s+= "\noutput (text):\n"
+        s+= "\n".join(self.output)+"\n"
+        s+= "\noutput (netcdf):\n"
+        s+= "\t\t\n".join(self.netcdf)+"\n"
         s+= "\nlattice:\n"
         s+= "\n".join([("%12.8lf "*3)%tuple(vec) for vec in self.lat])+"\n"
         s+= "\natom positions:\n"
-        s+= "\n".join(["%3d "%self.atomic_number[n]+("%12.8lf "*3)%tuple(vec) for n,vec in enumerate(self.apos)])+"\n"
+        for an,pos in zip(self.atomic_number,self.atomic_positions):
+            s+= "%3d "%an+("%12.8lf "*3)%tuple(pos)+"\n"
         return s
 

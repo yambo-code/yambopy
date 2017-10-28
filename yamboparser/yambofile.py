@@ -17,6 +17,10 @@ except ImportError:
 else:
     _has_netcdf = True
 
+def if_has_netcdf(f):
+    if _has_netcdf:
+        return f
+    
 class YamboFile(object):
     """
     This is the Yambo file class.
@@ -111,68 +115,68 @@ class YamboFile(object):
         self.data = _kdata
         #self.data = dict(zip(tags,table.T))
 
+    @if_has_netcdf
     def parse_netcdf_gw(self):
         """ Parse the netcdf gw file
         """
-        if _has_netcdf:
-            data = {}
+        data = {}
 
-            filename = '%s/%s'%(self.folder,self.filename)
-            print(filename)
-            f = Dataset(filename)
+        filename = '%s/%s'%(self.folder,self.filename)
+        print(filename)
+        f = Dataset(filename)
 
-            #quasiparticles table
-            qp_table  = f.variables['QP_table'][:]
-            data['Kpoint_index'] = qp_table[2]
-            data['Band'] = qp_table[0]
-            if qp_table.shape[1] == 4: # spin polarized
-                data['Spin_pol'] = qp_table[:,3]
-            data['qp_table'] = qp_table[:,1:]  # ib, ik, ,(isp if spin polarized)
-            #qpoints
-            data['Kpoint']   = f.variables['QP_kpts'][:].T
+        #quasiparticles table
+        qp_table  = f.variables['QP_table'][:]
+        data['Kpoint_index'] = qp_table[2]
+        data['Band'] = qp_table[0]
+        if qp_table.shape[1] == 4: # spin polarized
+            data['Spin_pol'] = qp_table[:,3]
+        data['qp_table'] = qp_table[:,1:]  # ib, ik, ,(isp if spin polarized)
+        #qpoints
+        data['Kpoint']   = f.variables['QP_kpts'][:].T
 
-            #quasi-particles
-            #old format
-            if 'QP_E_Eo_Z' in f.variables:
-                qp = f.variables['QP_E_Eo_Z'][:]
-                qp = qp[0]+qp[1]*1j
-                data['E'],  data['Eo'], data['Z'] = qp.T
-                data['E-Eo'] = data['E']  -  data['Eo']
-                self.data=data
-            #new format
-            else:
-                E  = f.variables['QP_E'][:]
-                data['E'] = E[:,0] + E[:,1]*1j
-                Eo = f.variables['QP_Eo'][:]
-                data['Eo']= Eo
-                Z  = f.variables['QP_Z'][:]
-                data['Z'] = Z[:,0] + Z[:,1]*1j
-                data['E-Eo'] = data['E']  -  data['Eo']
-                self.data=data
-            f.close()
+        #quasi-particles
+        #old format
+        if 'QP_E_Eo_Z' in f.variables:
+            qp = f.variables['QP_E_Eo_Z'][:]
+            qp = qp[0]+qp[1]*1j
+            data['E'],  data['Eo'], data['Z'] = qp.T
+            data['E-Eo'] = data['E']  -  data['Eo']
+            self.data=data
+        #new format
+        else:
+            E  = f.variables['QP_E'][:]
+            data['E'] = E[:,0] + E[:,1]*1j
+            Eo = f.variables['QP_Eo'][:]
+            data['Eo']= Eo
+            Z  = f.variables['QP_Z'][:]
+            data['Z'] = Z[:,0] + Z[:,1]*1j
+            data['E-Eo'] = data['E']  -  data['Eo']
+            self.data=data
+        f.close()
 
+    @if_has_netcdf
     def parse_netcdf_hf(self):
         """ Parse the netcdf hf file (ndb.HF_and_locXC)
         """
-        if _has_netcdf:
-            data = {}
+        data = {}
 
-            filename = '%s/%s'%(self.folder,self.filename)
-            print(filename)
-            f = Dataset(filename)
+        filename = '%s/%s'%(self.folder,self.filename)
+        print(filename)
+        f = Dataset(filename)
 
-            hf =  f.variables['Sx_Vxc'][:]
-            if hf.shape[0]%8 ==0 :
-                qp =  hf.reshape(-1,8)
-                ib, ibp, ik, isp, rsx, isx, revx, imvx = qp.T
-            else:
-                qp =  hf.reshape(-1,7)
-                ib, ibp, ik, rsx, isx, revx, imvx = qp.T
-            data['Sx'] = rsx + isx*1j
-            data['Vxc'] = revx + imvx*1j
+        hf =  f.variables['Sx_Vxc'][:]
+        if hf.shape[0]%8 ==0 :
+            qp =  hf.reshape(-1,8)
+            ib, ibp, ik, isp, rsx, isx, revx, imvx = qp.T
+        else:
+            qp =  hf.reshape(-1,7)
+            ib, ibp, ik, rsx, isx, revx, imvx = qp.T
+        data['Sx'] = rsx + isx*1j
+        data['Vxc'] = revx + imvx*1j
 
-            self.data=data
-            f.close()
+        self.data=data
+        f.close()
 
     def parse_report(self):
         """ Parse the report files.

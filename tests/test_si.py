@@ -4,7 +4,6 @@ from __future__ import print_function
 # Tests for yambopy
 # Si
 #
-from builtins import zip
 import matplotlib
 import unittest
 import sys
@@ -331,6 +330,9 @@ if __name__ == '__main__':
         suite = ul.loadTestsFromTestCase(TestYamboIn_GW_Si_Run)
         nerrors += not tr.run(suite).wasSuccessful()
 
+        suite = ul.loadTestsFromTestCase(TestYamboOut_GW_Si)
+        nerrors += not tr.run(suite).wasSuccessful()
+
     #
     # Test BSE on yambo
     #
@@ -339,9 +341,6 @@ if __name__ == '__main__':
 
     if args.full:
         suite = ul.loadTestsFromTestCase(TestYamboIn_BSE_Si_Run)
-        nerrors += not tr.run(suite).wasSuccessful()
-
-        suite = ul.loadTestsFromTestCase(TestYamboOut_GW_Si)
         nerrors += not tr.run(suite).wasSuccessful()
 
         suite = ul.loadTestsFromTestCase(TestYamboOut_BSE_Si)

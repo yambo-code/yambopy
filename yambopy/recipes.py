@@ -26,27 +26,7 @@ def pack_files_in_folder(folder,save_folder=None,mask='',verbose=True):
             if ([ f for f in filenames if 'o-' in f ]):
                 if verbose: print(dirpath)
                 y = YamboOut(dirpath,save_folder=save_folder)
-                if os.path.exists('%s/ndb.QP' % dirpath):
-                  y.pack_from_netcdf()
-                else:
-                  y.pack()
-#
-# Developing version for packing many netcdf files. Alejandro Molina-Sanchez. 
-#
-
-def pack_netcdf_files_in_folder(folder,save_folder=None,mask='',verbose=True):
-    """
-    Pack the netcdf files in a folder to json files
-    """
-    if not save_folder: save_folder = folder
-    #pack the files in .json files
-    for dirpath,dirnames,filenames in os.walk(folder):
-        #check if the folder fits the mask
-        if mask in dirpath:
-            #check if there are some output files in the folder
-            if ([ f for f in filenames if 'o-' in f ]):
-                y = YamboOut(dirpath,save_folder=save_folder)
-                y.pack_from_netcdf()
+                y.pack()
 
 #
 # by Alejandro Molina-Sanchez
