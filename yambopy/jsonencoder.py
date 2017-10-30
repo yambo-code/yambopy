@@ -12,9 +12,9 @@ import numpy as np
 
 class YambopyEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, np.ndarray):
+        if isinstance(obj, (np.ndarray,np.number)):
             if np.iscomplexobj(obj):
-                return {"real":obj.real, "imag":obj.imag}
+                return [obj.real, obj.imag]
             else:
                 return obj.tolist()
         return(json.JSONEncoder.default(self, obj))

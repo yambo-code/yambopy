@@ -8,10 +8,12 @@
 import os
 import re
 import numpy as np
+from collections import defaultdict
 from netCDF4 import Dataset
 from yamboparser import YamboFile
 from yambopy.jsonencoder import JsonDumper
 from yambopy import YamboIn
+from yambopy.units import ha2ev
 
 class YamboOut():
     """ 
@@ -24,28 +26,37 @@ class YamboOut():
     ``save_folder``: The path were the SAVE folder is localized 
     """
 
-    _tags = ['refl','eel','eps','qp','sf','carriers','polarization','external']
-    _netcdf = ['ndb.QP','ndb.HF_and_locXC']
+    _tags = ['refl', 'eel', 'eps', 'qp', 'sf',
+             'carriers', 'polarization', 'external']
+    _netcdf = ['ndb.QP', 'ndb.HF_and_locXC']
     _tagsexp = r'#\n#\s+((?:(?:[`0-9a-zA-Z\-\/\|\\(\)\_[\]]+)\s+)+)#\n\s'
 
-    def __init__(self,folder,save_folder='.'):
+    def __init__(self, folder, save_folder='.'):
+        """
+        For now we initialize the class in the same way as before (from_files)
+        In the future we should be able to initialize this class from
+        a file in the disk or from a dictionary
+        """
+        self.files = defaultdict(dict)
+        self.from_folder(folder,save_folder)
 
+    def from_folder(self,folder,save_folder):
         self.folder = folder
 
-        #check if the save folder is in save_folder if not try folder
-        if not os.path.isdir(save_folder+'/SAVE'):
+        # check if the save folder is in save_folder if not try folder
+        if not os.path.isdir(save_folder + '/SAVE'):
             self.save_folder = folder
         else:
             self.save_folder = save_folder
 
-        #get all the files in the output dir
+        # get all the files in the output dir
         if os.path.isdir(folder):
             outdir = os.listdir(folder)
         else:
-            raise ValueError( "Invalid folder: %s"%folder )
+            raise ValueError("Invalid folder: %s" % folder)
 
-        #get the log dir
-        logdir_path = os.path.join(folder,"LOG")
+        # get the log dir
+        logdir_path = os.path.join(folder, "LOG")
         if os.path.isdir(logdir_path):
             logdir = os.listdir(logdir_path)
         else:
@@ -55,39 +66,41 @@ class YamboOut():
             """check if the filename has a tag in its name"""
             return any([tag in filename for tag in self._tags])
 
-        #get output filenames 
-        self.netcdf = ["%s"%f for f in outdir if f in self._netcdf ]
-        self.output = ["%s"%f for f in outdir if f.startswith('o-') and has_tag(f)]
-        self.run    = ["%s"%f for f in outdir if f.startswith('r-')]
-        self.logs   = ["%s"%f for f in logdir if f.startswith('l-')]
+        # get output filenames
+        self.netcdf = ["%s" % f for f in outdir if f in self._netcdf]
+        self.output = ["%s" % f for f in outdir if f.startswith('o-') and has_tag(f)]
+        self.run = ["%s" % f for f in outdir if f.startswith('r-')]
+        self.logs = ["%s" % f for f in logdir if f.startswith('l-')]
 
-        #get data from output file
+        # get data from output file
         self.get_runtime()
         self.get_outputfile()
         self.get_netcdffile()
         self.get_inputfile()
         self.get_cell()
-    
+
     def get_cell(self):
         """ 
         Get information about the unit cell (lattice vectors, atom types, positions,
         kpoints and symmetry operations) from the SAVE folder.
         """
-        path = self.save_folder+'/SAVE/ns.db1'
+        path = self.save_folder + '/SAVE/ns.db1'
         if os.path.isfile(path):
-            self.nc_db         = Dataset(path)
-            self.lat           = self.nc_db.variables['LATTICE_VECTORS'][:].T
-            self.alat          = self.nc_db.variables['LATTICE_PARAMETER'][:].T
-            self.sym_car       = self.nc_db.variables['SYMMETRY'][:]
-            self.kpts_iku      = self.nc_db.variables['K-POINTS'][:].T
-            
-            #read atoms
-            atomic_pos         = self.nc_db.variables['ATOM_POS'][:]
-            atomic_number      = self.nc_db.variables['atomic_numbers'][:].T
-            self.nspecies      = self.nc_db.variables['number_of_atom_species'][0].astype(int)
+            self.nc_db = Dataset(path)
+            ncvars = self.nc_db.variables
+
+            self.lat = ncvars['LATTICE_VECTORS'][:].T
+            self.alat = ncvars['LATTICE_PARAMETER'][:].T
+            self.sym_car = ncvars['SYMMETRY'][:]
+            self.kpts_iku = ncvars['K-POINTS'][:].T
+
+            # read atoms
+            atomic_pos = ncvars['ATOM_POS'][:]
+            atomic_number = ncvars['atomic_numbers'][:].T.astype(int)
+            self.nspecies = ncvars['number_of_atom_species'][0].astype(int)
 
             atom_positions = []
-            atom_number    = []
+            atom_number = []
             for specie in range(self.nspecies):
                 atoms_specie = atomic_pos[specie]
                 for atom in atoms_specie:
@@ -97,29 +110,28 @@ class YamboOut():
             self.atomic_positions = atom_positions
             self.atomic_number = atom_number
         else:
-            raise ValueError('Could not find ns.db1 in %s from YamboOut'%path)
+            raise ValueError('Could not find ns.db1 in %s from YamboOut' % path)
 
     def get_outputfile(self):
         """ 
         Get the data from the o-* files
         """
-
-        self.data = {}
-        self.tags = {}
-
-        #for all the o-* files
+        # for all the o-* files
         for filename in self.output:
 
-            with open("%s/%s"%(self.folder,filename)) as f:
+            with open(os.path.join(self.folder, filename),'r') as f:
                 string = f.read()
 
-                #get tags
-                tags = [tag.strip() for tag in re.findall(self._tagsexp,string)[0].split()]
+                # get tags
+                find_tags = re.findall(self._tagsexp, string)
+                tags = [tag.strip() for tag in find_tags[0].split()]
                 f.seek(0)
-                self.tags[filename] = tags
 
-                #get data
-                self.data[filename] = np.loadtxt(f)
+                # get data
+                data = np.loadtxt(f, unpack=True)
+
+                #store data
+                self.files[filename].update(dict(zip(tags,data)))
 
     def get_netcdffile(self):
         """
@@ -129,75 +141,63 @@ class YamboOut():
                 ndb.HF_and_locXC
         """
         for filename in self.netcdf:
-            yf = YamboFile(filename,self.folder)
-            
-            #from dictionary to tuple list
-            tags, data = zip(*yf.data.items())
-
-            self.data[filename] = data
-            self.tags[filename] = tags
+            yf = YamboFile(filename, self.folder)
+            #convert units
+            if yf.type == 'netcdf_gw':
+                yf.data['E-Eo'] *= ha2ev
+                yf.data['Eo'] *= ha2ev
+                yf.data['E'] *= ha2ev
+            #save data
+            self.files[filename] = yf.data
 
     def get_inputfile(self):
         """
         Get the input file from the o-* file
         """
-        files = [open("%s/%s"%(self.folder,f),'r') for f in self.output]
 
-        self.inputfile = {}
-    
-        for filename,f in zip(self.output,files):
-
-            #read this inputfile
+        for filename in self.output:
             inputfile = []
-            for line in f:
-                if 'Input file :' in line:
-                    for line in f:
-                        # Note this: to read the input file we just ignore the first 4 characters
-                        # of the section after the tag 'Input file:'
-                        inputfile.append( line[4:] )
-            
-            #use YamboIn to read the input file to a list
-            yi = YamboIn(filename=None)
-            self.inputfile[filename] = yi.read_string( ''.join(inputfile) )
+            # read this inputfile
+            with open(os.path.join(self.folder, filename),'r') as f:
+                for line in f:
+                    if 'Input file :' in line:
+                        for line in f:
+                            # Note this: to read the input file we just ignore the 
+                            # first 4 characters of the section after the tag 'Input file:'
+                            inputfile.append(line[4:])
 
-        #close all the files
-        for f in files: f.close()
+            # use YamboIn to read the input file to a list
+            yi = YamboIn(filename=None)
+            self.files[filename]["inputfile"] = yi.read_string(''.join(inputfile))
 
     def get_runtime(self):
         """
         Get the runtime from the r-* file
         """
-        filenames = sorted(["%s/%s"%(self.folder,f) for f in self.run])
-        files = [open(filename) for filename in filenames]
 
-        #empty timing
-        timing = dict()
+        for filename in self.run:
+            timing = {}
 
-        #iterate over all the files
-        for f,filename in zip(files,self.run):
-            #dictionary for each filename
-            this_timing = timing[filename] = dict()
-            
-            category = "UNKNOWN"
-            for line in files[-1]:
-                if 'Timing' in line:
-                    this_timing[category] = line.split()[-1].split('/')
-                if re.search('(\[[0-9.]+\].[A-Z])', line):
-                    category = line.strip()
+            with open(os.path.join(self.folder,filename),'r') as f:
 
-        #close attl the files
-        for f in files: f.close()
-        self.runtime = timing
-        return timing
+                category = "UNKNOWN"
+                for line in f:
+                    if 'Timing' in line:
+                        timing[category] = line.split()[-1].split('/')
+                    if re.search('(\[[0-9.]+\].[A-Z])', line):
+                        category = line.strip()
+                
+            self.files[filename]["runtime"] = timing
 
-    def get_data(self,tags):
+    def get_data(self, tags):
         """
         Search for a tag in the output files and obtain the data
         """
         data = {}
         for key in self.data.keys():
             if all(tag in key for tag in tags):
-                data[key] = dict(list(zip(self.tags[key],np.array(self.data[key]).T)))
+                data[key] = dict(
+                    list(zip(self.tags[key], np.array(self.data[key]).T)))
         return data
 
     def print_runtime(self):
@@ -208,43 +208,39 @@ class YamboOut():
         for t in list(timing.items()):
             print(t[0], '\n', t[1], '\n')
 
-    def pack(self,filename=None):
+    def pack(self, filename=None):
         """
         Pack up all the data in the structure in a json file
         """
-        #if no filename is specified we use the same name as the folder
-        if not filename: filename = self.folder
-        
-        #create json dictionary
-        jsondata = {"data"     : self.data,
-                    "tags"     : self.tags,
-                    "runtime"  : self.runtime,
-                    "inputfile": self.inputfile,
-                    "lattice"  : self.lat,
-                    "alat"     : self.alat,
-                    "kpts_iku" : self.kpts_iku,
-                    "sym_car"  : self.sym_car,
-                    "atompos"  : self.atomic_positions,
-                    "atomtype" : self.atomic_number}
+        # if no filename is specified we use the same name as the folder
+        if not filename:
+            filename = self.folder
 
-        #put the data in the file
-        filename = '%s.json'%filename
-        JsonDumper(jsondata,filename)
+        # create json dictionary
+        jsondata = {"files": self.files,
+                    "lattice": self.lat,
+                    "alat": self.alat,
+                    "kpts_iku": self.kpts_iku,
+                    "sym_car": self.sym_car,
+                    "atompos": self.atomic_positions,
+                    "atomtype": self.atomic_number}
+
+        filename = '%s.json' % filename
+        JsonDumper(jsondata, filename)
 
     def __str__(self):
-        s = ""
-        s+= "\nlogs:\n"
-        s+= "\n".join(self.logs)+"\n"
-        s+= "\nrun:\n"
-        s+= "\n".join(self.run)+"\n"
-        s+= "\noutput (text):\n"
-        s+= "\n".join(self.output)+"\n"
-        s+= "\noutput (netcdf):\n"
-        s+= "\t\t\n".join(self.netcdf)+"\n"
-        s+= "\nlattice:\n"
-        s+= "\n".join([("%12.8lf "*3)%tuple(vec) for vec in self.lat])+"\n"
-        s+= "\natom positions:\n"
-        for an,pos in zip(self.atomic_number,self.atomic_positions):
-            s+= "%3d "%an+("%12.8lf "*3)%tuple(pos)+"\n"
-        return s
-
+        lines = []
+        lines.append("logs:")
+        lines += self.logs
+        lines.append("\nrun:")
+        lines += self.run
+        lines.append("\noutput (text):")
+        lines += self.output
+        lines.append("\noutput (netcdf):")
+        lines += self.netcdf
+        lines.append("\nlattice:")
+        lines += [("%12.8lf " * 3) % tuple(vec) for vec in self.lat]
+        lines.append("\natom positions:")
+        for an, pos in zip(self.atomic_number, self.atomic_positions):
+            lines.append( "%3d " % an + ("%12.8lf " * 3) % tuple(pos) )
+        return "\n".join(lines)

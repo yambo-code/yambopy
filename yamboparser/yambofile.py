@@ -42,44 +42,54 @@ class YamboFile(object):
 
     def __init__(self,filename,folder='.'):
         self.filename = filename
-        self.folder   = folder
-        self.type     = None
-        self.errors   = [] #list of errors
-        self.warnings   = [] #list of warnings
-        self.memstats   = [] #list of memory allocation statistics
-        self.data     = {} #dictionary containing all the important data from the file
+        self.folder = folder
+        self.errors = [] #list of errors
+        self.warnings = [] #list of warnings
+        self.memstats = [] #list of memory allocation statistics
+        self.data = {} #dictionary containing all the important data from the file
         self.kpoints = {}
         self.timing = []
 
-        if any(filename.startswith(prefix) for prefix in self._output_prefixes):
+        #get the type of file
+        self.type = YamboFile.get_filetype(filename,folder)
+
+        #if needed read the lines
+        if self.type in ['output_gw','log','report']:
             #read lines from file
-            f = open("%s/%s"%(folder,filename),'r')
-            self.lines = f.readlines()
-            f.close()
-
-            #get the line with the title
-            try:
-                title = self.lines[14]
-            except:
-                self.errors.append('error reading title')
-                return
-            if 'GW' in title:
-                 self.type = 'output_gw'
-
-        elif any(filename.startswith(prefix) for prefix in self._report_prefixes):
-            self.type = 'report'
-        elif any(filename.startswith(prefix) for prefix in self._log_prefixes):
-            self.type = 'log'
-        elif any(filename.startswith(prefix) for prefix in self._netcdf_prefixes) and _has_netcdf:
-            for sufix in self._netcdf_sufixes:
-                if filename.endswith(sufix):
-                    self.type = 'netcdf_%s'%self._netcdf_sufixes[sufix]
-                    break
-
-        if self.type is None: self.type = 'unknown'
-
+            with open(os.path.join(folder,filename),'r') as f:
+                self.lines = f.readlines()
+            
         #parse the file
         self.parse()
+    
+    @staticmethod
+    def get_filetype(filename,folder):
+        """
+        Get the type of file
+        """
+        type = 'unknown'
+        if any(filename.startswith(prefix) for prefix in YamboFile._output_prefixes):
+            #read lines from file
+            with open(os.path.join(folder,filename),'r') as f:
+                lines = f.readlines()
+
+            #get the line with the title
+            title = lines[14]
+
+            if 'GW' in title:
+                 type = 'output_gw'
+
+        elif any(filename.startswith(prefix) for prefix in YamboFile._report_prefixes):
+            type = 'report'
+        elif any(filename.startswith(prefix) for prefix in YamboFile._log_prefixes):
+            type = 'log'
+        elif any(filename.startswith(prefix) for prefix in YamboFile._netcdf_prefixes):
+            for sufix in YamboFile._netcdf_sufixes:
+                if filename.endswith(sufix):
+                    type = 'netcdf_%s'%YamboFile._netcdf_sufixes[sufix]
+                    break
+
+        return type
 
     def parse(self):
         """ Parse the file
@@ -131,7 +141,7 @@ class YamboFile(object):
         data['Band'] = qp_table[0]
         if qp_table.shape[1] == 4: # spin polarized
             data['Spin_pol'] = qp_table[:,3]
-        data['qp_table'] = qp_table[:,1:]  # ib, ik, ,(isp if spin polarized)
+        data['qp_table'] = qp_table[:]  # ib, ik, ,(isp if spin polarized)
         #qpoints
         data['Kpoint']   = f.variables['QP_kpts'][:].T
 
@@ -161,9 +171,7 @@ class YamboFile(object):
         """
         data = {}
 
-        filename = '%s/%s'%(self.folder,self.filename)
-        print(filename)
-        f = Dataset(filename)
+        f = Dataset(os.path.join(self.folder,self.filename))
 
         hf =  f.variables['Sx_Vxc'][:]
         if hf.shape[0]%8 ==0 :
@@ -187,9 +195,6 @@ class YamboFile(object):
             k-index is the kpoint at which the yambo calculation was
             done.
         """
-        if not hasattr(self, 'lines'):
-            with open('%s/%s'%(self.folder,self.filename)) as fl:
-                self.lines = fl.readlines()
         # start with check for  failure due to error:
         err = re.compile('^\s+?\[ERROR\]\s+?(.*)$')
         kpoints = re.compile('^  [A-X*]+\sK\s\[([0-9]+)\]\s[:](?:\s+)?([0-9.E-]+\s+[0-9.E-]+\s+[0-9.E-]+)\s[A-Za-z()\s*.]+[0-9]+[A-Za-z()\s*.]+([0-9.]+)')
@@ -262,9 +267,6 @@ class YamboFile(object):
     def parse_log(self):
         """ Get ERRORS and WARNINGS from  l-*  file, useful for debugging
         """
-        if not hasattr(self, 'lines'):
-            with open('%s/%s'%(self.folder,self.filename)) as fl:
-                self.lines = fl.readlines()
         warning = re.compile('^\s+?<([0-9a-z-]+)> ([A-Z0-9]+)[:] \[(WARNING)\]? ([a-zA-Z0-9\s.()\[\]]+)?')
         error = re.compile('^\s+?<([0-9a-z-]+)> ([A-Z0-9]+)[:] \[(ERROR)\]? ([a-zA-Z0-9\s.()\[\]]+)?')
         self.warnings.extend([ line for line in self.lines if warning.match(line)])

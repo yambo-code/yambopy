@@ -29,6 +29,23 @@ class TestYamboOut(unittest.TestCase):
         assert yo.output == ['o-yambo.qp'] 
         assert yo.netcdf == ['ndb.HF_and_locXC','ndb.QP'] 
 
+        #pack the data
+        yo.pack()
+
+        #verify ndb.QP data
+        keys = sorted(yo.files['ndb.QP'].keys())
+        assert keys == ['Band', 'E', 'E-Eo', 'Eo', 'Kpoint', 'Kpoint_index', 'Z', 'qp_table']
+
+        #verify o-*.qp data
+        keys = sorted(yo.files['o-yambo.qp'].keys())
+        assert keys == ['Band', 'E-Eo', 'Eo', 'K-point', 'Sc|Eo', 'inputfile']
+
+        #compare data from ndb.QP and o-yambo.qp
+        of = yo.files['o-yambo.qp']['Eo']
+        qo = yo.files['ndb.QP']['Eo']
+        #the difference is larger than 1e-3
+        assert np.all(np.isclose(of,qo,atol=5e-3))
+
 if __name__ == '__main__':
     # Count the number of errors
     nerrors = 0
