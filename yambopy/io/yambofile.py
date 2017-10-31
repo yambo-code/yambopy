@@ -1,12 +1,13 @@
+from yambopy.duck import isstring
 import yamboparser
 
 class YamboFile(yamboparser.YamboFile):
     """
     Wrapper around the Yambofile class of yamboparser
     """
-    def from_json(filename):
+    def from_dict(filename):
         """
-        Read a local JSON file already parsed with yambopy
+        intialize from a dicitonary
         """
         pass
                 
@@ -23,6 +24,28 @@ class YamboFile(yamboparser.YamboFile):
         Write a json file with the data for this file
         """
         pass
+
+    @staticmethod
+    def has_tag(filename,tags):
+        """check if the filename has a tag in its name"""
+        if isstring(tags):
+            tags = (tags,)
+        return any([tag in filename for tag in tags])
+
+    @staticmethod
+    def is_output(filename):
+        """check if the file is output file"""
+        return filename.startswith('o.') or filename.startswith('o-')
+
+    @staticmethod
+    def is_log(filename):
+        """check if the file is log file"""
+        return filename.startswith('l.') or filename.startswith('l-')
+
+    @staticmethod
+    def is_report(filename):
+        """check if the file is report file"""
+        return filename.startswith('r-')
 
 class YamboGW(YamboFile):
     """

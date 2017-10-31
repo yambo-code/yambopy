@@ -7,8 +7,8 @@
 from subprocess import Popen, PIPE
 import os
 import json
-from time import sleep
 import re
+from yambopy.duck import isstring
 
 class YamboIn(object):
     """
@@ -299,7 +299,7 @@ class YamboIn(object):
         s += "\n".join(self.arguments)+'\n'
 
         for key,value in list(self.variables.items()):
-            if isinstance(value,str):
+            if isstring(value):
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue
             if isinstance(value[0],float):

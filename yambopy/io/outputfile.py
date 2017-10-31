@@ -10,7 +10,7 @@ import re
 import numpy as np
 from collections import defaultdict
 from netCDF4 import Dataset
-from yamboparser import YamboFile
+from .yambofile import YamboFile
 from yambopy.jsonencoder import JsonDumper
 from yambopy import YamboIn
 from yambopy.units import ha2ev
@@ -62,13 +62,9 @@ class YamboOut():
         else:
             logdir = outdir
 
-        def has_tag(filename):
-            """check if the filename has a tag in its name"""
-            return any([tag in filename for tag in self._tags])
-
         # get output filenames
         self.netcdf = ["%s" % f for f in outdir if f in self._netcdf]
-        self.output = ["%s" % f for f in outdir if f.startswith('o-') and has_tag(f)]
+        self.output = ["%s" % f for f in outdir if f.startswith('o-') and YamboFile.has_tag(f,self._tags)]
         self.run = ["%s" % f for f in outdir if f.startswith('r-')]
         self.logs = ["%s" % f for f in logdir if f.startswith('l-')]
 
@@ -78,6 +74,11 @@ class YamboOut():
         self.get_netcdffile()
         self.get_inputfile()
         self.get_cell()
+
+    @staticmethod
+    def has_output(folder):
+        """Check if the folder has output files"""
+        return [filename for filename in os.listdir(folder) if YamboFile.is_output(filename)] 
 
     def get_cell(self):
         """ 
@@ -118,7 +119,12 @@ class YamboOut():
         """
         # for all the o-* files
         for filename in self.output:
+            
+            #yambofile read
+            # TODO: use Yambofile class to read the o-* files
+            yf = YamboFile(filename,self.folder)
 
+            #classic read
             with open(os.path.join(self.folder, filename),'r') as f:
                 string = f.read()
 
@@ -132,6 +138,7 @@ class YamboOut():
 
                 #store data
                 self.files[filename].update(dict(zip(tags,data)))
+                self.files[filename]["type"] = yf.type
 
     def get_netcdffile(self):
         """
@@ -149,6 +156,7 @@ class YamboOut():
                 yf.data['E'] *= ha2ev
             #save data
             self.files[filename] = yf.data
+            self.files[filename]["type"] = yf.type
 
     def get_inputfile(self):
         """
@@ -168,7 +176,7 @@ class YamboOut():
 
             # use YamboIn to read the input file to a list
             yi = YamboIn(filename=None)
-            self.files[filename]["inputfile"] = yi.read_string(''.join(inputfile))
+            self.files[filename]["input"] = yi.read_string(''.join(inputfile))
 
     def get_runtime(self):
         """
@@ -188,6 +196,7 @@ class YamboOut():
                         category = line.strip()
                 
             self.files[filename]["runtime"] = timing
+            self.files[filename]["type"] = "report"
 
     def get_data(self, tags):
         """

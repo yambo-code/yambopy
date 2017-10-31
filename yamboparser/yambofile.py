@@ -132,7 +132,6 @@ class YamboFile(object):
         data = {}
 
         filename = '%s/%s'%(self.folder,self.filename)
-        print(filename)
         f = Dataset(filename)
 
         #quasiparticles table
