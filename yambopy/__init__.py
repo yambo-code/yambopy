@@ -37,9 +37,6 @@ from yambopy.jsonencoder import *
 from yambopy.plot.matplotlib import *
 from yambopy.units import *
 
-#lattice stuff
-from yambopy.lattice import *
-
 #yambo databases
 from yambopy.dbs.savedb import *
 from yambopy.dbs.dipolesdb import *

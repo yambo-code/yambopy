@@ -17,40 +17,45 @@ class YamboLatticeDB():
     """
     def __init__(self, save='SAVE',filename='ns.db1',expand=True):
         self.filename = '%s/%s'%(save,filename)
-        self.readDB()
+        self.read_db()
         # generate additional structure using the data read from the DBs
-        self.process()
-        if expand: self.expandKpoints()
+        self._process()
+        if expand: self.expand_kpoints()
 
-    def readDB(self):
+    def read_db(self):
         try:
             database = Dataset(self.filename)
         except:
             print("error opening %s in YamboLatticeDB"%self.filename)
             exit()
 
+        #lattice data
         self.lat         = database.variables['LATTICE_VECTORS'][:].T
         self.alat        = database.variables['LATTICE_PARAMETER'][:].T
-        natoms           = database.variables['N_ATOMS'][:].astype(int).T
-        self.atomic_numbers   = database.variables['atomic_numbers'][:].astype(int)
-        self.atomic_positions = database.variables['ATOM_POS'][0,:]
         self.sym_car     = database.variables['SYMMETRY'][:]
         self.iku_kpoints = database.variables['K-POINTS'][:].T
+
+        #atomic numbers
+        natoms           = database.variables['N_ATOMS'][:].astype(int).T
+        self.atomic_positions = database.variables['ATOM_POS'][0,:]
+        atomic_numbers   = database.variables['atomic_numbers'][:].astype(int)
+        atomic_numbers = [[atomic_numbers[n]]*na for n,na in enumerate(natoms)]
+        self.atomic_numbers = list(itertools.chain.from_iterable(atomic_numbers))
+        self.atomic_masses = [atomic_mass[a] for a in self.atomic_numbers]
+        
         dimensions = database.variables['DIMENSIONS'][:]
         self.temperature = dimensions[13]
         self.nelectrons = dimensions[14]
         self.nkpoints  = int(dimensions[6])
         self.spin = int(dimensions[11])
         self.time_rev = dimensions[9]
-        #atomic numbers
-        atomic_numbers = [[self.atomic_numbers[n]]*na for n,na in enumerate(natoms)]
-        self.atomic_numbers = list(itertools.chain.from_iterable(atomic_numbers))
-        #atomic masses
-        self.atomic_masses = [atomic_mass[a] for a in self.atomic_numbers]
 
         database.close()
 
-    def process(self):
+    def _process(self):
+        """
+        Generate additional information from data in the database
+        """
         inv = np.linalg.inv
         #caclulate the reciprocal lattice
         self.rlat  = rec_lat(self.lat)
@@ -72,7 +77,7 @@ class YamboLatticeDB():
         for i in range(nsym):
             self.time_rev_list[i] = ( i >= nsym/(self.time_rev+1) )
 
-    def expandKpoints(self):
+    def expand_kpoints(self):
         """
         Take a list of qpoints and symmetry operations and return the full brillouin zone
         with the corresponding index in the irreducible brillouin zone

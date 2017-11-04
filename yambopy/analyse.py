@@ -201,6 +201,24 @@ class YamboAnalyser():
             bands_highsym_qpts.append(kpt)
         return bands_kpoints, bands_indexes, bands_highsym_qpts
 
+    def get_path_lattice(self):
+        """
+        Initialize a lattice instance from the data in 
+        the json files and get the path and get the path
+
+        TODO: should use
+        """
+        #consistency check on the different json files
+        #TODO
+
+        #get data from json file
+        kpts_iku = np.array(jsonfile['kpts_iku'])
+        sym_car  = np.array(jsonfile['sym_car'])
+        alat     = np.array(jsonfile['alat'])
+        lattice  = np.array(jsonfile['lattice'])
+        
+        #YamboLattice 
+   
     def get_gw_bands(self,tags=None,bs=None,type_calc=('ks','gw')):
         """
         Get the gw bands from a gw calculation from a filename
@@ -242,12 +260,14 @@ class YamboAnalyser():
             kpoint_min, kpoint_max = min(kpoint_index), max(kpoint_index)
             nkpoints = kpoint_max-kpoint_min+1
 
-            #get arrys of bands and kpoints
+            #get arrays of bands and kpoints
             bands_e0 = np.zeros([nkpoints,nbands])
             bands_e  = np.zeros([nkpoints,nbands])
             for ei,e0i,ki,ni in zip(e,e0,kpoint_index,band_index):
-                bands_e0[ki-1,ni-1] = e0i
-                bands_e[ki-1,ni-1] = ei
+                nkpoint = ki-kpoint_min
+                nband = ni-band_min
+                bands_e0[nkpoint,nband] = e0i
+                bands_e[nkpoint,nband] = ei
             #end section
 
             #add bands
@@ -257,39 +277,6 @@ class YamboAnalyser():
                 bs.add_bands(bands_e, label=filename+' GW')
 
         return bs
-
-    def get_gw_bands_path(self,path_label,tags=('qp',),type_calc=('lda',),rows=None):
-        """ 
-        Get the bands a path of k-points and find the points 
-        in the regular mesh that correspond to points in the path
-        """
-        path = np.array([p[0] for p in path_label])
-
-        #find the points along the high symmetry lines
-        json_filename = list(self.jsonfiles.keys())[0]
-        bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path,json_filename)
-
-        #calculate distances
-        bands_distances = [0]
-        distance = 0
-        for nk in range(1,len(bands_kpoints)):
-            distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
-            bands_distances.append(distance)
-
-        #obtain the bands for the output files and plot
-        for json_filename in self.jsonfiles.keys():
-            #for output_filename in self.jsonfiles[json_filename]['data']:
-            for e_data in type_calc:
-                kpoint_index, bands_cols = self.get_gw_bands(json_filename,e_data,json_filename[:-5])
-                # Pass path and bands in arrays
-                band_in_path = []
-                for ib,bands in enumerate(bands_cols):
-                    band_aux = []
-                    for band in bands:
-                        band_aux.append([band[k] for k in bands_indexes])
-                    band_in_path.append(band_aux)
-
-        return bands_distances, band_in_path
 
     def plot_ks(self,tags=None):
         """
@@ -312,51 +299,6 @@ class YamboAnalyser():
         #plot the bands
         gw_bands.plot_show()
         return gw_bands
-
-    def plot_gw_path(self,path_label,tags=('qp',),type_calc=('lda',),set_calc=(),rows=None):
-        """
-        Create a path of k-points and find the points in the 
-        regular mesh that correspond to points in the path
-        Use these points to plot the GW band structure.
-        """
-        # assign type of line
-        line_dict  = {'lda':'-','gw':'--','corr':'-.'}
-        # assign color with the number of calculations
-        n_calculations = len(self.jsonfiles.keys())
-        cmap = plt.get_cmap(self._colormap) #get color map
-        colors = [cmap(i) for i in np.linspace(0, 1, n_calculations)]
-
-        path = np.array([p[0] for p in path_label])
-        labels = [p[1] for p in path_label]
-        plot = False
-
-        fig = plt.figure()
-        ax = plt.subplot(111)
-
-        #implemente HERE!!
-
-        if plot:
-            #plot high-symmetry q-points
-            distance = 0
-            bands_highsym_qpts_distances = [0]
-            for nk in range(1,len(bands_highsym_qpts)):
-                plt.axvline(distance,color='k')
-                distance+=np.linalg.norm(bands_highsym_qpts[nk]-bands_highsym_qpts[nk-1])
-                bands_highsym_qpts_distances.append(distance)
-
-            #plot labels
-            plt.xticks(bands_highsym_qpts_distances, labels)
-
-            box = ax.get_position()
-            plt.title('GW quasiparticles on a path')
-            plt.ylabel('E (eV)')
-            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-            plt.xlim(0,max(bands_distances))
-            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
-            if 'DISPLAY' in os.environ:
-                plt.show()
-            else:
-                plt.savefig('gw.png')
 
     def plot_bse(self,tags,cols=(2,),ax=None):
         """
@@ -422,13 +364,6 @@ class YamboAnalyser():
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), prop={'size':8})
         plt.show()
 
-    def print_timing(self,tags=""):
-        for k in list(self.jsonfiles.keys()):
-            if all(i in k for i in tags):
-                print("\n%s"%k)
-                for key,val in list(self.jsonfiles[k]["runtime"].items()):
-                    print("%40s %10s %10s %10s"%(key,val[0],val[1],val[2]))
-
     def print_inputfiles(self):
         """
         Print all the inputfiles from all the json files
@@ -451,6 +386,6 @@ class YamboAnalyser():
         s = ""
         for json_file in self.jsonfiles:
             s+="%s\n"%json_file
-            for f in self.jsonfiles[json_file]['data']:
+            for f in self.jsonfiles[json_file]['files']:
                 s+="\t%s\n"%f
         return s
