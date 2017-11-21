@@ -114,7 +114,7 @@ class YamboExcitonDB(YamboSaveDB):
         """
         get the intensities of the excitons
         """
-        intensities = abs2(self.l_residual*self.r_residual)
+        intensities = self.l_residual*self.r_residual
         intensities /= np.max(intensities)
         return intensities
 
