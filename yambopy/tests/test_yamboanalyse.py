@@ -1,5 +1,3 @@
-from __future__ import print_function
-#
 # Copyright (C) 2017 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
@@ -29,7 +27,6 @@ class TestYamboAnalyse(unittest.TestCase):
         """ Analyse the yambo GW .json output files
         """
         y = YamboAnalyser('gw_conv')
-        print(y)
         netcdf_files = y.get_files_type('netcdf_gw')
         keys = sorted(netcdf_files.keys())
         assert keys == ['BndsRnXp_1_20', 'BndsRnXp_1_30', 'FFTGvecs_00010', 'FFTGvecs_00015', 
@@ -44,12 +41,13 @@ class TestYamboAnalyse(unittest.TestCase):
         assert keys == ['FFTGvecs_00010', 'FFTGvecs_00015','reference']
 
         #test plotting
-        gw_bands = y.plot_gw(tags='FFTGvecs')
+        gw_bands = y.get_bands(tags='FFTGvecs',type_calc=('ks'))
         print(gw_bands)
-        ks_bands = y.plot_ks(tags='reference')
+        ks_bands = y.get_bands(tags='reference',type_calc=('gw'))
         print(ks_bands)
     
         #test get_path    
+        y.get_path_lattice()
         #test path_plotting
 
     def tearDown(self):

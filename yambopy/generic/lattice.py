@@ -1,4 +1,5 @@
-# Copyright (c) 2016, Henrique Miranda
+#
+# Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -38,7 +39,7 @@ def car_red(car,lat):
     return np.array([np.linalg.solve(np.array(lat).T,coord) for coord in np.array(car)])
 
 def isbetween(a,b,c):
-    #check if c is between a and b
+    """check if c is between a and b"""
     return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0)
     
 def rec_lat(lat):
@@ -180,7 +181,7 @@ class Lattice():
         ax.xaxis.set_major_locator(plt.NullLocator())
         ax.yaxis.set_major_locator(plt.NullLocator())
     
-    def getPath(self,path,kpts=None):
+    def get_path(self,path,kpts=None):
         """ Obtain a list of indexes and kpoints that belong to the regular mesh
         """
         kpts = self.car_kpoints

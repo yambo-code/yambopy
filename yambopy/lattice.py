@@ -32,6 +32,13 @@ def expand_kpts(kpts,syms):
 
     return full_kpts
 
+def vec_in_list(veca,vec_list):
+    """
+    Check if a vector exists in a list of vectors
+    """
+    return np.array([ np.allclose(veca,vecb,rtol=atol,atol=atol) for vecb in vec_list ]).any()
+
+
 def isbetween(a,b,c,eps=1e-5):
     """ Check if c is between a and b
     """

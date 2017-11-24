@@ -4,30 +4,40 @@
 #
 # This file is part of the yambopy project
 #
-from yambopy import *
-from netCDF4 import Dataset
 import itertools
 import operator
-
-atol = 1e-6
+import json
+import numpy as np
+from netCDF4 import Dataset
+from yambopy.lattice import rec_lat, car_red, vec_in_list
+from yambopy.units import atomic_mass
 
 class YamboLatticeDB():
     """
     Class to read the lattice information from the netcdf file
     """
-    def __init__(self, save='SAVE',filename='ns.db1',expand=True):
-        self.filename = '%s/%s'%(save,filename)
-        self.read_db()
-        # generate additional structure using the data read from the DBs
-        self._process()
-        if expand: self.expand_kpoints()
+    def __init__(self,lat=None,alat=None,sym_car=None,iku_kpoints=None,atomic_positions=None,atomic_numbers=None):
+        self.lat = lat
+        self.alat = alat
+        self.sym_car = sym_car
+        self.iku_kpoints = iku_kpoints
+        self.atomic_positions = atomic_positions
+        self.atomic_numbers = atomic_numbers
 
-    def read_db(self):
+    @staticmethod
+    def from_db_file(filename):
+        """ Initialize YamboLattice from a local dbfile """
+        ydb = YamboLatticeDB()
+        ydb.read_db(filename)
+        ydb._process()
+        ydb.expand_kpoints()
+        return ydb
+    
+    def read_db(self,filename):
         try:
-            database = Dataset(self.filename)
+            database = Dataset(filename)
         except:
-            print("error opening %s in YamboLatticeDB"%self.filename)
-            exit()
+            raise IOError("error opening %s in YamboLatticeDB"%filename)
 
         #lattice data
         self.lat         = database.variables['LATTICE_VECTORS'][:].T
@@ -36,9 +46,9 @@ class YamboLatticeDB():
         self.iku_kpoints = database.variables['K-POINTS'][:].T
 
         #atomic numbers
-        natoms           = database.variables['N_ATOMS'][:].astype(int).T
+        natoms         = database.variables['N_ATOMS'][:].astype(int).T
         self.atomic_positions = database.variables['ATOM_POS'][0,:]
-        atomic_numbers   = database.variables['atomic_numbers'][:].astype(int)
+        atomic_numbers = database.variables['atomic_numbers'][:].astype(int)
         atomic_numbers = [[atomic_numbers[n]]*na for n,na in enumerate(natoms)]
         self.atomic_numbers = list(itertools.chain.from_iterable(atomic_numbers))
         self.atomic_masses = [atomic_mass[a] for a in self.atomic_numbers]
@@ -51,6 +61,42 @@ class YamboLatticeDB():
         self.time_rev = dimensions[9]
 
         database.close()
+
+    @staticmethod    
+    def from_dict(data):
+        """ get an instance of this class from a dictionary
+        """
+        def unserialize(x): return np.array(x)
+        lat = unserialize(data["lat"])
+        alat = unserialize(data["alat"])
+        sym_car = unserialize(data["sym_car"])
+        iku_kpoints = unserialize(data["iku_kpoints"])
+        atomic_positions = unserialize(data["atomic_positions"])
+        atomic_numbers = unserialize(data["atomic_numbers"])
+        return YamboLatticeDB(lat,alat,sym_car,iku_kpoints,atomic_positions,atomic_numbers) 
+
+    @staticmethod
+    def from_json_file(filename):
+        with open(filename,'r') as f:
+            data = json.load(f)
+            return YamboLatticeDB.from_dict(data)
+
+    def as_dict(self):
+        """ get the information of this class as a dictionary
+        """
+        def serialize(x): return np.array(x).tolist()
+        data = {"lat" : serialize(self.lat),
+                "alat" : serialize(self.alat),
+                "sym_car" : serialize(self.sym_car),
+                "iku_kpoints" : serialize(self.iku_kpoints),
+                "atomic_positions" : serialize(self.atomic_positions),
+                "atomic_numbers" : serialize(self.atomic_numbers)}
+        return data
+
+    def write_json(self,filename):
+        """ write a json file with the lattice information """
+        with open(filename,'w') as f:
+            json.dump(self.as_dict(),f,indent=4)
 
     def _process(self):
         """
@@ -77,7 +123,7 @@ class YamboLatticeDB():
         for i in range(nsym):
             self.time_rev_list[i] = ( i >= nsym/(self.time_rev+1) )
 
-    def expand_kpoints(self):
+    def expand_kpoints(self,atol=1e-6):
         """
         Take a list of qpoints and symmetry operations and return the full brillouin zone
         with the corresponding index in the irreducible brillouin zone
@@ -134,8 +180,6 @@ class YamboLatticeDB():
         """
         nks  = list(range(self.nkpoints))
         kpts = self.car_kpoints
-        print(nks)
-        print(kpts)
 
         #points in cartesian coordinates
         path_car = red_car(path, self.rlat)
