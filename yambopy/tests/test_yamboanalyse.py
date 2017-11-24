@@ -16,7 +16,7 @@ class TestYamboAnalyse(unittest.TestCase):
     def setUp(self):
         """ Read the yambo GW output files
         """
-        print(test_path)
+        if os.path.isdir('gw_conv'): sh.rmtree('gw_conv')
         sh.copytree(test_path,'gw_conv')
         for dirpath,dirnames,filenames in os.walk('gw_conv'):
             if YamboOut.has_output(dirpath):

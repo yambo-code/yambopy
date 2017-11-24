@@ -1,4 +1,3 @@
-#
 # Copyright (C) 2017 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
@@ -7,12 +6,15 @@
 #
 import os
 import re
-import numpy as np
 from collections import defaultdict
+
+import numpy as np
 from netCDF4 import Dataset
+
 from .yambofile import YamboFile
-from yambopy.jsonencoder import JsonDumper
 from yambopy import YamboIn
+from yambopy.jsonencoder import JsonDumper
+from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.units import ha2ev
 
 class YamboOut():
@@ -85,33 +87,8 @@ class YamboOut():
         Get information about the unit cell (lattice vectors, atom types, positions,
         kpoints and symmetry operations) from the SAVE folder.
         """
-        path = self.save_folder + '/SAVE/ns.db1'
-        if os.path.isfile(path):
-            self.nc_db = Dataset(path)
-            ncvars = self.nc_db.variables
-
-            self.lat = ncvars['LATTICE_VECTORS'][:].T
-            self.alat = ncvars['LATTICE_PARAMETER'][:].T
-            self.sym_car = ncvars['SYMMETRY'][:]
-            self.kpts_iku = ncvars['K-POINTS'][:].T
-
-            # read atoms
-            atomic_pos = ncvars['ATOM_POS'][:]
-            atomic_number = ncvars['atomic_numbers'][:].T.astype(int)
-            self.nspecies = ncvars['number_of_atom_species'][0].astype(int)
-
-            atom_positions = []
-            atom_number = []
-            for specie in range(self.nspecies):
-                atoms_specie = atomic_pos[specie]
-                for atom in atoms_specie:
-                    atom_positions.append(atom)
-                    atom_number.append(atomic_number[specie])
-
-            self.atomic_positions = atom_positions
-            self.atomic_number = atom_number
-        else:
-            raise ValueError('Could not find ns.db1 in %s from YamboOut' % path)
+        path = os.path.join(self.save_folder,'SAVE/ns.db1')
+        self.lattice = YamboLatticeDB.from_db_file(path)
 
     def get_outputfile(self):
         """ 
@@ -227,13 +204,7 @@ class YamboOut():
 
         # create json dictionary
         jsondata = {"files": self.files,
-                    "lattice": self.lat,
-                    "alat": self.alat,
-                    "kpts_iku": self.kpts_iku,
-                    "sym_car": self.sym_car,
-                    "atompos": self.atomic_positions,
-                    "atomtype": self.atomic_number}
-
+                    "lattice": self.lattice.as_dict()}
         filename = '%s.json' % filename
         JsonDumper(jsondata, filename)
 
@@ -247,9 +218,5 @@ class YamboOut():
         lines += self.output
         lines.append("\noutput (netcdf):")
         lines += self.netcdf
-        lines.append("\nlattice:")
-        lines += [("%12.8lf " * 3) % tuple(vec) for vec in self.lat]
-        lines.append("\natom positions:")
-        for an, pos in zip(self.atomic_number, self.atomic_positions):
-            lines.append( "%3d " % an + ("%12.8lf " * 3) % tuple(pos) )
+        lines += [str(self.lattice)]
         return "\n".join(lines)

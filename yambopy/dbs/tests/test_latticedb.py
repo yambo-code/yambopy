@@ -21,9 +21,13 @@ class TestYamboLatticeDB(unittest.TestCase):
 
         #write json file
         ydb.write_json('lattice.json')        
+        string1 = str(ydb)
 
         #read jsonfile
         ydb.from_json_file('lattice.json')
+        string2 = str(ydb)
+        
+        assert string1 == string2
 
     def tearDown(self): 
         os.remove('lattice.json')

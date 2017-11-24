@@ -1,4 +1,3 @@
-#
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
@@ -6,9 +5,9 @@
 #
 import itertools
 import operator
-import json
 import numpy as np
 from netCDF4 import Dataset
+from yambopy.jsonencoder import JsonDumper, JsonLoader
 from yambopy.lattice import rec_lat, car_red, vec_in_list
 from yambopy.units import atomic_mass
 
@@ -16,7 +15,8 @@ class YamboLatticeDB():
     """
     Class to read the lattice information from the netcdf file
     """
-    def __init__(self,lat=None,alat=None,sym_car=None,iku_kpoints=None,atomic_positions=None,atomic_numbers=None):
+    def __init__(self,lat=None,alat=None,sym_car=None,iku_kpoints=None,
+                      atomic_positions=None,atomic_numbers=None):
         self.lat = lat
         self.alat = alat
         self.sym_car = sym_car
@@ -66,37 +66,33 @@ class YamboLatticeDB():
     def from_dict(data):
         """ get an instance of this class from a dictionary
         """
-        def unserialize(x): return np.array(x)
-        lat = unserialize(data["lat"])
-        alat = unserialize(data["alat"])
-        sym_car = unserialize(data["sym_car"])
-        iku_kpoints = unserialize(data["iku_kpoints"])
-        atomic_positions = unserialize(data["atomic_positions"])
-        atomic_numbers = unserialize(data["atomic_numbers"])
-        return YamboLatticeDB(lat,alat,sym_car,iku_kpoints,atomic_positions,atomic_numbers) 
+        lat = data["lat"]
+        alat = data["alat"]
+        sym_car = data["sym_car"]
+        iku_kpoints = data["iku_kpoints"]
+        atomic_positions = data["atomic_positions"]
+        atomic_numbers = data["atomic_numbers"]
+        return YamboLatticeDB(lat,alat,sym_car,iku_kpoints,atomic_positions,atomic_numbers)
 
     @staticmethod
     def from_json_file(filename):
-        with open(filename,'r') as f:
-            data = json.load(f)
-            return YamboLatticeDB.from_dict(data)
+        data = JsonLoader(filename)
+        return YamboLatticeDB.from_dict(data)
 
     def as_dict(self):
         """ get the information of this class as a dictionary
         """
-        def serialize(x): return np.array(x).tolist()
-        data = {"lat" : serialize(self.lat),
-                "alat" : serialize(self.alat),
-                "sym_car" : serialize(self.sym_car),
-                "iku_kpoints" : serialize(self.iku_kpoints),
-                "atomic_positions" : serialize(self.atomic_positions),
-                "atomic_numbers" : serialize(self.atomic_numbers)}
+        data = {"lat" : self.lat,
+                "alat" : self.alat,
+                "sym_car" : self.sym_car,
+                "iku_kpoints" : self.iku_kpoints,
+                "atomic_positions" : self.atomic_positions,
+                "atomic_numbers" : self.atomic_numbers}
         return data
 
     def write_json(self,filename):
         """ write a json file with the lattice information """
-        with open(filename,'w') as f:
-            json.dump(self.as_dict(),f,indent=4)
+        JsonDumper(self.as_dict(),filename)
 
     def _process(self):
         """
@@ -234,4 +230,11 @@ class YamboLatticeDB():
 
         return bands_kpoints, bands_indexes, path_car
 
-
+    def __str__(self):
+        lines = []
+        lines.append("\nlattice:")
+        lines += [("%12.8lf " * 3) % tuple(vec) for vec in self.lat]
+        lines.append("\natom positions:")
+        for an, pos in zip(self.atomic_numbers, self.atomic_positions):
+            lines.append( "%3d " % an + ("%12.8lf " * 3) % tuple(pos) )
+        return "\n".join(lines)

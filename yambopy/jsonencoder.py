@@ -19,10 +19,22 @@ class YambopyEncoder(json.JSONEncoder):
                 return obj.tolist()
         return(json.JSONEncoder.default(self, obj))
 
+def JsonLoaders(string):
+    """ load json from string """
+    return json.loads(filename)
+
+def JsonLoader(filename):
+    """ load json from file """
+    with open(filename,'r') as f:
+        data = json.load(f)
+    return data
+
 def JsonDumpers(data):
-    s = json.dumps(data,cls=YambopyEncoder,indent=1)
+    """ dump dicitonary as string """
+    s = json.dumps(data,cls=YambopyEncoder,indent=2)
     return re.sub('\s+([0-9\]\-])','\\1',s)
 
 def JsonDumper(data,filename):
+    """ dump dictionary as file """
     with open(filename,'w') as f:
         f.write(JsonDumpers(data))

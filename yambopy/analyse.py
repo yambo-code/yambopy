@@ -15,7 +15,7 @@ from yambopy.plot import YambopyBandStructure
 from yambopy.duck import isstring
 from yambopy.lattice import red_car, rec_lat, expand_kpts, isbetween
 from yambopy.io.inputfile import YamboIn
-from yambopy.generic.lattice import Lattice
+from yambopy.dbs.latticedb import YamboLatticeDB
 
 class YamboAnalyser():
     """
@@ -137,71 +137,6 @@ class YamboAnalyser():
                 inputfiles[k][key] = val
         return inputfiles
 
-    def get_path(self,path,json_filename):
-        """
-        Obtain a list of indexes and kpoints that belong to the regular mesh
-        """
-        jsonfile = self.jsonfiles[json_filename]
-
-        if 'kpts_iku' not in jsonfile or 'sym_car' not in jsonfile:
-            raise ValueError( "Could not find information about the "
-                              "k points in the json file %s."%json_filename )
-
-        #get data from json file
-        kpts_iku = np.array(jsonfile['kpts_iku'])
-        sym_car  = np.array(jsonfile['sym_car'])
-        alat     = np.array(jsonfile['alat'])
-        lattice  = np.array(jsonfile['lattice'])
-
-        #check if the lattice data is present
-        if not lattice.any():
-            raise ValueError('Information about the lattice is not present, '
-                             'cannot determine the path')
-
-        #convert to cartesian coordinates
-        kpts_car = np.array([ k/alat for k in kpts_iku ])
-
-        #get the full list of kpoints
-        full_kpts = expand_kpts(kpts_car,sym_car)
-
-        #points in cartesian coordinates
-        reciprocal_lattice = rec_lat(lattice)
-        path_car = red_car(path, reciprocal_lattice)
-
-        #find the points along the high symmetry lines
-        distance = 0
-        bands_kpoints = []
-        bands_indexes = []
-        bands_highsym_qpts = []
-        old_kpt = np.array([0,0,0])
-        for k in range(len(path)-1):
-
-            kpoints_in_path = {} #store here all the points in the path
-            start_kpt = path_car[k]
-            end_kpt = path_car[k+1]
-            #find the collinear points
-            for x,y,z in product(list(range(-1,2)),repeat=3):
-                shift = red_car(np.array([[x,y,z]]),reciprocal_lattice)[0]
-                for index, kpt in full_kpts:
-                    kpt_shift = kpt+shift
-                    #if the point is collinear and not in the list we add it
-                    if isbetween(start_kpt,end_kpt,kpt_shift):
-                        key = tuple([round(kpt,4) for kpt in kpt_shift])
-                        value = [ index, np.linalg.norm(start_kpt-kpt_shift), kpt_shift ]
-                        kpoints_in_path[key] = value
-
-            #sort the points acoording to distance to the start of the path
-            kpoints_in_path = sorted(list(kpoints_in_path.values()),key=lambda i: i[1])
-
-            #get kpoints_in_pathpoints
-            if k==0: bands_highsym_qpts.append(kpoints_in_path[0][2])
-            for index, disp, kpt in kpoints_in_path:
-                bands_kpoints.append( kpt )
-                bands_indexes.append( index )
-                print(("%12.8lf "*3)%tuple(kpt), index)
-            bands_highsym_qpts.append(kpt)
-        return bands_kpoints, bands_indexes, bands_highsym_qpts
-
     def get_path_lattice(self):
         """
         Initialize a lattice instance from the data in 
@@ -215,12 +150,7 @@ class YamboAnalyser():
         #TODO
 
         #get data from json file
-        kpts_iku = np.array(jsonfile['kpts_iku'])
-        sym_car  = np.array(jsonfile['sym_car'])
-        alat     = np.array(jsonfile['alat'])
-        lattice  = np.array(jsonfile['lattice'])
-  
-        l = Lattice()
+        l = YamboLatticeDB.from_dict(jsonfile['lattice'])
    
     def get_bands(self,tags=None,bs=None,type_calc=('ks','gw')):
         """
