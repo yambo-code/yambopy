@@ -26,13 +26,13 @@ class YamboExcitonDB(YamboSaveDB):
         except:
             print "failed to read database %s"%filename
             exit(1)
-        if 'BS_left_Residuals' in db.variables.keys():
+        if 'BS_left_Residuals' in database.variables.keys():
             #residuals
             rel,iml = database.variables['BS_left_Residuals'][:].T
             rer,imr = database.variables['BS_right_Residuals'][:].T
             self.l_residual = rel+iml*I
             self.r_residual = rer+imr*I
-        if 'BS_Residuals' in db.variables.keys():
+        if 'BS_Residuals' in database.variables.keys():
             #residuals
             rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
             self.l_residual = rel+iml*I
@@ -56,9 +56,12 @@ class YamboExcitonDB(YamboSaveDB):
         transitions_v_to_c = dict([ ((v,c),[]) for v,c in product(self.unique_vbands,self.unique_cbands) ])
 
         #add elements to dictionary
+        kidx = set()
         for eh,kvc in enumerate(self.table-1):
-            k,v,c = kvc 
+            k,v,c = kvc
+            kidx.add(k)
             transitions_v_to_c[(v,c)].append((k,eh))
+        self.nkpoints = len(kidx)
 
         #make an array 
         for t,v in transitions_v_to_c.items():
@@ -70,7 +73,7 @@ class YamboExcitonDB(YamboSaveDB):
         self.transitions_v_to_c = transitions_v_to_c 
         self.nexcitons    = len(self.eigenvalues)
         self.ntransitions = len(self.table)
-        db.close()
+        database.close()
    
     def write_sorted(self,prefix='yambo'):
         """
@@ -187,8 +190,29 @@ class YamboExcitonDB(YamboSaveDB):
         else:
             raise ValueError("argument 'variables' must be an object of YamboSaveDB or YamboQPDB")
 
+        weights = self.get_weights(excitons,shape=energies.shape)
+        energies = energies[band_indexes]
+        weights  = weights[band_indexes]
+
+        #make top valence band to be zero
+        energies -= max(energies[:,max(self.unique_vbands)])
+        
+        return np.array(band_kpoints), energies, weights 
+
+    def get_weights(self,excitons,shape=None):
+        """
+        get the weight of an excitonic state in all the bands
+        """
+        if isinstance(excitons, int):
+            excitons = (excitons,)
+
         #get weight of state in each band
-        weights = np.zeros(energies.shape)
+        if shape is None:
+            nkpoints = len(self.lattice.kpoints_indexes)
+            nbands = max(self.unique_cbands)+1
+            shape = [nkpoints,nbands]
+        weights = np.zeros(shape)
+
         for exciton in excitons:
             #get the eigenstate
             eivec = self.eigenvectors[exciton-1]
@@ -197,16 +221,11 @@ class YamboExcitonDB(YamboSaveDB):
             for t,transitions in self.transitions_v_to_c.items():
                 c,v = t
                 iks, ehs = transitions.T
-                weights[iks,c] += abs2(eivec[ehs])
-                weights[iks,v] += abs2(eivec[ehs])
+                value = abs2(eivec[ehs])
+                weights[iks,c] += value 
+                weights[iks,v] += value
 
-        energies = energies[band_indexes]
-        weights  = weights[band_indexes]
-
-        #make top valence band to be zero
-        energies -= max(energies[:,max(self.unique_vbands)])
-        
-        return np.array(band_kpoints), energies, weights 
+        return weights
 
     def plot_exciton_bs(self,ax,lattice,energies_db,path,excitons,size=500,space='bands',
                         args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
