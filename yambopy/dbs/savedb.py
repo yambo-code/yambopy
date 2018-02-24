@@ -1,4 +1,3 @@
-#
 # Copyright (c) 2017, Henrique Miranda
 # All rights reserved.
 #
@@ -8,6 +7,7 @@ from yambopy import *
 from yambopy.plot import *
 from itertools import product
 from netCDF4 import Dataset
+from yambopy.lattice import rec_lat
 
 max_exp = 50
 ha2ev = 27.211396132

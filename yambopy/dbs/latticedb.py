@@ -3,13 +3,13 @@
 #
 # This file is part of the yambopy project
 #
-import itertools
-import operator
+from itertools import product, chain
 import numpy as np
 from netCDF4 import Dataset
 from yambopy.jsonencoder import JsonDumper, JsonLoader
-from yambopy.lattice import rec_lat, car_red, vec_in_list
+from yambopy.lattice import rec_lat, car_red, red_car, vec_in_list, isbetween
 from yambopy.units import atomic_mass
+from qepy.lattice import Path
 
 class YamboLatticeDB():
     """
@@ -50,7 +50,7 @@ class YamboLatticeDB():
         self.atomic_positions = database.variables['ATOM_POS'][0,:]
         atomic_numbers = database.variables['atomic_numbers'][:].astype(int)
         atomic_numbers = [[atomic_numbers[n]]*na for n,na in enumerate(natoms)]
-        self.atomic_numbers = list(itertools.chain.from_iterable(atomic_numbers))
+        self.atomic_numbers = list(chain.from_iterable(atomic_numbers))
         self.atomic_masses = [atomic_mass[a] for a in self.atomic_numbers]
         
         dimensions = database.variables['DIMENSIONS'][:]
@@ -170,10 +170,13 @@ class YamboLatticeDB():
         self.kpoints_indexes  = np.array(kpoints_indexes)
         self.symmetry_indexes = np.array(symmetry_indexes)
 
-    def get_path(self,path,kpts=None,debug=False):
+    def get_path(self,path,debug=False):
         """
         Obtain a list of indexes and kpoints that belong to the regular mesh
         """
+        if isinstance(path,Path):
+            path = path.get_klist()
+
         nks  = list(range(self.nkpoints))
         kpts = self.car_kpoints
 

@@ -3,12 +3,11 @@
 #
 # This file is part of yambopy
 #
-#
 import unittest
 import os
 from yambopy.dbs.latticedb import YamboLatticeDB
-
-test_path = os.path.join('..','..','..','tests','reference','gw_conv')
+from qepy.lattice import Path
+test_path = os.path.join(os.path.dirname(__file__),'..','..','..','tests','reference','gw_conv')
 
 class TestYamboLatticeDB(unittest.TestCase):
 
@@ -28,6 +27,16 @@ class TestYamboLatticeDB(unittest.TestCase):
         string2 = str(ydb)
         
         assert string1 == string2
+
+        p = Path([ [[1.0,1.0,1.0],'G'],
+                   [[0.0,0.5,0.5],'X'],
+                   [[0.0,0.0,0.0],'G'],
+                   [[0.5,0.0,0.0],'L']], [20,20,20])
+        bands_kpoints, bands_indexes, path_car = ydb.get_path(p)
+        print(bands_kpoints)
+        print(bands_indexes)
+        print(path_car)
+
 
     def tearDown(self): 
         os.remove('lattice.json')

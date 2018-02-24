@@ -137,10 +137,10 @@ class YamboAnalyser():
                 inputfiles[k][key] = val
         return inputfiles
 
-    def get_path_lattice(self):
+    def get_path(self,path):
         """
         Initialize a lattice instance from the data in 
-        the json files and get the path and get the path
+        the json files and get the path
 
         TODO: should use
         """
@@ -150,8 +150,9 @@ class YamboAnalyser():
         #TODO
 
         #get data from json file
-        l = YamboLatticeDB.from_dict(jsonfile['lattice'])
-   
+        lat = YamboLatticeDB.from_dict(jsonfile['lattice'])
+        lat.get_path(path)  
+ 
     def get_bands(self,tags=None,bs=None,type_calc=('ks','gw')):
         """
         Get the gw bands from a gw calculation from a filename

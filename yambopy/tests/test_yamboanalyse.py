@@ -10,7 +10,7 @@ import shutil as sh
 from yambopy.analyse import YamboAnalyser
 from yambopy.io.outputfile import YamboOut
 
-test_path = os.path.join('..','..','tests','reference','gw_conv')
+test_path = os.path.join(os.path.dirname(__file__),'..','..','tests','reference','gw_conv')
 
 class TestYamboAnalyse(unittest.TestCase):
     def setUp(self):
@@ -47,7 +47,7 @@ class TestYamboAnalyse(unittest.TestCase):
         print(ks_bands)
     
         #test get_path    
-        y.get_path_lattice()
+        #y.get_path()
         #test path_plotting
 
     def tearDown(self):

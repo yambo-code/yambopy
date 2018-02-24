@@ -3,7 +3,6 @@
 #
 # This file is part of yambopy
 #
-#
 import os
 import re
 from collections import defaultdict

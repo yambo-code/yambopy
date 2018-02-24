@@ -5,10 +5,11 @@
 #
 # This file is part of the yambopy project
 #
+from itertools import product
 from yambopy import *
 from cmath import polar 
 from yambopy.units import *
-from itertools import product
+from yambopy.lattice import replicate_red_kmesh, calculate_distances
 
 class YamboExcitonDB(YamboSaveDB):
     """ Read the excitonic states database from yambo
@@ -28,13 +29,13 @@ class YamboExcitonDB(YamboSaveDB):
         except:
             print("failed to read database %s"%filename)
             exit(1)
-        if 'BS_left_Residuals' in list(db.variables.keys()):
+        if 'BS_left_Residuals' in list(database.variables.keys()):
             #residuals
             rel,iml = database.variables['BS_left_Residuals'][:].T
             rer,imr = database.variables['BS_right_Residuals'][:].T
             self.l_residual = rel+iml*I
             self.r_residual = rer+imr*I
-        if 'BS_Residuals' in list(db.variables.keys()):
+        if 'BS_Residuals' in list(database.variables.keys()):
             #residuals
             rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
             self.l_residual = rel+iml*I
@@ -72,7 +73,7 @@ class YamboExcitonDB(YamboSaveDB):
         self.transitions_v_to_c = transitions_v_to_c 
         self.nexcitons    = len(self.eigenvalues)
         self.ntransitions = len(self.table)
-        db.close()
+        database.close()
    
     def write_sorted(self,prefix='yambo'):
         """
