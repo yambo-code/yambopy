@@ -11,7 +11,7 @@ import os
 import numpy as np
 from yambopy.io.outputfile import YamboOut
 
-test_path = os.path.join(os.path.dirname(__file__),'..','..','..','tests','reference','gw')
+test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','gw')
 
 class TestYamboOut(unittest.TestCase):
     """ This class creates the input files for Si and compares them to reference files

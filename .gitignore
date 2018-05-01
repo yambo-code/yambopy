@@ -4,3 +4,6 @@ __pycache__
 build
 *.coverage
 *.bak
+*.egg-info
+.cache
+tags

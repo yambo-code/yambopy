@@ -10,7 +10,7 @@ import shutil as sh
 from yambopy.analyse import YamboAnalyser
 from yambopy.io.outputfile import YamboOut
 
-test_path = os.path.join(os.path.dirname(__file__),'..','..','tests','reference','gw_conv')
+test_path = os.path.join(os.path.dirname(__file__),'..','data','refs','gw_conv')
 
 class TestYamboAnalyse(unittest.TestCase):
     def setUp(self):

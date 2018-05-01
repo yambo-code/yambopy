@@ -35,3 +35,10 @@ The unit tests test specific routines and can always be found in a folder
 called tests in the same folder as the python source code.
 
 To run all the tests use pytest.
+
+Packages
+============================
+To obtain the coverage when running pytest we use 'pytest-cov':
+
+    :::python
+    pip install pytest-cov

@@ -7,7 +7,7 @@ import unittest
 import os
 from yambopy.dbs.latticedb import YamboLatticeDB
 from qepy.lattice import Path
-test_path = os.path.join(os.path.dirname(__file__),'..','..','..','tests','reference','gw_conv')
+test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','gw_conv')
 
 class TestYamboLatticeDB(unittest.TestCase):
 

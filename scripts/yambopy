@@ -261,7 +261,7 @@ class TestCmd(Cmd):
         self.run(cmds,args)
 
     def basic(self,*args):
-        print(args)
+        os.system('py.test --cov-config=.coveragerc --cov=yambopy yambopy')
         
     def full(self,*args):
         print(args)

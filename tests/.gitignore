@@ -6,6 +6,7 @@ bands
 gw_conv
 analyse_gw_conv
 analyse_bse_conv
+bse_cutoff_cut
 nscf
 relax
 scf
