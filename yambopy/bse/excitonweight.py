@@ -159,7 +159,7 @@ class YamboExcitonWeight(YamboSaveDB):
         plt.contourf(X, Y, Z, cmap='gist_heat_r')
         plt.show()
 
-    def plot_weights(self,ax,size=20,lim=0.2,cmap='viridis',log_scale=False,set_maximum=1.0):
+    def plot_weights(self,ax,size=20,marker='H',set_origin=0.0,lim=0.2,cmap='viridis',log_scale=False,set_maximum=1.0):
         """
 
         Plot the weights in a scatter plot of this exciton (1st version tuned by A. Molina-Sanchez)
@@ -196,7 +196,7 @@ class YamboExcitonWeight(YamboSaveDB):
 
         cmap = plt.get_cmap(cmap)
 
-        ax.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=cmap(norm(weights)))
+        ax.scatter(kpts[:,0]-set_origin, kpts[:,1]-set_origin, s=size, marker=marker, color=cmap(norm(weights)))
 
     def __str__(self):
         s = ""
