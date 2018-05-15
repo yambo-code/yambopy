@@ -8,6 +8,8 @@ from netCDF4 import Dataset
 from math import sqrt
 import numpy as np
 from cmath import exp
+from pylab import *
+import matplotlib.pyplot as plt
 
 I = complex(0,1)
 ha2ev  = 27.211396132
@@ -27,7 +29,7 @@ class YamboElectronPhononDB():
         
         self.car_kpoints = lattice.car_kpoints
         self.red_kpoints = lattice.red_kpoints
-        
+
         #read dimensions of electron phonon parameters
         try:
             database = Dataset(self.filename)
@@ -36,11 +38,15 @@ class YamboElectronPhononDB():
             exit()
             
         self.qpoints = database.variables['PH_Q'][:].T
+        self.car_qpoints = np.array([ q/self.lattice.alat for q in self.qpoints ])
+
         self.nmodes, self.nqpoints, self.nkpoints, self.nbands = database.variables['PARS'][:4].astype(int)
         self.natoms = self.nmodes/3
-        db.close()
+        database.close()
         
-        self.readDB()
+        self.readDB_n_np(ib1=2,ib2=3,ik1=3)
+        #self.readDB()
+        #print self.gkkp
 
     def get_elphon(self,dir=0):
         if self.gkkp is None:
@@ -76,11 +82,55 @@ class YamboElectronPhononDB():
                 gkkp = database.variables['ELPH_GKKP_Q%d'%(nq+1)][:]
                 self.gkkp[nq] = (gkkp[:,0,:,:] + I*gkkp[:,1,:,:]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
             
-            db.close()
+            database.close()
 
         if not only_freqs:
             return self.gkkp
+
+    def readDB_n_np(self,ib1=1,ib2=1,ik1=1):
+        # Read gkkps for a given n,n' and k
+        # The structure of the gkkps in Yambo is
+        # GKKP(q)[k,complex,nmodes,nbands*nbands]
+
+        iband = (ib1-1)*self.nbands + (ib2-1)
         
+        self.gkkp_n_np_kn = np.zeros([self.nqpoints,self.nmodes],dtype=np.complex64)
+
+        print 'iband', iband
+
+        for nq in xrange(self.nqpoints):
+            filename = '%s_fragment_%d'%(self.filename,nq+1)
+
+            database = Dataset(filename)
+
+            #self.ph_eigenvalues[nq] = np.sqrt(database.variables['PH_FREQS%d'%(nq+1)][:])
+
+            #p_re = database.variables['POLARIZATION_VECTORS_REAL'][:].T
+            #p_im = database.variables['POLARIZATION_VECTORS_IMAG'][:].T
+            #self.ph_eigenvectors[nq] = p_re + p_im*I
+            
+            #if not only_freqs:
+            self.gkkp_n_np_kn[nq] = database.variables['ELPH_GKKP_Q%d'%(nq+1)][ik1,0,:,iband] + I* database.variables['ELPH_GKKP_Q%d'%(nq+1)][ik1,1,:,iband]
+            #self.gkkp_n_np_kn[nq] = (gkkp[:,0,:,:] + I*gkkp[:,1,:,:]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
+            
+            database.close()
+
+        return self.gkkp_n_np_kn
+
+    def plot_map(self,ib1=1,ib2=1,ik1=1):
+
+        data=self.readDB_n_np(ib1,ib2,ik1)
+        color_map = plt.get_cmap('viridis')
+        
+        kx, ky = self.car_qpoints[:,0], self.car_qpoints[:,1]
+        gkkp = abs(data[:,0])#/max(abs(self.readDB_n_np[:,0]))
+        plt.scatter( kx,ky,s=90,marker='H',c=gkkp,cmap=color_map)
+
+        plt.show()
+
+    #def plot_modulus(self,ib1=1,ib2=1,ik1=1):
+
+
     def __str__(self):
         if self.ph_eigenvalues is None:
             self.get_elphon_databases()
