@@ -132,10 +132,11 @@ class YamboElectronPhononDB():
         import matplotlib.colors as colors
         #size=20,marker='H',set_origin=0.0,lim=0.2,cmap='viridis',log_scale=False,set_maximum=1.0
 
+        # GKKP(k+q)[n,n',k]
         data=self.readDB_n_np(ib1,ib2,ik1)
-        color_map = plt.get_cmap(cmap)
 
-        #cmap = plt.get_cmap(cmap)
+
+        color_map = plt.get_cmap(cmap)
         
         kx_aux, ky_aux = self.car_qpoints[:,0], self.car_qpoints[:,1]
 
@@ -155,7 +156,7 @@ class YamboElectronPhononDB():
             ax.set_xlim(-lim,lim)
             ax.set_ylim(-lim,lim)
             for ip in range(self.nmodes):
-              gkkp_aux =+ abs(data[:,ip])
+              gkkp_aux += abs(data[:,ip])
             max_gkkp = max(gkkp_aux)
             gkkp = concatenate(7*[gkkp_aux/max_gkkp])   
             ax.scatter( kx,ky,s=size,marker='H',c=gkkp,cmap=color_map)
@@ -177,9 +178,36 @@ class YamboElectronPhononDB():
                 gkkp = concatenate(7*[gkkp_aux/max_gkkp])   
                 ax.scatter( kx,ky,s=size,marker='H',c=gkkp,cmap=color_map)
 
-    def plot_modulus(self,ib1=1,ib2=1,ik1=1):
+    def plot_modulus(self,ib1=1,ib2=1,ik1=1,all_phonons=True):
+        # GKKP(k+q)[n,n',k]
         data=self.readDB_n_np(ib1,ib2,ik1)
 
+        q_modulus = zeros(self.nqpoints)
+
+        # Modulus of q-point
+        for iq in range(self.nqpoints):
+            q_modulus[iq] = sqrt(np.dot(self.car_qpoints[iq],self.car_qpoints[iq]))
+
+        """ 
+        all_phonons options
+        True:  Sum over all phonon modes
+        False: Plot all gkkp from each phonon mode
+        """
+        if all_phonons:
+            gkkp     = zeros([self.nqpoints])
+            gkkp_aux = zeros([self.nqpoints])
+            for ip in range(self.nmodes):
+                gkkp_aux[:] += abs(data[:,ip])
+            gkkp[:] = gkkp_aux[:]#/max(gkkp_aux)
+        else:
+            gkkp = zeros([self.nqpoints,self.nmodes])
+            for ip in range(self.nmodes):
+                gkkp[:,ip] = abs(data[:,ip])
+        print gkkp.shape
+        # q_modulus : array dimension: nqpoints
+        # gkkp      : matrix dimension: (nqpoints x nphonons) or (nqpoints)
+
+        return q_modulus,gkkp
 
     def __str__(self):
         if self.ph_eigenvalues is None:
