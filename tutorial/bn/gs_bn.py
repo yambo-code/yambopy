@@ -8,7 +8,7 @@ from qepy import *
 import argparse
 from schedulerpy import *
 
-kpoints = [12,12,1]
+kpoints = [6,6,1]
 kpoints_double = [24,24,1]
 qpoints = [3,3,1]
 layer_separation = 12
@@ -68,6 +68,7 @@ def scf(folder='scf'):
         os.mkdir(folder)
     qe = get_inputfile()
     qe.control['calculation'] = "'scf'"
+    qe.kpoints = kpoints
     qe.write('%s/%s.scf'%(folder,prefix))
  
 #nscf
