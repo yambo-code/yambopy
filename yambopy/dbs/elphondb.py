@@ -20,16 +20,16 @@ class YamboElectronPhononDB():
     """
     Python class to read the electron-phonon matrix elements from yambo
     """
-    def __init__(self,lattice,filename='ndb.elph_gkkp',save='SAVE',only_freqs=False):
+    def __init__(self,lattice,filename='ndb.elph_gkkp',folder_gkkp='SAVE',save='SAVE',only_freqs=False):
         self.lattice = lattice
         
         self.save = save
-        self.filename = "%s/%s"%(save,filename)
+        self.filename = "%s/%s"%(folder_gkkp,filename)
         self.ph_eigenvalues = None
         
         self.car_kpoints = lattice.car_kpoints
         self.red_kpoints = lattice.red_kpoints
-
+        self.rlat        = lattice.rlat
         #read dimensions of electron phonon parameters
         try:
             database = Dataset(self.filename)
@@ -110,25 +110,72 @@ class YamboElectronPhononDB():
             #self.ph_eigenvectors[nq] = p_re + p_im*I
             
             #if not only_freqs:
-            self.gkkp_n_np_kn[nq] = database.variables['ELPH_GKKP_Q%d'%(nq+1)][ik1,0,:,iband] + I* database.variables['ELPH_GKKP_Q%d'%(nq+1)][ik1,1,:,iband]
+            self.gkkp_n_np_kn[nq] = database.variables['ELPH_GKKP_Q%d'%(nq+1)][ik1-1,0,:,iband] + I* database.variables['ELPH_GKKP_Q%d'%(nq+1)][ik1-1,1,:,iband]
             #self.gkkp_n_np_kn[nq] = (gkkp[:,0,:,:] + I*gkkp[:,1,:,:]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
             
             database.close()
 
         return self.gkkp_n_np_kn
 
-    def plot_map(self,ib1=1,ib2=1,ik1=1):
+    def plot_map(self,fig,ib1=1,ib2=1,ik1=1,all_phonons=True,cmap='viridis',size=60,lim=0.15):
+        """
+        Alejandro Molina-Sanchez
+        Plot the gkkp in a scatter plot (1st version developed by A. Molina-Sanchez)
+        Options:
+        cmap : colormap. Default viridis 
+        log_scale : Logarithmic scale for the intensity (True or False) Do we put that?
+        set_maximum : All plots are normalized 
+        Further development: Option for the colorbar
+ 
+        """
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as colors
+        #size=20,marker='H',set_origin=0.0,lim=0.2,cmap='viridis',log_scale=False,set_maximum=1.0
 
         data=self.readDB_n_np(ib1,ib2,ik1)
-        color_map = plt.get_cmap('viridis')
+        color_map = plt.get_cmap(cmap)
+
+        #cmap = plt.get_cmap(cmap)
         
-        kx, ky = self.car_qpoints[:,0], self.car_qpoints[:,1]
-        gkkp = abs(data[:,0])#/max(abs(self.readDB_n_np[:,0]))
-        plt.scatter( kx,ky,s=90,marker='H',c=gkkp,cmap=color_map)
+        kx_aux, ky_aux = self.car_qpoints[:,0], self.car_qpoints[:,1]
 
-        plt.show()
+        kx = concatenate([kx_aux,kx_aux+self.rlat[0,0],kx_aux-self.rlat[0,0],kx_aux+self.rlat[1,0],kx_aux-self.rlat[1,0],kx_aux+self.rlat[0,0]-self.rlat[1,0],kx_aux-self.rlat[0,0]+self.rlat[1,0]])
+        ky = concatenate([ky_aux,ky_aux+self.rlat[0,1],ky_aux-self.rlat[0,1],ky_aux+self.rlat[1,1],ky_aux-self.rlat[1,1],ky_aux+self.rlat[0,1]-self.rlat[1,1],ky_aux-self.rlat[0,1]+self.rlat[1,1]])
+        
+        if all_phonons:
+        '''Sum over phonon modes'''
+            ax = fig.add_subplot(111)
+            ax.set_aspect('equal')
+            ax.axes.get_xaxis().set_visible(False)
+            ax.axes.get_yaxis().set_visible(False)
+            ax.set_xlim(-lim,lim)
+            ax.set_ylim(-lim,lim)
+            for ip in range(self.nmodes):
+              gkkp_aux =+ abs(data[:,ip])
+            max_gkkp = max(gkkp_aux)
+            gkkp = concatenate(7*[gkkp_aux/max_gkkp])   
+            ax.scatter( kx,ky,s=size,marker='H',c=gkkp,cmap=color_map)
+        else:
+        '''Plot all phonon modes'''
+            for ip in range(self.nmodes):
+                square_size = 0.25
+                x = 0.05 + (square_size+0.05)*(ip-ip/3*3)
+                y = 0.75 - (square_size+0.05)*(ip/3)
+                ax = fig.add_axes( [ x, y, square_size, square_size ])
+                ax.set_aspect('equal')
+                ax.axes.get_xaxis().set_visible(False)
+                ax.axes.get_yaxis().set_visible(False)
+                ax.set_xlim(-lim,lim)
+                ax.set_ylim(-lim,lim)
+                ax.set_facecolor(color_map(0.0))
 
-    #def plot_modulus(self,ib1=1,ib2=1,ik1=1):
+                gkkp_aux = abs(data[:,ip])
+                max_gkkp = max(gkkp_aux)
+                gkkp = concatenate(7*[gkkp_aux/max_gkkp])   
+                ax.scatter( kx,ky,s=size,marker='H',c=gkkp,cmap=color_map)
+
+    def plot_modulus(self,ib1=1,ib2=1,ik1=1):
+        data=self.readDB_n_np(ib1,ib2,ik1)
 
 
     def __str__(self):
