@@ -142,8 +142,12 @@ class YamboElectronPhononDB():
         kx = concatenate([kx_aux,kx_aux+self.rlat[0,0],kx_aux-self.rlat[0,0],kx_aux+self.rlat[1,0],kx_aux-self.rlat[1,0],kx_aux+self.rlat[0,0]-self.rlat[1,0],kx_aux-self.rlat[0,0]+self.rlat[1,0]])
         ky = concatenate([ky_aux,ky_aux+self.rlat[0,1],ky_aux-self.rlat[0,1],ky_aux+self.rlat[1,1],ky_aux-self.rlat[1,1],ky_aux+self.rlat[0,1]-self.rlat[1,1],ky_aux-self.rlat[0,1]+self.rlat[1,1]])
         
+        """ 
+        all_phonons options
+        True:  Sum over all phonon modes
+        False: Plot all gkkp from each phonon mode
+        """
         if all_phonons:
-        '''Sum over phonon modes'''
             ax = fig.add_subplot(111)
             ax.set_aspect('equal')
             ax.axes.get_xaxis().set_visible(False)
@@ -156,7 +160,6 @@ class YamboElectronPhononDB():
             gkkp = concatenate(7*[gkkp_aux/max_gkkp])   
             ax.scatter( kx,ky,s=size,marker='H',c=gkkp,cmap=color_map)
         else:
-        '''Plot all phonon modes'''
             for ip in range(self.nmodes):
                 square_size = 0.25
                 x = 0.05 + (square_size+0.05)*(ip-ip/3*3)
