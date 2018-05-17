@@ -43,10 +43,10 @@ class YamboElectronPhononDB():
         self.nmodes, self.nqpoints, self.nkpoints, self.nbands = database.variables['PARS'][:4].astype(int)
         self.natoms = self.nmodes/3
         database.close()
-        
-        self.readDB_n_np(ib1=2,ib2=3,ik1=3)
+
+        # I wouldn't open any DB GKKP file in the initizialiaction
+        #self.readDB_n_np(ib1=2,ib2=3,ik1=3)
         #self.readDB()
-        #print self.gkkp
 
     def get_elphon(self,dir=0):
         if self.gkkp is None:
@@ -93,10 +93,13 @@ class YamboElectronPhononDB():
         # GKKP(q)[k,complex,nmodes,nbands*nbands]
 
         iband = (ib1-1)*self.nbands + (ib2-1)
-        
+        if iband < 0: 
+            print "error in iband. ib1 and ib2 cannot be zero" 
+            exit()
+
         self.gkkp_n_np_kn = np.zeros([self.nqpoints,self.nmodes],dtype=np.complex64)
 
-        print 'iband', iband
+        print 'The transition from band n = %d to band n\'= %d has yambo index %d' % (ib1, ib2, iband)
 
         for nq in xrange(self.nqpoints):
             filename = '%s_fragment_%d'%(self.filename,nq+1)
@@ -203,7 +206,6 @@ class YamboElectronPhononDB():
             gkkp = zeros([self.nqpoints,self.nmodes])
             for ip in range(self.nmodes):
                 gkkp[:,ip] = abs(data[:,ip])
-        print gkkp.shape
         # q_modulus : array dimension: nqpoints
         # gkkp      : matrix dimension: (nqpoints x nphonons) or (nqpoints)
 
