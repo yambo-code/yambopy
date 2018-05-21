@@ -152,6 +152,7 @@ class YamboElectronPhononDB():
         False: Plot all gkkp from each phonon mode
         """
         if all_phonons:
+            gkkp_aux = zeros([self.nqpoints])
             ax = fig.add_subplot(111)
             ax.set_aspect('equal')
             ax.axes.get_xaxis().set_visible(False)
