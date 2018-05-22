@@ -67,7 +67,8 @@ class YamboAnalyser():
         """ select the colors according to the number of files to plot
         the files to plot are the ones that have all the tags in their name
         """
-        nfiles=sum([all(i in filename for i in tags) for k in self.jsonfiles.keys() for filename in self.jsonfiles[k]["data"].keys()])
+        nfiles = len(self.jsonfiles.keys())
+        #nfiles=sum([all(i in filename for i in tags) for k in self.jsonfiles.keys() for filename in self.jsonfiles[k]["data"].keys()])
         print('nfiles')
         print(nfiles)
         cmap = plt.get_cmap(self._colormap) #get color map
@@ -423,15 +424,18 @@ class YamboAnalyser():
         colors = self.get_colors(tags)
 
         n=0
+        # Why you plot EELS data??
+        # I have to modify to plot only EPS (I leave commented the previous code)
         for k in sorted(self.jsonfiles.keys()):
-            for filename in self.jsonfiles[k]["data"].keys():
-                if all(i in filename for i in tags):
+                    print k
+                    filename = self.jsonfiles[k]["data"].keys()[0]
+            #for filename in self.jsonfiles[k]["data"].keys():
+            #    if all(i in filename for i in tags):
                     data = np.array( self.jsonfiles[k]["data"][filename] )
-
+                    print filename 
                     #select the color to plot with
                     color = colors[n]
                     n+=1
-
                     for col in cols:
                         x = data[:,0]
                         y = data[:,col-1]
