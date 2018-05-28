@@ -38,7 +38,7 @@ class YamboElectronPhononDB():
         self.qpoints = database.variables['PH_Q'][:].T
         self.nmodes, self.nqpoints, self.nkpoints, self.nbands = database.variables['PARS'][:4].astype(int)
         self.natoms = self.nmodes/3
-        db.close()
+        database.close()
         
         self.readDB()
 
@@ -76,7 +76,7 @@ class YamboElectronPhononDB():
                 gkkp = database.variables['ELPH_GKKP_Q%d'%(nq+1)][:]
                 self.gkkp[nq] = (gkkp[:,0,:,:] + I*gkkp[:,1,:,:]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
             
-            db.close()
+            database.close()
 
         if not only_freqs:
             return self.gkkp

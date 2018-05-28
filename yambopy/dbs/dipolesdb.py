@@ -98,7 +98,7 @@ class YamboDipolesDB():
             dipoles_format = 1
         elif tag2 in db.variables.keys():
             dipoles_format = 2
-        db.close()
+        database.close()
         
         for nk in range(self.nk_ibz):
 
@@ -116,7 +116,7 @@ class YamboDipolesDB():
                     dipoles[nk,i] = dip[0].T+dip[1].T*1j
 
             #close database
-            db.close()
+            database.close()
 
         return dipoles
         

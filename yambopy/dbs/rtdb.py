@@ -38,7 +38,7 @@ class YamboRTDB():
         database = Dataset("%s/%s"%(self.path,referencedb))
         self.nband_min, self.nband_max, self.nkpoints = database.variables['RT_vars'][:].astype(int)
         self.nbands = self.nband_max - self.nband_min + 1
-        db.close()
+        database.close()
 
         #get energies of bands
         database = Dataset("%s/%s"%(self.path,carriersdb))
@@ -47,7 +47,7 @@ class YamboRTDB():
         #get kpoints coordinates
         self.kpts_iku = database.variables['RT_kpt'][:].T#.reshape([self.nkpoints,3])
 
-        db.close()
+        database.close()
 
         #get a list of symmetries with time reversal
         nsym = len(self.sym_car)
@@ -115,7 +115,7 @@ class YamboRTDB():
             #self.RT_carriers_dE_V_xc[n]          = database.variables['RT_carriers_dE_V_xc'][:].reshape([self.nbands,self.nkpoints])
 
             #close database
-            db.close()
+            database.close()
 
     def integrate(self):
         self.occupations = np.zeros([self.ntimes,self.nkpoints,self.nbands])

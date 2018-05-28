@@ -86,7 +86,7 @@ class YamboWFDB():
             database = Dataset("%s/%s"%(path,fname),'r+')
             database.variables['WF_REAL_COMPONENTS_@_K%d_BAND_GRP_1'%(nk+1)][:] = wf[nk].real
             database.variables['WF_IM_COMPONENTS_@_K%d_BAND_GRP_1'%(nk+1)][:] = wf[nk].imag
-            db.close()
+            database.close()
         print 'new wavefunctions written in %s'%path
 
     def __str__(self):
