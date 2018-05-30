@@ -82,7 +82,7 @@ class ProjwfcXML():
 
         return proj
 
-    def plot_eigen(self, ax, size=20, cmap=None, color='r', path=[], selected_orbitals=[], selected_orbitals_2=[]):
+    def plot_eigen(self, ax, size=20, cmap=None, color='r', path=[], selected_orbitals=[], selected_orbitals_2=[], label_1=None):
         """ 
         Plot the band structure. The size of the points is the weigth of the selected orbitals.
 
@@ -95,6 +95,7 @@ class ProjwfcXML():
         selection of the orbitals...
         """
         import matplotlib.pyplot as plt
+        import matplotlib as mpl
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
@@ -117,16 +118,17 @@ class ProjwfcXML():
         
         #get weights of second set of orbitals
         if selected_orbitals_2:
+          norm = mpl.colors.Normalize(vmin=0.,vmax=1.)
           w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
           #plot bands for fix size
           for ib in range(self.nbands):
-            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=size,c=w_rel[:,ib],cmap=color_map,edgecolors='none')
+            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=size,c=w_rel[:,ib],cmap=color_map,edgecolors='none',label=label_1,norm=norm)
 
         #plot bands for a varying size
         if not selected_orbitals_2:
           for ib in range(self.nbands):
             #ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,c='r',edgecolors='none')
-            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=w_proj[:,ib]*size,c=color,edgecolors='none')
+            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=w_proj[:,ib]*size,c=color,edgecolors='none',label=label_1)
 
         ax.set_xlim(0, self.nkpoints-1)
         ax.set_ylim(auto=True)
