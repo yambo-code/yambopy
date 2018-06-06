@@ -172,16 +172,24 @@ class YamboFile(object):
 
         f = Dataset(os.path.join(self.folder,self.filename))
 
-        hf =  f.variables['Sx_Vxc'][:]
-        if hf.shape[0]%8 ==0 :
-            qp =  hf.reshape(-1,8)
-            ib, ibp, ik, isp, rsx, isx, revx, imvx = qp.T
+        #old format
+        if 'Sx_Vxc' in f.variables:
+            hf = f.variables['Sx_Vxc'][:]
+            if hf.shape[0]%8 ==0 :
+                qp =  hf.reshape(-1,8)
+                ib, ibp, ik, isp, rsx, isx, revx, imvx = qp.T
+            else:
+                qp =  hf.reshape(-1,7)
+                ib, ibp, ik, rsx, isx, revx, imvx = qp.T
+            data['Sx'] = rsx + isx*1j
+            data['Vxc'] = revx + imvx*1j
+        #new format
         else:
-            qp =  hf.reshape(-1,7)
-            ib, ibp, ik, rsx, isx, revx, imvx = qp.T
-        data['Sx'] = rsx + isx*1j
-        data['Vxc'] = revx + imvx*1j
-
+            Sx  = f.variables['Sx'][:]
+            data['Sx'] = Sx[:,0] + Sx[:,1]*1j
+            Vxc = f.variables['Vxc'][:]
+            data['Vxc'] = Vxc[:,0] + Vxc[:,1]*1j
+            
         self.data=data
         f.close()
 

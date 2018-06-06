@@ -5,6 +5,7 @@ packages_yambopy = ['yambopy',
                     'yambopy.dbs',
                     'yambopy.bse',
                     'yambopy.rt',
+                    'yambopy.data',
                     'yambopy.plot',
                     'qepy',
                     'schedulerpy',
@@ -18,5 +19,5 @@ if __name__ == '__main__':
           author_email='miranda.henrique@gmail.com',
           requires=['numpy','matplotlib','netCDF4'],
           scripts=['scripts/yambopy'],
-          packages=packages_yambopy,
+          packages=packages_yambopy
           )

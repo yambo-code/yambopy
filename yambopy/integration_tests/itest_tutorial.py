@@ -18,7 +18,7 @@ import imp
 #######################################################
 # Silicon GW convergence
 #######################################################
-sys.path.append('../tutorial/si')
+sys.path.append(os.path.join('..','..','tutorial','si'))
 import gs_si
 import gw_conv_si
 
@@ -47,7 +47,7 @@ class TestGW_Convergence(unittest.TestCase):
 #######################################################
 # Boron Nitride
 #######################################################
-sys.path.append('../tutorial/bn')
+sys.path.append(os.path.join('..','..','tutorial','bn'))
 import gs_bn
 import bse_cutoff
 
@@ -73,7 +73,7 @@ class TestCoulomb_Cutoff(unittest.TestCase):
 #######################################################
 # Parallel Bethe-Salpeter MoS2
 #######################################################
-sys.path.append('../tutorial/mos2')
+sys.path.append(os.path.join('..','..','tutorial','mos2'))
 import gs_mos2
 import bse_par_mos2
 

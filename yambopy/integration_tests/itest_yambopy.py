@@ -19,8 +19,8 @@ yambopy_path   = os.path.join(this_file_path,'..','..','scripts')
 yambopy_script = os.path.join(yambopy_path,'yambopy')
 ref_folder     = os.path.join(this_file_path,'..','data','refs','gw_conv')
 
-class TestYambopyGW(unittest.TestCase):
-    def test_yambopy_analysegw(self):
+class ItestYambopyGW(unittest.TestCase):
+    def itest_yambopy_analysegw(self):
         """ Test the yambopy analysegw executable
         """
         os.system('{} analysegw {} FFTGvecs -bc 5 -kc 3 -bv 4 -kv 1 -nd'.format(yambopy_script,ref_folder))

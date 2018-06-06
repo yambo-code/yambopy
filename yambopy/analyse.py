@@ -78,6 +78,7 @@ class YamboAnalyser():
         Select the colors according to the number of files to plot
         the files to plot are the ones that have all the tags in their name
         """
+        import matplotlib.pyplot as plt
         #count the number of files
         nfiles = 0
         for k in self.jsonfiles.keys():
@@ -245,6 +246,7 @@ class YamboAnalyser():
             Will plot only files with 'eps' in their filename (absorption spectra)
             Will plot the second column (absorption spectra)
         """
+        import matplotlib.pyplot as plt
         if ax is None:
             standalone = True
             ax = plt.gca()

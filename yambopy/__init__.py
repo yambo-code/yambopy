@@ -66,3 +66,6 @@ from yambopy.recipes import *
 
 #realtime files
 from yambopy.rt.rt_movie import *
+
+#data
+from yambopy.data import *

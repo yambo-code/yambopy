@@ -40,12 +40,16 @@ class TestYamboAnalyse(unittest.TestCase):
         keys = sorted(netcdf_files.keys())
         assert keys == ['FFTGvecs_00010', 'FFTGvecs_00015','reference']
 
-        #test plotting
-        gw_bands = y.get_bands(tags='FFTGvecs',type_calc=('ks'))
-        print(gw_bands)
-        ks_bands = y.get_bands(tags='reference',type_calc=('gw'))
+        #test getting data
+        ks_bands = y.get_bands(tags='reference',type_calc=('ks'))
         print(ks_bands)
-    
+        gw_bands = y.get_bands(tags='FFTGvecs',type_calc=('gw'))
+        print(gw_bands)
+
+        #test plot
+        gwks_bands = gw_bands + ks_bands
+        gwks_bands.plot_show()
+ 
         #test get_path    
         #y.get_path()
         #test path_plotting
