@@ -41,6 +41,7 @@ class TestGW_Convergence(unittest.TestCase):
         gw_conv_si.create_save()
         gw_conv_si.gw_convergence()
 
+    @unittest.skip('GW plots need refactoring')
     def test_plot(self):
         gw_conv_si.plot_convergence()
 
@@ -67,6 +68,7 @@ class TestCoulomb_Cutoff(unittest.TestCase):
 
         bse_cutoff.run(work_folder='bse_cutoff_cut',cut=True)
 
+    @unittest.skip('BSE plots need refactoring')
     def test_plot(self):
         bse_cutoff.plot('bse_cutoff_cut','cutoff_test',cut=True)
 
@@ -89,6 +91,7 @@ class TestParallel_BSE(unittest.TestCase):
     def test_parallel(self):
         bse_par_mos2.run()
 
+    @unittest.skip('BSE plots need refactoring')
     def test_plot(self):
         bse_par_mos2.plot()
 

@@ -46,10 +46,6 @@ class TestYamboAnalyse(unittest.TestCase):
         gw_bands = y.get_bands(tags='FFTGvecs',type_calc=('gw'))
         print(gw_bands)
 
-        #test plot
-        gwks_bands = gw_bands + ks_bands
-        gwks_bands.plot_show()
- 
         #test get_path    
         #y.get_path()
         #test path_plotting

@@ -199,12 +199,11 @@ class YamboOut():
         """
         # if no filename is specified we use the same name as the folder
         if not filename:
-            filename = self.folder
+            filename = '%s.json' % self.folder
 
         # create json dictionary
         jsondata = {"files": self.files,
                     "lattice": self.lattice.as_dict()}
-        filename = '%s.json' % filename
         JsonDumper(jsondata, filename)
 
     def __str__(self):

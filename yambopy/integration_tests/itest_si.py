@@ -160,26 +160,27 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
 
         y.optimize(conv,run=run)
 
-    #def test_yambopy_analysegw(self):
-    #    """ Test the yambopy analysegw executable
-    #    """
-    #    os.system('yambopy analysegw gw_conv FFTGvecs -bc 5 -kc 3 -bv 4 -kv 1 -nd')
-    #    out = np.loadtxt('analyse_gw_conv/gw_conv_FFTGvecs.dat')
-    #    ref = np.loadtxt('%s/si/analyse_gw_conv/gw_conv_FFTGvecs.dat'%reference_dir)
-    #    print("ref:")
-    #    print(ref)
-    #    print("out:")
-    #    print(out)
-    #    self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
-    #
-    #    os.system('yambopy analysegw gw_conv BndsRnXp -bc 5 -kc 3 -bv 4 -kv 1 -nd')
-    #    out = np.loadtxt('analyse_gw_conv/gw_conv_BndsRnXp.dat')
-    #    ref = np.loadtxt('%s/si/analyse_gw_conv/gw_conv_BndsRnXp.dat'%reference_dir)
-    #    print("ref:")
-    #    print(ref)
-    #    print("out:")
-    #    print(out)
-    #    self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
+    @unittest.skip("analysegw needs to be refactored")
+    def test_yambopy_analysegw(self):
+        """ Test the yambopy analysegw executable
+        """
+        os.system('yambopy analysegw gw_conv FFTGvecs -bc 5 -kc 3 -bv 4 -kv 1 -nd')
+        out = np.loadtxt('analyse_gw_conv/gw_conv_FFTGvecs.dat')
+        ref = np.loadtxt('%s/si/analyse_gw_conv/gw_conv_FFTGvecs.dat'%reference_dir)
+        print("ref:")
+        print(ref)
+        print("out:")
+        print(out)
+        self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
+    
+        os.system('yambopy analysegw gw_conv BndsRnXp -bc 5 -kc 3 -bv 4 -kv 1 -nd')
+        out = np.loadtxt('analyse_gw_conv/gw_conv_BndsRnXp.dat')
+        ref = np.loadtxt('%s/si/analyse_gw_conv/gw_conv_BndsRnXp.dat'%reference_dir)
+        print("ref:")
+        print(ref)
+        print("out:")
+        print(out)
+        self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
 
 
 class TestYamboIn_BSE_Si(unittest.TestCase):
@@ -244,26 +245,27 @@ class TestYamboOut_BSE_Si(unittest.TestCase):
         y = YamboAnalyser('bse_conv')
         y.plot_bse('eps')
 
-    #def test_yambopy_analysebse(self):
-    #    """ Test the yambopy analysebse executable
-    #    """
-    #    os.system('yambopy analysebse bse_conv FFTGvecs -nd')
-    #    out = np.loadtxt('analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat')
-    #    ref = np.loadtxt('%s/si/analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat'%reference_dir)
-    #    print("ref:")
-    #    print(ref)
-    #    print("out:")
-    #    print(out)
-    #    self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
-    #
-    #    os.system('yambopy analysebse bse_conv BndsRnXs -nd')
-    #    out = np.loadtxt('analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat')
-    #    ref = np.loadtxt('%s/si/analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat'%reference_dir) 
-    #    print("ref:")
-    #    print(ref)
-    #    print("out:")
-    #    print(out)
-    #    self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
+    @unittest.skip("analysebse needs to be refactored")
+    def test_yambopy_analysebse(self):
+        """ Test the yambopy analysebse executable
+        """
+        os.system('yambopy analysebse bse_conv FFTGvecs -nd')
+        out = np.loadtxt('analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat')
+        ref = np.loadtxt('%s/si/analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat'%reference_dir)
+        print("ref:")
+        print(ref)
+        print("out:")
+        print(out)
+        self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
+    
+        os.system('yambopy analysebse bse_conv BndsRnXs -nd')
+        out = np.loadtxt('analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat')
+        ref = np.loadtxt('%s/si/analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat'%reference_dir) 
+        print("ref:")
+        print(ref)
+        print("out:")
+        print(out)
+        self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
 
 class TestYamboOut_GW_Si(unittest.TestCase):
     def test_yamboout_gw_si(self):
