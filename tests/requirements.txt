@@ -4,6 +4,6 @@ numpy
 netcdf4
 matplotlib
 scipy
-pytest
+pytest-cov
 coverage # To check the extent of code tested
 future # Python 2.7/3+ compatiblity

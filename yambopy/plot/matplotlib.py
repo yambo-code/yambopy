@@ -5,7 +5,7 @@
 #
 """Check if we are on a headless system and in that case use Agg interface"""
 import os
-import matplotlib
+import matplotlib as mpl
 if 'DISPLAY' not in os.environ:
-    matplotlib.use('Agg')
+    mpl.use('Agg')
 from matplotlib import pyplot as plt
