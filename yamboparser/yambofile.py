@@ -172,6 +172,12 @@ class YamboFile(object):
 
         f = Dataset(os.path.join(self.folder,self.filename))
 
+        pars = f.variables['PARS'][:]
+
+        data['nkpoints'] = int(pars[0])
+        data['nabnds'] = int(pars[1])
+        data['QP_table'] = f.variables['QP_table']
+
         #old format
         if 'Sx_Vxc' in f.variables:
             hf = f.variables['Sx_Vxc'][:]

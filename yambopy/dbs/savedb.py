@@ -7,7 +7,7 @@ from yambopy import *
 from yambopy.plot import *
 from itertools import product
 from netCDF4 import Dataset
-from yambopy.lattice import rec_lat
+from yambopy.lattice import car_red, rec_lat
 
 max_exp = 50
 ha2ev = 27.211396132
@@ -146,6 +146,8 @@ class YamboSaveDB():
         """
         if self.efermi: return self.efermi
         from scipy.optimize import bisect
+
+        kpts, nks, nss = self.expand_kpts()
 
         def fermi(e):
             """ fermi dirac function

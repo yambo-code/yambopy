@@ -41,6 +41,7 @@ from yambopy.units import *
 from yambopy.dbs.savedb import *
 from yambopy.dbs.dipolesdb import *
 from yambopy.dbs.qpdb import *
+from yambopy.dbs.hfdb import *
 from yambopy.dbs.em1sdb import *
 from yambopy.dbs.greendb import *
 from yambopy.dbs.latticedb import *
