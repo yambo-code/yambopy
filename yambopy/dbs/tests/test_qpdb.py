@@ -18,5 +18,7 @@ class TestYamboQPDB(unittest.TestCase):
         #get qp dbb
         qpdb.get_qps()
 
+        string1 = str(qpdb)
+
 if __name__ == '__main__':
     unittest.main()

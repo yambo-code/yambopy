@@ -4,5 +4,6 @@ numpy
 netcdf4
 matplotlib
 scipy
+pytest
 coverage # To check the extent of code tested
 future # Python 2.7/3+ compatiblity

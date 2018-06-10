@@ -2,7 +2,7 @@
 import numpy as np
 from yambopy.plot import *
 
-class YambopyBandStructure():
+class YamboBandStructure():
     """
     Class to plot bandstructures
     """

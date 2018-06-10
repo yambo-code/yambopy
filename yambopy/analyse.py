@@ -9,7 +9,7 @@ import json
 import re
 from itertools import product
 import numpy as np
-from yambopy.plot import YambopyBandStructure
+from yambopy.plot import YamboBandStructure
 from yambopy.duck import isstring
 from yambopy.lattice import red_car, rec_lat, expand_kpts, isbetween
 from yambopy.io.inputfile import YamboIn
@@ -173,7 +173,7 @@ class YamboAnalyser():
 
         #create bandstructure class
         if not bs:
-            bs = YambopyBandStructure()
+            bs = YamboBandStructure()
  
         # add bandstructures of all the files
         for filename, content in gw_files.items():
