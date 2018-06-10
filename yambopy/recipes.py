@@ -1,5 +1,4 @@
-#
-# Copyright (C) 2017 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez, Alexandre Morlet, Fulvio Paleari
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez, Alexandre Morlet, Fulvio Paleari
 #
 # All rights reserved.
 #

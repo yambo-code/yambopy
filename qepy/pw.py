@@ -1,10 +1,9 @@
-from __future__ import print_function, division
-#
-# Copyright (C) 2017 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
+from __future__ import print_function, division
 from qepy import *
 import os
 import re

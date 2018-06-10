@@ -1,4 +1,4 @@
-# Copyright (c) 2017, Alejandro Molina-Sanchez
+# Copyright (c) 2018, Alejandro Molina-Sanchez
 # All rights reserved.
 #
 # This file is part of the yambopy project

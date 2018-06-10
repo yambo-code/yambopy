@@ -1,10 +1,9 @@
-from __future__ import print_function
-# Copyright (C) 2017 Alexandre Morlet, Henrique Pereira Coutada Miranda
+# Copyright (C) 2018 Alexandre Morlet, Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
 #
-#
+from __future__ import print_function
 from builtins import range
 from yambopy import *
 from qepy import *

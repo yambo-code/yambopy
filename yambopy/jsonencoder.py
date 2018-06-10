@@ -1,9 +1,7 @@
-#
-# Copyright (C) 2017 Henrique Pereira Coutada Miranda
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
-#
 #
 """import a special json encoder to do slightly readable files"""
 import json

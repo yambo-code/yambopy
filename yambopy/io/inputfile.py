@@ -1,5 +1,4 @@
-#
-# Copyright (C) 2017 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy

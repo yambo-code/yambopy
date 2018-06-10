@@ -1,10 +1,9 @@
-from __future__ import print_function
-#
-# Copyright (C) 2017 Henrique Pereira Coutada Miranda
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yamboparser
 # 
+from __future__ import print_function
 import os
 import numpy as np
 from .yambofile import *
