@@ -23,9 +23,10 @@ class YamboHFDB():
             raise ValueError('File %s/%s not found'%(folder,filename))
 
         qps = self.yfile.data
-        self.sx = qps['Sx']
-        self.vxc = qps['Vxc']
-        print(self.sx.shape)
+        nkpoints = qps['nkpoints']
+        nbands = qps['nbands']
+        self.sx = qps['Sx'].reshape(nkpoints,nbands)
+        self.vxc = qps['Vxc'].reshape(nkpoints,nbands)
 
     def __str__(self):
         s = ""

@@ -175,8 +175,8 @@ class YamboFile(object):
         pars = f.variables['PARS'][:]
 
         data['nkpoints'] = int(pars[0])
-        data['nabnds'] = int(pars[1])
-        data['QP_table'] = f.variables['QP_table'][:]
+        data['nbands'] = int(pars[1])
+        #data['QP_table'] = f.variables['QP_table'][:]
 
         #old format
         if 'Sx_Vxc' in f.variables:
