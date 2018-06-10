@@ -66,9 +66,10 @@ class YamboFile(object):
         Get the type of file
         """
         type = 'unknown'
-        if any(filename.startswith(prefix) for prefix in YamboFile._output_prefixes):
+        basename = os.path.basename(filename)
+        if any(basename.startswith(prefix) for prefix in YamboFile._output_prefixes):
             #read lines from file
-            with open(os.path.join(folder,filename),'r') as f:
+            with open(os.path.join(folder,basename),'r') as f:
                 lines = f.readlines()
 
             #get the line with the title
@@ -77,13 +78,13 @@ class YamboFile(object):
             if 'GW' in title:
                  type = 'output_gw'
 
-        elif any(filename.startswith(prefix) for prefix in YamboFile._report_prefixes):
+        elif any(basename.startswith(prefix) for prefix in YamboFile._report_prefixes):
             type = 'report'
-        elif any(filename.startswith(prefix) for prefix in YamboFile._log_prefixes):
+        elif any(basename.startswith(prefix) for prefix in YamboFile._log_prefixes):
             type = 'log'
-        elif any(filename.startswith(prefix) for prefix in YamboFile._netcdf_prefixes):
+        elif any(basename.startswith(prefix) for prefix in YamboFile._netcdf_prefixes):
             for sufix in YamboFile._netcdf_sufixes:
-                if filename.endswith(sufix):
+                if basename.endswith(sufix):
                     type = 'netcdf_%s'%YamboFile._netcdf_sufixes[sufix]
                     break
 
