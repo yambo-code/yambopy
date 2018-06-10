@@ -11,7 +11,7 @@ import subprocess
 from textwrap import dedent
 from copy import deepcopy
 from collections import OrderedDict
-from yambopy.scheduler import Scheduler
+from .scheduler import Scheduler
 
 class Pbs(Scheduler):
     """

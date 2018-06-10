@@ -7,7 +7,7 @@ from __future__ import print_function
 from builtins import str
 import subprocess
 import sys
-from yambopy.scheduler import Scheduler
+from .scheduler import Scheduler
 
 class Bash(Scheduler):
     """
