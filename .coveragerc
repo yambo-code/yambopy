@@ -2,3 +2,7 @@
 omit = 
     tests/*
     */tests/*
+include = 
+    yambopy/* 
+    schedulerpy/*
+    yamboparser/*

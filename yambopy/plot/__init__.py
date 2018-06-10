@@ -3,5 +3,4 @@
 #
 # This file is part of yambopy
 #
-from .matplotlib import *
 from .bandstructure import *
