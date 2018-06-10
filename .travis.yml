@@ -1,11 +1,11 @@
 sudo: required # or false
 language: python
+cache: pip
 
 python:
     - 2.7
     - 3.5
-dist: precise # reached EOL but still available
-              # software sources for tests are compiled for precise
+
 env:
     - YAMBO_VERSION=4.1 PW_VERSION=5.4
 #    - any combination of versions
@@ -31,7 +31,7 @@ install:
   - "./tests/install.sh"
   - "python setup.py install"
 script:
-    - "yambopy test basic"
+    - "py.test --cov-config=.coveragerc --cov"
 
 # safelist
 branches:
