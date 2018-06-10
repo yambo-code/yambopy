@@ -8,10 +8,10 @@ from __future__ import print_function
 from builtins import zip
 from builtins import str
 import subprocess
-from schedulerpy import *
 from textwrap import dedent
 from copy import deepcopy
 from collections import OrderedDict
+from yambopy.scheduler import Scheduler
 
 class Pbs(Scheduler):
     """

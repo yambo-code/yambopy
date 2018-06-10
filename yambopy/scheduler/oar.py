@@ -6,7 +6,7 @@ from __future__ import print_function
 #
 #
 import subprocess
-from schedulerpy import *
+from yambopy.scheduler import Scheduler
 
 class Oar(Scheduler):
     """

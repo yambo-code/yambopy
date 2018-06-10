@@ -7,8 +7,8 @@ packages_yambopy = ['yambopy',
                     'yambopy.rt',
                     'yambopy.data',
                     'yambopy.plot',
+                    'yambopy.scheduler',
                     'qepy',
-                    'schedulerpy',
                     'yamboparser']
 
 if __name__ == '__main__':

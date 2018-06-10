@@ -11,7 +11,7 @@ import argparse
 import subprocess
 import filecmp
 import json
-from schedulerpy import *
+from yambopy.scheduler import *
 from qepy import *
 from textwrap import dedent
 
