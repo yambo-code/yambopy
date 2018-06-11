@@ -107,7 +107,8 @@ class YamboDipolesDB():
             database = Dataset(filename)
 
             if dipoles_format == 1:
-                dip = database.variables['DIP_%s_k_%04d_spin_%04d'%(dip_type,nk+1,1)][:].view(dtype=np.complex64)[:,:,:,0]
+                dip = database.variables['DIP_%s_k_%04d_spin_%04d'%(dip_type,nk+1,1)]
+                dip = (dip[:,:,:,0]+1j*dip[:,:,:,1])
                 for i in range(3):
                     dipoles[nk,i] = dip[:,:,i].T
             elif dipoles_format == 2:
