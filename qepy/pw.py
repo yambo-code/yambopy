@@ -196,7 +196,7 @@ class PwIn(object):
             lines = iter(self.file_lines)
             for line in lines:
                 if "CELL_PARAMETERS" in line:
-                    self.cell_units = line.translate(None, '{}()').split()[1]
+                    self.cell_units = ''.join([c for c in line if c not in '{}()']).split()[1]
                     self.cell_parameters = [[1,0,0],[0,1,0],[0,0,1]]
                     for i in range(3):
                         self.cell_parameters[i] = [ float(x)*a for x in next(lines).split() ]
