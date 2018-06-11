@@ -94,11 +94,11 @@ class YamboDipolesDB():
         database = Dataset(filename)
         tag1 = 'DIP_iR_k_0001_spin_0001'
         tag2 = 'DIP_iR_k_0001_xyz_0001_spin_0001'
-        if tag1 in list(db.variables.keys()):
+        if tag1 in list(database.variables.keys()):
             dipoles_format = 1
-        elif tag2 in list(db.variables.keys()):
+        elif tag2 in list(database.variables.keys()):
             dipoles_format = 2
-        db.close()
+        database.close()
         
         for nk in range(self.nk_ibz):
 
@@ -116,7 +116,7 @@ class YamboDipolesDB():
                     dipoles[nk,i] = dip[0].T+dip[1].T*1j
 
             #close database
-            db.close()
+            database.close()
 
         return dipoles
         
@@ -206,12 +206,13 @@ class YamboDipolesDB():
 
         #get eigenvalues and weights of electrons
         eiv = electrons.eigenvalues
+        print(eiv.shape)
         weights = electrons.weights
         nv = electrons.nbandsv
         nc = electrons.nbandsc   
  
         #get dipoles
-        dipoles = self.dipoles_ibz 
+        dipoles = self.dipoles
 
         #get frequencies and im
         freq = np.linspace(emin,emax,esteps)
@@ -223,7 +224,7 @@ class YamboDipolesDB():
             nc=ntot_dip-nv
 
         #Print band gap values and apply GW_shift
-        eiv = electrons.energy_gaps(GWshift)
+        electrons.energy_gaps(GWshift)
 
         #Check bands to include in the calculation
         if nbnds[0]<0: nbnds[0]=nv
@@ -237,20 +238,19 @@ class YamboDipolesDB():
         else:
             broadening = gaussian
 
-        pols = np.array(pols)
         na = np.newaxis
         #calculate epsilon
         for c,v in product(list(range(nv,lc)),list(range(iv,nv))):
             #get electron-hole energy and dipoles
             ecv  = eiv[:,c]-eiv[:,v]
-            dip2 = np.sum(abs2(dipoles[:,pols,c-nv,v]),axis=1)
+            dip2 = abs2(dipoles[:,pol,c-nv,v])
 
             #make dimensions match
             dip2a = dip2[na,:]
             ecva  = ecv[na,:]
             freqa = freq[:,na]
             wa    = weights[na,:]       
-  
+ 
             #calculate the lorentzians 
             broadw = broadening(freqa,ecva,broad)
    
@@ -266,17 +266,16 @@ class YamboDipolesDB():
         s = ""
         s += "\nkpoints:\n"
         s += "nk_ibz : %d\n"%self.nk_ibz
-        if self.expand: s += "nk_bz  : %d\n"%self.nk_bz
+        s += "nk_bz  : %d\n"%self.nk_bz
         s += "\nnumber of bands:\n"
         s += "nbands : %d\n" % self.nbands
         s += "nbandsv: %d\n" % self.nbandsv
         s += "nbandsc: %d\n" % self.nbandsc
         s += "indexv : %d\n" % (self.min_band-1)
         s += "indexc : %d\n" % (self.indexc-1)
-        if self.expand:
-            s += "field_dirx: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_dirx)
-            s += "field_diry: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_diry)
-            s += "field_dirz: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_dirz)
+        s += "field_dirx: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_dirx)
+        s += "field_diry: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_diry)
+        s += "field_dirz: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_dirz)
         return s
 
 if __name__ == "__main__":

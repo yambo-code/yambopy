@@ -111,8 +111,8 @@ class YamboElectronsDB():
         self.spin_degen = [0,2,1][int(self.spin)]
         
         #number of occupied bands
-        self.nbandsv = self.nelectrons/self.spin_degen
-        self.nbandsc = self.nbands-self.nbandsv
+        self.nbandsv = int(self.nelectrons/self.spin_degen)
+        self.nbandsc = int(self.nbands-self.nbandsv)
 
     def expandEigenvalues(self):
         """
@@ -231,7 +231,7 @@ class YamboElectronsDB():
         """
         Calculate the enegy of the gap (by Fulvio Paleari)
         """
-        eiv = self.eigenvalues_ibz
+        eiv = self.eigenvalues
         nv  = self.nbandsv
         nc  = self.nbandsc   
 
