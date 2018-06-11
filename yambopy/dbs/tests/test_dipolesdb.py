@@ -13,10 +13,11 @@ test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','ip',
 
 class TestYamboDipolesDB(unittest.TestCase):
 
-    def test_yamboqpdb(self):
+    def test_yambodipolesdb(self):
 
         # read lattice
         lat = YamboLatticeDB.from_db_file(os.path.join(test_path,'ns.db1'))
+        print(lat)
         
         #read electrons
         electrons = YamboElectronsDB(lat,save=test_path) 

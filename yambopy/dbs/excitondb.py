@@ -25,8 +25,8 @@ class YamboExcitonDB(YamboSaveDB):
             filename = "%s/%s"%(self.path,self.filename)
             database = Dataset(filename)
         except:
-            print("failed to read database %s"%filename)
-            exit(1)
+            raise IOError("Error opening %s in YamboExcitonDB"%filename)
+
         if 'BS_left_Residuals' in list(database.variables.keys()):
             #residuals
             rel,iml = database.variables['BS_left_Residuals'][:].T
