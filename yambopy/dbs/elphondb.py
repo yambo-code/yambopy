@@ -8,11 +8,7 @@ from netCDF4 import Dataset
 from math import sqrt
 import numpy as np
 from cmath import exp
-
-I = complex(0,1)
-ha2ev  = 27.211396132
-ev2cm1 = 8065.54429
-abs2 = lambda x: x.real**2 + x.imag**2
+from yambopy.units import ha2ev, ev2cm1, I
 
 class YamboElectronPhononDB():
     """

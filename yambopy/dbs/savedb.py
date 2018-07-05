@@ -7,17 +7,11 @@ from yambopy import *
 from yambopy.plot import *
 from itertools import product
 from netCDF4 import Dataset
-from yambopy.lattice import car_red, rec_lat
+from yambopy.lattice import isbetween, car_red, rec_lat
+from yambopy.units import ha2ev
 
 max_exp = 50
-ha2ev = 27.211396132
 atol = 1e-3
-
-def isbetween(a,b,c):
-    """
-    Check if cartesian point c is between point a and b
-    """
-    return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0,rtol=1e-05, atol=1e-06)
 
 def expand_kpts_val(kpts,syms,val):
     """
@@ -39,19 +33,6 @@ def vec_in_list(veca,vec_list):
     Check if a vector exists in a list of vectors
     """
     return np.array([ np.allclose(veca,vecb,rtol=atol,atol=atol) for vecb in vec_list ]).any()
-
-def expand_kpts(kpts,syms):
-    """
-    Take a list of qpoints and symmetry operations and return the full brillouin zone
-    with the corresponding index in the irreducible brillouin zone
-    """
-    full_kpts = []
-    print("nkpoints:", len(kpts))
-    for nk,k in enumerate(kpts):
-        for sym in syms:
-            full_kpts.append((nk,np.dot(sym,k)))
-
-    return full_kpts
 
 class YamboSaveDB():
     """
