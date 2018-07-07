@@ -26,6 +26,9 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq gfortran libopenmpi-dev openmpi-bin libblas-dev liblapack-dev libfftw3-dev libnetcdf-dev libhdf5-serial-dev
 
+before_script:
+  - "export MPLBACKEND=Agg"
+
 install:
   - "pip install -r ./tests/requirements.txt"
   - "./tests/install.sh"
