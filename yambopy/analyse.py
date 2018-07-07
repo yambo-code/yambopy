@@ -9,7 +9,7 @@ import json
 import re
 from itertools import product
 import numpy as np
-from yambopy.plot import YamboBandStructure
+from yambopy.plot.bandstructure import YamboBandStructure
 from yambopy.duck import isstring
 from yambopy.lattice import red_car, rec_lat, expand_kpts, isbetween
 from yambopy.io.inputfile import YamboIn
@@ -136,7 +136,7 @@ class YamboAnalyser():
                 inputfiles[k][key] = val
         return inputfiles
 
-    def get_path(self,path):
+    def get_bands_path(self,path):
         """
         Initialize a lattice instance from the data in 
         the json files and get the path
@@ -150,8 +150,13 @@ class YamboAnalyser():
 
         #get data from json file
         lat = YamboLatticeDB.from_dict(jsonfile['lattice'])
-        lat.get_path(path)  
- 
+        bands_kpoints, bands_indexes, path_car = lat.get_path(path)  
+        print(bands_kpoints)
+        print(bands_indexes)
+        print(path_car)
+    
+        #use the path data to get the bands
+
     def get_bands(self,tags=None,bs=None,type_calc=('ks','gw')):
         """
         Get the gw bands from a gw calculation from a filename

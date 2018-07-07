@@ -41,7 +41,6 @@ class TestGW_Convergence(unittest.TestCase):
         gw_conv_si.create_save()
         gw_conv_si.gw_convergence()
 
-    @unittest.skip('GW plots need refactoring')
     def test_plot(self):
         gw_conv_si.plot_convergence()
 

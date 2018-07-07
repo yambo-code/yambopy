@@ -17,8 +17,7 @@ class TestYamboDipolesDB(unittest.TestCase):
 
         # read lattice
         lat = YamboLatticeDB.from_db_file(os.path.join(test_path,'ns.db1'))
-        print(lat)
-        
+
         #read electrons
         electrons = YamboElectronsDB(lat,save=test_path) 
         print(electrons)

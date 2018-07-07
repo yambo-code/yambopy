@@ -85,9 +85,10 @@ class YamboElectronsDB():
         self.filename = '%s/%s'%(save,filename)
         self.efermi = None
         self.readDB()
-        if self.nkpoints != self.lattice.nkpoints: #sanity check
-            raise ValueError("The number of k-points in the lattice database and electrons database is different.")
         self.expandEigenvalues()
+        if self.nkpoints != lattice.nkpoints: #sanity check
+            raise ValueError("The number of k-points in the lattice database"
+                             " %d and electrons database %d is different."%(lattice.nkpoints,self.nkpoints))
         
     def readDB(self):
         try:

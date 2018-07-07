@@ -9,6 +9,7 @@ import os
 import shutil as sh
 from yambopy.analyse import YamboAnalyser
 from yambopy.io.outputfile import YamboOut
+from qepy.lattice import Path
 
 test_path = os.path.join(os.path.dirname(__file__),'..','data','refs','gw_conv')
 
@@ -42,13 +43,18 @@ class TestYamboAnalyse(unittest.TestCase):
 
         #test getting data
         ks_bands = y.get_bands(tags='reference',type_calc=('ks'))
+        ks_bands.plot(show=False)
         print(ks_bands)
         gw_bands = y.get_bands(tags='FFTGvecs',type_calc=('gw'))
+        gw_bands.plot(show=False)
         print(gw_bands)
 
         #test get_path    
-        #y.get_path()
-        #test path_plotting
+        path = Path([[[1.0,1.0,1.0],'G'],
+                     [[0.0,0.5,0.5],'X'],
+                     [[0.0,0.0,0.0],'G'],
+                     [[0.5,0.0,0.0],'L']], [20,20,20])
+        y.get_bands_path(path)
 
     def tearDown(self):
         sh.rmtree('gw_conv') 

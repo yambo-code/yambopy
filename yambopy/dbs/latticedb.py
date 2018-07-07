@@ -16,23 +16,48 @@ class YamboLatticeDB():
     Class to read the lattice information from the netcdf file
     """
     def __init__(self,lat=None,alat=None,sym_car=None,iku_kpoints=None,
-                      atomic_positions=None,atomic_numbers=None):
-        self.lat = lat
-        self.alat = alat
-        self.sym_car = sym_car
-        self.iku_kpoints = iku_kpoints
-        self.atomic_positions = atomic_positions
-        self.atomic_numbers = atomic_numbers
+                      atomic_positions=None,atomic_numbers=None,time_rev=None):
+        self.lat = np.array(lat)
+        self.alat = np.array(alat)
+        self.sym_car = np.array(sym_car)
+        self.iku_kpoints = np.array(iku_kpoints)
+        self.atomic_positions = np.array(atomic_positions)
+        self.atomic_numbers = np.array(atomic_numbers)
+        self.time_rev = time_rev
 
-    @staticmethod
-    def from_db_file(filename):
+    @classmethod
+    def from_db_file(cls,filename):
         """ Initialize YamboLattice from a local dbfile """
-        ydb = YamboLatticeDB()
+        ydb = cls()
         ydb.read_db(filename)
         ydb._process()
         ydb.expand_kpoints()
         return ydb
-    
+ 
+    @classmethod    
+    def from_dict(cls,data):
+        """ Initialize instance of the class from a dictionary
+        """
+        lat = data["lat"]
+        alat = data["alat"]
+        sym_car = data["sym_car"]
+        iku_kpoints = data["iku_kpoints"]
+        atomic_positions = data["atomic_positions"]
+        atomic_numbers = data["atomic_numbers"]
+        time_rev = data["time_rev"]
+        y = cls(lat,alat,sym_car,iku_kpoints,atomic_positions,atomic_numbers,time_rev)
+        y._process()
+        return y
+
+    @classmethod
+    def from_json_file(cls,filename):
+        data = JsonLoader(filename)
+        return cls.from_dict(data)
+ 
+    @property
+    def nkpoints(self):
+        return len(self.car_kpoints)
+
     def read_db(self,filename):
         try:
             database = Dataset(filename)
@@ -47,7 +72,7 @@ class YamboLatticeDB():
 
         #atomic numbers
         natoms         = database.variables['N_ATOMS'][:].astype(int).T
-        self.atomic_positions = database.variables['ATOM_POS'][0,:]
+        self.atomic_positions = database.variables['ATOM_POS'][:,0,:]
         atomic_numbers = database.variables['atomic_numbers'][:].astype(int)
         atomic_numbers = [[atomic_numbers[n]]*na for n,na in enumerate(natoms)]
         self.atomic_numbers = list(chain.from_iterable(atomic_numbers))
@@ -56,28 +81,10 @@ class YamboLatticeDB():
         dimensions = database.variables['DIMENSIONS'][:]
         self.temperature = dimensions[13]
         self.nelectrons = dimensions[14]
-        self.nkpoints  = int(dimensions[6])
         self.spin = int(dimensions[11])
         self.time_rev = dimensions[9]
 
         database.close()
-
-    @staticmethod    
-    def from_dict(data):
-        """ get an instance of this class from a dictionary
-        """
-        lat = data["lat"]
-        alat = data["alat"]
-        sym_car = data["sym_car"]
-        iku_kpoints = data["iku_kpoints"]
-        atomic_positions = data["atomic_positions"]
-        atomic_numbers = data["atomic_numbers"]
-        return YamboLatticeDB(lat,alat,sym_car,iku_kpoints,atomic_positions,atomic_numbers)
-
-    @staticmethod
-    def from_json_file(filename):
-        data = JsonLoader(filename)
-        return YamboLatticeDB.from_dict(data)
 
     def as_dict(self):
         """ get the information of this class as a dictionary
@@ -87,7 +94,8 @@ class YamboLatticeDB():
                 "sym_car" : self.sym_car,
                 "iku_kpoints" : self.iku_kpoints,
                 "atomic_positions" : self.atomic_positions,
-                "atomic_numbers" : self.atomic_numbers}
+                "atomic_numbers" : self.atomic_numbers,
+                "time_rev": self.time_rev }
         return data
 
     def write_json(self,filename):
@@ -106,7 +114,6 @@ class YamboLatticeDB():
         #convert form internal yambo units to cartesian lattice units
         self.car_kpoints = np.array([ k/self.alat for k in self.iku_kpoints ])
         self.red_kpoints = car_red(self.car_kpoints,self.rlat)
-        self.nkpoints = len(self.car_kpoints)
 
         #convert cartesian transformations to reciprocal transformations
         self.sym_rec = np.zeros([self.nsym,3,3])

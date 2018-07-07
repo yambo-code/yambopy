@@ -3,4 +3,3 @@
 #
 # This file is part of yambopy
 #
-from .bandstructure import *
