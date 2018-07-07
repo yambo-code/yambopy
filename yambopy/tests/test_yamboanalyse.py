@@ -54,7 +54,8 @@ class TestYamboAnalyse(unittest.TestCase):
                      [[0.0,0.5,0.5],'X'],
                      [[0.0,0.0,0.0],'G'],
                      [[0.5,0.0,0.0],'L']], [20,20,20])
-        y.get_bands_path(path)
+        gw_bands_path = y.get_bands(tags='FFTGvecs',type_calc=('gw'),path=path)
+        gw_bands_path.plot(show=False) 
 
     def tearDown(self):
         sh.rmtree('gw_conv') 

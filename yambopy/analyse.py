@@ -136,28 +136,7 @@ class YamboAnalyser():
                 inputfiles[k][key] = val
         return inputfiles
 
-    def get_bands_path(self,path):
-        """
-        Initialize a lattice instance from the data in 
-        the json files and get the path
-
-        TODO: should use
-        """
-        jsonfile = list(self.jsonfiles.values())[0]
-
-        #consistency check on the different json files
-        #TODO
-
-        #get data from json file
-        lat = YamboLatticeDB.from_dict(jsonfile['lattice'])
-        bands_kpoints, bands_indexes, path_car = lat.get_path(path)  
-        print(bands_kpoints)
-        print(bands_indexes)
-        print(path_car)
-    
-        #use the path data to get the bands
-
-    def get_bands(self,tags=None,bs=None,type_calc=('ks','gw')):
+    def get_bands(self,tags=None,bs=None,path=None,type_calc=('ks','gw')):
         """
         Get the gw bands from a gw calculation from a filename
 
@@ -193,7 +172,7 @@ class YamboAnalyser():
             band_index = np.array(content['Band'],dtype=int)
             band_min, band_max = min(band_index), max(band_index)
             nbands = band_max-band_min+1
-            
+           
             kpoint_index = np.array(content['Kpoint_index'],dtype=int)
             kpoint_min, kpoint_max = min(kpoint_index), max(kpoint_index)
             nkpoints = kpoint_max-kpoint_min+1
@@ -207,6 +186,14 @@ class YamboAnalyser():
                 bands_e0[nkpoint,nband] = e0i
                 bands_e[nkpoint,nband] = ei
             #end section
+
+            if path:
+                #get data from json file
+                jsonfile = list(self.jsonfiles.values())[0]
+                lat = YamboLatticeDB.from_dict(jsonfile['lattice'])
+                bands_kpoints, bands_indexes, path_car = lat.get_path(path)  
+                bands_e0 = bands_e0[bands_indexes]
+                bands_e  = bands_e[bands_indexes] 
 
             #add bands
             if 'ks' in type_calc: 

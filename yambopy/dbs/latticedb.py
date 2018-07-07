@@ -28,11 +28,11 @@ class YamboLatticeDB():
     @classmethod
     def from_db_file(cls,filename):
         """ Initialize YamboLattice from a local dbfile """
-        ydb = cls()
-        ydb.read_db(filename)
-        ydb._process()
-        ydb.expand_kpoints()
-        return ydb
+        y = cls()
+        y.read_db(filename)
+        y._process()
+        y.expand_kpoints()
+        return y
  
     @classmethod    
     def from_dict(cls,data):
@@ -47,6 +47,7 @@ class YamboLatticeDB():
         time_rev = data["time_rev"]
         y = cls(lat,alat,sym_car,iku_kpoints,atomic_positions,atomic_numbers,time_rev)
         y._process()
+        y.expand_kpoints()
         return y
 
     @classmethod
