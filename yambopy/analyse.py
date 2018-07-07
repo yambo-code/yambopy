@@ -14,6 +14,7 @@ from yambopy.duck import isstring
 from yambopy.lattice import red_car, rec_lat, expand_kpts, isbetween
 from yambopy.io.inputfile import YamboIn
 from yambopy.dbs.latticedb import YamboLatticeDB
+from yambopy.plot.plotting import add_fig_kwargs
 
 class YamboAnalyser():
     """
@@ -203,27 +204,27 @@ class YamboAnalyser():
 
         return bs
 
-    def plot_ks(self,tags=None):
+    @add_fig_kwargs
+    def plot_ks(self,path=None,tags=None):
         """
         Use this function to plot the kohn sham energies from a GW calculation
         """
         #get bands from these files
-        ks_bands = self.get_bands(tags=tags,type_calc=('ks'))
+        ks_bands = self.get_bands(tags=tags,path=path,type_calc=('ks'))
 
         #plot the bands
-        ks_bands.plot_show()
-        return ks_bands
+        return ks_bands.plot(show=False)
 
-    def plot_gw(self,tags=None):
+    @add_fig_kwargs
+    def plot_gw(self,path=None,tags=None):
         """
         Use this function to plot the quasiparticle energies from a GW calculation
         """
         #get bands from these files
-        gw_bands = self.get_bands(tags=tags,type_calc=('gw'))
+        gw_bands = self.get_bands(tags=tags,path=path,type_calc=('gw'))
 
         #plot the bands
-        gw_bands.plot_show()
-        return gw_bands
+        return gw_bands.plot(show=False)
 
     def plot_bse(self,tags,cols=(2,),ax=None):
         """

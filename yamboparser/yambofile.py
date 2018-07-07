@@ -131,37 +131,36 @@ class YamboFile(object):
         data = {}
 
         filename = '%s/%s'%(self.folder,self.filename)
-        f = Dataset(filename)
+        with Dataset(filename) as f:
 
-        #quasiparticles table
-        qp_table  = f.variables['QP_table'][:]
-        data['Kpoint_index'] = qp_table[2]
-        data['Band'] = qp_table[0]
-        if qp_table.shape[1] == 4: # spin polarized
-            data['Spin_pol'] = qp_table[:,3]
-        data['qp_table'] = qp_table[:]  # ib, ik, ,(isp if spin polarized)
-        #qpoints
-        data['Kpoint']   = f.variables['QP_kpts'][:].T
+            #quasiparticles table
+            qp_table  = f.variables['QP_table'][:]
+            data['Kpoint_index'] = qp_table[2]
+            data['Band'] = qp_table[0]
+            if qp_table.shape[1] == 4: # spin polarized
+                data['Spin_pol'] = qp_table[:,3]
+            data['qp_table'] = qp_table[:]  # ib, ik, ,(isp if spin polarized)
+            #qpoints
+            data['Kpoint']   = f.variables['QP_kpts'][:].T
 
-        #quasi-particles
-        #old format
-        if 'QP_E_Eo_Z' in f.variables:
-            qp = f.variables['QP_E_Eo_Z'][:]
-            qp = qp[0]+qp[1]*1j
-            data['E'],  data['Eo'], data['Z'] = qp.T
-            data['E-Eo'] = data['E']  -  data['Eo']
-            self.data=data
-        #new format
-        else:
-            E  = f.variables['QP_E'][:]
-            data['E'] = E[:,0] + E[:,1]*1j
-            Eo = f.variables['QP_Eo'][:]
-            data['Eo']= Eo
-            Z  = f.variables['QP_Z'][:]
-            data['Z'] = Z[:,0] + Z[:,1]*1j
-            data['E-Eo'] = data['E']  -  data['Eo']
-            self.data=data
-        f.close()
+            #quasi-particles
+            if 'QP_E_Eo_Z' in f.variables:
+                #old format
+                qp = f.variables['QP_E_Eo_Z'][:]
+                qp = qp[0]+qp[1]*1j
+                data['E'],  data['Eo'], data['Z'] = qp.T
+                data['E-Eo'] = data['E']  -  data['Eo']
+                self.data=data
+            else:
+                #new format
+                E  = f.variables['QP_E'][:]
+                data['E'] = E[:,0] + E[:,1]*1j
+                Eo = f.variables['QP_Eo'][:]
+                data['Eo']= np.array(Eo,dtype=complex)
+                Z  = f.variables['QP_Z'][:]
+                data['Z'] = Z[:,0] + Z[:,1]*1j
+                data['E-Eo'] = data['E']  -  data['Eo']
+                self.data=data
 
     @if_has_netcdf
     def parse_netcdf_hf(self):

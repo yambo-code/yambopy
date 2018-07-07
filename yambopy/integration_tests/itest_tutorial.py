@@ -34,15 +34,15 @@ class TestGW_Convergence(unittest.TestCase):
         gs_si.run_scf()
         gs_si.run_nscf()
         gs_si.run_bands()
-        gs_si.run_plot()
-        gs_si.orbitals()
+        gs_si.run_plot(show=False)
+        gs_si.plot_orbitals(show=False)
 
     def test_convergence(self):
         gw_conv_si.create_save()
         gw_conv_si.gw_convergence()
 
     def test_plot(self):
-        gw_conv_si.plot_convergence()
+        gw_conv_si.plot_convergence(show=False)
 
 #######################################################
 # Boron Nitride

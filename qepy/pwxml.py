@@ -10,9 +10,10 @@ from builtins import map
 from builtins import range
 from builtins import object
 import xml.etree.ElementTree as ET
-from   qepy.auxiliary import *
-from   numpy import array
-from   .lattice import *
+from qepy.auxiliary import *
+from numpy import array
+from .lattice import *
+from yambopy.plot.plotting import add_fig_kwargs 
 
 HatoeV = 27.2107
 
@@ -167,35 +168,37 @@ class PwXML(object):
         s += "nbands:   %d\n"%self.nbands
         return s
 
-    def plot_eigen(self,path=[],xlim=(),ylim=()):
-        """ plot the eigenvalues using matplotlib
-        """
-        import matplotlib.pyplot as plt
-        
+    def plot_eigen_ax(self,ax,path=[],xlim=(),ylim=()):
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
-            plt.xticks( *list(zip(*path)) )
-        plt.ylabel('E (eV)')
+            ax.set_xticks( *list(zip(*path)) )
+        ax.set_ylabel('E (eV)')
 
         #plot vertical line
         for point in path:
             x, label = point
-            plt.axvline(x)
-        plt.axhline(0)
+            ax.axvline(x)
+        ax.axhline(0)
 
         #plot bands
         eigen = array(self.eigen)
         for ib in range(self.nbands):
-           plt.plot(list(range(self.nkpoints)),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
+           ax.plot(list(range(self.nkpoints)),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
 
         #plot options
-        if xlim:
-          plt.xlim(xlim)
-        if ylim:
-          plt.ylim(ylim)
+        if xlim: ax.set_xlim(xlim)
+        if ylim: ax.set_ylim(ylim)
 
-        plt.show()
+    @add_fig_kwargs
+    def plot_eigen(self,path=[],xlim=(),ylim=()):
+        """ plot the eigenvalues using matplotlib
+        """
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        self.plot_eigen_ax(ax)
+        return fig
 
     def write_eigen(self,fmt='gnuplot'):
         """ write eigenvalues to a text file

@@ -68,13 +68,6 @@ class YamboBandStructure():
         ax.set_ylim(*ylim)    
         ax.legend()
     
-    def plot_show(self):
-        """plot the graph and show"""
-        fig = self.plot()
-        if fig:
-            plt.show()
-            plt.close()
-
     def save_pdf(self,filename):
         """save the plot as a pdf file"""
         fig = self.plot()

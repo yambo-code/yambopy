@@ -104,19 +104,20 @@ def bands():
     qe.set_path(p)
     qe.write('bands/%s.bands'%prefix)
 
-def orbitals():
+def plot_orbitals(show=True):
     f = open('proj.in','w')
     projwfc = ProjwfcIn('si')
     projwfc.write(folder='bands')
     projwfc.run(folder='bands')
     projection = ProjwfcXML(prefix='si',path='bands')
     import matplotlib.pyplot as plt
-    ax = plt.subplot(1,1,1)
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
     s_orb = [0,16]
     p_orb = [1,2,3,17,19,20]
     projection.plot_eigen(ax,path=p,selected_orbitals=s_orb,selected_orbitals_2=p_orb,size=40,cmap='RdBu')
     ax.set_ylim([-7,6])
-    plt.show()
+    if show: plt.show()
 
 def phonons():
     os.system('mkdir -p phonons')
@@ -198,10 +199,10 @@ def run_bands(nthreads=1):
     os.system("cd bands; mpirun -np %d %s -inp %s.bands > bands.log"%(nthreads,pw,prefix))
     print("done!")
 
-def run_plot():
+def run_plot(show=True):
     print("running plotting:")
     xml = PwXML(prefix='si',path='bands')
-    xml.plot_eigen(p)
+    xml.plot_eigen(p,show=show)
 
 def run_phonon(nthreads=1):
     print("running phonons:")
@@ -251,5 +252,5 @@ if __name__ == "__main__":
         run_bands(args.nthreads)
         run_plot()
     if args.orbitals:
-        orbitals()
+        plot_orbitals()
 
