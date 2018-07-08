@@ -68,11 +68,6 @@ class YamboBandStructure():
         ax.set_ylim(*ylim)    
         ax.legend()
     
-    def save_pdf(self,filename):
-        """save the plot as a pdf file"""
-        fig = self.plot()
-        plt.savefig("%s.pdf",filename)
-
     def __add__(self,y):
         bands = self.bands + y.bands
         distances = self.distances + y.distances

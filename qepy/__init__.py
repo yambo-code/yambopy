@@ -1,8 +1,7 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
-#
 #
 """
 Scripts to manipulate Quantum Espresso input files

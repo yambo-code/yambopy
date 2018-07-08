@@ -6,7 +6,7 @@
 from itertools import product, chain
 import numpy as np
 from netCDF4 import Dataset
-from yambopy.jsonencoder import JsonDumper, JsonLoader
+from yambopy.tools.jsonencoder import JsonDumper, JsonLoader
 from yambopy.lattice import rec_lat, car_red, red_car, vec_in_list, isbetween
 from yambopy.units import atomic_mass
 from qepy.lattice import Path

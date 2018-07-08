@@ -1,14 +1,8 @@
-from __future__ import print_function
-from __future__ import absolute_import
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
-from builtins import zip
-from builtins import map
-from builtins import range
-from builtins import object
 import xml.etree.ElementTree as ET
 from qepy.auxiliary import *
 from numpy import array
@@ -17,7 +11,7 @@ from yambopy.plot.plotting import add_fig_kwargs
 
 HatoeV = 27.2107
 
-class PwXML(object):
+class PwXML():
     """ Class to read data from a Quantum espresso XML file
     """
     _eig_xml  = 'eigenval.xml'

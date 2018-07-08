@@ -10,7 +10,7 @@ import re
 from itertools import product
 import numpy as np
 from yambopy.plot.bandstructure import YamboBandStructure
-from yambopy.duck import isstring
+from yambopy.tools.duck import isstring
 from yambopy.lattice import red_car, rec_lat, expand_kpts, isbetween
 from yambopy.io.inputfile import YamboIn
 from yambopy.dbs.latticedb import YamboLatticeDB

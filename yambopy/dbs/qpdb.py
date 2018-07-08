@@ -3,9 +3,10 @@
 #
 # This file is part of the yambopy project
 #
-from yambopy import *
-from yamboparser import *
 import os
+import numpy as np
+from yambopy.units import ha2ev
+from yamboparser import YamboFile
 
 class YamboQPDB():
     """
@@ -23,42 +24,79 @@ class YamboQPDB():
         if os.path.isfile('%s/%s'%(folder,filename)):
             self.yfile = YamboFile(filename,folder)
         else:
-            raise ValueError('File %s/%s not found'%(folder,filename))
+            raise IOError('File %s/%s not found'%(folder,filename))
 
-        qps = self.yfile.data
-        self.qps   = qps
-        self.nqps  = len(qps['E'])
-        self.nkpoints = len(qps['Kpoint'])
-
-        #get kpoints
-        kpts=[]
-        for nk in range(self.nkpoints):
-            kpts.append(qps['Kpoint'][nk])
-        self.kpoints = np.array(kpts)
-
-        #get nbands
-        min_band = int(qps['Band'][0])
-        max_band = int(qps['Band'][0])
-        for iqp in range(self.nqps):
-            band  = int(qps['Band'][iqp])
-            if min_band > band: min_band = band
-            if max_band < band: max_band = band
-        self.min_band = min_band
-        self.max_band = max_band
-        self.nbands = max_band-min_band+1
+        self.qps          = self.yfile.data
+        self.kpoints      = np.array(self.qps['Kpoint'])
+        self.kpoint_index = np.array(np.array(self.qps['Kpoint_index']),dtype=int)
+        self.band_index   = np.array(np.array(self.qps['Band'],dtype=int))
+        self.e0           = self.qps['Eo'].real
+        self.e            = self.qps['E'].real
+        self.linewidths   = self.qps['E'].imag
 
         #read the database
         self.eigenvalues_qp, self.eigenvalues_dft, self.lifetimes = self.get_qps()
 
+    def get_qps(self):
+        """
+        Get quasiparticle energies in a list
+        """
+        #start arrays
+        eigenvalues_dft = np.zeros([self.nkpoints,self.nbands])
+        eigenvalues_qp  = np.zeros([self.nkpoints,self.nbands])
+        linewidths      = np.zeros([self.nkpoints,self.nbands])
+        for ei,e0i,li,ki,ni in zip(self.e,self.e0,self.linewidths,self.kpoint_index,self.band_index):
+            nkpoint = ki-self.min_kpoint
+            nband = ni-self.min_band
+            eigenvalues_dft[nkpoint,nband] = e0i
+            eigenvalues_qp[nkpoint,nband] = ei
+            linewidths[nkpoint,nband] = li
+
+        return eigenvalues_dft, eigenvalues_qp, linewidths
+
+    def get_bs():
+        """
+        Get bandstructure
+        """
+
+    @property
+    def nqps(self):
+        return len(self.qps)
+
+    @property
+    def min_kpoint(self):
+        return min(self.kpoint_index)
+
+    @property
+    def max_kpoint(self):
+        return max(self.kpoint_index)
+
+    @property
+    def nbands(self):
+        return self.max_band-self.min_band+1
+
+    @property
+    def min_band(self):
+        return min(self.band_index)
+
+    @property
+    def max_band(self):
+        return max(self.band_index)
+
+    @property
+    def nkpoints(self):
+        return len(self.kpoints)
+    
     def qp_bs(self,lattice,path,debug=False):
         """
-        Calculate qusi-particle band-structure
+        Calculate quasi-particle band-structure
         """
         #get full kmesh
         kpoints = lattice.red_kpoints
         path = np.array(path)
 
-        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(-1,2)))
+        reps = list(range(-1,2))
+        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=reps,repy=reps,repz=reps)
         band_indexes = get_path(kpoints_rep,path)
         band_kpoints = kpoints_rep[band_indexes]
         band_indexes = kpoints_idx_rep[band_indexes]
@@ -86,7 +124,6 @@ class YamboQPDB():
         energies_qp  = energies_qp[band_indexes]
 
         return np.array(band_kpoints), energies_dft, energies_qp
- 
 
     def plot_qp_bs(self,ax,lattice,path,what='DFT,QP',debug=False,label=False,**args):
         """
@@ -121,39 +158,10 @@ class YamboQPDB():
         plt.xlim([xmin,xmax])
         return kpath_distances
 
-    def get_qps(self):
-        """
-        Get quasiparticle energies in a list
-        """
-        #get dimensions
-        nqps   = self.nqps
-        nkpts  = self.nkpoints
-
-        qps  = self.qps
-        kpts = self.kpoints
-        nbands = int(np.max(qps['Band'][:]))
-
-        #start arrays
-        eigenvalues_dft = np.zeros([nkpts,nbands])
-        eigenvalues_qp  = np.zeros([nkpts,nbands])
-        lifetimes       = np.zeros([nkpts,nbands])
-        for iqp in range(nqps):
-            kindx = int(qps['Kpoint_index'][iqp])
-            e     = qps['E'][iqp]*ha2ev
-            e0    = qps['Eo'][iqp]*ha2ev
-            band  = int(qps['Band'][iqp])
-            kpt   = ("%8.4lf "*3)%tuple(kpts[kindx-1])
-            Z     = qps['Z'][iqp]
-            eigenvalues_qp[kindx-1,band-1] = e.real
-            eigenvalues_dft[kindx-1,band-1] = e0.real
-            lifetimes[kindx-1,band-1] = e.imag
-
-        return eigenvalues_qp, eigenvalues_dft, lifetimes
-
     def __str__(self):
-        s = ""
-        s += "nqps:     %d\n"%self.nqps
-        s += "nkpoints: %d\n"%self.nkpoints
-        s += "nbands:   %d\n"%self.nbands
-        return s
+        lines = []; app = lines.append
+        app("nqps:     %d"%self.nqps)
+        app("nkpoints: %d"%self.nkpoints)
+        app("nbands:   %d"%self.nbands)
+        return "\n".join(lines)
 

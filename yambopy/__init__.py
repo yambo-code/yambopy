@@ -31,7 +31,7 @@ Modules:
         - recipes: user contributed scripts
 """
 import numpy as np
-from yambopy.jsonencoder import *
+from yambopy.tools.jsonencoder import *
 from yambopy.units import *
 
 #yambo databases

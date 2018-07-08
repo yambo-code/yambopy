@@ -12,7 +12,7 @@ from netCDF4 import Dataset
 
 from .yambofile import YamboFile
 from yambopy import YamboIn
-from yambopy.jsonencoder import JsonDumper
+from yambopy.tools.jsonencoder import JsonDumper
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.units import ha2ev
 

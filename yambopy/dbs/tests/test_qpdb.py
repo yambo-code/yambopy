@@ -16,9 +16,12 @@ class TestYamboQPDB(unittest.TestCase):
         qpdb = YamboQPDB(folder=test_path)
 
         #get qp dbb
-        qpdb.get_qps()
+        eigenvalues_qp, eingenvalues_dft, lifetimes = qpdb.get_qps()
 
-        string1 = str(qpdb)
+        #get bs
+        #bs = qpdb.get_bs()        
+
+        print(qpdb)
 
 if __name__ == '__main__':
     unittest.main()

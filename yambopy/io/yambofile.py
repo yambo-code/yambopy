@@ -1,4 +1,4 @@
-from yambopy.duck import isstring
+from yambopy.tools.duck import isstring
 import yamboparser
 
 class YamboFile(yamboparser.YamboFile):

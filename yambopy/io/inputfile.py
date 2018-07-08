@@ -7,7 +7,7 @@ from subprocess import Popen, PIPE
 import os
 import json
 import re
-from yambopy.duck import isstring
+from yambopy.tools.duck import isstring
 
 class YamboIn(object):
     """
