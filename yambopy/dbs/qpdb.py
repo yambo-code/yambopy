@@ -33,9 +33,9 @@ class YamboQPDB():
         self.kpoints      = np.array(self.qps['Kpoint'])
         self.kpoint_index = np.array(np.array(self.qps['Kpoint_index']),dtype=int)
         self.band_index   = np.array(np.array(self.qps['Band'],dtype=int))
-        self.e0           = self.qps['Eo'].real
-        self.e            = self.qps['E'].real
-        self.linewidths   = self.qps['E'].imag
+        self.e0           = self.qps['Eo'].real*ha2ev
+        self.e            = self.qps['E'].real*ha2ev
+        self.linewidths   = self.qps['E'].imag*ha2ev
 
         #read the database
         self.eigenvalues_qp, self.eigenvalues_dft, self.lifetimes = self.get_qps()

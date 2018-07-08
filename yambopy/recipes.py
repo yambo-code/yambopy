@@ -5,9 +5,10 @@
 # This file is part of yambopy
 #
 #
-from yambopy import *
 import os
 from operator import itemgetter
+from collections import OrderedDict
+from yambopy import *
 
 #
 # by Henrique Miranda. 
@@ -70,91 +71,50 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose=Fal
     print('Conduction state   %6d %6d'%(kpointc, bandc))
     print('   Valence state   %6d %6d'%(kpointv, bandv))
 
-    # Packing results (o-* files) from the calculations into yambopy-friendly .json files
-    if pack:
-        if verbose: print('\nPacking...')
-        pack_files_in_folder(folder,mask=var,verbose=verbose)
-        pack_files_in_folder(folder,mask='reference',verbose=verbose)
+    #find all ndb.QP files in the folder
+    io = OrderedDict()
+    for root, dirs, files in os.walk(folder):
+        #get starting name of folder
+        basename = os.path.basename(root)
+        #look into folders starting with var or reference
+        if any( [basename.startswith(v) for v in [var,'reference']] ):
+            for filename in files:
+                if filename != 'ndb.QP': continue
+                #get ndb.QP file in folder
+                io[basename] = ( YamboIn(folder=folder,filename="%s.in"%basename),
+                                 YamboQPDB(folder=root,filename=filename) )
+
+    #consistency check
+    #TODO
+
+    convergence_data = []
+    for basename, (inp,out) in io.items():
+        #get input
+        value, unit = inp[var]
+
+        #get qp value
+        eigenvalues_dft, eigenvalues_qp, lifetimes = out.get_qps()
         
-    # importing data from .json files in <folder>
-    if verbose: print('\nImporting data...')
-    ya = YamboAnalyser(folder)
-    
-    # extract data according to relevant variable
-    outvars = ya.get_data(tags=(var,'reference'))
-    invars = ya.get_inputfiles_tag(var)
-    tags = ya.get_tags(tags=(var,'reference'))
-
-    # Get only files related to the convergence study of the variable,
-    # ordered to have a smooth plot
-    keys=[key for key in invars.keys() if key.startswith(var) or key=='reference.json']
-
-    if len(keys) == 0: 
-        raise ValueError('No files with this variable were found')
-
-    if verbose:
-        print('\nFiles detected:')
-        for key in keys:
-            print(" "*4,key)
-
-    if verbose: print('\nComputing values...')
-    ### Output
-
-    # Unit of the variable :
-    unit = invars[keys[0]]['variables'][var][1]
-
-    # The following variables are used to make the script compatible with both short and extended output
-    #kpindex = tags[keys[0]].tolist().index('K-point')
-    kpindex = tags[keys[0]].tolist().index('Kpoint_index') # netcdf from json
-    bdindex = tags[keys[0]].tolist().index('Band')
-    e0index = tags[keys[0]].tolist().index('Eo')
-    gwindex = tags[keys[0]].tolist().index('E-Eo')
-    array = np.zeros((len(keys),2))
-
-    for i,key in enumerate(keys):
-
-        # input value
-        # GbndRnge and BndsRnX_ are special cases
-        if var.startswith('GbndRng') or var.startswith('BndsRnX'):
-            # format : [1, nband, ...]
-            array[i][0] = invars[key]['variables'][var][0][1]
-        else:
-            array[i][0] = invars[key]['variables'][var][0]
-
-        # Output value (gap energy)
-        # First the relevant lines are identified
-        valence=[]
-        conduction=[]
-        for j in range(len(outvars[key]+1)):
-            this_state = outvars[key][j]
-            current_kpoint = this_state[kpindex]
-            current_band   = this_state[bdindex]
-            if   current_kpoint == kpointc and current_band == bandc:
-                conduction = this_state
-            elif current_kpoint == kpointv and current_band == bandv:
-                valence = this_state
-        # Then the gap can be calculated
-        array[i][1] = conduction[e0index]+conduction[gwindex]-(valence[e0index]+valence[gwindex])
-
-    #ascending order
-    array = sorted( array, key=lambda x: x[0] )
-
+        #save result
+        qp_gap = eigenvalues_qp[kpointc-1,bandc-1] - eigenvalues_qp[kpointv-1,bandv-1]
+        convergence_data.append([value,qp_gap])
+    convergence_data = np.array(sorted(convergence_data))
+ 
     if text:
-        os.system('mkdir -p analyse_%s'%folder)
-        outname = './analyse_%s/%s_%s.dat'%(folder,folder,var)
-        header = var+' ('+str(unit)+'), gap'
-        np.savetxt(outname,array,delimiter='\t',header=header)
-        if verbose: print('\nData saved to ',outname)
+        output_folder = 'analyse_%s'%folder
+        if not os.path.isdir(output_folder): os.mkdir(output_folder)
+        outname = os.path.join(output_folder,'%s_%s.dat'%(folder,var))
+        header = var+' ('+str(unit)+')'
+        np.savetxt(outname,convergence_data,delimiter='\t',header=header)
 
     if draw:
-        plt.plot(array[:,0],array[:,1],'o-')
-        plt.xlabel(var+' ('+unit+')')
-        plt.ylabel('E_gw = E_lda + \Delta E')
-        plt.savefig('%s.png'%var)
-        if 'DISPLAY' in os.environ:
-            plt.show()
-    
-    if verbose: print("\nDone")
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        ax.plot(convergence_data[:,0],convergence_data[:,1],'o-')
+        ax.xlabel(var+' ('+unit+')')
+        ax.set_ylabel('E_gw = E_lda + \Delta E')
+        fig.savefig('%s.png'%var)
+
 #
 # by Alexandre Morlet
 #
@@ -311,8 +271,6 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw,verbose
         plt.plot(excitons[:,0],excitons[:,1])
         plt.tight_layout()
         plt.savefig(filename, dpi=300, bbox_inches='tight')
-        if 'DISPLAY' in os.environ:
-            plt.show()
         print(filename)
 
         ## Spectra plots
@@ -326,8 +284,6 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw,verbose
         plt.legend(frameon=False)
         plt.tight_layout()
         plt.savefig(filename, dpi=300, bbox_inches='tight')
-        if 'DISPLAY' in os.environ:
-            plt.show()
         print(filename)
     else:
         print('-nd flag : no plot produced.')
@@ -691,8 +647,6 @@ def plot_excitons(filename,cut=0.2,size=20):
     #remove extension from file
     figure_filename = os.path.splitext(filename)[0]
     plt.savefig('%s.png'%figure_filename)
-    if 'DISPLAY' in os.environ:
-        plt.show()
 
 
 
