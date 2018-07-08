@@ -15,6 +15,7 @@ from yambopy.lattice import red_car, rec_lat, expand_kpts, isbetween
 from yambopy.io.inputfile import YamboIn
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.plot.plotting import add_fig_kwargs
+from yambopy.tools.string import marquee
 
 class YamboAnalyser():
     """
@@ -124,18 +125,18 @@ class YamboAnalyser():
 
         return inputfiles_tags
 
-    def get_inputfiles(self):
-        """
-        Get all the inputfiles from the different .json files
-        Each .json file contains all the output files in a folder
-        """
-
-        inputfiles = dict()
-        for k in self.jsonfiles:
-            inputfiles[k] = dict()
-            for key,val in list(self.jsonfiles[k]["inputfile"].items()):
-                inputfiles[k][key] = val
-        return inputfiles
+#    def get_inputfiles(self):
+#        """
+#        Get all the inputfiles from the different .json files
+#        Each .json file contains all the output files in a folder
+#        """
+#
+#        inputfiles = dict()
+#        for k in self.jsonfiles:
+#            inputfiles[k] = dict()
+#            for key,val in list(self.jsonfiles[k]["inputfile"].items()):
+#                inputfiles[k][key] = val
+#        return inputfiles
 
     def get_bands(self,tags=None,bs=None,path=None,type_calc=('ks','gw')):
         """
@@ -310,9 +311,10 @@ class YamboAnalyser():
                 print(y+'\n')
 
     def __str__(self):
-        s = ""
+        lines = []; app = lines.append
+        app(marquee(self.__class__.__name__))
         for json_file in self.jsonfiles:
-            s+="%s\n"%json_file
+            app("%s"%json_file)
             for f in self.jsonfiles[json_file]['files']:
-                s+="\t%s\n"%f
-        return s
+                app("\t%s"%f)
+        return "\n".join(lines)

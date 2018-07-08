@@ -118,11 +118,12 @@ class YamboIn(object):
         try:
             yambofile = open(filename,"r")
         except IOError:
-            print('Could not read the file %s'%filename)
-            print('Something is wrong, yambo did not create the input file. Or the file you are trying to read does not exist')
-            print('command: %s'%self.yamboargs)
-            print('folder:  %s/'%self.folder)
-            exit(1)
+            lines = []; app = lines.append
+            app('Could not read the file %s'%filename)
+            app('Something is wrong, yambo did not create the input file. Or the file you are trying to read does not exist')
+            app('command: %s'%self.yamboargs)
+            app('folder:  %s/'%self.folder)
+            raise IOError("\n".join(lines))
         inputfile = self.read_string(yambofile.read())
         yambofile.close()
 
@@ -306,7 +307,7 @@ class YamboIn(object):
                 if val > 1e-6:
                     s+="%s = %lf %s\n"%(key,val,unit)
                 else:
-                    s+="%s = %e %s\n"%(key,val,unit)
+                    s+="%s = %lf %s\n"%(key,val,unit)
                 continue
             if isinstance(value[0],int):
                 val, unit = value

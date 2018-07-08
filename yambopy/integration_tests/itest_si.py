@@ -160,7 +160,6 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
 
         y.optimize(conv,run=run)
 
-    @unittest.skip("analysegw needs to be refactored")
     def test_yambopy_analysegw(self):
         """ Test the yambopy analysegw executable
         """
