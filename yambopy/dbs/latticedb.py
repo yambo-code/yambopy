@@ -9,6 +9,7 @@ from netCDF4 import Dataset
 from yambopy.tools.jsonencoder import JsonDumper, JsonLoader
 from yambopy.lattice import rec_lat, car_red, red_car, vec_in_list, isbetween
 from yambopy.units import atomic_mass
+from yambopy.tools.string import marquee
 from qepy.lattice import Path
 
 class YamboLatticeDB():
@@ -242,10 +243,11 @@ class YamboLatticeDB():
         return bands_kpoints, bands_indexes, path_car
 
     def __str__(self):
-        lines = []
-        lines.append("\nlattice:")
+        lines = []; app = lines.append
+        app(marquee(self.__class__.__name__))
+        app("\nlattice:")
         lines += [("%12.8lf " * 3) % tuple(vec) for vec in self.lat]
-        lines.append("\natom positions:")
+        app("\natom positions:")
         for an, pos in zip(self.atomic_numbers, self.atomic_positions):
-            lines.append( "%3d " % an + ("%12.8lf " * 3) % tuple(pos) )
+            app( "%3d " % an + ("%12.8lf " * 3) % tuple(pos) )
         return "\n".join(lines)

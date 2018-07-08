@@ -66,6 +66,8 @@ class YamboBandStructure():
         ax.set_xlim(*xlim)    
         if not ylim: ylim = (min(bands),max(bands))
         ax.set_ylim(*ylim)    
+        ax.set_ylabel('Energies (eV)')
+        ax.xaxis.set_ticks([])
         ax.legend()
     
     def __add__(self,y):

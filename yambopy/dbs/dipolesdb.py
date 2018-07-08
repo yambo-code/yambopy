@@ -6,6 +6,7 @@
 from yambopy import *
 from math import sqrt
 from time import time
+from yambopy.tools.string import marquee
 
 max_exp = 50
 min_exp =-100.
@@ -264,20 +265,21 @@ class YamboDipolesDB():
         return freq, eps2
 
     def __str__(self):
-        s = ""
-        s += "\nkpoints:\n"
-        s += "nk_ibz : %d\n"%self.nk_ibz
-        s += "nk_bz  : %d\n"%self.nk_bz
-        s += "\nnumber of bands:\n"
-        s += "nbands : %d\n" % self.nbands
-        s += "nbandsv: %d\n" % self.nbandsv
-        s += "nbandsc: %d\n" % self.nbandsc
-        s += "indexv : %d\n" % (self.min_band-1)
-        s += "indexc : %d\n" % (self.indexc-1)
-        s += "field_dirx: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_dirx)
-        s += "field_diry: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_diry)
-        s += "field_dirz: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_dirz)
-        return s
+        lines = []; app = lines.append
+        app(marquee(self.__class__.__name__))
+        app("kpoints:")
+        app("nk_ibz : %d"%self.nk_ibz)
+        app("nk_bz  : %d"%self.nk_bz)
+        app("bands:")
+        app("nbands : %d" % self.nbands)
+        app("nbandsv: %d" % self.nbandsv)
+        app("nbandsc: %d" % self.nbandsc)
+        app("indexv : %d" % (self.min_band-1))
+        app("indexc : %d" % (self.indexc-1))
+        app("field_dirx: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirx))
+        app("field_diry: %10.6lf %10.6lf %10.6lf"%tuple(self.field_diry))
+        app("field_dirz: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirz))
+        return "\n".join(lines)
 
 if __name__ == "__main__":
     ddb = DipolesDB()

@@ -18,8 +18,8 @@ class TestYamboQPDB(unittest.TestCase):
         #get qp dbb
         eigenvalues_qp, eingenvalues_dft, lifetimes = qpdb.get_qps()
 
-        #get bs
-        #bs = qpdb.get_bs()        
+        #plot bs
+        qpdb.plot_bs(show=False)
 
         print(qpdb)
 

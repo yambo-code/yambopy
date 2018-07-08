@@ -33,10 +33,8 @@ class TestYamboLatticeDB(unittest.TestCase):
                    [[0.0,0.0,0.0],'G'],
                    [[0.5,0.0,0.0],'L']], [20,20,20])
         bands_kpoints, bands_indexes, path_car = ydb.get_path(p)
-        print(bands_kpoints)
-        print(bands_indexes)
-        print(path_car)
 
+        print(ydb)
 
     def tearDown(self): 
         os.remove('lattice.json')
