@@ -82,7 +82,7 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose=Fal
                 if filename != 'ndb.QP': continue
                 #get ndb.QP file in folder
                 io[basename] = ( YamboIn(folder=folder,filename="%s.in"%basename),
-                                 YamboQPDB(folder=root,filename=filename) )
+                                 YamboQPDB.from_db(folder=root,filename=filename) )
 
     #consistency check
     #TODO

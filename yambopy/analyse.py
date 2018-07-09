@@ -125,19 +125,6 @@ class YamboAnalyser():
 
         return inputfiles_tags
 
-#    def get_inputfiles(self):
-#        """
-#        Get all the inputfiles from the different .json files
-#        Each .json file contains all the output files in a folder
-#        """
-#
-#        inputfiles = dict()
-#        for k in self.jsonfiles:
-#            inputfiles[k] = dict()
-#            for key,val in list(self.jsonfiles[k]["inputfile"].items()):
-#                inputfiles[k][key] = val
-#        return inputfiles
-
     def get_bands(self,tags=None,bs=None,path=None,type_calc=('ks','gw')):
         """
         Get the gw bands from a gw calculation from a filename
@@ -217,7 +204,7 @@ class YamboAnalyser():
         return ks_bands.plot(show=False)
 
     @add_fig_kwargs
-    def plot_gw(self,path=None,tags=None):
+    def plot_gw(self,path=None,tags=None,**kwargs):
         """
         Use this function to plot the quasiparticle energies from a GW calculation
         """

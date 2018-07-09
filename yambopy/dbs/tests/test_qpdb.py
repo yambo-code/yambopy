@@ -13,7 +13,7 @@ class TestYamboQPDB(unittest.TestCase):
     def test_yamboqpdb(self):
 
         #open qpdb
-        qpdb = YamboQPDB(folder=test_path)
+        qpdb = YamboQPDB.from_db(folder=test_path)
 
         #get qp dbb
         eigenvalues_qp, eingenvalues_dft, lifetimes = qpdb.get_qps()

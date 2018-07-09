@@ -18,28 +18,30 @@ class YamboQPDB():
     These files describe the quasiparticle states calculated from yambo
     Includes the quasi-particl energies, the lifetimes and the Z factors
     """
-    def __init__(self,filename='ndb.QP',folder='.'):
+    def __init__(self,qps):
         """
-        Read a QP file using the yamboparser
+        Initialize the YamboQP class
         """
-        self.folder = folder
-        self.filename = filename
+        self.qps          = qps
+        self.kpoints      = np.array(qps['Kpoint'])
+        self.kpoint_index = np.array(qps['Kpoint_index'],dtype=int)
+        self.band_index   = np.array(qps['Band'],dtype=int)
+        self.e0           = np.array(qps['Eo']).real*ha2ev
+        self.e            = np.array(qps['E']).real*ha2ev
+        self.linewidths   = np.array(qps['E']).imag*ha2ev
+        self.eigenvalues_qp, self.eigenvalues_dft, self.lifetimes = self.get_qps()
+    
+    @classmethod
+    def from_db(cls,filename='ndb.QP',folder='.'):
+        """
+        Create instance of this class from a ndb.QP file
+        """
         if os.path.isfile('%s/%s'%(folder,filename)):
-            self.yfile = YamboFile(filename,folder)
+            yfile = YamboFile(filename,folder)
         else:
             raise IOError('File %s/%s not found'%(folder,filename))
-
-        self.qps          = self.yfile.data
-        self.kpoints      = np.array(self.qps['Kpoint'])
-        self.kpoint_index = np.array(np.array(self.qps['Kpoint_index']),dtype=int)
-        self.band_index   = np.array(np.array(self.qps['Band'],dtype=int))
-        self.e0           = self.qps['Eo'].real*ha2ev
-        self.e            = self.qps['E'].real*ha2ev
-        self.linewidths   = self.qps['E'].imag*ha2ev
-
-        #read the database
-        self.eigenvalues_qp, self.eigenvalues_dft, self.lifetimes = self.get_qps()
-
+        return cls.from_yambofile_data(yfile.data)
+    
     def get_qps(self):
         """
         Get quasiparticle energies in a list
