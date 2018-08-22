@@ -40,7 +40,7 @@ class YamboQPDB():
             yfile = YamboFile(filename,folder)
         else:
             raise IOError('File %s/%s not found'%(folder,filename))
-        return cls.from_yambofile_data(yfile.data)
+        return cls(yfile.data)
     
     def get_qps(self):
         """
