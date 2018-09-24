@@ -5,8 +5,6 @@
 # This file is part of the yambopy project
 #
 from __future__ import print_function, division
-from yambopy import *
-from yambopy.plot  import *
 import os
 
 class YamboBSEAbsorptionSpectra(YamboSaveDB):
