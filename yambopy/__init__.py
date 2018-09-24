@@ -32,6 +32,7 @@ Modules:
 """
 import numpy as np
 from yambopy.tools.jsonencoder import *
+from yambopy.tools.env import *
 from yambopy.units import *
 
 #yambo databases
