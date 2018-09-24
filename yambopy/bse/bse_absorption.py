@@ -6,6 +6,7 @@
 #
 from __future__ import print_function, division
 import os
+from yambopy.dbs.savedb import YamboSaveDB
 
 class YamboBSEAbsorptionSpectra(YamboSaveDB):
     """
