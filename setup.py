@@ -7,7 +7,6 @@ packages_yambopy = ['yambopy',
                     'yambopy.rt',
                     'yambopy.data',
                     'yambopy.plot',
-                    'yambopy.tools',
                     'qepy',
                     'schedulerpy',
                     'yamboparser']
