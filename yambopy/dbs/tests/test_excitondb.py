@@ -43,8 +43,8 @@ class TestYamboExcitonDB(unittest.TestCase):
         #exc.plot_exciton_bs(ax, lat, electrons, path, (1,2,), args_plot={'c':'g'},space='bands')
 
     def tearDown(self):
-        os.remove('exc_I.dat')
-        os.remove('exc_E.dat')
+        if os.path.isfile('exc_I.dat'): os.remove('exc_I.dat')
+        if os.path.isfile('exc_E.dat'): os.remove('exc_E.dat')
 
 
 if __name__ == '__main__':
