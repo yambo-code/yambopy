@@ -32,7 +32,8 @@ from schedulerpy import Scheduler
 from qepy.pw import PwIn
 from qepy import qepyenv
 from yambopy import yambopyenv
-from yambopy.tools.duck import isiter
+from yambopy.tools.string import marquee
+from yambopy.tools.duck import isiter, isstring
 from yambopy.io.inputfile import YamboIn
 
 __all__ = [
@@ -59,15 +60,30 @@ class YambopyFlow():
     Handle multiple tasks and their interdependencies
     Monitor the progress
     """
-    def __init__(self,foldername,tasks):
+    _picklename = "__yambopyflow__"
+
+    def __init__(self,path,tasks):
         if not isiter(tasks): 
             self._tasks = [tasks]
         self._tasks = tasks 
-        self.foldername = foldername
+        self.path = path
 
     @classmethod
-    def from_tasks(cls,foldername,tasks):
-        return cls(foldername,tasks)
+    def from_tasks(cls,path,tasks):
+        return cls(path,tasks)
+
+    @classmethod
+    def from_pickle(cls,pickle_filename):
+        import pickle
+        with open(pickle_filename,'rb') as f:
+            pickle = pickle.load(f)
+        return pickle
+
+    @classmethod
+    def from_folder(cls,flow_folder):
+        pickle_filename = os.path.join(flow_folder,cls._picklename)
+        if not os.path.isfile(pickle_filename): raise FileNotFoundError('pickle not found in %s'%pickle_filename)
+        return cls.from_pickle(pickle_filename)
 
     @property
     def dependencies(self):
@@ -76,7 +92,11 @@ class YambopyFlow():
         for task in self._tasks:
             dependencies.append(task.dependencies)
         return dependencies
-   
+
+    @property  
+    def name(self):
+        return self.__class__.__name__
+ 
     @property
     def tasks(self):
         return self._tasks
@@ -87,24 +107,40 @@ class YambopyFlow():
 
     def create(self):
         """Create a folder to run the flow"""
-        if os.path.isdir(self.foldername):
-            raise ValueError('A folder with name %s already exists. Please remove it of change the name of the flow')
-        os.mkdir(self.foldername)
+        if os.path.isdir(self.path):
+            raise ValueError('A folder with name %s already exists.\n'
+                             'Please remove it of change the name of the flow')
+        os.mkdir(self.path)
 
         #initialize each task
         for it,task in enumerate(self.tasks):
             #create folder   
-            os.mkdir(os.path.join(self.foldername,'t%d'%it))
+            os.mkdir(os.path.join(self.path,'t%d'%it))
             #initialize each task
-            task.initialize(os.path.join(self.foldername,'t%d'%it))
+            task.initialize(os.path.join(self.path,'t%d'%it))
 
+        self.pickle()
+
+    def dump_run(self):
+        """Create a bash script to run the whole flow"""
         #create a general run script
         lines = ['cd t%s; sh run.sh; cd ..'%n for n in range(self.ntasks)] 
-        with open(os.path.join(self.foldername,'run.sh'),'w') as f:
+        with open(os.path.join(self.path,'run.sh'),'w') as f:
             f.write('\n'.join(lines))
 
+    def run(self):
+        """Run tasks one by one"""
+        pass
+
+    def pickle(self):
+        """store the flow in a pickle"""
+        import pickle
+        pickle_filename = os.path.join(self.path,self._picklename)
+        with open(pickle_filename,'wb') as f:
+            pickle.dump(self,f)
+
     def clean(self):
-        shutil.rmtree(self.foldername)
+        shutil.rmtree(self.path)
 
     def get_status(self):
         lines = []; app = lines.append
@@ -112,11 +148,18 @@ class YambopyFlow():
 
     def __str__(self):
         lines = []; app = lines.append
+        app(marquee(self.name))
         for it,task in enumerate(self.tasks):
-            app(str(task))
+            app("%10s  %s"%(str(task.name),task.exitcode))
         return "\n".join(lines)
 
-
+def task_init(initialize):
+    def new_initialize(self,path):
+        initialize(self,path)
+        self.path = path
+        self.initialized = True
+    return new_initialize
+    
 class YambopyTask():
     """
     Generic task for yambopy
@@ -128,20 +171,59 @@ class YambopyTask():
         outputs: the output files produced when running the executable
         scheduler: the scheduler to run the task
     """
-    def __init__(self,inputs,executable,scheduler,dependencies=None):
+    _yambopystatus = "__yambopystatus__"
+
+    def __init__(self,inputs,executable,scheduler,dependencies=None,initialized=False):
         if not isiter(inputs): inputs = [inputs]
         self.inputs = inputs
         self.executable = executable
         self.nlog = None
         self.nerr = None
-        self.scheduler = scheduler
-        if dependencies is None:
-            self._dependencies = None
-        elif not isiter(dependencies): 
-            self._dependencies = [dependencies]
-        else:
-            ValueError('Unknown dependency type')
         self.outputs = None
+        self.initialized = initialized
+
+        #scheduler
+        self.scheduler_setup(scheduler)
+ 
+        #dependencies
+        if dependencies is None: self._dependencies = None
+        elif not isiter(dependencies): self._dependencies = [dependencies]
+        else: ValueError('Unknown dependency type')
+
+    def scheduler_setup(self,scheduler):
+        """Setup the scheduler for this task"""
+        if isstring(scheduler): self.scheduler = Scheduler.factory(scheduler)
+        elif isinstance(scheduler,Scheduler): self.scheduler = scheduler
+        else: raise ValueError('Invalid scheduler')
+
+        #add a check for exitcode
+        new_posrun = ['echo $? > %s'%self._yambopystatus] + self.scheduler.pos_run
+        self.scheduler.set_posrun(new_posrun)
+
+    @property
+    def status(self):
+        if self._dependencies == None: return "ready"
+        if all([dependency.status == "done" for dependency in dependencies]):
+            return self.exitcode
+        else: return "waiting"
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    @property
+    def exitcode(self):
+        """Check the exit code of the application"""
+        if not self.initialized: return "not initialized"
+        exitcode_file = os.path.join(self.path,self._yambopystatus)
+        if not os.path.isfile(exitcode_file):  return "no exitcode file"
+        with open(exitcode_file,'r') as f:
+            exitcode = ['success','failure'][int(f.read())]
+        return exitcode
+
+    @property
+    def done(self):
+        return self.exitcode == 0
 
     @property
     def log(self):
@@ -172,7 +254,14 @@ class YambopyTask():
         """
         Run this task using the specified scheduler
         """
-        pass
+        if self.initialized: self.scheduler.run()
+
+    def __str__(self):
+        lines = []; app = lines.append
+        app(marquee(self.name))
+        app('initialized: {}'.format(self.initialized))
+        app('exitcode:    {}'.format(self.exitcode))
+        return "\n".join(lines)
 #
 # code specific tasks
 #
@@ -208,6 +297,7 @@ class YamboTask(YambopyTask):
         raise NotImplementedError('TODO')
         return cls(inputs=yamboinput,executable=execulable,scheduler=scheduler,dependencies=dependencies)
 
+    @task_init
     def initialize(self,path):
         """ Initialize an yambo task """
         #get output from p2y task
@@ -231,11 +321,8 @@ class YamboTask(YambopyTask):
         #create running script
         abs_path = os.path.abspath(path)
         self._run = os.path.join(path,'run.sh')
-        self.scheduler = Scheduler.factory(self.scheduler)
         self.scheduler.add_command('%s -F yambo.in -J run > %s 2> %s'%(self.executable,self.log,self.err))
         self.scheduler.write(self._run)
-
-        self.path = path
 
 class P2yTask(YambopyTask):
     """
@@ -250,6 +337,7 @@ class P2yTask(YambopyTask):
         instance.setup = setup
         return instance
 
+    @task_init
     def initialize(self,path):
         #get output from nscf task
         nscfs = self.get_instances_from_inputs(PwTask)
@@ -263,7 +351,6 @@ class P2yTask(YambopyTask):
         #create running script
         abs_path = os.path.abspath(path)
         self._run = os.path.join(path,'run.sh')
-        self.scheduler = Scheduler.factory(self.scheduler)
         ac = self.scheduler.add_command
         ac('cd %s; %s > %s 2> %s; cd %s'%(dst,self.executable,self.log,self.err,abs_path))
         ac('mv %s/SAVE .'%(dst))
@@ -271,6 +358,7 @@ class P2yTask(YambopyTask):
         self.scheduler.write(self._run)
 
         self.path = path
+        self.initialized = True
 
     @property
     def output(self):
@@ -305,6 +393,7 @@ class PwTask(YambopyTask):
     def pwinput(self):
         return self.get_instances_from_inputs(PwIn)[0]
 
+    @task_init
     def initialize(self,path):
         """write inputs and get pseudopotential"""
         self.pwinput.write(os.path.join(path,'pw.in'))
@@ -315,7 +404,6 @@ class PwTask(YambopyTask):
 
         #create running script
         self._run = os.path.join(path,'run.sh')
-        self.scheduler = Scheduler.factory(self.scheduler)
         self.scheduler.add_command('%s < pw.in > %s'%(self.executable,self.log))
         self.scheduler.write(self._run)
 

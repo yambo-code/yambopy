@@ -257,6 +257,12 @@ class Scheduler(object):
         """
         raise NotImplementedError('Run not implemented')
 
+    def set_posrun(self,posrun):
+        self.pos_run = posrun
+
+    def set_prerun(self,prerun):
+        self.pre_run = prerun
+        
     def get_commands(self):
         """
         get commands to execute

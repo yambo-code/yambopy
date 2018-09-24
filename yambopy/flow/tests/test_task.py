@@ -37,13 +37,14 @@ class TestTask(unittest.TestCase):
 
         yambo_task = YamboTask.from_runlevel(p2y_task,'-o c',yamboin_dict,dependencies=p2y_task)
         print(yambo_task)
-        yambo_task.run()
 
         #create yamboflow
         yambo_flow = YambopyFlow.from_tasks('flow',[qe_scf_task,qe_nscf_task,p2y_task,yambo_task])
         print(yambo_flow)
         yambo_flow.create()
-        #yambo_flow.run()
+        yambo_flow.dump_run()
+        print(yambo_flow)
+        yambo_flow.run()
     
         #store for cleanup
         self.yambo_flow = yambo_flow
