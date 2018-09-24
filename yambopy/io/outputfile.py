@@ -179,10 +179,9 @@ class YamboOut():
         Search for a tag in the output files and obtain the data
         """
         data = {}
-        for key in self.data.keys():
+        for key in self.files.keys():
             if all(tag in key for tag in tags):
-                data[key] = dict(
-                    list(zip(self.tags[key], np.array(self.data[key]).T)))
+                data[key] = self.files[key]
         return data
 
     def print_runtime(self):

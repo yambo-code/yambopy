@@ -7,3 +7,10 @@ def isstring(s):
         return True
     except TypeError:
         return False
+
+def isiter(s):
+    try:
+        iterator = iter(s)
+        return True
+    except TypeError:
+        return False

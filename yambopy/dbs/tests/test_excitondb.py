@@ -9,7 +9,7 @@ from yambopy.dbs.excitondb import YamboExcitonDB
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.electronsdb import YamboElectronsDB
 
-test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','bse','SAVE')
+test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','bse')
 
 class TestYamboExcitonDB(unittest.TestCase):
 
@@ -22,9 +22,9 @@ class TestYamboExcitonDB(unittest.TestCase):
                  [0.0, 0.0, 0.0]]
 
         #load databases
-        lat  = YamboLatticeDB.from_db_file(os.path.join(test_path,'ns.db1'))
-        exc  = YamboExcitonDB(lat,path=test_path)
-        electrons = YamboElectronsDB(lat,save=test_path) 
+        lat  = YamboLatticeDB.from_db_file(os.path.join(test_path,'SAVE','ns.db1'))
+        exc  = YamboExcitonDB(lat,path=os.path.join(test_path,'yambo'))
+        electrons = YamboElectronsDB(lat,save=os.path.join(test_path,'SAVE')) 
 
         #show output
         print(exc)

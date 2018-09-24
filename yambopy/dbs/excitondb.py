@@ -38,39 +38,46 @@ class YamboExcitonDB(YamboSaveDB):
             rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
             self.l_residual = rel+iml*I
             self.r_residual = rer+imr*I
+
         #energies
         eig =  database.variables['BS_Energies'][:]*ha2ev
         self.eigenvalues = eig[:,0]+eig[:,1]*I
+            
         #eigenvectors
-        eiv = database.variables['BS_EIGENSTATES'][:]
-        eiv = eiv[:,:,0] + eiv[:,:,1]*I
-        self.eigenvectors = eiv
-        #indexes
-        self.table = database.variables['BS_TABLE'][:].T.astype(int)
+        self.table = None
+        self.eigenvectors = None
+        if 'BS_EIGENSTATES' in database.variables:
+            eiv = database.variables['BS_EIGENSTATES'][:]
+            eiv = eiv[:,:,0] + eiv[:,:,1]*I
+            self.eigenvectors = eiv
 
-        #transitions dictionary
-        #bs table k, v, c
-        self.unique_vbands = np.unique(self.table[:,1]-1)
-        self.unique_cbands = np.unique(self.table[:,2]-1)
+            #indexes
+            self.table = database.variables['BS_TABLE'][:].T.astype(int)
 
-        #initialize empty dictionary
-        transitions_v_to_c = dict([ ((v,c),[]) for v,c in product(self.unique_vbands,self.unique_cbands) ])
+            #transitions dictionary
+            #bs table k, v, c
+            self.unique_vbands = np.unique(self.table[:,1]-1)
+            self.unique_cbands = np.unique(self.table[:,2]-1)
 
-        #add elements to dictionary
-        for eh,kvc in enumerate(self.table-1):
-            k,v,c = kvc 
-            transitions_v_to_c[(v,c)].append((k,eh))
+            #initialize empty dictionary
+            transitions_v_to_c = dict([ ((v,c),[]) for v,c in product(self.unique_vbands,self.unique_cbands) ])
 
-        #make an array 
-        for t,v in list(transitions_v_to_c.items()):
-            if len(np.array(v)):
-                transitions_v_to_c[t] = np.array(v)
-            else:
-                del transitions_v_to_c[t]
+            #add elements to dictionary
+            for eh,kvc in enumerate(self.table-1):
+                k,v,c = kvc 
+                transitions_v_to_c[(v,c)].append((k,eh))
 
-        self.transitions_v_to_c = transitions_v_to_c 
+            #make an array 
+            for t,v in list(transitions_v_to_c.items()):
+                if len(np.array(v)):
+                    transitions_v_to_c[t] = np.array(v)
+                else:
+                    del transitions_v_to_c[t]
+
+            self.transitions_v_to_c = transitions_v_to_c 
+            self.ntransitions = len(self.table)
+
         self.nexcitons    = len(self.eigenvalues)
-        self.ntransitions = len(self.table)
         database.close()
    
     def write_sorted(self,prefix='yambo'):
@@ -156,6 +163,9 @@ class YamboExcitonDB(YamboSaveDB):
             path     -> path in reduced coordinates in which to plot the band structure
             exciton  -> exciton index to plot
         """
+        if self.eigenvectors is None:
+            raise ValueError('This database does not contain Excitonic states,'
+                              'please re-run the yambo BSE calculation with the WRbsWF option in the input file.')
         if isinstance(excitons, int):
             excitons = (excitons,)
         #get full kmesh
@@ -256,6 +266,9 @@ class YamboExcitonDB(YamboSaveDB):
     def get_amplitudes_phases(self,excitons=(0,),repx=list(range(1)),repy=list(range(1)),repz=list(range(1))):
         """ get the excitonic amplitudes and phases
         """
+        if self.eigenvectors is None:
+            raise ValueError('This database does not contain Excitonic states,'
+                              'please re-run the yambo BSE calculation with the WRbsWF option in the input file.')
         if isinstance(excitons, int):
             excitons = (excitons,)
        
@@ -321,6 +334,7 @@ class YamboExcitonDB(YamboSaveDB):
         return w,chi
 
     def __str__(self):
-        s  = "number of excitons: %d\n"%self.nexcitons
-        s += "number of excitons: %d\n"%self.ntransitions
-        return s
+        lines = []; app = lines.append
+        app( "number of excitons:    %d\n"%self.nexcitons )
+        if self.eigenvectors is not None: app( "number of transitions: %d\n"%self.ntransitions )
+        return ''.join(lines)

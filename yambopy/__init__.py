@@ -31,6 +31,13 @@ Modules:
         - recipes: user contributed scripts
 """
 import numpy as np
+
+class yambopyenv():
+    YAMBO = "yambo"
+    P2Y = "p2y"
+    YPP = "ypp"
+    SCHEDULER = "bash"
+
 from yambopy.tools.jsonencoder import *
 from yambopy.units import *
 

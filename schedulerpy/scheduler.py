@@ -66,7 +66,9 @@ class Scheduler(object):
 
         self.initialize()
 
-    def factory(scheduler=None,cores=None,nodes=None,walltime="1:00:00",**kwargs):
+
+    @classmethod    
+    def factory(cls,scheduler=None,cores=None,nodes=None,walltime="1:00:00",**kwargs):
         """
         Initialize a schduler instance.
 
@@ -86,7 +88,7 @@ class Scheduler(object):
                        "bash": bash.Bash }
 
         #load configurations file
-        config = Scheduler.load_config()
+        config = cls.load_config()
         if scheduler is None:
             schedulername = config['default']
         else:
@@ -124,7 +126,6 @@ class Scheduler(object):
 
         #create an instance of the scheduler to use
         return schedulers[schedulertype](cores=cores,nodes=nodes,walltime=walltime,**kwargs)
-    factory = staticmethod(factory)
 
     def load_config():
         """

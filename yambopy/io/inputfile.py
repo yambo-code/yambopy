@@ -3,10 +3,11 @@
 #
 # This file is part of yambopy
 #
-from subprocess import Popen, PIPE
 import os
 import json
 import re
+from subprocess import Popen, PIPE
+from yambopy import yambopyenv
 from yambopy.tools.duck import isstring
 
 class YamboIn(object):
@@ -83,7 +84,8 @@ class YamboIn(object):
             workdir = os.getcwd()
             os.chdir(folder)
             os.system('rm -f %s'%filename)
-            yambo = Popen(args+' -Q', stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
+            if 'yambo' in args: args += ' -Q' 
+            yambo = Popen(args, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
             yambo.wait()
             os.chdir(workdir)
             self.read_file(filename="%s/%s"%(folder,filename))
@@ -91,6 +93,39 @@ class YamboIn(object):
             if filename:
                 self.read_file(filename="%s/%s"%(folder,filename))
 
+    @classmethod
+    def from_runlevel(cls,runlevel,executable=yambopyenv.YAMBO,folder='.',filename='yambo.in'):
+        """Create an input file from the runlevel, read it and return instance of this class"""
+        workdir = os.getcwd()
+
+        #check if there exists a SAVE folder
+        save_path = os.path.join(folder,'SAVE')
+        if os.path.isdir(save_path): raise ValueError('SAVE folder not found in %s'%save_path)
+        
+        #run yambo
+        os.chdir(folder)
+        if os.path.isfile(filename): os.remove(filename)
+        if '-Q' not in runlevel: runlevel += ' -Q' 
+        yambo = Popen(runlevel, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
+        yambo.wait()
+        os.chdir(workdir)
+    
+        #read input file
+        yamboin = cls()
+        yamboin.read_file(filename=os.path.join(folder,filename))
+        return cls
+        
+    @classmethod
+    def from_dictionary(cls,dictionary):
+        """Return an instance of this class from a dictionary""" 
+        yamboin = cls()
+        yamboin.variables = dictionary
+        return yamboin        
+
+    def write_generator(self,filename):
+        """Write a python script to generate this input"""
+        return
+    
     def __getitem__(self,key):
         """ Get the value of a variable in the input file
         """
