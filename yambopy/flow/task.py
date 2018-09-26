@@ -28,6 +28,7 @@ The hierarchy is:
 
 import os
 import shutil
+import time
 from schedulerpy import Scheduler
 from qepy.pw import PwIn
 from qepy import qepyenv
@@ -109,6 +110,14 @@ class YambopyFlow():
     def ntasks(self):
         return len(self.tasks)
 
+    @property
+    def readytasks(self):
+        return [task for task in self.tasks if task.status == "ready"]
+
+    @property
+    def alldone(self):
+        return all([task.status == "done" for task in self.tasks])
+
     def create(self):
         """Create a folder to run the flow"""
         if os.path.isdir(self.path):
@@ -134,10 +143,16 @@ class YambopyFlow():
         with open(os.path.join(self.path,'run.sh'),'w') as f:
             f.write('\n'.join(lines))
 
-    def run(self):
-        """Run tasks one by one"""
-        pass
+    def run(self,maxexecs=1,sleep=1):
+        """Run all the tasks"""
+        while not self.alldone:
+            #exeute maxexecs ready tasks
+            for task in self.readytasks[:maxexecs]:
+                task.run()
 
+            #wait some seconds
+            time.sleep(sleep)
+ 
     def pickle(self):
         """store the flow in a pickle"""
         import pickle
