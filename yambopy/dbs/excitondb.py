@@ -3,29 +3,65 @@
 #
 # This file is part of the yambopy project
 #
+import os
 from itertools import product
 from yambopy import *
 from cmath import polar 
 from yambopy.units import *
-from yambopy.lattice import replicate_red_kmesh, calculate_distances
+from yambopy.plot.plotting import add_fig_kwargs
+from yambopy.lattice import replicate_red_kmesh, calculate_distances, get_path
+
+class ExcitonList():
+    """
+    Container class to perform operations on lists of excitons
+    """
+    def __init__(self,excitonlist):
+        self.excitonlist = excitonlist
+
+    def __str__(self):
+        lines = []; app = lines.append
+        for exciton in self.excitonlist:
+            app( str(exciton.get_string(singleline=True)) )
+        return "\n".join(lines)
+
+class Exciton():
+    """
+    Basic container of data for a single exciton
+    TODO: classify the excitons according to their symmetry
+    """
+    def __init__(self,energy,intensity,degeneracy,coeffs=None,wf=None):
+        self.energy = energy
+        self.intensity = intensity
+        self.degeneracy = degeneracy
+        self.coeffs = coeffs
+        self.wf = wf
+
+    def get_string(self,singleline=False):
+        lines = []; app = lines.append
+        app( 'energy:     %8.4'%self.energy )
+        app( 'intensity:  %8.4'%self.intensity )
+        app( 'degeneracy: %8d'%self.degeneracy )
+        if singleline: return "".join(lines)
+        return "\n".join(lines)
+    
+    def __str__(self):
+        return self.get_string()
 
 class YamboExcitonDB(YamboSaveDB):
     """ Read the excitonic states database from yambo
     """
-    def __init__(self,lattice,filename='ndb.BS_diago_Q01',path='.'):
+    def __init__(self,lattice,filename='ndb.BS_diago_Q01',path=','):
         self.lattice = lattice
-        self.filename = filename
-        self.path = path
+        self.filename = os.path.join(path,filename)
         self.get_database()
         
     def get_database(self):
         """ Load the diago database to memory
         """
         try:
-            filename = "%s/%s"%(self.path,self.filename)
-            database = Dataset(filename)
+            database = Dataset(self.filename)
         except:
-            raise IOError("Error opening %s in YamboExcitonDB"%filename)
+            raise IOError("Error opening %s in YamboExcitonDB"%self.filename)
 
         if 'BS_left_Residuals' in list(database.variables.keys()):
             #residuals
@@ -92,16 +128,14 @@ class YamboExcitonDB(YamboSaveDB):
         sort_e, sort_i = self.get_sorted()     
 
         #write excitons sorted by energy
-        f = open('%s_E.dat'%prefix, 'w')
-        for e,n in sort_e:
-            f.write("%3d %12.8lf %12.8e\n"%(n+1,e,intensities[n])) 
-        f.close()
+        with open('%s_E.dat'%prefix, 'w') as f:
+            for e,n in sort_e:
+                f.write("%3d %12.8lf %12.8e\n"%(n+1,e,intensities[n])) 
 
         #write excitons sorted by intensities
-        f = open('%s_I.dat'%prefix,'w')
-        for i,n in sort_i:
-            f.write("%3d %12.8lf %12.8e\n"%(n+1,eig[n],i)) 
-        f.close()
+        with open('%s_I.dat'%prefix,'w') as f:
+            for i,n in sort_i:
+                f.write("%3d %12.8lf %12.8e\n"%(n+1,eig[n],i)) 
 
     def get_nondegenerate(self,eps=1e-4):
         """
@@ -146,7 +180,6 @@ class YamboExcitonDB(YamboSaveDB):
         """
         Get degenerate excitons
         """
-
         energy = self.eigenvalues[index-1]
         excitons = [] 
         for n,e in enumerate(self.eigenvalues):
@@ -188,7 +221,7 @@ class YamboExcitonDB(YamboSaveDB):
             exit()
 
         #get eigenvalues along the path
-        if isinstance(energies,YamboSaveDB):
+        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
             #exapnd eigenvalues to the bull brillouin zone
             energies = energies.eigenvalues[self.lattice.kpoints_indexes]
 
@@ -196,7 +229,8 @@ class YamboExcitonDB(YamboSaveDB):
             #expand the quasiparticle energies to the bull brillouin zone
             energies = energies.eigenvalues_qp[self.lattice.kpoints_indexes]
         else:
-            raise ValueError("argument 'variables' must be an object of YamboSaveDB or YamboQPDB")
+            raise ValueError("Anergies argument must be an instance of YamboSaveDB,"
+                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         #get weight of state in each band
         weights = np.zeros(energies.shape)
@@ -219,10 +253,10 @@ class YamboExcitonDB(YamboSaveDB):
         
         return np.array(band_kpoints), energies, weights 
 
-    def plot_exciton_bs(self,ax,lattice,energies_db,path,excitons,size=500,space='bands',
-                        args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
+    def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=500,space='bands',
+                           args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
         """
-        Plot the excitons
+        Plot the exciton band-structure
         
             Arguments:
             ax          -> axis extance of matplotlib to add the plot to
@@ -252,7 +286,7 @@ class YamboExcitonDB(YamboSaveDB):
                 ax.scatter(bands_distances, energies[:,c]-energies[:,v], s=weights[:,c]*size, c='r')
 
         #add high-symmetry k-points vertical bars
-        kpath_car = red_car(path,lattice.rlat)
+        kpath_car = red_car(path,self.lattice.rlat)
         #calculate distances for high-symmetry points
         kpath_distances = calculate_distances( path )
         for d in kpath_distances:
@@ -263,6 +297,16 @@ class YamboExcitonDB(YamboSaveDB):
         ax.set_title("exciton %d-%d"%(excitons[0],excitons[-1]))
         return kpath_distances
 
+    @add_fig_kwargs
+    def plot_exciton_bs(self,energies_db,path,excitons,size=500,space='bands',
+                        args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        self.plot_exciton_bs_ax(ax,energies_db,path,excitons,size=size,space=space,
+                                args_scatter=args_scatter,args_plot=args_plot,debug=debug)
+        return fig
+        
     def get_amplitudes_phases(self,excitons=(0,),repx=list(range(1)),repy=list(range(1)),repz=list(range(1))):
         """ get the excitonic amplitudes and phases
         """
@@ -333,8 +377,12 @@ class YamboExcitonDB(YamboSaveDB):
 
         return w,chi
 
-    def __str__(self):
+    def get_string(self,mark="="):
         lines = []; app = lines.append
-        app( "number of excitons:    %d\n"%self.nexcitons )
-        if self.eigenvectors is not None: app( "number of transitions: %d\n"%self.ntransitions )
-        return ''.join(lines)
+        app( marquee(self.__class__.__name__,mark=mark) )
+        app( "number of excitons:    %d"%self.nexcitons )
+        if self.eigenvectors is not None: app( "number of transitions: %d"%self.ntransitions )
+        return '\n'.join(lines)
+    
+    def __str__(self):
+        return self.get_string()

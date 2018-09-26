@@ -38,9 +38,7 @@ class TestYamboExcitonDB(unittest.TestCase):
         kpoints, amplitude, phase = exc.get_amplitudes_phases((1,0,))
 
         #exciton_bandstructure
-        #import matplotlib.pyplot as plt
-        #ax = plt.gca()
-        #exc.plot_exciton_bs(ax, lat, electrons, path, (1,2,), args_plot={'c':'g'},space='bands')
+        exc.plot_exciton_bs(electrons, path, (1,2,), args_plot={'c':'g'},space='bands',show=False)
 
     def tearDown(self):
         if os.path.isfile('exc_I.dat'): os.remove('exc_I.dat')

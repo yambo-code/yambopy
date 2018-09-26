@@ -128,7 +128,7 @@ class YamboLatticeDB():
         for i in range(nsym):
             self.time_rev_list[i] = ( i >= nsym/(self.time_rev+1) )
 
-    def expand_kpoints(self,atol=1e-6):
+    def expand_kpoints(self,atol=1e-6,verbose=0):
         """
         Take a list of qpoints and symmetry operations and return the full brillouin zone
         with the corresponding index in the irreducible brillouin zone
@@ -170,7 +170,7 @@ class YamboLatticeDB():
         for nk in kpoints_full_i:
             weights[nk] = float(len(kpoints_full_i[nk]))/self.full_nkpoints
 
-        print("%d kpoints expanded to %d"%(len(self.car_kpoints),len(kpoints_full)))
+        if verbose: print("%d kpoints expanded to %d"%(len(self.car_kpoints),len(kpoints_full)))
 
         #set the variables
         self.weights_ibz      = np.array(weights)

@@ -14,12 +14,13 @@ test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','bse'
 
 class TestFlow(unittest.TestCase):
 
-    def setUp(self):
-        flows_to_clean = ['flow','save_flow','bse_flow']
-        for flow in flows_to_clean:
+    def clean(self,flows):
+        if not isinstance(flows,list): flows = [flows]
+        for flow in flows:
             if os.path.isdir(flow): shutil.rmtree(flow) 
 
     def test_full_flow(self):
+        self.clean('flow')
         #create a QE scf task and run
         qe_input = PwIn.from_structure_dict(BN,kpoints=[9,9,1],ecut=20)
         qe_scf_task = PwTask.from_input(qe_input)
@@ -47,9 +48,6 @@ class TestFlow(unittest.TestCase):
         yambo_flow.dump_run()
         print(yambo_flow)
         yambo_flow.run()
-    
-        #store for cleanup
-        self.yambo_flow = yambo_flow
 
     def test_flow_2_parts(self):
         """
@@ -60,6 +58,7 @@ class TestFlow(unittest.TestCase):
         #
         # SAVE Flow
         #
+        self.clean('save_flow')
 
         #create a QE scf task and run
         qe_input = PwIn.from_structure_dict(BN,kpoints=[9,9,1],ecut=20)
@@ -82,6 +81,8 @@ class TestFlow(unittest.TestCase):
         #
         # BSE convergence Flow
         #
+        self.clean('bse_flow')
+
         #create a yambo optics task and run
         tasks = [p2y_task]
         for BSEEhEny in [5,6,7,8]:
@@ -98,12 +99,12 @@ class TestFlow(unittest.TestCase):
 
             tasks.append(yambo_task)
 
-        yambo_flow = YambopyFlow.from_tasks('bse_flow',[p2y_task,yambo_task])
+        yambo_flow = YambopyFlow.from_tasks('bse_flow',tasks)
         print(yambo_flow)
         yambo_flow.run()
 
     def tearDown(self):
-        #self.yambo_flow.clean()
+        #self.clean(['flow','bse_flow','save_flow'])
         pass
 
 if __name__ == '__main__':
