@@ -257,7 +257,7 @@ class YambopyTask():
         exitcode_file = os.path.join(self.path,self._yambopystatus)
         if not os.path.isfile(exitcode_file):  return None
         with open(exitcode_file,'r') as f:
-            exitcode = ['success','failure'][int(f.read())]
+            exitcode = 'failure' if int(f.read()) else 'success'
         return exitcode
 
     @property
@@ -333,6 +333,11 @@ class YamboTask(YambopyTask):
         instance.runlevel = runlevel
         instance.yamboin_dict = yamboin_dict
         return instance
+
+    @staticmethod
+    def from_folder(folder):
+        return YamboTask()
+        
 
     @classmethod
     def from_folder(cls,folder):
