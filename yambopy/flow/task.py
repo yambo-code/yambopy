@@ -50,7 +50,10 @@ def write_fake(filename):
         f.write('')
 
 def merge_two_dicts(x, y):
-    """ taken from: https://stackoverflow.com/questions/38987/how-to-merge-two-dictionaries-in-a-single-expression"""
+    """
+    taken from:
+    https://stackoverflow.com/questions/38987/how-to-merge-two-dictionaries-in-a-single-expression
+    """
     z = x.copy()   # start with x's keys and values
     z.update(y)    # modifies z with y's keys and values & returns None
     return z
@@ -82,7 +85,8 @@ class YambopyFlow():
     @classmethod
     def from_folder(cls,flow_folder):
         pickle_filename = os.path.join(flow_folder,cls._picklename)
-        if not os.path.isfile(pickle_filename): raise FileNotFoundError('pickle not found in %s'%pickle_filename)
+        if not os.path.isfile(pickle_filename):
+            raise FileNotFoundError('pickle not found in %s'%pickle_filename)
         return cls.from_pickle(pickle_filename)
 
     @property
@@ -114,10 +118,12 @@ class YambopyFlow():
 
         #initialize each task
         for it,task in enumerate(self.tasks):
+            #get path
+            path = os.path.join(self.path,'t%d'%it)
             #create folder   
-            os.mkdir(os.path.join(self.path,'t%d'%it))
+            os.mkdir(path)
             #initialize each task
-            task.initialize(os.path.join(self.path,'t%d'%it))
+            task.initialize(path)
 
         self.pickle()
 
@@ -146,11 +152,14 @@ class YambopyFlow():
         lines = []; app = lines.append
         return "\n".join(lines)
 
+    def __getitem__(self,idx):
+        return self.tasks[idx]
+
     def __str__(self):
         lines = []; app = lines.append
         app(marquee(self.name))
         for it,task in enumerate(self.tasks):
-            app("%10s  %s"%(str(task.name),task.exitcode))
+            app("%10s  %s"%(str(task.name),task.status))
         return "\n".join(lines)
 
 def task_init(initialize):
@@ -177,8 +186,8 @@ class YambopyTask():
         if not isiter(inputs): inputs = [inputs]
         self.inputs = inputs
         self.executable = executable
-        self.nlog = None
-        self.nerr = None
+        self.nlog = 0
+        self.nerr = 0
         self.outputs = None
         self.initialized = initialized
 
@@ -201,10 +210,24 @@ class YambopyTask():
         self.scheduler.set_posrun(new_posrun)
 
     @property
+    def ready(self):
+        if self._dependencies == None: return True
+        if all([dep.status == "done" for dep in self._dependencies]): return True
+        return False
+
+    @property
     def status(self):
-        if self._dependencies == None: return "ready"
-        if all([dependency.status == "done" for dependency in dependencies]):
-            return self.exitcode
+        """
+        status:
+                        meaning
+            - waiting - waiting for dependencies
+            - ready   - ready to run
+            - failed  - run and exitcode 1
+            - done    - run and exitcode 0
+        """
+        if self.ready and self.exitcode == None: return "ready"
+        if   self.exitcode == "success": return "done"
+        elif self.exitcode == None: return "waiting"
         else: return "waiting"
 
     @property
@@ -214,9 +237,9 @@ class YambopyTask():
     @property
     def exitcode(self):
         """Check the exit code of the application"""
-        if not self.initialized: return "not initialized"
+        if not self.initialized: return None
         exitcode_file = os.path.join(self.path,self._yambopystatus)
-        if not os.path.isfile(exitcode_file):  return "no exitcode file"
+        if not os.path.isfile(exitcode_file):  return None
         with open(exitcode_file,'r') as f:
             exitcode = ['success','failure'][int(f.read())]
         return exitcode
@@ -227,15 +250,17 @@ class YambopyTask():
 
     @property
     def log(self):
-        if self.nlog: return 'run%d.log'%self.nlog
-        self.nlog = 1
-        return 'run.log' 
+        if self.nlog: log = 'run%d.log'%self.nlog
+        else:         log = 'run.log'
+        self.nlog += 1
+        return log
 
     @property
     def err(self):
-        if self.nerr: return 'err%d.log'%self.nerr
-        self.nerr = 1
-        return 'err.log' 
+        if self.nerr: err = 'err%d.log'%self.nerr
+        else:         err = 'err.log'
+        self.nerr += 1
+        return err
 
     @property
     def dependencies(self):
@@ -250,11 +275,21 @@ class YambopyTask():
         """get all the instances of class from inputs"""
         return [inp for inp in self.inputs if isinstance(inp,instance)]
 
-    def run(self):
+    def run(self,dry=False,verbose=0):
         """
         Run this task using the specified scheduler
         """
-        if self.initialized: self.scheduler.run()
+        #initialize the task
+        if not self.initialized:
+            if verbose: print('initializing task')
+            self.initialize(self.path)
+
+        #if initialized run it
+        if self.initialized:
+            os.system('cd %s; sh run.sh'%self.path)
+            #self.scheduler.run(dry=dry)
+        else:
+            raise ValueError('could not initialize task')
 
     def __str__(self):
         lines = []; app = lines.append
@@ -274,8 +309,9 @@ class YamboTask(YambopyTask):
     @classmethod
     def from_runlevel(cls,interface_task,runlevel,yamboin_dict={},
                       executable=yambopyenv.YAMBO,scheduler=yambopyenv.SCHEDULER,dependencies=None):
-        """ run yambo with the runlevel string to generate the inputfile """
-        instance = cls(inputs=interface_task,executable=executable,scheduler=scheduler,dependencies=dependencies)
+        """ Run yambo with the runlevel string to generate the inputfile """
+        instance = cls(inputs=interface_task,executable=executable,
+                       scheduler=scheduler,dependencies=dependencies)
         instance.runlevel = runlevel
         instance.yamboin_dict = yamboin_dict
         return instance
@@ -289,18 +325,22 @@ class YamboTask(YambopyTask):
         raise NotImplementedError('TODO')
         #search input file
         #search output files
-        return cls(inputs=yamboinput,executable=executable,scheduler=scheduler,dependencies=dependencies)
+        return cls(inputs=yamboinput,executable=executable,
+                   scheduler=scheduler,dependencies=dependencies)
 
     @classmethod
-    def from_inputfile(cls,yamboinput,executable=yambopyenv.YAMBO,scheduler=yambopyenv.SCHEDULER,dependencies=None):
+    def from_inputfile(cls,yamboinput,executable=yambopyenv.YAMBO,
+                       scheduler=yambopyenv.SCHEDULER,dependencies=None):
         """Create a yambotask from an existing input file"""
         raise NotImplementedError('TODO')
-        return cls(inputs=yamboinput,executable=execulable,scheduler=scheduler,dependencies=dependencies)
+        return cls(inputs=yamboinput,executable=execulable,
+                   scheduler=scheduler,dependencies=dependencies)
 
-    @task_init
-    def initialize(self,path):
+    def initialize(self,path,verbose=0):
         """ Initialize an yambo task """
         #get output from p2y task
+        self.path = path
+        if self.status != "ready": return
         p2ys = self.get_instances_from_inputs(P2yTask)
         if len(p2ys) > 1:  raise ValueError('More than one P2yTask instance in input, cannot continue')
         if len(p2ys) == 0: raise ValueError('No P2yTask found in input, cannot continue')
@@ -311,25 +351,29 @@ class YamboTask(YambopyTask):
 
         db1_path = os.path.join(dst,'ns.db1')
         if os.path.isfile(db1_path):
-            #create inputfile
-            yamboin = YamboIn.from_runlevel(self.runlevel,folder=path)
-            merge_two_dicts(yamboin.arguments,self.yamboin_dict)
-            yamboin.write(os.path.join(path,'yambo.in'))
-        #else:
-        #    raise FileNotFoundError('SAVE/ns.db1 not available in %s'%db1_path)
+            if verbose: print("Creating inputfile in %s"%self.path)
+            yamboin = YamboIn.from_runlevel(self.runlevel,executable=self.executable,folder=path)
+            yamboin.variables = merge_two_dicts(yamboin.variables,self.yamboin_dict)
+            yamboin.write(os.path.join(path,'run.in'))
+        else:
+            raise FileNotFoundError('SAVE/ns.db1 not available in %s'%db1_path)
 
         #create running script
         abs_path = os.path.abspath(path)
         self._run = os.path.join(path,'run.sh')
-        self.scheduler.add_command('%s -F yambo.in -J run > %s 2> %s'%(self.executable,self.log,self.err))
+        self.scheduler.add_command('%s -F run.in -J run > %s 2> %s'%(self.executable,self.log,self.err))
         self.scheduler.write(self._run)
+
+        #set to initiailized
+        self.initialized = True
 
 class P2yTask(YambopyTask):
     """
     Run a P2Y calculation
     """
     @classmethod
-    def from_nscf_task(cls,nscf_task,executable=yambopyenv.P2Y,scheduler=yambopyenv.SCHEDULER,setup=yambopyenv.YAMBO):
+    def from_nscf_task(cls,nscf_task,executable=yambopyenv.P2Y,
+                       scheduler=yambopyenv.SCHEDULER,setup=yambopyenv.YAMBO):
         """
         specify a nscf .save folder to start the calculation from
         """
@@ -373,7 +417,8 @@ class YppTask(YambopyTask):
         raise NotImplementedError('TODO')
         #search input file
         #search output files
-        return cls(inputs=yppinput,executable=executable,scheduler=scheduler,dependencies=dependencies)
+        return cls(inputs=yppinput,executable=executable,
+                   scheduler=scheduler,dependencies=dependencies)
 
     def initialize(self,path):
         write_fake(os.path.join(path,'ypp'))
@@ -383,11 +428,13 @@ class PwTask(YambopyTask):
     Routines specific to quantum espresso task
     """
     @classmethod
-    def from_input(cls,pwinputs,executable=qepyenv.PW,scheduler=yambopyenv.SCHEDULER,dependencies=None):
+    def from_input(cls,pwinputs,executable=qepyenv.PW,
+                   scheduler=yambopyenv.SCHEDULER,dependencies=None):
         if not isiter(pwinputs): pwinputs = [pwinputs]
         if not all([isinstance(pwi,(PwIn,cls)) for pwi in pwinputs]):
             raise ValueError('The input is not an instance of PwIn or PwTask but %s'%(pwinput))
-        return cls(inputs=pwinputs,executable=executable,scheduler=scheduler,dependencies=dependencies)
+        return cls(inputs=pwinputs,executable=executable,
+                   scheduler=scheduler,dependencies=dependencies)
 
     @property
     def pwinput(self):

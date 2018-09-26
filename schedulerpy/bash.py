@@ -38,7 +38,7 @@ class Bash(Scheduler):
         if dry:
             print(str(self))
         else:
-            p = subprocess.Popen(str(self),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,executable='/bin/bash')
+            p = subprocess.Popen(str(self),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
             self.stdout, self.stderr = p.communicate()
             # In Python 3, Popen.communicate() returns bytes
             try:
@@ -47,6 +47,4 @@ class Bash(Scheduler):
             # If Python 2, <str>.decode() will raise an error that we ignore
             except AttributeError:
                 pass
-            if  self.stderr != '':
-                raise ValueError("ERROR:\n%s"%self.stderr)
             print(self.stdout)

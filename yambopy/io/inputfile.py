@@ -100,20 +100,20 @@ class YamboIn(object):
 
         #check if there exists a SAVE folder
         save_path = os.path.join(folder,'SAVE')
-        if os.path.isdir(save_path): raise ValueError('SAVE folder not found in %s'%save_path)
+        if not os.path.isdir(save_path): raise ValueError('SAVE folder not found in %s'%save_path)
         
         #run yambo
         os.chdir(folder)
         if os.path.isfile(filename): os.remove(filename)
         if '-Q' not in runlevel: runlevel += ' -Q' 
-        yambo = Popen(runlevel, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
+        yambo = Popen("%s %s"%(executable,runlevel), stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
         yambo.wait()
         os.chdir(workdir)
     
         #read input file
-        yamboin = cls()
+        yamboin = cls(folder=folder,filename=filename)
         yamboin.read_file(filename=os.path.join(folder,filename))
-        return cls
+        return yamboin
         
     @classmethod
     def from_dictionary(cls,dictionary):
@@ -150,17 +150,17 @@ class YamboIn(object):
     def read_file(self,filename='yambo.in'):
         """ Read the variables from a file
         """
-        try:
-            yambofile = open(filename,"r")
-        except IOError:
+        if not os.path.isfile(filename):
             lines = []; app = lines.append
             app('Could not read the file %s'%filename)
             app('Something is wrong, yambo did not create the input file. Or the file you are trying to read does not exist')
             app('command: %s'%self.yamboargs)
             app('folder:  %s/'%self.folder)
             raise IOError("\n".join(lines))
-        inputfile = self.read_string(yambofile.read())
-        yambofile.close()
+
+        #read the file
+        with open(filename,"r") as yambofile:
+            inputfile = self.read_string(yambofile.read())
 
     def add_dict(self,variables):
         """

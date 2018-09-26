@@ -31,9 +31,9 @@ class TestTask(unittest.TestCase):
 
         #create a yambo optics task and run
         yamboin_dict = dict(FFTGvecs=[30,'Ry'],
-                            BndsRnXs=[1,30],
-                            QpntsRXd=[1,1],
-                            ETStpsXd=500)
+                            BndsRnXs=[[1,8],''],
+                            QpntsRXd=[[1,1],''],
+                            ETStpsXd=[500,''])
 
         yambo_task = YamboTask.from_runlevel(p2y_task,'-o c',yamboin_dict,dependencies=p2y_task)
         print(yambo_task)
