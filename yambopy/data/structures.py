@@ -24,8 +24,9 @@ atoms = [['N',[ 0.0, 0.0,0.5]],
 BN = dict(lattice=lattice,atypes=atypes,atoms=atoms)
 
 #MoS2
+a = 5.838
 c = 18
-lattice = dict(ibrav=4,celldm1=5.838,celldm3=c) 
+lattice = dict(ibrav=4,celldm1=5.838,celldm3=c/a) 
 atypes = dict(Mo=[10.811, "Mo.pz-mt_fhi.UPF"],
               S=[14.0067, "S.pz-mt_fhi.UPF"]) 
 atoms = [['Mo',[2./3,1./3,          0.0]],

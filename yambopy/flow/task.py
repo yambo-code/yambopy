@@ -71,6 +71,7 @@ class YambopyFlow():
             self._tasks = [tasks]
         self._tasks = tasks 
         self.path = path
+        self.initialized = False
 
     @classmethod
     def from_tasks(cls,path,tasks):
@@ -112,7 +113,7 @@ class YambopyFlow():
 
     @property
     def readytasks(self):
-        return [task for task in self.tasks if task.status == "ready"]
+        return [(it,task) for it,task in enumerate(self.tasks) if task.status == "ready"]
 
     @property
     def alldone(self):
@@ -122,7 +123,7 @@ class YambopyFlow():
         """Create a folder to run the flow"""
         if os.path.isdir(self.path):
             raise ValueError('A folder with name %s already exists.\n'
-                             'Please remove it of change the name of the flow')
+                             'Please remove it of change the name of the flow'%self.path)
         os.mkdir(self.path)
 
         #initialize each task
@@ -131,10 +132,12 @@ class YambopyFlow():
             path = os.path.join(self.path,'t%d'%it)
             #create folder   
             os.mkdir(path)
+
             #initialize each task
-            task.initialize(path)
+            if not task.initialized: task.initialize(path)
 
         self.pickle()
+        self.initialized = True
 
     def dump_run(self):
         """Create a bash script to run the whole flow"""
@@ -145,9 +148,16 @@ class YambopyFlow():
 
     def run(self,maxexecs=1,sleep=1):
         """Run all the tasks"""
+        if not self.initialized:
+            print('The flow was not created with flow.create() method, I will do it')
+            self.create()
+
         while not self.alldone:
             #exeute maxexecs ready tasks
-            for task in self.readytasks[:maxexecs]:
+            for it,task in self.readytasks[:maxexecs]:
+                if not task.initialized: 
+                    path = os.path.join(self.path,'t%d'%it)
+                    task.initialize(path)
                 task.run()
 
             #wait some seconds
@@ -290,14 +300,13 @@ class YambopyTask():
         """get all the instances of class from inputs"""
         return [inp for inp in self.inputs if isinstance(inp,instance)]
 
-    def run(self,dry=False,verbose=0):
+    def run(self,dry=False,verbose=1):
         """
         Run this task using the specified scheduler
         """
         #initialize the task
         if not self.initialized:
-            if verbose: print('initializing task')
-            self.initialize(self.path)
+            raise ValueError('The task is not initialized, initialize before running')
 
         #if initialized run it
         if self.initialized:
@@ -310,7 +319,10 @@ class YambopyTask():
         lines = []; app = lines.append
         app(marquee(self.name))
         app('initialized: {}'.format(self.initialized))
+        app('status:      {}'.format(self.status))
         app('exitcode:    {}'.format(self.exitcode))
+        if self.initialized:
+            app('path: {}'.format(self.path))
         return "\n".join(lines)
 #
 # code specific tasks
@@ -394,6 +406,18 @@ class P2yTask(YambopyTask):
         """
         instance = cls(nscf_task,executable,scheduler,dependencies=nscf_task)
         instance.setup = setup
+        return instance
+
+    @classmethod
+    def from_folder(cls,folder,executable=yambopyenv.P2Y,
+                    scheduler=yambopyenv.SCHEDULER):
+        """
+        Initialize a P2Y task from a folder.
+        Useful to start from a SAVE folder calculation
+        """
+        instance = cls(inputs=None,executable=executable,scheduler=scheduler,dependencies=None)
+        instance.path = folder
+        instance.initialized = True
         return instance
 
     @task_init
