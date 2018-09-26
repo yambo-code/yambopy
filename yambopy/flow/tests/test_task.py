@@ -15,7 +15,9 @@ test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','bse'
 class TestFlow(unittest.TestCase):
 
     def setUp(self):
-        if os.path.isdir('flow'): shutil.rmtree('flow') 
+        flows_to_clean = ['flow','save_flow','bse_flow']
+        for flow in flows_to_clean:
+            if os.path.isdir(flow): shutil.rmtree(flow) 
 
     def test_full_flow(self):
         #create a QE scf task and run
@@ -80,16 +82,21 @@ class TestFlow(unittest.TestCase):
         #
         # BSE convergence Flow
         #
-        
         #create a yambo optics task and run
-        yamboin_dict = dict(NGsBlkXs=[1,'Ry'],
-                            BndsRnXs=[[1,10],''],
-                            BSEBands=[[4,5],''],
-                            BEnRange=[[0.0,6.0],'eV'],
-                            BEnSteps=[1000,''])
+        tasks = [p2y_task]
+        for BSEEhEny in [5,6,7,8]:
+            #create a list of yambo optics task and run
+            yamboin_dict = dict(NGsBlkXs=[1,'Ry'],
+                                BndsRnXs=[1,10],
+                                BSEBands=[1,10],
+                                BEnRange=[[0.0,6.0],'eV'],
+                                BSEEhEny=[[0,BSEEhEny],'eV'],
+                                BEnSteps=1000)
 
-        yambo_task = YamboTask.from_runlevel(p2y_task,'-b -o b -k sex -y d',
+            yambo_task = YamboTask.from_runlevel(p2y_task,'-b -o b -k sex -y d -V all',
                                              yamboin_dict,dependencies=p2y_task)
+
+            tasks.append(yambo_task)
 
         yambo_flow = YambopyFlow.from_tasks('bse_flow',[p2y_task,yambo_task])
         print(yambo_flow)

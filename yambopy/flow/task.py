@@ -50,15 +50,6 @@ def write_fake(filename):
     with open(filename,'w') as f:
         f.write('')
 
-def merge_two_dicts(x, y):
-    """
-    taken from:
-    https://stackoverflow.com/questions/38987/how-to-merge-two-dictionaries-in-a-single-expression
-    """
-    z = x.copy()   # start with x's keys and values
-    z.update(y)    # modifies z with y's keys and values & returns None
-    return z
-
 class YambopyFlow():
     """
     Handle multiple tasks and their interdependencies
@@ -380,7 +371,7 @@ class YamboTask(YambopyTask):
         if os.path.isfile(db1_path):
             if verbose: print("Creating inputfile in %s"%self.path)
             yamboin = YamboIn.from_runlevel(self.runlevel,executable=self.executable,folder=path)
-            yamboin.variables = merge_two_dicts(yamboin.variables,self.yamboin_dict)
+            yamboin.set_fromdict(self.yamboin_dict)
             yamboin.write(os.path.join(path,'run.in'))
         else:
             raise FileNotFoundError('SAVE/ns.db1 not available in %s'%db1_path)

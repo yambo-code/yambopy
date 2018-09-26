@@ -116,15 +116,17 @@ class YamboIn(object):
         return yamboin
         
     @classmethod
-    def from_dictionary(cls,dictionary):
+    def from_dictionary(cls,yamboin_dict):
         """Return an instance of this class from a dictionary""" 
         yamboin = cls()
-        yamboin.variables = dictionary
+        yamboin.set_fromdict(yamboin_dict)
         return yamboin        
 
-    def write_generator(self,filename):
+    def set_fromdict(self,yamboin_dict):
         """Write a python script to generate this input"""
-        return
+        #monkey patch the input file
+        for var,value in yamboin_dict.items():
+            self[var] = value
     
     def __getitem__(self,key):
         """ Get the value of a variable in the input file
