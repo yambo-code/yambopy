@@ -50,72 +50,93 @@ class Exciton():
 class YamboExcitonDB(YamboSaveDB):
     """ Read the excitonic states database from yambo
     """
-    def __init__(self,lattice,filename='ndb.BS_diago_Q01',path=','):
+    def __init__(self,lattice,eigenvalues,l_residual,r_residual,table=None,eigenvectors=None):
         self.lattice = lattice
-        self.filename = os.path.join(path,filename)
-        self.get_database()
-        
-    def get_database(self):
-        """ Load the diago database to memory
+        self.eigenvalues = eigenvalues
+        self.l_residual = l_residual
+        self.r_residual = r_residual
+        #optional
+        self.table = table
+        self.eigenvectors = eigenvectors
+
+    @classmethod
+    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q01',path='.'):
+        """ initialize this class from a file
         """
-        try:
-            database = Dataset(self.filename)
-        except:
-            raise IOError("Error opening %s in YamboExcitonDB"%self.filename)
+        path_filename = os.path.join(path,filename)
+        if not os.path.isfile(path_filename):
+            raise FileNotFoundError("File %s not found in YamboExcitonDB"%path_filename)
 
-        if 'BS_left_Residuals' in list(database.variables.keys()):
-            #residuals
-            rel,iml = database.variables['BS_left_Residuals'][:].T
-            rer,imr = database.variables['BS_right_Residuals'][:].T
-            self.l_residual = rel+iml*I
-            self.r_residual = rer+imr*I
-        if 'BS_Residuals' in list(database.variables.keys()):
-            #residuals
-            rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
-            self.l_residual = rel+iml*I
-            self.r_residual = rer+imr*I
+        with Dataset(path_filename) as database:
+            if 'BS_left_Residuals' in list(database.variables.keys()):
+                #residuals
+                rel,iml = database.variables['BS_left_Residuals'][:].T
+                rer,imr = database.variables['BS_right_Residuals'][:].T
+                l_residual = rel+iml*I
+                r_residual = rer+imr*I
+            if 'BS_Residuals' in list(database.variables.keys()):
+                #residuals
+                rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
+                l_residual = rel+iml*I
+                r_residual = rer+imr*I
 
-        #energies
-        eig =  database.variables['BS_Energies'][:]*ha2ev
-        self.eigenvalues = eig[:,0]+eig[:,1]*I
-            
-        #eigenvectors
-        self.table = None
-        self.eigenvectors = None
-        if 'BS_EIGENSTATES' in database.variables:
-            eiv = database.variables['BS_EIGENSTATES'][:]
-            eiv = eiv[:,:,0] + eiv[:,:,1]*I
-            self.eigenvectors = eiv
+            #energies
+            eig =  database.variables['BS_Energies'][:]*ha2ev
+            eigenvalues = eig[:,0]+eig[:,1]*I
+                
+            #eigenvectors
+            table = None
+            eigenvectors = None
+            if 'BS_EIGENSTATES' in database.variables:
+                eiv = database.variables['BS_EIGENSTATES'][:]
+                eiv = eiv[:,:,0] + eiv[:,:,1]*I
+                eigenvectors = eiv
+                table = database.variables['BS_TABLE'][:].T.astype(int)
 
-            #indexes
-            self.table = database.variables['BS_TABLE'][:].T.astype(int)
+            table = table
+            eigenvectors = eigenvectors
 
-            #transitions dictionary
-            #bs table k, v, c
-            self.unique_vbands = np.unique(self.table[:,1]-1)
-            self.unique_cbands = np.unique(self.table[:,2]-1)
+        return cls(lattice,eigenvalues,l_residual,r_residual,table=table,eigenvectors=eigenvectors)
 
-            #initialize empty dictionary
-            transitions_v_to_c = dict([ ((v,c),[]) for v,c in product(self.unique_vbands,self.unique_cbands) ])
+    @property
+    def unique_vbands(self):
+        return np.unique(self.table[:,1]-1)
 
-            #add elements to dictionary
-            for eh,kvc in enumerate(self.table-1):
-                k,v,c = kvc 
-                transitions_v_to_c[(v,c)].append((k,eh))
+    @property
+    def unique_cbands(self):
+        return np.unique(self.table[:,2]-1)
 
-            #make an array 
-            for t,v in list(transitions_v_to_c.items()):
-                if len(np.array(v)):
-                    transitions_v_to_c[t] = np.array(v)
-                else:
-                    del transitions_v_to_c[t]
+    @property
+    def transitions_v_to_c(self):
+        """Compute transitions from valence to conduction"""
+        if hasattr(self,"_transitions_v_to_c"): return self._transitions_v_to_c
+        uniq_v = self.unique_vbands
+        uniq_c = self.unique_cbands
+        transitions_v_to_c = dict([ ((v,c),[]) for v,c in product(uniq_v,uniq_c) ])
 
-            self.transitions_v_to_c = transitions_v_to_c 
-            self.ntransitions = len(self.table)
+        #add elements to dictionary
+        for eh,kvc in enumerate(self.table-1):
+            k,v,c = kvc 
+            transitions_v_to_c[(v,c)].append((k,eh))
 
-        self.nexcitons    = len(self.eigenvalues)
-        database.close()
-   
+        #make an array 
+        for t,v in list(transitions_v_to_c.items()):
+            if len(np.array(v)):
+                transitions_v_to_c[t] = np.array(v)
+            else:
+                del transitions_v_to_c[t]
+
+        self._transitions_v_to_c = transitions_v_to_c 
+        return transitions_v_to_c
+ 
+    @property
+    def ntransitions(self):
+        return len(self.table)
+
+    @property
+    def nexcitons(self):
+        return len(self.eigenvalues)
+
     def write_sorted(self,prefix='yambo'):
         """
         Write the sorted energies and intensities to a file

@@ -223,9 +223,7 @@ class AnalyseBSECmd(Cmd):
         pa('-np','--nopack',   help='Skips packing o- files into .json files', action='store_false')
         pa('-nt','--notext',   help='Skips writing the .dat file', action='store_false')
         pa('-nd','--nodraw',   help='Skips drawing (plotting) the abs spectra', action='store_false')
-        print(('parsing', args))
         args = parser.parse_args(args)
-        print('done')
 
         folder    = args.folder
         var       = args.variable
