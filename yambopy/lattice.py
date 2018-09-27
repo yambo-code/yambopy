@@ -55,12 +55,19 @@ def car_red(car,lat):
     """
     return np.array([np.linalg.solve(np.array(lat).T,coord) for coord in car])
 
+def vol_lat(lat):
+    """
+    Calculate the volume of a lattice
+    """
+    a1,a2,a3 = np.array(lat)
+    return np.dot(a1,np.cross(a2,a3))
+
 def rec_lat(lat):
     """
     Calculate the reciprocal lattice vectors
     """
+    v = vol_lat(lat)
     a1,a2,a3 = np.array(lat)
-    v = np.dot(a1,np.cross(a2,a3))
     b1 = np.cross(a2,a3)/v
     b2 = np.cross(a3,a1)/v
     b3 = np.cross(a1,a2)/v

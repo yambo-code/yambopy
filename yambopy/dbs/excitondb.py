@@ -60,10 +60,10 @@ class YamboExcitonDB(YamboSaveDB):
         self.eigenvectors = eigenvectors
 
     @classmethod
-    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q01',path='.'):
+    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q01',folder='.'):
         """ initialize this class from a file
         """
-        path_filename = os.path.join(path,filename)
+        path_filename = os.path.join(folder,filename)
         if not os.path.isfile(path_filename):
             raise FileNotFoundError("File %s not found in YamboExcitonDB"%path_filename)
 
@@ -333,12 +333,13 @@ class YamboExcitonDB(YamboSaveDB):
         """
         if self.eigenvectors is None:
             raise ValueError('This database does not contain Excitonic states,'
-                              'please re-run the yambo BSE calculation with the WRbsWF option in the input file.')
+                             'please re-run the yambo BSE calculation with the WRbsWF option in the input file.')
         if isinstance(excitons, int):
             excitons = (excitons,)
        
         car_kpoints = self.lattice.car_kpoints
         nkpoints = len(car_kpoints)
+        print(nkpoints)
         amplitudes = np.zeros([nkpoints])
         phases     = np.zeros([nkpoints],dtype=np.complex64)
         for exciton in excitons:
@@ -358,7 +359,8 @@ class YamboExcitonDB(YamboSaveDB):
 
         return car_kpoints, amplitudes[kindx], np.angle(phases)[kindx]
 
-    def chi(self,dipoles=None,dir=0,emin=0,emax=8,estep=0.01,broad=0.1,nexcitons='all'):
+    def chi(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.02,broad=0.1,q0norm=1e-5,
+            nexcitons='all',spin_degen=2,verbose=0):
         """
         Calculate the dielectric response function using excitonic states
         """
@@ -380,9 +382,8 @@ class YamboExcitonDB(YamboSaveDB):
             EL2 = self.r_residual
         else:
             #calculate exciton-light coupling
-            print("calculate exciton-light coupling")
+            if verbose: print("calculate exciton-light coupling")
             EL1,EL2 = self.project1(dipoles.dipoles[:,dir],nexcitons) 
-
 
         #iterate over the excitonic states
         for s in range(nexcitons):
@@ -390,11 +391,16 @@ class YamboExcitonDB(YamboSaveDB):
             es = self.eigenvalues[s]
  
             #calculate the green's functions
-            G1 = 1/(   w - es - broad*I)
-            G2 = 1/( - w - es - broad*I)
+            G1 = -1/(   w - es + broad*I)
+            G2 = -1/( - w - es - broad*I)
 
             r = EL1[s]*EL2[s]
             chi += r*G1 + r*G2
+
+        #multiply facto
+        d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
+        cofactor = spin_degen/(2*np.pi)**3 * d3k_factor * (4*np.pi)
+        chi = chi*cofactor/q0norm**2
 
         return w,chi
 
@@ -402,7 +408,7 @@ class YamboExcitonDB(YamboSaveDB):
         lines = []; app = lines.append
         app( marquee(self.__class__.__name__,mark=mark) )
         app( "number of excitons:    %d"%self.nexcitons )
-        if self.eigenvectors is not None: app( "number of transitions: %d"%self.ntransitions )
+        if self.table is not None: app( "number of transitions: %d"%self.ntransitions )
         return '\n'.join(lines)
     
     def __str__(self):

@@ -220,7 +220,6 @@ class AnalyseBSECmd(Cmd):
         pa('-ie','--intexc',   help='Minimum intensity for excitons to be considered bright', default=0.05,type=float)
         pa('-de','--degenexc', help='Energy threshold under which different peaks are merged (eV)', default=0.01,type=float)
         pa('-me','--maxexc',   help='Energy threshold after which excitons are not read anymore (eV)', default=8.0,type=float)
-        pa('-np','--nopack',   help='Skips packing o- files into .json files', action='store_false')
         pa('-nt','--notext',   help='Skips writing the .dat file', action='store_false')
         pa('-nd','--nodraw',   help='Skips drawing (plotting) the abs spectra', action='store_false')
         args = parser.parse_args(args)
@@ -231,12 +230,12 @@ class AnalyseBSECmd(Cmd):
         exc_int   = args.intexc
         exc_degen = args.degenexc
         exc_max_E = args.maxexc
-        pack      = args.nopack
         text      = args.notext
         draw      = args.nodraw
 
         #all the other arguments are passed to the analyse bse function
-        excitons, spectra = analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, pack=pack, text=text, draw=draw )
+        analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, 
+                     text=text, draw=draw )
 
 class TestCmd(Cmd):
     """

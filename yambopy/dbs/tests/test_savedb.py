@@ -15,8 +15,8 @@ class TestYamboSaveDB(unittest.TestCase):
         """ test savedb """
 
         #open savedb
-        filename = os.path.join(test_path,'SAVE')
-        ys = YamboSaveDB(filename)
+        folder = os.path.join(test_path,'SAVE')
+        ys = YamboSaveDB.from_db_file(folder=folder)
         ys.get_fermi()
         ys.write_kpoints()
         str(ys)

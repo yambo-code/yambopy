@@ -16,7 +16,7 @@ class TestYamboBSEAbsorptionSpectra(unittest.TestCase):
 
         #load databases
         lat  = YamboLatticeDB.from_db_file(os.path.join(test_path,'SAVE','ns.db1'))
-        exc  = YamboExcitonDB(lat,path=os.path.join(test_path,'yambo'))
+        exc  = YamboExcitonDB.from_db_file(lat,folder=os.path.join(test_path,'yambo'))
 
         #open show analysis of bse absorption spectra
         bsea = YamboBSEAbsorptionSpectra(exc)

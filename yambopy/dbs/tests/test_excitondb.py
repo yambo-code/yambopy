@@ -3,6 +3,7 @@
 #
 # This file is part of yambopy
 #
+import numpy as np
 import unittest
 import os
 from yambopy.dbs.excitondb import YamboExcitonDB
@@ -23,7 +24,7 @@ class TestYamboExcitonDB(unittest.TestCase):
 
         #load databases
         lat  = YamboLatticeDB.from_db_file(os.path.join(test_path,'SAVE','ns.db1'))
-        exc  = YamboExcitonDB(lat,path=os.path.join(test_path,'yambo'))
+        exc  = YamboExcitonDB.from_db_file(lat,folder=os.path.join(test_path,'yambo'))
         electrons = YamboElectronsDB(lat,save=os.path.join(test_path,'SAVE')) 
 
         #show output
@@ -33,6 +34,13 @@ class TestYamboExcitonDB(unittest.TestCase):
 
         #write exc_I.dat and exc_E.dat
         exc.write_sorted('exc')
+
+        #calculate chi
+        w,chi = exc.chi()
+
+        #load reference
+        eps_filename = os.path.join(test_path,'o-yambo.eps_q1_diago_bse')
+        w_ref,chi_imag_ref,chi_real_ref = np.loadtxt(eps_filename,unpack=True)[:3]
 
         #get amplitude and phases
         kpoints, amplitude, phase = exc.get_amplitudes_phases((1,0,))
