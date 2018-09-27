@@ -151,7 +151,7 @@ class YamboOut():
                             inputfile.append(line[4:])
 
             # use YamboIn to read the input file to a list
-            yi = YamboIn(filename=None)
+            yi = YamboIn()
             self.files[filename]["input"] = yi.read_string(''.join(inputfile))
 
     def get_runtime(self):

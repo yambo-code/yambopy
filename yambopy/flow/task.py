@@ -137,11 +137,9 @@ class YambopyFlow():
         with open(os.path.join(self.path,'run.sh'),'w') as f:
             f.write('\n'.join(lines))
 
-    def run(self,maxexecs=1,sleep=1):
+    def run(self,maxexecs=1,sleep=1,verbose=0):
         """Run all the tasks"""
-        if not self.initialized:
-            print('The flow was not created with flow.create() method, I will do it')
-            self.create()
+        if not self.initialized: self.create()
 
         while not self.alldone:
             #exeute maxexecs ready tasks
@@ -296,8 +294,7 @@ class YambopyTask():
         Run this task using the specified scheduler
         """
         #initialize the task
-        if not self.initialized:
-            raise ValueError('The task is not initialized, initialize before running')
+        if not self.initialized: self.initialize()
 
         #if initialized run it
         if self.initialized:

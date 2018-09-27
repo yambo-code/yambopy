@@ -1,63 +1,68 @@
-# Copyright (c) 2018, Henrique Miranda
+# Copyright (c) 2018, Henrique Pereira Coutada Miranda
 #
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
+"""
+This file contains a class to analyse the BSE absorption spectra
+
+The features to be provided include: 
+    1. Read the BSE diago file and plot chi including excitonic effects
+    2. Obtain the excitonic states energy, degeneracies and optical intensity
+    3. Create flows to run ypp and obtain the excitonic wavefunctions
+    4. Produce a json file that can be used in the excitonwebsite
+
+Long term:
+    1. For the same exciton store multiple WFs changing the hole position
+
+To initialize this structure we require instances of:
+    - YamboExcitonDB (which already requires YamboSaveDB)
+
+The json format produced by this class for the excitonwebsite is:
+
+structure stuff
+    -lattice
+    -atoms
+    -atypes
+bse stuff
+    -eps - Absorption spectra
+    -eel - Electron energy loss spectra
+    -nx,ny,nz - the dimensions of the datagrid
+    -datagrid
+    -excitons - list of excitons to show
+
+each exciton entry contains:
+    -datagrid
+    -intensity
+    -index
+    -energy
+
+"""
 from __future__ import print_function, division
 import os
+from yambopy.tools.string import marquee
 from yambopy import *
 
-class YamboBSEAbsorptionSpectra(YamboSaveDB):
+class YamboBSEAbsorptionSpectra():
     """
     Create a file with information about the excitons from Yambo files
     """
-    def __init__(self,job_string,path='.'):
+    def __init__(self,excitondb):
         """
         Parameters:
-            job_string - the job_string used for yambo. yambo -J <job_string>
-            path       - the folder where the yambo run was made
+            excitondb - an instance of the excitonDB class
         """
+        self.excitondb = excitondb
 
-        #look for the save folder
-        self.save=path+'/SAVE'
-        if not os.path.isdir(self.save):
-            raise ValueError('SAVE folder not found in %s'%self.save)
+    @classmethod
+    def from_folder(cls,folder):
+        raise NotImplementedError('from_folder not implemented yet')
+        #try to find a excitonDB class
+        #initialize this class
+        return cls
 
-        YamboSaveDB.__init__(self,save=self.save)
-
-        self.job_string = job_string
-        self.data = {"excitons":[],
-                     "lattice": self.lat,
-                     "atypes": self.atomic_numbers,
-                     "atoms": self.atomic_positions}
-
-        self.atoms = None
-        self.excitons = None
- 
-        #use YamboOut to read the absorption spectra
-        self.path = path
-
-        #try to find o-* files in path, if not use path/job_string
-        paths = [path, "%s/%s"%(path,job_string)]
-        for p in paths:
-            y = YamboOut(p,save_folder=path)
-            absorptionspectra = y.get_data(('eps','diago'))
-            #if we read the files then continue
-            if absorptionspectra != {}:
-                break
-
-        #trap the errors here
-        if absorptionspectra == {}:
-            raise ValueError('Could not find the o-*diago*eps files in %s.'
-                             'Make sure you diagonalized the BSE hamiltonian in yambo.'%paths)
-
-        #we just use one of them
-        key = list(absorptionspectra)[0]
-        for key,value in list(absorptionspectra[key].items()):
-            self.data[key] = value
-
-    def get_excitons(self,min_intensity=0.1,max_energy=4,Degen_Step=0.0):
+    def get_excitons(self,min_intensity=0.1,max_energy=4,eps=1e-4):
         """ 
         Obtain the excitons using ypp
         Parameters:
@@ -65,16 +70,13 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
             max_energy    - Only plot excitons with energy below this value (default: 4 eV)
             Degen_Step    - Only plot excitons whose energy is different by more that this value (default: 0.0)
         """
-        filename = "%s/o-%s.exc_E_sorted"%(self.path,self.job_string)
-        if not os.path.isfile(filename):
-            os.system("cd %s; ypp -e s -J %s"%(self.path,self.job_string))
-        self.excitons = np.loadtxt(filename)
+        excitons = self.excitondb.get_nondegenerate(eps=eps)
 
         #filter with energy
-        self.excitons = self.excitons[self.excitons[:,0]<max_energy]
+        excitons = excitons[excitons[:,0]<max_energy]
 
         #filter with intensity
-        self.excitons = self.excitons[self.excitons[:,1]>min_intensity]
+        excitons = excitons[excitons[:,1]>min_intensity]
 
         #filter with degen
         if Degen_Step:
@@ -234,9 +236,18 @@ class YamboBSEAbsorptionSpectra(YamboSaveDB):
 
             self.data["excitons"].append(exciton)
 
-    def write_json(self,filename="absorptionspectra"):
-        """ Write a jsonfile with the absorption spectra and the wavefunctions of certain excitons
+    def plot(self):
+        pass
+
+    def write_json(self,filename="absorptionspectra",verbose=0):
+        """ 
+        Write a jsonfile with the absorption spectra 
+        and the wavefunctions of certain excitons
         """
-        print("writing json file...", end=' ')
         JsonDumper(self.data,"%s.json"%filename)
-        print("done!")
+
+    def __str__(self):
+        lines = []; app = lines.append
+        app(marquee(self.__class__.__name__))
+        app(str(self.excitondb.get_string(mark='-')))
+        return "\n".join(lines)

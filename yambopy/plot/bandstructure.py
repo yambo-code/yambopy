@@ -62,8 +62,8 @@ class YamboBandStructure():
             for band in bands.T:
                 ax.plot(x,band,c=color,**args)
                 if "label" in args: args.pop("label")
-        if not xlim: xlim = (min(x),max(x))
-        ax.set_xlim(*xlim)    
+        #if not xlim: xlim = (min(x),max(x))
+        #ax.set_xlim(*xlim)    
         if not ylim: ylim = (min(bands),max(bands))
         ax.set_ylim(*ylim)    
         ax.set_ylabel('Energies (eV)')

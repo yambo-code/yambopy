@@ -5,20 +5,24 @@
 #
 import unittest
 import os
+from yambopy.dbs.excitondb import YamboExcitonDB
+from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.bse.bse_absorption import YamboBSEAbsorptionSpectra
 test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','bse')
 
 class TestYamboBSEAbsorptionSpectra(unittest.TestCase):
 
-    #@unittest.skip("Creating flows to handle tasks and use ypp inside a flow folder")
     def test_yambobseabsorptionspeectra(self):
 
-        pass
-        #open qpdb
-        #bsea = YamboBSEAbsorptionSpectra('bse',path=test_path)
-        #print(bsea)
+        #load databases
+        lat  = YamboLatticeDB.from_db_file(os.path.join(test_path,'SAVE','ns.db1'))
+        exc  = YamboExcitonDB(lat,path=os.path.join(test_path,'yambo'))
 
-        #bsea.get_excitons()
+        #open show analysis of bse absorption spectra
+        bsea = YamboBSEAbsorptionSpectra(exc)
+        bsea.plot()
+
+        #bsea.write_json()
 
 if __name__ == '__main__':
     unittest.main()

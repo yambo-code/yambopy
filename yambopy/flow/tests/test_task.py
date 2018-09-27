@@ -21,6 +21,7 @@ class TestFlow(unittest.TestCase):
 
     def test_full_flow(self):
         self.clean('flow')
+
         #create a QE scf task and run
         qe_input = PwIn.from_structure_dict(BN,kpoints=[9,9,1],ecut=20)
         qe_scf_task = PwTask.from_input(qe_input)
@@ -33,8 +34,8 @@ class TestFlow(unittest.TestCase):
         p2y_task = P2yTask.from_nscf_task(qe_nscf_task)
 
         #create a yambo optics task and run
-        yamboin_dict = dict(FFTGvecs=[30,'Ry'],
-                            BndsRnXs=[[1,8],''],
+        yamboin_dict = dict(FFTGvecs=[20,'Ry'],
+                            BndsRnXs=[[1,10],''],
                             QpntsRXd=[[1,1],''],
                             ETStpsXd=[500,''])
 
@@ -61,7 +62,7 @@ class TestFlow(unittest.TestCase):
         self.clean('save_flow')
 
         #create a QE scf task and run
-        qe_input = PwIn.from_structure_dict(BN,kpoints=[9,9,1],ecut=20)
+        qe_input = PwIn.from_structure_dict(BN,kpoints=[3,3,1],ecut=20)
         qe_scf_task = PwTask.from_input(qe_input)
         
         #create a QE nscf task and run

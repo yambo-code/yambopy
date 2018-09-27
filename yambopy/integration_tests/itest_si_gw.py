@@ -90,7 +90,7 @@ class TestPW_Si_Run(unittest.TestCase):
         e = PwXML('si',path='relax')
         pos = e.get_scaled_positions()
 
-        q = PwIn('scf/si.scf')
+        q = PwIn.from_file('scf/si.scf')
         print("old celldm(1)", q.system['celldm(1)'])
         q.system['celldm(1)'] = e.cell[0][2]*2
         print("new celldm(1)", q.system['celldm(1)'])
@@ -130,16 +130,16 @@ class TestYamboIn_GW_Si(unittest.TestCase):
     def test_gw_input(self):
         """ Test if we can initialize the YamboIn class for a typical GW input file
         """
-        y = YamboIn('yambo -p p -g n -V all',folder='gw')
+        y = YamboIn.from_runlevel('-p p -g n -V all',folder='gw')
 
     def test_gw_convergence(self):
         """ Test if we can generate multiple input files changing some variables
         """
-        y = YamboIn('yambo -p p -g n -V all',folder='gw_conv')
+        y = YamboIn.from_runlevel('-p p -g n -V all',folder='gw_conv')
         conv = { 'FFTGvecs': [[5,10,15],'Ry'],
                  'NGsBlkXp': [[1,2,5], 'Ry'],
                  'BndsRnXp': [[1,10],[1,20],[1,30]] }
-        y.optimize(conv)
+        y.optimize(conv,folder='gw')
         return y
 
 
@@ -147,18 +147,18 @@ class TestYamboIn_GW_Si_Run(unittest.TestCase):
     def test_yambo_gw_si(self):
         """ Run GW calculation with yambo
         """
-        y = YamboIn('yambo -p p -g n -V all',folder='gw_conv')
+        y = YamboIn.from_runlevel('-p p -g n -V all',folder='gw_conv')
         conv = { 'FFTGvecs': [[5,10,15],'Ry'],
                  'NGsBlkXp': [[1,2,5], 'Ry'],
                  'BndsRnXp': [[1,10],[1,20],[1,30]] }
-        y.optimize(conv)
+        y.optimize(conv,folder="gw_conv")
 
         def run(filename):
             folder = filename.split('.')[0]
             print(filename, folder)
             os.system('cd gw_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
 
-        y.optimize(conv,run=run)
+        y.optimize(conv,folder="gw_conv",run=run)
 
     def test_yambopy_analysegw(self):
         """ Test the yambopy analysegw executable
@@ -210,13 +210,6 @@ if __name__ == '__main__':
 
     if len(sys.argv)==1:
         parser.print_help()
-        sys.exit(1)
-
-    #first test if yambo is installed
-    sp = subprocess.PIPE
-    yambo_not_available = subprocess.call("yambo", shell=True, stdout=sp, stderr=sp)
-    if yambo_not_available:
-        print("yambo not found, please install it before running the tests")
         sys.exit(1)
 
     # Count the number of errors

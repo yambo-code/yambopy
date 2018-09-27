@@ -82,7 +82,7 @@ class PwIn():
         self.atomic_pos_type = 'crystal'
 
     @classmethod
-    def from_file(cls,self):
+    def from_file(cls,filename):
         """ Initialize the QE structure from a file """
         new = cls()
  

@@ -90,7 +90,7 @@ class TestPW_Si_Run(unittest.TestCase):
         e = PwXML('si',path='relax')
         pos = e.get_scaled_positions()
 
-        q = PwIn('scf/si.scf')
+        q = PwIn.from_file('scf/si.scf')
         print("old celldm(1)", q.system['celldm(1)'])
         q.system['celldm(1)'] = e.cell[0][2]*2
         print("new celldm(1)", q.system['celldm(1)'])
@@ -130,12 +130,12 @@ class TestYamboIn_BSE_Si(unittest.TestCase):
     def test_bse_input(self):
         """ Test if we can initialize the YamboIn class for a typical BSE input file
         """
-        y = YamboIn('yambo -b -o b -k sex -y h -V all',folder='bse')
+        y = YamboIn.from_runlevel('-b -o b -k sex -y h -V all',folder='bse')
 
     def test_bse_convergence(self):
         """ Test if we can generate multiple input files changing some variables
         """
-        y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse_conv')
+        y = YamboIn.from_runlevel('-b -o b -k sex -y d -V all',folder='bse_conv')
         y['BEnSteps'] = 500
         conv = { 'FFTGvecs': [[5,10,15],'Ry'],
                  'NGsBlkXs': [[1,2,5], 'Ry'],
@@ -147,7 +147,7 @@ class TestYamboIn_BSE_Si_Run(unittest.TestCase):
     def test_yambo_bse_si(self):
         """ Run BSE calculation with yambo
         """
-        y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse_conv')
+        y = YamboIn.from_runlevel('-b -o b -k sex -y d -V all',folder='bse_conv')
         y['BEnSteps'] = 500
         conv = { 'FFTGvecs': [[5,10,15],'Ry'],
                  'NGsBlkXs': [[1,2,5], 'Ry'],
@@ -177,7 +177,7 @@ class TestYamboOut_BSE_Si(unittest.TestCase):
         y = YamboAnalyser('bse_conv')
         y.plot_bse('eps')
 
-    @unittest.skip("analysebse needs to be refactored")
+    @unittest.skip('analysebse requires refactoring')
     def test_yambopy_analysebse(self):
         """ Test the yambopy analysebse executable
         """
@@ -212,13 +212,6 @@ if __name__ == '__main__':
 
     if len(sys.argv)==1:
         parser.print_help()
-        sys.exit(1)
-
-    #first test if yambo is installed
-    sp = subprocess.PIPE
-    yambo_not_available = subprocess.call("yambo", shell=True, stdout=sp, stderr=sp)
-    if yambo_not_available:
-        print("yambo not found, please install it before running the tests")
         sys.exit(1)
 
     # Count the number of errors
@@ -259,8 +252,8 @@ if __name__ == '__main__':
     #clean tests
     if args.clean or nerrors==0:
         print("cleaning...")
-        os.system('rm -rf scf bse bse_conv gw gw_conv nscf relax database '
-                  'analyse_bse_conv analyse_gw_conv proj.in')
+        os.system('rm -rf scf bse bse_conv nscf relax database '
+                  'analyse_bse_conv proj.in')
         print("done!")
 
     sys.exit(nerrors)

@@ -18,7 +18,7 @@ class TestYamboIn(unittest.TestCase):
     def test_yamboin(self):
 
         #read input file
-        yi = YamboIn(folder=test_path)
+        yi = YamboIn.from_file(folder=test_path)
         ref_file = str(yi)
 
         #write input file
@@ -26,7 +26,7 @@ class TestYamboIn(unittest.TestCase):
         yi.write('optimize/yambo.in')
 
         #read again
-        yi = YamboIn(folder='optimize')
+        yi = YamboIn.from_file(folder='optimize')
         assert len(str(yi)) == len(ref_file)
 
         #test convergence
