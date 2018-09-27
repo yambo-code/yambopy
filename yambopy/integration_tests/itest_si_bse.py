@@ -140,7 +140,7 @@ class TestYamboIn_BSE_Si(unittest.TestCase):
         conv = { 'FFTGvecs': [[5,10,15],'Ry'],
                  'NGsBlkXs': [[1,2,5], 'Ry'],
                  'BndsRnXs': [[1,10],[1,20],[1,30]] }
-        y.optimize(conv)
+        y.optimize(conv,folder='bse_conv')
         return y
 
 class TestYamboIn_BSE_Si_Run(unittest.TestCase):
@@ -153,13 +153,11 @@ class TestYamboIn_BSE_Si_Run(unittest.TestCase):
                  'NGsBlkXs': [[1,2,5], 'Ry'],
                  'BndsRnXs': [[1,10],[1,20],[1,30]] }
 
-        print()
         def run(filename):
             folder = filename.split('.')[0]
-            print(filename, folder)
             os.system('cd bse_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
 
-        y.optimize(conv,run=run)
+        y.optimize(conv,folder='bse_conv',run=run)
 
 class TestYamboOut_BSE_Si(unittest.TestCase):
     def test_yamboout_bse_si(self):
@@ -177,13 +175,12 @@ class TestYamboOut_BSE_Si(unittest.TestCase):
         y = YamboAnalyser('bse_conv')
         y.plot_bse('eps')
 
-    @unittest.skip('analysebse requires refactoring')
     def test_yambopy_analysebse(self):
         """ Test the yambopy analysebse executable
         """
         os.system('yambopy analysebse bse_conv FFTGvecs -nd')
-        out = np.loadtxt('analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat')
-        ref = np.loadtxt('%s/si/analyse_bse_conv/bse_conv_FFTGvecs_excitons.dat'%reference_dir)
+        out = np.loadtxt('analyse_bse_conv/FFTGvecs_exciton_energies.dat')
+        ref = np.loadtxt('%s/si/analyse_bse_conv/FFTGvecs_exciton_energies.dat'%reference_dir)
         print("ref:")
         print(ref)
         print("out:")
@@ -191,8 +188,8 @@ class TestYamboOut_BSE_Si(unittest.TestCase):
         self.assertEqual(np.isclose(ref,out,atol=1e-3).all(),True)
     
         os.system('yambopy analysebse bse_conv BndsRnXs -nd')
-        out = np.loadtxt('analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat')
-        ref = np.loadtxt('%s/si/analyse_bse_conv/bse_conv_BndsRnXs_excitons.dat'%reference_dir) 
+        out = np.loadtxt('analyse_bse_conv/BndsRnXs_exciton_energies.dat')
+        ref = np.loadtxt('%s/si/analyse_bse_conv/BndsRnXs_exciton_energies.dat'%reference_dir) 
         print("ref:")
         print(ref)
         print("out:")

@@ -40,7 +40,7 @@ def breaking_symmetries(efield1,efield2=[0,0,0],folder='.',RmTimeRev=True):
     os.system('mkdir -p %s'%folder)
     os.system('cp -r database/SAVE %s'%folder)
     os.system('cd %s; yambo'%folder)
-    ypp = YamboIn('ypp_ph -y -V all',folder=folder,filename='ypp.in')
+    ypp = YamboIn.from_runlevel('-y -V all',executable='ypp',folder=folder,filename='ypp.in')
     ypp['Efield1'] = efield1 # Field in the X-direction
     ypp['Efield2'] = efield2 # Field in the X-direction
     if RmTimeRev:
@@ -81,7 +81,7 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose=Fal
             for filename in files:
                 if filename != 'ndb.QP': continue
                 #get ndb.QP file in folder
-                io[basename] = ( YamboIn(folder=folder,filename="%s.in"%basename),
+                io[basename] = ( YamboIn.from_file(folder=folder,filename="%s.in"%basename),
                                  YamboQPDB.from_db(folder=root,filename=filename) )
 
     #consistency check
@@ -97,8 +97,13 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose=Fal
         
         #save result
         qp_gap = eigenvalues_qp[kpointc-1,bandc-1] - eigenvalues_qp[kpointv-1,bandv-1]
+
+        #check type of variable
+        if isinstance(value,list): value = value[1]
         convergence_data.append([value,qp_gap])
+
     convergence_data = np.array(sorted(convergence_data))
+    if convergence_data.dtype == 'object': raise ValueError('Unknown type of variable')
  
     if text:
         output_folder = 'analyse_%s'%folder
@@ -118,7 +123,7 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose=Fal
 #
 # by Alexandre Morlet
 #
-def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw,verbose=False):
+def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,text,draw,verbose=False):
     """
     Using ypp, you can study the convergence of BSE calculations in 2 ways:
       Create a .png of all absorption spectra relevant to the variable you study
@@ -134,163 +139,76 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,pack,text,draw,verbose
         intexc   -> Minimum intensity for excitons to be considered bright (default=0.05)
         degenexc -> Energy threshold under which different peaks are merged (eV) (default=0.01)
         maxexc   -> Energy threshold after which excitons are not read anymore (eV) (default=8.0)
-        pack     -> Skips packing o- files into .json files (default: True)
         text     -> Skips writing the .dat file (default: True)
         draw     -> Skips drawing (plotting) the abs spectra (default: True)
-
-    Returns:
-        excitons -> energies of the first few excitons as funciton of some variable
-        spectras -> absorption spectra for each variable
-
     """
+  
+    #find the save folder
+    lat = YamboSaveDB.from_db_file(os.path.join(folder,'SAVE'))
 
-    # Packing results (o-* files) from the calculations into yambopy-friendly .json files
-    if pack: # True by default, False if -np used
-        print('Packing ...')
-        pack_files_in_folder(folder,mask=var)
-        pack_files_in_folder(folder,mask='reference')
+    #find all ndb.BS_diago_Q01 files in the folder
+    io = OrderedDict()
+    for root, dirs, files in os.walk(folder):
+        #get starting name of folder
+        basename = os.path.basename(root)
+        #look into folders starting with var or reference
+        if any( [basename.startswith(v) for v in [var,'reference']] ):
+            for filename in files:
+                if filename != 'ndb.BS_diago_Q01': continue
+                #get ndb.BS_diago_Q01 file in folder
+                io[basename] = ( YamboIn.from_file(folder=folder,filename="%s.in"%basename),
+                                 YamboExcitonDB.from_db_file(lat,folder=root,filename=filename) )
 
-    # importing data from .json files in <folder>
-    print('Importing data...')
-    data = YamboAnalyser(folder)
+    #TODO consistency check
+    exciton_energies = []
+    exciton_spectras = []
+    for basename, (inp,out) in io.items():
+        #get input
+        value, unit = inp[var]
+ 
+        #get exiton energies
+        exciton_energy = out.eigenvalues.real
 
-    # extract data according to relevant var
-    invars = data.get_inputfiles_tag(var)
+        #get excitonic spectra
+        exciton_spectra = out.get_chi()
 
-    # Get only files related to the convergence study of the variable,
-    # ordered to have a smooth plot
-    keys=[key for key in invars.keys() if key.startswith(var) or key=='reference.json']
-
-    if len(keys) == 0: 
-        raise ValueError('No files with this variable were found')
-
-    if verbose:
-        print('Files detected:')
-        for key in keys:
-            print(key)
-
-    # unit of the input value
-    unit = invars[keys[0]]['variables'][var][1]
-
-    ######################
-    # Output-file filename
-    ######################
-    os.system('mkdir -p analyse_%s'%folder)
-    outname = './analyse_%s/%s_%s'%(folder,folder,var)
-
-    # Arrays that will contain the output
-    excitons = []
-    spectras = []
-
-    # Loop over all calculations
-    for key in keys:
-        jobname=key.replace('.json','')
-        print(jobname)
-
-        # input value
-        v = invars[key]['variables'][var][0]
-        if type(v) == list:
-            inp = v[1]
-        else:
-            inp = v
-
-        print('Preparing JSON file. Calling ypp if necessary.')
-        ### Creating the 'absorptionspectra.json' file
-        # It will contain the exciton energies
-        y = YamboOut(folder=folder,save_folder=folder)
-        # Args : name of job, SAVE folder path, folder where job was run path
-        a = YamboBSEAbsorptionSpectra(jobname,path=folder)
-        # Get excitons values (runs ypp once)
-        a.get_excitons(min_intensity=intexc,max_energy=maxexc,Degen_Step=degenexc)
-        # Write .json file with spectra and eigenenergies
-        a.write_json(filename=outname)
-
-        ### Loading data from .json file
-        with open(outname+'.json') as f:
-            data = json.load(f)
-
-        ### Plotting the absorption spectra
-        spectras.append({'x': data['E/ev[1]'],
-                         'y': data['EPS-Im[2]'],
-                         'label': jobname})
-
-        ### BSE spectra
-        ### Axes : lines for exciton energies (disabled, would make a mess)
-        #for n,exciton in enumerate(data['excitons']):
-        #    plt.axvline(exciton['energy'])
-
-        ### Creating array with exciton values (according to settings)
-        l = [inp]
-        for n,exciton in enumerate(data['excitons']):
-            if n <= numbexc-1:
-                l.append(exciton['energy'])
-        excitons.append(l)
+        #check type of variable
+        if isinstance(value,list): value = value[1]
+        exciton_energies.append([value,exciton_energy])
+        exciton_spectras.append([value,exciton_spectra])
     
-    #order in ascending order
-    excitons,spectras = zip(*sorted(zip(excitons,spectras),key=lambda x: x[0][1]))
+    exciton_spectras = sorted(exciton_spectras,key=lambda x: x[0])
+    exciton_energies = sorted(exciton_energies,key=lambda x: x[0])
 
-    if text:
-        header = 'Columns : '+var+' (in '+unit+') and "bright" excitons eigenenergies in order.'
+    #save a file with the exciton eneergies
+    output_folder = 'analyse_%s'%folder
+    if not os.path.isdir(output_folder): os.mkdir(output_folder)
+    output_file = '%s_exciton_energies.dat'%var
+    with open(os.path.join(output_folder,output_file),'w') as f:
+        header = "%s (%s)\n"%(var,unit) if unit else "%s\n"%var
+        f.write(header)
+        for value,energies in exciton_energies:
+            f.write("{} ".format(value)+("%10.6lf "*numbexc)%tuple(energies[:numbexc])+"\n")
 
-        ## Excitons energies
-        #output on the screen
-        print(header)
-        for exc in excitons:
-            x = exc[0]
-            e = exc[1:]
-            print("%8.4lf "%x+("%8.4lf"*len(e))%tuple(e))
+    import matplotlib.pyplot as plt
+    ## Exciton spectra plots
+    filename = 'exciton_spectra.png'
+    fig = plt.figure(figsize=(6,5))
+    ax = fig.add_subplot(1,1,1)
 
-        #save file
-        filename = outname+'_excitons.dat'
-        np.savetxt(filename,excitons,header=header)
-        print(filename)
+    #plot the spectra
+    cmap = plt.get_cmap('viridis')
+    nspectra = len(exciton_spectras)
+    for i,(value,(w,spectra)) in enumerate(exciton_spectras):
+        plt.plot(w,spectra.imag,c=cmap(i/nspectra),label="{} = {} {}".format(var,value,unit)) 
 
-        ## Spectra
-        filename = outname+'_spectra.dat'
-        with open(filename,'w') as f:
-            for spectra in spectras:
-                label = spectra['label']
-                f.write('#%s\n'%label)
-                for x,y in zip(spectra['x'],spectra['y']):
-                    f.write("%12.8e %12.8e\n"%(x,y))
-                f.write('\n\n')
-        print(filename)
-
-    else:
-        print('-nt flag : no text produced.')
-
-    if draw:
-        ## Exciton energy plots
-        filename = outname+'_excitons.png'
-        excitons = np.array(excitons)
-        labels = [spectra['label'] for spectra in spectras]
-        fig = plt.figure(figsize=(6,5))
-        matplotlib.rcParams.update({'font.size': 15})
-        plt.ylabel('1st exciton energy (eV)')
-        plt.xticks(excitons[:,0],labels)
-        plt.plot(excitons[:,0],excitons[:,1])
-        plt.tight_layout()
-        plt.savefig(filename, dpi=300, bbox_inches='tight')
-        print(filename)
-
-        ## Spectra plots
-        filename = outname+'_spectra.png'
-        fig = plt.figure(figsize=(6,5))
-        matplotlib.rcParams.update({'font.size': 15})
-        for spectra in spectras:
-            plt.plot(spectra['x'],spectra['y'],label=spectra['label'])
-        plt.xlabel('$\omega$ (eV)')
-        plt.ylabel('Im($\epsilon_M$)')
-        plt.legend(frameon=False)
-        plt.tight_layout()
-        plt.savefig(filename, dpi=300, bbox_inches='tight')
-        print(filename)
-    else:
-        print('-nd flag : no plot produced.')
-
-    print('Done.')
-
-    return excitons, spectras
+    ## Spectra plots
+    ax.set_xlabel('$\omega$ (eV)')
+    ax.set_ylabel('Im($\epsilon_M$)')
+    ax.legend(frameon=False)
+    output_file = '%s_exciton_spectra.pdf'%var
+    fig.savefig(os.path.join(output_folder,output_file))
+    if draw: plt.show() 
 
 #
 # by Fulvio Paleari & Henrique Miranda

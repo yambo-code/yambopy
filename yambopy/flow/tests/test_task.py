@@ -105,8 +105,7 @@ class TestFlow(unittest.TestCase):
         yambo_flow.run()
 
     def tearDown(self):
-        #self.clean(['flow','bse_flow','save_flow'])
-        pass
+        self.clean(['flow','bse_flow','save_flow'])
 
 if __name__ == '__main__':
     unittest.main()

@@ -359,7 +359,7 @@ class YamboExcitonDB(YamboSaveDB):
 
         return car_kpoints, amplitudes[kindx], np.angle(phases)[kindx]
 
-    def chi(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.02,broad=0.1,q0norm=1e-5,
+    def get_chi(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.02,broad=0.1,q0norm=1e-5,
             nexcitons='all',spin_degen=2,verbose=0):
         """
         Calculate the dielectric response function using excitonic states
@@ -370,8 +370,9 @@ class YamboExcitonDB(YamboSaveDB):
         w = np.arange(emin,emax,estep,dtype=np.float32)
         nenergies = len(w)
         
-        print("energy range: %lf -> +%lf -> %lf "%(emin,estep,emax))
-        print("energy steps: %lf"%nenergies)
+        if verbose:
+            print("energy range: %lf -> +%lf -> %lf "%(emin,estep,emax))
+            print("energy steps: %lf"%nenergies)
 
         #initialize the susceptibility intensity
         chi = np.zeros([len(w)],dtype=np.complex64)

@@ -34,7 +34,7 @@ class TestYamboIn(unittest.TestCase):
                  'NGsBlkXp': [[1,2,5], 'Ry'],
                  'BndsRnXp': [[1,10],[1,20],[1,30]] }
         yi.folder = 'optimize'
-        yi.optimize(conv)
+        yi.optimize(conv,folder='optimize')
 
     def tearDown(self):
         sh.rmtree('optimize')

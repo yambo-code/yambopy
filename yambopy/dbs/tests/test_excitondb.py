@@ -28,15 +28,14 @@ class TestYamboExcitonDB(unittest.TestCase):
         electrons = YamboElectronsDB(lat,save=os.path.join(test_path,'SAVE')) 
 
         #show output
-        print(exc)
-        exc.get_sorted()
+        sort_e, sort_i = exc.get_sorted()
         exc.get_degenerate(1)
 
         #write exc_I.dat and exc_E.dat
         exc.write_sorted('exc')
 
         #calculate chi
-        w,chi = exc.chi()
+        w,chi = exc.get_chi()
 
         #load reference
         eps_filename = os.path.join(test_path,'o-yambo.eps_q1_diago_bse')

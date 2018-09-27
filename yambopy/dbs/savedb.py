@@ -8,7 +8,7 @@ import numpy as np
 from itertools import product
 from netCDF4 import Dataset
 from yambopy.plot import *
-from yambopy.lattice import isbetween, car_red, rec_lat
+from yambopy.lattice import isbetween, car_red, rec_lat, vol_lat
 from yambopy.units import ha2ev
 
 max_exp = 50
@@ -127,6 +127,14 @@ class YamboSaveDB():
     def rlat(self):
         """caclulate the reciprocal lattice"""
         return rec_lat(self.lat)
+
+    @property
+    def rlat_vol(self):
+        return (2*np.pi)**3 * vol_lat(self.rlat)
+
+    @property
+    def lat_vol(self):
+        return vol_lat(self.lat)
 
     @property
     def natoms(self):
