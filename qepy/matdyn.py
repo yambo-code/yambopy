@@ -32,7 +32,7 @@ class Matdyn(object):
         self.eiv      = np.array(eiv)
 
     @classmethod
-    def from_modes_file(self,folder='.',filename='pw.modes'):
+    def from_modes_file(cls,folder='.',filename='pw.modes'):
         """
         read the modes file from the hard drive 
         """
@@ -93,17 +93,17 @@ class Matdyn(object):
 
     @property
     def nmodes(self):
-        nqpoints,nmodes,_ = eiv.shape 
+        nqpoints,nmodes,_ = self.eiv.shape 
         return nmodes
  
     @property
     def natoms(self):
-        nqpoints,nmodes,_ = eiv.shape 
-        return nmodes/3
+        nqpoints,nmodes,_ = self.eiv.shape 
+        return int(nmodes/3)
 
     @property
-    def qpoints(self):
-        nqpoints,nmodes,_ = eiv.shape 
+    def nqpoints(self):
+        nqpoints,nmodes,_ = self.eiv.shape 
         return nqpoints
 
     @property

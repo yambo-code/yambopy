@@ -336,11 +336,6 @@ class YamboTask(YambopyTask):
         instance.yamboin_dict = yamboin_dict
         return instance
 
-    @staticmethod
-    def from_folder(folder):
-        return YamboTask()
-        
-
     @classmethod
     def from_folder(cls,folder):
         """
@@ -541,6 +536,7 @@ class PhTask(YambopyTask):
     def initialize(self,path):
         """write inputs"""
         self.phinput.write(os.path.join(path,'ph.in'))
+        self.pwinput.get_pseudos(destpath=path)
 
         #in case there is another PwTask task in inputs link it
         self.link_pwtask(path)

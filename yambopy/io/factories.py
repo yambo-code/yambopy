@@ -9,7 +9,8 @@ This file contains classes and methods to generate input files
 
 from qepy.pw import PwIn
 from qepy.ph import PhIn
-from yambopy.flow import PwTask, PhTask, P2yTask, DynmatTask
+from qepy.matdyn import Matdyn
+from yambopy.flow import PwTask, PhTask, P2yTask, YamboTask, DynmatTask, YambopyFlow
 
 __all__ = [
 "FiniteDifferencesPhonon",
@@ -22,25 +23,46 @@ class FiniteDifferencesPhononFlow():
     This class takes as an input one structure and a phonon calculation.
     It produces a flow with the QE input files displaced along the phonon modes
     """
-    def __init__(self,structure,phonon_modes):
+    def __init__(self,structure,phonon_modes,yambo_input,yambo_runlevel):
         self.structure = structure
         if not isinstance(phonon_modes,Matdyn):
             raise ValueError('phonon_modes must be an instance of Matdyn')
-        self.phonons = phonon_modes
-        self.spectra = None
+        self.phonon_modes = phonon_modes
+        self.yambo_input = yambo_input
+        self.yambo_runlevel = yambo_runlevel
 
-    def write_flow(self,path,modes_list=None):
+    def get_tasks(self,path,kpoints,ecut,nscf_bands,nscf_kpoints=None,modes_list=None):
         """
         Create a flow with all the tasks to perform the calculation
         """
-        raise NotImplementedError("Not implemented yet")
+        if modes_list is None: modes_list = list(range(self.phonon_modes.nmodes))
+
+        tasks = []
         #apply the displacement in the structure
+        for imode in modes_list:
+            #displace structure
+            displaced_structure = self.structure
 
-        #create scf, nscf and p2y task
-        PwNscfTasks(displaced_structure,kpoints,ecut,nscf_bands)
+            #create scf, nscf and p2y task
+            tmp_tasks = PwNscfTask(displaced_structure,kpoints,ecut,nscf_bands)
+            qe_scf_task,qe_nscf_task,p2y_task = tmp_tasks
+            tasks.extend(tmp_tasks)
 
+            #add yambo_task
+            yambo_task = YamboTask.from_runlevel(p2y_task,self.yambo_runlevel,self.yambo_input,
+                                                 dependencies=p2y_task)
+            tasks.append(yambo_task)
+
+        return tasks
+
+ 
+    def get_flow(self,path,kpoints,ecut,nscf_bands,nscf_kpoints=None,modes_list=None):
+
+        tasks = self.get_tasks(path=path,kpoints=kpoints,ecut=ecut,nscf_bands=nscf_bands,
+                               nscf_kpoints=nscf_kpoints,modes_list=modes_list)
+       
         #put all the tasks in a flow
-        yambo_flow = YambopyFlow.from_tasks(path,[qe_scf_task,qe_nscf_task,p2y_task,yambo_task])
+        yambo_flow = YambopyFlow.from_tasks(path,tasks)
         return yambo_flow
 
 
@@ -63,7 +85,7 @@ def PhPhononTask(structure,kpoints,ecut,qpoints=None):
  
     return qe_scf_task, ph_task, matdyn_task
 
-def PwNscfTask(structure,kpoints,ecut,nscf_bands):
+def PwNscfTask(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None):
     """
     Return a ScfTask, NscfTask and P2yTask preparing for a Yambo calculation
     """
@@ -74,6 +96,7 @@ def PwNscfTask(structure,kpoints,ecut,nscf_bands):
 
     #create a QE nscf task and run
     qe_input = qe_input.copy().set_nscf(nscf_bands)
+    if nscf_kpoints is not None: qe_input.set_kpoints(nscf_kpoints) 
     qe_nscf_task = PwTask.from_input([qe_input,qe_scf_task],dependencies=qe_scf_task)
 
     #create a p2y nscf task and run
