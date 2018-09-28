@@ -105,13 +105,30 @@ class PwIn():
         return new
 
     @classmethod
-    def from_structure_dict(cls,structure,kpoints=None,ecut=None):
+    def from_structure_dict(cls,structure,kpoints=None,ecut=None,pseudo_dir='.'):
         pwi = cls()
         pwi.set_structure(structure)
         if kpoints: pwi.set_kpoints(kpoints)
         if ecut: pwi.set_ecut(ecut)
+        if pseudo_dir: pwi.pseudo_dir = pseudo_dir
         return pwi
-        
+       
+    @property
+    def pseudo_dir(self):
+        return self.control['pseudo_dir'].replace("'",'')
+    
+    @pseudo_dir.setter
+    def pseudo_dir(self,value):
+        self.control['pseudo_dir'] = "'%s'"%value.replace("'",'')
+
+    @property
+    def prefix(self): 
+        return self.control['prefix'].replace("'",'')
+
+    @prefix.setter
+    def prefix(self,value):
+        self.control['prefix'] = "'%s'"%value.replace("'",'')
+
     def set_ecut(self,ecut):
         self.system['ecutwfc'] = ecut
 
@@ -134,10 +151,6 @@ class PwIn():
         if 'lattice' in structure: self.set_lattice(**structure['lattice'])
         if 'atypes'  in structure: self.set_atypes(structure['atypes'])
         if 'atoms'   in structure: self.set_atoms(structure['atoms'])
-
-    @property
-    def prefix(self): 
-        return self.control['prefix'].replace("'",'')
 
     def set_lattice(self,ibrav=None,celldm1=None,celldm2=None,celldm3=None,
                       celldm4=None,celldm5=None,celldm6=None):
