@@ -9,7 +9,7 @@ echo "Quantum Espresso: $PW_VERSION"
 ls /usr/lib
 
 # Yambo 4.4 tar
-wget https://www.dropbox.com/s/2eyiuta4sta0vmm/yambo_4.4.tar?dl=0 -O yambo.tar
+wget https://www.dropbox.com/s/d8z64wvh0lcxmij/yambo_4.4.tar?dl=0 -O yambo.tar
 sudo tar -xf yambo.tar -C /bin/
 
 # Espresso 6.3 tar
