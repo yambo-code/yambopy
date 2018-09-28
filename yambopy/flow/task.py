@@ -31,6 +31,7 @@ import shutil
 import time
 from schedulerpy import Scheduler
 from qepy.pw import PwIn
+from qepy.ph import PhIn
 from qepy import qepyenv
 from yambopy import yambopyenv
 from yambopy.tools.string import marquee
@@ -38,12 +39,13 @@ from yambopy.tools.duck import isiter, isstring
 from yambopy.io.inputfile import YamboIn
 
 __all__ = [
-    'YambopyFlow',
-    'YambopyTask',
-    'YamboTask',
-    'P2yTask',
-    'YppTask',
-    'PwTask',
+'YambopyFlow',
+'YambopyTask',
+'YamboTask',
+'P2yTask',
+'YppTask',
+'PwTask',
+'PhTask'
 ]
 
 def write_fake(filename):
@@ -501,3 +503,64 @@ class PwTask(YambopyTask):
     def output(self):
         """normally the output of a pw task is a .save folder"""
         return os.path.join(self.path,"%s.save"%self.pwinput.prefix)
+
+
+class PhTask(YambopyTask):
+    """
+    Routines specific to quantum espresso task
+    """
+    @classmethod
+    def from_scf_task(cls,pwinputs,executable=qepyenv.PH,
+                   scheduler=yambopyenv.SCHEDULER,dependencies=None):
+        if not isiter(pwinputs): pwinputs = [pwinputs]
+        if not any([isinstance(pwi,(PhIn,cls)) for pwi in pwinputs]):
+            raise ValueError('The input is not an instance of PwTask but %s'%(pwinputs))
+        instance = cls(inputs=pwinputs,executable=executable,
+                   scheduler=scheduler,dependencies=dependencies)
+        #set PhIn instance prefix
+        instance.phinput.prefix = instance.pwinput.prefix
+        return instance
+
+    @property
+    def phinput(self):
+        return self.get_instances_from_inputs(PhIn)[0]
+
+    @property
+    def pwtask(self):
+        return self.get_instances_from_inputs(PwTask)[0]
+
+    @property
+    def pwinput(self):
+        return self.pwtask.pwinput
+
+    @task_init
+    def initialize(self,path):
+        """write inputs and get pseudopotential"""
+        self.phinput.write(os.path.join(path,'ph.in'))
+
+        #in case there is another PwTask task in inputs link it
+        self.link_pwtask(path)
+
+        #create running script
+        self._run = os.path.join(path,'run.sh')
+        self.scheduler.add_command('%s < ph.in > %s'%(self.executable,self.log))
+        self.scheduler.write(self._run)
+
+        self.path = path
+
+    def link_pwtask(self,path):
+        """Link pwtask from inputs with the current one"""
+        pwinstances = self.get_instances_from_inputs(PwTask)
+        if len(pwinstances) > 1: raise ValueError('More than one PwTask instance in input, cannot continue')
+        if len(pwinstances):
+            src = os.path.abspath(pwinstances[0].output)
+            dst = os.path.abspath(os.path.join(path,"%s.save"%self.phinput.prefix))
+            os.symlink(src,dst)
+
+    @property
+    def output(self):
+        """normally the output of a pw task is a .save folder"""
+        return os.path.join(self.path,"%s.save"%self.phinput.prefix)
+
+
+

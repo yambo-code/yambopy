@@ -10,7 +10,10 @@ Also able to read output files in xml format (datafile.xml or datafile-schema.xm
 
 """
 import os
-class env():
+
+class qepyenv():
+    PW = "pw.x"
+    PH = "ph.x"
     PSEUDODIR = os.path.join(os.path.dirname(__file__),'data','pseudos')
 
 from qepy.lattice    import *

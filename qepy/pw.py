@@ -11,10 +11,6 @@ from math import sqrt
 from .pseudo import get_pseudo_path
 from .tools import fortran_bool
 
-class qepyenv():
-    PW = "pw.x"
-    PSEUDODIR = os.path.join(os.path.dirname(__file__),'data','pseudos')
-
 class PwIn(object):
     """
     Class to generate an manipulate Quantum Espresso input files

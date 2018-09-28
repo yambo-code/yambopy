@@ -7,7 +7,8 @@ import unittest
 import os
 import shutil
 from qepy.pw import PwIn
-from yambopy.data.structures import BN
+from yambopy.data.structures import BN, Si
+from yambopy.io.factories import PhPhononTask, PwNscfTask
 from yambopy.flow import YambopyFlow, PwTask, P2yTask, YamboTask 
 
 test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','bse')
@@ -22,16 +23,7 @@ class TestFlow(unittest.TestCase):
     def test_full_flow(self):
         self.clean('flow')
 
-        #create a QE scf task and run
-        qe_input = PwIn.from_structure_dict(BN,kpoints=[9,9,1],ecut=20)
-        qe_scf_task = PwTask.from_input(qe_input)
-        
-        #create a QE nscf task and run
-        qe_input = qe_input.copy().set_nscf(10)
-        qe_nscf_task = PwTask.from_input([qe_input,qe_scf_task],dependencies=qe_scf_task)
-
-        #create a p2y nscf task and run
-        p2y_task = P2yTask.from_nscf_task(qe_nscf_task)
+        qe_scf_task, qe_nscf_task, p2y_task = PwNscfTask(BN,kpoints=[3,3,1],ecut=20,nscf_bands=10)
 
         #create a yambo optics task and run
         yamboin_dict = dict(FFTGvecs=[20,'Ry'],
@@ -61,16 +53,7 @@ class TestFlow(unittest.TestCase):
         #
         self.clean('save_flow')
 
-        #create a QE scf task and run
-        qe_input = PwIn.from_structure_dict(BN,kpoints=[3,3,1],ecut=20)
-        qe_scf_task = PwTask.from_input(qe_input)
-        
-        #create a QE nscf task and run
-        qe_input = qe_input.copy().set_nscf(10)
-        qe_nscf_task = PwTask.from_input([qe_input,qe_scf_task],dependencies=qe_scf_task)
-
-        #create a p2y nscf task and run
-        p2y_task = P2yTask.from_nscf_task(qe_nscf_task)
+        qe_scf_task, qe_nscf_task, p2y_task = PwNscfTask(BN,kpoints=[3,3,1],ecut=20,nscf_bands=10)
 
         #create yamboflow
         yambo_flow = YambopyFlow.from_tasks('save_flow',[qe_scf_task,qe_nscf_task,p2y_task])
@@ -104,6 +87,15 @@ class TestFlow(unittest.TestCase):
         print(yambo_flow)
         yambo_flow.run()
 
+    def test_phonon_flow(self):
+        self.clean('phonon_flow')        
+
+        tasks = PhPhononTask(Si,kpoints=[3,3,3],qpoints=[1,1,1],ecut=30)
+        yambo_flow = YambopyFlow.from_tasks('phonon_flow',tasks)
+        print(yambo_flow)
+        yambo_flow.create()
+        yambo_flow.run()
+        
     def tearDown(self):
         self.clean(['flow','bse_flow','save_flow'])
 
