@@ -34,7 +34,7 @@ install:
   - "./tests/install.sh"
   - "python setup.py install"
 script:
-    - "py.test -s --cov-config=.coveragerc --cov"
+  - "py.test -s --cov-config=.coveragerc --cov"
 
 # safelist
 branches:
