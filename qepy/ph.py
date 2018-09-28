@@ -42,6 +42,14 @@ class PhIn(object):
     def prefix(self,value):
         self['prefix'] = "'%s'"%value.replace("'",'')
 
+    @property
+    def fildyn(self):
+        return self['fildyn'].replace("'",'')
+
+    @fildyn.setter
+    def fildyn(self,value):
+        self['fildyn'] = "'%s'"%value.replace("'",'')
+
     def write(self,filename):
         with open(filename,'w') as f:
             f.write(str(self))

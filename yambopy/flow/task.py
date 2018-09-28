@@ -27,11 +27,13 @@ The hierarchy is:
 """
 
 import os
+import glob
 import shutil
 import time
 from schedulerpy import Scheduler
 from qepy.pw import PwIn
 from qepy.ph import PhIn
+from qepy.dynmat import DynmatIn
 from qepy import qepyenv
 from yambopy import yambopyenv
 from yambopy.tools.string import marquee
@@ -45,7 +47,8 @@ __all__ = [
 'P2yTask',
 'YppTask',
 'PwTask',
-'PhTask'
+'PhTask',
+'DynmatTask',
 ]
 
 def write_fake(filename):
@@ -519,6 +522,7 @@ class PhTask(YambopyTask):
                    scheduler=scheduler,dependencies=dependencies)
         #set PhIn instance prefix
         instance.phinput.prefix = instance.pwinput.prefix
+        instance.phinput.fildyn = "%s.dyn"%instance.pwinput.prefix
         return instance
 
     @property
@@ -535,7 +539,7 @@ class PhTask(YambopyTask):
 
     @task_init
     def initialize(self,path):
-        """write inputs and get pseudopotential"""
+        """write inputs"""
         self.phinput.write(os.path.join(path,'ph.in'))
 
         #in case there is another PwTask task in inputs link it
@@ -557,6 +561,58 @@ class PhTask(YambopyTask):
             dst = os.path.abspath(os.path.join(path,"%s.save"%self.phinput.prefix))
             os.symlink(src,dst)
 
+    @property
+    def output(self):
+        """normally the output of a ph task is a set of dyn files"""
+        outputs = []
+        print(self.path)
+        for filename in os.listdir(self.path):
+            print(filename)
+            if "dyn" in filename:
+                outputs.append(os.path.abspath(os.path.join(self.path,filename)))
+        return outputs 
+
+class DynmatTask(YambopyTask):
+    """
+    Routines specific to quantum espresso task
+    """
+    @classmethod
+    def from_phonon_task(cls,phtask,executable=qepyenv.DYNMAT,
+                         scheduler=yambopyenv.SCHEDULER,dependencies=None):
+        if not isinstance(phtask,PhTask):
+            raise ValueError('The input is not an instance of PhTask but %s'%(pwinputs))
+        return cls(inputs=phtask,executable=executable,
+                   scheduler=scheduler,dependencies=dependencies)
+
+    @property
+    def phtask(self):
+        return self.get_instances_from_inputs(PhTask)[0]
+
+    @property
+    def phinput(self):
+        return self.phtask.pwinput
+
+    def initialize(self,path):
+        """write inputs and get pseudopotential"""
+        if self.status != "ready": return
+
+        #crate dynmat input file
+        dynmat = DynmatIn.from_prefix(self.phinput.prefix) 
+        dynmat.write(os.path.join(path,'dynmat.in'))
+
+        #copy dyn files in this foldeer
+        for src in self.inputs[0].output:
+            dst = os.path.abspath(os.path.join(path,os.path.basename(src)))
+            shutil.copy(src,dst)
+
+        #create running script
+        self._run = os.path.join(path,'run.sh')
+        self.scheduler.add_command('%s < dynmat.in > %s'%(self.executable,self.log))
+        self.scheduler.write(self._run)
+
+        self.path = path
+        self.initialized = True
+    
     @property
     def output(self):
         """normally the output of a pw task is a .save folder"""
