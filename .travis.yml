@@ -7,7 +7,7 @@ python:
     - 3.5
 
 env:
-    - YAMBO_VERSION=4.1 PW_VERSION=5.4
+    - YAMBO_VERSION=4.4 PW_VERSION=6.3
 #    - any combination of versions
 
 matrix:
