@@ -1,14 +1,17 @@
-# Copyright (C) 2016 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
+from __future__ import print_function
+from builtins import zip
+from builtins import str
 import subprocess
-from schedulerpy import *
 from textwrap import dedent
 from copy import deepcopy
 from collections import OrderedDict
+from .scheduler import Scheduler
 
 class Pbs(Scheduler):
     """
@@ -39,7 +42,7 @@ class Pbs(Scheduler):
 
         if rerunable: args.append("-r y")
 
-        if mem: args.append("-l pvmem=%dMB"%mem)
+        if self.get_arg("pvmem"): args.append("-l pvmem=%dMB"%mem)
         
         resources_line = self.get_resources_line()
         if resources_line:
@@ -83,7 +86,7 @@ class Pbs(Scheduler):
             mem = mem.replace("nodes",str(nodes))
             mem = mem.replace("cores",str(cores))
             mem = eval_expr(mem) 
-        return     
+        return mem 
 
     def get_resources_line(self):
         """
@@ -99,9 +102,9 @@ class Pbs(Scheduler):
 
         # memory stuff
         mem = self.get_mem()
-        if mem: resources["vmem"]  = "%dMB"%mem
+        if mem: resources["mem"]  = "%dMB"%mem
         
-        resources_line = ":".join(["%s=%s"%(item,value) for item,value in resources.items()])
+        resources_line = ":".join(["%s=%s"%(item,value) for item,value in list(resources.items())])
        
         return resources_line
     
@@ -136,7 +139,7 @@ class Pbs(Scheduler):
         command = self.get_bash()
         
         if dry:
-            print command
+            print(command)
         else:
             p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,executable='/bin/bash')
             self.stdout,self.stderr = p.communicate()
@@ -145,10 +148,10 @@ class Pbs(Scheduler):
             if self.stderr: raise Exception(self.stderr)
             
             #check if there is stdout
-            if not silent: print self.stdout
+            if not silent: print(self.stdout)
             
             #get jobid
             self.jobid = self.stdout.split('\n')[0]
-            print "jobid:",self.jobid
+            print("jobid:",self.jobid)
 
         

@@ -4,5 +4,7 @@
 # This file is part of yambopy
 #
 #
-from yamboparser.yambofile import *
-from yamboparser.yambofolder import *
+"""Package to parse yambo output files"""
+
+from .yambofile import *
+from .yambofolder import *

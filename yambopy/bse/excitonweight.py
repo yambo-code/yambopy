@@ -1,9 +1,9 @@
-# Copyright (c) 2016, Henrique Miranda
+# Copyright (c) 2018, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
-from __future__ import print_function
+from __future__ import print_function, division
 from yambopy import *
 from itertools import product
 from netCDF4 import Dataset
@@ -51,10 +51,10 @@ class YamboExcitonWeight(YamboSaveDB):
                  "weights": weights,
                  "lattice": self.lat,
                  "reciprocal_lattice": self.rlat,
-                 "transitions": transitions 
+                 "transitions": transitions
                  }
 
-    def calc_kpts_weights(self,repx=range(-1,2),repy=range(-1,2),repz=range(-1,2)):
+    def calc_kpts_weights(self,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(-1,2))):
         """ Calculate the weights and kpoints of the excitons
         """
         self.weights     = dict()
@@ -78,7 +78,7 @@ class YamboExcitonWeight(YamboSaveDB):
         weights  = []
 
         for r in product(repx,repy,repz):
-          for k,s in self.weights.keys():
+          for k,s in list(self.weights.keys()):
             w   = self.weights[(k,s)]
             weights.append( w )
             qpt = np.dot(sym[s-1],kpoints[k-1])+red_car([r],self.rlat)[0]
@@ -87,7 +87,7 @@ class YamboExcitonWeight(YamboSaveDB):
 
         return np.array(qpts), np.array(weights)
 
-    def calc_kpts_transitions(self,repx=range(-1,2),repy=range(-1,2),repz=range(-1,2),debug=False):
+    def calc_kpts_transitions(self,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(-1,2)),debug=False):
         """ Calculate the transitions and kpoints of the excitons
         """
         self.weights     = dict()
@@ -113,7 +113,7 @@ class YamboExcitonWeight(YamboSaveDB):
 
         #add percentage of a given v => c transition
         norm = sum(self.excitons[:,4])
-        for v,c,k,s in self.transitions.keys():
+        for v,c,k,s in list(self.transitions.keys()):
           self.transitions_v_to_c[(int(v),int(c))] += self.transitions[(v,c,k,s)]
         if debug: print('transitions (valence > condution):')
         for v,c in self.transitions_v_to_c:
@@ -129,19 +129,19 @@ class YamboExcitonWeight(YamboSaveDB):
         t_v_c    = []
 
         for r in product(repx,repy,repz):
-          for k,s in self.weights.keys():
+          for k,s in list(self.weights.keys()):
             qpt = np.dot(sym[s-1],kpoints[k-1])+red_car([r],self.rlat)[0]
             qpts.append( qpt )
             kidx.append( k )
             #print (v_ref,c_ref,k,s)
             #aux.append(self.transitions[(v_ref,c_ref,k,s)])
-         
-        for v_ref,c_ref in self.transitions_v_to_c.keys():
+
+        for v_ref,c_ref in list(self.transitions_v_to_c.keys()):
           aux = []
           for r in product(repx,repy,repz):
-            for k,s in self.weights.keys():
+            for k,s in list(self.weights.keys()):
               aux.append(self.transitions[(v_ref,c_ref,k,s)])
-          t_v_c.append(np.array(aux)) 
+          t_v_c.append(np.array(aux))
 
         return np.array(qpts), t_v_c, np.array(kidx)
 
@@ -219,7 +219,7 @@ class YamboExcitonWeight(YamboSaveDB):
 
         fig = plt.figure(figsize=(10,10))
         kpts, t_v_c, _ = self.calc_kpts_transitions()
-        for individual in t_v_c:   
+        for individual in t_v_c:
           plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', color=[cmap(sqrt(c)) for c in individual])
 
         plt.xlim([-lim,lim])
@@ -232,7 +232,7 @@ class YamboExcitonWeight(YamboSaveDB):
         """
         Plot the excitonic weights of a given transition in the band-structure
         """
-        kpts, t_v_c, kidx = self.calc_kpts_transitions(repx=xrange(1),repy=xrange(1),repz=xrange(1))
+        kpts, t_v_c, kidx = self.calc_kpts_transitions(repx=list(range(1)),repy=list(range(1)),repz=list(range(1)))
         t_v_c = np.array(t_v_c)
 
         #get_path is provided by savedb
@@ -250,7 +250,7 @@ class YamboExcitonWeight(YamboSaveDB):
         eig = eig[bands_indexes]
         transition_weight  = t_v_c[:,bands_indexes]
         if nbands == 'all': nbands = self.nbands
-        for tw,t in zip(transition_weight,self.transitions_v_to_c.keys()):
+        for tw,t in zip(transition_weight,list(self.transitions_v_to_c.keys())):
             v,c = t
             if space == 'transition':
                 ax.plot(bands_distances,eig[:,c-1]-eig[:,v-1])

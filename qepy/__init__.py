@@ -1,8 +1,7 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
-#
 #
 """
 Scripts to manipulate Quantum Espresso input files
@@ -10,6 +9,10 @@ Scripts to manipulate Quantum Espresso input files
 Also able to read output files in xml format (datafile.xml or datafile-schema.xml)
 
 """
+import os
+class env():
+    PSEUDODIR = os.path.join(os.path.dirname(__file__),'data','pseudos')
+
 from qepy.lattice    import *
 from qepy.pw         import *
 from qepy.ph         import *

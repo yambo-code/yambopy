@@ -17,6 +17,7 @@
 
 #########################################################
 from __future__ import print_function
+from builtins import range
 from yambopy     import *
 from schedulerpy import *
 
@@ -34,7 +35,7 @@ CSRTmode = 'XG'  #  X: Screening, G: GFs
 nodes =  1
 cores =  12
 
-time_probe = range(0,610,150)
+time_probe = list(range(0,610,150))
 #time_probe=(0,)
 print(time_probe)
 

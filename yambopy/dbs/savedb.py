@@ -1,22 +1,18 @@
-# Copyright (c) 2016, Henrique Miranda
+# Copyright (c) 2018, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
-from yambopy import *
-from yambopy.plot import *
+import os
+import numpy as np
 from itertools import product
 from netCDF4 import Dataset
+from yambopy.plot import *
+from yambopy.lattice import isbetween, car_red, rec_lat, vol_lat
+from yambopy.units import ha2ev
 
 max_exp = 50
-ha2ev = 27.211396132
 atol = 1e-3
-
-def isbetween(a,b,c):
-    """
-    Check if cartesian point c is between point a and b
-    """
-    return np.isclose(np.linalg.norm(a-c)+np.linalg.norm(b-c)-np.linalg.norm(a-b),0,rtol=1e-05, atol=1e-06)
 
 def expand_kpts_val(kpts,syms,val):
     """
@@ -25,7 +21,7 @@ def expand_kpts_val(kpts,syms,val):
     """
     full_kpts = []
     full_val  = []
-    print "nkpoints:", len(kpts)
+    print("nkpoints:", len(kpts))
     for nk,k in enumerate(kpts):
         for sym in syms:
             full_kpts.append((nk,np.dot(sym,k)))
@@ -39,112 +35,161 @@ def vec_in_list(veca,vec_list):
     """
     return np.array([ np.allclose(veca,vecb,rtol=atol,atol=atol) for vecb in vec_list ]).any()
 
-def expand_kpts(kpts,syms):
-    """
-    Take a list of qpoints and symmetry operations and return the full brillouin zone
-    with the corresponding index in the irreducible brillouin zone
-    """
-    full_kpts = []
-    print "nkpoints:", len(kpts)
-    for nk,k in enumerate(kpts):
-        for sym in syms:
-            full_kpts.append((nk,np.dot(sym,k)))
-
-    return full_kpts
-
 class YamboSaveDB():
     """
     Reads the information from the SAVE database in Yambo
 
     Arguments:
-        
+
         ``save``: Path with the save folder (default:SAVE)
         ``filename``: name of the filename of the ns.db1 database created with yambo (default:ns.db1)
 
     **Properties:**
-    
+
         ``atomic_numbers`` : atomic number of the species
         ``eigenvalues`` : eigenvalues of the electrons in eV
         ``nkpoints`` : number of kpoints
     """
-    def __init__(self,save='SAVE',filename='ns.db1'):
-        self.save = save
-        self.filename = filename
-        path_filename = '%s/%s'%(save,filename)
+    def __init__(self,atomic_numbers,atomic_positions,eigenvalues,sym_car,kpts_iku,
+                 lat,alat,temperature,electrons,spin,time_rev):
 
-        #read the database
-        self.readDB(path_filename)
+        self.atomic_numbers   = atomic_numbers   
+        self.atomic_positions = atomic_positions
+        self.eigenvalues      = eigenvalues     
+        self.sym_car          = sym_car         
+        self.kpts_iku         = kpts_iku        
+        self.lat              = lat             
+        self.alat             = alat            
+        self.temperature      = temperature     
+        self.electrons        = electrons       
+        self.spin             = spin            
+        self.time_rev         = time_rev        
 
-        #status
+        #TODO: remove this
         self.expanded = False
-        self.efermi = None
 
-    def readDB(self,filename):
+    @classmethod
+    def from_db_file(cls,folder='.',filename='ns.db1'):
         """
         Read the ns.db1 database
         """
-        try:
-            database    = Dataset(filename)
-        except:
-            raise ValueError( "Error reading %s database in YamboSaveDB"%filename )
+        path_filename = os.path.join(folder,filename)
+        if not os.path.isfile(path_filename):
+            raise FileNotFoundError( "Error reading %s database in YamboSaveDB"%path_filename )
 
-        self.atomic_numbers   = database.variables['atomic_numbers'][:]
-        self.atomic_positions = database.variables['ATOM_POS'][0,:]
-        # we convert the eigenvalues to eV
-        self.eigenvalues      = database.variables['EIGENVALUES'][0,:]*ha2ev
-        self.sym_car          = database.variables['SYMMETRY'][:]
-        self.kpts_iku         = database.variables['K-POINTS'][:].T
-        self.lat              = database.variables['LATTICE_VECTORS'][:].T
-        self.alat             = database.variables['LATTICE_PARAMETER'][:].T
-        dimensions = database.variables['DIMENSIONS'][:]
-        self.temperature = dimensions[13]
-        self.electrons = dimensions[14]
-        self.nkpoints  = int(dimensions[6])
-        self.spin = int(dimensions[11])
-        self.time_rev = dimensions[9]
-        database.close()
+        with Dataset(path_filename) as database:
+            
+            dimensions            = database.variables['DIMENSIONS'][:]
+            
+            natoms = database.variables['N_ATOMS'][:].astype(int).T
+            tmp_an = database.variables['atomic_numbers'][:].astype(int)
 
-        self.natoms = len(self.atomic_positions)
-        _,self.nbands = self.eigenvalues.shape
+            args = dict( atomic_numbers   = [[tmp_an[n]]*na for n,na in enumerate(natoms)],
+                         atomic_positions = database.variables['ATOM_POS'][0,:],
+                         eigenvalues      = database.variables['EIGENVALUES'][0,:]*ha2ev,
+                         sym_car          = database.variables['SYMMETRY'][:],
+                         kpts_iku         = database.variables['K-POINTS'][:].T,
+                         lat              = database.variables['LATTICE_VECTORS'][:].T,
+                         alat             = database.variables['LATTICE_PARAMETER'][:].T,
+                         temperature      = dimensions[13],
+                         electrons        = dimensions[14],
+                         spin             = int(dimensions[11]),
+                         time_rev         = dimensions[9] )
 
-        #get a list of symmetries with time reversal
-        nsym = len(self.sym_car)
-        self.time_rev_list = [False]*nsym
-        for i in xrange(nsym):
-            self.time_rev_list[i] = ( i >= nsym/(self.time_rev+1) )
+        return cls(**args)
 
-        #spin degeneracy if 2 components degen 1 else degen 2
-        self.spin_degen = [0,2,1][int(self.spin)]
+    @property
+    def spin_degen(self):
+        """spin degeneracy if 2 components degen 1 else degen 2"""
+        return [0,2,1][int(self.spin)]
 
-        #get minimum am maximul energies
-        eiv = self.eigenvalues.flatten()
-        self.min_eival = min(eiv)
-        self.max_eival = max(eiv)
-        
-        #caclulate the reciprocal lattice
-        self.rlat  = rec_lat(self.lat)
-        self.nsym  = len(self.sym_car)
+    @property
+    def min_eival(self):
+        return np.min(self.eigenvalues) 
+    
+    @property
+    def max_eival(self):
+        return np.max(self.eigenvalues)
 
-        #convert form internal yambo units to cartesian lattice units
-        self.kpts_car = np.array([ k/self.alat for k in self.kpts_iku ])
+    @property
+    def car_kpoints(self):
+        """convert form internal yambo units to cartesian lattice units"""
+        return np.array([ k/self.alat for k in self.kpts_iku ])
 
-        #convert cartesian transformations to reduced transformations
-        inv = np.linalg.inv
-        self.sym_rlu = np.zeros([self.nsym,3,3])
+    @property
+    def red_kpoints(self):
+        """convert from cartesian coordinates to reduced coordinates"""
+        if not hasattr(self,"_red_kpoints"):
+            self._red_kpoints = car_red(self.car_kpoints,self.rlat)
+        return self._red_kpoints
+
+    @property
+    def rlat(self):
+        """caclulate the reciprocal lattice"""
+        return rec_lat(self.lat)
+
+    @property
+    def rlat_vol(self):
+        return (2*np.pi)**3 * vol_lat(self.rlat)
+
+    @property
+    def lat_vol(self):
+        return vol_lat(self.lat)
+
+    @property
+    def natoms(self):
+        return len(self.atomic_positions)
+
+    @property
+    def nbands(self):
+        _,nbands = self.eigenvalues.shape
+        return nbands
+
+    @property
+    def nkpoints(self):
+        return len(self.kpts_iku)
+
+    @property
+    def time_rev_list(self):
+        """get a list of symmetries with time reversal"""
+        time_rev_list = [False]*self.nsym
+        for i in range(self.nsym):
+            time_rev_list[i] = ( i >= self.nsym/(self.time_rev+1) )
+        return time_rev_list
+
+    @property
+    def sym_rlu(self):
+        """convert cartesian transformations to reduced transformations """
+        sym_rlu = np.zeros([self.nsym,3,3])
         for n,s in enumerate(self.sym_car):
             a = np.dot(s.T,inv(self.rlat))
-            self.sym_rlu[n] = np.dot(inv(self.lat.T),a)
+            sym_rlu[n] = np.dot(inv(self.lat.T),a)
+        return sym_rlu
 
-        #convert cartesian transformations to reciprocal transformations
-        self.sym_rec = np.zeros([self.nsym,3,3])
+    @property
+    def nsym(self):
+        return len(self.sym_car)
+
+    @property
+    def sym_rec(self):
+        """Convert cartesian transformations to reciprocal transformations"""
+        sym_rec = np.zeros([self.nsym,3,3])
         for n,s in enumerate(self.sym_car):
-            self.sym_rec[n] = inv(s).T
+            sym_rec[n] = np.linalg.inv(s).T
+        return sym_rec
 
-    def get_fermi(self,inv_smear=0.001):
+    @property
+    def efermi(self):
+        if not hasattr(self,"_efermi"):
+            self._efermi = self.get_efermi
+        return self._efermi
+
+    def get_fermi(self,inv_smear=0.001,verbose=0):
         """ Determine the fermi energy
         """
-        if self.efermi: return self.efermi
         from scipy.optimize import bisect
+
+        kpts, nks, nss = self.expand_kpts()
 
         def fermi(e):
             """ fermi dirac function
@@ -164,21 +209,19 @@ class YamboSaveDB():
         def occupation_minus_ne(ef):
             """ The total occupation minus the total number of electrons
             """
-            return sum([sum(self.spin_degen*fermi_array(self.eigenvalues[nk],ef))*self.weights[nk] for nk in xrange(self.nkpoints)])-self.electrons
+            return sum([sum(self.spin_degen*fermi_array(self.eigenvalues[nk],ef))*self.weights[nk] for nk in range(self.nkpoints)])-self.electrons
 
-        self.efermi = bisect(occupation_minus_ne,self.min_eival,self.max_eival)
+        efermi = bisect(occupation_minus_ne,self.min_eival,self.max_eival)
 
-        print "fermi: %lf eV"%self.efermi
+        if verbose: print("fermi: %lf eV"%efermi)
 
-        self.eigenvalues -= self.efermi
-        self.min_eival -= self.efermi
-        self.max_eival -= self.efermi
+        self.eigenvalues -= efermi
 
         self.occupations = np.zeros([self.nkpoints,self.nbands],dtype=np.float32)
-        for nk in xrange(self.nkpoints):
+        for nk in range(self.nkpoints):
             self.occupations[nk] = fermi_array(self.eigenvalues[nk,:self.nbands],0)
 
-        return self.efermi
+        return efermi
 
     def write_kpoints(self,filename_full='kpts_full.dat',filename='kpts.dat'):
         """ Write the kpoints in a file
@@ -191,7 +234,7 @@ class YamboSaveDB():
         f.close()
 
         f = open(filename,'w')
-        for k in self.kpts_car:
+        for k in self.car_kpoints:
             f.write(("%12.8lf "*3)%tuple(k)+"\n")
         f.close()
 
@@ -201,7 +244,7 @@ class YamboSaveDB():
         if kpts is None:
             kpts, nks, nss = self.expand_kpts()
         else:
-            nks = range(len(kpts))
+            nks = list(range(len(kpts)))
 
         #points in cartesian coordinates
         path_car = red_car(path, self.rlat)
@@ -225,7 +268,7 @@ class YamboSaveDB():
             end_kpt   = path_car[k+1] #end point of the path
 
             #generate repetitions of the brillouin zone
-            for x,y,z in product(range(-1,2),range(-1,2),range(1)):
+            for x,y,z in product(list(range(-1,2)),list(range(-1,2)),list(range(1))):
 
                 #shift the brillouin zone
                 shift = red_car([np.array([x,y,z])],self.rlat)[0]
@@ -242,7 +285,7 @@ class YamboSaveDB():
                         kpoints_in_path[key] = value
 
             #sort the points acoording to distance to the start of the path
-            kpoints_in_path = sorted(kpoints_in_path.values(),key=lambda i: i[1])
+            kpoints_in_path = sorted(list(kpoints_in_path.values()),key=lambda i: i[1])
 
             #for all the kpoints in the path
             for index, disp, kpt in kpoints_in_path:
@@ -272,7 +315,7 @@ class YamboSaveDB():
         kpoints_full_i = {}
 
         #expand using symmetries
-        for nk,k in enumerate(self.kpts_car):
+        for nk,k in enumerate(self.car_kpoints):
             for ns,sym in enumerate(self.sym_car):
                 new_k = np.dot(sym,k)
 
@@ -304,7 +347,7 @@ class YamboSaveDB():
         self.kpoints_indexes  = np.array(kpoints_indexes)
         self.symmetry_indexes = np.array(symmetry_indexes)
 
-        print "%d kpoints expanded to %d"%(len(self.kpts_car),len(kpoints_full))
+        print("%d kpoints expanded to %d"%(len(self.car_kpoints),len(kpoints_full)))
 
         return self.kpoints_full, self.kpoints_indexes, self.symmetry_indexes
 
@@ -332,7 +375,7 @@ class YamboSaveDB():
         plt.plot(bands_distances,self.eigenvalues[bands_indexes])
         plt.show()
 
-    def plot_bs_bz(self,size=20,bandc=1,bandv=None,expand=True,repx=range(3),repy=range(3),repz=range(3)):
+    def plot_bs_bz(self,size=20,bandc=1,bandv=None,expand=True,repx=list(range(3)),repy=list(range(3)),repz=list(range(3))):
         """ Plot the difference in energies of two bands
         """
         if bandv is None: bandv = self.nbandsv
@@ -340,17 +383,17 @@ class YamboSaveDB():
         cmap = plt.get_cmap("viridis")
 
         eigenvalues = self.eigenvalues
-        print "tansitions %d -> %d"%(bandv,bandc)
+        print("tansitions %d -> %d"%(bandv,bandc))
         weights = (eigenvalues[:,bandc-1]-eigenvalues[:,bandv-1])
-        print "min:", min(weights)
-        print "max:", max(weights)
+        print("min:", min(weights))
+        print("max:", max(weights))
         weights = weights/max(weights)
 
         if expand:
             kpts, nks = self.expand_kpts(repx=repx,repy=repy,repz=repz)
             weights = weights[nks]
         else:
-            kpts = self.kpts_car
+            kpts = self.car_kpoints
 
         fig = plt.figure(figsize=(10,10))
         plt.scatter(kpts[:,0], kpts[:,1], s=size, marker='H', cmap=cmap, lw=0, c=weights)

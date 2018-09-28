@@ -1,3 +1,4 @@
+from __future__ import print_function
 #########################################################
 #  YAM(BO)PY(THON) Library
 #
@@ -43,7 +44,7 @@ link_pump  = 'Freq%.2feV-Damp%dfs-%s'            %  ( exc_pump, damp_pump, sourc
 
 # Check RT simulations exists
 
-print 'Checking link...'
+print('Checking link...')
 if not os.path.isdir(link_pump):
   os.system('ln -s ' + dir_pump + ' ' + link_pump)
 
@@ -161,11 +162,11 @@ if 'B' in Set:
 
 # Submission
 #create job files
-print 'running calculation...'
-print 'Pump pulse features:'
-print 'Type of calculations %s' % Set
-print 'Type of dynamics: %s ' % source
-print 'Frequency: %.2f    eV' % exc_pump
-print 'Damping:   %d      fs' % damp_pump
+print('running calculation...')
+print('Pump pulse features:')
+print('Type of calculations %s' % Set)
+print('Type of dynamics: %s ' % source)
+print('Frequency: %.2f    eV' % exc_pump)
+print('Damping:   %d      fs' % damp_pump)
 #print 'Time:      %d      fs' % time_probe
-print '           '
+print('           ')

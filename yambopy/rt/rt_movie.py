@@ -1,4 +1,4 @@
-# Copyright (c) 2017, Alejandro Molina-Sanchez
+# Copyright (c) 2018, Alejandro Molina-Sanchez
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -63,7 +63,6 @@ class YamboRTMovie(YamboSaveDB):
         key = list(external)[0]
         for key,value in external[key].items():
             self.data[key] = value
-        print self.data
 
     def get_excitons(self,min_intensity=0.1,max_energy=4,Degen_Step=0.0):
         filename = "%s/o-%s.exc_E_sorted"%(self.path,self.job_string)
@@ -157,7 +156,6 @@ class YamboRTMovie(YamboSaveDB):
                 yppwf.write("%s/yppwf_%d.in"%(self.path,i))
 
                 filename = "o-%s.exc_%dd_%d%s"%(self.job_string,len(Direction),i,{"g":"","x":".xsf"}[Format] )
-                print filename
                 if not os.path.isfile(filename):
                     os.system("cd %s; ypp -F yppwf_%d.in -J %s"%(self.path,i,self.job_string))
 
@@ -238,6 +236,4 @@ class YamboRTMovie(YamboSaveDB):
     def write_json(self,filename="dynamics"):
         """ Write a jsonfile with the absorption spectra and the wavefunctions of certain excitons
         """
-        print "writing json file...",
         JsonDumper(self.data,"%s.json"%filename)
-        print "done!"

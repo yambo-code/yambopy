@@ -1,59 +1,118 @@
-# Copyright (c) 2017, Henrique Miranda
+# Copyright (c) 2018, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
 #
+import os
+from itertools import product
 from yambopy import *
 from cmath import polar 
 from yambopy.units import *
-from itertools import product
+from yambopy.plot.plotting import add_fig_kwargs
+from yambopy.lattice import replicate_red_kmesh, calculate_distances, get_path
+
+class ExcitonList():
+    """
+    Container class to perform operations on lists of excitons
+    """
+    def __init__(self,excitonlist):
+        self.excitonlist = excitonlist
+
+    def __str__(self):
+        lines = []; app = lines.append
+        for exciton in self.excitonlist:
+            app( str(exciton.get_string(singleline=True)) )
+        return "\n".join(lines)
+
+class Exciton():
+    """
+    Basic container of data for a single exciton
+    TODO: classify the excitons according to their symmetry
+    """
+    def __init__(self,energy,intensity,degeneracy,coeffs=None,wf=None):
+        self.energy = energy
+        self.intensity = intensity
+        self.degeneracy = degeneracy
+        self.coeffs = coeffs
+        self.wf = wf
+
+    def get_string(self,singleline=False):
+        lines = []; app = lines.append
+        app( 'energy:     %8.4'%self.energy )
+        app( 'intensity:  %8.4'%self.intensity )
+        app( 'degeneracy: %8d'%self.degeneracy )
+        if singleline: return "".join(lines)
+        return "\n".join(lines)
+    
+    def __str__(self):
+        return self.get_string()
 
 class YamboExcitonDB(YamboSaveDB):
     """ Read the excitonic states database from yambo
     """
-    def __init__(self,lattice,filename='ndb.BS_diago_Q01',path='.'):
+    def __init__(self,lattice,eigenvalues,l_residual,r_residual,table=None,eigenvectors=None):
         self.lattice = lattice
-        self.filename = filename
-        self.path = path
-        self.get_database()
-        
-    def get_database(self):
-        """ Load the diago database to memory
+        self.eigenvalues = eigenvalues
+        self.l_residual = l_residual
+        self.r_residual = r_residual
+        #optional
+        self.table = table
+        self.eigenvectors = eigenvectors
+
+    @classmethod
+    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q01',folder='.'):
+        """ initialize this class from a file
         """
-        try:
-            filename = "%s/%s"%(self.path,self.filename)
-            database = Dataset(filename)
-        except:
-            print "failed to read database %s"%filename
-            exit(1)
-        if 'BS_left_Residuals' in db.variables.keys():
-            #residuals
-            rel,iml = database.variables['BS_left_Residuals'][:].T
-            rer,imr = database.variables['BS_right_Residuals'][:].T
-            self.l_residual = rel+iml*I
-            self.r_residual = rer+imr*I
-        if 'BS_Residuals' in db.variables.keys():
-            #residuals
-            rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
-            self.l_residual = rel+iml*I
-            self.r_residual = rer+imr*I
-        #energies
-        eig =  database.variables['BS_Energies'][:]*ha2ev
-        self.eigenvalues = eig[:,0]+eig[:,1]*I
-        #eigenvectors
-        eiv = database.variables['BS_EIGENSTATES'][:]
-        eiv = eiv[:,:,0] + eiv[:,:,1]*I
-        self.eigenvectors = eiv
-        #indexes
-        self.table = database.variables['BS_TABLE'][:].T.astype(int)
+        path_filename = os.path.join(folder,filename)
+        if not os.path.isfile(path_filename):
+            raise FileNotFoundError("File %s not found in YamboExcitonDB"%path_filename)
 
-        #transitions dictionary
-        #bs table k, v, c
-        self.unique_vbands = np.unique(self.table[:,1]-1)
-        self.unique_cbands = np.unique(self.table[:,2]-1)
+        with Dataset(path_filename) as database:
+            if 'BS_left_Residuals' in list(database.variables.keys()):
+                #residuals
+                rel,iml = database.variables['BS_left_Residuals'][:].T
+                rer,imr = database.variables['BS_right_Residuals'][:].T
+                l_residual = rel+iml*I
+                r_residual = rer+imr*I
+            if 'BS_Residuals' in list(database.variables.keys()):
+                #residuals
+                rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
+                l_residual = rel+iml*I
+                r_residual = rer+imr*I
 
-        #initialize empty dictionary
-        transitions_v_to_c = dict([ ((v,c),[]) for v,c in product(self.unique_vbands,self.unique_cbands) ])
+            #energies
+            eig =  database.variables['BS_Energies'][:]*ha2ev
+            eigenvalues = eig[:,0]+eig[:,1]*I
+                
+            #eigenvectors
+            table = None
+            eigenvectors = None
+            if 'BS_EIGENSTATES' in database.variables:
+                eiv = database.variables['BS_EIGENSTATES'][:]
+                eiv = eiv[:,:,0] + eiv[:,:,1]*I
+                eigenvectors = eiv
+                table = database.variables['BS_TABLE'][:].T.astype(int)
+
+            table = table
+            eigenvectors = eigenvectors
+
+        return cls(lattice,eigenvalues,l_residual,r_residual,table=table,eigenvectors=eigenvectors)
+
+    @property
+    def unique_vbands(self):
+        return np.unique(self.table[:,1]-1)
+
+    @property
+    def unique_cbands(self):
+        return np.unique(self.table[:,2]-1)
+
+    @property
+    def transitions_v_to_c(self):
+        """Compute transitions from valence to conduction"""
+        if hasattr(self,"_transitions_v_to_c"): return self._transitions_v_to_c
+        uniq_v = self.unique_vbands
+        uniq_c = self.unique_cbands
+        transitions_v_to_c = dict([ ((v,c),[]) for v,c in product(uniq_v,uniq_c) ])
 
         #add elements to dictionary
         for eh,kvc in enumerate(self.table-1):
@@ -61,17 +120,23 @@ class YamboExcitonDB(YamboSaveDB):
             transitions_v_to_c[(v,c)].append((k,eh))
 
         #make an array 
-        for t,v in transitions_v_to_c.items():
+        for t,v in list(transitions_v_to_c.items()):
             if len(np.array(v)):
                 transitions_v_to_c[t] = np.array(v)
             else:
                 del transitions_v_to_c[t]
 
-        self.transitions_v_to_c = transitions_v_to_c 
-        self.nexcitons    = len(self.eigenvalues)
-        self.ntransitions = len(self.table)
-        db.close()
-   
+        self._transitions_v_to_c = transitions_v_to_c 
+        return transitions_v_to_c
+ 
+    @property
+    def ntransitions(self):
+        return len(self.table)
+
+    @property
+    def nexcitons(self):
+        return len(self.eigenvalues)
+
     def write_sorted(self,prefix='yambo'):
         """
         Write the sorted energies and intensities to a file
@@ -84,16 +149,14 @@ class YamboExcitonDB(YamboSaveDB):
         sort_e, sort_i = self.get_sorted()     
 
         #write excitons sorted by energy
-        f = open('%s_E.dat'%prefix, 'w')
-        for e,n in sort_e:
-            f.write("%3d %12.8lf %12.8e\n"%(n+1,e,intensities[n])) 
-        f.close()
+        with open('%s_E.dat'%prefix, 'w') as f:
+            for e,n in sort_e:
+                f.write("%3d %12.8lf %12.8e\n"%(n+1,e,intensities[n])) 
 
         #write excitons sorted by intensities
-        f = open('%s_I.dat'%prefix,'w')
-        for i,n in sort_i:
-            f.write("%3d %12.8lf %12.8e\n"%(n+1,eig[n],i)) 
-        f.close()
+        with open('%s_I.dat'%prefix,'w') as f:
+            for i,n in sort_i:
+                f.write("%3d %12.8lf %12.8e\n"%(n+1,eig[n],i)) 
 
     def get_nondegenerate(self,eps=1e-4):
         """
@@ -127,10 +190,10 @@ class YamboExcitonDB(YamboSaveDB):
         intensities = self.get_intensities()
 
         #list ordered with energy
-        sort_e = sorted(zip(eig, range(self.nexcitons)))
+        sort_e = sorted(zip(eig, list(range(self.nexcitons))))
 
         #list ordered with intensity
-        sort_i = sorted(zip(intensities, range(self.nexcitons)),reverse=True)
+        sort_i = sorted(zip(intensities, list(range(self.nexcitons))),reverse=True)
 
         return sort_e, sort_i 
 
@@ -138,7 +201,6 @@ class YamboExcitonDB(YamboSaveDB):
         """
         Get degenerate excitons
         """
-
         energy = self.eigenvalues[index-1]
         excitons = [] 
         for n,e in enumerate(self.eigenvalues):
@@ -155,13 +217,16 @@ class YamboExcitonDB(YamboSaveDB):
             path     -> path in reduced coordinates in which to plot the band structure
             exciton  -> exciton index to plot
         """
+        if self.eigenvectors is None:
+            raise ValueError('This database does not contain Excitonic states,'
+                              'please re-run the yambo BSE calculation with the WRbsWF option in the input file.')
         if isinstance(excitons, int):
             excitons = (excitons,)
         #get full kmesh
         kpoints = self.lattice.red_kpoints
         path = np.array(path)
 
-        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=range(-1,2),repy=range(-1,2),repz=range(-1,2))
+        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(-1,2)))
         band_indexes = get_path(kpoints_rep,path)
         band_kpoints = kpoints_rep[band_indexes] 
         band_indexes = kpoints_idx_rep[band_indexes]
@@ -177,7 +242,7 @@ class YamboExcitonDB(YamboSaveDB):
             exit()
 
         #get eigenvalues along the path
-        if isinstance(energies,YamboSaveDB):
+        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
             #exapnd eigenvalues to the bull brillouin zone
             energies = energies.eigenvalues[self.lattice.kpoints_indexes]
 
@@ -185,7 +250,8 @@ class YamboExcitonDB(YamboSaveDB):
             #expand the quasiparticle energies to the bull brillouin zone
             energies = energies.eigenvalues_qp[self.lattice.kpoints_indexes]
         else:
-            raise ValueError("argument 'variables' must be an object of YamboSaveDB or YamboQPDB")
+            raise ValueError("Anergies argument must be an instance of YamboSaveDB,"
+                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         #get weight of state in each band
         weights = np.zeros(energies.shape)
@@ -194,7 +260,7 @@ class YamboExcitonDB(YamboSaveDB):
             eivec = self.eigenvectors[exciton-1]
 
             #add weights
-            for t,transitions in self.transitions_v_to_c.items():
+            for t,transitions in list(self.transitions_v_to_c.items()):
                 c,v = t
                 iks, ehs = transitions.T
                 weights[iks,c] += abs2(eivec[ehs])
@@ -208,10 +274,10 @@ class YamboExcitonDB(YamboSaveDB):
         
         return np.array(band_kpoints), energies, weights 
 
-    def plot_exciton_bs(self,ax,lattice,energies_db,path,excitons,size=500,space='bands',
-                        args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
+    def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=500,space='bands',
+                           args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
         """
-        Plot the excitons
+        Plot the exciton band-structure
         
             Arguments:
             ax          -> axis extance of matplotlib to add the plot to
@@ -241,7 +307,7 @@ class YamboExcitonDB(YamboSaveDB):
                 ax.scatter(bands_distances, energies[:,c]-energies[:,v], s=weights[:,c]*size, c='r')
 
         #add high-symmetry k-points vertical bars
-        kpath_car = red_car(path,lattice.rlat)
+        kpath_car = red_car(path,self.lattice.rlat)
         #calculate distances for high-symmetry points
         kpath_distances = calculate_distances( path )
         for d in kpath_distances:
@@ -252,14 +318,28 @@ class YamboExcitonDB(YamboSaveDB):
         ax.set_title("exciton %d-%d"%(excitons[0],excitons[-1]))
         return kpath_distances
 
-    def get_amplitudes_phases(self,excitons=(0,),repx=range(1),repy=range(1),repz=range(1)):
+    @add_fig_kwargs
+    def plot_exciton_bs(self,energies_db,path,excitons,size=500,space='bands',
+                        args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        self.plot_exciton_bs_ax(ax,energies_db,path,excitons,size=size,space=space,
+                                args_scatter=args_scatter,args_plot=args_plot,debug=debug)
+        return fig
+        
+    def get_amplitudes_phases(self,excitons=(0,),repx=list(range(1)),repy=list(range(1)),repz=list(range(1))):
         """ get the excitonic amplitudes and phases
         """
+        if self.eigenvectors is None:
+            raise ValueError('This database does not contain Excitonic states,'
+                             'please re-run the yambo BSE calculation with the WRbsWF option in the input file.')
         if isinstance(excitons, int):
             excitons = (excitons,)
        
         car_kpoints = self.lattice.car_kpoints
         nkpoints = len(car_kpoints)
+        print(nkpoints)
         amplitudes = np.zeros([nkpoints])
         phases     = np.zeros([nkpoints],dtype=np.complex64)
         for exciton in excitons:
@@ -279,7 +359,8 @@ class YamboExcitonDB(YamboSaveDB):
 
         return car_kpoints, amplitudes[kindx], np.angle(phases)[kindx]
 
-    def chi(self,dipoles=None,dir=0,emin=0,emax=8,estep=0.01,broad=0.1,nexcitons='all'):
+    def get_chi(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.02,broad=0.1,q0norm=1e-5,
+            nexcitons='all',spin_degen=2,verbose=0):
         """
         Calculate the dielectric response function using excitonic states
         """
@@ -289,8 +370,9 @@ class YamboExcitonDB(YamboSaveDB):
         w = np.arange(emin,emax,estep,dtype=np.float32)
         nenergies = len(w)
         
-        print "energy range: %lf -> +%lf -> %lf "%(emin,estep,emax)
-        print "energy steps: %lf"%nenergies
+        if verbose:
+            print("energy range: %lf -> +%lf -> %lf "%(emin,estep,emax))
+            print("energy steps: %lf"%nenergies)
 
         #initialize the susceptibility intensity
         chi = np.zeros([len(w)],dtype=np.complex64)
@@ -301,25 +383,34 @@ class YamboExcitonDB(YamboSaveDB):
             EL2 = self.r_residual
         else:
             #calculate exciton-light coupling
-            print "calculate exciton-light coupling"
+            if verbose: print("calculate exciton-light coupling")
             EL1,EL2 = self.project1(dipoles.dipoles[:,dir],nexcitons) 
 
-
         #iterate over the excitonic states
-        for s in xrange(nexcitons):
+        for s in range(nexcitons):
             #get exciton energy
             es = self.eigenvalues[s]
  
             #calculate the green's functions
-            G1 = 1/(   w - es - broad*I) 
-            G2 = 1/( - w - es - broad*I)
+            G1 = -1/(   w - es + broad*I)
+            G2 = -1/( - w - es - broad*I)
 
             r = EL1[s]*EL2[s]
             chi += r*G1 + r*G2
 
+        #multiply facto
+        d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
+        cofactor = spin_degen/(2*np.pi)**3 * d3k_factor * (4*np.pi)
+        chi = chi*cofactor/q0norm**2
+
         return w,chi
 
+    def get_string(self,mark="="):
+        lines = []; app = lines.append
+        app( marquee(self.__class__.__name__,mark=mark) )
+        app( "number of excitons:    %d"%self.nexcitons )
+        if self.table is not None: app( "number of transitions: %d"%self.ntransitions )
+        return '\n'.join(lines)
+    
     def __str__(self):
-        s  = "number of excitons: %d\n"%self.nexcitons
-        s += "number of excitons: %d\n"%self.ntransitions
-        return s
+        return self.get_string()

@@ -1,9 +1,9 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
-#
+from __future__ import print_function, division
 import os
 import re
 from math import sqrt
@@ -17,7 +17,7 @@ ev2ha  = 1.0/ha2ev
 Thz2cm1 = 33.35641
 cm12Thz = 1.0/33.35641
 
-class DynmatIn():
+class DynmatIn(object):
     """
     Generate an manipulate quantum espresso input files for matdyn.x
     """
@@ -114,7 +114,7 @@ class Matdyn():
                 k=4 + j*(nmodes*(natoms+1)+5) + i*(natoms+1)
                 y = float_from_string(data_phon[k])
                 v_mode = []
-                for ii in xrange(1,natoms+1):
+                for ii in range(1,natoms+1):
                     z      = float_from_string(data_phon[k+ii])
                     v_atom = [complex(z[0],z[1]),complex(z[2],z[3]),complex(z[4],z[5])]
                     v_mode.append(v_atom)
@@ -136,14 +136,14 @@ class Matdyn():
         save the phonon modes in a file
         """
         s = " matrix written with qepy\n\n"
-        for nq in xrange(self.nqpoints):
+        for nq in range(self.nqpoints):
             s += ("q =  "+"%12.6lf "*3+"\n")%tuple(self.qpoints[nq])
             s += "*"*81+"\n"
             for n,mode in enumerate(self.eiv[nq]):
                 phfreqmev = self.get_phonon_freq(nq,n+1,unit='THz')
                 phfreqcm1 = self.get_phonon_freq(nq,n+1,unit='cm-1')
                 s += '    freq ( %4d) = %12.6lf [ThZ] = %12.6lf [cm-1]\n'%(n+1,phfreqmev,phfreqcm1)
-                for a in xrange(self.natoms):
+                for a in range(self.natoms):
                     xr,yr,zr = mode[a*3:(a+1)*3].real
                     xi,yi,zi = mode[a*3:(a+1)*3].imag
                     s += ("( "+"%12.6lf "*6+')\n')%(xr,xi,yr,yi,zr,zi)
@@ -155,7 +155,7 @@ class Matdyn():
             f.write(s)
             f.close()
         else:
-            print s
+            print(s)
 
     def rotate_phonons(self,eps=1e-5,debug=False):
         """
@@ -189,9 +189,9 @@ class Matdyn():
                     r = np.array(eivq[indexes])
                     if debug:
                         print("input basis:")
-                        for n in xrange(deg):
+                        for n in range(deg):
                             print("mode: %3d"%n)
-                            for i in xrange(self.natoms):
+                            for i in range(self.natoms):
                                print("atom %3d"%i+("%12.8lf"*3)%tuple(r[n,i*3:(i+1)*3].real))
                     #we make sure the first column vector the matrix r in non zero
                     rows,cols = r.shape
@@ -202,9 +202,9 @@ class Matdyn():
                     r[:,n:] = a
                     if debug:
                         print("canonical basis:")
-                        for n in xrange(deg):
+                        for n in range(deg):
                             print("mode: %3d"%n)
-                            for i in xrange(self.natoms):
+                            for i in range(self.natoms):
                                 print("atom %3d"%i+("%12.8lf"*3)%tuple(r[n,i*3:(i+1)*3].real))
                     eivq[indexes] = r
                 self.eiv[nq] = eivq
@@ -217,7 +217,7 @@ class Matdyn():
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
-            plt.xticks( *zip(*path) )
+            plt.xticks( *list(zip(*path)) )
         plt.ylabel('\\omega (cm$^{-1}$)')
 
         #plot vertical line
@@ -228,7 +228,7 @@ class Matdyn():
         #plot bands
         eig = np.array(self.eig)
         for ib in range(self.nmodes):
-           plt.plot(xrange(self.nqpoints),eig[:,ib], 'r-', lw=2)
+           plt.plot(range(self.nqpoints),eig[:,ib], 'r-', lw=2)
         plt.show()
 
     def get_phonon_freq(self,nq,n,unit="eV"):
@@ -257,9 +257,9 @@ class Matdyn():
         sum_ai ( u^n_{ai} )**2 = 1
         """
        
-        for nq in xrange(self.nqpoints):
-            for n in xrange(self.nmodes):
-                print np.linalg.norm(self.eiv[nq,n])
+        for nq in range(self.nqpoints):
+            for n in range(self.nmodes):
+                print(np.linalg.norm(self.eiv[nq,n]))
                 self.eiv[nq,n] /= np.linalg.norm(self.eiv[nq,n])
 
     def normalize_with_masses(self,masses): 
@@ -281,18 +281,18 @@ class Matdyn():
 
         #divide by masses
         if self.check_orthogonality():
-            for nq in xrange(self.nqpoints):
-                for n in xrange(self.nmodes):
-                    for a in xrange(self.natoms):
+            for nq in range(self.nqpoints):
+                for n in range(self.nmodes):
+                    for a in range(self.natoms):
                         self.eiv[nq,n,a*3:(a+1)*3] *= 1.0/sqrt(masses[a])
         else:
-            print "These eigenvectors are non-orthogonal, probably they are already scaled by the masses so I won't do it"
+            print("These eigenvectors are non-orthogonal, probably they are already scaled by the masses so I won't do it")
 
         #enforce delta_nm
-        for nq in xrange(self.nqpoints):
-            for n in xrange(self.nmodes):
+        for nq in range(self.nqpoints):
+            for n in range(self.nmodes):
                 s = 0
-                for a in xrange(self.natoms):
+                for a in range(self.natoms):
                     e = self.eiv[nq,n,a*3:(a+1)*3]
                     #get normalization constant
                     s += masses[a]*np.vdot(e,e).real
@@ -304,10 +304,10 @@ class Matdyn():
         """
 
         orth = np.zeros([self.nmodes,self.nmodes])
-        for nq in xrange(self.nqpoints):
-            for n in xrange(self.nmodes):
+        for nq in range(self.nqpoints):
+            for n in range(self.nmodes):
                 e1 = self.eiv[nq,n]
-                for m in xrange(self.nmodes):
+                for m in range(self.nmodes):
                     e2 = self.eiv[nq,m]
                     orth[n,m] = np.vdot(e1,e2).real
         
@@ -326,10 +326,10 @@ class Matdyn():
         
         #check normalization
         norm = np.zeros([self.nmodes])
-        for nq in xrange(self.nqpoints):
-            for n in xrange(self.nmodes):
+        for nq in range(self.nqpoints):
+            for n in range(self.nmodes):
                 s = 0
-                for a in xrange(self.natoms):
+                for a in range(self.natoms):
                     e = self.eiv[nq,n,a*3:(a+1)*3]
                     #get normalization constant
                     s += masses[a]*np.vdot(e,e).real
@@ -339,12 +339,12 @@ class Matdyn():
  
     def __str__(self):
         s = ""
-        for nq in xrange(self.nqpoints):
+        for nq in range(self.nqpoints):
             for n,mode in enumerate(self.eiv[nq]):
                 phfreqmev = self.get_phonon_freq(nq,n+1,unit='eV')*1000
                 phfreqcm1 = self.get_phonon_freq(nq,n+1,unit='cm-1')
                 s+= 'mode: %d freq: %8.2lf meV %8.2lf cm-1\n'%(n+1,phfreqmev,phfreqcm1)
-                for a in xrange(self.natoms):
+                for a in range(self.natoms):
                     s += ("%12.8lf "*3+'\n')%tuple(mode[a*3:(a+1)*3].real)
         return s
 

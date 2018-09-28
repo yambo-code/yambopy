@@ -1,6 +1,14 @@
 Tests
 =====
 
+There are two types of tests:
+    - Integration tests
+    - Unit tests
+
+Integration tests
+==========================
+The integration tests are in the folder tests in the root of the git repository.
+
 To run the basic tests:
 
     :::bash
@@ -20,3 +28,17 @@ To clean the folder:
 
     :::bash
     python test_si.py -c
+
+Unit tests
+============================
+The unit tests test specific routines and can always be found in a folder
+called tests in the same folder as the python source code.
+
+To run all the tests use pytest.
+
+Packages
+============================
+To obtain the coverage when running pytest we use 'pytest-cov':
+
+    :::python
+    pip install pytest-cov

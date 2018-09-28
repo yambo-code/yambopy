@@ -13,8 +13,8 @@ class Cmd():
         """
         print('yambopy')
         print('Available commands are:\n')
-        for cmd,c in self._commands.items():
-            print "%15s -> %s"%(cmd, c.__doc__.split('\n')[1])
+        for cmd,c in list(self._commands.items()):
+            print("%15s -> %s"%(cmd, c.__doc__.split('\n')[1]))
     
     def run(self,cmds,args):
         """
@@ -22,7 +22,7 @@ class Cmd():
         cmds is a dictionary that maps the command to the funciton to run
         """
         cmd = args[0]
-        if cmd in cmds.keys():
+        if cmd in list(cmds.keys()):
             cmds[cmd](args[1:])
 
 class PlotExcitons(Cmd):
@@ -40,7 +40,7 @@ class PlotExcitons(Cmd):
 
         #check for args
         if len(args) < 1:
-            print(self.__doc__)
+            print((self.__doc__))
             exit(0)
 
         parser = argparse.ArgumentParser(description='Study convergence on BS calculations using ypp calls.')
@@ -53,7 +53,7 @@ class PlotExcitons(Cmd):
             #create plot
             plot_excitons(args.filename,size=args.size) 
         else:
-            print 'file %s is invalid'%filename
+            print('file %s is invalid'%filename)
 
 class PlotEm1sCmd(Cmd):
     """
@@ -73,7 +73,7 @@ class PlotEm1sCmd(Cmd):
 
         #check for args
         if len(args) < 1:
-            print(self.__doc__)
+            print((self.__doc__))
             exit(0)
 
         parser = argparse.ArgumentParser(description='Plot em1s calculation.')
@@ -102,7 +102,7 @@ class PlotEm1sCmd(Cmd):
                 epsilons.append([folder,x,1+vX])
             else:
                 if args.verbose:
-                    print "path %s is not a folder"%folder
+                    print("path %s is not a folder"%folder)
 
         if args.write:
             #write a text file with the data
@@ -149,10 +149,10 @@ class AnalyseGWCmd(Cmd):
 
         #check for args
         if len(args) <= 1:
-            print(self.__doc__)
+            print((self.__doc__))
             exit(0)
 
-        #all the other arguments are passed to the merge_qp function
+        #all the other arguments are passed to the analysegw function
 
         parser = argparse.ArgumentParser(description='Study GW convergence with regards to the band-gap value.')
         pa = parser.add_argument
@@ -165,22 +165,24 @@ class AnalyseGWCmd(Cmd):
         pa('-np','--no-pack'   , help='Skip the packing of output files'        , dest='pack', action='store_false')
         pa('-nt','--no-text'   , help='Skip the writing of the analysis result' , dest='text', action='store_false')
         pa('-nd','--no-draw'   , help='Skip the plotting of the analysis result', dest='draw', action='store_false')
+        pa('-v', '--verbose'   , action='store_false')
         parser.set_defaults(pack=True,text=True,draw=True)
         args = parser.parse_args(args)
 
-        folder = args.folder ; var    = args.variable
-        bandc  = args.bandc  ; kpointc= args.kpointc
-        bandv  = args.bandv  ; kpointv= args.kpointv
-        pack = args.pack ; text = args.text ; draw = args.draw
-
+        folder = args.folder ; var     = args.variable
+        bandc  = args.bandc  ; kpointc = args.kpointc
+        bandv  = args.bandv  ; kpointv = args.kpointv
+        pack   = args.pack   ; text    = args.text
+        draw   = args.draw   ; verbose = args.verbose
+        
         #call analyse_gw from recipes.py
-        analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw)
+        analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose)
 
     def info(self):
         """
         display help to use this command
         """
-        print self.__doc__
+        print(self.__doc__)
 
 class AnalyseBSECmd(Cmd):
     """
@@ -207,7 +209,7 @@ class AnalyseBSECmd(Cmd):
     def __init__(self,args):
         #check for args
         if len(args) < 2:
-            print(self.__doc__)
+            print((self.__doc__))
             exit(0)
 
         parser = argparse.ArgumentParser(description='Study convergence on BS calculations using ypp calls.')
@@ -218,12 +220,9 @@ class AnalyseBSECmd(Cmd):
         pa('-ie','--intexc',   help='Minimum intensity for excitons to be considered bright', default=0.05,type=float)
         pa('-de','--degenexc', help='Energy threshold under which different peaks are merged (eV)', default=0.01,type=float)
         pa('-me','--maxexc',   help='Energy threshold after which excitons are not read anymore (eV)', default=8.0,type=float)
-        pa('-np','--nopack',   help='Skips packing o- files into .json files', action='store_false')
         pa('-nt','--notext',   help='Skips writing the .dat file', action='store_false')
         pa('-nd','--nodraw',   help='Skips drawing (plotting) the abs spectra', action='store_false')
-        print('parsing', args)
         args = parser.parse_args(args)
-        print('done')
 
         folder    = args.folder
         var       = args.variable
@@ -231,12 +230,12 @@ class AnalyseBSECmd(Cmd):
         exc_int   = args.intexc
         exc_degen = args.degenexc
         exc_max_E = args.maxexc
-        pack      = args.nopack
         text      = args.notext
         draw      = args.nodraw
 
         #all the other arguments are passed to the analyse bse function
-        excitons, spectra = analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, pack=pack, text=text, draw=draw )
+        analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, 
+                     text=text, draw=draw )
 
 class TestCmd(Cmd):
     """
@@ -251,7 +250,7 @@ class TestCmd(Cmd):
     def __init__(self,args):
         #check for args
         if len(args) < 1:
-            print(self.__doc__)
+            print((self.__doc__))
             exit(0)
 
         cmds = {'basic':self.basic,
@@ -259,10 +258,10 @@ class TestCmd(Cmd):
         self.run(cmds,args)
 
     def basic(self,*args):
-        print args
+        os.system('py.test --cov-config=.coveragerc --cov')
         
     def full(self,*args):
-        print args
+        print(args)
     
 
 class MergeQPCmd(Cmd):
@@ -281,7 +280,7 @@ class MergeQPCmd(Cmd):
         """ 
         #check for args
         if len(args) <= 1:
-            print(self.__doc__)
+            print((self.__doc__))
             exit(0)
         
         #all the other arguments are passed to the merge_qp function
@@ -295,14 +294,63 @@ class MergeQPCmd(Cmd):
         files   = args.files
         verbose = args.verbose
         
-        #call merge_qp fomr recipes.py
+        #call merge_qp from recipes.py
         merge_qp(output,files,verbose)
 
     def info(self):
         """
         display help to use this command 
         """
-        print self.__doc__
+        print(self.__doc__)
+
+
+class AddQPCmd(Cmd):
+    """
+    Add corrections from QP databases.
+    This function reads the QP correction from Yambo databases and add them together. Pass a list of files (separated by a space) after each flag to get the total correction you need.
+    The k-grid must be the same, the number of bands can be different. There will always be at least the LDA value. The Z factor is taken as one.
+
+    Optional arguments are:
+
+        -a,  --add       -> Add the real-part of a QP correction
+        -s,  --substract -> Substract the real-part of a QP correction
+        -ai, --addimg    -> Add the imaginary-part of a QP correction
+        -o,  --output    -> Output filename
+        -v,  --verbose   -> Increased verbosity
+
+    """
+
+    def __init__(self,args):
+        #check for args
+        if len(args) <= 1:
+            print((self.__doc__))
+            exit(0)
+
+        parser = argparse.ArgumentParser(description='Join different NetCDF quasi-particle databases')
+        parser.add_argument('-a', '--add',       nargs='+', type=argparse.FileType('r'), help="Add the real part to the final db",default=[])
+        parser.add_argument('-s', '--substract', nargs='+', type=argparse.FileType('r'), help="Substract the real part to the final db", default=[])
+        parser.add_argument('-ai','--addimg',    nargs='+', type=argparse.FileType('r'), help="Add the imaginary part to the final db",default=[])
+        parser.add_argument('-o', '--output',  default='ndb_out.QP', help='Output filename')
+        parser.add_argument('-v', '--verbose', action="store_true",  help='Verbose mode')
+        args = parser.parse_args(args)
+
+
+        output  = args.output
+        add     = args.add
+        substract = args.substract
+        addimg  = args.addimg
+        verbose = args.verbose
+
+
+        #call add_qp from recipes.py
+        add_qp(output,add,substract,addimg,verbose)
+
+    def info(self):
+        """
+        display help
+        """
+        print(self.__doc__)
+
 
 class YambopyCmd(Cmd):
     """
@@ -313,6 +361,7 @@ class YambopyCmd(Cmd):
                  'analysebse':   AnalyseBSECmd,
                  'analysegw':    AnalyseGWCmd,
                  'plotexcitons': PlotExcitons,
+                 'addqp':        AddQPCmd,
                  'mergeqp':      MergeQPCmd,
                  'test':         TestCmd}
 
@@ -333,8 +382,8 @@ class YambopyCmd(Cmd):
             self.cmd = cmdclass(args[2:]) 
         else:
             self.info()  
-            print 
-            print "Command %s is not known to yambopy"%args[1]
+            print() 
+            print("Command %s is not known to yambopy"%args[1])
  
 #parse options
 ycmd = YambopyCmd(*sys.argv)

@@ -1,3 +1,8 @@
+# Copyright (c) 2018, Henrique Miranda
+# All rights reserved.
+#
+# This file is part of the yambopy project
+#
 from yambopy import *
 import numpy as np
 import shutil
@@ -75,19 +80,19 @@ class YamboWFDB():
         oldpath = self.path
         filename = self.filename
         shutil.copyfile("%s/%s"%(oldpath,filename),"%s/%s"%(path,filename))
-        for nk in xrange(self.nkpoints):
+        for nk in range(self.nkpoints):
             fname = "%s_fragments_%d_1"%(filename,nk+1)
             shutil.copyfile("%s/%s"%(oldpath,fname),"%s/%s"%(path,fname))
 
         #edit with the new wfs
         wf = self.wf
-        for nk in xrange(self.nkpoints):
+        for nk in range(self.nkpoints):
             fname = "%s_fragments_%d_1"%(filename,nk+1)
             database = Dataset("%s/%s"%(path,fname),'r+')
             database.variables['WF_REAL_COMPONENTS_@_K%d_BAND_GRP_1'%(nk+1)][:] = wf[nk].real
             database.variables['WF_IM_COMPONENTS_@_K%d_BAND_GRP_1'%(nk+1)][:] = wf[nk].imag
             db.close()
-        print 'new wavefunctions written in %s'%path
+        print('new wavefunctions written in %s'%path)
 
     def __str__(self):
         s = ""

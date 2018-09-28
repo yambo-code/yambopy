@@ -1,14 +1,15 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
-#
+from builtins import str
+from builtins import object
 import os
 import re
 from math import sqrt
 
-class PhIn():
+class PhIn(object):
     """
     A class to generate an manipulate quantum espresso input files for ph.x
     """

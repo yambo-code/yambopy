@@ -1,4 +1,4 @@
-# Copyright (C) 2016 Henrique Pereira Coutada Miranda
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
@@ -15,7 +15,7 @@ commands on different environments (clusters, local computers, etc..)
  * pbs : Use the PBS scheduler
 
 """
-from schedulerpy.scheduler import *
-from schedulerpy.pbs import *
-from schedulerpy.oar import *
-from schedulerpy.bash import *
+from .scheduler import *
+from .oar import *
+from .pbs import *
+from .bash import *

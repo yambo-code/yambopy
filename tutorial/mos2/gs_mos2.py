@@ -3,6 +3,7 @@
 # Run a MoS2 groundstate calculation using Quantum Espresso
 #
 from __future__ import print_function, division
+from builtins import zip
 from qepy import *
 import argparse
 import sys
@@ -113,7 +114,7 @@ def update_positions(pathin,pathout):
     print("old celldm(1)", q.system['celldm(1)'])
     q.system['celldm(1)'] = e.cell[0][0]
     print("new celldm(1)", q.system['celldm(1)'])
-    q.atoms = zip([a[0] for a in q.atoms],pos)
+    q.atoms = list(zip([a[0] for a in q.atoms],pos))
     q.write('%s/mos2.scf'%pathout)
 
 def run_relax(nthreads=1):

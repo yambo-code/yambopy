@@ -1,4 +1,4 @@
-# Copyright (c) 2017, Henrique Miranda
+# Copyright (c) 2018, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -6,6 +6,7 @@
 from yambopy import *
 from math import sqrt
 from time import time
+from yambopy.tools.string import marquee
 
 max_exp = 50
 min_exp =-100.
@@ -66,7 +67,7 @@ class YamboDipolesDB():
         """
         eiv = electrons.eigenvalues
         nkpoints, nbands = eiv.shape
-        for nk in xrange(nkpoints):
+        for nk in range(nkpoints):
             
             eivk = eiv[nk]
             
@@ -74,7 +75,7 @@ class YamboDipolesDB():
             norm = np.array([ [ec-ev for ev in eivk] for ec in eivk  ])
             
             #normalize
-            for i,j in product(xrange(nbands),repeat=2):
+            for i,j in product(list(range(nbands)),repeat=2):
                 if norm[i,j] == 0: 
                     self.dipoles[nk,:,i,j] = 0
                 else:
@@ -94,11 +95,11 @@ class YamboDipolesDB():
         database = Dataset(filename)
         tag1 = 'DIP_iR_k_0001_spin_0001'
         tag2 = 'DIP_iR_k_0001_xyz_0001_spin_0001'
-        if tag1 in db.variables.keys():
+        if tag1 in list(database.variables.keys()):
             dipoles_format = 1
-        elif tag2 in db.variables.keys():
+        elif tag2 in list(database.variables.keys()):
             dipoles_format = 2
-        db.close()
+        database.close()
         
         for nk in range(self.nk_ibz):
 
@@ -107,16 +108,17 @@ class YamboDipolesDB():
             database = Dataset(filename)
 
             if dipoles_format == 1:
-                dip = database.variables['DIP_%s_k_%04d_spin_%04d'%(dip_type,nk+1,1)][:].view(dtype=np.complex64)[:,:,:,0]
-                for i in xrange(3):
+                dip = database.variables['DIP_%s_k_%04d_spin_%04d'%(dip_type,nk+1,1)]
+                dip = (dip[:,:,:,0]+1j*dip[:,:,:,1])
+                for i in range(3):
                     dipoles[nk,i] = dip[:,:,i].T
             elif dipoles_format == 2:
-                for i in xrange(3):
+                for i in range(3):
                     dip = database.variables['DIP_%s_k_%04d_xyz_%04d_spin_%04d'%(dip_type,nk+1,i+1,1)][:]
                     dipoles[nk,i] = dip[0].T+dip[1].T*1j
 
             #close database
-            db.close()
+            database.close()
 
         return dipoles
         
@@ -160,7 +162,7 @@ class YamboDipolesDB():
         self.dipoles_ibz = dipoles 
         #get dipoles in the full Brilouin zone
         self.dipoles = np.zeros([nkpoints,3,nbands,nbands],dtype=np.complex64)
-        for nk_fbz,nk_ibz,ns in zip(xrange(nkpoints),nks,nss):
+        for nk_fbz,nk_ibz,ns in zip(list(range(nkpoints)),nks,nss):
             
             #if time rev we conjugate
             if lattice.time_rev_list[ns]:
@@ -175,12 +177,12 @@ class YamboDipolesDB():
             #transformation
             tra = np.dot(pro,sym)
             
-            for c,v in product(xrange(self.nbandsc),xrange(self.nbandsv)):
+            for c,v in product(list(range(self.nbandsc)),list(range(self.nbandsv))):
                 #rotate dipoles
                 self.dipoles[nk_fbz,:,indexc+c,indexv+v] = np.dot(tra,dip[:,c,v])
         
             #make hermitian
-            for c,v in product(xrange(self.nbandsc),xrange(self.nbandsv)):
+            for c,v in product(list(range(self.nbandsc)),list(range(self.nbandsv))):
                 self.dipoles[nk_fbz,:,indexv+v,indexc+c] = factor*np.conjugate(self.dipoles[nk_fbz,:,indexc+c,indexv+v])
                         
         self.field_dirx = field_dirx
@@ -206,12 +208,13 @@ class YamboDipolesDB():
 
         #get eigenvalues and weights of electrons
         eiv = electrons.eigenvalues
+        print(eiv.shape)
         weights = electrons.weights
         nv = electrons.nbandsv
         nc = electrons.nbandsc   
  
         #get dipoles
-        dipoles = self.dipoles_ibz 
+        dipoles = self.dipoles
 
         #get frequencies and im
         freq = np.linspace(emin,emax,esteps)
@@ -223,7 +226,7 @@ class YamboDipolesDB():
             nc=ntot_dip-nv
 
         #Print band gap values and apply GW_shift
-        eiv = electrons.energy_gaps(GWshift)
+        electrons.energy_gaps(GWshift)
 
         #Check bands to include in the calculation
         if nbnds[0]<0: nbnds[0]=nv
@@ -237,20 +240,19 @@ class YamboDipolesDB():
         else:
             broadening = gaussian
 
-        pols = np.array(pols)
         na = np.newaxis
         #calculate epsilon
-        for c,v in product(range(nv,lc),range(iv,nv)):
+        for c,v in product(list(range(nv,lc)),list(range(iv,nv))):
             #get electron-hole energy and dipoles
             ecv  = eiv[:,c]-eiv[:,v]
-            dip2 = np.sum(abs2(dipoles[:,pols,c-nv,v]),axis=1)
+            dip2 = abs2(dipoles[:,pol,c-nv,v])
 
             #make dimensions match
             dip2a = dip2[na,:]
             ecva  = ecv[na,:]
             freqa = freq[:,na]
             wa    = weights[na,:]       
-  
+ 
             #calculate the lorentzians 
             broadw = broadening(freqa,ecva,broad)
    
@@ -263,23 +265,23 @@ class YamboDipolesDB():
         return freq, eps2
 
     def __str__(self):
-        s = ""
-        s += "\nkpoints:\n"
-        s += "nk_ibz : %d\n"%self.nk_ibz
-        if self.expand: s += "nk_bz  : %d\n"%self.nk_bz
-        s += "\nnumber of bands:\n"
-        s += "nbands : %d\n" % self.nbands
-        s += "nbandsv: %d\n" % self.nbandsv
-        s += "nbandsc: %d\n" % self.nbandsc
-        s += "indexv : %d\n" % (self.min_band-1)
-        s += "indexc : %d\n" % (self.indexc-1)
-        if self.expand:
-            s += "field_dirx: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_dirx)
-            s += "field_diry: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_diry)
-            s += "field_dirz: %10.6lf %10.6lf %10.6lf\n"%tuple(self.field_dirz)
-        return s
+        lines = []; app = lines.append
+        app(marquee(self.__class__.__name__))
+        app("kpoints:")
+        app("nk_ibz : %d"%self.nk_ibz)
+        app("nk_bz  : %d"%self.nk_bz)
+        app("bands:")
+        app("nbands : %d" % self.nbands)
+        app("nbandsv: %d" % self.nbandsv)
+        app("nbandsc: %d" % self.nbandsc)
+        app("indexv : %d" % (self.min_band-1))
+        app("indexc : %d" % (self.indexc-1))
+        app("field_dirx: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirx))
+        app("field_diry: %10.6lf %10.6lf %10.6lf"%tuple(self.field_diry))
+        app("field_dirz: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirz))
+        return "\n".join(lines)
 
 if __name__ == "__main__":
     ddb = DipolesDB()
     ddb.get_databases()
-    print ddb
+    print(ddb)
