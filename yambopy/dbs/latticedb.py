@@ -13,7 +13,7 @@ from yambopy.units import atomic_mass
 from yambopy.tools.string import marquee
 from qepy.lattice import Path
 
-class YamboLatticeDB():
+class YamboLatticeDB(object):
     """
     Class to read the lattice information from the netcdf file
     """

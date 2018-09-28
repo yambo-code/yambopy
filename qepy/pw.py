@@ -15,7 +15,7 @@ class qepyenv():
     PW = "pw.x"
     PSEUDODIR = os.path.join(os.path.dirname(__file__),'data','pseudos')
 
-class PwIn():
+class PwIn(object):
     """
     Class to generate an manipulate Quantum Espresso input files
     Can be initialized either reading from a file or starting from a new file.
