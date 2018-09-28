@@ -48,6 +48,13 @@ _test_config =  { "default":"bash",
                         "modules": {"abinit"  :"abinit/8.0",
                                     "espresso":"espresso/5.4.0"}
                     },
+                  "slurm":
+                    {
+                        "mpirun": "mpirun",
+                        "pos_run": ["echo \"done!\""],
+                        "modules": {"abinit"  :"abinit/8.0",
+                                    "espresso":"espresso/5.4.0"}
+                    },
                   "pbs":
                     {
                         "mpirun": "mpirun",
@@ -149,7 +156,7 @@ class TestSchedulerRun(unittest.TestCase):
         """
         init_config()
 
-        for schedulername in ["oar","pbs","bash"]:
+        for schedulername in ["oar","pbs","bash","slurm"]:
             print(header(schedulername))
             s = Scheduler.factory(scheduler=schedulername,cores=1)
             s._config = _test_config_file

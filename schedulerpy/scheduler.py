@@ -5,13 +5,10 @@
 #
 #
 from __future__ import print_function, absolute_import
+import os
 import subprocess
 import json
-from abc import ABCMeta, abstractmethod
-from textwrap import dedent
 from copy import deepcopy
-import os
-
 
 class Scheduler(object):
     """
@@ -78,14 +75,15 @@ class Scheduler(object):
         walltime - Walltime limit
         **kwargs - Additional tags specific for each scheduler
         """
+        from .oar import Oar
+        from .pbs import Pbs
+        from .bash import Bash
+        from .slurm import Slurm
 
-        from . import oar
-        from . import pbs
-        from . import bash
-
-        schedulers = { "oar":  oar.Oar,
-                       "pbs":  pbs.Pbs,
-                       "bash": bash.Bash }
+        schedulers = { "oar":   Oar,
+                       "pbs":   Pbs,
+                       "slurm": Slurm,
+                       "bash":  Bash }
 
         #load configurations file
         config = cls.load_config()
@@ -103,9 +101,10 @@ class Scheduler(object):
         #determine the scheduler type
         if "type" in schedulerconfig:
             schedulertype = schedulerconfig["type"]
-        elif "oar"  in schedulername: schedulertype = "oar"
-        elif "pbs"  in schedulername: schedulertype = "pbs"
-        elif "bash" in schedulername: schedulertype = "bash"
+        elif "oar"   in schedulername: schedulertype = "oar"
+        elif "pbs"   in schedulername: schedulertype = "pbs"
+        elif "bash"  in schedulername: schedulertype = "bash"
+        elif "slurm" in schedulername: schedulertype = "slurm"
         else:
             raise ValueError("Could not determine the scheduler type. "
                              "Please specify it in the name of the scheduler or using the 'type' tag.")
