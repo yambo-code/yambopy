@@ -24,6 +24,7 @@ class YamboOut():
 
     """
     _lock = "lock" #name of the lockfile
+    _tags = ['refl','eel','eps','qp','sf','carriers','polarization','external']
 
     def __init__(self,folder,save_folder='.'):
 
@@ -40,15 +41,17 @@ class YamboOut():
             outdir = os.listdir(folder)
         else:
             raise ValueError( "Invalid folder: %s"%folder )
+
+        #get the log dir
         if os.path.isdir(folder+"/LOG"):
             logdir = os.listdir(folder+"/LOG")
         else:
             logdir = outdir
-        tags = ['refl','eel','eps','qp','sf','carriers','polarization','external']
+
         # Problem in the name of variable inside the file external_field
         #self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and any([tag in f for tag in tags]) and 'xsf' not in f]
         #Line 49: Why the xsf condition? This makes the subroutine to fail
-        self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and any([tag in f for tag in tags])]
+        self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and any([tag in f for tag in self._tags])]
         self.run    = ["%s"%f for f in outdir if f[:2] == 'r-']
         self.logs   = ["/LOG/%s"%f for f in logdir]
 
@@ -163,7 +166,6 @@ class YamboOut():
               val_aux.append( self.netdata[nameout].data[word].imag.tolist() )
 
         # Order elements in a list of variables for each QP states (probably there is a better way)
-
         n_var = len(val_aux)
         n_qp  = len(val_aux[0])
         aux2 = []
