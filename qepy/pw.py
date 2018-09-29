@@ -10,12 +10,14 @@ import shutil
 from math import sqrt
 from .pseudo import get_pseudo_path
 from .tools import fortran_bool
+from .lattice import red_car, car_red
 
 class PwIn(object):
     """
     Class to generate an manipulate Quantum Espresso input files
     Can be initialized either reading from a file or starting from a new file.
-    This class is not meant to be comprehensive but a lightweight version capable of basic input/ouput of PW files.
+    This class is not meant to be comprehensive but a lightweight version 
+    capable of basic input/ouput of PW files.
     For a comprehensive class use the tools provoded by the AiiDa package: http://www.aiida.net/
 
     Examples of use:
@@ -31,7 +33,7 @@ class PwIn(object):
 
         .. code-block :: python
 
-            qe = PwIn('mos2.scf')
+            qe = PwIn()
             qe.atoms = [['N',[ 0.0, 0.0,0.0]],
                         ['B',[1./3,2./3,0.0]]]
             qe.atypes = {'B': [10.811, "B.pbe-mt_fhi.UPF"],
@@ -72,8 +74,6 @@ class PwIn(object):
         self.ions = dict()
         self.cell = dict()
         self.atypes = dict()
-        self.atoms = []
-        self.cell_parameters = []
         self.cell_units = 'angstrom'
         self.atomic_pos_type = 'crystal'
 
@@ -108,7 +108,11 @@ class PwIn(object):
         if ecut: pwi.set_ecut(ecut)
         if pseudo_dir: pwi.pseudo_dir = pseudo_dir
         return pwi
-       
+      
+    @property
+    def natoms(self): 
+        return len(self.atoms)
+
     @property
     def pseudo_dir(self):
         return self.control['pseudo_dir'].replace("'",'')
@@ -157,7 +161,7 @@ class PwIn(object):
     def set_lattice(self,ibrav=None,celldm1=None,celldm2=None,celldm3=None,
                       celldm4=None,celldm5=None,celldm6=None):
         """Set the structure using the typical QE input variables"""
-        if ibrav is not None: self.system['ibrav'] = ibrav 
+        if ibrav is not None: self.ibrav = ibrav 
         if celldm1 is not None: self.system['celldm(1)'] = celldm1
         if celldm2 is not None: self.system['celldm(2)'] = celldm2
         if celldm3 is not None: self.system['celldm(3)'] = celldm3
@@ -167,7 +171,7 @@ class PwIn(object):
 
     def get_lattice(self):
         lattice_dict = {}
-        if 'ibrav' in self.system: lattice_dict['ibrav'] = self.system['ibrav'] 
+        if 'ibrav' in self.system: lattice_dict['ibrav'] = self.ibrav 
         if 'celldm(1)' in self.system: lattice_dict['celldm1'] = self.system['celldm(1)']
         if 'celldm(2)' in self.system: lattice_dict['celldm2'] = self.system['celldm(2)']
         if 'celldm(3)' in self.system: lattice_dict['celldm3'] = self.system['celldm(3)']
@@ -176,21 +180,33 @@ class PwIn(object):
         if 'celldm(6)' in self.system: lattice_dict['celldm6'] = self.system['celldm(6)']
         return lattice_dict 
 
-    def set_atoms(self,atoms):
+    def set_atoms(self,atoms,coordtype="reduced"):
         """
-        Set the atoms
-        
+        Set the atoms.
+        Internally the atoms are always stored in reduced coordinates.
+        The positions are written/read in the format from atomic_pos_type
+
+        Arguments:
+            coordtype: ("reduced"/"crystal") or cartesian
+
         Example:
             .. code-block :: python
    
                 pwi = PwIn()
                 pwi.set_atoms( [['Si',[0.125,0.125,0.125]],
                                 ['Si',[-.125,-.125,-.125]]])
-  
         """
         self.system['nat'] = len(atoms)
-        #TODO: add consistency check
-        self.atoms = atoms
+        #TODO: add consistency check 
+
+        #convert the positions if needed
+        if coordtype in ["reduced","crystal"]:
+            self._atoms = atoms
+        else:
+            red_atoms = []
+            for atype,apos in atoms:
+                red_atoms.append( [atype,car_red([apos],self.cell_parameters)[0]] )
+            self._atoms = red_atoms 
 
     def set_atypes(self,atypes):
         """"
@@ -235,8 +251,9 @@ class PwIn(object):
         #find all the pseudopotentials
         for atype,(mass,pseudo_filename) in self.atypes.items():
             pseudo_filename = get_pseudo_path( pseudo_filename, pseudo_paths )
-            if pseudo_filename is None: 
-                raise ValueError('Pseudopotential %s not found in any of these paths:\n'%pseudo_filename+ppstring)
+            if pseudo_filename is None:
+                err_msg = 'Pseudopotential %s not found in any of these paths:\n'%pseudo_filename
+                raise ValueError(err_msg+ppstring)
 
             if verbose: print('cp %s %s'%(pseudo_filename,destpath))
             shutil.copy(pseudo_filename,destpath)
@@ -311,32 +328,61 @@ class PwIn(object):
         Si 0.5 0.5 0.5
         """
         atoms_str = [line.strip().split() for line in string.strip().split('\n')]
-        self.atoms = []
+        atoms = []
         for atype,x,y,z in atoms_str:
-            self.atoms.append([atype,list(map(float,[x,y,z]))])
+            atoms.append([atype,list(map(float,[x,y,z]))])
+        self.atoms = atoms
 
     def set_atoms_ase(self,atoms):
         """ set the atomic postions using a Atoms datastructure from ase
         """
         # we will write down the cell parameters explicitly
-        self.system['ibrav'] = 0
-        if 'celldm(1)' in self.system: del self.system['celldm(1)']
+        self.ibrav = 0
         self.cell_parameters = atoms.get_cell()
         self.atoms = list(zip(atoms.get_chemical_symbols(),atoms.get_scaled_positions()))
-        self.system['nat'] = len(self.atoms)
 
-    def displace(self,mode,displacement,masses=None):
-        """ A routine to displace the atoms acoording to a phonon mode
-        """
+    def displace(self,cart_mode,displacement,masses=None):
+        """ Displace the atoms acoording to a phonon mode """
         import copy
-        if masses is None:
-            masses = [1] * len(self.atoms)
-            small_mass = 1
-        else:
-            small_mass = min(masses) #we scale all the displacements to the bigger mass
-        for i in range(len(self.atoms)):
-            self.atoms[i][1] = self.atoms[i][1] + mode[i].real*displacement*sqrt(small_mass)/sqrt(masses[i])
-        return self.copy()
+        #normalize with masses
+        if masses is None: masses = self.get_masses()
+        if len(masses) != self.natoms: raise ValueError('Wrong dimensions of the masses list')
+
+        #apply displacement
+        atomic_car_pos_0 = self.atomic_car_pos
+        atoms_car_pos_disp = []
+        for i,(atype,apos) in enumerate(self.atoms):
+            delta = cart_mode[i].real*displacement/sqrt(masses[i])
+            atom = [atype, atomic_car_pos_0[i]+delta]
+            atoms_car_pos_disp.append( atom )
+
+        #store displaced structures
+        self.set_atoms( atoms_car_pos_disp, coordtype="cartesian" )
+        
+    @property    
+    def atomic_red_pos(self):
+        pos = []
+        for i in range(self.natoms):
+            pos.append(self.atoms[i][1])
+        return pos
+
+    @property
+    def atomic_car_pos(self):
+        pos = []
+        for i in range(self.natoms):
+            red_pos = self.atoms[i][1]
+            pos.append(red_car([red_pos],self.cell_parameters)[0])
+        return pos
+
+    @property
+    def atoms(self):
+        return self._atoms
+
+    def get_displaced(self,cart_mode,displacement,masses=None):
+        """ Create a copy and displace along the phonon mode """
+        copy = self.copy()
+        copy.displace(cart_mode,displacement,masses=masses)
+        return copy
 
     def read_atoms(self):
         lines = iter(self.file_lines)
@@ -345,13 +391,72 @@ class PwIn(object):
             if "ATOMIC_POSITIONS" in line:
                 atomic_pos_type = line
                 self.atomic_pos_type = re.findall('([A-Za-z]+)',line)[-1]
+                atoms = []
                 for i in range(int(self.system["nat"])):
                     atype, x,y,z = next(lines).split()
-                    self.atoms.append([atype,[float(i) for i in (x,y,z)]])
+                    atoms.append([atype,[float(i) for i in (x,y,z)]])
+        self.atoms = atoms
         self.atomic_pos_type = atomic_pos_type.replace('{','').replace('}','').strip().split()[1]
 
+    @property
+    def alat(self):
+        if self.ibrav == 0:
+            return np.linalg.norm(self.cell_parameters[0])
+        else:
+            return self.system['celldm(1)']
+
+    @property
+    def cell_parameters(self):
+        if self.ibrav == 0:
+            return self._cell_parameters
+        elif self.ibrav == 1:
+            a = float(self.system['celldm(1)'])
+            cell_parameters = [[  a,   0,   0],
+                               [  0,   a,   0],
+                               [  0,   0,   a]]
+        elif self.ibrav == 2:
+            a = float(self.system['celldm(1)'])
+            cell_parameters = [[ -a/2,   0, a/2],
+                               [    0, a/2, a/2],
+                               [ -a/2, a/2,   0]]
+        elif self.ibrav == 3:
+            a = float(self.system['celldm(1)'])
+            cell_parameters = [[ a/2,  a/2,  a/2],
+                               [-a/2,  a/2,  a/2],
+                               [-a/2, -a/2,  a/2]]
+        elif self.ibrav == 4:
+            a = float(self.system['celldm(1)'])
+            c = float(self.system['celldm(3)'])
+            cell_parameters = [[   a,          0,  0],
+                               [-a/2,sqrt(3)/2*a,  0],
+                               [   0,          0,c*a]]
+        elif self.ibrav == 6:
+            a = float(self.system['celldm(1)'])
+            c = float(self.system['celldm(3)'])
+            cell_parameters = [[  a,   0,   0],
+                               [  0,   a,   0],
+                               [  0,   0, c*a]]
+        else:
+            raise NotImplementedError('ibrav = %d not implemented'%self.ibrav)
+        return cell_parameters 
+
+    @cell_parameters.setter
+    def cell_parameters(self,value):
+        self._cell_parameters = value
+
+    @property
+    def ibrav(self):
+        return int(self.system['ibrav'])
+
+    @ibrav.setter
+    def ibrav(self,value):
+        if not hasattr(self,'_cell_parameters') and value == 0: 
+            raise ValueError('Must set cell_parameters before setting ibrav to 0')
+        if value == 0: self.remove_key(self.system,'celldm(1)')
+        self.system['ibrav'] = value
+
     def read_cell_parameters(self):
-        ibrav = int(self.system['ibrav'])
+        """read the cell parameters from the input file """
         def rmchar(string,symbols): return ''.join([c for c in string if c not in symbols])
 
         if ibrav == 0:
@@ -363,47 +468,18 @@ class PwIn(object):
             for line in lines:
                 if "CELL_PARAMETERS" in line:
                     units = rmchar(line.strip(),'{}()').split()
-                    self.cell_parameters = [[],[],[]]
+                    cell_parameters = [[],[],[]]
                     if len(units) > 1:
                         self.cell_units = units[1]
                     else:
                         self.cell_units = 'bohr'
                     for i in range(3):
-                        self.cell_parameters[i] = [ float(x)*a for x in next(lines).split() ]
+                        cell_parameters[i] = [ float(x)*a for x in next(lines).split() ]
             if self.cell_units == 'angstrom' or self.cell_units == 'bohr':
                 if 'celldm(1)' in self.system: del self.system['celldm(1)']
             if 'celldm(1)' not in list(self.system.keys()):
-                a = np.linalg.norm(self.cell_parameters[0])
-        elif ibrav == 1:
-            a = float(self.system['celldm(1)'])
-            self.cell_parameters = [[  a,   0,   0],
-                                    [  0,   a,   0],
-                                    [  0,   0,   a]]
-        elif ibrav == 2:
-            a = float(self.system['celldm(1)'])
-            self.cell_parameters = [[ -a/2,   0, a/2],
-                                    [    0, a/2, a/2],
-                                    [ -a/2, a/2,   0]]
-        elif ibrav == 3:
-            a = float(self.system['celldm(1)'])
-            self.cell_parameters = [[ a/2,  a/2,  a/2],
-                                    [-a/2,  a/2,  a/2],
-                                    [-a/2, -a/2,  a/2]]
-        elif ibrav == 4:
-            a = float(self.system['celldm(1)'])
-            c = float(self.system['celldm(3)'])
-            self.cell_parameters = [[   a,          0,  0],
-                                    [-a/2,sqrt(3)/2*a,  0],
-                                    [   0,          0,c*a]]
-        elif ibrav == 6:
-            a = float(self.system['celldm(1)'])
-            c = float(self.system['celldm(3)'])
-            self.cell_parameters = [[  a,   0,   0],
-                                    [  0,   a,   0],
-                                    [  0,   0, c*a]]
-        else:
-            raise NotImplementedError('ibrav = %d not implemented'%ibrav)
-        self.alat = a 
+                a = np.linalg.norm(cell_parameters[0])
+            self._cell_parameters = cell_parameters
         
     def read_kpoints(self):
         lines = iter(self.file_lines)
@@ -431,15 +507,17 @@ class PwIn(object):
                         exit()
 
     def slicefile(self, keyword):
-        lines = re.findall('&%s(?:.?)+\n((?:.+\n)+?)(?:\s+)?[\/&]'%keyword,"".join(self.file_lines),re.MULTILINE)
+        file_slice_regexp = '&%s(?:.?)+\n((?:.+\n)+?)(?:\s+)?[\/&]'%keyword
+        lines = re.findall(file_slice_regexp,"".join(self.file_lines),re.MULTILINE)
         return lines
 
     def store(self,group,name):
         """
         Save the variables specified in each of the groups on the structure
         """
+        group_regexp = '([a-zA-Z_0-9_\(\)]+)(?:\s+)?=(?:\s+)?([a-zA-Z/\'"0-9_.-]+)'
         for file_slice in self.slicefile(name):
-            for keyword, value in re.findall('([a-zA-Z_0-9_\(\)]+)(?:\s+)?=(?:\s+)?([a-zA-Z/\'"0-9_.-]+)',file_slice):
+            for keyword, value in re.findall(group_regexp,file_slice):
                 group[keyword.strip()]=value.strip()
 
     def stringify_group(self, keyword, group):
@@ -447,67 +525,59 @@ class PwIn(object):
             string='&%s\n' % keyword
             for keyword in sorted(group): # Py2/3 discrepancy in keyword order
                 string += "%20s = %s\n" % (keyword, group[keyword])
-            string += "/&end\n"
+            string += "/&end"
             return string
         else:
             return ''
 
     def remove_key(self,group,key):
-        """ if a certain key exists in the group, remove it
-        """
+        """ if a certain key exists in the group, remove it """
         if key in list(group.items()):
             del group[key]
 
-    def run(self,filename,procs=1,folder='.'):
-        """ this function is used to run this job locally
-        """
-        os.system('mkdir -p %s'%folder)
-        self.write("%s/%s"%(folder,filename))
-        if procs == 1:
-            os.system('cd %s; OMP_NUM_THREADS=1 %s -inp %s > %s.log' % (folder,self._pw,filename,filename))
-        else:
-            os.system('cd %s; OMP_NUM_THREADS=1 mpirun -np %d %s -inp %s > %s.log' % (folder,procs,self._pw,filename,filename))
-
     def write(self,filename):
-        f = open(filename,'w')
-        f.write(str(self))
-        f.close()
+        """write the file to disk """
+        with open(filename,'w') as f:
+           f.write(str(self))
 
-    def __str__(self):
+    def get_string(self):
         """
         Output the file in the form of a string
         """
-        string = ''
-        string += self.stringify_group("control",self.control) #print control
-        string += self.stringify_group("system",self.system) #print system
-        string += self.stringify_group("electrons",self.electrons) #print electrons
-        string += self.stringify_group("ions",self.ions) #print ions
-        string += self.stringify_group("cell",self.cell) #print ions
+        lines = []; app = lines.append
+        app( self.stringify_group("control",self.control) ) #print control
+        app( self.stringify_group("system",self.system) ) #print system
+        app( self.stringify_group("electrons",self.electrons) ) #print electrons
+        app( self.stringify_group("ions",self.ions) ) #print ions
+        app( self.stringify_group("cell",self.cell) ) #print ions
 
         #print atomic species
-        string += "ATOMIC_SPECIES\n"
+        app( "ATOMIC_SPECIES" )
         for atype in self.atypes:
-            string += " %3s %8s %20s\n" % (atype, self.atypes[atype][0], self.atypes[atype][1])
+            app( " %3s %8s %20s" % (atype, self.atypes[atype][0], self.atypes[atype][1]) )
+
         #print atomic positions
-        string += "ATOMIC_POSITIONS { %s }\n"%self.atomic_pos_type
+        app( "ATOMIC_POSITIONS { %s }"%self.atomic_pos_type )
         for atom in self.atoms:
-            string += "%3s %14.10lf %14.10lf %14.10lf\n" % (atom[0], atom[1][0], atom[1][1], atom[1][2])
+            app( "%3s %14.10lf %14.10lf %14.10lf" % (atom[0], atom[1][0], atom[1][1], atom[1][2]) )
+
         #print kpoints
         if self.ktype == "automatic":
-            string += "K_POINTS { %s }\n" % self.ktype
-            string += ("%3d"*6+"\n")%tuple(self.kpoints + self.shiftk)
-        elif self.ktype == "crystal":
-            string += "K_POINTS { %s }\n" % self.ktype
-            string += "%d\n" % len(self.klist)
-            for i in self.klist:
-              string += ('%12.8lf '*4+'\n') % tuple(i)
+            app( "K_POINTS { %s }" % self.ktype )
+            app( ("%3d"*6)%tuple(self.kpoints + self.shiftk) )
         else:
-            string += "K_POINTS { }\n"
-            string += "%d\n" % len(self.klist)
-            for i in self.klist:
-                string += (("%12.8lf "*4)+"\n")%tuple(i)
-        if self.system['ibrav'] == 0 or self.system['ibrav'] == '0':
-            string += "CELL_PARAMETERS %s\n"%self.cell_units
-            for i in range(3):
-                string += ("%14.10lf "*3+"\n")%tuple(self.cell_parameters[i])
-        return string
+            app( "K_POINTS { %s }" % self.ktype )
+            app( "%d" % len(self.klist) )
+            for kpt in self.klist:
+                app( ("%12.8lf "*4)%tuple(kpt) )
+
+        #print cell parameters
+        if self.ibrav == 0:
+            app( "CELL_PARAMETERS %s"%self.cell_units )
+            app( ("%14.10lf "*3)%tuple(self.cell_parameters[0]) )
+            app( ("%14.10lf "*3)%tuple(self.cell_parameters[1]) )
+            app( ("%14.10lf "*3)%tuple(self.cell_parameters[2]) )
+        return "\n".join(lines)
+
+    def __str__(self):
+        return self.get_string()

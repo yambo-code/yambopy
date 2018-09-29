@@ -132,8 +132,8 @@ class YambopyFlow():
             #initialize each task
             if not task.initialized: task.initialize(path)
 
-        self.pickle()
         self.initialized = True
+        self.pickle()
 
     def dump_run(self):
         """Create a bash script to run the whole flow"""

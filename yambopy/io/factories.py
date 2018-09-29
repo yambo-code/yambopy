@@ -32,11 +32,11 @@ class FiniteDifferencesPhononFlow():
         self.yambo_runlevel = yambo_runlevel
 
     def get_tasks(self,path,kpoints,ecut,nscf_bands,nscf_kpoints=None,
-                  modes_list=None,displacement=0.01,iqpoint=0):
+                  imodes_list=None,displacement=0.01,iqpoint=0):
         """
         Create a flow with all the tasks to perform the calculation
         """
-        if modes_list is None: modes_list = list(range(self.phonon_modes.nmodes))
+        if imodes_list is None: imodes_list = list(range(self.phonon_modes.nmodes))
 
         tasks = []
 
@@ -44,10 +44,10 @@ class FiniteDifferencesPhononFlow():
         pwin = PwIn.from_structure_dict(self.structure,kpoints=kpoints,ecut=ecut)
 
         #apply the displacement in the structure
-        for imode in modes_list:
+        for imode in imodes_list:
             #displace structure
-            input_mock = pwin.displace(self.phonon_modes.modes[iqpoint,imode],
-                                       displacement=displacement)
+            cart_mode = self.phonon_modes.modes[iqpoint,imode]
+            input_mock = pwin.get_displaced(cart_mode, displacement=displacement)
             displaced_structure = input_mock.get_structure()
 
             #create scf, nscf and p2y task
@@ -63,10 +63,10 @@ class FiniteDifferencesPhononFlow():
         return tasks
 
  
-    def get_flow(self,path,kpoints,ecut,nscf_bands,nscf_kpoints=None,modes_list=None):
+    def get_flow(self,path,kpoints,ecut,nscf_bands,nscf_kpoints=None,imodes_list=None):
 
         tasks = self.get_tasks(path=path,kpoints=kpoints,ecut=ecut,nscf_bands=nscf_bands,
-                               nscf_kpoints=nscf_kpoints,modes_list=modes_list)
+                               nscf_kpoints=nscf_kpoints,imodes_list=imodes_list)
        
         #put all the tasks in a flow
         yambo_flow = YambopyFlow.from_tasks(path,tasks)

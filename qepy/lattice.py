@@ -74,12 +74,20 @@ def red_car(red,lat):
     """
     Convert reduced coordinates to cartesian
     """
+    lat = np.array(lat)
+    red = np.array(red)
+    if lat.shape != (3,3):
+        raise ValueError('Wrong lattice dimensions expected (3,3) got {}'.format(lat.shape))
     return np.array([coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2] for coord in red])
 
 def car_red(car,lat):
     """
     Convert cartesian coordinates to reduced
     """
+    car = np.array(car)
+    lat = np.array(lat)
+    if lat.shape != (3,3):
+        raise ValueError('Wrong lattice dimensions expected (3,3) got {}'.format(lat.shape))
     return np.array([np.linalg.solve(np.array(lat).T,coord) for coord in car])
 
 def rec_lat(lat):

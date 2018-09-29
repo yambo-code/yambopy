@@ -104,8 +104,9 @@ class TestFlow(unittest.TestCase):
         yambo_input=dict()
         yambo_runlevel='-o c'
         fd = FiniteDifferencesPhononFlow(Si,phonon_modes,yambo_input,yambo_runlevel)
-        fd_flow = fd.get_flow('fd_flow',kpoints=[1,1,1],ecut=20,nscf_bands=10)
+        fd_flow = fd.get_flow('fd_flow',imodes_list=[3,4,5],kpoints=[1,1,1],ecut=20,nscf_bands=10)
         fd_flow.create()
+        fd_flow.run()
         print(fd_flow)
         
     def tearDown(self):

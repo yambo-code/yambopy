@@ -15,5 +15,9 @@ class TestPwIn(unittest.TestCase):
         pwi.set_nscf(10)
         print(pwi)
 
+        pwi.cell_parameters = [[1,0,0],[0,1,0],[0,0,1]]
+        pwi.ibrav = 0
+        print(pwi)
+
 if __name__ == '__main__':
     unittest.main()
