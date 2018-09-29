@@ -10,6 +10,7 @@ This file contains classes and methods to generate input files
 from qepy.pw import PwIn
 from qepy.ph import PhIn
 from qepy.matdyn import Matdyn
+from yambopy.tools.duck import isiter
 from yambopy.flow import PwTask, PhTask, P2yTask, YamboTask, DynmatTask, YambopyFlow
 
 __all__ = [
@@ -32,33 +33,52 @@ class FiniteDifferencesPhononFlow():
         self.yambo_runlevel = yambo_runlevel
 
     def get_tasks(self,path,kpoints,ecut,nscf_bands,nscf_kpoints=None,
-                  imodes_list=None,displacement=0.01,iqpoint=0):
+                  imodes_list=None,displacements=[0.01,-0.01],iqpoint=0):
         """
         Create a flow with all the tasks to perform the calculation
         """
         if imodes_list is None: imodes_list = list(range(self.phonon_modes.nmodes))
 
-        tasks = []
+        if not isiter(displacements): displacements = [displacements]
 
         #create qe input from structure
         pwin = PwIn.from_structure_dict(self.structure,kpoints=kpoints,ecut=ecut)
 
-        #apply the displacement in the structure
+        #
+        # Undisplaced structure
+        #
+        #create scf, nscf and p2y task
+        tasks = []
+        tmp_tasks = PwNscfTask(pwin.get_structure(),kpoints,ecut,nscf_bands)
+        qe_scf_task,qe_nscf_task,p2y_task = tmp_tasks
+        tasks.extend(tmp_tasks)
+
+        #add yambo_task
+        yambo_task = YamboTask.from_runlevel(p2y_task,self.yambo_runlevel,self.yambo_input,
+                                                     dependencies=p2y_task)
+        tasks.append(yambo_task)
+
+        #
+        # Apply the displacements to the structure
+        #
         for imode in imodes_list:
-            #displace structure
+            #get phonon mode
             cart_mode = self.phonon_modes.modes[iqpoint,imode]
-            input_mock = pwin.get_displaced(cart_mode, displacement=displacement)
-            displaced_structure = input_mock.get_structure()
+            #iterate over displacements
+            for displacement in displacements:
+                #displace structure
+                input_mock = pwin.get_displaced(cart_mode, displacement=displacement)
+                displaced_structure = input_mock.get_structure()
 
-            #create scf, nscf and p2y task
-            tmp_tasks = PwNscfTask(displaced_structure,kpoints,ecut,nscf_bands)
-            qe_scf_task,qe_nscf_task,p2y_task = tmp_tasks
-            tasks.extend(tmp_tasks)
+                #create scf, nscf and p2y task
+                tmp_tasks = PwNscfTask(displaced_structure,kpoints,ecut,nscf_bands)
+                qe_scf_task,qe_nscf_task,p2y_task = tmp_tasks
+                tasks.extend(tmp_tasks)
 
-            #add yambo_task
-            yambo_task = YamboTask.from_runlevel(p2y_task,self.yambo_runlevel,self.yambo_input,
-                                                 dependencies=p2y_task)
-            tasks.append(yambo_task)
+                #add yambo_task
+                yambo_task = YamboTask.from_runlevel(p2y_task,self.yambo_runlevel,self.yambo_input,
+                                                     dependencies=p2y_task)
+                tasks.append(yambo_task)
 
         return tasks
 
@@ -69,9 +89,25 @@ class FiniteDifferencesPhononFlow():
                                nscf_kpoints=nscf_kpoints,imodes_list=imodes_list)
        
         #put all the tasks in a flow
-        yambo_flow = YambopyFlow.from_tasks(path,tasks)
-        return yambo_flow
+        self.yambo_flow = YambopyFlow.from_tasks(path,tasks)
+        return self.yambo_flow
 
+    @property
+    def path(self):
+        return self.yambo_flow.path
+
+
+def YamboQPBSETask(p2y_task,qp_dict,bse_dict,
+                   qp_runlevel='-p p -g n',bse_runlevel='-p p -k sex -y d'):
+    """
+    Return a QP and BSE calculation
+    """
+    #create a yambo qp run
+    qp_task = YamboTask.from_runlevel(p2y_task,qp_runlevel,qp_dict,dependencies=p2y_task)
+
+    #create a yambo bse run
+    bse_task = YamboTask.from_runlevel([p2y_task,qp_task],bse_runlevel,bse_dict,dependencies=qp_task)
+    return qp_task, bse_task
 
 def PhPhononTask(structure,kpoints,ecut,qpoints=None):
     """

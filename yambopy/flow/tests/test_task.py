@@ -8,7 +8,7 @@ import os
 import shutil
 from qepy.pw import PwIn
 from yambopy.data.structures import BN, Si
-from yambopy.io.factories import PhPhononTask, PwNscfTask
+from yambopy.io.factories import PhPhononTask, PwNscfTask, YamboQPBSETask
 from yambopy.flow import YambopyFlow, PwTask, P2yTask, YamboTask 
 
 test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','bse')
@@ -108,9 +108,43 @@ class TestFlow(unittest.TestCase):
         fd_flow.create()
         fd_flow.run()
         print(fd_flow)
-        
+    
+    def test_qpbse_flow(self):
+        self.clean('qpbse_flow')
+
+        tasks = []
+        tmp_tasks = PwNscfTask(Si,kpoints=[4,4,4],ecut=20,nscf_bands=10)
+        qe_scf_task, qe_nscf_task, p2y_task = tmp_tasks
+        tasks.extend(tmp_tasks)
+
+        #create a yambo qp run
+        qp_dict = dict(FFTGvecs=[20,'Ry'],
+                       BndsRnXp=[1,10],
+                       NGsBlkXp=[1,'Ry'],
+                       EXXRLvcs=[10,'Ry'],
+                       QPkrange=[1,13,4,5],
+                       GbndRnge=[1,10])
+       
+        #create a yambo bse run
+        bse_dict = dict(BEnSteps=1,
+                        FFTGvecs=[20,'Ry'],
+                        BSENGexx=[10,'Ry'],
+                        BSENGBlk=[1,'Ry'],
+                        BSEBands=[4,5])
+
+        qp_task, bse_task = YamboQPBSETask(p2y_task,qp_dict,bse_dict) 
+        tasks.extend([qp_task, bse_task])
+
+        print(tasks)
+
+        yambo_flow = YambopyFlow.from_tasks('qpbse_flow',tasks)
+        yambo_flow.create()
+        print(yambo_flow)
+        yambo_flow.run()
+
+
     def tearDown(self):
-        self.clean(['flow','bse_flow','save_flow','phonon_flow','fd_flow'])
+        self.clean(['flow','bse_flow','save_flow','phonon_flow','fd_flow','qpbse_flow'])
 
 if __name__ == '__main__':
     unittest.main()

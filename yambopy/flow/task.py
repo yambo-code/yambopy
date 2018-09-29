@@ -27,7 +27,6 @@ The hierarchy is:
 """
 
 import os
-import glob
 import shutil
 import time
 from schedulerpy import Scheduler
@@ -207,7 +206,6 @@ class YambopyTask():
         self.executable = executable
         self.nlog = 0
         self.nerr = 0
-        self.outputs = None
         self.initialized = initialized
 
         #scheduler
@@ -359,19 +357,28 @@ class YamboTask(YambopyTask):
     def initialize(self,path,verbose=0):
         """ Initialize an yambo task """
         #get output from p2y task
-        self.path = path
         if self.status != "ready": return
-        p2ys = self.get_instances_from_inputs(P2yTask)
-        if len(p2ys) > 1:  raise ValueError('More than one P2yTask instance in input, cannot continue')
-        if len(p2ys) == 0: raise ValueError('No P2yTask found in input, cannot continue')
-        p2y = p2ys[0]
-        src = os.path.abspath(p2y.output)
-        dst = os.path.abspath(os.path.join(path,'SAVE'))
-        os.symlink(src,dst)
 
-        db1_path = os.path.join(dst,'ns.db1')
+        #link p2y tasks
+        p2ytasks = self.get_instances_from_inputs(P2yTask)
+        if len(p2ytasks) == 1:
+            src = os.path.abspath(p2ytasks[0].output)
+            dst = os.path.abspath(os.path.join(path,'SAVE'))
+            os.symlink(src,dst)
+
+        #link yambo tasks
+        yambotasks = self.get_instances_from_inputs(YamboTask)
+        if len(yambotasks) == 1:
+            run_path = os.path.join(path,'run')
+            os.mkdir(run_path)
+            for src in yambotasks[0].output:
+                dst = os.path.abspath(os.path.join(run_path,os.path.basename(src)))
+                os.symlink(src,dst)
+
+        #create inputfile
+        db1_path = os.path.join(path,'SAVE','ns.db1')
         if os.path.isfile(db1_path):
-            if verbose: print("Creating inputfile in %s"%self.path)
+            if verbose: print("Creating inputfile in %s"%path)
             yamboin = YamboIn.from_runlevel(self.runlevel,executable=self.executable,folder=path)
             yamboin.set_fromdict(self.yamboin_dict)
             yamboin.write(os.path.join(path,'run.in'))
@@ -386,6 +393,20 @@ class YamboTask(YambopyTask):
 
         #set to initiailized
         self.initialized = True
+        self.path = path
+
+    @property
+    def output(self):
+        """ 
+        There are many different outputs from an Yambo task depending on the runlevel
+        In general the different database outputs will be insite the run folder
+        """
+        outputs = []
+        run_path = os.path.join(self.path,'run')
+        for filename in os.listdir(run_path):
+            outputfile = os.path.abspath(os.path.join(run_path,filename))
+            outputs.append(outputfile)
+        return outputs
 
 class P2yTask(YambopyTask):
     """
@@ -561,9 +582,7 @@ class PhTask(YambopyTask):
     def output(self):
         """normally the output of a ph task is a set of dyn files"""
         outputs = []
-        print(self.path)
         for filename in os.listdir(self.path):
-            print(filename)
             if "dyn" in filename:
                 outputs.append(os.path.abspath(os.path.join(self.path,filename)))
         return outputs 
@@ -597,7 +616,8 @@ class DynmatTask(YambopyTask):
         dynmat.write(os.path.join(path,'dynmat.in'))
 
         #copy dyn files in this foldeer
-        for src in self.inputs[0].output:
+        phtasks = self.get_instances_from_inputs(PhTask)
+        for src in phtasks[0].output:
             dst = os.path.abspath(os.path.join(path,os.path.basename(src)))
             shutil.copy(src,dst)
 
