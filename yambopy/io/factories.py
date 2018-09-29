@@ -24,42 +24,49 @@ class FiniteDifferencesPhononFlow():
     This class takes as an input one structure and a phonon calculation.
     It produces a flow with the QE input files displaced along the phonon modes
     """
-    def __init__(self,structure,phonon_modes,yambo_input,yambo_runlevel):
+    def __init__(self,structure,phonon_modes):
         self.structure = structure
         if not isinstance(phonon_modes,Matdyn):
             raise ValueError('phonon_modes must be an instance of Matdyn')
         self.phonon_modes = phonon_modes
-        self.yambo_input = yambo_input
-        self.yambo_runlevel = yambo_runlevel
 
     def get_tasks(self,path,kpoints,ecut,nscf_bands,nscf_kpoints=None,
-                  imodes_list=None,displacements=[0.01,-0.01],iqpoint=0):
+                  imodes_list=None,displacements=[0.01,-0.01],iqpoint=0,generator=None,**kwargs):
         """
         Create a flow with all the tasks to perform the calculation
         """
+
+        def default_task_generator(structure,kpoints,ecut,nscf_bands,nscf_kpoints,**kwargs):
+            yambo_input = kwargs.pop('yambo_input') 
+            yambo_runlevel = kwargs.pop('yambo_runlevel')
+ 
+            #create scf, nscf and p2y task
+            tasks = []
+            tmp_tasks = PwNscfTask(structure,kpoints,ecut,nscf_bands)
+            qe_scf_task,qe_nscf_task,p2y_task = tmp_tasks
+            tasks.extend(tmp_tasks)
+
+            #add yambo_task
+            yambo_task = YamboTask.from_runlevel(p2y_task,yambo_runlevel,yambo_input,
+                                                         dependencies=p2y_task)
+            tasks.append(yambo_task)
+            return tasks
+
         if imodes_list is None: imodes_list = list(range(self.phonon_modes.nmodes))
-
         if not isiter(displacements): displacements = [displacements]
-
+        if generator is None: generator = default_task_generator
+             
         #create qe input from structure
         pwin = PwIn.from_structure_dict(self.structure,kpoints=kpoints,ecut=ecut)
 
+        tasks = []
         #
         # Undisplaced structure
         #
-        #create scf, nscf and p2y task
-        tasks = []
-        tmp_tasks = PwNscfTask(pwin.get_structure(),kpoints,ecut,nscf_bands)
-        qe_scf_task,qe_nscf_task,p2y_task = tmp_tasks
-        tasks.extend(tmp_tasks)
-
-        #add yambo_task
-        yambo_task = YamboTask.from_runlevel(p2y_task,self.yambo_runlevel,self.yambo_input,
-                                                     dependencies=p2y_task)
-        tasks.append(yambo_task)
+        tasks.extend(generator(pwin.get_structure(),kpoints,ecut,nscf_bands,nscf_kpoints,**kwargs))
 
         #
-        # Apply the displacements to the structure
+        # Displaced structures
         #
         for imode in imodes_list:
             #get phonon mode
@@ -70,23 +77,18 @@ class FiniteDifferencesPhononFlow():
                 input_mock = pwin.get_displaced(cart_mode, displacement=displacement)
                 displaced_structure = input_mock.get_structure()
 
-                #create scf, nscf and p2y task
-                tmp_tasks = PwNscfTask(displaced_structure,kpoints,ecut,nscf_bands)
-                qe_scf_task,qe_nscf_task,p2y_task = tmp_tasks
-                tasks.extend(tmp_tasks)
-
-                #add yambo_task
-                yambo_task = YamboTask.from_runlevel(p2y_task,self.yambo_runlevel,self.yambo_input,
-                                                     dependencies=p2y_task)
-                tasks.append(yambo_task)
+                #generate tasks
+                new_tasks = generator(displaced_structure,kpoints,ecut,
+                                      nscf_bands,nscf_kpoints,**kwargs)
+                tasks.extend(new_tasks)
 
         return tasks
 
  
-    def get_flow(self,path,kpoints,ecut,nscf_bands,nscf_kpoints=None,imodes_list=None):
+    def get_flow(self,path,kpoints,ecut,nscf_bands,nscf_kpoints=None,imodes_list=None,**kwargs):
 
         tasks = self.get_tasks(path=path,kpoints=kpoints,ecut=ecut,nscf_bands=nscf_bands,
-                               nscf_kpoints=nscf_kpoints,imodes_list=imodes_list)
+                               nscf_kpoints=nscf_kpoints,imodes_list=imodes_list,**kwargs)
        
         #put all the tasks in a flow
         self.yambo_flow = YambopyFlow.from_tasks(path,tasks)

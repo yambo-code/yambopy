@@ -101,10 +101,11 @@ class TestFlow(unittest.TestCase):
 
         phonon_modes = Matdyn.from_modes_file(folder='phonon_flow/t2',filename='pw.modes')
         print(phonon_modes)
-        yambo_input=dict()
-        yambo_runlevel='-o c'
-        fd = FiniteDifferencesPhononFlow(Si,phonon_modes,yambo_input,yambo_runlevel)
-        fd_flow = fd.get_flow('fd_flow',imodes_list=[3,4,5],kpoints=[1,1,1],ecut=20,nscf_bands=10)
+        fd = FiniteDifferencesPhononFlow(Si,phonon_modes)
+        yambo_input=dict(ETStpsXd=1000,
+                         EnRngeXd=[[0,5],'eV'])
+        fd_flow = fd.get_flow('fd_flow',imodes_list=[3,4,5],kpoints=[1,1,1],ecut=20,nscf_bands=10,
+                               yambo_input=yambo_input,yambo_runlevel='-o c')
         fd_flow.create()
         fd_flow.run()
         print(fd_flow)
@@ -134,8 +135,6 @@ class TestFlow(unittest.TestCase):
 
         qp_task, bse_task = YamboQPBSETask(p2y_task,qp_dict,bse_dict) 
         tasks.extend([qp_task, bse_task])
-
-        print(tasks)
 
         yambo_flow = YambopyFlow.from_tasks('qpbse_flow',tasks)
         yambo_flow.create()
