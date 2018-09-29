@@ -92,6 +92,10 @@ class Matdyn(object):
         return cls(qpoints,eig,eiv)
 
     @property
+    def modes(self):
+        return self.eiv.reshape(self.nqpoints,self.nmodes,self.natoms,3)
+
+    @property
     def nmodes(self):
         nqpoints,nmodes,_ = self.eiv.shape 
         return nmodes

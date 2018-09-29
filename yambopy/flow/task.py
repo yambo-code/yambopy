@@ -178,7 +178,7 @@ class YambopyFlow():
         lines = []; app = lines.append
         app(marquee(self.name))
         for it,task in enumerate(self.tasks):
-            app("%10s  %s"%(str(task.name),task.status))
+            app("%5s %10s  %s"%("t%d"%it,str(task.name),task.status))
         return "\n".join(lines)
 
 def task_init(initialize):

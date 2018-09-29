@@ -148,6 +148,12 @@ class PwIn(object):
         if 'atypes'  in structure: self.set_atypes(structure['atypes'])
         if 'atoms'   in structure: self.set_atoms(structure['atoms'])
 
+    def get_structure(self):
+        """ Return an instance of a structure dictionary
+        """
+        lattice = self.get_lattice()
+        return dict(lattice=lattice,atypes=self.atypes,atoms=self.atoms)
+
     def set_lattice(self,ibrav=None,celldm1=None,celldm2=None,celldm3=None,
                       celldm4=None,celldm5=None,celldm6=None):
         """Set the structure using the typical QE input variables"""
@@ -158,6 +164,17 @@ class PwIn(object):
         if celldm4 is not None: self.system['celldm(4)'] = celldm4
         if celldm5 is not None: self.system['celldm(5)'] = celldm5
         if celldm6 is not None: self.system['celldm(6)'] = celldm6
+
+    def get_lattice(self):
+        lattice_dict = {}
+        if 'ibrav' in self.system: lattice_dict['ibrav'] = self.system['ibrav'] 
+        if 'celldm(1)' in self.system: lattice_dict['celldm1'] = self.system['celldm(1)']
+        if 'celldm(2)' in self.system: lattice_dict['celldm2'] = self.system['celldm(2)']
+        if 'celldm(3)' in self.system: lattice_dict['celldm3'] = self.system['celldm(3)']
+        if 'celldm(4)' in self.system: lattice_dict['celldm4'] = self.system['celldm(4)']
+        if 'celldm(5)' in self.system: lattice_dict['celldm5'] = self.system['celldm(5)']
+        if 'celldm(6)' in self.system: lattice_dict['celldm6'] = self.system['celldm(6)']
+        return lattice_dict 
 
     def set_atoms(self,atoms):
         """
@@ -311,6 +328,7 @@ class PwIn(object):
     def displace(self,mode,displacement,masses=None):
         """ A routine to displace the atoms acoording to a phonon mode
         """
+        import copy
         if masses is None:
             masses = [1] * len(self.atoms)
             small_mass = 1
@@ -318,6 +336,7 @@ class PwIn(object):
             small_mass = min(masses) #we scale all the displacements to the bigger mass
         for i in range(len(self.atoms)):
             self.atoms[i][1] = self.atoms[i][1] + mode[i].real*displacement*sqrt(small_mass)/sqrt(masses[i])
+        return self.copy()
 
     def read_atoms(self):
         lines = iter(self.file_lines)

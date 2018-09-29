@@ -31,17 +31,24 @@ class FiniteDifferencesPhononFlow():
         self.yambo_input = yambo_input
         self.yambo_runlevel = yambo_runlevel
 
-    def get_tasks(self,path,kpoints,ecut,nscf_bands,nscf_kpoints=None,modes_list=None):
+    def get_tasks(self,path,kpoints,ecut,nscf_bands,nscf_kpoints=None,
+                  modes_list=None,displacement=0.01,iqpoint=0):
         """
         Create a flow with all the tasks to perform the calculation
         """
         if modes_list is None: modes_list = list(range(self.phonon_modes.nmodes))
 
         tasks = []
+
+        #create qe input from structure
+        pwin = PwIn.from_structure_dict(self.structure,kpoints=kpoints,ecut=ecut)
+
         #apply the displacement in the structure
         for imode in modes_list:
             #displace structure
-            displaced_structure = self.structure
+            input_mock = pwin.displace(self.phonon_modes.modes[iqpoint,imode],
+                                       displacement=displacement)
+            displaced_structure = input_mock.get_structure()
 
             #create scf, nscf and p2y task
             tmp_tasks = PwNscfTask(displaced_structure,kpoints,ecut,nscf_bands)

@@ -95,9 +95,21 @@ class TestFlow(unittest.TestCase):
         print(yambo_flow)
         yambo_flow.create()
         yambo_flow.run()
+
+    def fd_flow(self):    
+        self.clean('fd_flow')
+
+        phonon_modes = Matdyn.from_modes_file(folder='phonon_flow/t2',filename='pw.modes')
+        print(phonon_modes)
+        yambo_input=dict()
+        yambo_runlevel='-o c'
+        fd = FiniteDifferencesPhononFlow(Si,phonon_modes,yambo_input,yambo_runlevel)
+        fd_flow = fd.get_flow('fd_flow',kpoints=[1,1,1],ecut=20,nscf_bands=10)
+        fd_flow.create()
+        print(fd_flow)
         
     def tearDown(self):
-        self.clean(['flow','bse_flow','save_flow'])
+        self.clean(['flow','bse_flow','save_flow','phonon_flow','fd_flow'])
 
 if __name__ == '__main__':
     unittest.main()
