@@ -8,7 +8,7 @@ import os
 import shutil
 from qepy.pw import PwIn
 from yambopy.data.structures import BN, Si
-from yambopy.io.factories import PhPhononTasks, PwNscfTasks, YamboQPBSETasks
+from yambopy.io.factories import PhPhononTasks, PwNscfTasks, YamboQPBSETasks, KpointsConvergenceFlow
 from yambopy.flow import YambopyFlow, PwTask, P2yTask, YamboTask 
 
 test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','bse')
@@ -109,7 +109,18 @@ class TestFlow(unittest.TestCase):
         fd_flow.create()
         fd_flow.run()
         print(fd_flow)
-    
+   
+    def test_kpoint_flow(self):
+        """ Run kpoint convergence flow for the number of kpoints """
+        self.clean('kpoint_flow')
+        kp = KpointsConvergenceFlow(Si)
+        kp_flow = kp.get_flow('kpoint_flow',scf_kpoints=[4,4,4],
+                              nscf_kpoints_list=[[i,i,i] for i in [2,4,6]],
+                              ecut=20, nscf_bands=10)
+        kp_flow.create()
+        kp_flow.run()
+        print(kp_flow) 
+
     def test_qpbse_flow(self):
         self.clean('qpbse_flow')
 

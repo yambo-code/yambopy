@@ -114,49 +114,46 @@ class KpointsConvergenceFlow():
                        nscf_bands, nscf_kpoints and kwargs as argument and returns the
                        tasks to be performed at each displacement
         """
-
-        if imodes_list is None: imodes_list = list(range(self.phonon_modes.nmodes))
+        generator = kwargs.pop("generator",PwNscfYamboIPChiTasks)
 
         #create a QE scf task and run
-        qe_input = PwIn.from_structure_dict(MoS2,kpoints=scf_kpoints,ecut=ecut)
+        qe_input = PwIn.from_structure_dict(self.structure,kpoints=scf_kpoints,ecut=ecut)
         qe_scf_task = PwTask.from_input(qe_input)
         tasks = [qe_scf_task]
 
         for nscf_kpoints in nscf_kpoints_list:
 
-            #create a QE nscf task
-            qe_input = qe_input.copy().set_nscf(nscf_bands,nscf_kpoints=nscf_kpoints)
-            qe_nscf_task = PwTask.from_input([qe_input,qe_scf_task],dependencies=qe_scf_task)
-
-            #create a p2y nscf task
-            p2y_task = P2yTask.from_nscf_task(qe_nscf_task)
-            tasks.extend([qe_nscf_task,p2y_task])
-
             #generate tasks
-            new_tasks = generator(displaced_structure,kpoints,ecut,
-                                  nscf_bands,nscf_kpoints,**kwargs)
+            new_tasks = generator(structure=self.structure,kpoints=scf_kpoints,
+                                  nscf_kpoints=nscf_kpoints,
+                                  ecut=ecut,nscf_bands=nscf_bands,**kwargs)
+            tasks.extend(new_tasks)
 
         return tasks
 
-    def get_flow(self,kpoints_list):
-        tasks = self.get_tasks(path=path,kpoints=kpoints,ecut=ecut,nscf_bands=nscf_bands,
-                               nscf_kpoints=nscf_kpoints,imodes_list=imodes_list,**kwargs)
+    def get_flow(self,path,scf_kpoints,nscf_kpoints_list,ecut,nscf_bands,**kwargs):
+        tasks = self.get_tasks(scf_kpoints=scf_kpoints,ecut=ecut,nscf_bands=nscf_bands,
+                               nscf_kpoints_list=nscf_kpoints_list,**kwargs)
        
         #put all the tasks in a flow
-        self.yambo_flow = YambopyFlow.from_tasks(path,tasks)
+        self.yambo_flow = YambopyFlow.from_tasks(path,tasks,**kwargs)
         return self.yambo_flow
 
-def PwNscfYamboIPChiTasks(structure,kpoints,ecut,nscf_bands,ip_dict={},
-                   yambo_runlevel='-o c -V all',nscf_kpoints=None):
+def PwNscfYamboIPChiTasks(structure,kpoints,ecut,nscf_bands,
+                          yambo_runlevel='-o c -V all',nscf_kpoints=None,**kwargs):
     """
     Return the PwNscfTasks and a YamboTask for and IP calculation
     """ 
     #create scf, nscf and p2y task
-    tmp_tasks = PwNscfTask(structure,kpoints,ecut,nscf_bands,nscf_kpoints)
+    tmp_tasks = PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints)
     qe_scf_task,qe_nscf_task,p2y_task = tmp_tasks
 
+    yambo_ip_default_dict = dict(QpntsRXd=[1,1],
+                                 ETStpsXd=1000)
+    yambo_ip_dict = kwargs.pop('yambo_ip_dict',yambo_ip_default_dict)
+
     #add yambo_task
-    yambo_task = YamboTask.from_runlevel(p2y_task,yambo_runlevel,yambo_input,
+    yambo_task = YamboTask.from_runlevel(p2y_task,yambo_runlevel,yambo_ip_dict,
                                                  dependencies=p2y_task)
     return qe_scf_task,qe_nscf_task,p2y_task,yambo_task
 
