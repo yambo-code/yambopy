@@ -120,18 +120,22 @@ class TestFlow(unittest.TestCase):
 
         #create a yambo qp run
         qp_dict = dict(FFTGvecs=[20,'Ry'],
-                       BndsRnXp=[1,10],
+                       BndsRnXp=[1,20],
                        NGsBlkXp=[1,'Ry'],
                        EXXRLvcs=[10,'Ry'],
-                       QPkrange=[1,13,4,5],
+                       QPkrange=[1,13,3,6],
                        GbndRnge=[1,10])
        
         #create a yambo bse run
-        bse_dict = dict(BEnSteps=1,
+        bse_dict = dict(BEnSteps=1000,
+                        BEnRange=[[0,5],'eV'],
+                        BndsRnXp=[1,20],
+                        NGsBlkXp=[1,'Ry'],
                         FFTGvecs=[20,'Ry'],
                         BSENGexx=[10,'Ry'],
                         BSENGBlk=[1,'Ry'],
-                        BSEBands=[4,5])
+                        KfnQPdb="E < run/ndb.QP",
+                        BSEBands=[3,6])
 
         qp_task, bse_task = YamboQPBSETask(p2y_task,qp_dict,bse_dict) 
         tasks.extend([qp_task, bse_task])
@@ -143,7 +147,8 @@ class TestFlow(unittest.TestCase):
 
 
     def tearDown(self):
-        self.clean(['flow','bse_flow','save_flow','phonon_flow','fd_flow','qpbse_flow'])
+        #self.clean(['flow','bse_flow','save_flow','phonon_flow','fd_flow','qpbse_flow'])
+        pass
 
 if __name__ == '__main__':
     unittest.main()

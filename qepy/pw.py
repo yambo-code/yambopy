@@ -115,6 +115,7 @@ class PwIn(object):
 
     @property
     def pseudo_dir(self):
+        if 'pseudo_dir' not in self.control: return None
         return self.control['pseudo_dir'].replace("'",'')
     
     @pseudo_dir.setter
@@ -241,10 +242,10 @@ class PwIn(object):
         pseudo_paths.append(os.path.dirname(qe_pseudos.__file__))
 
         #use pseudo_dir from control
-        if 'pseudo_dir' in self.control:
-            pseudo_dir = self.control['pseudo_dir']
-            if os.path.isdir(pseudo_dir): pseudo_paths.append(pseudo_dir)
-        
+        if self.pseudo_dir:
+            if os.path.isdir(self.pseudo_dir): 
+                pseudo_paths.append(self.pseudo_dir)
+       
         ppstring = '\n'.join(pseudo_paths)
         if verbose: print('List of pseudo_paths:\n'+ppstring)
 

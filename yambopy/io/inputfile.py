@@ -142,6 +142,14 @@ class YamboIn(object):
     def __setitem__(self,key,value):
         """ Set the value of a variable in the input file
         """
+        if key == "QPbands":
+            #read from current QPkrange
+            kstart,kstop,bstart,bstop = self.variables["QPkrange"][0]
+            #read bands from QPbands
+            new_bstart,new_bstop = value
+            #set new QPkrange
+            key = "QPkrange"
+            value = [kstart,kstop,new_bstart,new_bstop]
         #if the units are not specified, add them
         if isinstance(value,list):
             if not any( [isinstance(v,str) for v in value] ):

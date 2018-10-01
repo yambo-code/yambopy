@@ -23,6 +23,8 @@ class FiniteDifferencesPhononFlow():
     """
     This class takes as an input one structure and a phonon calculation.
     It produces a flow with the QE input files displaced along the phonon modes
+
+    Author: Henrique Miranda
     """
     def __init__(self,structure,phonon_modes):
         self.structure = structure
@@ -42,7 +44,7 @@ class FiniteDifferencesPhononFlow():
  
             #create scf, nscf and p2y task
             tasks = []
-            tmp_tasks = PwNscfTask(structure,kpoints,ecut,nscf_bands)
+            tmp_tasks = PwNscfTask(structure,kpoints,ecut,nscf_bands,nscf_kpoints)
             qe_scf_task,qe_nscf_task,p2y_task = tmp_tasks
             tasks.extend(tmp_tasks)
 
@@ -98,9 +100,30 @@ class FiniteDifferencesPhononFlow():
     def path(self):
         return self.yambo_flow.path
 
+class KpointsConvergenceFlow():
+    """
+    This class takes as an input one structure.
+    It produces a flow with the QE input files with different number of kpoints
+
+    Author: Henrique Miranda
+    """
+    def __init__(self,structure):
+        self.structure = structure
+    
+    def get_tasks(self,kpoints_list):
+        tasks = []
+        return tasks
+
+    def get_flow(self,kpoints_list):
+        tasks = self.get_tasks(path=path,kpoints=kpoints,ecut=ecut,nscf_bands=nscf_bands,
+                               nscf_kpoints=nscf_kpoints,imodes_list=imodes_list,**kwargs)
+       
+        #put all the tasks in a flow
+        self.yambo_flow = YambopyFlow.from_tasks(path,tasks)
+        return self.yambo_flow
 
 def YamboQPBSETask(p2y_task,qp_dict,bse_dict,
-                   qp_runlevel='-p p -g n',bse_runlevel='-p p -k sex -y d'):
+                   qp_runlevel='-p p -g n -V all',bse_runlevel='-p p -k sex -y d -V all'):
     """
     Return a QP and BSE calculation
     """
@@ -108,6 +131,7 @@ def YamboQPBSETask(p2y_task,qp_dict,bse_dict,
     qp_task = YamboTask.from_runlevel(p2y_task,qp_runlevel,qp_dict,dependencies=p2y_task)
 
     #create a yambo bse run
+    bse_dict['KfnQPdb']="E < run/ndb.QP"
     bse_task = YamboTask.from_runlevel([p2y_task,qp_task],bse_runlevel,bse_dict,dependencies=qp_task)
     return qp_task, bse_task
 
