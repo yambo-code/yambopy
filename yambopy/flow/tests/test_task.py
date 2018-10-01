@@ -8,7 +8,7 @@ import os
 import shutil
 from qepy.pw import PwIn
 from yambopy.data.structures import BN, Si
-from yambopy.io.factories import PhPhononTask, PwNscfTask, YamboQPBSETask
+from yambopy.io.factories import PhPhononTasks, PwNscfTasks, YamboQPBSETasks
 from yambopy.flow import YambopyFlow, PwTask, P2yTask, YamboTask 
 
 test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','bse')
@@ -23,7 +23,7 @@ class TestFlow(unittest.TestCase):
     def test_full_flow(self):
         self.clean('flow')
 
-        qe_scf_task, qe_nscf_task, p2y_task = PwNscfTask(BN,kpoints=[3,3,1],ecut=20,nscf_bands=10)
+        qe_scf_task, qe_nscf_task, p2y_task = PwNscfTasks(BN,kpoints=[3,3,1],ecut=20,nscf_bands=10)
 
         #create a yambo optics task and run
         yamboin_dict = dict(FFTGvecs=[20,'Ry'],
@@ -53,7 +53,7 @@ class TestFlow(unittest.TestCase):
         #
         self.clean('save_flow')
 
-        qe_scf_task, qe_nscf_task, p2y_task = PwNscfTask(BN,kpoints=[3,3,1],ecut=20,nscf_bands=10)
+        qe_scf_task, qe_nscf_task, p2y_task = PwNscfTasks(BN,kpoints=[3,3,1],ecut=20,nscf_bands=10)
 
         #create yamboflow
         yambo_flow = YambopyFlow.from_tasks('save_flow',[qe_scf_task,qe_nscf_task,p2y_task])
@@ -90,7 +90,7 @@ class TestFlow(unittest.TestCase):
     def test_phonon_flow(self):
         self.clean('phonon_flow')        
 
-        tasks = PhPhononTask(Si,kpoints=[3,3,3],qpoints=[1,1,1],ecut=30)
+        tasks = PhPhononTasks(Si,kpoints=[3,3,3],qpoints=[1,1,1],ecut=30)
         yambo_flow = YambopyFlow.from_tasks('phonon_flow',tasks)
         print(yambo_flow)
         yambo_flow.create()
@@ -114,7 +114,7 @@ class TestFlow(unittest.TestCase):
         self.clean('qpbse_flow')
 
         tasks = []
-        tmp_tasks = PwNscfTask(Si,kpoints=[4,4,4],ecut=20,nscf_bands=10)
+        tmp_tasks = PwNscfTasks(Si,kpoints=[4,4,4],ecut=20,nscf_bands=10)
         qe_scf_task, qe_nscf_task, p2y_task = tmp_tasks
         tasks.extend(tmp_tasks)
 
@@ -137,7 +137,7 @@ class TestFlow(unittest.TestCase):
                         KfnQPdb="E < run/ndb.QP",
                         BSEBands=[3,6])
 
-        qp_task, bse_task = YamboQPBSETask(p2y_task,qp_dict,bse_dict) 
+        qp_task, bse_task = YamboQPBSETasks(p2y_task,qp_dict,bse_dict) 
         tasks.extend([qp_task, bse_task])
 
         yambo_flow = YambopyFlow.from_tasks('qpbse_flow',tasks)

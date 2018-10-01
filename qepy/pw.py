@@ -222,7 +222,8 @@ class PwIn(object):
         #TODO: add consistency check
         self.atypes = atypes
 
-    def set_nscf(self,nbnd,conv_thr=1e-8,diago_full_acc=True,force_symmorphic=True):
+    def set_nscf(self,nbnd,nscf_kpoints=None,conv_thr=1e-8,
+                 diago_full_acc=True,force_symmorphic=True):
         """
         set the calculation to be nscf
         """
@@ -231,6 +232,7 @@ class PwIn(object):
         self.system['nbnd'] = nbnd
         self.electrons['diago_full_acc'] = fortran_bool(diago_full_acc)
         self.system['force_symmorphic'] = fortran_bool(force_symmorphic)
+        if nscf_kpoints: self.set_kpoints(nscf_kpoints) 
         return self
 
     def get_pseudos(self,destpath='.',pseudo_paths=[],verbose=0):

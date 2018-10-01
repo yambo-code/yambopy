@@ -65,13 +65,14 @@ class PhIn(object):
         self['ldisp'] = ".true."
 
     def __str__(self):
-        s = '&inputph'
-        s += self.stringify_group('',self.variable) #print variable
+        lines = []; app = lines.append
+        app("\n&inputph")
+        app(self.stringify_group('',self.variable)) #print variable
         if 'true' in self['qplot'].lower(): 
-            s += "%d\n"%len(self.qpoints)
+            app("%d"%len(self.qpoints))
             for q in self.qpoints:
-                s+=("%12.8lf %12.8lf %12.8lf %d")%tuple(q)+"\n"
-        return s
+                app("%12.8lf %12.8lf %12.8lf %d"%tuple(q))
+        return "\n".join(lines)+"\n"
 
     def __setitem__(self,key,value):
         self.variable[key] = value
@@ -81,10 +82,10 @@ class PhIn(object):
 
     def stringify_group(self, keyword, group):
         if group != {}:
-            string='\n'
+            lines = []; app = lines.append
             for keyword in group:
-                string += "%20s = %s\n" % (keyword, group[keyword])
-            string += "/\n"
-            return string
+                app("%10s = %s" % (keyword, group[keyword]))
+            app("/")
+            return "\n".join(lines)
         else:
             return ''

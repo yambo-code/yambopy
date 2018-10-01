@@ -54,7 +54,7 @@ def write_fake(filename):
     with open(filename,'w') as f:
         f.write('')
 
-class YambopyFlow():
+class YambopyFlow(object):
     """
     Handle multiple tasks and their interdependencies
     Monitor the progress
@@ -572,7 +572,7 @@ class PhTask(YambopyTask):
 
         #create running script
         self._run = os.path.join(path,'run.sh')
-        self.scheduler.add_mpirun_command('%s < ph.in > %s'%(self.executable,self.log))
+        self.scheduler.add_mpirun_command('%s -inp ph.in > %s'%(self.executable,self.log))
         self.scheduler.write(self._run)
 
         self.path = path
@@ -632,7 +632,8 @@ class DynmatTask(YambopyTask):
 
         #create running script
         self._run = os.path.join(path,'run.sh')
-        self.scheduler.add_mpirun_command('%s < dynmat.in > %s'%(self.executable,self.log))
+        #dynamt is always serial
+        self.scheduler.add_command('%s < dynmat.in > %s'%(self.executable,self.log))
         self.scheduler.write(self._run)
 
         self.path = path
