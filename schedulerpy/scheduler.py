@@ -177,15 +177,20 @@ class Scheduler(object):
         if cores: self.vardict['cores'] = cores
         nodes = self.get_arg('var_nodes')
         if nodes: self.vardict['nodes'] = nodes
+    
+    def copy(self):
+        """
+        return a copy of this instance
+        """
+        return deepcopy(self)
 
     def write(self,filename):
         """
         write the bash file to a file in the disk
         """
         if not filename: filename = self.name
-        f = open(filename,"w")
-        f.write(str(self))
-        f.close()
+        with open(filename,"w") as f:
+            f.write(str(self))
 
     def get_arg(self,argument):
         """

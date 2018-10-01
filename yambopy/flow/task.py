@@ -219,7 +219,7 @@ class YambopyTask():
     def scheduler_setup(self,scheduler):
         """Setup the scheduler for this task"""
         if isstring(scheduler): self.scheduler = Scheduler.factory(scheduler)
-        elif isinstance(scheduler,Scheduler): self.scheduler = scheduler
+        elif isinstance(scheduler,Scheduler): self.scheduler = scheduler.copy()
         else: raise ValueError('Invalid scheduler')
 
         #add a check for exitcode
@@ -325,9 +325,10 @@ class YamboTask(YambopyTask):
     yamboin = 'yambo.in'
 
     @classmethod
-    def from_runlevel(cls,interface_task,runlevel,yamboin_dict={},
-                      executable=yambopyenv.YAMBO,scheduler=yambopyenv.SCHEDULER,dependencies=None):
+    def from_runlevel(cls,interface_task,runlevel,yamboin_dict={},dependencies=None,**kwargs):
         """ Run yambo with the runlevel string to generate the inputfile """
+        scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
+        executable = kwargs.pop('executable',yambopyenv.YAMBO)
         instance = cls(inputs=interface_task,executable=executable,
                        scheduler=scheduler,dependencies=dependencies)
         instance.runlevel = runlevel
@@ -347,10 +348,11 @@ class YamboTask(YambopyTask):
                    scheduler=scheduler,dependencies=dependencies)
 
     @classmethod
-    def from_inputfile(cls,yamboinput,executable=yambopyenv.YAMBO,
-                       scheduler=yambopyenv.SCHEDULER,dependencies=None):
+    def from_inputfile(cls,yamboinput,dependencies=None,**kwargs):
         """Create a yambotask from an existing input file"""
         raise NotImplementedError('TODO')
+        scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
+        executable = kwargs.pop('executable',yambopyenv.YAMBO)
         return cls(inputs=yamboinput,executable=execulable,
                    scheduler=scheduler,dependencies=dependencies)
 
@@ -388,7 +390,7 @@ class YamboTask(YambopyTask):
         #create running script
         abs_path = os.path.abspath(path)
         self._run = os.path.join(path,'run.sh')
-        self.scheduler.add_command('%s -F run.in -J run > %s 2> %s'%(self.executable,self.log,self.err))
+        self.scheduler.add_mpirun_command('%s -F run.in -J run > %s 2> %s'%(self.executable,self.log,self.err))
         self.scheduler.write(self._run)
 
         #set to initiailized
@@ -413,22 +415,25 @@ class P2yTask(YambopyTask):
     Run a P2Y calculation
     """
     @classmethod
-    def from_nscf_task(cls,nscf_task,executable=yambopyenv.P2Y,
-                       scheduler=yambopyenv.SCHEDULER,setup=yambopyenv.YAMBO):
+    def from_nscf_task(cls,nscf_task,**kwargs):
         """
         specify a nscf .save folder to start the calculation from
         """
+        scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
+        setup = kwargs.pop('setup',yambopyenv.YAMBO)
+        executable = kwargs.pop('executable',yambopyenv.P2Y)
         instance = cls(nscf_task,executable,scheduler,dependencies=nscf_task)
         instance.setup = setup
         return instance
 
     @classmethod
-    def from_folder(cls,folder,executable=yambopyenv.P2Y,
-                    scheduler=yambopyenv.SCHEDULER):
+    def from_folder(cls,folder,**kwargs):
         """
         Initialize a P2Y task from a folder.
         Useful to start from a SAVE folder calculation
         """
+        scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
+        executable = kwargs.pop('executable',yambopyenv.P2Y)
         instance = cls(inputs=None,executable=executable,scheduler=scheduler,dependencies=None)
         instance.path = folder
         instance.initialized = True
@@ -448,7 +453,7 @@ class P2yTask(YambopyTask):
         #create running script
         abs_path = os.path.abspath(path)
         self._run = os.path.join(path,'run.sh')
-        ac = self.scheduler.add_command
+        ac = self.scheduler.add_mpirun_command
         ac('cd %s; %s > %s 2> %s; cd %s'%(dst,self.executable,self.log,self.err,abs_path))
         ac('mv %s/SAVE .'%(dst))
         if self.setup: ac('%s > %s 2> %s'%(self.setup,self.log,self.err))
@@ -481,11 +486,13 @@ class PwTask(YambopyTask):
     Routines specific to quantum espresso task
     """
     @classmethod
-    def from_input(cls,pwinputs,executable=qepyenv.PW,
-                   scheduler=yambopyenv.SCHEDULER,dependencies=None):
+    def from_input(cls,pwinputs,dependencies=None,**kwargs):
+        scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
+        executable = kwargs.pop('executable',qepyenv.PW)
         if not isiter(pwinputs): pwinputs = [pwinputs]
         if not all([isinstance(pwi,(PwIn,cls)) for pwi in pwinputs]):
             raise ValueError('The input is not an instance of PwIn or PwTask but %s'%(pwinput))
+
         return cls(inputs=pwinputs,executable=executable,
                    scheduler=scheduler,dependencies=dependencies)
 
@@ -504,7 +511,7 @@ class PwTask(YambopyTask):
 
         #create running script
         self._run = os.path.join(path,'run.sh')
-        self.scheduler.add_command('%s < pw.in > %s'%(self.executable,self.log))
+        self.scheduler.add_mpirun_command('%s < pw.in > %s'%(self.executable,self.log))
         self.scheduler.write(self._run)
 
         self.path = path
@@ -529,8 +536,9 @@ class PhTask(YambopyTask):
     Routines specific to quantum espresso task
     """
     @classmethod
-    def from_scf_task(cls,pwinputs,executable=qepyenv.PH,
-                   scheduler=yambopyenv.SCHEDULER,dependencies=None):
+    def from_scf_task(cls,pwinputs,dependencies=None,**kwargs):
+        scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
+        executable = kwargs.pop('executable',qepyenv.PH)
         if not isiter(pwinputs): pwinputs = [pwinputs]
         if not any([isinstance(pwi,(PhIn,cls)) for pwi in pwinputs]):
             raise ValueError('The input is not an instance of PwTask but %s'%(pwinputs))
@@ -564,7 +572,7 @@ class PhTask(YambopyTask):
 
         #create running script
         self._run = os.path.join(path,'run.sh')
-        self.scheduler.add_command('%s < ph.in > %s'%(self.executable,self.log))
+        self.scheduler.add_mpirun_command('%s < ph.in > %s'%(self.executable,self.log))
         self.scheduler.write(self._run)
 
         self.path = path
@@ -592,8 +600,9 @@ class DynmatTask(YambopyTask):
     Routines specific to quantum espresso task
     """
     @classmethod
-    def from_phonon_task(cls,phtask,executable=qepyenv.DYNMAT,
-                         scheduler=yambopyenv.SCHEDULER,dependencies=None):
+    def from_phonon_task(cls,phtask,dependencies=None,**kwargs):
+        scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
+        executable = kwargs.pop('executable',qepyenv.DYNMAT)
         if not isinstance(phtask,PhTask):
             raise ValueError('The input is not an instance of PhTask but %s'%(pwinputs))
         return cls(inputs=phtask,executable=executable,
@@ -623,7 +632,7 @@ class DynmatTask(YambopyTask):
 
         #create running script
         self._run = os.path.join(path,'run.sh')
-        self.scheduler.add_command('%s < dynmat.in > %s'%(self.executable,self.log))
+        self.scheduler.add_mpirun_command('%s < dynmat.in > %s'%(self.executable,self.log))
         self.scheduler.write(self._run)
 
         self.path = path
