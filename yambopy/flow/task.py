@@ -453,7 +453,7 @@ class P2yTask(YambopyTask):
         #create running script
         abs_path = os.path.abspath(path)
         self._run = os.path.join(path,'run.sh')
-        ac = self.scheduler.add_mpirun_command
+        ac = self.scheduler.add_command
         ac('cd %s; %s > %s 2> %s; cd %s'%(dst,self.executable,self.log,self.err,abs_path))
         ac('mv %s/SAVE .'%(dst))
         if self.setup: ac('%s > %s 2> %s'%(self.setup,self.log,self.err))
