@@ -20,8 +20,8 @@ __all__ = [
 "KpointsConvergenceFlow",
 "PwNscfYamboIPChiTasks",
 "YamboQPBSETasks",
-"PwNscfTask",
-"PhPhononTask"
+"PwNscfTasks",
+"PhPhononTasks"
 ]
 
 class FiniteDifferencesPhononFlow():
@@ -64,6 +64,8 @@ class FiniteDifferencesPhononFlow():
         #
         # Displaced structures
         #
+        reference = [dict(imode=None,displacement=0)]
+
         for imode in imodes_list:
             #get phonon mode
             cart_mode = self.phonon_modes.modes[iqpoint,imode]
@@ -76,11 +78,15 @@ class FiniteDifferencesPhononFlow():
                 #generate tasks
                 new_tasks = generator(displaced_structure,kpoints,ecut,
                                       nscf_bands,nscf_kpoints,**kwargs)
+                #save task
                 tasks.extend(new_tasks)
+                reference.append([dict(imode=None,displacement=displacement)])
 
+        #store a reference for each of the tasks
+        self.reference = referece
         return tasks
 
- 
+    
     def get_flow(self,path,kpoints,ecut,nscf_bands,nscf_kpoints=None,imodes_list=None,**kwargs):
 
         tasks = self.get_tasks(path=path,kpoints=kpoints,ecut=ecut,nscf_bands=nscf_bands,
@@ -89,6 +95,23 @@ class FiniteDifferencesPhononFlow():
         #put all the tasks in a flow
         self.yambo_flow = YambopyFlow.from_tasks(path,tasks)
         return self.yambo_flow
+
+    def get_dchi(self):
+        """Collect all tasks producing eps files"""
+        raise NotImplementedError('TODO')
+        #find all the optical tasks
+        #calculate finite differences
+        pass
+
+    def plot_ax(self,what):
+        """ Collect and plot the results
+        
+        Arguments:
+            what: what to plot can be eps for optical response
+        """
+        raise NotImplementedError('TODO')
+        #plot finite differences
+        pass        
 
     @property
     def path(self):
@@ -139,6 +162,56 @@ class KpointsConvergenceFlow():
         self.yambo_flow = YambopyFlow.from_tasks(path,tasks,**kwargs)
         return self.yambo_flow
 
+class BandsConvergenceFlow():
+    """
+    This class takes as an input one structure.
+    It produces a flow with the QE input files for nscf calculation with the max number of bands
+    Then adds one yambo task with different number of bands
+
+    Author: Henrique Miranda
+    """
+    def __init__(self,structure):
+        self.structure = structure
+    
+    def get_tasks(self,scf_kpoints,ecut,nscf_kpoints,bands_list,**kwargs):
+        """
+        Create a flow with all the tasks to perform the calculation
+        
+        Arguments:
+            generator: a builder function that takes structure, kpoints, ecut, 
+                       nscf_bands, nscf_kpoints and kwargs as argument and returns the
+                       tasks to be performed at each displacement
+        """
+        generator = kwargs.pop("generator",YamboIPChiTask)
+
+        #create a QE scf task and run
+        nscf_bands = max(bands_list)
+        tasks = PwNscfTasks(self.structure,kpoints=scf_kpoints,ecut=ecut,
+                            nscf_bands=nscf_bands,nscf_kpoints=nscf_kpoints)
+        qe_scf_task, qe_nscf_task, p2y_task = tasks
+        tasks = list(tasks)
+
+        link_task = p2y_task
+        new_task  = p2y_task
+        #we invert the list and compute from higher bands to lower
+        #this avoids recomputing the dipoles
+        for bands in sorted(bands_list,reverse=True):
+            #generate tasks
+            new_task = generator(link_task,bands=bands,dependencies=new_task,**kwargs)
+            tasks.append(new_task)
+            link_task = [p2y_task,new_task]
+
+        return tasks
+
+    def get_flow(self,path,scf_kpoints,ecut,nscf_kpoints,bands_list,**kwargs):
+        tasks = self.get_tasks(scf_kpoints=scf_kpoints,ecut=ecut,nscf_kpoints=nscf_kpoints,
+                               bands_list=bands_list,**kwargs)
+       
+        #put all the tasks in a flow
+        self.yambo_flow = YambopyFlow.from_tasks(path,tasks,**kwargs)
+        return self.yambo_flow
+
+
 def PwNscfYamboIPChiTasks(structure,kpoints,ecut,nscf_bands,
                           yambo_runlevel='-o c -V all',nscf_kpoints=None,**kwargs):
     """
@@ -148,15 +221,26 @@ def PwNscfYamboIPChiTasks(structure,kpoints,ecut,nscf_bands,
     tmp_tasks = PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints)
     qe_scf_task,qe_nscf_task,p2y_task = tmp_tasks
 
+    yambo_task = YamboIPChiTask(p2y_task,yambo_runlevel=yambo_runlevel,**kwargs)
+
+    return qe_scf_task,qe_nscf_task,p2y_task,yambo_task
+
+def YamboIPChiTask(p2y_task,**kwargs):
+    """
+    Return a yambo IP task
+    """
     yambo_ip_default_dict = dict(QpntsRXd=[1,1],
                                  ETStpsXd=1000)
     yambo_ip_dict = kwargs.pop('yambo_ip_dict',yambo_ip_default_dict)
-
+    yambo_runlevel = kwargs.pop('yambo_runlevel','-o c -V all')
+    bands = kwargs.pop('bands',None)
+    dependencies = kwargs.pop('dependencies',p2y_task)
+    if bands: yambo_ip_dict['BndsRnXd'] = [1,bands]
+    
     #add yambo_task
     yambo_task = YamboTask.from_runlevel(p2y_task,yambo_runlevel,yambo_ip_dict,
-                                                 dependencies=p2y_task)
-    return qe_scf_task,qe_nscf_task,p2y_task,yambo_task
-
+                                         dependencies=dependencies)
+    return yambo_task
 
 def YamboQPBSETasks(p2y_task,qp_dict,bse_dict,
                    qp_runlevel='-p p -g n -V all',bse_runlevel='-p p -k sex -y d -V all'):

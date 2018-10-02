@@ -26,6 +26,7 @@ class PwXML():
                      'data-file-schema.xml': self.read_datafile_schema}
 
         done_reading = False
+
         #check if the name is data-file.xml or data-file-schema.xml or whatever....
         for filename,read in list(datafiles.items()):
             path_filename = "%s/%s.save/%s"%(path, prefix, filename)
@@ -46,7 +47,7 @@ class PwXML():
         self.datafile_xml = ET.parse( filename ).getroot()
 
         #get acell
-        self.acell = [ float(x) for x in self.datafile_xml.findall("CELL/CELL_DIMENSIONS")[0].text.strip().split('\n') ]
+        self.celldm = [ float(x) for x in self.datafile_xml.findall("CELL/CELL_DIMENSIONS")[0].text.strip().split('\n') ]
 
         #get cell
         self.cell = []
@@ -64,8 +65,27 @@ class PwXML():
         self.natoms = int(self.datafile_xml.findall("IONS/NUMBER_OF_ATOMS")[0].text)
         self.atoms = []
         for i in range(1,self.natoms+1):
-            atom = self.datafile_xml.findall("IONS/ATOM.%d"%i)[0].get('tau')
-            self.atoms.append([float(x) for x in atom.strip().split()])
+            atom_xml = self.datafile_xml.findall("IONS/ATOM.%d"%i)[0]
+            #read postions
+            pos_string = atom_xml.get('tau').strip().split()
+            pos = [float(x) for x in pos_string]
+            #read type  
+            atype = atom_xml.get('SPECIES').strip()
+            #store
+            self.atoms.append([atype,pos])
+
+        #get atomic species
+        self.natypes = int(self.datafile_xml.findall("IONS/NUMBER_OF_SPECIES")[0].text) 
+        self.atypes = {}
+        for i in range(1,self.natypes+1):
+            atype_xml = self.datafile_xml.findall("IONS/SPECIE.%d"%i)[0]
+            #read string
+            atype_string = atype_xml.findall('ATOM_TYPE')[0].text.strip()
+            #read mass
+            atype_mass =  float(atype_xml.findall('MASS')[0].text.strip())
+            #read pseudo
+            atype_pseudo =  atype_xml.findall('PSEUDO')[0].text.strip()
+            self.atypes[atype_string]=[atype_mass,atype_pseudo]
 
         #get nkpoints
         self.nkpoints = int(self.datafile_xml.findall("BRILLOUIN_ZONE/NUMBER_OF_K-POINTS")[0].text.strip())
@@ -145,22 +165,51 @@ class PwXML():
 
         return True
 
-    def get_scaled_positions(self):
-        """ get the atomic positions in reduced coordinates
+    def get_scaled_atoms(self):
+        """Build and return atoms dictionary"""
+        atoms = []
+        for atype,pos in self.atoms:
+            red_pos = car_red([pos],self.cell)[0].tolist()
+            atoms.append([atype,red_pos])
+        return atoms
+        
+    def get_atypes_dict(self):
+        return self.atypes
+
+    def get_lattice_dict(self):
+        return dict(ibrav=0,cell_parameters=self.cell)
+
+    def get_structure_dict(self):
         """
-        return car_red(self.atoms,self.cell)
+        Get a structure dict that can be used to create a new pw input file
+        """
+        return dict(atoms=self.get_scaled_atoms(),
+             atypes=self.get_atypes_dict(),
+             lattice=self.get_lattice_dict())
+
+    def get_cartesian_positions(self):
+        """ get the atomic positions in cartesian coordinates """
+        positions = []
+        for atype,pos in self.atoms:
+            positions.append(pos)
+        return np.array(positions)
+
+    def get_scaled_positions(self):
+        """ get the atomic positions in reduced coordinates """
+        cartesian_positions = self.get_cartesian_positions()
+        return car_red(cartesian_positions,self.cell)
 
     def __str__(self):
-        s = ""
-        s += "cell:\n"
+        lines = []; app = lines.append
+        app("cell:")
         for c in self.cell:
-            s += ("%12.8lf "*3)%tuple(c)+'\n'
-        s += "atoms:\n"
-        for a in self.atoms:
-            s += ("%12.8lf "*3)%tuple(a)+'\n'
-        s += "nkpoints: %d\n"%self.nkpoints
-        s += "nbands:   %d\n"%self.nbands
-        return s
+            app(("%12.8lf "*3)%tuple(c))
+        app("atoms:")
+        for atype,pos in self.atoms:
+            app("%3s"%atype + ("%12.8lf "*3)%tuple(pos))
+        app("nkpoints: %d"%self.nkpoints)
+        app("nbands:   %d"%self.nbands)
+        return "\n".join(lines)
 
     def plot_eigen_ax(self,ax,path=[],xlim=(),ylim=()):
         if path:

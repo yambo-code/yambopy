@@ -306,6 +306,10 @@ class YambopyTask():
         else:
             raise ValueError('could not initialize task')
 
+    def copy(self):
+        import copy
+        return copy.deepcopy(self)
+
     def __str__(self):
         lines = []; app = lines.append
         app(marquee(self.name))

@@ -160,9 +160,11 @@ class PwIn(object):
         return dict(lattice=lattice,atypes=self.atypes,atoms=self.atoms)
 
     def set_lattice(self,ibrav=None,celldm1=None,celldm2=None,celldm3=None,
-                      celldm4=None,celldm5=None,celldm6=None):
+                      celldm4=None,celldm5=None,celldm6=None,cell_parameters=None):
         """Set the structure using the typical QE input variables"""
-        if ibrav is not None: self.ibrav = ibrav 
+        if ibrav is not None: self.ibrav = ibrav
+        if ibrav == 0 and cell_parameters == 0:
+            raise ValueError('ibrav = 0 implies that the cell_parameters variable is set')
         if celldm1 is not None: self.system['celldm(1)'] = celldm1
         if celldm2 is not None: self.system['celldm(2)'] = celldm2
         if celldm3 is not None: self.system['celldm(3)'] = celldm3
@@ -234,6 +236,21 @@ class PwIn(object):
         self.system['force_symmorphic'] = fortran_bool(force_symmorphic)
         if nscf_kpoints: self.set_kpoints(nscf_kpoints) 
         return self
+
+    def set_relax(self,cell_dofree=None):
+        """
+        set the calculation to be relax
+        """
+        self.control['calculation'] = "'relax'"
+        self.ions['ion_dynamics']  = "'bfgs'"
+        if cell_dofree: 
+            self.control['calculation'] = "'vc-relax'"
+            self.cell['cell_dynamics']  = "'bfgs'"
+            self.cell['cell_dofree'] = "'%s'"%cell_dofree
+
+    def set_spinorbit(self):
+        self.system['lspinorb'] = '.true.'
+        self.system['noncolin'] = '.true.'
 
     def get_pseudos(self,destpath='.',pseudo_paths=[],verbose=0):
         """
