@@ -212,6 +212,102 @@ class BandsConvergenceFlow():
         return self.yambo_flow
 
 
+#inject some code in the initialization
+def copy_pp(self):
+    """This code is to be executed during the initialization of the SOC calculation"""
+    import os
+    import glob
+    import shutil
+    from netCDF4 import Dataset
+    nospin_task = self.get_vars('nospin_task')
+    spin_bands = self.get_vars('spin_bands')
+    src = os.path.join(nospin_task.path,'run')
+    dst = os.path.join(self.path,'run')
+    if not os.path.isdir(dst): os.mkdir(dst)
+
+    #link all the pp files
+    ppfiles = glob.glob(os.path.join(src,'ndb.pp*'))
+    for ppfile_path in ppfiles:
+        ppfile = os.path.basename(ppfile_path)
+        shutil.copy(ppfile_path,os.path.join(dst,ppfile))
+
+    #change the spin value in the main file
+    #also need to change the number of bands so yambo will read it
+    main_pp = os.path.join(dst,'ndb.pp')
+    with Dataset(main_pp,'r+') as dst_db:
+        dst_db.variables['SPIN_VARS'][1]=2
+        dst_db.variables['X_PARS_1'][2]=spin_bands
+
+
+class SpinOrbitFlow():
+    """
+    Perform a yambo calculation including spin-orbit coupling.
+    The dielectric function is calculated from the system without spin-orbit
+    This has been tested for GW and BSE
+
+    TODO:
+        - Pass two different pseudo-potential sets, one iwht and one without spin orbit
+        - Currently we use one pseudo generated with SOC but deactivate it in the first run
+
+    Author: Henrique Miranda
+    """
+    def __init__(self,structure):
+        self.structure = structure
+   
+    def get_tasks(self,scf_kpoints,ecut,nscf_kpoints,chi_bands,spin_bands,**kwargs):
+        """
+        Get a list of tasks executing this flow
+        """
+        tasks=[]
+
+        #create a yambo qp run
+        yamboin_default_dict = dict(BndsRnXp=[1,chi_bands],
+                                    NGsBlkXp=[1,'Ry'],
+                                    EXXRLvcs=[10,'Ry'],
+                                    QPkrange=[1,1,1,spin_bands],
+                                    GbndRnge=[1,spin_bands])
+
+        yamboin_dict = kwargs.pop("yamboin_dict",yamboin_default_dict)
+        generator = kwargs.pop("generator",YamboQPTask)
+        qp_runlevel = kwargs.pop("qp_runlevel",'-p p -V all')
+        spin_runlevel = kwargs.pop("spin_runlevel",qp_runlevel) 
+
+        #without spin
+        new_tasks = PwNscfTasks(self.structure,kpoints=scf_kpoints,ecut=ecut,
+                            nscf_bands=chi_bands,nscf_kpoints=nscf_kpoints)
+        qe_scf_task, qe_nscf_task, p2y_task = new_tasks
+
+        nospin_task = generator(p2y_task,runlevel=qp_runlevel,yamboin_dict=yamboin_dict,dependencies=p2y_task,**kwargs)
+
+        tasks.extend( [qe_scf_task, qe_nscf_task, p2y_task, nospin_task] )
+
+        #with spin
+        new_tasks = PwNscfTasks(self.structure,kpoints=scf_kpoints,ecut=ecut,
+                            nscf_bands=spin_bands,nscf_kpoints=nscf_kpoints)
+        qe_scf_task, qe_nscf_task, p2y_task = new_tasks
+
+        #patch the input files to include spin-orbit coupling
+        qe_scf_task.get_instances_from_inputs(PwIn)[0].set_spinorbit()
+        qe_nscf_task.get_instances_from_inputs(PwIn)[0].set_spinorbit()
+
+        spin_task = generator(p2y_task,runlevel=spin_runlevel,yamboin_dict=yamboin_dict,dependencies=p2y_task,**kwargs)
+
+        tasks.extend( [qe_scf_task, qe_nscf_task, p2y_task, spin_task] )
+
+        spin_task.set_vars('spin_bands',spin_bands)
+        spin_task.set_vars('nospin_task',nospin_task)
+        spin_task.set_code('initialize',copy_pp)
+
+        return tasks
+
+    def get_flow(self,path,scf_kpoints,ecut,nscf_kpoints,chi_bands,spin_bands,**kwargs):
+        tasks = self.get_tasks(scf_kpoints=scf_kpoints,ecut=ecut,nscf_kpoints=nscf_kpoints,
+                               chi_bands=chi_bands,spin_bands=spin_bands,**kwargs)
+       
+        #put all the tasks in a flow
+        self.yambo_flow = YambopyFlow.from_tasks(path,tasks,**kwargs)
+        return self.yambo_flow
+
 def PwNscfYamboIPChiTasks(structure,kpoints,ecut,nscf_bands,
                           yambo_runlevel='-o c -V all',nscf_kpoints=None,**kwargs):
     """
@@ -242,8 +338,8 @@ def YamboIPChiTask(p2y_task,**kwargs):
                                          dependencies=dependencies)
     return yambo_task
 
-def YamboQPBSETasks(p2y_task,qp_dict,bse_dict,
-                   qp_runlevel='-p p -g n -V all',bse_runlevel='-p p -k sex -y d -V all'):
+def YamboQPBSETasks(p2y_task,qp_dict,bse_dict,qp_runlevel='-p p -g n -V all',
+                    bse_runlevel='-p p -k sex -y d -V all'):
     """
     Return a QP and BSE calculation
     """
@@ -254,6 +350,16 @@ def YamboQPBSETasks(p2y_task,qp_dict,bse_dict,
     bse_dict['KfnQPdb']="E < run/ndb.QP"
     bse_task = YamboTask.from_runlevel([p2y_task,qp_task],bse_runlevel,bse_dict,dependencies=qp_task)
     return qp_task, bse_task
+
+def YamboQPTask(p2y_task,yamboin_dict,runlevel='-p p -g n -V all',**kwargs):
+    """
+    Return a QP calculation
+    """
+    #create a yambo qp run
+    dependencies = kwargs.pop('dependencies',p2y_task)
+    qp_task = YamboTask.from_runlevel(p2y_task,runlevel,yamboin_dict,dependencies=p2y_task)
+
+    return qp_task
 
 def PhPhononTasks(structure,kpoints,ecut,qpoints=None):
     """

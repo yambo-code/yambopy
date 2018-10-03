@@ -207,6 +207,10 @@ class YambopyTask():
         self.nlog = 0
         self.nerr = 0
         self.initialized = initialized
+        
+        #code_injection
+        self.code_dict = {}
+        self.vars_dict = {}
 
         #scheduler
         self.scheduler_setup(scheduler)
@@ -225,6 +229,22 @@ class YambopyTask():
         #add a check for exitcode
         new_posrun = ['echo $? > %s'%self._yambopystatus] + self.scheduler.pos_run
         self.scheduler.set_posrun(new_posrun)
+
+    def get_vars(self,key):
+        return self.vars_dict[key]
+
+    def set_vars(self,key,value):
+        self.vars_dict[key] = value 
+
+    def get_code(self,key):
+        """get a funnction to execute"""
+        def null_func(self): pass
+        return self.code_dict.get(key,null_func)
+ 
+    def set_code(self,key,code):
+        """set a function to execute"""
+        #TODO check consistency of the function signature
+        self.code_dict[key] = code
 
     @property
     def ready(self):
@@ -381,6 +401,14 @@ class YamboTask(YambopyTask):
                 dst = os.path.abspath(os.path.join(run_path,os.path.basename(src)))
                 os.symlink(src,dst)
 
+        #set to initiailized
+        self.initialized = True
+        self.path = path
+
+        #code injector
+        code = self.get_code('initialize')
+        code(self)
+
         #create inputfile
         db1_path = os.path.join(path,'SAVE','ns.db1')
         if os.path.isfile(db1_path):
@@ -397,9 +425,6 @@ class YamboTask(YambopyTask):
         self.scheduler.add_mpirun_command('%s -F run.in -J run > %s 2> %s'%(self.executable,self.log,self.err))
         self.scheduler.write(self._run)
 
-        #set to initiailized
-        self.initialized = True
-        self.path = path
 
     @property
     def output(self):
