@@ -245,15 +245,12 @@ class SpinOrbitFlow():
     The dielectric function is calculated from the system without spin-orbit
     This has been tested for GW and BSE
 
-    TODO:
-        - Pass two different pseudo-potential sets, one iwht and one without spin orbit
-        - Currently we use one pseudo generated with SOC but deactivate it in the first run
-
     Author: Henrique Miranda
     """
-    def __init__(self,structure):
-        self.structure = structure
-   
+    def __init__(self,structure,structure_spin=None):
+        self.structure_nospin = structure
+        if structure_spin is None: self.structure_spin = structure
+  
     def get_tasks(self,scf_kpoints,ecut,nscf_kpoints,chi_bands,spin_bands,**kwargs):
         """
         Get a list of tasks executing this flow
@@ -269,20 +266,21 @@ class SpinOrbitFlow():
 
         yamboin_dict = kwargs.pop("yamboin_dict",yamboin_default_dict)
         generator = kwargs.pop("generator",YamboQPTask)
-        qp_runlevel = kwargs.pop("qp_runlevel",'-p p -V all')
+        pp_runlevel = kwargs.pop("pp_runlevel",'-p p -V all')
+        qp_runlevel = kwargs.pop("qp_runlevel",'-p p -g n -V all')
         spin_runlevel = kwargs.pop("spin_runlevel",qp_runlevel) 
 
         #without spin
-        new_tasks = PwNscfTasks(self.structure,kpoints=scf_kpoints,ecut=ecut,
+        new_tasks = PwNscfTasks(self.structure_nospin,kpoints=scf_kpoints,ecut=ecut,
                             nscf_bands=chi_bands,nscf_kpoints=nscf_kpoints)
         qe_scf_task, qe_nscf_task, p2y_task = new_tasks
 
-        nospin_task = generator(p2y_task,runlevel=qp_runlevel,yamboin_dict=yamboin_dict,dependencies=p2y_task,**kwargs)
+        nospin_task = generator(p2y_task,runlevel=pp_runlevel,yamboin_dict=yamboin_dict,dependencies=p2y_task,**kwargs)
 
         tasks.extend( [qe_scf_task, qe_nscf_task, p2y_task, nospin_task] )
 
         #with spin
-        new_tasks = PwNscfTasks(self.structure,kpoints=scf_kpoints,ecut=ecut,
+        new_tasks = PwNscfTasks(self.structure_spin,kpoints=scf_kpoints,ecut=ecut,
                             nscf_bands=spin_bands,nscf_kpoints=nscf_kpoints)
         qe_scf_task, qe_nscf_task, p2y_task = new_tasks
 

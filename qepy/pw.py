@@ -74,7 +74,7 @@ class PwIn(object):
         self.ions = dict()
         self.cell = dict()
         self.atypes = dict()
-        self.cell_units = 'angstrom'
+        self.cell_units = 'bohr'
         self.atomic_pos_type = 'crystal'
 
     @classmethod
@@ -159,12 +159,20 @@ class PwIn(object):
         lattice = self.get_lattice()
         return dict(lattice=lattice,atypes=self.atypes,atoms=self.atoms)
 
+    def change_cell_parameters(self):
+        """
+        Convert the atomic postions to cartesian, change the lattice and convert
+        the atomic positions to reduced
+        """
+        raise NotImplementedError('TODO')
+
     def set_lattice(self,ibrav=None,celldm1=None,celldm2=None,celldm3=None,
                       celldm4=None,celldm5=None,celldm6=None,cell_parameters=None):
         """Set the structure using the typical QE input variables"""
-        if ibrav is not None: self.ibrav = ibrav
-        if ibrav == 0 and cell_parameters == 0:
+        if ibrav == 0 and cell_parameters is None:
             raise ValueError('ibrav = 0 implies that the cell_parameters variable is set')
+        if cell_parameters: self.cell_parameters = cell_parameters
+        if ibrav is not None: self.ibrav = ibrav
         if celldm1 is not None: self.system['celldm(1)'] = celldm1
         if celldm2 is not None: self.system['celldm(2)'] = celldm2
         if celldm3 is not None: self.system['celldm(3)'] = celldm3

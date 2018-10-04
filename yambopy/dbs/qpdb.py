@@ -30,26 +30,27 @@ class YamboQPDB():
         self.e            = np.array(qps['E']).real*ha2ev
         self.linewidths   = np.array(qps['E']).imag*ha2ev
         self.eigenvalues_qp, self.eigenvalues_dft, self.lifetimes = self.get_qps()
-    
+
     @classmethod
     def from_db(cls,filename='ndb.QP',folder='.'):
         """
         Create instance of this class from a ndb.QP file
         """
-        if os.path.isfile('%s/%s'%(folder,filename)):
+        db_path = os.path.join(folder,filename)
+        if os.path.isfile(db_path):
             yfile = YamboFile(filename,folder)
         else:
-            raise IOError('File %s/%s not found'%(folder,filename))
+            raise IOError('File %s not found'%db_path)
         return cls(yfile.data)
     
-    def get_qps(self):
+    def get_qps(self,band_condition=None):
         """
         Get quasiparticle energies in a list
         """
         #start arrays
-        eigenvalues_dft = np.zeros([self.nkpoints,self.nbands])
-        eigenvalues_qp  = np.zeros([self.nkpoints,self.nbands])
-        linewidths      = np.zeros([self.nkpoints,self.nbands])
+        eigenvalues_dft = np.zeros([self.nkpoints,self.max_band])
+        eigenvalues_qp  = np.zeros([self.nkpoints,self.max_band])
+        linewidths      = np.zeros([self.nkpoints,self.max_band])
         for ei,e0i,li,ki,ni in zip(self.e,self.e0,self.linewidths,self.kpoint_index,self.band_index):
             nkpoint = ki-self.min_kpoint
             nband = ni-self.min_band
@@ -58,6 +59,87 @@ class YamboQPDB():
             linewidths[nkpoint,nband] = li
 
         return eigenvalues_dft, eigenvalues_qp, linewidths
+
+    def get_filtered_qps(self,min_band=None,max_band=None):
+        """Return selected QP energies as a flat list"""
+        e0=[]; qp=[]; lw=[]
+        for ei,e0i,li,ki,ni in zip(self.e,self.e0,self.linewidths,self.kpoint_index,self.band_index):
+            if min_band and ni < min_band: continue
+            if max_band and ni > max_band: continue
+            e0.append(e0i)
+            qp.append(ei)
+            lw.append(lw)
+        return e0,qp,lw
+  
+    def get_scissor(self,valence,verbose=1):
+        """
+        Compute the scissor operator replicating the QP corrections
+        TODO: 
+        """
+        from scipy import stats
+        lines = []; app = lines.append
+        #valence
+        e0, eqp, lw = self.get_filtered_qps(self.min_band,valence)
+        vslope, vintercept, r_value, p_value, std_err = stats.linregress(e0,eqp)
+        app('valence bands:')
+        app('slope:     {}'.format(vslope))
+        app('intercept: {}'.format(vintercept))
+        app('r_value:   {}'.format(r_value))
+        app('p_value:   {}'.format(p_value))
+        app('std_err:   {}'.format(std_err))
+        e0_max_val = max(e0)
+        qp_max_val = max(eqp)
+        
+        #conduction
+        e0, eqp, lw = self.get_filtered_qps(valence+1,self.max_band)
+        cslope, cintercept, r_value, p_value, std_err = stats.linregress(e0,eqp)
+        app('\nconduction bands:')
+        app('slope:     {}'.format(cslope))
+        app('intercept: {}'.format(cintercept))
+        app('r_value:   {}'.format(r_value))
+        app('p_value:   {}'.format(p_value))
+        app('std_err:   {}'.format(std_err))
+        e0_min_con = min(e0)
+        qp_min_con = min(eqp)
+
+        dftgap = e0_min_con-e0_max_val
+        qpgap  = qp_min_con-qp_max_val
+        shift = qpgap-dftgap 
+
+        scissor_list = [shift,cslope,vslope]
+        app('\vscissor list (shift,c,v) [eV,adim,adim]: {}'.format(scissor_list))
+        if verbose: print("\n".join(lines))
+        return shift,cslope,vslope,cintercept,vintercept
+
+    def plot_scissor_ax(self,ax,valence,verbose=1):
+        """
+        Plot the scissor on a matplotlib axis
+        """
+        shift,cslope,vslope,cintercept,vintercept=self.get_scissor(valence,verbose=verbose)
+        #plot qps
+        ve0,vqp,_ = self.get_filtered_qps(self.min_band,valence)
+        ax.scatter(ve0,vqp)
+        ce0,cqp,_ = self.get_filtered_qps(valence+1,self.max_band)
+        ax.scatter(ce0,cqp)
+
+        #plot the fits
+        vx = np.linspace(np.min(ve0),np.max(ve0),2)
+        cx = np.linspace(np.min(ce0),np.max(ce0),2)
+        vy = cslope*vx+cintercept
+        cy = cslope*cx+cintercept
+        ax.plot(vx,vy)
+        ax.plot(cx,cy)
+
+    @add_fig_kwargs
+    def plot_scissor(self,valence,verbose=1):
+        """
+        Plot the the QP energies and the scissor fit
+        """
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        self.plot_scissor_ax(ax,valence,verbose=verbose)
+        return fig
 
     def get_bs(self,bs=None):
         """
@@ -83,7 +165,7 @@ class YamboQPDB():
 
     @property
     def nqps(self):
-        return len(self.qps)
+        return len(self.e)
 
     @property
     def min_kpoint(self):
@@ -115,5 +197,7 @@ class YamboQPDB():
         app("nqps:     %d"%self.nqps)
         app("nkpoints: %d"%self.nkpoints)
         app("nbands:   %d"%self.nbands)
+        app("min_band: %d"%self.min_band)
+        app("max_band: %d"%self.max_band)
         return "\n".join(lines)
 
