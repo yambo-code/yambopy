@@ -43,14 +43,14 @@ class YamboQPDB():
             raise IOError('File %s not found'%db_path)
         return cls(yfile.data)
     
-    def get_qps(self,band_condition=None):
+    def get_qps(self):
         """
         Get quasiparticle energies in a list
         """
         #start arrays
-        eigenvalues_dft = np.zeros([self.nkpoints,self.max_band])
-        eigenvalues_qp  = np.zeros([self.nkpoints,self.max_band])
-        linewidths      = np.zeros([self.nkpoints,self.max_band])
+        eigenvalues_dft = np.zeros([self.nkpoints,self.nbands])
+        eigenvalues_qp  = np.zeros([self.nkpoints,self.nbands])
+        linewidths      = np.zeros([self.nkpoints,self.nbands])
         for ei,e0i,li,ki,ni in zip(self.e,self.e0,self.linewidths,self.kpoint_index,self.band_index):
             nkpoint = ki-self.min_kpoint
             nband = ni-self.min_band
@@ -70,11 +70,34 @@ class YamboQPDB():
             qp.append(ei)
             lw.append(lw)
         return e0,qp,lw
-  
+
+    def get_direct_gaps(self,valence):
+        """
+        Compute the QP and DFT gaps
+        
+        Arguments:
+            valence: number of bands in the valence
+        """
+        eigenvalues_dft, eigenvalues_qp, linewidths = self.get_qps()
+        na = np.newaxis
+        shifted_valence = valence-self.min_band
+
+        #direct gap
+        dft_jdos = eigenvalues_dft[:,na,shifted_valence+1:]-eigenvalues_dft[:,:shifted_valence,na]
+        qp_jdos  = eigenvalues_qp[:,na,shifted_valence+1:] -eigenvalues_qp[:,:shifted_valence,na]
+        direct_dft_gap = np.min(dft_jdos)
+        direct_qp_gap  = np.min(qp_jdos)
+
+        #indirect gap
+        #TODO take the min and max of the VBM and CBM
+        return direct_dft_gap, direct_qp_gap
+
     def get_scissor(self,valence,verbose=1):
         """
         Compute the scissor operator replicating the QP corrections
-        TODO: 
+        
+        Arguments:
+            valence: number of bands in the valence
         """
         from scipy import stats
         lines = []; app = lines.append
@@ -87,9 +110,7 @@ class YamboQPDB():
         app('r_value:   {}'.format(r_value))
         app('p_value:   {}'.format(p_value))
         app('std_err:   {}'.format(std_err))
-        e0_max_val = max(e0)
-        qp_max_val = max(eqp)
-        
+       
         #conduction
         e0, eqp, lw = self.get_filtered_qps(valence+1,self.max_band)
         cslope, cintercept, r_value, p_value, std_err = stats.linregress(e0,eqp)
@@ -99,12 +120,10 @@ class YamboQPDB():
         app('r_value:   {}'.format(r_value))
         app('p_value:   {}'.format(p_value))
         app('std_err:   {}'.format(std_err))
-        e0_min_con = min(e0)
-        qp_min_con = min(eqp)
 
-        dftgap = e0_min_con-e0_max_val
-        qpgap  = qp_min_con-qp_max_val
-        shift = qpgap-dftgap 
+        #get gaps
+        direct_dft_gap,direct_qp_gap = self.get_direct_gaps(valence) 
+        shift = direct_qp_gap-direct_dft_gap
 
         scissor_list = [shift,cslope,vslope]
         app('\vscissor list (shift,c,v) [eV,adim,adim]: {}'.format(scissor_list))
