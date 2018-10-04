@@ -136,8 +136,22 @@ class PwXML():
         self.atoms = []
         atoms = self.datafile_xml.findall("output/atomic_structure/atomic_positions/atom")
         for i in range(self.natoms):
-            atom = atoms[i].text
-            self.atoms.append([float(x) for x in atom.strip().split()])
+            atype = atoms[i].get('name')
+            pos = [float(x) for x in atoms[i].text.strip().split()]
+            self.atoms.append([atype,pos])
+
+        #get atomic species
+        self.natypes = int(self.datafile_xml.findall("output/atomic_species")[0].get('ntyp')) 
+        atypes = self.datafile_xml.findall("output/atomic_species/species")
+        self.atypes = {}
+        for i in range(self.natypes):
+            #read string
+            atype_string = atypes[i].get('name').strip()
+            #read mass
+            atype_mass = atypes[i].findall('mass')[0].text.strip()
+            #read pseudo
+            atype_pseudo = atypes[i].findall('pseudo_file')[0].text.strip()
+            self.atypes[atype_string]=[atype_mass,atype_pseudo]
 
         #get nkpoints
         self.nkpoints = int(self.datafile_xml.findall("output/band_structure/nks")[0].text.strip())
