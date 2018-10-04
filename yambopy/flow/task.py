@@ -540,7 +540,7 @@ class PwTask(YambopyTask):
 
         #create running script
         self._run = os.path.join(path,'run.sh')
-        self.scheduler.add_mpirun_command('%s -inp < pw.in > %s'%(self.executable,self.log))
+        self.scheduler.add_mpirun_command('%s -inp pw.in > %s'%(self.executable,self.log))
         self.scheduler.write(self._run)
 
         self.path = path
