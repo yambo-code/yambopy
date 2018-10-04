@@ -80,7 +80,7 @@ class YamboQPDB():
         """
         eigenvalues_dft, eigenvalues_qp, linewidths = self.get_qps()
         na = np.newaxis
-        shifted_valence = valence-self.min_band-1
+        shifted_valence = valence-self.min_band+1
  
         #direct gap
         dft_jdos = eigenvalues_dft[:,na,shifted_valence+1:]-eigenvalues_dft[:,:shifted_valence,na]
