@@ -192,7 +192,7 @@ class Scheduler(object):
         with open(filename,"w") as f:
             f.write(str(self))
 
-    def get_arg(self,argument,default):
+    def get_arg(self,argument,default=None):
         """
         get an argument from the list of optional variables kwargs
 
