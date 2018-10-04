@@ -30,9 +30,9 @@ class Bash(Scheduler):
     def add_mpirun_command(self, cmd):
         threads = 1
         if self.cores: threads*=self.cores
-        mpirun = self.get_arg("mpirun")
-        if mpirun is None: mpirun = "mpirun"
-        self.add_command("%s -np %d %s"%(mpirun,threads,cmd))
+        mpirun = self.get_arg("mpirun","mpirun")
+        np = self.get_arg("np","-np")
+        self.add_command("%s %s %d %s"%(mpirun,np,threads,cmd))
 
     def run(self,dry=False):
         if dry:

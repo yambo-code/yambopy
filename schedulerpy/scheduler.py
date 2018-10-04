@@ -192,7 +192,7 @@ class Scheduler(object):
         with open(filename,"w") as f:
             f.write(str(self))
 
-    def get_arg(self,argument):
+    def get_arg(self,argument,default):
         """
         get an argument from the list of optional variables kwargs
 
@@ -215,7 +215,7 @@ class Scheduler(object):
             else:
                 return self.kwargs[argument]
         else:
-            return None
+            return default
 
     def add_command(self,cmd):
         """
@@ -233,8 +233,7 @@ class Scheduler(object):
         """
         add commands to be run by the scheduler
         """
-        mpirun = self.get_arg("mpirun")
-        if mpirun is None: mpirun = "mpirun"
+        mpirun = self.get_arg("mpirun","mpirun")
         self.commands.append("%s %s"%(mpirun,cmd))
 
     def add_module(self,mod):
