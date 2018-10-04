@@ -124,6 +124,8 @@ class YamboQPDB():
         #get gaps
         direct_dft_gap,direct_qp_gap = self.get_direct_gaps(valence) 
         shift = direct_qp_gap-direct_dft_gap
+        app('direct dft gap: {}'.format(direct_dft_gap))
+        app('direct qp gap:  {}'.format(direct_qp_gap))
 
         scissor_list = [shift,cslope,vslope]
         app('\vscissor list (shift,c,v) [eV,adim,adim]: {}'.format(scissor_list))
