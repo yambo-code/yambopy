@@ -119,7 +119,7 @@ class PwXML():
         #get cell
         self.cell = []
         for i in range(1,4):
-            cell_lat = self.datafile_xml.findall("input/atomic_structure/cell/a%d"%i)[0].text
+            cell_lat = self.datafile_xml.findall("ouput/atomic_structure/cell/a%d"%i)[0].text
             self.cell.append([float(x) for x in cell_lat.strip().split()])
 
         #calculate acell
