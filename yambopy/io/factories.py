@@ -83,7 +83,7 @@ class FiniteDifferencesPhononFlow():
                 reference.append([dict(imode=None,displacement=displacement)])
 
         #store a reference for each of the tasks
-        self.reference = referece
+        self.reference = reference
         return tasks
 
     
@@ -214,7 +214,11 @@ class BandsConvergenceFlow():
 
 #inject some code in the initialization
 def copy_pp(self):
-    """This code is to be executed during the initialization of the SOC calculation"""
+    """
+    This code is to be executed during the initialization of the SOC calculation
+    It uses the dielectric function calculated without spin orbit coupling to
+    calculate the QP corrections with spin-orbit coupling
+    """
     import os
     import glob
     import shutil
@@ -238,6 +242,14 @@ def copy_pp(self):
         dst_db.variables['SPIN_VARS'][1]=2
         dst_db.variables['X_PARS_1'][2]=spin_bands
 
+
+def get_scissor(self):
+    """
+    This code is to be executed during the intialization of a BSE calculation
+    with scissor operator. It computes the scissor shift from a QP database
+    and sets the BSE input accordingly
+    """
+    raise NotImplementedError('TODO')
 
 class SpinOrbitFlow():
     """
