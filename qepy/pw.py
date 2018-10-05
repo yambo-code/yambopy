@@ -189,6 +189,7 @@ class PwIn(object):
         if 'celldm(4)' in self.system: lattice_dict['celldm4'] = self.system['celldm(4)']
         if 'celldm(5)' in self.system: lattice_dict['celldm5'] = self.system['celldm(5)']
         if 'celldm(6)' in self.system: lattice_dict['celldm6'] = self.system['celldm(6)']
+        if self.ibrav == 0: lattice_dict['cell_parameters'] = self.cell_parameters
         return lattice_dict 
 
     def set_atoms(self,atoms,coordtype="reduced"):
