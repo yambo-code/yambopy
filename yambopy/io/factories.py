@@ -173,7 +173,7 @@ class BandsConvergenceFlow():
     def __init__(self,structure):
         self.structure = structure
     
-    def get_tasks(self,scf_kpoints,ecut,nscf_kpoints,bands_list,**kwargs):
+    def get_tasks(self,scf_kpoints,ecut,nscf_kpoints,bands_list,conv_thr=1e-8,**kwargs):
         """
         Create a flow with all the tasks to perform the calculation
         
@@ -187,7 +187,7 @@ class BandsConvergenceFlow():
         #create a QE scf task and run
         nscf_bands = max(bands_list)
         tasks = PwNscfTasks(self.structure,kpoints=scf_kpoints,ecut=ecut,
-                            nscf_bands=nscf_bands,nscf_kpoints=nscf_kpoints)
+                            nscf_bands=nscf_bands,nscf_kpoints=nscf_kpoints,conv_thr=conv_thr)
         qe_scf_task, qe_nscf_task, p2y_task = tasks
         tasks = list(tasks)
 
@@ -249,6 +249,12 @@ def get_scissor(self):
     with scissor operator. It computes the scissor shift from a QP database
     and sets the BSE input accordingly
     """
+    qp_task = self.get_vars('qp_task')
+    qp_path = os.path.join(qp_task.path,'run')
+    qpdb = YamboQPDB(path=qp_path)
+    qpdb.get_scissor()
+    #set scissor in the current input file
+    self.get_instances_from_inputs(YamboIn)[0].
     raise NotImplementedError('TODO')
 
 class SpinOrbitFlow():
@@ -263,7 +269,7 @@ class SpinOrbitFlow():
         self.structure_nospin = structure
         if structure_spin is None: self.structure_spin = structure
   
-    def get_tasks(self,scf_kpoints,ecut,nscf_kpoints,chi_bands,spin_bands,**kwargs):
+    def get_tasks(self,scf_kpoints,ecut,nscf_kpoints,chi_bands,spin_bands,conv_thr=1e-8,**kwargs):
         """
         Get a list of tasks executing this flow
         """
@@ -284,7 +290,7 @@ class SpinOrbitFlow():
 
         #without spin
         new_tasks = PwNscfTasks(self.structure_nospin,kpoints=scf_kpoints,ecut=ecut,
-                            nscf_bands=chi_bands,nscf_kpoints=nscf_kpoints)
+                            nscf_bands=chi_bands,nscf_kpoints=nscf_kpoints,conv_thr=conv_thr)
         qe_scf_task, qe_nscf_task, p2y_task = new_tasks
 
         nospin_task = generator(p2y_task,runlevel=pp_runlevel,yamboin_dict=yamboin_dict,dependencies=p2y_task,**kwargs)
@@ -293,7 +299,7 @@ class SpinOrbitFlow():
 
         #with spin
         new_tasks = PwNscfTasks(self.structure_spin,kpoints=scf_kpoints,ecut=ecut,
-                            nscf_bands=spin_bands,nscf_kpoints=nscf_kpoints)
+                            nscf_bands=spin_bands,nscf_kpoints=nscf_kpoints,conv_thr=conv_thr)
         qe_scf_task, qe_nscf_task, p2y_task = new_tasks
 
         #patch the input files to include spin-orbit coupling
@@ -319,12 +325,12 @@ class SpinOrbitFlow():
         return self.yambo_flow
 
 def PwNscfYamboIPChiTasks(structure,kpoints,ecut,nscf_bands,
-                          yambo_runlevel='-o c -V all',nscf_kpoints=None,**kwargs):
+                          yambo_runlevel='-o c -V all',nscf_kpoints=None,conv_thr=1e-8,**kwargs):
     """
     Return the PwNscfTasks and a YamboTask for and IP calculation
     """ 
     #create scf, nscf and p2y task
-    tmp_tasks = PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints)
+    tmp_tasks = PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints,conv_thr=conv_thr)
     qe_scf_task,qe_nscf_task,p2y_task = tmp_tasks
 
     yambo_task = YamboIPChiTask(p2y_task,yambo_runlevel=yambo_runlevel,**kwargs)
@@ -356,9 +362,10 @@ def YamboQPBSETasks(p2y_task,qp_dict,bse_dict,qp_runlevel='-p p -g n -V all',
     #create a yambo qp run
     qp_task = YamboTask.from_runlevel(p2y_task,qp_runlevel,qp_dict,dependencies=p2y_task)
 
-    #create a yambo bse run
+    #create a yambo qp+bse run
     bse_dict['KfnQPdb']="E < run/ndb.QP"
     bse_task = YamboTask.from_runlevel([p2y_task,qp_task],bse_runlevel,bse_dict,dependencies=qp_task)
+
     return qp_task, bse_task
 
 def YamboQPTask(p2y_task,yamboin_dict,runlevel='-p p -g n -V all',**kwargs):
@@ -390,7 +397,7 @@ def PhPhononTasks(structure,kpoints,ecut,qpoints=None):
  
     return qe_scf_task, ph_task, matdyn_task
 
-def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None):
+def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,conv_thr=1e-8):
     """
     Return a ScfTask, NscfTask and P2yTask preparing for a Yambo calculation
     """
@@ -400,7 +407,7 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None):
     qe_scf_task = PwTask.from_input(qe_input)
 
     #create a QE nscf task and run
-    qe_input = qe_input.copy().set_nscf(nscf_bands,nscf_kpoints)
+    qe_input = qe_input.copy().set_nscf(nscf_bands,nscf_kpoints,conv_thr=conv_thr)
     qe_nscf_task = PwTask.from_input([qe_input,qe_scf_task],dependencies=qe_scf_task)
 
     #create a p2y nscf task and run
