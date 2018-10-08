@@ -12,6 +12,7 @@ The FiniteDifferencesPhononFlow
 from qepy.pw import PwIn
 from qepy.ph import PhIn
 from qepy.matdyn import Matdyn
+from yambopy.io.inputfile import YamboIn
 from yambopy.tools.duck import isiter
 from yambopy.flow import PwTask, PhTask, P2yTask, YamboTask, DynmatTask, YambopyFlow
 
@@ -249,13 +250,16 @@ def get_scissor(self):
     with scissor operator. It computes the scissor shift from a QP database
     and sets the BSE input accordingly
     """
+    import os
+    from yambopy.dbs.qpdb import YamboQPDB
     qp_task = self.get_vars('qp_task')
+    valence = self.get_vars('valence')
     qp_path = os.path.join(qp_task.path,'run')
-    qpdb = YamboQPDB(path=qp_path)
-    qpdb.get_scissor()
+    #read qp database
+    qpdb = YamboQPDB.from_db(folder=qp_path)
+    scissor = qpdb.get_scissor(valence)[:3]
     #set scissor in the current input file
-    self.get_instances_from_inputs(YamboIn)[0].
-    raise NotImplementedError('TODO')
+    self.yamboin_dict['KfnQP_E'] = list(scissor)
 
 class SpinOrbitFlow():
     """
@@ -355,18 +359,32 @@ def YamboIPChiTask(p2y_task,**kwargs):
     return yambo_task
 
 def YamboQPBSETasks(p2y_task,qp_dict,bse_dict,qp_runlevel='-p p -g n -V all',
-                    bse_runlevel='-p p -k sex -y d -V all'):
+                    bse_runlevel='-p p -k sex -y d -V all',valence=False):
     """
     Return a QP and BSE calculation
     """
+    import copy
     #create a yambo qp run
     qp_task = YamboTask.from_runlevel(p2y_task,qp_runlevel,qp_dict,dependencies=p2y_task)
 
     #create a yambo qp+bse run
     bse_dict['KfnQPdb']="E < run/ndb.QP"
-    bse_task = YamboTask.from_runlevel([p2y_task,qp_task],bse_runlevel,bse_dict,dependencies=qp_task)
+    qp_bse_task = YamboTask.from_runlevel([p2y_task,qp_task],bse_runlevel,bse_dict,
+                                          dependencies=qp_task)
+    
+    #create a yambo scissor+bse run
+    if valence:
+        bse_dict = copy.deepcopy(bse_dict)
+        bse_dict.pop('KfnQPdb')
+        scissor_bse_task = YamboTask.from_runlevel([p2y_task,qp_task],bse_runlevel,bse_dict,
+                                                   dependencies=qp_task)
+        scissor_bse_task.set_vars('qp_task',qp_task)
+        scissor_bse_task.set_vars('valence',valence)
+        scissor_bse_task.set_code('initialize',get_scissor)
+        return qp_task, qp_bse_task, scissor_bse_task
+    
+    return qp_task, qp_bse_task
 
-    return qp_task, bse_task
 
 def YamboQPTask(p2y_task,yamboin_dict,runlevel='-p p -g n -V all',**kwargs):
     """

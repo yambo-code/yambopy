@@ -83,8 +83,8 @@ class YamboQPDB():
         shifted_valence = valence-self.min_band+1
  
         #direct gap
-        dft_jdos = eigenvalues_dft[:,na,shifted_valence+1:]-eigenvalues_dft[:,:shifted_valence,na]
-        qp_jdos  = eigenvalues_qp[:,na,shifted_valence+1:] -eigenvalues_qp[:,:shifted_valence,na]
+        dft_jdos = eigenvalues_dft[:,na,shifted_valence:]-eigenvalues_dft[:,:shifted_valence,na]
+        qp_jdos  = eigenvalues_qp[:,na,shifted_valence:] -eigenvalues_qp[:,:shifted_valence,na]
         direct_dft_gap = np.min(dft_jdos)
         direct_qp_gap  = np.min(qp_jdos)
 
@@ -146,7 +146,7 @@ class YamboQPDB():
         #plot the fits
         vx = np.linspace(np.min(ve0),np.max(ve0),2)
         cx = np.linspace(np.min(ce0),np.max(ce0),2)
-        vy = cslope*vx+cintercept
+        vy = vslope*vx+vintercept
         cy = cslope*cx+cintercept
         ax.plot(vx,vy)
         ax.plot(cx,cy)
