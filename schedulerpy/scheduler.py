@@ -54,8 +54,10 @@ class Scheduler(object):
         self.pre_run = self.get_arg("pre_run",[])
         self.pos_run = self.get_arg("pos_run",[])
 
+        self.modules_dict = self.get_arg("modules_dict",{})
         self.modules_list = []
-        self.modules_dict = self.get_arg("modules",[])
+        for mod in self.get_arg("modules_list",[]):
+            self.add_module(mod)
         self.arguments = []
         self.commands  = []
 
@@ -85,9 +87,13 @@ class Scheduler(object):
 
         #load configurations file
         config = cls.load_config()
-        schedulername = config.get('default',scheduler)
+
+        #set from scheduler
+        schedulername = scheduler
+        if not scheduler: schedulername = config.get('default',None)
+
         if schedulername is None:
-            raise ValueError('scheduler not specified and configuration file %s not found.'%self._config_filename)
+            raise ValueError('scheduler not specified and "default" not set in configuration file %s.'%self._config_filename)
 
         #load the configurations
         schedulerconfig = config.get(schedulername,{})
@@ -234,17 +240,17 @@ class Scheduler(object):
 
     def add_module(self,mod):
         """
-        add module to be loaded by the scheduler
+        Add module to be loaded by the scheduler
+        
+        Arguments:
+            mod: if the mod string exists in the "modules_dict" dictionary get the key value
+                 if it does not exist simply add the string assuming the user knows what he is doing
         """
         if self.modules_dict:
           if mod in self.modules_dict:
-              self.modules_list.append(self.modules_dict[mod])
-          else:
-              self.modules_list.append(mod)
-        else:
-            raise ValueError("Option 'modules' not found in the specified type of scheduler. "
-                             "Add the option to the config file in %s. "
-                             "If you do not use modules, specify 'modules':'None' "%(self._config_filename))
+            self.modules_list.append(self.modules_dict[mod])
+            return
+        self.modules_list.append(mod)
 
     def run(self):
         """

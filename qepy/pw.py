@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 from math import sqrt
+from qepy import qepyenv
 from .pseudo import get_pseudo_path
 from .tools import fortran_bool
 from .lattice import red_car, car_red
@@ -70,7 +71,7 @@ class PwIn(object):
         #dictionaries
         self.control = dict(prefix="'pw'",wf_collect='.true.')
         self.system = dict()
-        self.electrons = dict(conv_thr=1e-8)
+        self.electrons = dict(conv_thr=qepyenv.CONV_THR)
         self.ions = dict()
         self.cell = dict()
         self.atypes = dict()
@@ -101,12 +102,13 @@ class PwIn(object):
         return new
 
     @classmethod
-    def from_structure_dict(cls,structure,kpoints=None,ecut=None,pseudo_dir='.'):
+    def from_structure_dict(cls,structure,kpoints=None,ecut=None,pseudo_dir='.',conv_thr=None):
         pwi = cls()
         pwi.set_structure(structure)
         if kpoints: pwi.set_kpoints(kpoints)
         if ecut: pwi.set_ecut(ecut)
         if pseudo_dir: pwi.pseudo_dir = pseudo_dir
+        if conv_thr: pwi.electrons['conv_thr'] = conv_thr
         return pwi
       
     @property

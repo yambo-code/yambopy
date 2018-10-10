@@ -34,7 +34,7 @@ class Bash(Scheduler):
         np = self.get_arg("np","-np")
         self.add_command("%s %s %d %s"%(mpirun,np,threads,cmd))
 
-    def run(self,dry=False):
+    def run(self,filename=None,dry=False):
         if dry:
             print(str(self))
         else:

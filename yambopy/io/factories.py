@@ -12,6 +12,7 @@ The FiniteDifferencesPhononFlow
 from qepy.pw import PwIn
 from qepy.ph import PhIn
 from qepy.matdyn import Matdyn
+from qepy import qepyenv
 from yambopy.io.inputfile import YamboIn
 from yambopy.tools.duck import isiter
 from yambopy.flow import PwTask, PhTask, P2yTask, YamboTask, DynmatTask, YambopyFlow
@@ -24,6 +25,8 @@ __all__ = [
 "PwNscfTasks",
 "PhPhononTasks"
 ]
+
+CONV_THR = qepyenv.CONV_THR
 
 class FiniteDifferencesPhononFlow():
     """
@@ -174,7 +177,7 @@ class BandsConvergenceFlow():
     def __init__(self,structure):
         self.structure = structure
     
-    def get_tasks(self,scf_kpoints,ecut,nscf_kpoints,bands_list,conv_thr=1e-8,**kwargs):
+    def get_tasks(self,scf_kpoints,ecut,nscf_kpoints,bands_list,**kwargs):
         """
         Create a flow with all the tasks to perform the calculation
         
@@ -184,6 +187,7 @@ class BandsConvergenceFlow():
                        tasks to be performed at each displacement
         """
         generator = kwargs.pop("generator",YamboIPChiTask)
+        conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
 
         #create a QE scf task and run
         nscf_bands = max(bands_list)
@@ -257,7 +261,7 @@ def get_scissor(self):
     qp_path = os.path.join(qp_task.path,'run')
     #read qp database
     qpdb = YamboQPDB.from_db(folder=qp_path)
-    scissor = qpdb.get_scissor(valence)[:3]
+    scissor = qpdb.get_scissor(valence,verbose=0)[:3]
     #set scissor in the current input file
     self.yamboin_dict['KfnQP_E'] = list(scissor)
 
@@ -273,11 +277,12 @@ class SpinOrbitFlow():
         self.structure_nospin = structure
         if structure_spin is None: self.structure_spin = structure
   
-    def get_tasks(self,scf_kpoints,ecut,nscf_kpoints,chi_bands,spin_bands,conv_thr=1e-8,**kwargs):
+    def get_tasks(self,scf_kpoints,ecut,nscf_kpoints,chi_bands,spin_bands,**kwargs):
         """
         Get a list of tasks executing this flow
         """
         tasks=[]
+        conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
 
         #create a yambo qp run
         yamboin_default_dict = dict(BndsRnXp=[1,chi_bands],
@@ -329,10 +334,12 @@ class SpinOrbitFlow():
         return self.yambo_flow
 
 def PwNscfYamboIPChiTasks(structure,kpoints,ecut,nscf_bands,
-                          yambo_runlevel='-o c -V all',nscf_kpoints=None,conv_thr=1e-8,**kwargs):
+                          yambo_runlevel='-o c -V all',nscf_kpoints=None,**kwargs):
     """
     Return the PwNscfTasks and a YamboTask for and IP calculation
     """ 
+    conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
+
     #create scf, nscf and p2y task
     tmp_tasks = PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints,conv_thr=conv_thr)
     qe_scf_task,qe_nscf_task,p2y_task = tmp_tasks
@@ -415,13 +422,14 @@ def PhPhononTasks(structure,kpoints,ecut,qpoints=None):
  
     return qe_scf_task, ph_task, matdyn_task
 
-def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,conv_thr=1e-8):
+def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     """
     Return a ScfTask, NscfTask and P2yTask preparing for a Yambo calculation
     """
+    conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
 
     #create a QE scf task and run
-    qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut)
+    qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=conv_thr)
     qe_scf_task = PwTask.from_input(qe_input)
 
     #create a QE nscf task and run
