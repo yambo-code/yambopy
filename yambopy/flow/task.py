@@ -108,7 +108,7 @@ class YambopyFlow(object):
 
     @property
     def readytasks(self):
-        return [(it,task) for it,task in enumerate(self.tasks) if task.status == "ready"]
+        return [(it,task) for it,task in enumerate(self.tasks) if task.status == "ready" and not task.launched]
 
     @property
     def alldone(self):
@@ -141,20 +141,25 @@ class YambopyFlow(object):
         with open(os.path.join(self.path,'run.sh'),'w') as f:
             f.write('\n'.join(lines))
 
-    def run(self,maxexecs=1,sleep=1,verbose=0):
+    def run(self,maxexecs=1,sleep=5,dry=False,verbose=0):
         """Run all the tasks"""
         if not self.initialized: self.create()
 
+        print(marquee("YamboFlow.run"))
         while not self.alldone:
             #exeute maxexecs ready tasks
             for it,task in self.readytasks[:maxexecs]:
+                print("%5s %10s  %s"%("t%d"%it,str(task.name),task.status))
                 if not task.initialized: 
                     path = os.path.join(self.path,'t%d'%it)
                     task.initialize(path)
-                task.run()
+                task.run(dry=dry)
 
             #wait some seconds
             time.sleep(sleep)
+        
+            #transform into a pickle
+            self.pickle()
  
     def pickle(self):
         """store the flow in a pickle"""
@@ -207,6 +212,7 @@ class YambopyTask():
         self.nlog = 0
         self.nerr = 0
         self.initialized = initialized
+        self.launched = False
         
         #code_injection
         self.code_dict = {}
@@ -319,12 +325,17 @@ class YambopyTask():
         #initialize the task
         if not self.initialized: self.initialize()
 
+        if self.launched: return 0
+
         #if initialized run it
         if self.initialized:
-            os.system('cd %s; sh run.sh'%self.path)
-            #self.scheduler.run(dry=dry)
+            self.scheduler.run(self._run,dry=dry)
         else:
             raise ValueError('could not initialize task')
+
+        #set it as launched
+        self.launched = True
+        return 1
 
     def copy(self):
         import copy
@@ -401,13 +412,13 @@ class YamboTask(YambopyTask):
                 dst = os.path.abspath(os.path.join(run_path,os.path.basename(src)))
                 os.symlink(src,dst)
 
-        #set to initiailized
-        self.initialized = True
-        self.path = path
-
         #code injector
         code = self.get_code('initialize')
         code(self)
+
+        #set to initiailized
+        self.initialized = True
+        self.path = path
 
         #create inputfile
         db1_path = os.path.join(path,'SAVE','ns.db1')
@@ -424,7 +435,6 @@ class YamboTask(YambopyTask):
         self._run = os.path.join(path,'run.sh')
         self.scheduler.add_mpirun_command('%s -F run.in -J run > %s 2> %s'%(self.executable,self.log,self.err))
         self.scheduler.write(self._run)
-
 
     @property
     def output(self):
@@ -543,6 +553,7 @@ class PwTask(YambopyTask):
         self.scheduler.add_mpirun_command('%s -inp pw.in > %s'%(self.executable,self.log))
         self.scheduler.write(self._run)
 
+        self.initialized = True
         self.path = path
 
     def link_pwtask(self,path):

@@ -4,6 +4,7 @@
 # This file is part of yambopy
 #
 #
+import os
 import subprocess
 from .scheduler import Scheduler
 
@@ -19,74 +20,59 @@ class Slurm(Scheduler):
                 
     def initialize(self):
         self.get_vardict()
-        args = self.arguments
-         
-        if self.name:  args.append("#SBATCH -J \"%s\"\n"%self.name)
-        if self.get_arg("name"): args.append("")
-        resources_line = self.get_resources_line()
-        if resources_line:
-            args.append(resources_line)
-        
-    def get_resources_line(self):
-        """
-        get the the line with the resources
-        """
-        s = " "
-        if self.nodes: s = "#SBATCH -n %d\n"                % (self.nodes)
-        #if self.ntask: s += "#SBATCH --ntasks-per-node=%d\n" % (self.ntask)
-        #if self.memory: s = "#SBATCH --memory %d" %(self.memory)
-        #if self.memory_per_cpu: s = "#SBATCH --memory-per-cpu %d" %(self.memory_per_cpu)
-        s += "#SBATCH --time=0-%s" % self.walltime
-        return s
-    
+
     def get_script(self):
         """
         get a .pbs file to be submitted using qsub
         qsub <filename>.pbs
         """
-        s = '#!/bin/bash -l \n'
-        s += '#SBATCH -p batch \n'
-        s += '#SBATCH --qos=qos-batch \n'
-        s += self.get_commands()
-        return s
-
-    def get_bash(self):
-        """
-        get a bash command to submit the job
-        """
-        command  = "sbatch "
-        command += " \\\n".join(self.arguments)+" "
-        command += "\"%s\""%self.get_commands().replace("'","\"").replace("\"","\\\"")
-        return command
+        lines = []; app = lines.append
+        app('#!/bin/bash -l\n')
         
+        partition = self.get_arg("partition",None)
+        if self.name: app("#SBATCH -J \"%s\""%self.name)
+        if partition: app('#SBATCH --partition %s'%partition)
+
+        qos = self.get_arg("qos",None)
+        if qos: app('#SBATCH --qos=%s'%qos)
+
+        if self.nodes: app("#SBATCH -N %d" % self.nodes)
+        if self.cores: app("#SBATCH --ntasks-per-node=%d" % self.cores)
+
+        mem_per_cpu = self.get_arg("mem-per-cpu",None) 
+        if mem_per_cpu: app("#SBATCH --mem-per-cpu=%d" % mem_per_cpu)
+
+        app("#SBATCH --time=0-%s" % self.walltime)
+
+        app(self.get_commands())
+        return "\n".join(lines)
+
     def __str__(self):
         """
         create the string for this job
         """
         return self.get_script()
 
-    def run(self,silent=True,dry=False):
+    def run(self,filename='run.sh',dry=False,command="sbatch",verbose=0):
         """
-        run the command
-        arguments:
-        dry - only print the commands to be run on the screen
-        """
-        command = self.get_bash()
+        Create the submission script and submit the job
         
+        Arguments:
+            dry - only print the commands to be run on the screen
+        """
+        #create the submission script
+        self.write(filename)        
+        workdir  = os.path.dirname(filename)
+        basename = os.path.basename(filename) 
+ 
         if dry:
             print(command)
         else:
-            p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+            p = subprocess.Popen([command,basename],stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=workdir)
             self.stdout,self.stderr = p.communicate()
             
             #check if there is stderr
             if self.stderr: raise Exception(self.stderr)
             
             #check if there is stdout
-            if not silent: print(self.stdout)
-                
-            #get jobid
-            for line in self.stdout.split('\n'):
-                if 'OAR_JOB_ID' in line:
-                    self.jobid = int(line.strip().split('=')[1])
-            print("jobid:",self.jobid)
+            if verbose: print(self.stdout)

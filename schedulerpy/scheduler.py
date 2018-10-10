@@ -51,13 +51,11 @@ class Scheduler(object):
         self.walltime = walltime
         self.kwargs = kwargs
 
-        self.pre_run = self.get_arg("pre_run")
-        self.pos_run = self.get_arg("pos_run")
+        self.pre_run = self.get_arg("pre_run",[])
+        self.pos_run = self.get_arg("pos_run",[])
 
-        #modules = self.get_arg("modules")
-        #if modules is None: self.modules = []
-        #else:               self.modules = modules
-        self.modules   = []
+        self.modules_list = []
+        self.modules_dict = self.get_arg("modules",[])
         self.arguments = []
         self.commands  = []
 
@@ -87,16 +85,12 @@ class Scheduler(object):
 
         #load configurations file
         config = cls.load_config()
-        if scheduler is None:
-            schedulername = config['default']
-        else:
-            schedulername = scheduler
+        schedulername = config.get('default',scheduler)
+        if schedulername is None:
+            raise ValueError('scheduler not specified and configuration file %s not found.'%self._config_filename)
 
         #load the configurations
-        if schedulername in config:
-            schedulerconfig = config[schedulername]
-        else:
-            schedulerconfig = {}
+        schedulerconfig = config.get(schedulername,{})
 
         #determine the scheduler type
         if "type" in schedulerconfig:
@@ -126,14 +120,14 @@ class Scheduler(object):
         #create an instance of the scheduler to use
         return schedulers[schedulertype](cores=cores,nodes=nodes,walltime=walltime,**kwargs)
 
+    @staticmethod
     def load_config():
         """
         load the configuration file and check its sanity
         """
         try:
-            f = open(Scheduler._config_filename)
-            config = json.load(f)
-            f.close()
+            with open(Scheduler._config_filename) as f:
+                config = json.load(f)
         except IOError:
             config = {  "default":"bash",
                         "bash":
@@ -145,14 +139,12 @@ class Scheduler(object):
                         }
                      }
 
-        #put sanity checks here
+        #TODO: put sanity checks here
         schedulername = "bash"
         if 'default' in config:
             schedulername = config['default']
-        #print json.dumps(config,indent=2)
 
         return config
-    load_config = staticmethod(load_config)
 
     def initialize(self):
         raise NotImplementedError("Initialize not implemented in this class!")
@@ -162,7 +154,7 @@ class Scheduler(object):
         clean the command list
         """
         self.commands = []
-        self.modules  = []
+        self.modules_list = []
 
     def get_vardict(self):
         """
@@ -233,22 +225,22 @@ class Scheduler(object):
         """
         add commands to be run by the scheduler
         """
+        threads = 1
+        if self.cores: threads*=self.cores
+        if self.nodes: threads*=self.nodes
         mpirun = self.get_arg("mpirun","mpirun")
-        self.commands.append("%s %s"%(mpirun,cmd))
+        np = self.get_arg("np","-np")
+        self.add_command("%s %s %d %s"%(mpirun,np,threads,cmd))
 
     def add_module(self,mod):
         """
         add module to be loaded by the scheduler
         """
-        if "modules" in self.kwargs:
-            config_modules = self.kwargs["modules"]
-            if not config_modules == "None":
-              if mod in config_modules:
-                  self.modules.append(config_modules[mod])
-              else:
-                  raise ValueError("Module \"%s\" is now known. "
-                                   "Add it to the config file in %s. "
-                                   "Known modules are: %s"%(mod,self._config_filename,config_modules))
+        if self.modules_dict:
+          if mod in self.modules_dict:
+              self.modules_list.append(self.modules_dict[mod])
+          else:
+              self.modules_list.append(mod)
         else:
             raise ValueError("Option 'modules' not found in the specified type of scheduler. "
                              "Add the option to the config file in %s. "
@@ -265,17 +257,28 @@ class Scheduler(object):
 
     def set_prerun(self,prerun):
         self.pre_run = prerun
-        
+       
+    @property
+    def modulelist(self):
+        return ["module load %s"%mod for mod in self.modules_list]
+
     def get_commands(self):
         """
         get commands to execute
         """
-        s="\n"
-        if self.pre_run: s += "#pre_run\n" + "\n".join(self.pre_run)+"\n\n"
-        if self.modules: s += "#modules\n" + "\n".join(["module load %s"%mod for mod in self.modules])+"\n\n"
-        s += "#commands\n"+ "\n".join(self.commands)+"\n\n"
-        if self.pos_run: s += "#pos_run\n" + "\n".join(self.pos_run)+"\n\n"
-        return s
+        lines = []; app = lines.append
+        if self.pre_run:
+            app("\n#pre_run")
+            lines += self.pre_run
+        if self.modules_list:
+            app("\n#modules")
+            lines += self.modulelist
+        app("\n#commands")
+        lines += self.commands
+        if self.pos_run:
+            app("\n#pos_run")
+            lines += self.pos_run
+        return "\n".join(lines)
 
 if __name__ == "__main__":
     #after
