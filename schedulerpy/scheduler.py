@@ -120,6 +120,8 @@ class Scheduler(object):
             cores = int(schedulerconfig["cores"])
             del schedulerconfig["cores"]
 
+        walltime = schedulerconfig.pop("walltime",walltime)
+
         #add scheduler config arguments
         kwargs.update(schedulerconfig)
 
