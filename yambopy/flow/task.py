@@ -46,6 +46,7 @@ __all__ = [
 'P2yTask',
 'YppTask',
 'AbinitTask',
+'E2yTask',
 'PwTask',
 'PhTask',
 'DynmatTask',
@@ -589,7 +590,7 @@ class AbinitTask(YambopyTask):
         """The output of an abinit task is contained in the outdata dir"""
         return os.path.join(self.path,"outdata")
 
-class E2YTask(YambopyTask):
+class E2yTask(YambopyTask):
     """ Run the e2y driver to convert Abinit databases
     """
     @classmethod
@@ -599,21 +600,37 @@ class E2YTask(YambopyTask):
                    scheduler=scheduler,dependencies=dependencies)
 
     @classmethod
-    def from_nscf_task(cls,nscf_task,**kwargs):
+    def from_nscf_task(cls,abinittask,**kwargs):
+        setup = kwargs.pop('setup',yambopyenv.YAMBO)
         executable = kwargs.pop('executable',yambopyenv.E2Y)
         scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
-        return cls(inputs=abinittask,executable=executable,
-                   scheduler=scheduler,dependencies=dependencies)
+        instance = cls(inputs=abinittask,executable=executable,
+                       scheduler=scheduler,dependencies=abinittask)
+        instance.setup = setup
+        return instance 
 
     def initialize(self,path):
+        if self.status != "ready": return
+        #get output from nscf task
+        nscfs = self.get_instances_from_inputs(AbinitTask)
+        if len(nscfs) > 1: raise ValueError('More than one AbinitTask instance in input, cannot continue')
+        if len(nscfs):
+            nscf = nscfs[0]
+            src = os.path.abspath(os.path.join(nscf.output,'out_WFK.nc'))
+            dst = os.path.abspath(os.path.join(path,'in_WFK.nc'))
+            os.symlink(src,dst)
+
         #create running script
         abs_path = os.path.abspath(path)
         self._run = os.path.join(path,'run.sh')
         ac = self.scheduler.add_command
-        ac('cd %s; %s > %s 2> %s; cd %s'%(dst,self.executable,self.log,self.err,abs_path))
-        ac('mv %s/SAVE .'%(dst))
+        ac('%s -F %s > %s 2> %s'%(self.executable,dst,self.log,self.err))
         if self.setup: ac('%s > %s 2> %s'%(self.setup,self.log,self.err))
         self.scheduler.write(self._run)
+
+        #set to initiailized
+        self.initialized = True
+        self.path = path
 
 class PwTask(YambopyTask):
     """

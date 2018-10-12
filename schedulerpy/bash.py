@@ -54,4 +54,3 @@ class Bash(Scheduler):
             # If Python 2, <str>.decode() will raise an error that we ignore
             except AttributeError:
                 pass
-            print(self.stdout)
