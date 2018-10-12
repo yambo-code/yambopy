@@ -45,6 +45,7 @@ __all__ = [
 'YamboTask',
 'P2yTask',
 'YppTask',
+'AbinitTask',
 'PwTask',
 'PhTask',
 'DynmatTask',
@@ -63,7 +64,7 @@ class YambopyFlow(object):
 
     def __init__(self,path,tasks):
         if not isiter(tasks): 
-            self._tasks = [tasks]
+            tasks = [tasks]
         self._tasks = tasks 
         self.path = path
         self.initialized = False
@@ -498,9 +499,6 @@ class P2yTask(YambopyTask):
         if self.setup: ac('%s > %s 2> %s'%(self.setup,self.log,self.err))
         self.scheduler.write(self._run)
 
-        self.path = path
-        self.initialized = True
-
     @property
     def output(self):
         return os.path.join(self.path,'SAVE')
@@ -519,6 +517,103 @@ class YppTask(YambopyTask):
 
     def initialize(self,path):
         write_fake(os.path.join(path,'ypp'))
+
+class AbinitTask(YambopyTask):
+    """
+    Simple class to run the Abinit code in a similar way as QE
+    For a more complete framework to run Abinit please use Abipy
+    """
+    @classmethod
+    def from_input(cls,abinitinput,executable="abinit",dependencies=None,**kwargs):
+        from abipy.abio.inputs import AbinitInput
+        if not isinstance(abinitinput,list): abinitinput = [abinitinput]
+        scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
+        return cls(inputs=abinitinput,executable=executable,
+                   scheduler=scheduler,dependencies=dependencies)
+
+    def initialize(self,path):
+        #get output from previous tasks
+        if self.status != "ready": return
+
+        #create an Abipy AbinitTask to prepare the workdir
+        from abipy.flowtk import AbinitTask as AbipyAbinitTask
+        from abipy.abio.inputs import AbinitInput
+
+        class FakeManager():
+            def write_jobfile(self,filename):
+                pass
+
+        #append mandatory flags for yambo
+        self.abinitinput.set_spell_check(False)
+        self.abinitinput.set_vars(prtkbff=1,istwfk='*1',iomode=3)
+
+        #use abipy to create files and folders
+        abinit_task = AbipyAbinitTask.from_input(self.abinitinput,workdir=path)
+        abinit_task.manager = FakeManager()
+        abinit_task.build()
+ 
+        #create links to files
+        self.link_abinittask(path)
+       
+        #create submission script
+        self._run = os.path.join(path,'run.sh')
+        self.scheduler.add_mpirun_command('%s < run.files > %s'%(self.executable,self.log))
+        self.scheduler.write(self._run)
+
+        #set to initiailized
+        self.initialized = True
+        self.path = path
+
+    def link_abinittask(self,path):
+        """ Basic linker for Abinit tasks
+        """
+        #if getden is in the input file, link the DEN from outdir with the DEN from indir
+        if 'getden' in self.abinitinput:
+            abinittasks = self.get_instances_from_inputs(AbinitTask)
+            if len(abinittasks) > 1: raise ValueError('More than one PwTask instance in input, cannot continue')
+            if len(abinittasks):
+                src = os.path.abspath(os.path.join(abinittasks[0].output,'out_DEN'))
+                dst = os.path.abspath(os.path.join(path,"indata",'in_DEN'))
+                if not os.path.isfile(src):
+                    src += '.nc'
+                    dst += '.nc'
+                os.symlink(src,dst)
+
+    @property
+    def abinitinput(self):
+        from abipy.abio.inputs import AbinitInput
+        return self.get_instances_from_inputs(AbinitInput)[0]
+
+    @property
+    def output(self):
+        """The output of an abinit task is contained in the outdata dir"""
+        return os.path.join(self.path,"outdata")
+
+class E2YTask(YambopyTask):
+    """ Run the e2y driver to convert Abinit databases
+    """
+    @classmethod
+    def from_wfk_file(cls,wfk_file):
+        raise NotImplementedError("TODO")
+        return cls(inputs=pwinputs,executable=executable,
+                   scheduler=scheduler,dependencies=dependencies)
+
+    @classmethod
+    def from_nscf_task(cls,nscf_task,**kwargs):
+        executable = kwargs.pop('executable',yambopyenv.E2Y)
+        scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
+        return cls(inputs=abinittask,executable=executable,
+                   scheduler=scheduler,dependencies=dependencies)
+
+    def initialize(self,path):
+        #create running script
+        abs_path = os.path.abspath(path)
+        self._run = os.path.join(path,'run.sh')
+        ac = self.scheduler.add_command
+        ac('cd %s; %s > %s 2> %s; cd %s'%(dst,self.executable,self.log,self.err,abs_path))
+        ac('mv %s/SAVE .'%(dst))
+        if self.setup: ac('%s > %s 2> %s'%(self.setup,self.log,self.err))
+        self.scheduler.write(self._run)
 
 class PwTask(YambopyTask):
     """
@@ -552,9 +647,6 @@ class PwTask(YambopyTask):
         self._run = os.path.join(path,'run.sh')
         self.scheduler.add_mpirun_command('%s -inp pw.in > %s'%(self.executable,self.log))
         self.scheduler.write(self._run)
-
-        self.initialized = True
-        self.path = path
 
     def link_pwtask(self,path):
         """Link pwtask from inputs with the current one"""

@@ -28,7 +28,11 @@ class YamboLatticeDB(object):
         self.time_rev         = time_rev
 
     @classmethod
-    def from_db_file(cls,filename):
+    def from_db(cls,filename='ns.db1'):
+        return cls.from_db_file(filename)
+    
+    @classmethod
+    def from_db_file(cls,filename='ns.db1'):
         """ Initialize YamboLattice from a local dbfile """
 
         if not os.path.isfile(filename):
@@ -140,7 +144,7 @@ class YamboLatticeDB(object):
         if not hasattr(self,"_red_kpoints"):
             self._red_kpoints = car_red(self.car_kpoints,self.rlat)
         return self._red_kpoints
-    
+   
     @property
     def sym_rec(self):
         """Convert cartesian transformations to reciprocal transformations"""
@@ -273,7 +277,6 @@ class YamboLatticeDB(object):
         app("lattice:")
         lines += [("%12.8lf " * 3) % tuple(vec) for vec in self.lat]
         app("atom positions:")
-        print(self.atomic_numbers)
         for an, pos in zip(self.atomic_numbers, self.atomic_positions):
             app( "%3d " % an + ("%12.8lf " * 3) % tuple(pos) )
         return "\n".join(lines)

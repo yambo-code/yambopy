@@ -142,8 +142,8 @@ class Scheduler(object):
                         {
                             "mpirun": "mpirun",
                             "modules": "None",
-                            "pre_run": ["echo 'running job...'"],
-                            "pos_run": ["echo 'done!'"]
+                            "pre_run": [],
+                            "pos_run": []
                         }
                      }
 
