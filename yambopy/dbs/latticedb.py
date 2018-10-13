@@ -144,14 +144,36 @@ class YamboLatticeDB(object):
         if not hasattr(self,"_red_kpoints"):
             self._red_kpoints = car_red(self.car_kpoints,self.rlat)
         return self._red_kpoints
-   
+  
+    @property
+    def sym_red(self):
+        """Convert cartesian transformations to reduced transformations"""
+        if not hasattr(self,"_sym_red"):
+            sym_red = np.zeros([self.nsym,3,3],dtype=int)
+            for n,s in enumerate(self.sym_car):
+                sym_red[n] = np.round(np.dot(np.dot(self.lat,s),np.linalg.inv(self.lat)))
+            self._sym_red = sym_red
+        return self._sym_red
+
+    @property
+    def sym_rec_red(self):
+        """Convert reduced transformations to reduced reciprocal transformations"""
+        if not hasattr(self,"_sym_rec_red"):
+            sym_rec_red = np.zeros([self.nsym,3,3])
+            for n,s in enumerate(self.sym_red):
+                sym_rec_red[n] = np.linalg.inv(s).T
+            self._sym_rec_red = sym_rec_red
+        return self._sym_rec_red
+         
     @property
     def sym_rec(self):
         """Convert cartesian transformations to reciprocal transformations"""
-        sym_rec = np.zeros([self.nsym,3,3])
-        for n,s in enumerate(self.sym_car):
-            sym_rec[n] = np.linalg.inv(s).T
-        return sym_rec
+        if not hasattr(self,"_sym_rec"):
+            sym_rec = np.zeros([self.nsym,3,3])
+            for n,s in enumerate(self.sym_car):
+                sym_rec[n] = np.linalg.inv(s).T
+            self._sym_rec = sym_rec
+        return self._sym_rec
 
     @property
     def time_rev_list(self):

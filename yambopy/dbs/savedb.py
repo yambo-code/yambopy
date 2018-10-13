@@ -7,8 +7,9 @@ import os
 import numpy as np
 from itertools import product
 from netCDF4 import Dataset
+from yambopy.plot.plotting import add_fig_kwargs
 from yambopy.plot import *
-from yambopy.lattice import isbetween, car_red, rec_lat, vol_lat
+from yambopy.lattice import isbetween, car_red, red_car, rec_lat, vol_lat
 from yambopy.units import ha2ev
 
 max_exp = 50
@@ -351,9 +352,7 @@ class YamboSaveDB():
 
         return self.kpoints_full, self.kpoints_indexes, self.symmetry_indexes
 
-    def plot_bs(self,path):
-        """ Plot the difference in energies of two bands
-        """
+    def plot_bs_ax(self,ax,path,**kwargs):
         bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path)
         self.get_fermi()
 
@@ -368,12 +367,26 @@ class YamboSaveDB():
         distance = 0
         bands_highsym_qpts_distances = [0]
         for nk in range(1,len(bands_highsym_qpts)):
-            plt.axvline(distance,color='k')
+            ax.axvline(distance,color='k')
             distance += np.linalg.norm(bands_highsym_qpts[nk]-bands_highsym_qpts[nk-1])
             bands_highsym_qpts_distances.append(distance)
+        ax.axvline(distance,color='k')
 
-        plt.plot(bands_distances,self.eigenvalues[bands_indexes])
-        plt.show()
+        #plot bands
+        color = kwargs.pop('c','red')
+        ax.plot(bands_distances,self.eigenvalues[bands_indexes],c=color,**kwargs)
+        ax.set_xlim(0,max(bands_distances))
+        return ax
+
+    @add_fig_kwargs
+    def plot_bs(self,path,**kwargs):
+        """ Plot the difference in energies of two bands
+        """
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        self.plot_bs_ax(ax,path,**kwargs)
+        return fig
 
     def plot_bs_bz(self,size=20,bandc=1,bandv=None,expand=True,repx=list(range(3)),repy=list(range(3)),repz=list(range(3))):
         """ Plot the difference in energies of two bands

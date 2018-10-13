@@ -116,8 +116,11 @@ class YambopyFlow(object):
     def alldone(self):
         return all([task.status == "done" for task in self.tasks])
 
-    def create(self):
+    def create(self,agressive=False):
         """Create a folder to run the flow"""
+        if agressive:
+            if os.path.isdir(self.path): shutil.rmtree(self.path)
+
         if os.path.isdir(self.path):
             raise ValueError('A folder with name %s already exists.\n'
                              'Please remove it of change the name of the flow'%self.path)
@@ -147,7 +150,7 @@ class YambopyFlow(object):
         """Run all the tasks"""
         if not self.initialized: self.create()
 
-        print(marquee("YamboFlow.run"))
+        print(marquee("YambopyFlow.run"))
         while not self.alldone:
             #exeute maxexecs ready tasks
             for it,task in self.readytasks[:maxexecs]:
@@ -395,13 +398,13 @@ class YamboTask(YambopyTask):
 
     def initialize(self,path,verbose=0):
         """ Initialize an yambo task """
-        #get output from p2y task
+        #get output from interface task
         if self.status != "ready": return
 
-        #link p2y tasks
-        p2ytasks = self.get_instances_from_inputs(P2yTask)
-        if len(p2ytasks) == 1:
-            src = os.path.abspath(p2ytasks[0].output)
+        #link interface tasks
+        x2ytasks = self.get_instances_from_inputs((P2yTask,E2yTask))
+        if len(x2ytasks) == 1:
+            src = os.path.abspath(x2ytasks[0].output)
             dst = os.path.abspath(os.path.join(path,'SAVE'))
             os.symlink(src,dst)
 
@@ -600,6 +603,19 @@ class E2yTask(YambopyTask):
                    scheduler=scheduler,dependencies=dependencies)
 
     @classmethod
+    def from_folder(cls,folder,**kwargs):
+        """
+        Initialize a E2Y task from a folder.
+        Useful to start from a SAVE folder calculation
+        """
+        scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
+        executable = kwargs.pop('executable',yambopyenv.E2Y)
+        instance = cls(inputs=None,executable=executable,scheduler=scheduler,dependencies=None)
+        instance.path = folder
+        instance.initialized = True
+        return instance
+
+    @classmethod
     def from_nscf_task(cls,abinittask,**kwargs):
         setup = kwargs.pop('setup',yambopyenv.YAMBO)
         executable = kwargs.pop('executable',yambopyenv.E2Y)
@@ -631,6 +647,10 @@ class E2yTask(YambopyTask):
         #set to initiailized
         self.initialized = True
         self.path = path
+
+    @property
+    def output(self):
+        return os.path.join(self.path,'SAVE')
 
 class PwTask(YambopyTask):
     """

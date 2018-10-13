@@ -36,7 +36,7 @@ class Bash(Scheduler):
         np = self.get_arg("np","-np")
         self.add_command("%s %s %d %s"%(mpirun,np,threads,cmd))
 
-    def run(self,filename='run.sh',command='sh',dry=False):
+    def run(self,filename='./run.sh',command='sh',dry=False):
         #create the submission script
         self.write(filename)
         workdir  = os.path.dirname(filename)

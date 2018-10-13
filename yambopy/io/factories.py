@@ -426,17 +426,47 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     """
     Return a ScfTask, NscfTask and P2yTask preparing for a Yambo calculation
     """
-    conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
+    scf_conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
+    scf_conv_thr = kwargs.pop("scf_conv_thr",scf_conv_thr)
+    nscf_conv_thr = kwargs.pop("nscf_conv_thr",scf_conv_thr*10)
 
     #create a QE scf task and run
-    qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=conv_thr)
+    qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
     qe_scf_task = PwTask.from_input(qe_input)
 
     #create a QE nscf task and run
-    qe_input = qe_input.copy().set_nscf(nscf_bands,nscf_kpoints,conv_thr=conv_thr)
+    qe_input = qe_input.copy().set_nscf(nscf_bands,nscf_kpoints,conv_thr=nscf_conv_thr)
     qe_nscf_task = PwTask.from_input([qe_input,qe_scf_task],dependencies=qe_scf_task)
 
     #create a p2y nscf task and run
     p2y_task = P2yTask.from_nscf_task(qe_nscf_task)
 
     return qe_scf_task, qe_nscf_task, p2y_task
+
+
+def AbinitNscfTasks(inp,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
+    tolwfr = kwargs.pop("tolwfr",1e-22)
+    nbdbuf = kwargs.pop("nbdbuf",int(nscf_bands*0.15))
+
+    #scf
+    inp = inp.deepcopy()
+    inp.set_kmesh(ngkpt=kpoints,
+                  kptopt=1,
+                  shiftk=(0,0,0))
+    abinit_scf = AbinitTask.from_input(inp)
+
+    #nscf
+    inp = inp.deepcopy()
+    inp.set_kmesh(ngkpt=nscf_kpoints,
+                  kptopt=1,
+                  shiftk=(0,0,0))
+    inp.set_vars(iscf=-2,
+                 getden=1,
+                 nband=nscf_bands+nbdbuf,
+                 nbdbuf=nbdbuf)
+    abinit_nscf = AbinitTask.from_input([inp,abinit_scf],dependencies=abinit_scf)
+
+    #e2y task
+    e2y_task = E2yTask.from_nscf_task(abinit_nscf)
+
+    return abinit_scf_task, abinit_nscf_task, e2y_task
