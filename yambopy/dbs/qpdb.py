@@ -177,7 +177,7 @@ class YamboQPDB():
 
         return bs
 
-    def interpolate(self,lattice,path,lpratio=5,verbose=1):
+    def interpolate(self,lattice,path,what='QP+KS',lpratio=5,bs=None,verbose=1):
         """
         Interpolate the QP corrections on a k-point path, requires the lattice structure
         """
@@ -201,22 +201,25 @@ class YamboQPDB():
         symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
         time_rev = True
         
-        bs = YamboBandStructure()
+        if bs is None: bs = YamboBandStructure()
 
         #interpolate KS
-        eigens  = eigenvalues_dft[np.newaxis,:]
-        skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-        dft_eigens_kpath = skw.interp_kpts(path.get_klist()[:,:3]).eigens
-        bs.add_bands(dft_eigens_kpath[0],label='KS')
+        if 'KS' in what:
+            eigens  = eigenvalues_dft[np.newaxis,:]
+            skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+            dft_eigens_kpath = skw.interp_kpts(path.get_klist()[:,:3]).eigens
+            fermi = np.max(dft_eigens_kpath[0,:,:2])
+            bs.add_bands(dft_eigens_kpath[0]-fermi,label='KS')
         
         #interpolate QP
-        eigens  = eigenvalues_qp[np.newaxis,:]
-        skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-        qp_eigens_kpath = skw.interp_kpts(path.get_klist()[:,:3]).eigens
-        bs.add_bands(qp_eigens_kpath[0],label='QP')
+        if 'QP' in what:
+            eigens  = eigenvalues_qp[np.newaxis,:]
+            skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+            qp_eigens_kpath = skw.interp_kpts(path.get_klist()[:,:3]).eigens
+            fermi = np.max(qp_eigens_kpath[0,:,:2])
+            bs.add_bands(qp_eigens_kpath[0]-fermi,label='QP')
 
-        #add bands
-        bs.plot()
+        return bs
 
     @add_fig_kwargs
     def plot_bs(self):

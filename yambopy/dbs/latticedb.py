@@ -70,7 +70,7 @@ class YamboLatticeDB(object):
         alat = data["alat"]
         sym_car = data["sym_car"]
         iku_kpoints = data["iku_kpoints"]
-        atomic_positions = data["atomic_positions"]
+        atomic_positions = data["car_atomic_positions"]
         atomic_numbers = data["atomic_numbers"]
         time_rev = data["time_rev"]
 
