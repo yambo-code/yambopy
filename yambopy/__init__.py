@@ -35,6 +35,7 @@ import numpy as np
 class yambopyenv():
     YAMBO = "yambo"
     P2Y = "p2y"
+    E2Y = "e2y"
     YPP = "ypp"
     SCHEDULER = "bash"
 

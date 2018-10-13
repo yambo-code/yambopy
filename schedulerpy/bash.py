@@ -4,6 +4,7 @@
 # This file is part of yambopy
 #
 from __future__ import print_function
+import os
 from builtins import str
 import subprocess
 import sys
@@ -15,6 +16,7 @@ class Bash(Scheduler):
     """
     _vardict = {"cores":"core",
                 "nodes":"nodes"}
+
     def initialize(self):
         self.get_vardict()
 
@@ -34,11 +36,16 @@ class Bash(Scheduler):
         np = self.get_arg("np","-np")
         self.add_command("%s %s %d %s"%(mpirun,np,threads,cmd))
 
-    def run(self,filename=None,dry=False):
+    def run(self,filename='./run.sh',command='sh',dry=False):
+        #create the submission script
+        self.write(filename)
+        workdir  = os.path.dirname(filename)
+        basename = os.path.basename(filename)
+
         if dry:
-            print(str(self))
+            print(command)
         else:
-            p = subprocess.Popen(str(self),stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+            p = subprocess.Popen([command,basename],stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=workdir)
             self.stdout, self.stderr = p.communicate()
             # In Python 3, Popen.communicate() returns bytes
             try:
@@ -47,4 +54,3 @@ class Bash(Scheduler):
             # If Python 2, <str>.decode() will raise an error that we ignore
             except AttributeError:
                 pass
-            print(self.stdout)

@@ -18,17 +18,21 @@ class YamboLatticeDB(object):
     Class to read the lattice information from the netcdf file
     """
     def __init__(self,lat=None,alat=None,sym_car=None,iku_kpoints=None,
-                      atomic_positions=None,atomic_numbers=None,time_rev=None):
-        self.lat              = np.array(lat)
-        self.alat             = np.array(alat)
-        self.sym_car          = np.array(sym_car)
-        self.iku_kpoints      = np.array(iku_kpoints)
-        self.atomic_positions = np.array(atomic_positions)
-        self.atomic_numbers   = np.array(atomic_numbers)
-        self.time_rev         = time_rev
+                      car_atomic_positions=None,atomic_numbers=None,time_rev=None):
+        self.lat                  = np.array(lat)
+        self.alat                 = np.array(alat)
+        self.sym_car              = np.array(sym_car)
+        self.iku_kpoints          = np.array(iku_kpoints)
+        self.car_atomic_positions = np.array(car_atomic_positions)
+        self.atomic_numbers       = np.array(atomic_numbers)
+        self.time_rev             = time_rev
 
     @classmethod
-    def from_db_file(cls,filename):
+    def from_db(cls,filename='ns.db1'):
+        return cls.from_db_file(filename)
+    
+    @classmethod
+    def from_db_file(cls,filename='ns.db1'):
         """ Initialize YamboLattice from a local dbfile """
 
         if not os.path.isfile(filename):
@@ -38,17 +42,21 @@ class YamboLatticeDB(object):
 
             dimensions = database.variables['DIMENSIONS'][:]
 
-            natoms = database.variables['N_ATOMS'][:].astype(int).T
+            natoms_a = database.variables['N_ATOMS'][:].astype(int).T
             tmp_an = database.variables['atomic_numbers'][:].astype(int)
-            flatten = lambda l: [item for sublist in l for item in sublist]
+            tmp_apos = database.variables['ATOM_POS'][:,:]
 
-            args = dict( atomic_numbers   = flatten([[tmp_an[n]]*na for n,na in enumerate(natoms)]),
-                         atomic_positions = database.variables['ATOM_POS'][0,:],
-                         sym_car          = database.variables['SYMMETRY'][:],
-                         iku_kpoints      = database.variables['K-POINTS'][:].T,
-                         lat              = database.variables['LATTICE_VECTORS'][:].T,
-                         alat             = database.variables['LATTICE_PARAMETER'][:].T,
-                         time_rev         = dimensions[9] )
+            flatten = lambda l: [item for sublist in l for item in sublist]
+            atomic_numbers = flatten([[tmp_an[n]]*na for n,na in enumerate(natoms_a)])
+            atomic_positions = np.vstack([[tmp_apos[n,ia] for ia in range(na)] for n,na in enumerate(natoms_a) ])
+
+            args = dict( atomic_numbers       = atomic_numbers,
+                         car_atomic_positions = atomic_positions,
+                         sym_car              = database.variables['SYMMETRY'][:],
+                         iku_kpoints          = database.variables['K-POINTS'][:].T,
+                         lat                  = database.variables['LATTICE_VECTORS'][:].T,
+                         alat                 = database.variables['LATTICE_PARAMETER'][:].T,
+                         time_rev             = dimensions[9] )
 
         y = cls(**args)
         y.expand_kpoints()
@@ -78,6 +86,10 @@ class YamboLatticeDB(object):
     def nkpoints(self):
         return len(self.car_kpoints)
 
+    @property
+    def red_atomic_positions(self):
+        return car_red(self.car_atomic_positions,self.lat)
+
     def as_dict(self):
         """ get the information of this class as a dictionary
         """
@@ -85,7 +97,7 @@ class YamboLatticeDB(object):
                 "alat" : self.alat,
                 "sym_car" : self.sym_car,
                 "iku_kpoints" : self.iku_kpoints,
-                "atomic_positions" : self.atomic_positions,
+                "car_atomic_positions" : self.car_atomic_positions,
                 "atomic_numbers" : self.atomic_numbers,
                 "time_rev": self.time_rev }
         return data
@@ -140,14 +152,36 @@ class YamboLatticeDB(object):
         if not hasattr(self,"_red_kpoints"):
             self._red_kpoints = car_red(self.car_kpoints,self.rlat)
         return self._red_kpoints
-    
+  
+    @property
+    def sym_red(self):
+        """Convert cartesian transformations to reduced transformations"""
+        if not hasattr(self,"_sym_red"):
+            sym_red = np.zeros([self.nsym,3,3],dtype=int)
+            for n,s in enumerate(self.sym_car):
+                sym_red[n] = np.round(np.dot(np.dot(self.lat,s.T),np.linalg.inv(self.lat)))
+            self._sym_red = sym_red
+        return self._sym_red
+
+    @property
+    def sym_rec_red(self):
+        """Convert reduced transformations to reduced reciprocal transformations"""
+        if not hasattr(self,"_sym_rec_red"):
+            sym_rec_red = np.zeros([self.nsym,3,3],dtype=int)
+            for n,s in enumerate(self.sym_red):
+                sym_rec_red[n] = np.linalg.inv(s).T
+            self._sym_rec_red = sym_rec_red
+        return self._sym_rec_red
+         
     @property
     def sym_rec(self):
         """Convert cartesian transformations to reciprocal transformations"""
-        sym_rec = np.zeros([self.nsym,3,3])
-        for n,s in enumerate(self.sym_car):
-            sym_rec[n] = np.linalg.inv(s).T
-        return sym_rec
+        if not hasattr(self,"_sym_rec"):
+            sym_rec = np.zeros([self.nsym,3,3])
+            for n,s in enumerate(self.sym_car):
+                sym_rec[n] = np.linalg.inv(s).T
+            self._sym_rec = sym_rec
+        return self._sym_rec
 
     @property
     def time_rev_list(self):
@@ -273,7 +307,6 @@ class YamboLatticeDB(object):
         app("lattice:")
         lines += [("%12.8lf " * 3) % tuple(vec) for vec in self.lat]
         app("atom positions:")
-        print(self.atomic_numbers)
-        for an, pos in zip(self.atomic_numbers, self.atomic_positions):
+        for an, pos in zip(self.atomic_numbers, self.red_atomic_positions):
             app( "%3d " % an + ("%12.8lf " * 3) % tuple(pos) )
         return "\n".join(lines)

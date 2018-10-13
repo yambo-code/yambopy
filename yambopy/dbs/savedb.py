@@ -7,8 +7,10 @@ import os
 import numpy as np
 from itertools import product
 from netCDF4 import Dataset
+from yambopy.plot.plotting import add_fig_kwargs
 from yambopy.plot import *
-from yambopy.lattice import isbetween, car_red, rec_lat, vol_lat
+from yambopy.tools.string import marquee
+from yambopy.lattice import isbetween, car_red, red_car, rec_lat, vol_lat
 from yambopy.units import ha2ev
 
 max_exp = 50
@@ -50,20 +52,20 @@ class YamboSaveDB():
         ``eigenvalues`` : eigenvalues of the electrons in eV
         ``nkpoints`` : number of kpoints
     """
-    def __init__(self,atomic_numbers,atomic_positions,eigenvalues,sym_car,kpts_iku,
+    def __init__(self,atomic_numbers,car_atomic_positions,eigenvalues,sym_car,kpts_iku,
                  lat,alat,temperature,electrons,spin,time_rev):
 
-        self.atomic_numbers   = atomic_numbers   
-        self.atomic_positions = atomic_positions
-        self.eigenvalues      = eigenvalues     
-        self.sym_car          = sym_car         
-        self.kpts_iku         = kpts_iku        
-        self.lat              = lat             
-        self.alat             = alat            
-        self.temperature      = temperature     
-        self.electrons        = electrons       
-        self.spin             = spin            
-        self.time_rev         = time_rev        
+        self.atomic_numbers       = atomic_numbers   
+        self.car_atomic_positions = car_atomic_positions
+        self.eigenvalues          = eigenvalues     
+        self.sym_car              = sym_car         
+        self.kpts_iku             = kpts_iku        
+        self.lat                  = lat             
+        self.alat                 = alat            
+        self.temperature          = temperature     
+        self.electrons            = electrons       
+        self.spin                 = spin            
+        self.time_rev             = time_rev        
 
         #TODO: remove this
         self.expanded = False
@@ -81,22 +83,31 @@ class YamboSaveDB():
             
             dimensions            = database.variables['DIMENSIONS'][:]
             
-            natoms = database.variables['N_ATOMS'][:].astype(int).T
+            natoms_a = database.variables['N_ATOMS'][:].astype(int).T
             tmp_an = database.variables['atomic_numbers'][:].astype(int)
+            tmp_apos = database.variables['ATOM_POS'][:,:]
 
-            args = dict( atomic_numbers   = [[tmp_an[n]]*na for n,na in enumerate(natoms)],
-                         atomic_positions = database.variables['ATOM_POS'][0,:],
-                         eigenvalues      = database.variables['EIGENVALUES'][0,:]*ha2ev,
-                         sym_car          = database.variables['SYMMETRY'][:],
-                         kpts_iku         = database.variables['K-POINTS'][:].T,
-                         lat              = database.variables['LATTICE_VECTORS'][:].T,
-                         alat             = database.variables['LATTICE_PARAMETER'][:].T,
-                         temperature      = dimensions[13],
-                         electrons        = dimensions[14],
-                         spin             = int(dimensions[11]),
-                         time_rev         = dimensions[9] )
+            flatten = lambda l: [item for sublist in l for item in sublist]
+            atomic_numbers = flatten([[tmp_an[n]]*na for n,na in enumerate(natoms_a)])
+            atomic_positions = np.vstack([[tmp_apos[n,ia] for ia in range(na)] for n,na in enumerate(natoms_a) ])
+
+            args = dict( atomic_numbers       = atomic_numbers,
+                         car_atomic_positions = atomic_positions,
+                         eigenvalues          = database.variables['EIGENVALUES'][0,:]*ha2ev,
+                         sym_car              = database.variables['SYMMETRY'][:],
+                         kpts_iku             = database.variables['K-POINTS'][:].T,
+                         lat                  = database.variables['LATTICE_VECTORS'][:].T,
+                         alat                 = database.variables['LATTICE_PARAMETER'][:].T,
+                         temperature          = dimensions[13],
+                         electrons            = dimensions[14],
+                         spin                 = int(dimensions[11]),
+                         time_rev             = dimensions[9] )
 
         return cls(**args)
+
+    @property
+    def red_atomic_positions(self):
+        return car_red(self.car_atomic_positions,self.lat)
 
     @property
     def spin_degen(self):
@@ -169,6 +180,26 @@ class YamboSaveDB():
     @property
     def nsym(self):
         return len(self.sym_car)
+
+    @property
+    def sym_red(self):
+        """Convert cartesian transformations to reduced transformations"""
+        if not hasattr(self,"_sym_red"):
+            sym_red = np.zeros([self.nsym,3,3],dtype=int)
+            for n,s in enumerate(self.sym_car):
+                sym_red[n] = np.round(np.dot(np.dot(self.lat,s.T),np.linalg.inv(self.lat)))
+            self._sym_red = sym_red
+        return self._sym_red
+
+    @property
+    def sym_rec_red(self):
+        """Convert reduced transformations to reduced reciprocal transformations"""
+        if not hasattr(self,"_sym_rec_red"):
+            sym_rec_red = np.zeros([self.nsym,3,3],dtype=int)
+            for n,s in enumerate(self.sym_red):
+                sym_rec_red[n] = np.linalg.inv(s).T
+            self._sym_rec_red = sym_rec_red
+        return self._sym_rec_red
 
     @property
     def sym_rec(self):
@@ -351,9 +382,7 @@ class YamboSaveDB():
 
         return self.kpoints_full, self.kpoints_indexes, self.symmetry_indexes
 
-    def plot_bs(self,path):
-        """ Plot the difference in energies of two bands
-        """
+    def plot_bs_ax(self,ax,path,**kwargs):
         bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path)
         self.get_fermi()
 
@@ -368,12 +397,26 @@ class YamboSaveDB():
         distance = 0
         bands_highsym_qpts_distances = [0]
         for nk in range(1,len(bands_highsym_qpts)):
-            plt.axvline(distance,color='k')
+            ax.axvline(distance,color='k')
             distance += np.linalg.norm(bands_highsym_qpts[nk]-bands_highsym_qpts[nk-1])
             bands_highsym_qpts_distances.append(distance)
+        ax.axvline(distance,color='k')
 
-        plt.plot(bands_distances,self.eigenvalues[bands_indexes])
-        plt.show()
+        #plot bands
+        color = kwargs.pop('c','red')
+        ax.plot(bands_distances,self.eigenvalues[bands_indexes],c=color,**kwargs)
+        ax.set_xlim(0,max(bands_distances))
+        return ax
+
+    @add_fig_kwargs
+    def plot_bs(self,path,**kwargs):
+        """ Plot the difference in energies of two bands
+        """
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        self.plot_bs_ax(ax,path,**kwargs)
+        return fig
 
     def plot_bs_bz(self,size=20,bandc=1,bandv=None,expand=True,repx=list(range(3)),repy=list(range(3)),repz=list(range(3))):
         """ Plot the difference in energies of two bands
@@ -402,14 +445,18 @@ class YamboSaveDB():
         plt.show()
 
     def __str__(self):
-        s = ""
-        s += "reciprocal lattice:\n"
-        s += "\n".join([("%12.8lf "*3)%tuple(r) for r in self.rlat])+"\n"
-        s += "lattice:\n"
-        s += "\n".join([("%12.8lf "*3)%tuple(r) for r in self.lat])+"\n"
-        s += "alat:\n"
-        s += ("%12.8lf "*3)%tuple(self.alat)+"\n"
-        s += "symmetry operations: %d\n"%len(self.sym_car)
-        s += "temperature : %lf\n"%self.temperature
-        s += "electrons   : %lf\n"%self.electrons
-        return s
+        lines = []; app = lines.append
+        app(marquee(self.__class__.__name__))
+        app("reciprocal lattice:")
+        app("\n".join([("%12.8lf "*3)%tuple(r) for r in self.rlat]))
+        app("lattice:")
+        app("\n".join([("%12.8lf "*3)%tuple(r) for r in self.lat]))
+        app("alat:")
+        app(("%12.8lf "*3)%tuple(self.alat))
+        app("atom positions:")
+        for an, pos in zip(self.atomic_numbers, self.red_atomic_positions):
+            app( "%3d " % an + ("%12.8lf " * 3) % tuple(pos) )
+        app("symmetry operations: %d\n"%len(self.sym_car))
+        app("temperature : %lf"%self.temperature)
+        app("electrons   : %lf"%self.electrons)
+        return "\n".join(lines)

@@ -8,16 +8,9 @@ class YamboBandStructure():
     """
     _colormap = 'rainbow'
 
-    def __init__(self,bands=None,distances=None,args=None):
-        if bands is None: 
-            self.bands = []
-        else:
-            self.bands = bands
-
-        if distances is None:
-            self.distances = []            
-        else:
-            self.distances = distances
+    def __init__(self,bands=[],distances=[],args=None):
+        self.bands = bands
+        self.distances = distances
 
         if args is None:
             self.args = []
@@ -34,8 +27,8 @@ class YamboBandStructure():
         """
         self.bands.append(bands)
 
-        if distances is None:
-            distances = range(len(bands))
+        if distances is None: 
+            distances = list(range(len(bands)))
         self.distances.append(distances)
 
         self.args.append(kwargs)
@@ -62,8 +55,8 @@ class YamboBandStructure():
             for band in bands.T:
                 ax.plot(x,band,c=color,**args)
                 if "label" in args: args.pop("label")
-        #if not xlim: xlim = (min(x),max(x))
-        #ax.set_xlim(*xlim)    
+        if xlim is None: xlim = (np.min(self.distances),np.max(self.distances))
+        ax.set_xlim(*xlim)    
         if not ylim: ylim = (min(bands),max(bands))
         ax.set_ylim(*ylim)    
         ax.set_ylabel('Energies (eV)')

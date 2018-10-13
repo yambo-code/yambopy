@@ -69,7 +69,7 @@ class PwIn(object):
         self.shiftk = [0,0,0]
         self.klist = []
         #dictionaries
-        self.control = dict(prefix="'pw'",wf_collect='.true.')
+        self.control = dict(prefix="'pw'",wf_collect='.true.',verbosity="'high'")
         self.system = dict()
         self.electrons = dict(conv_thr=qepyenv.CONV_THR)
         self.ions = dict()
