@@ -223,8 +223,9 @@ class YambopyTask():
  
         #dependencies
         if dependencies is None: self._dependencies = None
-        elif not isiter(dependencies): self._dependencies = [dependencies]
+        elif not isiter(dependencies): dependencies = [dependencies]
         else: ValueError('Unknown dependency type')
+        self._dependencies = dependencies
 
     def scheduler_setup(self,scheduler):
         """Setup the scheduler for this task"""

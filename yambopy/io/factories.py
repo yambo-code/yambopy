@@ -366,13 +366,20 @@ def YamboIPChiTask(p2y_task,**kwargs):
     return yambo_task
 
 def YamboQPBSETasks(p2y_task,qp_dict,bse_dict,qp_runlevel='-p p -g n -V all',
-                    bse_runlevel='-p p -k sex -y d -V all',valence=False):
+                    bse_runlevel='-p p -k sex -y d -V all',valence=False,**kwargs):
     """
     Return a QP and BSE calculation
     """
     import copy
+    dependencies = kwargs.pop('dependencies',p2y_task)
+    inputs = [p2y_task]
+    additional_inputs = kwargs.pop('additional_inputs',None)
+    if additional_inputs: 
+        if not isiter(additional_inputs): additional_inputs = [additional_inputs]
+        inputs.extend(additional_inputs)
+
     #create a yambo qp run
-    qp_task = YamboTask.from_runlevel(p2y_task,qp_runlevel,qp_dict,dependencies=p2y_task)
+    qp_task = YamboTask.from_runlevel(inputs,qp_runlevel,qp_dict,dependencies=dependencies)
 
     #create a yambo qp+bse run
     bse_dict['KfnQPdb']="E < run/ndb.QP"
