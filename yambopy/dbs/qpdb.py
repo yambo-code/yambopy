@@ -10,6 +10,7 @@ from yambopy.tools.string import marquee
 from yambopy.plot.bandstructure import YamboBandStructure
 from yambopy.plot.plotting import add_fig_kwargs
 from yamboparser import YamboFile
+from yambopy.lattice import car_red, red_car, rec_lat, vol_lat
 
 class YamboQPDB():
     """
@@ -23,7 +24,7 @@ class YamboQPDB():
         Initialize the YamboQP class
         """
         self.qps          = qps
-        self.kpoints      = np.array(qps['Kpoint'])
+        self.kpoints_iku  = np.array(qps['Kpoint'])
         self.kpoint_index = np.array(qps['Kpoint_index'],dtype=int)
         self.band_index   = np.array(qps['Band'],dtype=int)
         self.e0           = np.array(qps['Eo']).real*ha2ev
@@ -176,6 +177,47 @@ class YamboQPDB():
 
         return bs
 
+    def interpolate(self,lattice,path,lpratio=5,verbose=1):
+        """
+        Interpolate the QP corrections on a k-point path, requires the lattice structure
+        """
+        from abipy.core.skw import SkwInterpolator
+
+        if verbose:
+            print("This interpolation is provided by the SKW interpolator implemented in Abipy")
+
+        cell = (lattice.lat, lattice.red_atomic_positions, lattice.atomic_numbers)
+        nelect = 0
+        fermie = 0
+        eigenvalues_dft, eigenvalues_qp, lifetimes = self.get_qps()
+   
+        #consistency check
+        if not np.isclose(lattice.kpts_iku,self.kpoints_iku).all():
+            raise ValueError("The QP database is not consistent with the lattice")
+
+        #interpolate the dft eigenvalues
+        kpoints = lattice.red_kpoints
+        sym_rec  = lattice.sym_rec
+        symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
+        time_rev = True
+        
+        bs = YamboBandStructure()
+
+        #interpolate KS
+        eigens  = eigenvalues_dft[np.newaxis,:]
+        skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        dft_eigens_kpath = skw.interp_kpts(path.get_klist()[:,:3]).eigens
+        bs.add_bands(dft_eigens_kpath[0],label='KS')
+        
+        #interpolate QP
+        eigens  = eigenvalues_qp[np.newaxis,:]
+        skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        qp_eigens_kpath = skw.interp_kpts(path.get_klist()[:,:3]).eigens
+        bs.add_bands(qp_eigens_kpath[0],label='QP')
+
+        #add bands
+        bs.plot()
+
     @add_fig_kwargs
     def plot_bs(self):
         """
@@ -210,7 +252,7 @@ class YamboQPDB():
 
     @property
     def nkpoints(self):
-        return len(self.kpoints)
+        return len(self.kpoints_iku)
     
     def __str__(self):
         lines = []; app = lines.append
