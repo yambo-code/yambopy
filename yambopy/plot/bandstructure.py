@@ -51,11 +51,13 @@ class YamboBandStructure():
     def plot_ax(self,ax,xlim=None,ylim=(None,None)):
         """receive an intance of matplotlib axes and add the plot"""
         colors = self.get_colors()
+        tmp_xlim = None
         for x,bands,color,args in zip(self.distances,self.bands,colors,self.args):
             for band in bands.T:
                 ax.plot(x,band,c=color,**args)
+                tmp_xlim = (np.min(x),np.max(x))
                 if "label" in args: args.pop("label")
-        if xlim is None: xlim = (np.min(self.distances),np.max(self.distances))
+        if xlim is None: xlim = tmp_xlim
         ax.set_xlim(*xlim)    
         if not ylim: ylim = (min(bands),max(bands))
         ax.set_ylim(*ylim)    
