@@ -15,7 +15,7 @@ from qepy.matdyn import Matdyn
 from qepy import qepyenv
 from yambopy.io.inputfile import YamboIn
 from yambopy.tools.duck import isiter
-from yambopy.flow import PwTask, PhTask, P2yTask, YamboTask, DynmatTask, YambopyFlow
+from yambopy.flow import PwTask, PhTask, P2yTask, YamboTask, DynmatTask, YambopyFlow, AbinitTask, E2yTask
 
 __all__ = [
 "FiniteDifferencesPhononFlow",
@@ -25,8 +25,6 @@ __all__ = [
 "PwNscfTasks",
 "PhPhononTasks"
 ]
-
-CONV_THR = qepyenv.CONV_THR
 
 class FiniteDifferencesPhononFlow():
     """
@@ -442,6 +440,7 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     qe_scf_task = PwTask.from_input(qe_input)
 
     #create a QE nscf task and run
+    if nscf_kpoints is None: nscf_kpoints = kpoints 
     qe_input = qe_input.copy().set_nscf(nscf_bands,nscf_kpoints,conv_thr=nscf_conv_thr)
     qe_nscf_task = PwTask.from_input([qe_input,qe_scf_task],dependencies=qe_scf_task)
 
@@ -450,20 +449,45 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
 
     return qe_scf_task, qe_nscf_task, p2y_task
 
+def AbinitNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
+    from abipy.core.structure import Structure
+    from abipy.abio.factories import scf_for_phonons
+    from pymatgen.core.units import bohr_to_ang
+ 
+    #extract pseudos
+    pseudo_list = []
+    for atype,(mass,pseudo) in structure['atypes'].items():
+        pseudo_list.append(pseudo)
+    pseudo_table = kwargs.pop("pseudo_table",pseudo_list)
+         
+    #create a PwInput file just to read the ibrav from structure
+    qe_input = PwIn.from_structure_dict(structure)
+    lattice,coords,species = qe_input.get_cell()
+    lattice = [[col*bohr_to_ang for col in row] for row in lattice]
+    structure = Structure(lattice,species,coords)
 
-def AbinitNscfTasks(inp,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
+    #create an AbinitInput file from structure
+    spin_mode = kwargs.pop('spin_mode','unpolarized')
+    smearing = kwargs.pop('smearing','nosmearing')
+    inp = scf_for_phonons(structure, pseudo_table, spin_mode=spin_mode, 
+                          smearing=smearing, ecut=ecut/2)
+
+    return AbinitNscfTasksFromAbinitInput(inp,kpoints,ecut,nscf_bands,nscf_kpoints=nscf_kpoints,**kwargs)
+ 
+def AbinitNscfTasksFromAbinitInput(inp,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     tolwfr = kwargs.pop("tolwfr",1e-22)
-    nbdbuf = kwargs.pop("nbdbuf",int(nscf_bands*0.15))
-
+    nbdbuf = kwargs.pop("nbdbuf",int(nscf_bands*0.15))   
+   
     #scf
     inp = inp.deepcopy()
     inp.set_kmesh(ngkpt=kpoints,
                   kptopt=1,
                   shiftk=(0,0,0))
-    abinit_scf = AbinitTask.from_input(inp)
+    abinit_scf_task = AbinitTask.from_input(inp)
 
     #nscf
     inp = inp.deepcopy()
+    if nscf_kpoints is None: nscf_kpoints = kpoints 
     inp.set_kmesh(ngkpt=nscf_kpoints,
                   kptopt=1,
                   shiftk=(0,0,0))
@@ -471,9 +495,9 @@ def AbinitNscfTasks(inp,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
                  getden=1,
                  nband=nscf_bands+nbdbuf,
                  nbdbuf=nbdbuf)
-    abinit_nscf = AbinitTask.from_input([inp,abinit_scf],dependencies=abinit_scf)
+    abinit_nscf_task = AbinitTask.from_input([inp,abinit_scf_task],dependencies=abinit_scf_task)
 
     #e2y task
-    e2y_task = E2yTask.from_nscf_task(abinit_nscf)
+    e2y_task = E2yTask.from_nscf_task(abinit_nscf_task)
 
     return abinit_scf_task, abinit_nscf_task, e2y_task

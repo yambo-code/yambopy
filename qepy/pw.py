@@ -316,7 +316,7 @@ class PwIn(object):
         """
         import spglib
 
-        lat, positions, atypes = self.get_atoms()
+        lat, positions, atypes = self.get_cell()
         lat = np.array(lat)
 
         at = np.unique(atypes)
@@ -341,10 +341,9 @@ class PwIn(object):
     def set_path(self,path):
         self.klist = path.get_klist()
 
-    def get_atoms(self):
+    def get_cell(self):
         """ Get the lattice parameters, postions of the atoms and chemical symbols
         """
-        self.read_cell_parameters()
         cell = self.cell_parameters
         sym = [atom[0] for atom in self.atoms]
         pos = [atom[1] for atom in self.atoms]
@@ -490,7 +489,7 @@ class PwIn(object):
         """read the cell parameters from the input file """
         def rmchar(string,symbols): return ''.join([c for c in string if c not in symbols])
 
-        if ibrav == 0:
+        if self.ibrav == 0:
             if 'celldm(1)' in list(self.system.keys()):
                 a = float(self.system['celldm(1)'])
             else:
