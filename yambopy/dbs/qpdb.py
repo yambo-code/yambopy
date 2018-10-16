@@ -7,7 +7,7 @@ import os
 import numpy as np
 from yambopy.units import ha2ev
 from yambopy.tools.string import marquee
-from yambopy.plot.bandstructure import YamboBandStructure
+from yambopy.plot.bandstructure import YambopyBandStructure, YambopyBandStructureList
 from yambopy.plot.plotting import add_fig_kwargs
 from yamboparser import YamboFile
 from yambopy.lattice import car_red, red_car, rec_lat, vol_lat
@@ -30,7 +30,24 @@ class YamboQPDB():
         self.e0           = np.array(qps['Eo']).real*ha2ev
         self.e            = np.array(qps['E']).real*ha2ev
         self.linewidths   = np.array(qps['E']).imag*ha2ev
-        self.eigenvalues_qp, self.eigenvalues_dft, self.lifetimes = self.get_qps()
+
+    @property
+    def eigenvalues_qp(self):
+        if not hasattr(self,'_eigenvalues_qp'):
+            self._eigenvalues_qp, self._eigenvalues_dft, self._lifetimes = self.get_qps()
+        return self._eigenvalues_qp
+
+    @property
+    def eigenvalues_dft(self):
+        if not hasattr(self,'_eigenvalues_dft'):
+            self._eigenvalues_qp, self._eigenvalues_dft, self._lifetimes = self.get_qps()
+        return self._eigenvalues_dft
+
+    @property
+    def lifetimes(self):
+        if not hasattr(self,'_lifetimes'):
+            self._eigenvalues_qp, self._eigenvalues_dft, self._lifetimes = self.get_qps()
+        return self._lifetimes
 
     @classmethod
     def from_db(cls,filename='ndb.QP',folder='.'):
@@ -79,13 +96,12 @@ class YamboQPDB():
         Arguments:
             valence: number of bands in the valence
         """
-        eigenvalues_dft, eigenvalues_qp, linewidths = self.get_qps()
         na = np.newaxis
         shifted_valence = valence-self.min_band+1
  
         #direct gap
-        dft_jdos = eigenvalues_dft[:,na,shifted_valence:]-eigenvalues_dft[:,:shifted_valence,na]
-        qp_jdos  = eigenvalues_qp[:,na,shifted_valence:] -eigenvalues_qp[:,:shifted_valence,na]
+        dft_jdos = self.eigenvalues_dft[:,na,shifted_valence:]-self.eigenvalues_dft[:,:shifted_valence,na]
+        qp_jdos  = self.eigenvalues_qp[:,na,shifted_valence:] -self.eigenvalues_qp[:,:shifted_valence,na]
         direct_dft_gap = np.min(dft_jdos)
         direct_qp_gap  = np.min(qp_jdos)
 
@@ -163,21 +179,27 @@ class YamboQPDB():
         self.plot_scissor_ax(ax,valence,verbose=verbose)
         return fig
 
-    def get_bs(self,bs=None):
-        """
-        Get YamboBandStructure object with the KS and GW bands
-        """
-        if bs is None: bs = YamboBandStructure()
+    def get_bs_path(self,lat,path,**kwargs):
+        """Get a band-structure on a path"""
+        bands_kpoints, bands_indexes, path_car = lat.get_path(path)
 
-        eigenvalues_dft, eigenvalues_qp, lifetimes = self.get_qps()
+        ks_bandstructure = YambopyBandStructure(self.eigenvalues_dft[bands_indexes],bands_kpoints,**kwargs)
+        qp_bandstructure = YambopyBandStructure(self.eigenvalues_qp[bands_indexes], bands_kpoints,**kwargs)
+
+        return ks_bandstructure, qp_bandstructure
         
-        #add bands
-        bs.add_bands(eigenvalues_dft,label='KS')
-        bs.add_bands(eigenvalues_qp, label='GW')
+    def get_bs(self,**kwargs):
+        """
+        Get YambopyBandStructure object with the KS and GW bands
+        """
+        #create bandstructure objects
+        #TODO: should not be kpoints_iku but kpoints_car here
+        ks_bandstructure = YambopyBandStructure(self.eigenvalues_dft,self.kpoints_iku,**kwargs)
+        qp_bandstructure = YambopyBandStructure(self.eigenvalues_qp, self.kpoints_iku,**kwargs)
 
-        return bs
+        return ks_bandstructure, qp_bandstructure
 
-    def interpolate(self,lattice,path,what='QP+KS',lpratio=5,bs=None,verbose=1):
+    def interpolate(self,lattice,path,what='QP+KS',lpratio=5,valence=None,verbose=1,**kwargs):
         """
         Interpolate the QP corrections on a k-point path, requires the lattice structure
         """
@@ -188,8 +210,7 @@ class YamboQPDB():
 
         cell = (lattice.lat, lattice.red_atomic_positions, lattice.atomic_numbers)
         nelect = 0
-        fermie = 0
-        eigenvalues_dft, eigenvalues_qp, lifetimes = self.get_qps()
+        fermie = kwargs.pop('fermie',0)
    
         #consistency check
         if not np.isclose(lattice.kpts_iku,self.kpoints_iku).all():
@@ -201,33 +222,35 @@ class YamboQPDB():
         symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
         time_rev = True
         
-        if bs is None: bs = YamboBandStructure()
-
         #interpolate KS
+        ks_ebands, qp_ebands = None, None
         if 'KS' in what:
-            eigens  = eigenvalues_dft[np.newaxis,:]
+            eigens  = self.eigenvalues_dft[np.newaxis,:]
             skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-            dft_eigens_kpath = skw.interp_kpts(path.get_klist()[:,:3]).eigens
-            fermi = np.max(dft_eigens_kpath[0,:,:2])
-            bs.add_bands(dft_eigens_kpath[0]-fermi,label='KS')
-        
+            kpoints_path = path.get_klist()[:,:3]
+            dft_eigens_kpath = skw.interp_kpts(kpoints_path).eigens
+            if valence: fermie = np.max(dft_eigens_kpath[0,:,:valence])
+            ks_ebands = YambopyBandStructure(dft_eigens_kpath[0]-fermie,kpoints_path,path=path,**kwargs)
+
         #interpolate QP
         if 'QP' in what:
-            eigens  = eigenvalues_qp[np.newaxis,:]
+            eigens  = self.eigenvalues_qp[np.newaxis,:]
             skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-            qp_eigens_kpath = skw.interp_kpts(path.get_klist()[:,:3]).eigens
-            fermi = np.max(qp_eigens_kpath[0,:,:2])
-            bs.add_bands(qp_eigens_kpath[0]-fermi,label='QP')
+            kpoints_path = path.get_klist()[:,:3]
+            qp_eigens_kpath = skw.interp_kpts(kpoints_path).eigens
+            if valence: fermie = np.max(qp_eigens_kpath[0,:,:valence])
+            qp_ebands = YambopyBandStructure(qp_eigens_kpath[0]-fermie,kpoints_path,path=path,**kwargs)
 
-        return bs
+        return ks_ebands, qp_ebands
 
     @add_fig_kwargs
-    def plot_bs(self):
+    def plot_bs(self,**kwargs):
         """
         Get and plot QP bandstructure
         """
-        bs = self.get_bs()
-        return bs.plot(show=False)
+        ks_bs,qp_bs = self.get_bs(**kwargs)
+        ybs = YambopyBandStructureList([ks_bs,qp_bs])
+        return ybs.plot(show=False)
 
     @property
     def nqps(self):

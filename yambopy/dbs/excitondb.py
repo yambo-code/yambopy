@@ -243,14 +243,14 @@ class YamboExcitonDB(YamboSaveDB):
 
         #get eigenvalues along the path
         if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
-            #exapnd eigenvalues to the bull brillouin zone
+            #expand eigenvalues to the bull brillouin zone
             energies = energies.eigenvalues[self.lattice.kpoints_indexes]
 
         elif isinstance(energies,YamboQPDB):
             #expand the quasiparticle energies to the bull brillouin zone
             energies = energies.eigenvalues_qp[self.lattice.kpoints_indexes]
         else:
-            raise ValueError("Anergies argument must be an instance of YamboSaveDB,"
+            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
                              "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         #get weight of state in each band
@@ -359,7 +359,7 @@ class YamboExcitonDB(YamboSaveDB):
 
         return car_kpoints, amplitudes[kindx], np.angle(phases)[kindx]
 
-    def get_chi(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.02,broad=0.1,q0norm=1e-5,
+    def get_chi(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5,
             nexcitons='all',spin_degen=2,verbose=0):
         """
         Calculate the dielectric response function using excitonic states
@@ -404,6 +404,32 @@ class YamboExcitonDB(YamboSaveDB):
         chi = chi*cofactor/q0norm**2
 
         return w,chi
+
+    def plot_chi_ax(self,ax,reim='im',n_brightest=5,**kwargs):
+        """Plot chi on a matplotlib axes"""
+        w,chi = self.get_chi(**kwargs)
+        #cleanup kwargs variables
+        for var in ['dipoles','dir','emin','emax','estep','broad','q0norm','nexcitons','spin_degen','verbose']: 
+            kwargs.pop(var,None)
+        if 're' in reim: ax.plot(w,chi.real,**kwargs)
+        if 'im' in reim: ax.plot(w,chi.imag,**kwargs)
+        ax.set_ylabel('$Im(\chi(\omega))$')
+        ax.set_xlabel('Energy (eV)')
+        #plot vertical bar on the brightest excitons
+        exc_e,exc_i = self.get_sorted()
+        for i,idx in exc_i[:n_brightest]:
+            exciton_energy,idx = exc_e[idx]
+            ax.axvline(exciton_energy,c='k')
+            ax.text(exciton_energy,0.1,idx,rotation=90)
+
+    @add_fig_kwargs
+    def plot_chi(self,n_brightest=5,**kwargs):
+        """Produce a figure with chi"""
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        self.plot_chi_ax(ax,n_brightest=n_brightest,**kwargs)
+        return fig
 
     def get_string(self,mark="="):
         lines = []; app = lines.append

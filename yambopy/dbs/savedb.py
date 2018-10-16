@@ -16,21 +16,6 @@ from yambopy.units import ha2ev
 max_exp = 50
 atol = 1e-3
 
-def expand_kpts_val(kpts,syms,val):
-    """
-    ake a list of qpoints and symmetry operations and return the full brillouin zone
-    with the corresponding index in the irreducible brillouin zone
-    """
-    full_kpts = []
-    full_val  = []
-    print("nkpoints:", len(kpts))
-    for nk,k in enumerate(kpts):
-        for sym in syms:
-            full_kpts.append((nk,np.dot(sym,k)))
-            full_val.append(val[nk])
-
-    return full_kpts, full_val
-
 def vec_in_list(veca,vec_list):
     """
     Check if a vector exists in a list of vectors

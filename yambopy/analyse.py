@@ -9,7 +9,7 @@ import json
 import re
 from itertools import product
 import numpy as np
-from yambopy.plot.bandstructure import YamboBandStructure
+from yambopy.plot.bandstructure import YambopyBandStructure
 from yambopy.tools.duck import isstring
 from yambopy.lattice import red_car, rec_lat, expand_kpts, isbetween
 from yambopy.io.inputfile import YamboIn
@@ -125,7 +125,7 @@ class YamboAnalyser():
 
         return inputfiles_tags
 
-    def get_bands(self,tags=None,bs=None,path=None,type_calc=('ks','gw')):
+    def get_bands(self,tags=None,path=None,type_calc=('ks','gw')):
         """
         Get the gw bands from a gw calculation from a filename
 
@@ -145,15 +145,15 @@ class YamboAnalyser():
         #TODO
 
         #create bandstructure class
-        if not bs:
-            bs = YamboBandStructure()
- 
+        ks_bandstructure, qp_bandstructure = None, None
+
         # add bandstructures of all the files
         for filename, content in gw_files.items():
             e0,e0imag = content['Eo']
             e,linewidths = content['E']
             ec,linewidths = content['E-Eo']
-           
+            kpoints = content['Kpoint']
+
             #TODO move this section to YamboFileGW class
             #begin section            
 
@@ -180,17 +180,17 @@ class YamboAnalyser():
                 #get data from json file
                 jsonfile = list(self.jsonfiles.values())[0]
                 lat = YamboLatticeDB.from_dict(jsonfile['lattice'])
-                bands_kpoints, bands_indexes, path_car = lat.get_path(path)  
+                kpoints, bands_indexes, path_car = lat.get_path(path)  
                 bands_e0 = bands_e0[bands_indexes]
                 bands_e  = bands_e[bands_indexes] 
 
             #add bands
             if 'ks' in type_calc: 
-                bs.add_bands(bands_e0,label=filename+' KS')
+                ks_bandstructure = YambopyBandStructure(bands_e0,kpoints,label=filename)
             if 'gw' in type_calc:
-                bs.add_bands(bands_e, label=filename+' GW')
+                qp_bandstructure = YambopyBandStructure(bands_e, kpoints,label=filename)
 
-        return bs
+        return ks_bandstructure, qp_bandstructure
 
     @add_fig_kwargs
     def plot_ks(self,path=None,tags=None):

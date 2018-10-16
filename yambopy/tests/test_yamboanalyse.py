@@ -42,20 +42,19 @@ class TestYamboAnalyse(unittest.TestCase):
         assert keys == ['FFTGvecs_00010', 'FFTGvecs_00015','reference']
 
         #test getting data
-        ks_bands = y.get_bands(tags='reference',type_calc=('ks'))
+        ks_bands,qp_bands = y.get_bands(tags='reference')
         ks_bands.plot(show=False)
         print(ks_bands)
-        gw_bands = y.get_bands(tags='FFTGvecs',type_calc=('gw'))
-        gw_bands.plot(show=False)
-        print(gw_bands)
+        qp_bands.plot(show=False)
+        print(qp_bands)
 
         #test get_path    
         path = Path([[[1.0,1.0,1.0],'G'],
                      [[0.0,0.5,0.5],'X'],
                      [[0.0,0.0,0.0],'G'],
                      [[0.5,0.0,0.0],'L']], [20,20,20])
-        gw_bands_path = y.get_bands(tags='FFTGvecs',type_calc=('gw'),path=path)
-        gw_bands_path.plot(show=False) 
+        ks_bands_path,qp_bands_path = y.get_bands(tags='FFTGvecs',type_calc=('gw'),path=path)
+        qp_bands_path.plot(show=False) 
 
     def tearDown(self):
         sh.rmtree('gw_conv') 
