@@ -398,6 +398,7 @@ class YamboTask(YambopyTask):
         instance = cls(inputs=yamboinput,executable=executable,
                        scheduler=scheduler,dependencies=dependencies)
         instance.initialized = True
+        instance.yamboinput = yamboinput
         instance.path = folder
         return instance
 
@@ -478,7 +479,7 @@ class YamboChiTask(YamboTask):
     One job per q-point is launched at a time.
     Once the database is ready the input file for that q-point is removed
     """
-    def run(self,maxexecs=1,sleep=5,dry=False):
+    def run(self,maxexecs=None,sleep=5,dry=False):
         #initialize the task
         if not self.initialized: self.initialize()
 
@@ -494,17 +495,19 @@ class YamboChiTask(YamboTask):
                 #create input for this q-point
                 inpq = self.yamboinput.copy()
                 inpq.set_q(iq)
-                inpq.write(os.path.join(self.path,'runchiq%d.in'%iq))
+                if dry: print(inpq)
+                else:   inpq.write(os.path.join(self.path,'runchiq%d.in'%iq))
                 #create submission script for this q-point
                 this_scheduler = self.scheduler.copy()
                 run = os.path.join(self.path,'runchiq%d.sh'%iq)
                 cmd = '%s -F runchiq%d.in -J run -C runchiq%d > runchiq%d.log 2> runchiq%d.err'%(self.executable,iq,iq,iq,iq)
                 this_scheduler.add_mpirun_command(cmd)
-                this_scheduler.write(run)
- 
                 #launch job
                 print("%10s"%("q%d"%iq))
                 this_scheduler.run(run,dry=dry)
+                if maxexecs: 
+                    maxexecs = maxexecs-1
+                    if maxexecs == 0: return
 
             #check for deadlocks
             all_done_or_launched = all([ done or launched for (done,launched) in zip(self.done_chi,self.launched_chi)])
