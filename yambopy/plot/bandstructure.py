@@ -1,5 +1,10 @@
-
+# Copyright (c) 2018, Henrique Miranda
+# All rights reserved.
+#
+# This file is part of the yambopy project
+#
 import numpy as np
+from yambopy.tools.string import marquee
 from yambopy.plot.plotting import add_fig_kwargs
 
 class YambopyBandStructure():
@@ -8,17 +13,13 @@ class YambopyBandStructure():
     """
     _colormap = 'rainbow'
 
-    def __init__(self,bands,kpoints,**kwargs):
+    def __init__(self,bands,kpoints,path=None,**kwargs):
         self.bands = bands
         self.kpoints = np.array(kpoints)
         self.kwargs = kwargs
+        self.path = path
         self._xlim = None
         self._ylim = None
-
-    @property
-    def xlim(self):
-        if self._xlim is None: return (min(self.distances),max(self.distances))
-        return self._xlim
 
     @property
     def nbands(self):
@@ -29,6 +30,11 @@ class YambopyBandStructure():
     def nkpoints(self):
         nkpoints, nbands = self.bands.shape
         return nkpoints
+
+    @property
+    def xlim(self):
+        if self._xlim is None: return (min(self.distances),max(self.distances))
+        return self._xlim
 
     @property
     def ylim(self):
@@ -51,6 +57,11 @@ class YambopyBandStructure():
                 self._distances.append(distance)
         return self._distances
 
+    def as_list(self,bands=None):
+        yl = YambopyBandStructureList([self])
+        if bands: yl.append(bands)
+        return yl
+
     @add_fig_kwargs    
     def plot(self):
         """return a matplotlib figure with the plot"""
@@ -71,8 +82,7 @@ class YambopyBandStructure():
 
     def plot_ax(self,ax,xlim=None,ylim=None,legend=False,**kwargs):
         """Receive an intance of matplotlib axes and add the plot"""
-        for band in self.bands.T:
-            ax.plot(self.distances,band,**self.get_kwargs(**kwargs))
+        ax.plot(self.distances,self.bands,**self.get_kwargs(**kwargs))
         ax.set_xlim(self.xlim)    
         ax.set_ylim(self.ylim)    
         ax.set_ylabel('Energies (eV)')
@@ -129,6 +139,25 @@ class YambopyBandStructureList():
     def nbandstructures(self):
         return len(self.bandstructures)
 
+    @property
+    def xlim(self):
+        low_xlim = [bandstructure.xlim[0] for bandstructure in self.bandstructures]
+        top_xlim = [bandstructure.xlim[1] for bandstructure in self.bandstructures]
+        return (np.min(low_xlim),np.max(top_xlim))
+
+    @property
+    def ylim(self):
+        low_ylim = [bandstructure.ylim[0] for bandstructure in self.bandstructures]
+        top_ylim = [bandstructure.ylim[1] for bandstructure in self.bandstructures]
+        return (np.min(low_ylim),np.max(top_ylim))
+
+    def __getitem__(self,idx):
+        return self.bandstructures[idx]
+    
+    def append(self,bands):
+        if isinstance(bands,list): self.bandstructure.extend(bands)
+        self.bandstructures.append(bands)
+
     def add_bandstructure(self,bandstructures,**kwargs):
         """
         Add a bandstructure to bandstructure set
@@ -143,8 +172,10 @@ class YambopyBandStructureList():
         self.bandstructures.extend(bandstructures)
 
     def plot_ax(self,ax,legend=True,**kwargs):
-        for bandstructure in self.bandstructures:
-            bandstructure.plot_ax(ax)
+        for i,bandstructure in enumerate(self.bandstructures):
+            bandstructure.plot_ax(ax,c=self.get_color(i))
+        ax.set_xlim(self.xlim)
+        ax.set_ylim(self.ylim)
         if legend and self.has_legend: ax.legend()
  
     @add_fig_kwargs
@@ -154,12 +185,16 @@ class YambopyBandStructureList():
         ax = fig.add_subplot(1,1,1)
         self.plot_ax(ax)
         return fig
+    
+    def get_color(self,i,colormap='gist_rainbow'):
+        colormap = self.get_colormap(colormap=colormap) 
+        return colormap[i]
 
-    def get_colors(self):
+    def get_colormap(self,colormap='gist_rainbow'):
         """get a list of colors for each plot"""
         import matplotlib.pyplot as plt
-        cmap = plt.get_cmap(self._colormap) #get color map
-        return [cmap(i) for i in np.linspace(0, 1, len(self.bands))]
+        cmap = plt.get_cmap(colormap) #get color map
+        return [cmap(i) for i in np.linspace(0, 1, self.nbandstructures)]
 
     def pickle(self,filename):
         import pickle
@@ -168,6 +203,6 @@ class YambopyBandStructureList():
 
     def __str__(self):
         lines = []; app = lines.append
-        app(marqee(self.__cls__.__name__))
-        app('nbandstructures: %d'%nbandstructures)
+        app(marquee(self.__class__.__name__))
+        app('nbandstructures: %d'%self.nbandstructures)
         return "\n".join(lines)
