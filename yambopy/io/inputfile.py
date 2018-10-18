@@ -318,13 +318,26 @@ class YamboIn(object):
 
         return name_files
 
+    def copy(self):
+        """Return a copy of this object"""
+        import copy
+        return copy.deepcopy(self)
+
     def write(self,filename='yambo.in'):
         """
         Write a yambo input file
         """
-        f = open(filename,"w")
-        f.write(str(self))
-        f.close()
+        with open(filename,"w") as f:
+           f.write(str(self))
+
+    def set_q(self,q):
+        """Change one of ['QpntsRXp','QpntsRXd','QpntsRXs'] variables to calculate only one q-point"""
+        for var in ['QpntsRXp','QpntsRXd','QpntsRXs']:
+            qpts = self.variables.get(var,None)
+            if qpts is None: continue
+            self.variables[var] = [[q,q],'']
+            return 0
+        raise ValueError('Could not find one of the following variables set in the input file: \'QpntsRXp\',\'QpntsRXd\',\'QpntsRXs\'')
 
     def pack(self,filename):
         """

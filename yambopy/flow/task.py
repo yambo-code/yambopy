@@ -211,7 +211,7 @@ class YambopyTask():
     _yambopystatus = "__yambopystatus__"
 
     def __init__(self,inputs,executable,scheduler,dependencies=None,initialized=False):
-        if not isiter(inputs): inputs = [inputs]
+        if not isinstance(inputs,list): inputs = [inputs]
         self.inputs = inputs
         self.executable = executable
         self.nlog = 0
@@ -320,9 +320,11 @@ class YambopyTask():
             dependencies.append(dependency.dependencies)
         return (self, dependencies)
 
-    def get_instances_from_inputs(self,instance):
+    def get_instances_from_inputs(self,instance,n=None):
         """get all the instances of class from inputs"""
-        return [inp for inp in self.inputs if isinstance(inp,instance)]
+        instances = [inp for inp in self.inputs if isinstance(inp,instance)]
+        if n==1: return instances[0]
+        return instances[:n]
 
     def run(self,dry=False,verbose=1):
         """
@@ -347,15 +349,18 @@ class YambopyTask():
         import copy
         return copy.deepcopy(self)
 
-    def __str__(self):
+    def to_string(self,mark='='):
         lines = []; app = lines.append
-        app(marquee(self.name))
+        app(marquee(self.name,mark=mark))
         app('initialized: {}'.format(self.initialized))
         app('status:      {}'.format(self.status))
         app('exitcode:    {}'.format(self.exitcode))
         if self.initialized:
             app('path: {}'.format(self.path))
         return "\n".join(lines)
+
+    def __str__(self):
+        return self.to_string()
 #
 # code specific tasks
 #
@@ -377,16 +382,20 @@ class YamboTask(YambopyTask):
         return instance
 
     @classmethod
-    def from_folder(cls,folder):
+    def from_folder(cls,folder,filename='run.in',dependencies=None,**kwargs):
         """
         create a task container from a pre-existing folder
-        will use the YamboFolder and YamboFile class to detect inputs and outputs
+        will use YamboFile class to read the inputs
         """
-        raise NotImplementedError('TODO')
+        scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
+        executable = kwargs.pop('executable',yambopyenv.YAMBO)
         #search input file
-        #search output files
-        return cls(inputs=yamboinput,executable=executable,
-                   scheduler=scheduler,dependencies=dependencies)
+        yamboinput = YamboIn.from_file(filename=filename,folder=folder)
+        instance = cls(inputs=yamboinput,executable=executable,
+                       scheduler=scheduler,dependencies=dependencies)
+        instance.initialized = True
+        instance.path = folder
+        return instance
 
     @classmethod
     def from_inputfile(cls,yamboinput,dependencies=None,**kwargs):
@@ -397,6 +406,11 @@ class YamboTask(YambopyTask):
         return cls(inputs=yamboinput,executable=execulable,
                    scheduler=scheduler,dependencies=dependencies)
 
+    @property
+    def yamboinput(self):
+        """Get yambo input instance"""
+        return self.get_instances_from_inputs(YamboIn,n=1)
+        
     def initialize(self,path,verbose=0):
         """ Initialize an yambo task """
         #get output from interface task
@@ -404,17 +418,17 @@ class YamboTask(YambopyTask):
 
         #link interface tasks
         x2ytasks = self.get_instances_from_inputs((P2yTask,E2yTask))
-        if len(x2ytasks) == 1:
-            src = os.path.abspath(x2ytasks[0].output)
+        for xytask in x2ytasks:
+            src = os.path.abspath(x2ytask.output)
             dst = os.path.abspath(os.path.join(path,'SAVE'))
             os.symlink(src,dst)
 
         #link yambo tasks
         yambotasks = self.get_instances_from_inputs(YamboTask)
-        if len(yambotasks) == 1:
+        for yambotask in yambotasks:
             run_path = os.path.join(path,'run')
             os.mkdir(run_path)
-            for src in yambotasks[0].output:
+            for src in yambotasks.output:
                 dst = os.path.abspath(os.path.join(run_path,os.path.basename(src)))
                 os.symlink(src,dst)
 
@@ -428,13 +442,13 @@ class YamboTask(YambopyTask):
 
         #create inputfile
         db1_path = os.path.join(path,'SAVE','ns.db1')
-        if os.path.isfile(db1_path):
-            if verbose: print("Creating inputfile in %s"%path)
-            yamboin = YamboIn.from_runlevel(self.runlevel,executable=self.executable,folder=path)
-            yamboin.set_fromdict(self.yamboin_dict)
-            yamboin.write(os.path.join(path,'run.in'))
-        else:
+        if not os.path.isfile(db1_path):
             raise FileNotFoundError('SAVE/ns.db1 not available in %s'%db1_path)
+
+        if verbose: print("Creating inputfile in %s"%path)
+        yamboin = YamboIn.from_runlevel(self.runlevel,executable=self.executable,folder=path)
+        yamboin.set_fromdict(self.yamboin_dict)
+        yamboin.write(os.path.join(path,'run.in'))
 
         #create running script
         abs_path = os.path.abspath(path)
@@ -454,6 +468,106 @@ class YamboTask(YambopyTask):
             outputfile = os.path.abspath(os.path.join(run_path,filename))
             outputs.append(outputfile)
         return outputs
+
+class YamboChiTask(YamboTask):
+    """
+    Task containing a yambo chi calculation
+    The purpose of this class is to paralelize the calculation of chi.
+    This is done by overloading the run method with one similar to the
+    YambopyFlow.
+    The input files for the missing q are created in initialize
+    One job per q-point is launched at a time.
+    Once the database is ready the input file for that q-point is removed
+    """
+    def run(self,maxexecs=1,sleep=5,dry=False):
+        #initialize the task
+        if not self.initialized: self.initialize()
+
+        if not self.initialized:
+            raise ValueError('could not initialize task')
+
+        #if initialized run it
+        while not self.alldone:
+            #execute maxexecs ready tasks
+            for iq,(done,launched) in enumerate(zip(self.done_chi,self.launched_chi)):
+                if done or launched: continue
+                iq = iq + 1 #pad iq
+                #create input for this q-point
+                inpq = self.yamboinput.copy()
+                inpq.set_q(iq)
+                inpq.write(os.path.join(self.path,'runchiq%d.in'%iq))
+                #create submission script for this q-point
+                this_scheduler = self.scheduler.copy()
+                run = os.path.join(self.path,'runchiq%d.sh'%iq)
+                cmd = '%s -F runchiq%d.in -J run -C runchiq%d > runchiq%d.log 2> runchiq%d.err'%(self.executable,iq,iq,iq,iq)
+                this_scheduler.add_mpirun_command(cmd)
+                this_scheduler.write(run)
+ 
+                #launch job
+                print('calculating chi for q%d'%iq)
+                this_scheduler.run(run,dry=dry)
+
+            #check for deadlocks
+            all_done_or_launched = all([ done or launched for (done,launched) in zip(self.done_chi,self.launched_chi)])
+            if all_done_or_launched and not self.alldone:
+                print('waiting for the jobs to finish')
+                time.sleep(25)
+
+            #wait some seconds
+            time.sleep(sleep)
+
+    @property
+    def alldone(self):
+        """Check if all the chi databases are present"""
+        return all(self.done_chi)
+
+    @property
+    def exitcode(self):
+        return None
+
+    @property
+    def nqpoints(self):
+        """get how many q points for chi need to be calculated"""
+        for var in ['QpntsRXp','QpntsRXd','QpntsRXs']:
+            qpts = self.yamboinput.variables.get(var,None)
+            if qpts is not None: return qpts[0][1]
+
+    @property
+    def launched_chi(self):
+        """
+        A job is known to be launched when the input file is present in the folder
+        We use run.in for the job with all the q points and runchiqn.in for each n q point
+        """ 
+        import re
+        import glob
+        runchis = glob.glob(os.path.join(self.path,'runchiq*.in'))
+        # get a list of launched/not launched
+        launched = [False]*self.nqpoints
+        for runchi in runchis:
+            qidx = int(re.findall('([0-9]+)',os.path.basename(runchi))[-1])-1
+            launched[qidx] = True
+        return launched
+
+    @property
+    def done_chi(self):
+        """Get list of all the chi objects"""
+        import glob
+        chis = glob.glob(os.path.join(self.path,'run','ndb.pp*'))
+        # get a list of done/not done chis
+        done = [False]*self.nqpoints
+        for chi in chis:
+            if 'fragment' not in chi: continue
+            qidx = int(chi.split('_')[-1])-1
+            done[qidx] = True
+        return done
+
+    def __str__(self):
+        lines = []; app = lines.append
+        app(self.to_string())
+        app('nqpoints: %d'%self.nqpoints)
+        for iq,(done,launched) in enumerate(zip(self.done_chi,self.launched_chi)):
+            app("%5s %5s %5s"%("q%d"%(iq+1),done,launched))
+        return '\n'.join(lines)
 
 class P2yTask(YambopyTask):
     """
