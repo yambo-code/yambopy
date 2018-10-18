@@ -43,6 +43,7 @@ __all__ = [
 'YambopyFlow',
 'YambopyTask',
 'YamboTask',
+'YamboChiTask',
 'P2yTask',
 'YppTask',
 'AbinitTask',
@@ -323,6 +324,9 @@ class YambopyTask():
     def get_instances_from_inputs(self,instance,n=None):
         """get all the instances of class from inputs"""
         instances = [inp for inp in self.inputs if isinstance(inp,instance)]
+        #if len(instances) == 0:
+        #    inputs_str = ",".join([inp.__class__.__name__ for inp in self.inputs])
+        #    raise RuntimeError('Did not find an instance of %s among the inputs: [%s]'%(instance.__name__,inputs_str))
         if n==1: return instances[0]
         return instances[:n]
 
@@ -406,11 +410,6 @@ class YamboTask(YambopyTask):
         return cls(inputs=yamboinput,executable=execulable,
                    scheduler=scheduler,dependencies=dependencies)
 
-    @property
-    def yamboinput(self):
-        """Get yambo input instance"""
-        return self.get_instances_from_inputs(YamboIn,n=1)
-        
     def initialize(self,path,verbose=0):
         """ Initialize an yambo task """
         #get output from interface task
@@ -418,17 +417,17 @@ class YamboTask(YambopyTask):
 
         #link interface tasks
         x2ytasks = self.get_instances_from_inputs((P2yTask,E2yTask))
-        for xytask in x2ytasks:
+        for x2ytask in x2ytasks:
             src = os.path.abspath(x2ytask.output)
             dst = os.path.abspath(os.path.join(path,'SAVE'))
             os.symlink(src,dst)
 
         #link yambo tasks
         yambotasks = self.get_instances_from_inputs(YamboTask)
+        run_path = os.path.join(path,'run')
+        os.mkdir(run_path)
         for yambotask in yambotasks:
-            run_path = os.path.join(path,'run')
-            os.mkdir(run_path)
-            for src in yambotasks.output:
+            for src in yambotask.output:
                 dst = os.path.abspath(os.path.join(run_path,os.path.basename(src)))
                 os.symlink(src,dst)
 
@@ -446,9 +445,9 @@ class YamboTask(YambopyTask):
             raise FileNotFoundError('SAVE/ns.db1 not available in %s'%db1_path)
 
         if verbose: print("Creating inputfile in %s"%path)
-        yamboin = YamboIn.from_runlevel(self.runlevel,executable=self.executable,folder=path)
-        yamboin.set_fromdict(self.yamboin_dict)
-        yamboin.write(os.path.join(path,'run.in'))
+        self.yamboinput = YamboIn.from_runlevel(self.runlevel,executable=self.executable,folder=path)
+        self.yamboinput.set_fromdict(self.yamboin_dict)
+        self.yamboinput.write(os.path.join(path,'run.in'))
 
         #create running script
         abs_path = os.path.abspath(path)
@@ -504,7 +503,7 @@ class YamboChiTask(YamboTask):
                 this_scheduler.write(run)
  
                 #launch job
-                print('calculating chi for q%d'%iq)
+                print("%10s"%("q%d"%iq))
                 this_scheduler.run(run,dry=dry)
 
             #check for deadlocks
@@ -523,6 +522,8 @@ class YamboChiTask(YamboTask):
 
     @property
     def exitcode(self):
+        if not self.initialized: return None
+        if self.alldone: return "success"
         return None
 
     @property
