@@ -129,13 +129,7 @@ class YambopyFlow(object):
 
         #initialize each task
         for it,task in enumerate(self.tasks):
-            #get path
-            path = os.path.join(self.path,'t%d'%it)
-            #create folder   
-            os.mkdir(path)
-
-            #initialize each task
-            if not task.initialized: task.initialize(path)
+            self.initialize_task(it,verbose=False)
 
         self.initialized = True
         self.pickle()
@@ -156,9 +150,7 @@ class YambopyFlow(object):
             #exeute maxexecs ready tasks
             for it,task in self.readytasks[:maxexecs]:
                 print("%5s %10s  %s"%("t%d"%it,str(task.name),task.status))
-                if not task.initialized: 
-                    path = os.path.join(self.path,'t%d'%it)
-                    task.initialize(path)
+                self.initialize_task(it,verbose=False)
                 task.run(dry=dry)
 
             #wait some seconds
@@ -166,7 +158,17 @@ class YambopyFlow(object):
         
             #transform into a pickle
             self.pickle()
- 
+
+    def initialize_task(self,itask,verbose=True):
+        task = self[itask]
+        if not task.initialized: 
+            path = os.path.join(self.path,'t%d'%itask)
+            if not os.path.isdir(path): os.mkdir(path)
+            task.initialize(path)
+            return 0
+        if verbose: print('This task was already initialized')
+        return 1
+
     def pickle(self):
         """store the flow in a pickle"""
         import pickle
@@ -421,16 +423,16 @@ class YamboTask(YambopyTask):
         for x2ytask in x2ytasks:
             src = os.path.abspath(x2ytask.output)
             dst = os.path.abspath(os.path.join(path,'SAVE'))
-            os.symlink(src,dst)
+            if not os.path.isdir(dst): os.symlink(src,dst)
 
         #link yambo tasks
         yambotasks = self.get_instances_from_inputs(YamboTask)
         run_path = os.path.join(path,'run')
-        os.mkdir(run_path)
+        if not os.path.isdir(run_path): os.mkdir(run_path)
         for yambotask in yambotasks:
             for src in yambotask.output:
                 dst = os.path.abspath(os.path.join(run_path,os.path.basename(src)))
-                os.symlink(src,dst)
+                if not os.path.isdir(dst): os.symlink(src,dst)
 
         #code injector
         code = self.get_code('initialize')
@@ -532,6 +534,7 @@ class YamboChiTask(YamboTask):
     @property
     def nqpoints(self):
         """get how many q points for chi need to be calculated"""
+        if not self.initialized: return None
         for var in ['QpntsRXp','QpntsRXd','QpntsRXs']:
             qpts = self.yamboinput.variables.get(var,None)
             if qpts is not None: return qpts[0][1]
@@ -568,9 +571,11 @@ class YamboChiTask(YamboTask):
     def __str__(self):
         lines = []; app = lines.append
         app(self.to_string())
-        app('nqpoints: %d'%self.nqpoints)
-        for iq,(done,launched) in enumerate(zip(self.done_chi,self.launched_chi)):
-            app("%5s %5s %5s"%("q%d"%(iq+1),done,launched))
+        app('initialized: %d'%self.initialized)
+        if self.initialized: 
+            app('nqpoints: %d'%self.nqpoints)
+            for iq,(done,launched) in enumerate(zip(self.done_chi,self.launched_chi)):
+                app("%5s %5s %5s"%("q%d"%(iq+1),done,launched))
         return '\n'.join(lines)
 
 class P2yTask(YambopyTask):
