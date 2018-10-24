@@ -431,13 +431,13 @@ class YamboTask(YambopyTask):
                 dst = os.path.abspath(os.path.join(run_path,os.path.basename(src)))
                 os.symlink(src,dst)
 
-        #code injector
-        code = self.get_code('initialize')
-        code(self)
-
         #set to initiailized
         self.initialized = True
         self.path = path
+
+        #code injector
+        code = self.get_code('initialize')
+        code(self)
 
         #create inputfile
         db1_path = os.path.join(path,'SAVE','ns.db1')

@@ -441,6 +441,7 @@ class YamboSaveDB():
         app("atom positions:")
         for an, pos in zip(self.atomic_numbers, self.red_atomic_positions):
             app( "%3d " % an + ("%12.8lf " * 3) % tuple(pos) )
+        app("nkpoints: %d"%self.nkpoints)
         app("symmetry operations: %d\n"%len(self.sym_car))
         app("temperature : %lf"%self.temperature)
         app("electrons   : %lf"%self.electrons)

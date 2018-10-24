@@ -173,9 +173,12 @@ class YambopyBandStructureList():
 
     def plot_ax(self,ax,legend=True,**kwargs):
         for i,bandstructure in enumerate(self.bandstructures):
-            bandstructure.plot_ax(ax,c=self.get_color(i))
+            c = bandstructure.kwargs.pop('c',self.get_color(i))
+            bandstructure.plot_ax(ax,c=c)
         ax.set_xlim(self.xlim)
         ax.set_ylim(self.ylim)
+        title = kwargs.pop('title',None)
+        if title: ax.set_title(title)
         if legend and self.has_legend: ax.legend()
  
     @add_fig_kwargs
