@@ -60,19 +60,20 @@ class Slurm(Scheduler):
         Arguments:
             dry - only print the commands to be run on the screen
         """
+        if dry: 
+            print(self)
+            return 
+
         #create the submission script
         self.write(filename)        
         workdir  = os.path.dirname(filename)
         basename = os.path.basename(filename) 
  
-        if dry:
-            print(command)
-        else:
-            p = subprocess.Popen([command,basename],stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=workdir)
-            self.stdout,self.stderr = p.communicate()
-            
-            #check if there is stderr
-            if self.stderr: raise Exception(self.stderr)
-            
-            #check if there is stdout
-            if verbose: print(self.stdout)
+        p = subprocess.Popen([command,basename],stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=workdir)
+        self.stdout,self.stderr = p.communicate()
+        
+        #check if there is stderr
+        if self.stderr: raise Exception(self.stderr)
+        
+        #check if there is stdout
+        if verbose: print(self.stdout)
