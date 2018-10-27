@@ -34,19 +34,19 @@ class YamboQPDB():
     @property
     def eigenvalues_qp(self):
         if not hasattr(self,'_eigenvalues_qp'):
-            self._eigenvalues_qp, self._eigenvalues_dft, self._lifetimes = self.get_qps()
+            self._eigenvalues_dft, self._eigenvalues_qp, self._lifetimes = self.get_qps()
         return self._eigenvalues_qp
 
     @property
     def eigenvalues_dft(self):
         if not hasattr(self,'_eigenvalues_dft'):
-            self._eigenvalues_qp, self._eigenvalues_dft, self._lifetimes = self.get_qps()
+            self._eigenvalues_dft, self._eigenvalues_qp, self._lifetimes = self.get_qps()
         return self._eigenvalues_dft
 
     @property
     def lifetimes(self):
         if not hasattr(self,'_lifetimes'):
-            self._eigenvalues_qp, self._eigenvalues_dft, self._lifetimes = self.get_qps()
+            self._eigenvalues_dft, self._eigenvalues_qp, self._lifetimes = self.get_qps()
         return self._lifetimes
 
     @classmethod
