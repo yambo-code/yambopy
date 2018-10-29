@@ -156,7 +156,7 @@ class YamboFile(object):
                 E  = f.variables['QP_E'][:]
                 data['E'] = E[:,0] + E[:,1]*1j
                 Eo = f.variables['QP_Eo'][:]
-                data['Eo']= np.array(Eo,dtype=complex)
+                data['Eo']= np.array(Eo,dtype=data['E'].dtype)
                 Z  = f.variables['QP_Z'][:]
                 data['Z'] = Z[:,0] + Z[:,1]*1j
                 data['E-Eo'] = data['E']  -  data['Eo']

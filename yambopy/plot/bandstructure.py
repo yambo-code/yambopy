@@ -18,6 +18,7 @@ class YambopyBandStructure():
         self.kpoints = np.array(kpoints)
         self.kwargs = kwargs
         self.path = path
+        self.fermie = kwargs.pop('fermie',0)
         self._xlim = None
         self._ylim = None
 
@@ -46,6 +47,12 @@ class YambopyBandStructure():
 
     def set_ylim(self,ylim):
         self._ylim = ylim
+
+    def set_ax_lim(self,ax,fermie=0,ylim=None,xlim=None):
+        if xlim is None: xlim = self.xlim
+        if ylim is None: ylim = self.ylim
+        ax.set_xlim(xlim[0],xlim[1])
+        ax.set_ylim(ylim[0]-self.fermie,ylim[1]-self.fermie)
 
     @property
     def distances(self):
@@ -82,9 +89,12 @@ class YambopyBandStructure():
 
     def plot_ax(self,ax,xlim=None,ylim=None,legend=False,**kwargs):
         """Receive an intance of matplotlib axes and add the plot"""
-        ax.plot(self.distances,self.bands,**self.get_kwargs(**kwargs))
-        ax.set_xlim(self.xlim)    
-        ax.set_ylim(self.ylim)    
+        kwargs = self.get_kwargs(**kwargs)
+        fermie = kwargs.pop('fermie',0)
+        for band in self.bands.T:
+            ax.plot(self.distances,band-fermie,**kwargs)
+            kwargs.pop('label',None)
+        self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=xlim)
         ax.set_ylabel('Energies (eV)')
         ax.xaxis.set_ticks([])
         if legend: ax.legend()

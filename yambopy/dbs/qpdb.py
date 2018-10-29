@@ -229,8 +229,8 @@ class YamboQPDB():
             skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
             kpoints_path = path.get_klist()[:,:3]
             dft_eigens_kpath = skw.interp_kpts(kpoints_path).eigens
-            if valence: fermie = np.max(dft_eigens_kpath[0,:,:valence])
-            ks_ebands = YambopyBandStructure(dft_eigens_kpath[0]-fermie,kpoints_path,path=path,**kwargs)
+            if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[0,:,:valence+1])
+            ks_ebands = YambopyBandStructure(dft_eigens_kpath[0],kpoints_path,path=path,**kwargs)
 
         #interpolate QP
         if 'QP' in what:
@@ -238,8 +238,8 @@ class YamboQPDB():
             skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
             kpoints_path = path.get_klist()[:,:3]
             qp_eigens_kpath = skw.interp_kpts(kpoints_path).eigens
-            if valence: fermie = np.max(qp_eigens_kpath[0,:,:valence])
-            qp_ebands = YambopyBandStructure(qp_eigens_kpath[0]-fermie,kpoints_path,path=path,**kwargs)
+            if valence: kwargs['fermie'] = np.max(qp_eigens_kpath[0,:,:valence+1])
+            qp_ebands = YambopyBandStructure(qp_eigens_kpath[0],kpoints_path,path=path,**kwargs)
 
         return ks_ebands, qp_ebands
 

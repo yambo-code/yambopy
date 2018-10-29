@@ -128,14 +128,30 @@ class YamboExcitonDB(YamboSaveDB):
 
         self._transitions_v_to_c = transitions_v_to_c 
         return transitions_v_to_c
- 
-    @property
-    def ntransitions(self):
-        return len(self.table)
 
     @property
-    def nexcitons(self):
-        return len(self.eigenvalues)
+    def nkpoints(self): return max(self.table[:,0])
+
+    @property
+    def nvbands(self): return len(self.unique_vbands)
+
+    @property
+    def ncbands(self): return len(self.unique_cbands)
+
+    @property
+    def nbands(self): return self.ncbands+self.nvbands
+
+    @property
+    def mband(self): return max(self.unique_cbands)+1
+ 
+    @property
+    def ntransitions(self): return len(self.table)
+
+    @property
+    def nexcitons(self): return len(self.eigenvalues)
+    
+    @property
+    def start_band(self): return min(self.unique_vbands)
 
     def write_sorted(self,prefix='yambo'):
         """
@@ -226,7 +242,8 @@ class YamboExcitonDB(YamboSaveDB):
         kpoints = self.lattice.red_kpoints
         path = np.array(path)
 
-        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(-1,2)))
+        rep = list(range(-1,2))
+        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=rep,repy=rep,repz=rep)
         band_indexes = get_path(kpoints_rep,path)
         band_kpoints = kpoints_rep[band_indexes] 
         band_indexes = kpoints_idx_rep[band_indexes]
@@ -253,8 +270,19 @@ class YamboExcitonDB(YamboSaveDB):
             raise ValueError("Energies argument must be an instance of YamboSaveDB,"
                              "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
-        #get weight of state in each band
-        weights = np.zeros(energies.shape)
+        weights = self.get_exciton_weights(excitons)      
+ 
+        energies = energies[band_indexes]
+        weights  = weights[band_indexes]
+
+        #make top valence band to be zero
+        energies -= max(energies[:,max(self.unique_vbands)])
+        
+        return np.array(band_kpoints), energies, weights 
+    
+    def get_exciton_weights(self,excitons):
+        """get weight of state in each band"""
+        weights = np.zeros([self.nkpoints,self.mband])
         for exciton in excitons:
             #get the eigenstate
             eivec = self.eigenvectors[exciton-1]
@@ -265,14 +293,28 @@ class YamboExcitonDB(YamboSaveDB):
                 iks, ehs = transitions.T
                 weights[iks,c] += abs2(eivec[ehs])
                 weights[iks,v] += abs2(eivec[ehs])
-
-        energies = energies[band_indexes]
-        weights  = weights[band_indexes]
-
-        #make top valence band to be zero
-        energies -= max(energies[:,max(self.unique_vbands)])
-        
-        return np.array(band_kpoints), energies, weights 
+        return weights
+    
+    def plot_exciton_2D_ax(self,ax,excitons,**kwargs):
+        """plot the exciton weights in a 2D Brillouin zone"""
+        weights = self.get_exciton_weights(excitons)
+        #sum all the bands
+        scale = kwargs.pop('scale',1)
+        weights_bz_sum = np.sum(weights,axis=1)
+        x,y = self.lattice.car_kpoints[:,:2].T
+        ax.scatter(x,y,s=scale,c=np.log(weights_bz_sum),**kwargs)
+        title = kwargs.pop('title',str(excitons))
+        ax.set_title(title)
+        ax.set_aspect('equal')
+        return ax
+    
+    @add_fig_kwargs
+    def plot_exciton_2D(self,excitons,**kwargs):
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        self.plot_exciton_2D_ax(ax,excitons,**kwargs)
+        return fig
 
     def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=500,space='bands',
                            args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
@@ -313,7 +355,6 @@ class YamboExcitonDB(YamboSaveDB):
         for d in kpath_distances:
             ax.axvline(d,c='k')
 
-        ax.set
         ax.set_xlim([min(bands_distances),max(bands_distances)])
         ax.set_title("exciton %d-%d"%(excitons[0],excitons[-1]))
         return kpath_distances
@@ -327,7 +368,42 @@ class YamboExcitonDB(YamboSaveDB):
         self.plot_exciton_bs_ax(ax,energies_db,path,excitons,size=size,space=space,
                                 args_scatter=args_scatter,args_plot=args_plot,debug=debug)
         return fig
-        
+
+    def interpolate(self,path,excitons,lpratio=5,verbose=True,**kwargs):
+        """ Interpolate exciton bandstructure using SKW interpolation from Abipy
+        """
+        from abipy.core.skw import SkwInterpolator
+
+        if verbose:
+            print("This interpolation is provided by the SKW interpolator implemented in Abipy")
+
+        lattice = self.lattice
+        cell = (lattice.lat, lattice.red_atomic_positions, lattice.atomic_numbers)
+        nelect = 0
+        fermie = kwargs.pop('fermie',0)
+        symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
+        time_rev = True
+ 
+        weights = self.get_exciton_weights(excitons)
+        weights = weights[:,self.start_band:self.mband]
+        ibz_nkpoints = max(lattice.kpoints_indexes)+1
+        kpoints = lattice.red_kpoints
+
+        #map from bz -> ibz:
+        ibz_weights = np.zeros([ibz_nkpoints,self.nbands])
+        ibz_kpoints = np.zeros([ibz_nkpoints,3])
+        for idx_bz,idx_ibz in enumerate(lattice.kpoints_indexes):
+            ibz_weights[idx_ibz,:] = weights[idx_bz,:] 
+            ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
+
+        na = np.newaxis
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        kpoints_path = path.get_klist()[:,:3]
+        exc_weights = skw.interp_kpts(kpoints_path).eigens
+        exc_bands = YambopyBandStructure(exc_weights[0]-fermie,kpoints_path,path=path,**kwargs)
+    
+        return exc_bands
+ 
     def get_amplitudes_phases(self,excitons=(0,),repx=list(range(1)),repy=list(range(1)),repz=list(range(1))):
         """ get the excitonic amplitudes and phases
         """
@@ -434,8 +510,12 @@ class YamboExcitonDB(YamboSaveDB):
     def get_string(self,mark="="):
         lines = []; app = lines.append
         app( marquee(self.__class__.__name__,mark=mark) )
-        app( "number of excitons:    %d"%self.nexcitons )
-        if self.table is not None: app( "number of transitions: %d"%self.ntransitions )
+        app( "number of excitons:         %d"%self.nexcitons )
+        if self.table is not None: 
+            app( "number of transitions:      %d"%self.ntransitions )
+            app( "number of kpoints:          %d"%self.nkpoints  )
+            app( "number of valence bands:    %d"%self.nvbands )
+            app( "number of conduction bands: %d"%self.ncbands )
         return '\n'.join(lines)
     
     def __str__(self):
