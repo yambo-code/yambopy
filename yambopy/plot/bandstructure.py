@@ -6,6 +6,7 @@
 import numpy as np
 from yambopy.tools.string import marquee
 from yambopy.plot.plotting import add_fig_kwargs
+from qepy.lattice import Path
 
 class YambopyBandStructure():
     """
@@ -14,7 +15,7 @@ class YambopyBandStructure():
     _colormap = 'rainbow'
 
     def __init__(self,bands,kpoints,kpath=None,fermie=0,**kwargs):
-        self.bands = bands
+        self.bands = np.array(bands)
         self.kpoints = np.array(kpoints)
         self.kwargs = kwargs
         self.kpath = kpath
@@ -41,6 +42,27 @@ class YambopyBandStructure():
     def ylim(self):
         if self._ylim is None: return (np.min(self.bands)-self.fermie,np.max(self.bands)-self.fermie)
         return self._ylim
+
+    @classmethod
+    def from_dict(cls,d):
+        path = Path.from_dict(d['kpath'])
+        instance = cls(d['bands'],d['kpoints'],kpath=path,
+                       fermie=d['fermie'],**d['kwargs'])
+        instance._xlim = d['_xlim']
+        instance._ylim = d['_ylim']
+        return instance
+
+    def as_dict(self):
+        """ Return the data of this object as a dictionary
+        """
+        d = { 'bands': self.bands.tolist(),
+              'kpoints': self.kpoints.tolist(),
+              'kwargs': self.kwargs,
+              'kpath': self.kpath.as_dict(),
+              'fermie': self.fermie,
+              '_xlim': self._xlim,
+              '_ylim': self._ylim }
+        return d 
 
     def set_fermi(self,valence):
         """simple function to set the fermi energy given the number of valence bands
@@ -179,6 +201,27 @@ class YambopyBandStructureList():
         top_ylim = [bandstructure.ylim[1] for bandstructure in self.bandstructures]
         return (np.min(low_ylim),np.max(top_ylim))
 
+    def as_dict(self):
+        bandstructures_dict=[]
+        for bandstructure in self.bandstructures:
+            bandstructures_dict.append(bandstructure.as_dict())
+        return bandstructures_dict
+
+    @classmethod
+    def from_json(cls,filename):
+        import json
+        with open(filename,'r') as f:
+            d = json.load(f)
+        return cls.from_dict(d)
+
+    @classmethod
+    def from_dict(cls,d):
+        bandstructures = []
+        for bandstructure_dict in d:
+            bandstructure = YambopyBandStructure.from_dict(bandstructure_dict)
+            bandstructures.append(bandstructure)
+        return cls(bandstructures)
+
     def __getitem__(self,idx):
         return self.bandstructures[idx]
     
@@ -234,6 +277,12 @@ class YambopyBandStructureList():
         import matplotlib.pyplot as plt
         cmap = plt.get_cmap(colormap) #get color map
         return [cmap(i) for i in np.linspace(0, 1, self.nbandstructures)]
+
+    def write_json(self,filename):
+        """serialize this class as a json file"""
+        import json
+        with open(filename,'w') as f:
+            json.dump(self.as_dict(),f)
 
     def pickle(self,filename):
         import pickle
