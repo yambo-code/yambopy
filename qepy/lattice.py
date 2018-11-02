@@ -36,6 +36,26 @@ class Path(object):
         self.kpoints = np.array(kpoints)
         self.klabels = klabels
 
+    @property
+    def distances(self):
+        if hasattr(self,'_distances'): return self._distances
+        k0 = np.array(self.kpoints[0])
+        dist = 0
+        distances = [0]
+        for kpt in np.array(self.kpoints[1:]):
+            dist += np.linalg.norm(kpt-k0)
+            k0 = kpt
+            distances.append(dist)
+        self._distances = distances
+        return distances
+
+    def set_xticks(self,ax):
+        ax.set_xticks(self.distances)
+        ax.set_xticklabels(self.klabels)
+
+    def __iter__(self):
+        return zip(self.kpoints,self.klabels,self.distances)
+
     def get_klist(self):
         """ 
         Output in the format of quantum espresso == [ [kx, ky, kz, 1], ... ]

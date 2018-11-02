@@ -13,12 +13,12 @@ class YambopyBandStructure():
     """
     _colormap = 'rainbow'
 
-    def __init__(self,bands,kpoints,path=None,**kwargs):
+    def __init__(self,bands,kpoints,kpath=None,fermie=0,**kwargs):
         self.bands = bands
         self.kpoints = np.array(kpoints)
         self.kwargs = kwargs
-        self.path = path
-        self.fermie = kwargs.pop('fermie',0)
+        self.kpath = kpath
+        self.fermie = fermie
         self._xlim = None
         self._ylim = None
 
@@ -39,8 +39,14 @@ class YambopyBandStructure():
 
     @property
     def ylim(self):
-        if self._ylim is None: return (np.min(self.bands),np.max(self.bands))
+        if self._ylim is None: return (np.min(self.bands)-self.fermie,np.max(self.bands)-self.fermie)
         return self._ylim
+
+    def set_fermi(self,valence):
+        """simple function to set the fermi energy given the number of valence bands
+        """
+        self.fermie = np.max(self.bands[:,valence-1])
+        self.set_ylim(None)
 
     def set_xlim(self,xlim):
         self._xlim = xlim
@@ -87,46 +93,58 @@ class YambopyBandStructure():
         fullkwargs.update(kwargs)
         return fullkwargs
 
-    def plot_ax(self,ax,xlim=None,ylim=None,legend=False,**kwargs):
+    def add_kpath_labels(self,ax):
+        """
+        Add vertical lines at the positions of the high-symmetry k-points
+        """
+        if self.kpath is None:
+            ax.xaxis.set_ticks([])
+            return 
+        for kpoint, klabel, distance in self.kpath:
+            ax.axvline(distance,c='k')
+        self.kpath.set_xticks(ax)
+
+    def plot_ax(self,ax,xlim=None,ylim=None,ylabel='$\epsilon_{n\mathbf{k}}$ [eV]',legend=False,**kwargs):
         """Receive an intance of matplotlib axes and add the plot"""
         kwargs = self.get_kwargs(**kwargs)
-        fermie = kwargs.pop('fermie',0)
+        fermie = kwargs.pop('fermie',self.fermie)
         for band in self.bands.T:
             ax.plot(self.distances,band-fermie,**kwargs)
             kwargs.pop('label',None)
         self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=xlim)
-        ax.set_ylabel('Energies (eV)')
-        ax.xaxis.set_ticks([])
+        ax.set_ylabel(ylabel)
+        self.add_kpath_labels(ax)
         if legend: ax.legend()
     
     def __add__(self,y):
         """Add the bands of two systems together"""
         #add some consistency check
         bands = self.bands + y.bands
-        return YambopyBandStructure(bands,self.kpoints,**self.kwargs)
+        return YambopyBandStructure(bands,self.kpoints,kpath=self.kpath,fermie=self.fermie+y.fermie,**self.kwargs)
  
     def __sub__(self,y):
         """Subtract the bands of two systems together"""
         #add some consistency check
         bands = self.bands - y.bands
-        return YambopyBandStructure(bands,self.kpoints,**self.kwargs)
+        return YambopyBandStructure(bands,self.kpoints,kpath=self.kpath,fermie=self.fermie-y.fermie,**self.kwargs)
 
     def __mul__(self,y):
         """Scale the bands of the system"""
         #add some consistency check
         bands = self.bands*y
-        return YambopyBandStructure(bands,self.kpoints,**self.kwargs)
+        return YambopyBandStructure(bands,self.kpoints,kpath=self.kpath,fermie=self.fermie*y,**self.kwargs)
 
     def __truediv__(self,y):
         """Scale the bands of the system"""
         #add some consistency check
         bands = self.bands/y
-        return YambopyBandStructure(bands,self.kpoints,**self.kwargs)
+        return YambopyBandStructure(bands,self.kpoints,kpath=self.kpath,fermie=self.fermie/y,**self.kwargs)
     
     def __str__(self):
         lines = []; app = lines.append
         app('nkpoints: %d'%self.nkpoints)
         app('nbands: %d'%self.nbands)
+        app('has kpath: %s'%hasattr(self,'kpath'))
         return "\n".join(lines)
 
 class YambopyBandStructureList():
@@ -181,16 +199,24 @@ class YambopyBandStructureList():
         #extend current bandstructure set
         self.bandstructures.extend(bandstructures)
 
-    def plot_ax(self,ax,legend=True,**kwargs):
+    def plot_ax(self,ax,legend=True,xlim=None,ylim=None,**kwargs):
         for i,bandstructure in enumerate(self.bandstructures):
-            c = bandstructure.kwargs.pop('c',self.get_color(i))
+            kwargs = bandstructure.kwargs.copy()
+            c = kwargs.pop('c',self.get_color(i))
             bandstructure.plot_ax(ax,c=c)
-        ax.set_xlim(self.xlim)
-        ax.set_ylim(self.ylim)
+        if xlim is None: ax.set_xlim(self.xlim)
+        else:            ax.set_xlim(xlim)
+        if ylim is None: ax.set_ylim(self.ylim)
+        else:            ax.set_ylim(ylim)
         title = kwargs.pop('title',None)
         if title: ax.set_title(title)
         if legend and self.has_legend: ax.legend()
- 
+
+    def set_fermi(self,valence):
+        """Find the Fermi energy of all the bandstructures by shifting the Fermi energy"""
+        for bandstructure in self.bandstructures:
+            bandstructure.set_fermi(valence)
+
     @add_fig_kwargs
     def plot(self,**kwargs):
         import matplotlib.pyplot as plt
