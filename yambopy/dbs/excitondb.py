@@ -288,36 +288,41 @@ class YamboExcitonDB(YamboSaveDB):
             eivec = self.eigenvectors[exciton-1]
 
             #add weights
-            for t,transitions in list(self.transitions_v_to_c.items()):
-                c,v = t
-                iks, ehs = transitions.T
-                weights[iks,c] += abs2(eivec[ehs])
-                weights[iks,v] += abs2(eivec[ehs])
+            sum_weights = 0
+            for t,kcv in enumerate(self.table):
+                k,c,v = kcv-1
+                this_weight = abs2(eivec[t])
+                weights[k,c] += this_weight
+                weights[k,v] += this_weight
+                sum_weights += this_weight
+            if abs(sum_weights - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
+ 
         return weights
     
-    def plot_exciton_2D_ax(self,ax,excitons,**kwargs):
+    def plot_exciton_2D_ax(self,ax,excitons,f=None,**kwargs):
         """plot the exciton weights in a 2D Brillouin zone"""
         weights = self.get_exciton_weights(excitons)
         #sum all the bands
         scale = kwargs.pop('scale',1)
         weights_bz_sum = np.sum(weights,axis=1)
+        if f: weights_bz_sum = f(weights_bz_sum)
         x,y = self.lattice.car_kpoints[:,:2].T
-        ax.scatter(x,y,s=scale,c=np.log(weights_bz_sum),**kwargs)
+        ax.scatter(x,y,s=scale,c=weights_bz_sum,**kwargs)
         title = kwargs.pop('title',str(excitons))
         ax.set_title(title)
         ax.set_aspect('equal')
         return ax
     
     @add_fig_kwargs
-    def plot_exciton_2D(self,excitons,**kwargs):
+    def plot_exciton_2D(self,excitons,f=None,**kwargs):
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        self.plot_exciton_2D_ax(ax,excitons,**kwargs)
+        self.plot_exciton_2D_ax(ax,excitons,f=f,**kwargs)
         return fig
 
-    def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=500,space='bands',
-                           args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
+    def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=1,space='bands',
+                           args_scatter={'c':'b'},args_plot={'c':'r'},f=None,debug=False):
         """
         Plot the exciton band-structure
         
@@ -329,8 +334,6 @@ class YamboExcitonDB(YamboSaveDB):
         """
         bands_kpoints, energies, weights = self.exciton_bs(energies_db, path, excitons, debug)
         
-        weights /= np.max(weights)
-
         #calculate distances
         bands_distances = [0]
         distance = 0
@@ -338,12 +341,22 @@ class YamboExcitonDB(YamboSaveDB):
             distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
             bands_distances.append(distance)
 
+        if f: weights = f(weights)
+        size *= 1.0/np.max(weights)
         for v,c in product(self.unique_vbands,self.unique_cbands):
             if space=='bands':
                 ax.plot(bands_distances, energies[:,c], **args_plot)
                 ax.plot(bands_distances, energies[:,v], **args_plot)
-                ax.scatter(bands_distances, energies[:,c], s=weights[:,c]*size, **args_scatter)
-                ax.scatter(bands_distances, energies[:,v], s=weights[:,v]*size, **args_scatter)
+
+                y = energies[:,c]
+                dy = weights[:,c]*size
+                ax.fill_between(bands_distances, y+dy, y-dy, facecolor='blue', alpha=0.5)
+                #ax.scatter(bands_distances, energies[:,c], s=dy, **args_scatter)
+
+                y = energies[:,v]
+                dy = weights[:,v]*size
+                ax.fill_between(bands_distances, y+dy, y-dy, facecolor='blue', alpha=0.5)
+                #ax.scatter(bands_distances, energies[:,v], s=weights[:,v]*size, **args_scatter)
             else:
                 ax.plot(bands_distances, energies[:,c]-energies[:,v], c='b')
                 ax.scatter(bands_distances, energies[:,c]-energies[:,v], s=weights[:,c]*size, c='r')
@@ -355,18 +368,20 @@ class YamboExcitonDB(YamboSaveDB):
         for d in kpath_distances:
             ax.axvline(d,c='k')
 
+        ax.set_xticks([])
+        ax.set_ylabel('$\epsilon_{n\mathbf{k}}$ [eV]')
         ax.set_xlim([min(bands_distances),max(bands_distances)])
         ax.set_title("exciton %d-%d"%(excitons[0],excitons[-1]))
         return kpath_distances
 
     @add_fig_kwargs
-    def plot_exciton_bs(self,energies_db,path,excitons,size=500,space='bands',
-                        args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
+    def plot_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',
+                        args_scatter={'c':'b'},args_plot={'c':'r'},f=None,debug=False):
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
         self.plot_exciton_bs_ax(ax,energies_db,path,excitons,size=size,space=space,
-                                args_scatter=args_scatter,args_plot=args_plot,debug=debug)
+                                args_scatter=args_scatter,args_plot=args_plot,f=f,debug=debug)
         return fig
 
     def interpolate(self,path,excitons,lpratio=5,verbose=True,**kwargs):
