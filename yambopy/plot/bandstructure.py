@@ -14,8 +14,9 @@ class YambopyBandStructure():
     """
     _colormap = 'rainbow'
 
-    def __init__(self,bands,kpoints,kpath=None,fermie=0,**kwargs):
+    def __init__(self,bands,kpoints,kpath=None,fermie=0,weights=None,**kwargs):
         self.bands = np.array(bands)
+        self.weights = np.array(weights) if weights is not None else None
         self.kpoints = np.array(kpoints)
         self.kwargs = kwargs
         self.kpath = kpath
@@ -63,6 +64,12 @@ class YambopyBandStructure():
               '_xlim': self._xlim,
               '_ylim': self._ylim }
         return d 
+
+    def write_json(self,filename):
+        """serialize this class as a json file"""
+        import json
+        with open(filename,'w') as f:
+            json.dump(self.as_dict(),f)
 
     def set_fermi(self,valence):
         """simple function to set the fermi energy given the number of valence bands
@@ -130,8 +137,14 @@ class YambopyBandStructure():
         """Receive an intance of matplotlib axes and add the plot"""
         kwargs = self.get_kwargs(**kwargs)
         fermie = kwargs.pop('fermie',self.fermie)
-        for band in self.bands.T:
-            ax.plot(self.distances,band-fermie,**kwargs)
+        size = kwargs.pop('size',1)
+        for ib,band in enumerate(self.bands.T):
+            x = self.distances
+            y = band-fermie
+            ax.plot(x,y,**kwargs)
+            if self.weights is not None:
+                dy = self.weights[:,ib]*size
+                ax.fill_between(x,y+dy,y-dy,alpha=0.5)
             kwargs.pop('label',None)
         self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=xlim)
         ax.set_ylabel(ylabel)

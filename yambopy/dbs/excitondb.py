@@ -332,6 +332,37 @@ class YamboExcitonDB(YamboSaveDB):
             energies_db -> Energies database, can be either a SaveDB or QPDB
             path        -> Path in the brillouin zone
         """
+
+        if space == 'bands':
+            bands_kpoints, energies, weights = self.exciton_bs(energies_db, path, excitons, debug)
+            plot_energies = energies[:,self.start_band:self.mband]
+            plot_weights  = weights[:,self.start_band:self.mband]
+        else:
+            raise NotImplementedError('TODO')
+            eh_size = len(self.unique_vbands)*len(self.unique_cbands)
+            nkpoints = len(bands_kpoints)
+            plot_energies = np.zeros([nkpoints,eh_size])
+            plot_weights = np.zeros([nkpoints,eh_size])
+            for eh,(v,c) in enumerate(product(self.unique_vbands,self.unique_cbands)):
+                plot_energies[:,eh] = energies[:,c]-energies[:,v]
+                plot_weights[:,eh] = weights[:,c] 
+
+        if f: plot_weights = f(plot_weights)
+        size *= 1.0/np.max(plot_weights)
+        ybs = YambopyBandStructure(plot_energies, bands_kpoints, weights=plot_weights,size=size)
+        return ybs.plot_ax(ax) 
+
+    def plot_exciton_bs_ax_bk(self,ax,energies_db,path,excitons,size=1,space='bands',
+                           args_scatter={'c':'b'},args_plot={'c':'r'},f=None,debug=False):
+        """
+        Plot the exciton band-structure
+        
+            Arguments:
+            ax          -> axis extance of matplotlib to add the plot to
+            lattice     -> Lattice database
+            energies_db -> Energies database, can be either a SaveDB or QPDB
+            path        -> Path in the brillouin zone
+        """
         bands_kpoints, energies, weights = self.exciton_bs(energies_db, path, excitons, debug)
         
         #calculate distances
@@ -384,7 +415,7 @@ class YamboExcitonDB(YamboSaveDB):
                                 args_scatter=args_scatter,args_plot=args_plot,f=f,debug=debug)
         return fig
 
-    def interpolate(self,path,excitons,lpratio=5,verbose=True,**kwargs):
+    def interpolate(self,energies,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
         """ Interpolate exciton bandstructure using SKW interpolation from Abipy
         """
         from abipy.core.skw import SkwInterpolator
@@ -401,6 +432,8 @@ class YamboExcitonDB(YamboSaveDB):
  
         weights = self.get_exciton_weights(excitons)
         weights = weights[:,self.start_band:self.mband]
+        if f: weights = f(weights)
+        size *= 1.0/np.max(weights)
         ibz_nkpoints = max(lattice.kpoints_indexes)+1
         kpoints = lattice.red_kpoints
 
@@ -411,11 +444,27 @@ class YamboExcitonDB(YamboSaveDB):
             ibz_weights[idx_ibz,:] = weights[idx_bz,:] 
             ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
 
+        #get eigenvalues along the path
+        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
+            ibz_energies = energies.eigenvalues[:,self.start_band:self.mband]
+        else:
+            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
+                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+
+        #interpolate energies
+        na = np.newaxis
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        kpoints_path = path.get_klist()[:,:3]
+        energies = skw.interp_kpts(kpoints_path).eigens
+
+        #interpolate weights
         na = np.newaxis
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
         kpoints_path = path.get_klist()[:,:3]
         exc_weights = skw.interp_kpts(kpoints_path).eigens
-        exc_bands = YambopyBandStructure(exc_weights[0]-fermie,kpoints_path,path=path,**kwargs)
+    
+        #create band-structure object
+        exc_bands = YambopyBandStructure(energies[0]-fermie,kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
     
         return exc_bands
  
