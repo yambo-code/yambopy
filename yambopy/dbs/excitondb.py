@@ -332,9 +332,11 @@ class YamboExcitonDB(YamboSaveDB):
             energies_db -> Energies database, can be either a SaveDB or QPDB
             path        -> Path in the brillouin zone
         """
-
+        from qepy.lattice import Path
+        if not isinstance(path,Path): return ValueError('path argument must be a instance of Path')
+    
         if space == 'bands':
-            bands_kpoints, energies, weights = self.exciton_bs(energies_db, path, excitons, debug)
+            bands_kpoints, energies, weights = self.exciton_bs(energies_db, path.kpoints, excitons, debug)
             plot_energies = energies[:,self.start_band:self.mband]
             plot_weights  = weights[:,self.start_band:self.mband]
         else:
@@ -349,61 +351,8 @@ class YamboExcitonDB(YamboSaveDB):
 
         if f: plot_weights = f(plot_weights)
         size *= 1.0/np.max(plot_weights)
-        ybs = YambopyBandStructure(plot_energies, bands_kpoints, weights=plot_weights,size=size)
+        ybs = YambopyBandStructure(plot_energies, bands_kpoints, weights=plot_weights, kpath=path, size=size)
         return ybs.plot_ax(ax) 
-
-    def plot_exciton_bs_ax_bk(self,ax,energies_db,path,excitons,size=1,space='bands',
-                           args_scatter={'c':'b'},args_plot={'c':'r'},f=None,debug=False):
-        """
-        Plot the exciton band-structure
-        
-            Arguments:
-            ax          -> axis extance of matplotlib to add the plot to
-            lattice     -> Lattice database
-            energies_db -> Energies database, can be either a SaveDB or QPDB
-            path        -> Path in the brillouin zone
-        """
-        bands_kpoints, energies, weights = self.exciton_bs(energies_db, path, excitons, debug)
-        
-        #calculate distances
-        bands_distances = [0]
-        distance = 0
-        for nk in range(1,len(bands_kpoints)):
-            distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
-            bands_distances.append(distance)
-
-        if f: weights = f(weights)
-        size *= 1.0/np.max(weights)
-        for v,c in product(self.unique_vbands,self.unique_cbands):
-            if space=='bands':
-                ax.plot(bands_distances, energies[:,c], **args_plot)
-                ax.plot(bands_distances, energies[:,v], **args_plot)
-
-                y = energies[:,c]
-                dy = weights[:,c]*size
-                ax.fill_between(bands_distances, y+dy, y-dy, facecolor='blue', alpha=0.5)
-                #ax.scatter(bands_distances, energies[:,c], s=dy, **args_scatter)
-
-                y = energies[:,v]
-                dy = weights[:,v]*size
-                ax.fill_between(bands_distances, y+dy, y-dy, facecolor='blue', alpha=0.5)
-                #ax.scatter(bands_distances, energies[:,v], s=weights[:,v]*size, **args_scatter)
-            else:
-                ax.plot(bands_distances, energies[:,c]-energies[:,v], c='b')
-                ax.scatter(bands_distances, energies[:,c]-energies[:,v], s=weights[:,c]*size, c='r')
-
-        #add high-symmetry k-points vertical bars
-        kpath_car = red_car(path,self.lattice.rlat)
-        #calculate distances for high-symmetry points
-        kpath_distances = calculate_distances( path )
-        for d in kpath_distances:
-            ax.axvline(d,c='k')
-
-        ax.set_xticks([])
-        ax.set_ylabel('$\epsilon_{n\mathbf{k}}$ [eV]')
-        ax.set_xlim([min(bands_distances),max(bands_distances)])
-        ax.set_title("exciton %d-%d"%(excitons[0],excitons[-1]))
-        return kpath_distances
 
     @add_fig_kwargs
     def plot_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',
