@@ -10,6 +10,7 @@ from cmath import polar
 from yambopy.units import *
 from yambopy.plot.plotting import add_fig_kwargs
 from yambopy.lattice import replicate_red_kmesh, calculate_distances, get_path
+from yambopy.tools.funcs import gaussian, lorentzian
 
 class ExcitonList():
     """
@@ -475,14 +476,35 @@ class YamboExcitonDB(YamboSaveDB):
             if verbose: print("calculate exciton-light coupling")
             EL1,EL2 = self.project1(dipoles.dipoles[:,dir],nexcitons) 
 
+        if isinstance(broad,float): broad = [broad]*nexcitons
+
+        if isinstance(broad,tuple): 
+            broad_slope = broad[1]-broad[0]
+            min_exciton = np.min(self.eigenvalues.real)
+            broad = [ broad[0]+(es-min_exciton)*broad_slope for es in self.eigenvalues[:nexcitons].real]
+
+        if "gaussian" in broad or "lorentzian" in broad:
+            i = broad.find(":")
+            if i != -1:
+                value, eunit = broad[i+1:].split()
+                if eunit == "eV": sigma = float(value)
+                else: raise ValueError('Unknown unit %s'%eunit)
+
+            f = gaussian if "gaussian" in broad else lorentzian
+            broad = np.zeros([nexcitons])
+            for s in range(nexcitons):
+                es = self.eigenvalues[s].real
+                broad += f(self.eigenvalues.real,es,sigma)
+            broad = 0.1*broad/nexcitons
+
         #iterate over the excitonic states
         for s in range(nexcitons):
             #get exciton energy
             es = self.eigenvalues[s]
  
             #calculate the green's functions
-            G1 = -1/(   w - es + broad*I)
-            G2 = -1/( - w - es - broad*I)
+            G1 = -1/(   w - es + broad[s]*I)
+            G2 = -1/( - w - es - broad[s]*I)
 
             r = EL1[s]*EL2[s]
             chi += r*G1 + r*G2
@@ -519,6 +541,11 @@ class YamboExcitonDB(YamboSaveDB):
         ax = fig.add_subplot(1,1,1)
         self.plot_chi_ax(ax,n_brightest=n_brightest,**kwargs)
         return fig
+
+    def save_chi(self,filename,**kwargs):
+        """Compute chi and dump it to file"""
+        w,chi = self.get_chi(**kwargs)
+        np.savetxt(filename,np.array([w,chi.imag,chi.real]).T)
 
     def get_string(self,mark="="):
         lines = []; app = lines.append

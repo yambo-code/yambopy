@@ -48,15 +48,23 @@ class YambopyBandStructure():
     def from_dict(cls,d):
         path = Path.from_dict(d['kpath'])
         instance = cls(d['bands'],d['kpoints'],kpath=path,
-                       fermie=d['fermie'],**d['kwargs'])
+                       fermie=d['fermie'],weights=d['weights'],**d['kwargs'])
         instance._xlim = d['_xlim']
         instance._ylim = d['_ylim']
         return instance
+
+    @classmethod
+    def from_json(cls,filename):
+        import json
+        with open(filename,'r') as f:
+            d = json.load(f)
+        return cls.from_dict(d)
 
     def as_dict(self):
         """ Return the data of this object as a dictionary
         """
         d = { 'bands': self.bands.tolist(),
+              'weights': self.weights.tolist(),
               'kpoints': self.kpoints.tolist(),
               'kwargs': self.kwargs,
               'kpath': self.kpath.as_dict(),

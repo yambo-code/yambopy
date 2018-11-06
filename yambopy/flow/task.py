@@ -511,14 +511,15 @@ class YamboChiTask(YamboTask):
                     maxexecs = maxexecs-1
                     if maxexecs == 0: return
 
+                #wait some seconds
+                time.sleep(sleep)
+
             #check for deadlocks
             all_done_or_launched = all([ done or launched for (done,launched) in zip(self.done_chi,self.launched_chi)])
             if all_done_or_launched and not self.alldone:
                 print('waiting for the jobs to finish')
                 time.sleep(25)
 
-            #wait some seconds
-            time.sleep(sleep)
 
     @property
     def alldone(self):
