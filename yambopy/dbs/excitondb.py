@@ -322,10 +322,9 @@ class YamboExcitonDB(YamboSaveDB):
         self.plot_exciton_2D_ax(ax,excitons,f=f,**kwargs)
         return fig
 
-    def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=1,space='bands',
-                           args_scatter={'c':'b'},args_plot={'c':'r'},f=None,debug=False):
+    def get_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False):
         """
-        Plot the exciton band-structure
+        Get a YambopyBandstructure object with the exciton band-structure
         
             Arguments:
             ax          -> axis extance of matplotlib to add the plot to
@@ -334,7 +333,8 @@ class YamboExcitonDB(YamboSaveDB):
             path        -> Path in the brillouin zone
         """
         from qepy.lattice import Path
-        if not isinstance(path,Path): return ValueError('path argument must be a instance of Path')
+        if not isinstance(path,Path): 
+            raise ValueError('Path argument must be a instance of Path. Got %s instead'%type(path))
     
         if space == 'bands':
             bands_kpoints, energies, weights = self.exciton_bs(energies_db, path.kpoints, excitons, debug)
@@ -353,16 +353,18 @@ class YamboExcitonDB(YamboSaveDB):
         if f: plot_weights = f(plot_weights)
         size *= 1.0/np.max(plot_weights)
         ybs = YambopyBandStructure(plot_energies, bands_kpoints, weights=plot_weights, kpath=path, size=size)
+        return ybs
+
+    def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=1,space='bands',f=None,debug=None):
+        ybs = self.get_exciton_bs(energies_db,path,excitons,size=size,space=space,f=f,debug=debug)
         return ybs.plot_ax(ax) 
 
     @add_fig_kwargs
-    def plot_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',
-                        args_scatter={'c':'b'},args_plot={'c':'r'},f=None,debug=False):
+    def plot_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False):
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        self.plot_exciton_bs_ax(ax,energies_db,path,excitons,size=size,space=space,
-                                args_scatter=args_scatter,args_plot=args_plot,f=f,debug=debug)
+        self.plot_exciton_bs_ax(ax,energies_db,path,excitons,size=size,space=space,f=f,debug=debug)
         return fig
 
     def interpolate(self,energies,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
