@@ -64,7 +64,7 @@ class YambopyBandStructure():
         """ Return the data of this object as a dictionary
         """
         d = { 'bands': self.bands.tolist(),
-              'weights': self.weights.tolist(),
+              'weights': self.weights.tolist() if self.weights is not None else None,
               'kpoints': self.kpoints.tolist(),
               'kwargs': self.kwargs,
               'kpath': self.kpath.as_dict(),
@@ -141,18 +141,20 @@ class YambopyBandStructure():
             ax.axvline(distance,c='k')
         self.kpath.set_xticks(ax)
 
-    def plot_ax(self,ax,xlim=None,ylim=None,ylabel='$\epsilon_{n\mathbf{k}}$ [eV]',legend=False,**kwargs):
+    def plot_ax(self,ax,xlim=None,ylim=None,ylabel='$\epsilon_{n\mathbf{k}}$ [eV]',
+                alpha_weights=0.5,legend=False,**kwargs):
         """Receive an intance of matplotlib axes and add the plot"""
         kwargs = self.get_kwargs(**kwargs)
         fermie = kwargs.pop('fermie',self.fermie)
         size = kwargs.pop('size',1)
+        c = kwargs.pop('c',None)
         for ib,band in enumerate(self.bands.T):
             x = self.distances
             y = band-fermie
-            ax.plot(x,y,**kwargs)
+            ax.plot(x,y,c=c,**kwargs)
             if self.weights is not None:
                 dy = self.weights[:,ib]*size
-                ax.fill_between(x,y+dy,y-dy,alpha=0.5)
+                ax.fill_between(x,y+dy,y-dy,alpha=alpha_weights,color=c,linewidth=0)
             kwargs.pop('label',None)
         self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=xlim)
         ax.set_ylabel(ylabel)

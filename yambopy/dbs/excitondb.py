@@ -266,7 +266,11 @@ class YamboExcitonDB(YamboSaveDB):
 
         elif isinstance(energies,YamboQPDB):
             #expand the quasiparticle energies to the bull brillouin zone
-            energies = energies.eigenvalues_qp[self.lattice.kpoints_indexes]
+            pad_energies = energies.eigenvalues_qp[self.lattice.kpoints_indexes]
+            min_band = energies.min_band
+            nkpoints, nbands = pad_energies.shape
+            energies = np.zeros([nkpoints,energies.max_band])
+            energies[:,min_band-1:] = pad_energies 
         else:
             raise ValueError("Energies argument must be an instance of YamboSaveDB,"
                              "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
@@ -299,19 +303,34 @@ class YamboExcitonDB(YamboSaveDB):
             if abs(sum_weights - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
  
         return weights
-    
-    def plot_exciton_2D_ax(self,ax,excitons,f=None,**kwargs):
-        """plot the exciton weights in a 2D Brillouin zone"""
+   
+    def get_exciton_2D(self,excitons,f=None):
+        """get data of the exciton in 2D"""
         weights = self.get_exciton_weights(excitons)
         #sum all the bands
-        scale = kwargs.pop('scale',1)
         weights_bz_sum = np.sum(weights,axis=1)
         if f: weights_bz_sum = f(weights_bz_sum)
-        x,y = self.lattice.car_kpoints[:,:2].T
-        ax.scatter(x,y,s=scale,c=weights_bz_sum,**kwargs)
+        
+        kmesh_full, kmesh_idx = replicate_red_kmesh(self.lattice.red_kpoints,repx=range(-1,2),repy=range(-1,2))
+        x,y = red_car(kmesh_full,self.lattice.rlat)[:,:2].T
+        weights_bz_sum = weights_bz_sum[kmesh_idx]
+        return x,y,weights_bz_sum
+ 
+    def plot_exciton_2D_ax(self,ax,excitons,f=None,limfactor=0.8,**kwargs):
+        """plot the exciton weights in a 2D Brillouin zone"""
+        x,y,weights_bz_sum = self.get_exciton_2D(excitons,f=f)
+
+        scale = kwargs.pop('scale',1)
+        ax.scatter(x,y,s=scale,c=weights_bz_sum,**kwargs,rasterized=True)
+
         title = kwargs.pop('title',str(excitons))
+        lim = np.max(self.lattice.rlat)*limfactor
+        ax.set_xlim(-lim,lim)
+        ax.set_ylim(-lim,lim)
         ax.set_title(title)
         ax.set_aspect('equal')
+        ax.set_xticks([])
+        ax.set_yticks([])
         return ax
     
     @add_fig_kwargs
@@ -360,7 +379,7 @@ class YamboExcitonDB(YamboSaveDB):
         return ybs.plot_ax(ax) 
 
     @add_fig_kwargs
-    def plot_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False):
+    def plot_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False,**kwargs):
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
@@ -399,6 +418,8 @@ class YamboExcitonDB(YamboSaveDB):
         #get eigenvalues along the path
         if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
             ibz_energies = energies.eigenvalues[:,self.start_band:self.mband]
+        elif isinstance(energies,YamboQPDB):
+            ibz_energies = energies.eigenvalues_qp
         else:
             raise ValueError("Energies argument must be an instance of YamboSaveDB,"
                              "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
