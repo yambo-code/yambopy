@@ -321,7 +321,7 @@ class YamboExcitonDB(YamboSaveDB):
         x,y,weights_bz_sum = self.get_exciton_2D(excitons,f=f)
 
         scale = kwargs.pop('scale',1)
-        ax.scatter(x,y,s=scale,c=weights_bz_sum,**kwargs,rasterized=True)
+        ax.scatter(x,y,s=scale,c=weights_bz_sum,rasterized=True,**kwargs)
 
         title = kwargs.pop('title',str(excitons))
         lim = np.max(self.lattice.rlat)*limfactor
