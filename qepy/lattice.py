@@ -64,7 +64,7 @@ class Path(object):
         ax.set_xticklabels(self.klabels)
 
     def __iter__(self):
-        return zip(self.kpoints,self.klabels,self.distances)
+        return iter(zip(self.kpoints,self.klabels,self.distances))
 
     def get_klist(self):
         """ 

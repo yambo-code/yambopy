@@ -3,8 +3,6 @@
 #
 # This file is part of yambopy
 #
-from builtins import str
-from builtins import object
 import os
 import re
 from math import sqrt

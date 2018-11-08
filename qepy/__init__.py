@@ -17,12 +17,3 @@ class qepyenv():
     DYNMAT = "dynmat.x"
     PSEUDODIR = os.path.join(os.path.dirname(__file__),'data','pseudos')
     CONV_THR = 1e-8
-
-from qepy.lattice    import *
-from qepy.pw         import *
-from qepy.ph         import *
-from qepy.dynmat     import *
-from qepy.projwfc    import *
-from qepy.pwxml      import *
-from qepy.projwfcxml import *
-from qepy.auxiliary  import *
