@@ -148,13 +148,14 @@ class YambopyBandStructure():
         fermie = kwargs.pop('fermie',self.fermie)
         size = kwargs.pop('size',1)
         c = kwargs.pop('c',None)
+        c_weights = kwargs.pop('c_weights',c)
         for ib,band in enumerate(self.bands.T):
             x = self.distances
             y = band-fermie
             ax.plot(x,y,c=c,**kwargs)
             if self.weights is not None:
                 dy = self.weights[:,ib]*size
-                ax.fill_between(x,y+dy,y-dy,alpha=alpha_weights,color=c,linewidth=0)
+                ax.fill_between(x,y+dy,y-dy,alpha=alpha_weights,color=c_weights,linewidth=0)
             kwargs.pop('label',None)
         self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=xlim)
         ax.set_ylabel(ylabel)
@@ -266,15 +267,13 @@ class YambopyBandStructureList():
         self.bandstructures.extend(bandstructures)
 
     def plot_ax(self,ax,legend=True,xlim=None,ylim=None,**kwargs):
+        title = kwargs.pop('title',None)
         for i,bandstructure in enumerate(self.bandstructures):
-            kwargs = bandstructure.kwargs.copy()
-            c = kwargs.pop('c',self.get_color(i))
-            bandstructure.plot_ax(ax,c=c)
+            bandstructure.plot_ax(ax,**kwargs)
         if xlim is None: ax.set_xlim(self.xlim)
         else:            ax.set_xlim(xlim)
         if ylim is None: ax.set_ylim(self.ylim)
         else:            ax.set_ylim(ylim)
-        title = kwargs.pop('title',None)
         if title: ax.set_title(title)
         if legend and self.has_legend: ax.legend()
 
@@ -288,7 +287,7 @@ class YambopyBandStructureList():
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        self.plot_ax(ax)
+        self.plot_ax(ax,**kwargs)
         return fig
     
     def get_color(self,i,colormap='gist_rainbow'):
