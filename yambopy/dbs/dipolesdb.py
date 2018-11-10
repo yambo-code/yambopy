@@ -7,23 +7,7 @@ from yambopy import *
 from math import sqrt
 from time import time
 from yambopy.tools.string import marquee
-
-max_exp = 50
-min_exp =-100.
-
-def abs2(x):
-    return x.real**2 + x.imag**2
- 
-def lorentzian(x,x0,g):
-    height=1./(np.pi*g)
-    return height*(g**2)/((x-x0)**2+g**2)
-
-def gaussian(x,x0,s):
-    height=1./(np.sqrt(2.*np.pi)*s)
-    argument=-0.5*((x-x0)/s)**2
-    #Avoiding undeflow errors...
-    np.place(argument,argument<min_exp,min_exp)
-    return height*np.exp(argument)
+from yambopy.tools.funcs import abs2, lorentzian, gaussian
 
 class YamboDipolesDB():
     """

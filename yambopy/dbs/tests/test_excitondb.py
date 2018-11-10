@@ -9,6 +9,7 @@ import os
 from yambopy.dbs.excitondb import YamboExcitonDB
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.electronsdb import YamboElectronsDB
+from qepy.lattice import Path
 
 test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','bse')
 
@@ -17,10 +18,12 @@ class TestYamboExcitonDB(unittest.TestCase):
     def test_yamboexcitondb(self):
 
         #define path in reduced coordinates
-        path = [ [0.0, 0.0, 0.0],
-                 [0.5, 0.0, 0.0],
-                 [1./3,1./3,0.0],
-                 [0.0, 0.0, 0.0]]
+        npoints = 20
+        path = Path([ [[0.0, 0.0, 0.0],'$\\Gamma$'],
+                      [[0.5, 0.0, 0.0],'M'],
+                      [[1./3,1./3,0.0],'K'],
+                      [[0.0, 0.0, 0.0],'$\\Gamma$']],
+                      [int(npoints*2),int(npoints),int(np.sqrt(5)*npoints)])
 
         #load databases
         lat  = YamboLatticeDB.from_db_file(os.path.join(test_path,'SAVE','ns.db1'))

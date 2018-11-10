@@ -30,24 +30,31 @@ class YamboQPDB():
         self.e0           = np.array(qps['Eo']).real*ha2ev
         self.e            = np.array(qps['E']).real*ha2ev
         self.linewidths   = np.array(qps['E']).imag*ha2ev
+        self.qpz          = np.array(qps['Z']).real
 
     @property
     def eigenvalues_qp(self):
         if not hasattr(self,'_eigenvalues_qp'):
-            self._eigenvalues_dft, self._eigenvalues_qp, self._lifetimes = self.get_qps()
+            self._eigenvalues_dft, self._eigenvalues_qp, self._lifetimes, self._z = self.get_qps()
         return self._eigenvalues_qp
 
     @property
     def eigenvalues_dft(self):
         if not hasattr(self,'_eigenvalues_dft'):
-            self._eigenvalues_dft, self._eigenvalues_qp, self._lifetimes = self.get_qps()
+            self._eigenvalues_dft, self._eigenvalues_qp, self._lifetimes, self._z = self.get_qps()
         return self._eigenvalues_dft
 
     @property
     def lifetimes(self):
         if not hasattr(self,'_lifetimes'):
-            self._eigenvalues_dft, self._eigenvalues_qp, self._lifetimes = self.get_qps()
+            self._eigenvalues_dft, self._eigenvalues_qp, self._lifetimes, self._z = self.get_qps()
         return self._lifetimes
+
+    @property
+    def z(self):
+        if not hasattr(self,'_z'):
+            self._eigenvalues_dft, self._eigenvalues_qp, self._lifetimes, self._z = self.get_qps()
+        return self._z
 
     @classmethod
     def from_db(cls,filename='ndb.QP',folder='.'):
@@ -60,6 +67,7 @@ class YamboQPDB():
         else:
             raise IOError('File %s not found'%db_path)
         return cls(yfile.data)
+    from_db_file = from_db
     
     def get_qps(self):
         """
@@ -69,14 +77,16 @@ class YamboQPDB():
         eigenvalues_dft = np.zeros([self.nkpoints,self.nbands])
         eigenvalues_qp  = np.zeros([self.nkpoints,self.nbands])
         linewidths      = np.zeros([self.nkpoints,self.nbands])
-        for ei,e0i,li,ki,ni in zip(self.e,self.e0,self.linewidths,self.kpoint_index,self.band_index):
+        z               = np.zeros([self.nkpoints,self.nbands])
+        for ei,e0i,li,zi,ki,ni in zip(self.e,self.e0,self.linewidths,self.qpz,self.kpoint_index,self.band_index):
             nkpoint = ki-self.min_kpoint
             nband = ni-self.min_band
             eigenvalues_dft[nkpoint,nband] = e0i
             eigenvalues_qp[nkpoint,nband] = ei
             linewidths[nkpoint,nband] = li
+            z[nkpoint,nband] = zi
 
-        return eigenvalues_dft, eigenvalues_qp, linewidths
+        return eigenvalues_dft, eigenvalues_qp, linewidths, z
 
     def get_filtered_qps(self,min_band=None,max_band=None):
         """Return selected QP energies as a flat list"""
@@ -228,18 +238,26 @@ class YamboQPDB():
             eigens  = self.eigenvalues_dft[np.newaxis,:]
             skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
             kpoints_path = path.get_klist()[:,:3]
-            dft_eigens_kpath = skw.interp_kpts(kpoints_path).eigens
-            if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[0,:,:valence+1])
-            ks_ebands = YambopyBandStructure(dft_eigens_kpath[0],kpoints_path,path=path,**kwargs)
+            dft_eigens_kpath = skw.interp_kpts(kpoints_path).eigens[0]
+            if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
+            ks_ebands = YambopyBandStructure(dft_eigens_kpath,kpoints_path,kpath=path,**kwargs)
 
         #interpolate QP
         if 'QP' in what:
             eigens  = self.eigenvalues_qp[np.newaxis,:]
             skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
             kpoints_path = path.get_klist()[:,:3]
-            qp_eigens_kpath = skw.interp_kpts(kpoints_path).eigens
-            if valence: kwargs['fermie'] = np.max(qp_eigens_kpath[0,:,:valence+1])
-            qp_ebands = YambopyBandStructure(qp_eigens_kpath[0],kpoints_path,path=path,**kwargs)
+            qp_eigens_kpath = skw.interp_kpts(kpoints_path).eigens[0]
+            if valence: kwargs['fermie'] = np.max(qp_eigens_kpath[:,:valence])
+
+            qp_z_kpath = None
+            if 'Z' in what:
+                eigens = self.z[np.newaxis,:]
+                skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+                kpoints_path = path.get_klist()[:,:3]
+                qp_z_kpath = skw.interp_kpts(kpoints_path).eigens[0]
+                
+            qp_ebands = YambopyBandStructure(qp_eigens_kpath,kpoints_path,kpath=path,weights=qp_z_kpath,size=0.1,**kwargs)
 
         return ks_ebands, qp_ebands
 

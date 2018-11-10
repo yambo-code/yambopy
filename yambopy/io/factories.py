@@ -61,7 +61,7 @@ class FiniteDifferencesPhononFlow():
         #
         # Undisplaced structure
         #
-        tasks.extend(generator(pwin.get_structure(),kpoints,ecut,nscf_bands,nscf_kpoints,**kwargs))
+        tasks.extend(generator(pwin.get_structure(),kpoints,ecut,nscf_bands,nscf_kpoints=nscf_kpoints,**kwargs))
 
         #
         # Displaced structures
@@ -79,7 +79,7 @@ class FiniteDifferencesPhononFlow():
 
                 #generate tasks
                 new_tasks = generator(displaced_structure,kpoints,ecut,
-                                      nscf_bands,nscf_kpoints,**kwargs)
+                                      nscf_bands,nscf_kpoints=nscf_kpoints,**kwargs)
                 #save task
                 tasks.extend(new_tasks)
                 reference.append([dict(imode=None,displacement=displacement)])

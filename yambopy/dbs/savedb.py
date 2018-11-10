@@ -367,7 +367,10 @@ class YamboSaveDB():
 
         return self.kpoints_full, self.kpoints_indexes, self.symmetry_indexes
 
-    def plot_bs_ax(self,ax,path,**kwargs):
+    def plot_bs_ax(self,ax,path,bandmin=None,bandmax=None,add_indexes=False,**kwargs):
+        """
+        Plot this bandstructure on Matpltolib ax
+        """
         bands_kpoints, bands_indexes, bands_highsym_qpts = self.get_path(path)
         self.get_fermi()
 
@@ -389,8 +392,15 @@ class YamboSaveDB():
 
         #plot bands
         color = kwargs.pop('c','red')
-        ax.plot(bands_distances,self.eigenvalues[bands_indexes],c=color,**kwargs)
+        ax.plot(bands_distances,self.eigenvalues[bands_indexes,bandmin:bandmax],c=color,**kwargs)
         ax.set_xlim(0,max(bands_distances))
+
+        if add_indexes:
+            ax.set_xticks(bands_distances)
+            ax.set_xticklabels(np.array(bands_indexes)+1)
+            for d in bands_distances:
+                ax.axvline(d,color='k',alpha=0.5)
+
         return ax
 
     @add_fig_kwargs

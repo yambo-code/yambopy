@@ -26,15 +26,45 @@ class Path(object):
         Generation of a path in reciprocal space by specifying a list of k-points
         """
         self.intervals = intervals
+
         klabels = []
         kpoints = []
-
-        for kline in klist:
-            kpoint, klabel = kline
+        for kpoint, klabel in klist:
             kpoints.append(kpoint)
             klabels.append(klabel)
         self.kpoints = np.array(kpoints)
         self.klabels = klabels
+    
+    def as_dict(self):
+        d = {'kpoints':self.kpoints.tolist(),
+             'klabels':self.klabels,
+             'intervals':self.intervals}
+        return d
+
+    @classmethod
+    def from_dict(cls,d):
+        klist = zip(d['kpoints'],d['klabels'])
+        return cls(klist,d['intervals'])
+
+    @property
+    def distances(self):
+        if hasattr(self,'_distances'): return self._distances
+        k0 = np.array(self.kpoints[0])
+        dist = 0
+        distances = [0]
+        for kpt in np.array(self.kpoints[1:]):
+            dist += np.linalg.norm(kpt-k0)
+            k0 = kpt
+            distances.append(dist)
+        self._distances = distances
+        return distances
+
+    def set_xticks(self,ax):
+        ax.set_xticks(self.distances)
+        ax.set_xticklabels(self.klabels)
+
+    def __iter__(self):
+        return iter(zip(self.kpoints,self.klabels,self.distances))
 
     def get_klist(self):
         """ 

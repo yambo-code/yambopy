@@ -10,6 +10,7 @@ from cmath import polar
 from yambopy.units import *
 from yambopy.plot.plotting import add_fig_kwargs
 from yambopy.lattice import replicate_red_kmesh, calculate_distances, get_path
+from yambopy.tools.funcs import gaussian, lorentzian
 
 class ExcitonList():
     """
@@ -265,7 +266,11 @@ class YamboExcitonDB(YamboSaveDB):
 
         elif isinstance(energies,YamboQPDB):
             #expand the quasiparticle energies to the bull brillouin zone
-            energies = energies.eigenvalues_qp[self.lattice.kpoints_indexes]
+            pad_energies = energies.eigenvalues_qp[self.lattice.kpoints_indexes]
+            min_band = energies.min_band
+            nkpoints, nbands = pad_energies.shape
+            energies = np.zeros([nkpoints,energies.max_band])
+            energies[:,min_band-1:] = pad_energies 
         else:
             raise ValueError("Energies argument must be an instance of YamboSaveDB,"
                              "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
@@ -288,38 +293,57 @@ class YamboExcitonDB(YamboSaveDB):
             eivec = self.eigenvectors[exciton-1]
 
             #add weights
-            for t,transitions in list(self.transitions_v_to_c.items()):
-                c,v = t
-                iks, ehs = transitions.T
-                weights[iks,c] += abs2(eivec[ehs])
-                weights[iks,v] += abs2(eivec[ehs])
+            sum_weights = 0
+            for t,kcv in enumerate(self.table):
+                k,c,v = kcv-1
+                this_weight = abs2(eivec[t])
+                weights[k,c] += this_weight
+                weights[k,v] += this_weight
+                sum_weights += this_weight
+            if abs(sum_weights - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
+ 
         return weights
-    
-    def plot_exciton_2D_ax(self,ax,excitons,**kwargs):
-        """plot the exciton weights in a 2D Brillouin zone"""
+   
+    def get_exciton_2D(self,excitons,f=None):
+        """get data of the exciton in 2D"""
         weights = self.get_exciton_weights(excitons)
         #sum all the bands
-        scale = kwargs.pop('scale',1)
         weights_bz_sum = np.sum(weights,axis=1)
-        x,y = self.lattice.car_kpoints[:,:2].T
-        ax.scatter(x,y,s=scale,c=np.log(weights_bz_sum),**kwargs)
+        if f: weights_bz_sum = f(weights_bz_sum)
+        
+        kmesh_full, kmesh_idx = replicate_red_kmesh(self.lattice.red_kpoints,repx=range(-1,2),repy=range(-1,2))
+        x,y = red_car(kmesh_full,self.lattice.rlat)[:,:2].T
+        weights_bz_sum = weights_bz_sum[kmesh_idx]
+        return x,y,weights_bz_sum
+ 
+    def plot_exciton_2D_ax(self,ax,excitons,f=None,limfactor=0.8,**kwargs):
+        """plot the exciton weights in a 2D Brillouin zone"""
+        x,y,weights_bz_sum = self.get_exciton_2D(excitons,f=f)
+
+        scale = kwargs.pop('scale',1)
+        ax.scatter(x,y,s=scale,c=weights_bz_sum,rasterized=True,**kwargs)
+
         title = kwargs.pop('title',str(excitons))
+        lim = np.max(self.lattice.rlat)*limfactor
+        ax.set_xlim(-lim,lim)
+        ax.set_ylim(-lim,lim)
         ax.set_title(title)
         ax.set_aspect('equal')
+        ax.set_xticks([])
+        ax.set_yticks([])
         return ax
     
     @add_fig_kwargs
-    def plot_exciton_2D(self,excitons,**kwargs):
+    def plot_exciton_2D(self,excitons,f=None,**kwargs):
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        self.plot_exciton_2D_ax(ax,excitons,**kwargs)
+        self.plot_exciton_2D_ax(ax,excitons,f=f,**kwargs)
         return fig
 
-    def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=500,space='bands',
-                           args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
+    def get_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False):
         """
-        Plot the exciton band-structure
+        Get a YambopyBandstructure object with the exciton band-structure
         
             Arguments:
             ax          -> axis extance of matplotlib to add the plot to
@@ -327,49 +351,42 @@ class YamboExcitonDB(YamboSaveDB):
             energies_db -> Energies database, can be either a SaveDB or QPDB
             path        -> Path in the brillouin zone
         """
-        bands_kpoints, energies, weights = self.exciton_bs(energies_db, path, excitons, debug)
-        
-        weights /= np.max(weights)
+        from qepy.lattice import Path
+        if not isinstance(path,Path): 
+            raise ValueError('Path argument must be a instance of Path. Got %s instead'%type(path))
+    
+        if space == 'bands':
+            bands_kpoints, energies, weights = self.exciton_bs(energies_db, path.kpoints, excitons, debug)
+            plot_energies = energies[:,self.start_band:self.mband]
+            plot_weights  = weights[:,self.start_band:self.mband]
+        else:
+            raise NotImplementedError('TODO')
+            eh_size = len(self.unique_vbands)*len(self.unique_cbands)
+            nkpoints = len(bands_kpoints)
+            plot_energies = np.zeros([nkpoints,eh_size])
+            plot_weights = np.zeros([nkpoints,eh_size])
+            for eh,(v,c) in enumerate(product(self.unique_vbands,self.unique_cbands)):
+                plot_energies[:,eh] = energies[:,c]-energies[:,v]
+                plot_weights[:,eh] = weights[:,c] 
 
-        #calculate distances
-        bands_distances = [0]
-        distance = 0
-        for nk in range(1,len(bands_kpoints)):
-            distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
-            bands_distances.append(distance)
+        if f: plot_weights = f(plot_weights)
+        size *= 1.0/np.max(plot_weights)
+        ybs = YambopyBandStructure(plot_energies, bands_kpoints, weights=plot_weights, kpath=path, size=size)
+        return ybs
 
-        for v,c in product(self.unique_vbands,self.unique_cbands):
-            if space=='bands':
-                ax.plot(bands_distances, energies[:,c], **args_plot)
-                ax.plot(bands_distances, energies[:,v], **args_plot)
-                ax.scatter(bands_distances, energies[:,c], s=weights[:,c]*size, **args_scatter)
-                ax.scatter(bands_distances, energies[:,v], s=weights[:,v]*size, **args_scatter)
-            else:
-                ax.plot(bands_distances, energies[:,c]-energies[:,v], c='b')
-                ax.scatter(bands_distances, energies[:,c]-energies[:,v], s=weights[:,c]*size, c='r')
-
-        #add high-symmetry k-points vertical bars
-        kpath_car = red_car(path,self.lattice.rlat)
-        #calculate distances for high-symmetry points
-        kpath_distances = calculate_distances( path )
-        for d in kpath_distances:
-            ax.axvline(d,c='k')
-
-        ax.set_xlim([min(bands_distances),max(bands_distances)])
-        ax.set_title("exciton %d-%d"%(excitons[0],excitons[-1]))
-        return kpath_distances
+    def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=1,space='bands',f=None,debug=None):
+        ybs = self.get_exciton_bs(energies_db,path,excitons,size=size,space=space,f=f,debug=debug)
+        return ybs.plot_ax(ax) 
 
     @add_fig_kwargs
-    def plot_exciton_bs(self,energies_db,path,excitons,size=500,space='bands',
-                        args_scatter={'c':'b'},args_plot={'c':'r'},debug=False):
+    def plot_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False,**kwargs):
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        self.plot_exciton_bs_ax(ax,energies_db,path,excitons,size=size,space=space,
-                                args_scatter=args_scatter,args_plot=args_plot,debug=debug)
+        self.plot_exciton_bs_ax(ax,energies_db,path,excitons,size=size,space=space,f=f,debug=debug)
         return fig
 
-    def interpolate(self,path,excitons,lpratio=5,verbose=True,**kwargs):
+    def interpolate(self,energies,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
         """ Interpolate exciton bandstructure using SKW interpolation from Abipy
         """
         from abipy.core.skw import SkwInterpolator
@@ -386,6 +403,8 @@ class YamboExcitonDB(YamboSaveDB):
  
         weights = self.get_exciton_weights(excitons)
         weights = weights[:,self.start_band:self.mband]
+        if f: weights = f(weights)
+        size *= 1.0/np.max(weights)
         ibz_nkpoints = max(lattice.kpoints_indexes)+1
         kpoints = lattice.red_kpoints
 
@@ -396,11 +415,29 @@ class YamboExcitonDB(YamboSaveDB):
             ibz_weights[idx_ibz,:] = weights[idx_bz,:] 
             ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
 
+        #get eigenvalues along the path
+        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
+            ibz_energies = energies.eigenvalues[:,self.start_band:self.mband]
+        elif isinstance(energies,YamboQPDB):
+            ibz_energies = energies.eigenvalues_qp
+        else:
+            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
+                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+
+        #interpolate energies
+        na = np.newaxis
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        kpoints_path = path.get_klist()[:,:3]
+        energies = skw.interp_kpts(kpoints_path).eigens
+
+        #interpolate weights
         na = np.newaxis
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
         kpoints_path = path.get_klist()[:,:3]
         exc_weights = skw.interp_kpts(kpoints_path).eigens
-        exc_bands = YambopyBandStructure(exc_weights[0]-fermie,kpoints_path,path=path,**kwargs)
+    
+        #create band-structure object
+        exc_bands = YambopyBandStructure(energies[0]-fermie,kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
     
         return exc_bands
  
@@ -462,14 +499,35 @@ class YamboExcitonDB(YamboSaveDB):
             if verbose: print("calculate exciton-light coupling")
             EL1,EL2 = self.project1(dipoles.dipoles[:,dir],nexcitons) 
 
+        if isinstance(broad,float): broad = [broad]*nexcitons
+
+        if isinstance(broad,tuple): 
+            broad_slope = broad[1]-broad[0]
+            min_exciton = np.min(self.eigenvalues.real)
+            broad = [ broad[0]+(es-min_exciton)*broad_slope for es in self.eigenvalues[:nexcitons].real]
+
+        if "gaussian" in broad or "lorentzian" in broad:
+            i = broad.find(":")
+            if i != -1:
+                value, eunit = broad[i+1:].split()
+                if eunit == "eV": sigma = float(value)
+                else: raise ValueError('Unknown unit %s'%eunit)
+
+            f = gaussian if "gaussian" in broad else lorentzian
+            broad = np.zeros([nexcitons])
+            for s in range(nexcitons):
+                es = self.eigenvalues[s].real
+                broad += f(self.eigenvalues.real,es,sigma)
+            broad = 0.1*broad/nexcitons
+
         #iterate over the excitonic states
         for s in range(nexcitons):
             #get exciton energy
             es = self.eigenvalues[s]
  
             #calculate the green's functions
-            G1 = -1/(   w - es + broad*I)
-            G2 = -1/( - w - es - broad*I)
+            G1 = -1/(   w - es + broad[s]*I)
+            G2 = -1/( - w - es - broad[s]*I)
 
             r = EL1[s]*EL2[s]
             chi += r*G1 + r*G2
@@ -506,6 +564,11 @@ class YamboExcitonDB(YamboSaveDB):
         ax = fig.add_subplot(1,1,1)
         self.plot_chi_ax(ax,n_brightest=n_brightest,**kwargs)
         return fig
+
+    def save_chi(self,filename,**kwargs):
+        """Compute chi and dump it to file"""
+        w,chi = self.get_chi(**kwargs)
+        np.savetxt(filename,np.array([w,chi.imag,chi.real]).T)
 
     def get_string(self,mark="="):
         lines = []; app = lines.append

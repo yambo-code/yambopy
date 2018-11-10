@@ -5,8 +5,7 @@
 #
 #
 from __future__ import print_function
-from builtins import zip
-from builtins import str
+import os
 import subprocess
 from textwrap import dedent
 from copy import deepcopy
@@ -130,28 +129,32 @@ class Pbs(Scheduler):
     def __str__(self):
         return self.get_script()
         
-    def run(self,dry=False,silent=True):
+    def run(self,filename='run.sh',dry=False,command="qsub",verbose=0):
         """
         run the command
         arguments:
         dry - only print the commands to be run on the screen
         """
-        command = self.get_bash()
-        
         if dry:
-            print(command)
-        else:
-            p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True,executable='/bin/bash')
-            self.stdout,self.stderr = p.communicate()
-            
-            #check if there is stderr
-            if self.stderr: raise Exception(self.stderr)
-            
-            #check if there is stdout
-            if not silent: print(self.stdout)
-            
-            #get jobid
-            self.jobid = self.stdout.split('\n')[0]
-            print("jobid:",self.jobid)
+            print(self)
+            return
 
+        #create the submission script
+        self.write(filename)
+        workdir  = os.path.dirname(filename)
+        basename = os.path.basename(filename) 
+
+        p = subprocess.Popen([command,basename],stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=workdir)
+        self.stdout,self.stderr = p.communicate()
         
+        #check if there is stderr
+        if self.stderr: raise Exception(self.stderr)
+        
+        #check if there is stdout
+        if verbose: print(self.stdout)
+        
+        #get jobid
+        self.jobid = str(self.stdout).split("\n")[0]
+        if verbose: print("jobid:",self.jobid)
+
+    
