@@ -434,6 +434,7 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     scf_conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
     scf_conv_thr = kwargs.pop("scf_conv_thr",scf_conv_thr)
     nscf_conv_thr = kwargs.pop("nscf_conv_thr",scf_conv_thr*10)
+    nscf_paralelization = kwargs.pop("nscf_paralelization","")
 
     #create a QE scf task and run
     qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
@@ -442,7 +443,7 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     #create a QE nscf task and run
     if nscf_kpoints is None: nscf_kpoints = kpoints 
     qe_input = qe_input.copy().set_nscf(nscf_bands,nscf_kpoints,conv_thr=nscf_conv_thr)
-    qe_nscf_task = PwTask.from_input([qe_input,qe_scf_task],dependencies=qe_scf_task)
+    qe_nscf_task = PwTask.from_input([qe_input,qe_scf_task],dependencies=qe_scf_task,paralelization=nscf_paralelization)
 
     #create a p2y nscf task and run
     p2y_task = P2yTask.from_nscf_task(qe_nscf_task)
