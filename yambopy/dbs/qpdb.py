@@ -191,10 +191,10 @@ class YamboQPDB():
 
     def get_bs_path(self,lat,path,**kwargs):
         """Get a band-structure on a path"""
-        bands_kpoints, bands_indexes, path_car = lat.get_path(path)
+        bands_kpoints, bands_indexes, path_car = lat.get_path(path.kpoints)
 
-        ks_bandstructure = YambopyBandStructure(self.eigenvalues_dft[bands_indexes],bands_kpoints,**kwargs)
-        qp_bandstructure = YambopyBandStructure(self.eigenvalues_qp[bands_indexes], bands_kpoints,**kwargs)
+        ks_bandstructure = YambopyBandStructure(self.eigenvalues_dft[bands_indexes],bands_kpoints,kpath=path,**kwargs)
+        qp_bandstructure = YambopyBandStructure(self.eigenvalues_qp[bands_indexes], bands_kpoints,kpath=path,**kwargs)
 
         return ks_bandstructure, qp_bandstructure
         
@@ -224,6 +224,8 @@ class YamboQPDB():
    
         #consistency check
         if not np.isclose(lattice.kpts_iku,self.kpoints_iku).all():
+            print(lattice.kpts_iku)
+            print(self.kpoints_iku)
             raise ValueError("The QP database is not consistent with the lattice")
 
         #interpolate the dft eigenvalues

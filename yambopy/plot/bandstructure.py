@@ -67,7 +67,7 @@ class YambopyBandStructure():
               'weights': self.weights.tolist() if self.weights is not None else None,
               'kpoints': self.kpoints.tolist(),
               'kwargs': self.kwargs,
-              'kpath': self.kpath.as_dict(),
+              'kpath': self.kpath.as_dict() if self.kpath is not None else None,
               'fermie': self.fermie,
               '_xlim': self._xlim,
               '_ylim': self._ylim }
@@ -113,12 +113,13 @@ class YambopyBandStructure():
         return yl
 
     @add_fig_kwargs    
-    def plot(self):
+    def plot(self,title=None):
         """return a matplotlib figure with the plot"""
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
         self.plot_ax(ax)
+        if title: ax.title(title)
         return fig
 
     def set_kwargs(self,**kwargs):
@@ -226,10 +227,10 @@ class YambopyBandStructureList():
         return (np.min(low_ylim),np.max(top_ylim))
 
     def as_dict(self):
-        bandstructures_dict=[]
+        bandstructures_list=[]
         for bandstructure in self.bandstructures:
-            bandstructures_dict.append(bandstructure.as_dict())
-        return bandstructures_dict
+            bandstructures_list.append(bandstructure.as_dict())
+        return bandstructures_list
 
     @classmethod
     def from_json(cls,filename):
@@ -283,9 +284,9 @@ class YambopyBandStructureList():
             bandstructure.set_fermi(valence)
 
     @add_fig_kwargs
-    def plot(self,**kwargs):
+    def plot(self,figsize=None,**kwargs):
         import matplotlib.pyplot as plt
-        fig = plt.figure()
+        fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(1,1,1)
         self.plot_ax(ax,**kwargs)
         return fig
