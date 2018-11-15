@@ -1,11 +1,12 @@
-# Copyright (C) 2016 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 #
+from __future__ import print_function
 import subprocess
-from schedulerpy import *
+from .scheduler import Scheduler
 
 class Oar(Scheduler):
     """
@@ -78,7 +79,7 @@ class Oar(Scheduler):
         command = self.get_bash()
         
         if dry:
-            print command
+            print(command)
         else:
             p = subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
             self.stdout,self.stderr = p.communicate()
@@ -87,10 +88,10 @@ class Oar(Scheduler):
             if self.stderr: raise Exception(self.stderr)
             
             #check if there is stdout
-            if not silent: print self.stdout
+            if not silent: print(self.stdout)
                 
             #get jobid
             for line in self.stdout.split('\n'):
                 if 'OAR_JOB_ID' in line:
                     self.jobid = int(line.strip().split('=')[1])
-            print "jobid:",self.jobid
+            print("jobid:",self.jobid)

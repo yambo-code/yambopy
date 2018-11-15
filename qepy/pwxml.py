@@ -1,12 +1,13 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
 import xml.etree.ElementTree as ET
-from   qepy.auxiliary import *
-from   numpy import array
-from   lattice import *
+from qepy.auxiliary import *
+from numpy import array
+from .lattice import *
+from yambopy.plot.plotting import add_fig_kwargs 
 
 HatoeV = 27.2107
 
@@ -25,17 +26,18 @@ class PwXML():
                      'data-file-schema.xml': self.read_datafile_schema}
 
         done_reading = False
+
         #check if the name is data-file.xml or data-file-schema.xml or whatever....
-        for filename,read in datafiles.items():
+        for filename,read in list(datafiles.items()):
             path_filename = "%s/%s.save/%s"%(path, prefix, filename)
             if os.path.isfile(path_filename):
-                print "reading %s"%filename
+                print("reading %s"%filename)
                 done_reading = read(path_filename)
                 break
         
         #trap errors
         if not done_reading:
-            possible_files = " or ".join(datafiles.keys())
+            possible_files = " or ".join(list(datafiles.keys()))
             raise ValueError('Failed to read %s in %s/%s.save'%(possible_files,path,prefix))
 
     def read_datafile(self,filename):
@@ -45,26 +47,45 @@ class PwXML():
         self.datafile_xml = ET.parse( filename ).getroot()
 
         #get acell
-        self.acell = [ float(x) for x in self.datafile_xml.findall("CELL/CELL_DIMENSIONS")[0].text.strip().split('\n') ]
+        self.celldm = [ float(x) for x in self.datafile_xml.findall("CELL/CELL_DIMENSIONS")[0].text.strip().split('\n') ]
 
         #get cell
         self.cell = []
-        for i in xrange(1,4):
+        for i in range(1,4):
             cell_lat = self.datafile_xml.findall("CELL/DIRECT_LATTICE_VECTORS/a%d"%i)[0].text
             self.cell.append([float(x) for x in cell_lat.strip().split()])
 
         #get reciprocal cell
         self.rcell = []
-        for i in xrange(1,4):
+        for i in range(1,4):
             rcell_lat = self.datafile_xml.findall("CELL/RECIPROCAL_LATTICE_VECTORS/b%d"%i)[0].text
             self.rcell.append([float(x) for x in rcell_lat.strip().split()])
 
         #get atoms
         self.natoms = int(self.datafile_xml.findall("IONS/NUMBER_OF_ATOMS")[0].text)
         self.atoms = []
-        for i in xrange(1,self.natoms+1):
-            atom = self.datafile_xml.findall("IONS/ATOM.%d"%i)[0].get('tau')
-            self.atoms.append([float(x) for x in atom.strip().split()])
+        for i in range(1,self.natoms+1):
+            atom_xml = self.datafile_xml.findall("IONS/ATOM.%d"%i)[0]
+            #read postions
+            pos_string = atom_xml.get('tau').strip().split()
+            pos = [float(x) for x in pos_string]
+            #read type  
+            atype = atom_xml.get('SPECIES').strip()
+            #store
+            self.atoms.append([atype,pos])
+
+        #get atomic species
+        self.natypes = int(self.datafile_xml.findall("IONS/NUMBER_OF_SPECIES")[0].text) 
+        self.atypes = {}
+        for i in range(1,self.natypes+1):
+            atype_xml = self.datafile_xml.findall("IONS/SPECIE.%d"%i)[0]
+            #read string
+            atype_string = atype_xml.findall('ATOM_TYPE')[0].text.strip()
+            #read mass
+            atype_mass =  float(atype_xml.findall('MASS')[0].text.strip())
+            #read pseudo
+            atype_pseudo =  atype_xml.findall('PSEUDO')[0].text.strip()
+            self.atypes[atype_string]=[atype_mass,atype_pseudo]
 
         #get nkpoints
         self.nkpoints = int(self.datafile_xml.findall("BRILLOUIN_ZONE/NUMBER_OF_K-POINTS")[0].text.strip())
@@ -79,9 +100,9 @@ class PwXML():
  
         #get eigenvalues
         eigen = []
-        for ik in xrange(self.nkpoints):
+        for ik in range(self.nkpoints):
             for EIGENVALUES in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig_xml) ).getroot().findall("EIGENVALUES"):
-                eigen.append(map(float, EIGENVALUES.text.split()))
+                eigen.append(list(map(float, EIGENVALUES.text.split())))
         self.eigen  = eigen
 
         #get fermi
@@ -97,8 +118,8 @@ class PwXML():
 
         #get cell
         self.cell = []
-        for i in xrange(1,4):
-            cell_lat = self.datafile_xml.findall("input/atomic_structure/cell/a%d"%i)[0].text
+        for i in range(1,4):
+            cell_lat = self.datafile_xml.findall("output/atomic_structure/cell/a%d"%i)[0].text
             self.cell.append([float(x) for x in cell_lat.strip().split()])
 
         #calculate acell
@@ -106,7 +127,7 @@ class PwXML():
 
         #get reciprocal cell
         self.rcell = []
-        for i in xrange(1,4):
+        for i in range(1,4):
             rcell_lat = self.datafile_xml.findall("output/basis_set/reciprocal_lattice/b%d"%i)[0].text
             self.rcell.append([float(x) for x in rcell_lat.strip().split()])
 
@@ -114,9 +135,23 @@ class PwXML():
         self.natoms = int(self.datafile_xml.findall("output/atomic_structure")[0].get('nat'))
         self.atoms = []
         atoms = self.datafile_xml.findall("output/atomic_structure/atomic_positions/atom")
-        for i in xrange(self.natoms):
-            atom = atoms[i].text
-            self.atoms.append([float(x) for x in atom.strip().split()])
+        for i in range(self.natoms):
+            atype = atoms[i].get('name')
+            pos = [float(x) for x in atoms[i].text.strip().split()]
+            self.atoms.append([atype,pos])
+
+        #get atomic species
+        self.natypes = int(self.datafile_xml.findall("output/atomic_species")[0].get('ntyp')) 
+        atypes = self.datafile_xml.findall("output/atomic_species/species")
+        self.atypes = {}
+        for i in range(self.natypes):
+            #read string
+            atype_string = atypes[i].get('name').strip()
+            #read mass
+            atype_mass = atypes[i].findall('mass')[0].text.strip()
+            #read pseudo
+            atype_pseudo = atypes[i].findall('pseudo_file')[0].text.strip()
+            self.atypes[atype_string]=[atype_mass,atype_pseudo]
 
         #get nkpoints
         self.nkpoints = int(self.datafile_xml.findall("output/band_structure/nks")[0].text.strip())
@@ -144,62 +179,93 @@ class PwXML():
 
         return True
 
-    def get_scaled_positions(self):
-        """ get the atomic positions in reduced coordinates
+    def get_scaled_atoms(self):
+        """Build and return atoms dictionary"""
+        atoms = []
+        for atype,pos in self.atoms:
+            red_pos = car_red([pos],self.cell)[0].tolist()
+            atoms.append([atype,red_pos])
+        return atoms
+        
+    def get_atypes_dict(self):
+        return self.atypes
+
+    def get_lattice_dict(self):
+        return dict(ibrav=0,cell_parameters=self.cell)
+
+    def get_structure_dict(self):
         """
-        return car_red(self.atoms,self.cell)
+        Get a structure dict that can be used to create a new pw input file
+        """
+        return dict(atoms=self.get_scaled_atoms(),
+             atypes=self.get_atypes_dict(),
+             lattice=self.get_lattice_dict())
+
+    def get_cartesian_positions(self):
+        """ get the atomic positions in cartesian coordinates """
+        positions = []
+        for atype,pos in self.atoms:
+            positions.append(pos)
+        return np.array(positions)
+
+    def get_scaled_positions(self):
+        """ get the atomic positions in reduced coordinates """
+        cartesian_positions = self.get_cartesian_positions()
+        return car_red(cartesian_positions,self.cell)
 
     def __str__(self):
-        s = ""
-        s += "cell:\n"
+        lines = []; app = lines.append
+        app("cell:")
         for c in self.cell:
-            s += ("%12.8lf "*3)%tuple(c)+'\n'
-        s += "atoms:\n"
-        for a in self.atoms:
-            s += ("%12.8lf "*3)%tuple(a)+'\n'
-        s += "nkpoints: %d\n"%self.nkpoints
-        s += "nbands:   %d\n"%self.nbands
-        return s
+            app(("%12.8lf "*3)%tuple(c))
+        app("atoms:")
+        for atype,pos in self.atoms:
+            app("%3s"%atype + ("%12.8lf "*3)%tuple(pos))
+        app("nkpoints: %d"%self.nkpoints)
+        app("nbands:   %d"%self.nbands)
+        return "\n".join(lines)
 
-    def plot_eigen(self,path=[],xlim=(),ylim=()):
-        """ plot the eigenvalues using matplotlib
-        """
-        import matplotlib.pyplot as plt
-        
+    def plot_eigen_ax(self,ax,path=[],xlim=(),ylim=()):
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
-            plt.xticks( *zip(*path) )
-        plt.ylabel('E (eV)')
+            ax.set_xticks( *list(zip(*path)) )
+        ax.set_ylabel('E (eV)')
 
         #plot vertical line
         for point in path:
             x, label = point
-            plt.axvline(x)
-        plt.axhline(0)
+            ax.axvline(x)
+        ax.axhline(0)
 
         #plot bands
         eigen = array(self.eigen)
         for ib in range(self.nbands):
-           plt.plot(xrange(self.nkpoints),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
+           ax.plot(list(range(self.nkpoints)),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
 
         #plot options
-        if xlim:
-          plt.xlim(xlim)
-        if ylim:
-          plt.ylim(ylim)
+        if xlim: ax.set_xlim(xlim)
+        if ylim: ax.set_ylim(ylim)
 
-        plt.show()
+    @add_fig_kwargs
+    def plot_eigen(self,path=[],xlim=(),ylim=()):
+        """ plot the eigenvalues using matplotlib
+        """
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        self.plot_eigen_ax(ax)
+        return fig
 
     def write_eigen(self,fmt='gnuplot'):
         """ write eigenvalues to a text file
         """
         if fmt=='gnuplot':
             f = open('%s.dat'%self.prefix,'w')
-            for ib in xrange(self.nbands):
-                for ik in xrange(self.nkpoints):
+            for ib in range(self.nbands):
+                for ik in range(self.nkpoints):
                     f.write("%.1lf %.4lf \n " % (ik,self.eigen[ik][ib]*HatoeV) )
                 f.write("\n")
             f.close()
         else:
-            print 'fmt %s not implemented'%fmt
+            print('fmt %s not implemented'%fmt)

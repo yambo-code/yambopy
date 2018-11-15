@@ -1,12 +1,14 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda, Alejandro Molina Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
-#
+from __future__ import print_function
+from builtins import str
+from builtins import object
 import os
 
-class ProjwfcIn():
+class ProjwfcIn(object):
     """
     A class to generate and manipulate projwfc input files.
     """    
@@ -23,12 +25,12 @@ class ProjwfcIn():
         filename = self.getfilename(filename)
         os.system('mkdir -p %s'%folder)
         self.write("%s/%s"%(folder,filename))
-        print "Run projwfc..."
+        print("Run projwfc...")
         if procs == 1:
             os.system('cd %s; %s -inp %s > projwfc.log' % (folder,self._projwfc,filename))
         else:
             os.system('cd %s; mpirun -np %d %s -inp %s > projwfc.log' % (folder,procs,self._projwfc,filename))
-        print "done!"
+        print("done!")
 
     def getfilename(self,filename):
         if filename is None:

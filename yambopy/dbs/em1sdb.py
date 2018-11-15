@@ -1,4 +1,4 @@
-# Copyright (c) 2017, Henrique Miranda
+# Copyright (c) 2018, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -6,7 +6,7 @@
 from yambopy import *
 from netCDF4 import Dataset
 
-class YamboStaticScreeningDB():
+class YamboStaticScreeningDB(object):
     """
     Class to handle static screening databases from Yambo
     
@@ -78,7 +78,7 @@ class YamboStaticScreeningDB():
             try:
                 database = Dataset(filename)
             except:
-                print "warning: failed to read %s"%filename
+                print("warning: failed to read %s"%filename)
 
 
             #static screening means we have only one frequency
@@ -104,13 +104,13 @@ class YamboStaticScreeningDB():
         oldpath = self.save
         filename = self.filename
         shutil.copyfile("%s/%s"%(oldpath,filename),"%s/%s"%(path,filename))
-        for nq in xrange(self.nqpoints):
+        for nq in range(self.nqpoints):
             fname = "%s_fragment_%d"%(filename,nq+1)
             shutil.copyfile("%s/%s"%(oldpath,fname),"%s/%s"%(path,fname))
 
         #edit with the new wfs
         X = self.X
-        for nq in xrange(self.nqpoints):
+        for nq in range(self.nqpoints):
             fname = "%s_fragment_%d"%(filename,nq+1)
             database = Dataset("%s/%s"%(path,fname),'r+')
             database.variables['X_Q_%d'%(nq+1)][0,0,:] = X[nq].real
@@ -152,7 +152,7 @@ class YamboStaticScreeningDB():
         y = [np.linalg.inv(np.eye(self.ngvectors)+xq)[0,0] for xq in self.X ]
       
         #order according to the distance
-        x, y = zip(*sorted(zip(x, y)))
+        x, y = list(zip(*sorted(zip(x, y))))
         y = np.array(y)
 
         #scale by volume?
@@ -177,7 +177,7 @@ class YamboStaticScreeningDB():
         y = [xq[ng2,ng1] for xq in self.X ]
       
         #order according to the distance
-        x, y = zip(*sorted(zip(x, y)))
+        x, y = list(zip(*sorted(zip(x, y))))
         y = np.array(y)
 
         #scale by volume?
@@ -213,7 +213,7 @@ class YamboStaticScreeningDB():
 if __name__ == "__main__":
 
     ys = YamboStaticScreeningDB()
-    print ys
+    print(ys)
   
     #plot static screening 
     ax = plt.gca()

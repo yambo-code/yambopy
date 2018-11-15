@@ -52,7 +52,7 @@ def gw_convergence():
 
     y.optimize(conv,run=run)
 
-def plot_convergence():
+def plot_convergence(show=True):
     #pack the files in .json files
     pack_files_in_folder('gw_conv')
 
@@ -60,14 +60,14 @@ def plot_convergence():
     ya = YamboAnalyser('gw_conv')
     print(ya)
     print('plot all qpoints')
-    ya.plot_gw('qp',('lda','gw'))
+    ya.plot_gw(show=show)
     print('plot along a path')
 
-    path = [[[0.5,   0,   0],'L'],
-            [[  0,   0,   0],'$\Gamma$'],
-            [[  0, 0.5, 0.5],'X'],
-            [[1.0, 1.0, 1.0],'$\Gamma$']]
-    ya.plot_gw_path(path,'qp',('gw',))
+    path = Path([ [[1.0,1.0,1.0],'G'],
+               [[0.0,0.5,0.5],'X'],
+               [[0.0,0.0,0.0],'G'],
+               [[0.5,0.0,0.0],'L']], [20,20,20])
+    ya.plot_gw(path=path,show=show)
 
 if __name__ == "__main__":
     #parse options

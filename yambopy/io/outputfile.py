@@ -1,16 +1,20 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
 #
-#
-from yambopy import *
-from yambopy.plot import *
 import os
 import re
-from copy import *
+from collections import defaultdict
+
+import numpy as np
 from netCDF4 import Dataset
-from yamboparser import *
+
+from .yambofile import YamboFile
+from yambopy import YamboIn
+from yambopy.tools.jsonencoder import JsonDumper
+from yambopy.dbs.latticedb import YamboLatticeDB
+from yambopy.units import ha2ev
 
 class YamboOut():
     """ 
@@ -21,297 +25,195 @@ class YamboOut():
     ``folder``:      The relative path of the folder where yambo dumped its input files
 
     ``save_folder``: The path were the SAVE folder is localized 
-
     """
-    _lock = "lock" #name of the lockfile
 
-    def __init__(self,folder,save_folder='.'):
+    _tags = ['refl', 'eel', 'eps', 'qp', 'sf',
+             'carriers', 'polarization', 'external']
+    _netcdf = ['ndb.QP', 'ndb.HF_and_locXC']
+    _tagsexp = r'#\n#\s+((?:(?:[`0-9a-zA-Z\-\/\|\\(\)\_[\]]+)\s+)+)#\n\s'
 
+    def __init__(self, folder, save_folder='.'):
+        """
+        For now we initialize the class in the same way as before (from_files)
+        In the future we should be able to initialize this class from
+        a file in the disk or from a dictionary
+        """
+        self.files = defaultdict(dict)
+        self.from_folder(folder,save_folder)
+
+    def from_folder(self,folder,save_folder):
         self.folder = folder
 
-        #check if the save folder is in save_folder if not try folder
-        if not os.path.isdir(save_folder+'/SAVE'):
+        # check if the save folder is in save_folder if not try folder
+        if not os.path.isdir(save_folder + '/SAVE'):
             self.save_folder = folder
         else:
             self.save_folder = save_folder
 
-        #get the output dir
+        # get all the files in the output dir
         if os.path.isdir(folder):
             outdir = os.listdir(folder)
         else:
-            raise ValueError( "Invalid folder: %s"%folder )
-        if os.path.isdir(folder+"/LOG"):
-            logdir = os.listdir(folder+"/LOG")
+            raise ValueError("Invalid folder: %s" % folder)
+
+        # get the log dir
+        logdir_path = os.path.join(folder, "LOG")
+        if os.path.isdir(logdir_path):
+            logdir = os.listdir(logdir_path)
         else:
             logdir = outdir
-        tags = ['refl','eel','eps','qp','sf','carriers','polarization','external']
-        # Problem in the name of variable inside the file external_field
-        #self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and any([tag in f for tag in tags]) and 'xsf' not in f]
-        #Line 49: Why the xsf condition? This makes the subroutine to fail
-        self.output = ["%s"%f for f in outdir if f[:2] == 'o-' and any([tag in f for tag in tags])]
-        self.run    = ["%s"%f for f in outdir if f[:2] == 'r-']
-        self.logs   = ["/LOG/%s"%f for f in logdir]
 
-        # get data from netcdf file ndb.QP (not useful so far)
-        netcdf_tags = ['QP']
+        # get output filenames
+        self.netcdf = ["%s" % f for f in outdir if f in self._netcdf]
+        self.output = ["%s" % f for f in outdir if f.startswith('o-') and YamboFile.has_tag(f,self._tags)]
+        self.run = ["%s" % f for f in outdir if f.startswith('r-')]
+        self.logs = ["%s" % f for f in logdir if f.startswith('l-')]
 
-        #get data from output file
+        # get data from output file
         self.get_runtime()
         self.get_outputfile()
+        self.get_netcdffile()
         self.get_inputfile()
         self.get_cell()
 
-        self.netdata = {}  # read netcdf file from YamboFile
-        self.nettags = {}
-        self.netval  = {}
-
-        # get output name, open netcdf file (only if QP file exists)
-        if os.path.exists('%s/ndb.QP' % folder):
-          nameout = self.output[0][2:-3]
-          self.netdata[nameout] = YamboFile('ndb.QP',folder=folder) 
-          self.nettags[nameout] = self.netdata[nameout].data.keys()
-          self.netval[nameout]  = self.netdata[nameout].data.values()
-          self.set_data_netcdf(nameout)
-
-        # Search of the ndb.QP files. I give the directory of calculations, not the jobname
-#        for f in outdir:
-#            if os.path.isdir('%s/%s'%(folder,f)) and not 'SAVE' in f:
-#                self.netdata[f] = YamboFile('ndb.QP',folder='%s/%s'%(folder,f)) 
-#                self.nettags[f] = self.netdata[f].data.keys()
-#                self.netval[f]  = self.netdata[f].data.values()
-        #fix data from netcdf in suitable format (remove complex type, etc.) 
-
-        # Read data from netcdf file
+    @staticmethod
+    def has_output(folder):
+        """Check if the folder has output files"""
+        return [filename for filename in os.listdir(folder) if YamboFile.is_output(filename)] 
 
     def get_cell(self):
         """ 
         Get information about the unit cell (lattice vectors, atom types, positions,
         kpoints and symmetry operations) from the SAVE folder.
         """
-        path = self.save_folder+'/SAVE/ns.db1'
-        if os.path.isfile(path):
-            #read database
-            self.nc_db         = Dataset(path)
-            self.lat           = self.nc_db.variables['LATTICE_VECTORS'][:].T
-            self.alat          = self.nc_db.variables['LATTICE_PARAMETER'][:].T
-            self.sym_car       = self.nc_db.variables['SYMMETRY'][:]
-            self.kpts_iku      = self.nc_db.variables['K-POINTS'][:].T
-            self.apos          = self.nc_db.variables['ATOM_POS'][:,0,:]
-            self.atomic_number = self.nc_db.variables['atomic_numbers'][:].T
-
-        else:
-            raise ValueError('Could not find ns.db1 in %s from YamboOut'%path)
+        path = os.path.join(self.save_folder,'SAVE/ns.db1')
+        self.lattice = YamboLatticeDB.from_db_file(path)
 
     def get_outputfile(self):
         """ 
         Get the data from the o-* files
         """
-        #open all the o-* files
-        files = [open("%s/%s"%(self.folder,f)) for f in self.output]
-        self.data = {}
-        self.tags = {}
-        print self.output,files
-        for filename,f in zip(self.output,files):
-            #get the string with the file data
-            try:
+        # for all the o-* files
+        for filename in self.output:
+            
+            #yambofile read
+            # TODO: use Yambofile class to read the o-* files
+            yf = YamboFile(filename,self.folder)
+
+            #classic read
+            with open(os.path.join(self.folder, filename),'r') as f:
                 string = f.read()
-                # Check this regexp
-                tags = [tag.strip() for tag in re.findall('#\n#\s+((?:(?:[`0-9a-zA-Z\-\/\|\\(\)\_[\]]+)\s+)+)#\n\s',string)[0].split()]
+
+                # get tags
+                find_tags = re.findall(self._tagsexp, string)
+                tags = [tag.strip() for tag in find_tags[0].split()]
                 f.seek(0)
-                self.data[filename] = np.loadtxt(f)
-                self.tags[filename] = tags
-            except:
-                raise ValueError('Error reading file %s'%"%s/%s"%(self.folder,filename))
-        #close all the files
-        for f in files: f.close()
-        return self.data
 
-    def set_data_netcdf(self,nameout):
+                # get data
+                data = np.loadtxt(f, unpack=True)
 
-        self.dictag = {}
-        self.dicnet = {}
-        self.newtag = []
+                #store data
+                self.files[filename].update(dict(zip(tags,data)))
+                self.files[filename]["type"] = yf.type
 
-        val_aux = []
-
-        for word in self.netdata[nameout].data.keys():
-            if word == 'Eo':
-              self.newtag.append(word)
-              val_aux.append( self.netdata[nameout].data[word].real.tolist() ) 
-            elif word == 'E':
-              self.newtag.append(word)
-              val_aux.append( self.netdata[nameout].data[word].real.tolist() ) 
-              self.newtag.append('Width[eV]')
-              val_aux.append( self.netdata[nameout].data[word].imag.tolist() ) 
-            elif word == 'qp_table':
-              pass
-            elif word == 'E-Eo':
-              self.newtag.append(word)
-              val_aux.append( self.netdata[nameout].data[word].real.tolist() )
-            elif word == 'Band':
-              self.newtag.append(word)
-              val_aux.append( self.netdata[nameout].data[word].tolist())
-            elif word == 'Kpoint_index':
-              self.newtag.append(word)
-              val_aux.append( self.netdata[nameout].data[word].tolist())
-            elif word == 'Kpoint':
-              pass
-            elif word == 'Z':
-              self.newtag.append('Z(Re)')
-              val_aux.append( self.netdata[nameout].data[word].real.tolist() )
-              self.newtag.append('Z(Im)')
-              val_aux.append( self.netdata[nameout].data[word].imag.tolist() )
-
-        # Order elements in a list of variables for each QP states (probably there is a better way)
-
-        n_var = len(val_aux)
-        n_qp  = len(val_aux[0])
-        aux2 = []
-        for i in range(n_qp):
-          aux = []
-          for j in range(n_var):
-            aux.append( val_aux[j][i]  )
-          aux2.append(aux)
-
-        # Create a dictionary for tags and another for data
-
-        self.dictag[nameout] = self.newtag
-        self.dicnet[nameout] = aux2 
+    def get_netcdffile(self):
+        """
+        Get the netcdf files
+            The supported netcdf files so far are:
+                ndb.QP
+                ndb.HF_and_locXC
+        """
+        for filename in self.netcdf:
+            yf = YamboFile(filename, self.folder)
+            #convert units
+            if yf.type == 'netcdf_gw':
+                yf.data['E-Eo'] *= ha2ev
+                yf.data['Eo'] *= ha2ev
+                yf.data['E'] *= ha2ev
+            #save data
+            self.files[filename] = yf.data
+            self.files[filename]["type"] = yf.type
 
     def get_inputfile(self):
         """
         Get the input file from the o-* file
         """
-        files = [open("%s/%s"%(self.folder,f),'r') for f in self.output]
 
-        self.inputfile = {}
-    
-        for filename,f in zip(self.output,files):
-
-            #read this inputfile
+        for filename in self.output:
             inputfile = []
-            for line in f:
-                if 'Input file :' in line:
-                    for line in f:
-                        # Note this: to read the input file we just ignore the first 4 characters
-                        # of the section after the tag 'Input file:'
-                        inputfile.append( line[4:] )
-            
-            #use YamboIn to read the input file to a list
-            yi = YamboIn(filename=None)
-            self.inputfile[filename] = yi.read_string( ''.join(inputfile) )
+            # read this inputfile
+            with open(os.path.join(self.folder, filename),'r') as f:
+                for line in f:
+                    if 'Input file :' in line:
+                        for line in f:
+                            # Note this: to read the input file we just ignore the 
+                            # first 4 characters of the section after the tag 'Input file:'
+                            inputfile.append(line[4:])
 
-        #close all the files
-        for f in files: f.close()
+            # use YamboIn to read the input file to a list
+            yi = YamboIn()
+            self.files[filename]["input"] = yi.read_string(''.join(inputfile))
 
     def get_runtime(self):
         """
         Get the runtime from the r-* file
         """
-        files = sorted([open("%s/%s"%(self.folder,f)) for f in self.run])
 
-        #empty timing
-        timing = dict()
+        for filename in self.run:
+            timing = {}
 
-        #iterate over all the files
-        for f,filename in zip(files,self.run):
-            #dictionary for each filename
-            this_timing = timing[filename] = dict()
-            
-            category = "UNKNOWN"
-            for line in files[-1]:
-                if 'Timing' in line:
-                    this_timing[category] = line.split()[-1].split('/')
-                if re.search('(\[[0-9.]+\].[A-Z])', line):
-                    category = line.strip()
+            with open(os.path.join(self.folder,filename),'r') as f:
 
-        #close attl the files
-        for f in files: f.close()
-        self.runtime = timing
-        return timing
+                category = "UNKNOWN"
+                for line in f:
+                    if 'Timing' in line:
+                        timing[category] = line.split()[-1].split('/')
+                    if re.search('(\[[0-9.]+\].[A-Z])', line):
+                        category = line.strip()
+                
+            self.files[filename]["runtime"] = timing
+            self.files[filename]["type"] = "report"
 
-    def get_data(self,tags):
+    def get_data(self, tags):
         """
         Search for a tag in the output files and obtain the data
         """
         data = {}
-        for key in self.data.keys():
+        for key in self.files.keys():
             if all(tag in key for tag in tags):
-                data[key] = dict(zip(self.tags[key],np.array(self.data[key]).T))
+                data[key] = self.files[key]
         return data
-
-    def plot(self,tag,cols=(2,),xlabel=None):
-        """
-        Search in the output files a certain tag and plot it
-        """
-        for key in self.data.keys():
-            if tag in key:
-                data = self.data[key]
-        for col in cols:
-            plt.plot(data[:,0],data[:,col-1],label='col %d'%col)
-        plt.title(tag)
-        if xlabel: plt.xlabel(xlabel)
-        plt.legend()
-        plt.show()
 
     def print_runtime(self):
         """
         Print the runtime in a string
         """
         timing = self.get_runtime()
-        for t in timing.items():
-            print t[0], '\n', t[1], '\n'
+        for t in list(timing.items()):
+            print(t[0], '\n', t[1], '\n')
 
-    def pack(self,filename=None):
+    def pack(self, filename=None):
         """
         Pack up all the data in the structure in a json file
         """
-        #if no filename is specified we use the same name as the folder
-        if not filename: filename = self.folder
-        jsondata = {"data"     : dict(zip(self.data.keys(),[d.tolist() for d in self.data.values()])),
-                    "tags"     : self.tags,
-                    "runtime"  : self.runtime,
-                    "inputfile": self.inputfile,
-                    "lattice"  : self.lat,
-                    "alat"     : self.alat,
-                    "kpts_iku" : self.kpts_iku,
-                    "sym_car"  : self.sym_car,
-                    "atompos"  : self.apos,
-                    "atomtype" : self.atomic_number}
-        print (filename)
-        filename = '%s.json'%filename
-        JsonDumper(jsondata,filename)
+        # if no filename is specified we use the same name as the folder
+        if not filename:
+            filename = '%s.json' % self.folder
 
-    def pack_from_netcdf(self,filename=None):
-        """
-        Pack up all the data in the structure in a json file
-        """
-        #if no filename is specified we use the same name as the folder
-        if not filename: filename = self.folder
-        jsondata = {"data"     : dict(zip(self.dicnet.keys(),self.dicnet.values())),
-                    "tags"     : self.dictag,
-                    "runtime"  : self.runtime,
-                    "inputfile": self.inputfile,
-                    "lattice"  : self.lat,
-                    "alat"     : self.alat,
-                    "kpts_iku" : self.kpts_iku,
-                    "sym_car"  : self.sym_car,
-                    "atompos"  : self.apos,
-                    "atomtype" : self.atomic_number}
-        filename = '%s.json'%filename
-        JsonDumper(jsondata,filename)
+        # create json dictionary
+        jsondata = {"files": self.files,
+                    "lattice": self.lattice.as_dict()}
+        JsonDumper(jsondata, filename)
 
     def __str__(self):
-        s = ""
-        s+= "\nlogs:\n"
-        s+= ("%s\n"*len(self.logs))%tuple(self.logs)
-        s+= "\nrun:\n"
-        s+= ("%s\n"*len(self.run)%tuple(self.run))
-        s+= "\noutput:\n"
-        s+= ("%s\n"*len(self.output)%tuple(self.output))
-        s+= "\nlattice:\n"
-        s+= "\n".join([("%12.8lf "*3)%tuple(vec) for vec in self.lat])+"\n"
-        s+= "\natom positions:\n"
-        s+= "\n".join(["%3d "%self.atomic_number[n]+("%12.8lf "*3)%tuple(vec) for n,vec in enumerate(self.apos)])+"\n"
-        return s
-
+        lines = []
+        lines.append("logs:")
+        lines += self.logs
+        lines.append("\nrun:")
+        lines += self.run
+        lines.append("\noutput (text):")
+        lines += self.output
+        lines.append("\noutput (netcdf):")
+        lines += self.netcdf
+        lines += [str(self.lattice)]
+        return "\n".join(lines)

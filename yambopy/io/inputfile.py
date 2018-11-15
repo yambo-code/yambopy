@@ -1,15 +1,16 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
 # All rights reserved.
 #
 # This file is part of yambopy
 #
-from subprocess import Popen, PIPE
 import os
 import json
-from time import sleep
 import re
+from subprocess import Popen, PIPE
+from yambopy import yambopyenv
+from yambopy.tools.duck import isstring
 
-class YamboIn():
+class YamboIn(object):
     """
     Class to read, write, create and manipulate yambo input files with python.
 
@@ -30,7 +31,7 @@ class YamboIn():
             y = YamboIn('yambo -o c',folder='ip')
             print y
 
-    If the argument ``args`` was used then the filename should be left as ``yambo.in`` because that's the default input filename that yambo will create. 
+    If the argument ``args`` was used then the filename should be left as ``yambo.in`` because that's the default input filename that yambo will create.
 
     Call ypp to initialize the input file:
 
@@ -39,7 +40,7 @@ class YamboIn():
             y = YamboIn('yyp -e w'args=,filename='ypp.in')
             print y
 
-    **Arguments:** 
+    **Arguments:**
 
         ``args``:     if specified yambopy will run yambo, read the generated input file and initialize the class with those variables.
 
@@ -64,36 +65,75 @@ class YamboIn():
                    'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life',
                    'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsyms',
                    'QPDBs', 'QPDB_merge','RealTime','RT_X','RToccDos','RToccBnd','RToccEner',
-                   'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid','gkkp','el_ph_corr','WRbsWF','Select_energy', 'RTDBs','photolum','kpts_map',
-                   'RTtime','RToccupations','RTfitbands']
+                   'RToccTime','RTlifeBnd','amplitude','bzgrids','Random_Grid','gkkp','el_ph_corr','WRbsWF',
+                   'Select_energy','RTDBs','photolum','kpts_map','RTtime','RToccupations','RTfitbands']
 
-    def __init__(self,args='',folder='.',vim=True,filename='yambo.in'):
+    def __init__(self,args=''):
         """
         Initalize the class
         """
-        self.folder = folder
         self.yamboargs = args
 
         #the type of the variables is determined from the type of variable in this dictionary
         self.variables = {} #here we will store the values of the variables
         self.arguments = [] #here we will store the arguments
 
-        # if we initalize the class with arguments we call yambo to generate the input file
-        if args != '':
-            workdir = os.getcwd()
-            os.chdir(folder)
-            os.system('rm -f %s'%filename)
-            yambo = Popen(args, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
-            # if yambo calls vim we have to close it. We just want the generic input file
-            # that yambo generates.
-            if vim: yambo.stdin.write(":q!\n")
-            yambo.wait()
-            os.chdir(workdir)
-            self.read_file(filename="%s/%s"%(folder,filename))
-        else:
-            if filename:
-                self.read_file(filename="%s/%s"%(folder,filename))
+    @classmethod
+    def from_file(cls,filename='yambo.in',folder='.'):
+        """ Create an instance of YamboIn from an existing input file"""
+        instance = cls()
+        err = instance.read_file(os.path.join(folder,filename))
+        if err: raise FileNotFoundError('Could not read the %s file'%os.path.join(folder,filename))
+        return instance
 
+    @classmethod
+    def from_runlevel(cls,runlevel,executable=yambopyenv.YAMBO,folder='.',filename='yambo.in'):
+        """
+        Create an input file from the runlevel.
+        Will execute yambo in the folder with the runlevel arguments, 
+        read the file and return an instance of this class
+        """
+        workdir = os.getcwd()
+
+        #check if there exists a SAVE folder
+        save_path = os.path.join(folder,'SAVE')
+        if not os.path.isdir(save_path): raise ValueError('SAVE folder not found in %s'%save_path)
+        
+        #run yambo
+        os.chdir(folder)
+        if os.path.isfile(filename): os.remove(filename)
+        if '-Q' not in runlevel: runlevel += ' -Q' 
+        command = "%s %s"%(executable,runlevel)
+        yambo = Popen(command, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
+        yambo.wait()
+        os.chdir(workdir)
+
+        instance = cls()
+        err = instance.read_file(os.path.join(folder,filename))
+
+        if err:
+            lines = []; app = lines.append         
+            app('Yambo did not create the %s input file.'%filename)
+            app('command: %s'%command)
+            app('folder:  %s/'%folder)
+            raise FileNotFoundError("\n".join(lines))
+  
+        #read input file
+        return cls.from_file(filename=filename,folder=folder)
+        
+    @classmethod
+    def from_dictionary(cls,yamboin_dict):
+        """Return an instance of this class from a dictionary""" 
+        yamboin = cls()
+        yamboin.set_fromdict(yamboin_dict)
+        return yamboin        
+
+    def set_fromdict(self,yamboin_dict):
+        """Write a python script to generate this input"""
+        #monkey patch the input file
+        for var,value in yamboin_dict.items():
+            self[var] = value
+    
     def __getitem__(self,key):
         """ Get the value of a variable in the input file
         """
@@ -102,10 +142,19 @@ class YamboIn():
     def __setitem__(self,key,value):
         """ Set the value of a variable in the input file
         """
+        if key == "QPbands":
+            #read from current QPkrange
+            kstart,kstop,bstart,bstop = self.variables["QPkrange"][0]
+            #read bands from QPbands
+            new_bstart,new_bstop = value
+            #set new QPkrange
+            key = "QPkrange"
+            value = [kstart,kstop,new_bstart,new_bstop]
         #if the units are not specified, add them
-        if type(value) == list and str not in map(type,value):
-            value = [value,'']
-        if type(value) in [int,float,complex]:
+        if isinstance(value,list):
+            if not any( [isinstance(v,str) for v in value] ):
+                value = [value,'']
+        if isinstance(value,(int,float,complex)):
             value = [value,'']
         self.variables[key] = value
 
@@ -117,16 +166,11 @@ class YamboIn():
     def read_file(self,filename='yambo.in'):
         """ Read the variables from a file
         """
-        try:
-            yambofile = open(filename,"r")
-        except IOError:
-            print('Could not read the file %s'%filename)
-            print('Something is wrong, yambo did not create the input file. Or the file you are trying to read does not exist')
-            print('command: %s'%self.yamboargs)
-            print('folder:  %s/'%self.folder)
-            exit()
-        inputfile = self.read_string(yambofile.read())
-        yambofile.close()
+        if not os.path.isfile(filename): return 1
+
+        with open(filename,"r") as yambofile:
+            inputfile = self.read_string(yambofile.read())
+        return 0
 
     def add_dict(self,variables):
         """
@@ -135,7 +179,7 @@ class YamboIn():
         self.variables.update(variables)
 
     def read_string(self,inputfile):
-        """ 
+        """
         Read the input variables from a string
         """
         var_real     = re.findall(self._variaexp + self._spacexp + '='+ self._spacexp +
@@ -183,22 +227,23 @@ class YamboIn():
 
         return {"arguments": self.arguments, "variables": self.variables}
 
-    def optimize(self,conv,variables=('all',),run=lambda x: None,ref_run=True):
-        """ Function to to make multiple runs of yambo to converge calculation parameters
-            Input:
+    def optimize(self,conv,folder='.',variables=('all',),run=lambda x: None,ref_run=True):
+        """
+        Function to to make multiple runs of yambo to converge calculation parameters
+
+        Arguments:
+
             A dictionary conv that has all the variables to be optimized
             A list fo the name of the variables in the dicitonary that are to be optimized
             A function run that takes as input the name of the inputfile (used to run yambo)
             A boolean ref_run that can disable the submitting of the reference run (see scripts/analyse_gw.py)
-            .. code-block:: python
-                def run(filename):
-                    os.system('yambo -F %s'%filename)
+
         """
         name_files = []
 
         #check which variables to optimize
         if 'all' in variables:
-            variables = conv.keys()
+            variables = list(conv.keys())
 
         #save all the variables
         backup = {}
@@ -206,63 +251,63 @@ class YamboIn():
             backup[var] = self[var]
 
         #add units to all the variables (to be improved!)
-        for key,value in conv.items():
-            if type(value[-1]) != str and type(value[0]) == list:
+        for key,value in list(conv.items()):
+            if not isinstance(value[-1],str) and type(value[0]) == list:
                 conv[key] = [value,'']
 
         #make a first run with all the first elements
         reference = {}
-        for key,value in conv.items():
+        for key,value in list(conv.items()):
             values, unit = value
             reference[key] = [values[0],unit]
             self[key] = [values[0],unit]
         #write the file and run
         if ref_run==True:
-            self.write( "%s/reference.in"%(self.folder) )
+            self.write( "%s/reference.in"%(folder) )
             run('reference.in')
         else:
-            print 'Reference run disabled.'
+            print('Reference run disabled.')
 
         #converge one by one
-        for key in [var for var in conv.keys() if var in variables]:
+        for key in [var for var in list(conv.keys()) if var in variables]:
             values, unit = conv[key]
             #put back the original values of the variables
             for var in variables:
                 self[var] = reference[var]
             #change the other variables
-            if type(values[0])==str:
+            if isinstance(values[0],str):
                 for string in values[1:]:
                     filename = "%s_%s"%(key,string)
                     self[key] = string
-                    self.write( self.folder + filename )
+                    self.write( folder + filename )
                     run(filename+".in")
                 continue
             if type(values[0])==float:
                 for val in values[1:]:
                     filename = "%s_%12.8lf"%(key,val)
                     self[key] = [val,unit]
-                    self.write( "%s/%s.in"%(self.folder,filename) )
+                    self.write( "%s/%s.in"%(folder,filename) )
                     run(filename+".in")
                 continue
             if type(values[0])==int:
                 for val in values[1:]:
                     filename = "%s_%05d"%(key,val)
                     self[key] = [val,unit]
-                    self.write( "%s/%s.in"%(self.folder,filename) )
+                    self.write( "%s/%s.in"%(folder,filename) )
                     run(filename+".in")
                 continue
             if type(values[0])==list:
                 for array in values[1:]:
                     filename = "%s_%s"%(key,"_".join(map(str,array)))
                     self[key] = [array,unit]
-                    self.write( "%s/%s.in"%(self.folder,filename) )
+                    self.write( "%s/%s.in"%(folder,filename) )
                     run(filename+".in")
                 continue
             if type(values[0])==complex:
                 for value in values[1:]:
                     filename = "%s_%lf_%lf"%(key,value.real,value.imag)
                     self[key] = [value,unit]
-                    self.write( "%s/%s.in"%(self.folder,filename) )
+                    self.write( "%s/%s.in"%(folder,filename) )
                     run(filename+".in")
                 continue
             raise ValueError( "unknown type for variable:", key )
@@ -273,13 +318,26 @@ class YamboIn():
 
         return name_files
 
+    def copy(self):
+        """Return a copy of this object"""
+        import copy
+        return copy.deepcopy(self)
+
     def write(self,filename='yambo.in'):
         """
         Write a yambo input file
         """
-        f = open(filename,"w")
-        f.write(str(self))
-        f.close()
+        with open(filename,"w") as f:
+           f.write(str(self))
+
+    def set_q(self,q):
+        """Change one of ['QpntsRXp','QpntsRXd','QpntsRXs'] variables to calculate only one q-point"""
+        for var in ['QpntsRXp','QpntsRXd','QpntsRXs']:
+            qpts = self.variables.get(var,None)
+            if qpts is None: continue
+            self.variables[var] = [[q,q],'']
+            return 0
+        raise ValueError('Could not find one of the following variables set in the input file: \'QpntsRXp\',\'QpntsRXd\',\'QpntsRXs\'')
 
     def pack(self,filename):
         """
@@ -298,24 +356,24 @@ class YamboIn():
         #arguments
         s += "\n".join(self.arguments)+'\n'
 
-        for key,value in self.variables.items():
-            if type(value)==str or type(value)==unicode:
+        for key,value in list(self.variables.items()):
+            if isstring(value):
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue
-            if type(value[0])==float:
+            if isinstance(value[0],float):
                 val, unit = value
                 if val > 1e-6:
                     s+="%s = %lf %s\n"%(key,val,unit)
                 else:
-                    s+="%s = %e %s\n"%(key,val,unit)
+                    s+="%s = %lf %s\n"%(key,val,unit)
                 continue
-            if type(value[0])==int:
+            if isinstance(value[0],int):
                 val, unit = value
                 s+="%s = %d %s\n"%(key,val,unit)
                 continue
-            if type(value[0])==list:
+            if isinstance(value[0],list):
                 array, unit = value
-                if type(array[0])==list:
+                if isinstance(array[0],list):
                     s+='%% %s\n'%key
                     for l in array:
                         s+="%s \n"%(" | ".join(map(str,l))+' | ')
@@ -324,13 +382,13 @@ class YamboIn():
                 else:
                     s+="%% %s\n %s %s \n%%\n"%(key," | ".join(map(str,array))+' | ',unit)
                 continue
-            if type(value[0])==str:
+            if isinstance(value[0],str):
                 array = value
-                s+="%% %s\n %s \n%%\n"%(key," | ".join(map(lambda x: "'%s'"%x.replace("'","").replace("\"",""),array))+' | ')
+                s+="%% %s\n %s \n%%\n"%(key," | ".join(["'%s'"%x.replace("'","").replace("\"","") for x in array])+' | ')
                 continue
-            if type(value[0])==complex:
-                value, unit = value
-                s+="%s = (%lf,%lf) %s\n"%(key,value.real,value.imag,unit)
+            if isinstance(value[0],complex):
+                c, unit = value
+                s+="%s = (%lf,%lf) %s\n"%(key,c.real,c.imag,unit)
                 continue
             raise ValueError( "Unknown type %s for variable: %s" %( type(value), key) )
         return s

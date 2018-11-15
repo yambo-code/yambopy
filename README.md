@@ -14,10 +14,9 @@ http://yambopy.readthedocs.org/en/latest/
 
 Features
 --------
-- Create Yambo input files using a transparent python script
-- Collect the output data in .json files for posterior analysis
+- Create Yambo and Quantum Espresso input files from python
+- Collect the output data in .json files for analysis
 - Plot the results using matplotlib
-- Create Quantum Espresso input files using python
 - Test suite
 - Tutorial
 

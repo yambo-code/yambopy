@@ -3,6 +3,7 @@
 # Run a BSE calculation using yambo
 #
 from __future__ import print_function
+from builtins import range
 import sys
 from yambopy import *
 from qepy import *
@@ -117,7 +118,7 @@ def analyse():
         print( "nexcitons: %d"%len(excitons) )
         print( "excitons:" )
         print( excitons )
-        a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1))
+        a.get_wavefunctions(Degen_Step=0.01,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(1)))
         a.write_json(path)
 
     print( "To plot the data run:" )

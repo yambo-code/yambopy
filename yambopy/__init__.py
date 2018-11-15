@@ -1,8 +1,7 @@
-# Copyright (C) 2015 Henrique Pereira Coutada Miranda
+# Copyright (C) 2018 Henrique Pereira Coutada Miranda
 # All rights reserved.
 #
 # This file is part of yambopy
-#
 #
 """
 Create, read and write yambo input files
@@ -32,17 +31,23 @@ Modules:
         - recipes: user contributed scripts
 """
 import numpy as np
-from yambopy.jsonencoder import *
-from yambopy.plot import *
-from yambopy.units import *
 
-#lattice stuff
-from yambopy.lattice import *
+class yambopyenv():
+    YAMBO = "yambo"
+    P2Y = "p2y"
+    E2Y = "e2y"
+    YPP = "ypp"
+    SCHEDULER = "bash"
+
+#tools and units
+from yambopy.tools.jsonencoder import *
+from yambopy.units import *
 
 #yambo databases
 from yambopy.dbs.savedb import *
 from yambopy.dbs.dipolesdb import *
 from yambopy.dbs.qpdb import *
+from yambopy.dbs.hfdb import *
 from yambopy.dbs.em1sdb import *
 from yambopy.dbs.greendb import *
 from yambopy.dbs.latticedb import *
@@ -55,6 +60,7 @@ from yambopy.dbs.elphondb import *
 #input/output files
 from yambopy.io.inputfile import *
 from yambopy.io.outputfile import *
+from yambopy.io.jsonfile import *
 
 #bse/excitons files
 from yambopy.bse.excitonwf import *
@@ -67,3 +73,9 @@ from yambopy.recipes import *
 
 #realtime files
 from yambopy.rt.rt_movie import *
+
+#data
+from yambopy.data import *
+
+
+

@@ -1,3 +1,4 @@
+from __future__ import print_function
 #############################################################################
 #
 # Author: Alejandro Molina-Sanchez
@@ -10,6 +11,7 @@
 #
 ##############################################################################
 #from __future__ import print_function
+from builtins import range
 from yambopy import *
 from qepy    import *
 from numpy import loadtxt,ones
@@ -94,7 +96,7 @@ phin.write('%s/04elph.in'%folder_ph)    # Electron-phonon calculation
 
 qcount = 0
 for iq in range(1,nq+1):
-  print 's.dbph_%06d'%iq
+  print('s.dbph_%06d'%iq)
   if os.path.isfile('%s/elph_dir/s.dbph_%06d'%(folder_ph,iq)):
     qcount += 1
 if qcount == nq:

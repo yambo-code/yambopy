@@ -1,0 +1,95 @@
+#  __      __   ______   __       __  _______    ______     
+# |  \    /  \ /      \ |  \     /  \|       \  /      \    
+#  \$$\  /  $$|  $$$$$$\| $$\   /  $$| $$$$$$$\|  $$$$$$\   
+#   \$$\/  $$ | $$__| $$| $$$\ /  $$$| $$__/ $$| $$  | $$   
+#    \$$  $$  | $$    $$| $$$$\  $$$$| $$    $$| $$  | $$   
+#     \$$$$   | $$$$$$$$| $$\$$ $$ $$| $$$$$$$\| $$  | $$   
+#     | $$    | $$  | $$| $$ \$$$| $$| $$__/ $$| $$__/ $$   
+#     | $$    | $$  | $$| $$  \$ | $$| $$    $$ \$$    $$   
+#      \$$     \$$   \$$ \$$      \$$ \$$$$$$$   \$$$$$$    
+#                                                           
+#              GPL Version 4.1.2 Revision 76                
+#                        MPI Build                          
+#                http://www.yambo-code.org                  
+#
+ppa                          # [R Xp] Plasmon Pole Approximation
+gw0                          # [R GW] GoWo Quasiparticle energy levels
+HF_and_locXC                 # [R XX] Hartree-Fock Self-energy and Vxc
+em1d                         # [R Xd] Dynamical Inverse Dielectric Matrix
+StdoHash=  40                # [IO] Live-timing Hashes
+Nelectro= 8.000000           # Electrons number
+ElecTemp= 0.000000     eV    # Electronic Temperature
+BoseTemp=-1.000000     eV    # Bosonic Temperature
+OccTresh=0.1000E-4           # Occupation treshold (metallic bands)
+NLogCPUs=0                   # [PARALLEL] Live-timing CPU`s (0 for all)
+DBsIOoff= "none"             # [IO] Space-separated list of DB with NO I/O. DB=(DIP,X,HF,COLLs,J,GF,CARRIERs,W,SC,BS,ALL)
+DBsFRAGpm= "none"            # [IO] Space-separated list of +DB to be FRAG and -DB NOT to be FRAG. DB=(DIP,X,W,HF,COLLS,K,BS,QINDX,
+FFTGvecs= 1459         RL    # [FFT] Plane-waves
+#WFbuffIO                    # [IO] Wave-functions buffered I/O
+X_all_q_CPU= ""              # [PARALLEL] CPUs for each role
+X_all_q_ROLEs= ""            # [PARALLEL] CPUs roles (q,k,c,v)
+X_all_q_nCPU_LinAlg_INV= 1   # [PARALLEL] CPUs for Linear Algebra
+SE_CPU= ""                   # [PARALLEL] CPUs for each role
+SE_ROLEs= ""                 # [PARALLEL] CPUs roles (q,qp,b)
+EXXRLvcs=  9409        RL    # [XX] Exchange RL components
+Chimod= ""                   # [X] IP/Hartree/ALDA/LRC/BSfxc
+XfnQPdb= "none"              # [EXTQP Xd] Database
+XfnQP_N= 1                   # [EXTQP Xd] Interpolation neighbours
+% XfnQP_E
+ 0.000000 | 1.000000 | 1.000000 |        # [EXTQP Xd] E parameters  (c/v) eV|adim|adim
+%
+XfnQP_Z= ( 1.000000 , 0.000000 )       # [EXTQP Xd] Z factor  (c/v)
+XfnQP_Wv_E= 0.000000   eV    # [EXTQP Xd] W Energy reference  (valence)
+% XfnQP_Wv
+ 0.00     | 0.00     | 0.00     |        # [EXTQP Xd] W parameters  (valence) eV| eV|eV^-1
+%
+XfnQP_Wc_E= 0.000000   eV    # [EXTQP Xd] W Energy reference  (conduction)
+% XfnQP_Wc
+ 0.00     | 0.00     | 0.00     |        # [EXTQP Xd] W parameters  (conduction) eV| eV|eV^-1
+%
+% QpntsRXp
+  1 |  4 |                   # [Xp] Transferred momenta
+%
+% BndsRnXp
+  1 | 30 |                   # [Xp] Polarization function bands
+%
+NGsBlkXp= 1            RL    # [Xp] Response block size
+CGrdSpXp= 100.0000           # [Xp] [o/o] Coarse grid controller
+% EhEngyXp
+-1.000000 |-1.000000 | eV    # [Xp] Electron-hole energy range
+%
+% LongDrXp
+ 1.000000 | 0.000000 | 0.000000 |        # [Xp] [cc] Electric Field
+%
+PPAPntXp= 27.21138     eV    # [Xp] PPA imaginary energy
+XTermKind= "none"            # [X] X terminator ("none","BG" Bruneval-Gonze)
+XTermEn= 40.81708      eV    # [X] X terminator energy (only for kind="BG")
+GfnQPdb= "none"              # [EXTQP G] Database
+GfnQP_N= 1                   # [EXTQP G] Interpolation neighbours
+% GfnQP_E
+ 0.000000 | 1.000000 | 1.000000 |        # [EXTQP G] E parameters  (c/v) eV|adim|adim
+%
+GfnQP_Z= ( 1.000000 , 0.000000 )       # [EXTQP G] Z factor  (c/v)
+GfnQP_Wv_E= 0.000000   eV    # [EXTQP G] W Energy reference  (valence)
+% GfnQP_Wv
+ 0.00     | 0.00     | 0.00     |        # [EXTQP G] W parameters  (valence) eV| eV|eV^-1
+%
+GfnQP_Wc_E= 0.000000   eV    # [EXTQP G] W Energy reference  (conduction)
+% GfnQP_Wc
+ 0.00     | 0.00     | 0.00     |        # [EXTQP G] W parameters  (conduction) eV| eV|eV^-1
+%
+BoseCut=  0.10000            # [BOSE] Finite T Bose function cutoff
+% GbndRnge
+  1 | 30 |                   # [GW] G[W] bands range
+%
+GDamping=  0.10000     eV    # [GW] G[W] damping
+dScStep=  0.10000      eV    # [GW] Energy step to evaluate Z factors
+GTermKind= "none"            # [GW] GW terminator ("none","BG" Bruneval-Gonze)
+GTermEn= 40.81708      eV    # [GW] GW terminator energy (only for kind="BG")
+DysSolver= "n"               # [GW] Dyson Equation solver ("n","s","g")
+#NewtDchk                    # [GW] Test dSc/dw convergence
+#ExtendOut                   # [GW] Print all variables in the output file
+#OnMassShell                 # [F GW] On mass shell approximation
+%QPkrange                    # [GW] QP generalized Kpoint/Band indices
+  1|  4|  1| 30|
+%
