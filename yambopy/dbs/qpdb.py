@@ -193,8 +193,9 @@ class YamboQPDB():
         """Get a band-structure on a path"""
         bands_kpoints, bands_indexes, path_car = lat.get_path(path.kpoints)
 
-        ks_bandstructure = YambopyBandStructure(self.eigenvalues_dft[bands_indexes],bands_kpoints,kpath=path,**kwargs)
-        qp_bandstructure = YambopyBandStructure(self.eigenvalues_qp[bands_indexes], bands_kpoints,kpath=path,**kwargs)
+        red_bands_kpoints = car_red(bands_kpoints,lat.rlat)
+        ks_bandstructure = YambopyBandStructure(self.eigenvalues_dft[bands_indexes],red_bands_kpoints,kpath=path,**kwargs)
+        qp_bandstructure = YambopyBandStructure(self.eigenvalues_qp[bands_indexes], red_bands_kpoints,kpath=path,**kwargs)
 
         return ks_bandstructure, qp_bandstructure
         

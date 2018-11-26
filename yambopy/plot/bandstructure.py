@@ -8,6 +8,27 @@ from yambopy.tools.string import marquee
 from yambopy.plot.plotting import add_fig_kwargs
 from qepy.lattice import Path
 
+def exagerate_differences(ks_ebandsc,ks_ebandsp,ks_ebandsm,d=0.01,exagerate=5):
+    """
+    Take three different band-structures with some parameter changing
+    and return an exagerated version for plotting.
+    This is used for finite differences w.r.t. atomic positions for example
+    """
+    #calculate central finite difference
+    fdc_ks = (ks_ebandsp-ks_ebandsm)/(d*2)
+    fdp_ks = (ks_ebandsp-ks_ebandsc)/d
+    fdm_ks = (ks_ebandsm-ks_ebandsc)/d
+
+    #exagerate differences
+    ks_ebandsp = ks_ebandsc + fdp_ks*d*exagerate
+    ks_ebandsm = ks_ebandsc + fdm_ks*d*exagerate
+
+    #set colors again
+    ks_ebandsp.set_kwargs(c='brown')
+    ks_ebandsm.set_kwargs(c='tomato')
+
+    return ks_ebandsc,ks_ebandsp,ks_ebandsm
+
 class YambopyBandStructure():
     """
     Class to plot bandstructures
