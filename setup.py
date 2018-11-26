@@ -12,6 +12,13 @@ packages_yambopy = ['yambopy',
                     'schedulerpy',
                     'yamboparser']
 
+install_requires = [
+"numpy",
+"scipy",
+"netCDF4",
+"matplotlib",
+]
+
 if __name__ == '__main__':
     setup(name='yambopy',
           version='0.1',
@@ -20,5 +27,6 @@ if __name__ == '__main__':
           author_email='miranda.henrique@gmail.com',
           requires=['numpy','matplotlib','netCDF4'],
           scripts=['scripts/yambopy'],
-          packages=packages_yambopy
+          packages=packages_yambopy,
+          install_requires=install_requires,
           )
