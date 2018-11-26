@@ -785,12 +785,15 @@ class PwTask(YambopyTask):
     def from_input(cls,pwinputs,dependencies=None,**kwargs):
         scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
         executable = kwargs.pop('executable',qepyenv.PW)
+        paralelization = kwargs.pop('paralelization','')
         if not isiter(pwinputs): pwinputs = [pwinputs]
         if not all([isinstance(pwi,(PwIn,cls)) for pwi in pwinputs]):
             raise ValueError('The input is not an instance of PwIn or PwTask but %s'%(pwinput))
 
-        return cls(inputs=pwinputs,executable=executable,
+        instance = cls(inputs=pwinputs,executable=executable,
                    scheduler=scheduler,dependencies=dependencies)
+        instance.paralelization = paralelization
+        return instance
 
     @property
     def pwinput(self):
@@ -805,9 +808,11 @@ class PwTask(YambopyTask):
         #in case there is another PwTask task in inputs link it
         self.link_pwtask(path)
 
+        paralelization = self.paralelization if hasattr(self,'paralelization') else ""
+
         #create running script
         self._run = os.path.join(path,'run.sh')
-        self.scheduler.add_mpirun_command('%s -inp pw.in > %s'%(self.executable,self.log))
+        self.scheduler.add_mpirun_command('%s %s -inp pw.in > %s'%(self.executable,paralelization,self.log))
         self.scheduler.write(self._run)
 
     def link_pwtask(self,path):
