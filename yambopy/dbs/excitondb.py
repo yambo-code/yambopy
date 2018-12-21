@@ -316,17 +316,32 @@ class YamboExcitonDB(YamboSaveDB):
         weights_bz_sum = weights_bz_sum[kmesh_idx]
         return x,y,weights_bz_sum
  
-    def plot_exciton_2D_ax(self,ax,excitons,f=None,limfactor=0.8,**kwargs):
+    def plot_exciton_2D_ax(self,ax,excitons,f=None,mode='rbf',limfactor=0.8,**kwargs):
         """plot the exciton weights in a 2D Brillouin zone"""
         x,y,weights_bz_sum = self.get_exciton_2D(excitons,f=f)
 
-        scale = kwargs.pop('scale',1)
-        ax.scatter(x,y,s=scale,c=weights_bz_sum,rasterized=True,**kwargs)
+        #plotting
+        lim = np.max(self.lattice.rlat)*limfactor
+        if mode == 'hexagon': 
+            scale = kwargs.pop('scale',1)
+            ax.scatter(x,y,s=scale,c=weights_bz_sum,marker='H',rasterized=True,**kwargs)
+            ax.set_xlim(-lim,lim)
+            ax.set_ylim(-lim,lim)
+        elif mode == 'rbf':
+            from scipy.interpolate import Rbf
+            npts = kwargs.pop('npts',100)
+            interp_method = kwargs.pop('interp_method','bicubic')
+            dlim = lim*1.1
+            filtered_weights = [[xi,yi,di] for xi,yi,di in zip(x,y,weights_bz_sum) if -dlim<xi and xi<dlim and -dlim<yi and yi<dlim]
+            x,y,weights_bz_sum = np.array(filtered_weights).T
+            rbfi = Rbf(x,y,weights_bz_sum,function='linear')
+            x = y = np.linspace(-lim,lim,npts)
+            weights_bz_sum = np.zeros([npts,npts])
+            for col in range(npts):
+                weights_bz_sum[:,col] = rbfi(x,np.ones_like(x)*y[col])
+            ax.imshow(weights_bz_sum,interpolation=interp_method)
 
         title = kwargs.pop('title',str(excitons))
-        lim = np.max(self.lattice.rlat)*limfactor
-        ax.set_xlim(-lim,lim)
-        ax.set_ylim(-lim,lim)
         ax.set_title(title)
         ax.set_aspect('equal')
         ax.set_xticks([])
@@ -340,6 +355,23 @@ class YamboExcitonDB(YamboSaveDB):
         ax = fig.add_subplot(1,1,1)
         self.plot_exciton_2D_ax(ax,excitons,f=f,**kwargs)
         return fig
+
+    def plot_nbrightest_2D(self,emin=0,emax=10,estep=0.001,broad=0.1,scale=3,nrows=2,ncols=2,eps=1e-5):
+        """
+        Create a plot with multipls 2D brightest excitons
+        """
+        import matplotlib.pyplot as plt
+        figexc = plt.figure()
+        n_brightest = nrows*ncols
+        figchi = self.plot_chi(emin=emin,emax=emax,estep=estep,broad=broad,n_brightest=n_brightest,show=False)
+        #plot vertical bar on the brightest excitons
+        exc_e,exc_i = self.get_sorted()
+        sorted_exc = sorted(exc_i[:n_brightest],key = lambda x: x[1])
+        for n,(i,idx) in enumerate(sorted_exc):
+            ax = figexc.add_subplot(nrows,ncols,n+1)
+            excitons = self.get_degenerate(idx,eps)
+            self.plot_exciton_2D_ax(ax,excitons,scale=scale)
+        return figchi,figexc
 
     def get_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False):
         """
@@ -473,7 +505,7 @@ class YamboExcitonDB(YamboSaveDB):
         return car_kpoints, amplitudes[kindx], np.angle(phases)[kindx]
 
     def get_chi(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5,
-            nexcitons='all',spin_degen=2,verbose=0):
+            nexcitons='all',spin_degen=2,verbose=0,**kwargs):
         """
         Calculate the dielectric response function using excitonic states
         """
@@ -543,8 +575,9 @@ class YamboExcitonDB(YamboSaveDB):
         """Plot chi on a matplotlib axes"""
         w,chi = self.get_chi(**kwargs)
         #cleanup kwargs variables
-        for var in ['dipoles','dir','emin','emax','estep','broad','q0norm','nexcitons','spin_degen','verbose']: 
-            kwargs.pop(var,None)
+        cleanup_vars = ['dipoles','dir','emin','emax','estep','broad',
+                        'q0norm','nexcitons','spin_degen','verbose']
+        for var in cleanup_vars: kwargs.pop(var,None)
         if 're' in reim: ax.plot(w,chi.real,**kwargs)
         if 'im' in reim: ax.plot(w,chi.imag,**kwargs)
         ax.set_ylabel('$Im(\chi(\omega))$')
@@ -555,6 +588,7 @@ class YamboExcitonDB(YamboSaveDB):
             exciton_energy,idx = exc_e[idx]
             ax.axvline(exciton_energy,c='k')
             ax.text(exciton_energy,0.1,idx,rotation=90)
+        return w,chi
 
     @add_fig_kwargs
     def plot_chi(self,n_brightest=5,**kwargs):

@@ -8,6 +8,27 @@ from yambopy.tools.string import marquee
 from yambopy.plot.plotting import add_fig_kwargs
 from qepy.lattice import Path
 
+def exagerate_differences(ks_ebandsc,ks_ebandsp,ks_ebandsm,d=0.01,exagerate=5):
+    """
+    Take three different band-structures with some parameter changing
+    and return an exagerated version for plotting.
+    This is used for finite differences w.r.t. atomic positions for example
+    """
+    #calculate central finite difference
+    fdc_ks = (ks_ebandsp-ks_ebandsm)/(d*2)
+    fdp_ks = (ks_ebandsp-ks_ebandsc)/d
+    fdm_ks = (ks_ebandsm-ks_ebandsc)/d
+
+    #exagerate differences
+    ks_ebandsp = ks_ebandsc + fdp_ks*d*exagerate
+    ks_ebandsm = ks_ebandsc + fdm_ks*d*exagerate
+
+    #set colors again
+    ks_ebandsp.set_kwargs(c='brown')
+    ks_ebandsm.set_kwargs(c='tomato')
+
+    return ks_ebandsc,ks_ebandsp,ks_ebandsm
+
 class YambopyBandStructure():
     """
     Class to plot bandstructures
@@ -67,7 +88,7 @@ class YambopyBandStructure():
               'weights': self.weights.tolist() if self.weights is not None else None,
               'kpoints': self.kpoints.tolist(),
               'kwargs': self.kwargs,
-              'kpath': self.kpath.as_dict(),
+              'kpath': self.kpath.as_dict() if self.kpath is not None else None,
               'fermie': self.fermie,
               '_xlim': self._xlim,
               '_ylim': self._ylim }
@@ -113,12 +134,13 @@ class YambopyBandStructure():
         return yl
 
     @add_fig_kwargs    
-    def plot(self):
+    def plot(self,title=None):
         """return a matplotlib figure with the plot"""
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
         self.plot_ax(ax)
+        if title: ax.title(title)
         return fig
 
     def set_kwargs(self,**kwargs):
@@ -226,10 +248,10 @@ class YambopyBandStructureList():
         return (np.min(low_ylim),np.max(top_ylim))
 
     def as_dict(self):
-        bandstructures_dict=[]
+        bandstructures_list=[]
         for bandstructure in self.bandstructures:
-            bandstructures_dict.append(bandstructure.as_dict())
-        return bandstructures_dict
+            bandstructures_list.append(bandstructure.as_dict())
+        return bandstructures_list
 
     @classmethod
     def from_json(cls,filename):
@@ -283,9 +305,9 @@ class YambopyBandStructureList():
             bandstructure.set_fermi(valence)
 
     @add_fig_kwargs
-    def plot(self,**kwargs):
+    def plot(self,figsize=None,**kwargs):
         import matplotlib.pyplot as plt
-        fig = plt.figure()
+        fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(1,1,1)
         self.plot_ax(ax,**kwargs)
         return fig
