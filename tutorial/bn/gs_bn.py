@@ -152,6 +152,21 @@ def run_plot():
     xml = PwXML(prefix=prefix,path='bands')
     xml.plot_eigen(p)
 
+def run_projection():
+    f = open('proj.in','w')
+    projwfc = ProjwfcIn('bn')
+    projwfc.write(folder='bands')
+    projwfc.run(folder='bands')
+    projection = ProjwfcXML(prefix='bn',path='bands')
+    n_atom = range(16)
+    b_atom = range(16,32)
+    import matplotlib.pyplot as plt
+    ax = plt.subplot(1,1,1)
+    projection.plot_eigen(ax,path=p,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='bwr')
+    #ax.set_ylim([-7,6])
+    plt.show()
+
+
 def run_bands(nthreads=1):
     print("running bands:")
     qe_run = scheduler() 
@@ -170,6 +185,7 @@ if __name__ == "__main__":
     parser.add_argument('-n' ,'--nscf',        action="store_true", help='Non-self consistent calculation')
     parser.add_argument('-n2','--nscf_double', action="store_true", help='Non-self consistent calculation for the double grid')
     parser.add_argument('-b' ,'--bands',       action="store_true", help='Calculate band-structure')
+    parser.add_argument('-o' ,'--orbitals',    action="store_true", help='Plot atomic orbital projected band-structure')
     parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
     parser.add_argument('-d' ,'--dispersion',  action="store_true", help='Phonon dispersion')
     parser.add_argument('-t' ,'--nthreads',                         help='Number of threads', default=2 )
@@ -257,3 +273,6 @@ if __name__ == "__main__":
     if args.bands:
         run_bands(nthreads)
         run_plot()
+
+    if args.orbitals:
+        run_projection()

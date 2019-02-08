@@ -129,18 +129,21 @@ class ProjwfcXML(object):
       
         if selected_orbitals_2:
           #get weights of second set of orbitals
+          norm = mpl.colors.Normalize(vmin=0.,vmax=1.)
           w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
           #plot bands for fix size
           for ib in range(bandmin,bandmax):
-            eig = self.eigen[:,ib] - self.fermi
-            cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',alpha=alpha)
+            #eig = self.eigen[:,ib] - self.fermi
+            #cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',alpha=alpha)
+            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=size,c=w_rel[:,ib],cmap=color_map,edgecolors='none',label=label_1,norm=norm)
 
         else:
           #plot bands for a varying size
           w_proj = self.get_weights(selected_orbitals=selected_orbitals)
           for ib in range(bandmin,bandmax):
-            eig = self.eigen[:,ib] - self.fermi
-            cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha)
+            #eig = self.eigen[:,ib] - self.fermi
+            #cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha)
+            ax.scatter(range(self.nkpoints),self.eigen[:,ib] - self.fermi,s=w_proj[:,ib]*size,c=color,edgecolors='none',label=label_1)
 
         ax.set_xlim(0, max(kpoints_dists))
         return cax
