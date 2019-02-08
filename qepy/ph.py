@@ -7,7 +7,9 @@ import os
 import re
 from math import sqrt
 
-class PhIn(object):
+__all__ = ['PhIn']
+
+class PhIn():
     """
     A class to generate an manipulate quantum espresso input files for ph.x
     """

@@ -3,11 +3,11 @@
 # Run a Silicon groundstate calculation using Quantum Espresso
 #
 from __future__ import print_function, division
-from builtins import zip
 import sys
-from qepy import *
 import argparse
+from qepy import *
 from schedulerpy import *
+from math import sqrt
 
 kpoints = [6,6,1]
 kpoints_double = [24,24,1]
@@ -32,8 +32,8 @@ def get_inputfile():
     """ Define a Quantum espresso input file for boron nitride
     """ 
     qe = PwIn()
-    qe.atoms = [['N',[0.0,0.0,0.5]],
-                ['B',[1/3,2/3,0.5]]]
+    qe.set_atoms([['N',[0.0,0.0,0.5]],
+                  ['B',[1/3,2/3,0.5]]])
     qe.atypes = {'B': [10.811, "B.pbe-mt_fhi.UPF"],
                  'N': [14.0067,"N.pbe-mt_fhi.UPF"]}
 
@@ -152,20 +152,20 @@ def run_plot():
     xml = PwXML(prefix=prefix,path='bands')
     xml.plot_eigen(p)
 
-def run_projection():
-    f = open('proj.in','w')
+def run_projection(show=True):
+    import matplotlib.pyplot as plt
+    #write input file
     projwfc = ProjwfcIn('bn')
     projwfc.write(folder='bands')
     projwfc.run(folder='bands')
+    #read xml file
     projection = ProjwfcXML(prefix='bn',path='bands')
     n_atom = range(16)
     b_atom = range(16,32)
-    import matplotlib.pyplot as plt
     ax = plt.subplot(1,1,1)
-    projection.plot_eigen(ax,path=p,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='bwr')
-    #ax.set_ylim([-7,6])
-    plt.show()
-
+    cax = projection.plot_eigen(ax,path=p,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='bwr')
+    plt.colorbar(cax)
+    if show: plt.show()
 
 def run_bands(nthreads=1):
     print("running bands:")

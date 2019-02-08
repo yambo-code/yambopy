@@ -13,7 +13,7 @@ from .pseudo import get_pseudo_path
 from .tools import fortran_bool
 from .lattice import red_car, car_red
 
-class PwIn(object):
+class PwIn():
     """
     Class to generate an manipulate Quantum Espresso input files
     Can be initialized either reading from a file or starting from a new file.

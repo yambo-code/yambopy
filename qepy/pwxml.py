@@ -5,9 +5,10 @@
 #
 import xml.etree.ElementTree as ET
 from qepy.auxiliary import *
-from numpy import array
 from .lattice import *
 from yambopy.plot.plotting import add_fig_kwargs 
+
+__all__ = ['PwXML']
 
 HatoeV = 27.2107
 
@@ -239,7 +240,7 @@ class PwXML():
         ax.axhline(0)
 
         #plot bands
-        eigen = array(self.eigen)
+        eigen = np.array(self.eigen)
         for ib in range(self.nbands):
            ax.plot(list(range(self.nkpoints)),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
 

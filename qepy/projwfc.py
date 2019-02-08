@@ -4,11 +4,11 @@
 # This file is part of yambopy
 #
 from __future__ import print_function
-from builtins import str
-from builtins import object
 import os
 
-class ProjwfcIn(object):
+__all__ = ['ProjwfcIn']
+
+class ProjwfcIn():
     """
     A class to generate and manipulate projwfc input files.
     """    

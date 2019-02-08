@@ -3,10 +3,10 @@
 # Run a Silicon groundstate calculation using Quantum Espresso
 #
 from __future__ import print_function
-from builtins import zip
+import os
 import sys
-from qepy import *
 import argparse
+from qepy import *
 
 scf_kpoints  = [2,2,2]
 nscf_kpoints = [2,2,2]
@@ -28,8 +28,8 @@ def get_inputfile():
     """ Define a Quantum espresso input file for silicon
     """
     qe = PwIn()
-    qe.atoms = [['Si',[0.125,0.125,0.125]],
-                ['Si',[-.125,-.125,-.125]]]
+    qe.set_atoms([['Si',[0.125,0.125,0.125]],
+                  ['Si',[-.125,-.125,-.125]]])
     qe.atypes = {'Si': [28.086,"Si.pbe-mt_fhi.UPF"]}
 
     qe.control['prefix'] = "'%s'"%prefix
@@ -105,12 +105,11 @@ def bands():
     qe.write('bands/%s.bands'%prefix)
 
 def plot_orbitals(show=True):
-    f = open('proj.in','w')
+    import matplotlib.pyplot as plt
     projwfc = ProjwfcIn('si')
     projwfc.write(folder='bands')
     projwfc.run(folder='bands')
     projection = ProjwfcXML(prefix='si',path='bands')
-    import matplotlib.pyplot as plt
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     s_orb = [0,16]
