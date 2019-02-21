@@ -1,5 +1,7 @@
 from __future__ import print_function, division
 from yambopy import *
+import matplotlib.pyplot as plt
+
 
 #define path in reduced coordinates
 path = [ [0.0, 0.0, 0.0],
@@ -8,9 +10,19 @@ path = [ [0.0, 0.0, 0.0],
          [0.0, 0.0, 0.0]]
 
 #load databases
-ysave = YamboSaveDB()
-ylat  = YamboLatticeDB()
-yexc = YamboExcitonDB(ylat,path='yambo')
+ysave = YamboSaveDB.from_db_file(folder='bse/SAVE')
+ylat  = YamboLatticeDB.from_db_file(filename='bse/SAVE/ns.db1')
+yexc = YamboExcitonDB.from_db_file(ylat,folder='bse/yambo')
+
+print("case of reading the eigenvalues from a qpDB DB")
+#nee to have the ndb.QP file in the same folder where this script is
+yqp = YamboQPDB.from_db()
+ax = plt.gca()
+yexc.plot_exciton_bs(ax, yqp, path, (1,2,), space='bands')
+#plt.savefig('exciton_bs_qp.pdf')
+plt.show()
+
+'''
 
 if 0:
     print("plot exciton in the brillouin zone")
@@ -46,4 +58,4 @@ if 0:
     ax = plt.gca()
     yw.plot_exciton_bs(ax,path,(1,2),space='bands')
     plt.show()
-
+'''
