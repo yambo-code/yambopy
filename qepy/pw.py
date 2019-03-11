@@ -82,7 +82,7 @@ class PwIn():
     def from_file(cls,filename):
         """ Initialize the QE structure from a file """
         new = cls()
- 
+
         with open(filename,"r") as f:
             new.file_lines = f.readlines() #set file lines
             new.store(new.control,"control")     #read &control
@@ -138,10 +138,10 @@ class PwIn():
     def set_structure(self,structure):
         """
         Set the structure from a structure dictionary
-        
+
         Example:
             .. code-block :: python
-            
+
             structure = dict(ibrav=4,celldm1=4.7,celldm3=12)
             atypes = dict(Si=[28.086,"Si.pbe-mt_fhi.UPF"])
             atoms = [['N',[ 0.0, 0.0,0.5]],
@@ -174,7 +174,7 @@ class PwIn():
         if ibrav == 0 and cell_parameters is None:
             raise ValueError('ibrav = 0 implies that the cell_parameters variable is set')
         if cell_parameters: self.cell_parameters = cell_parameters
-        if ibrav is not None: self.ibrav = ibrav
+        if ibrav is not None: self.set_ibrav(ibrav)
         if celldm1 is not None: self.system['celldm(1)'] = celldm1
         if celldm2 is not None: self.system['celldm(2)'] = celldm2
         if celldm3 is not None: self.system['celldm(3)'] = celldm3
@@ -192,7 +192,7 @@ class PwIn():
         if 'celldm(5)' in self.system: lattice_dict['celldm5'] = self.system['celldm(5)']
         if 'celldm(6)' in self.system: lattice_dict['celldm6'] = self.system['celldm(6)']
         if self.ibrav == 0: lattice_dict['cell_parameters'] = self.cell_parameters
-        return lattice_dict 
+        return lattice_dict
 
     def set_atoms(self,atoms,coordtype="reduced"):
         """
@@ -468,7 +468,7 @@ class PwIn():
                                [  0,   0, c*a]]
         else:
             raise NotImplementedError('ibrav = %d not implemented'%self.ibrav)
-        return cell_parameters 
+        return cell_parameters
 
     @cell_parameters.setter
     def cell_parameters(self,value):
@@ -480,7 +480,10 @@ class PwIn():
 
     @ibrav.setter
     def ibrav(self,value):
-        if not hasattr(self,'_cell_parameters') and value == 0: 
+       self.set_ibrav(value)
+
+    def set_ibrav(self,value):
+        if not hasattr(self,'_cell_parameters') and value == 0:
             raise ValueError('Must set cell_parameters before setting ibrav to 0')
         if value == 0: self.remove_key(self.system,'celldm(1)')
         self.system['ibrav'] = value
@@ -510,7 +513,7 @@ class PwIn():
             if 'celldm(1)' not in list(self.system.keys()):
                 a = np.linalg.norm(cell_parameters[0])
             self._cell_parameters = cell_parameters
-        
+
     def read_kpoints(self):
         lines = iter(self.file_lines)
         #find K_POINTS keyword in file and read next line
@@ -594,7 +597,7 @@ class PwIn():
         #print kpoints
         if self.ktype == "automatic":
             app( "K_POINTS { %s }" % self.ktype )
-            app( ("%3d"*6)%tuple(self.kpoints + self.shiftk) )
+            app( ("%3d"*6)%(tuple(self.kpoints) + tuple(self.shiftk)) )
         else:
             app( "K_POINTS { %s }" % self.ktype )
             app( "%d" % len(self.klist) )
