@@ -72,7 +72,9 @@ def gw_convergence():
     y.optimize(conv,run=run,ref_run=False)
 
 def plot_convergence():
-    y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
+    #y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
+    #y = YamboIn('%s -d -g n -V all'%yambo)
+    y = YamboIn.from_file(folder='gw_conv')
 
     k_f = y['QPkrange'][0][1]         # Read last k-points in the uniform k-grid
     print (k_f) #pack the files in .json files
