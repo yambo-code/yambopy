@@ -17,7 +17,7 @@ __all__ = [
 #BN
 a = 4.7
 c = 12
-lattice = dict(ibrav=4,celldm1=a,celldm3=c/a)
+lattice = dict(ibrav=4,celldm1=4.7,celldm3=c/a)
 atypes = dict(B=[10.811, "B.pbe-mt_fhi.UPF"],
               N=[14.0067,"N.pbe-mt_fhi.UPF"])
 
