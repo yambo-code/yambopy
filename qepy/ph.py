@@ -28,7 +28,8 @@ class PhIn():
         f.close()
 
     def __str__(self):
-        s = '&inputph'
+        s  = 'phonons\n'
+        s += '&inputph'
         s += self.stringify_group('',self.variable) #print variable
         if 'true' in self['qplot'].lower(): 
             s += "%d\n"%len(self.qpoints)
