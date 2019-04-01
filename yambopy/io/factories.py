@@ -450,6 +450,33 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
 
     return qe_scf_task, qe_nscf_task, p2y_task
 
+def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints=None,Spin=False,**kwargs):
+    """
+    Return a ScfTask and BandsTask (Author: AMS)
+    Comments:
+    (i) Not happy about the spin-orbit option
+    """
+    scf_conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
+    scf_conv_thr = kwargs.pop("scf_conv_thr",scf_conv_thr)
+    bands_conv_thr = kwargs.pop("nscf_conv_thr",scf_conv_thr*10)
+
+    #create a QE scf task and run
+    qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
+    if Spin: qe_input.set_spinorbit()
+
+    qe_scf_task = PwTask.from_input(qe_input)
+
+    #create a QE bands task and run
+    if path_kpoints is None: 
+       path_kpoints = kpoints 
+       print("Warning: No path given; bands calculated in scf k-grid")
+
+    qe_input_bands = qe_input.copy().set_bands(nscf_bands,path_kpoints=path_kpoints,conv_thr=bands_conv_thr)
+    qe_bands_task  = PwTask.from_input([qe_input_bands,qe_scf_task],dependencies=qe_scf_task)  # Pending to define the parallelization (?)
+
+    return qe_scf_task, qe_bands_task
+
+
 def AbinitNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     from abipy.core.structure import Structure
     from abipy.abio.factories import scf_for_phonons
