@@ -217,6 +217,9 @@ class YamboExcitonDB(YamboSaveDB):
     def get_degenerate(self,index,eps=1e-4):
         """
         Get degenerate excitons
+        
+        Args:
+            eps: maximum energy difference to consider the two excitons degenerate in eV
         """
         energy = self.eigenvalues[index-1]
         excitons = [] 
@@ -316,24 +319,26 @@ class YamboExcitonDB(YamboSaveDB):
         weights_bz_sum = weights_bz_sum[kmesh_idx]
         return x,y,weights_bz_sum
  
-    def plot_exciton_2D_ax(self,ax,excitons,f=None,mode='rbf',limfactor=0.8,**kwargs):
+    def plot_exciton_2D_ax(self,ax,excitons,f=None,mode='hexagon',limfactor=0.8,**kwargs):
         """plot the exciton weights in a 2D Brillouin zone"""
         x,y,weights_bz_sum = self.get_exciton_2D(excitons,f=f)
 
-        #plotting
+        #filter points outside of area
         lim = np.max(self.lattice.rlat)*limfactor
+        dlim = lim*1.1
+        filtered_weights = [[xi,yi,di] for xi,yi,di in zip(x,y,weights_bz_sum) if -dlim<xi and xi<dlim and -dlim<yi and yi<dlim]
+        x,y,weights_bz_sum = np.array(filtered_weights).T
+
+        #plotting
         if mode == 'hexagon': 
             scale = kwargs.pop('scale',1)
-            ax.scatter(x,y,s=scale,c=weights_bz_sum,marker='H',rasterized=True,**kwargs)
+            ax.scatter(x,y,s=scale,c=weights_bz_sum,rasterized=True,**kwargs)
             ax.set_xlim(-lim,lim)
             ax.set_ylim(-lim,lim)
         elif mode == 'rbf':
             from scipy.interpolate import Rbf
             npts = kwargs.pop('npts',100)
             interp_method = kwargs.pop('interp_method','bicubic')
-            dlim = lim*1.1
-            filtered_weights = [[xi,yi,di] for xi,yi,di in zip(x,y,weights_bz_sum) if -dlim<xi and xi<dlim and -dlim<yi and yi<dlim]
-            x,y,weights_bz_sum = np.array(filtered_weights).T
             rbfi = Rbf(x,y,weights_bz_sum,function='linear')
             x = y = np.linspace(-lim,lim,npts)
             weights_bz_sum = np.zeros([npts,npts])
@@ -356,7 +361,7 @@ class YamboExcitonDB(YamboSaveDB):
         self.plot_exciton_2D_ax(ax,excitons,f=f,**kwargs)
         return fig
 
-    def plot_nbrightest_2D(self,emin=0,emax=10,estep=0.001,broad=0.1,scale=3,nrows=2,ncols=2,eps=1e-5):
+    def plot_nbrightest_2D(self,emin=0,emax=10,estep=0.001,broad=0.1,mode='rbf',scale=3,nrows=2,ncols=2,eps=1e-5):
         """
         Create a plot with multipls 2D brightest excitons
         """
@@ -370,7 +375,7 @@ class YamboExcitonDB(YamboSaveDB):
         for n,(i,idx) in enumerate(sorted_exc):
             ax = figexc.add_subplot(nrows,ncols,n+1)
             excitons = self.get_degenerate(idx,eps)
-            self.plot_exciton_2D_ax(ax,excitons,scale=scale)
+            self.plot_exciton_2D_ax(ax,excitons,scale=scale,mode=mode)
         return figchi,figexc
 
     def get_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False):
