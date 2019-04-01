@@ -475,7 +475,30 @@ def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints=None,Spin=False,
     qe_bands_task  = PwTask.from_input([qe_input_bands,qe_scf_task],dependencies=qe_scf_task)  # Pending to define the parallelization (?)
 
     return qe_scf_task, qe_bands_task
+'''
+def PwRelaxTasks(structure,kpoints,ecut,cell_dofree=None,Spin=False,**kwargs):
+    """
+    Return a RelaxTask and ScfTask (Author: AMS)
+    Comments:
+    (i) Not happy about the spin-orbit option
+    """
+    scf_conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
+    scf_conv_thr = kwargs.pop("scf_conv_thr",scf_conv_thr)
 
+    #create a QE scf task and run
+    qe_input_scf = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
+    if Spin: qe_input_scf.set_spinorbit()
+
+    qe_scf_task = PwTask.from_input(qe_input_scf)
+
+    qe_input_relax = qe_input_scf.copy().set_relax(cell_dofree=cell_dofree)
+
+    qe_relax_task = PwTask.from_input(qe_input)
+
+
+    return qe_relax_task, qe_scf_task
+
+'''
 
 def AbinitNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     from abipy.core.structure import Structure
