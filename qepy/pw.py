@@ -110,16 +110,20 @@ class PwIn():
         if pseudo_dir: pwi.pseudo_dir = pseudo_dir
         if conv_thr: pwi.electrons['conv_thr'] = conv_thr
         return pwi
-      
+
     @property
-    def natoms(self): 
+    def natoms(self):
         return len(self.atoms)
+
+    @property
+    def ntyp(self):
+        return int(self.system['ntyp'])
 
     @property
     def pseudo_dir(self):
         if 'pseudo_dir' not in self.control: return None
         return self.control['pseudo_dir'].replace("'",'')
-    
+
     @pseudo_dir.setter
     def pseudo_dir(self,value):
         self.control['pseudo_dir'] = "'%s'"%value.replace("'",'')
@@ -268,7 +272,7 @@ class PwIn():
         """
         self.control['calculation'] = "'relax'"
         self.ions['ion_dynamics']  = "'bfgs'"
-        if cell_dofree: 
+        if cell_dofree:
             self.control['calculation'] = "'vc-relax'"
             self.cell['cell_dynamics']  = "'bfgs'"
             self.cell['cell_dofree'] = "'%s'"%cell_dofree
@@ -279,8 +283,16 @@ class PwIn():
         self.system['noncolin'] = '.true.'
 
     def set_magnetization(self,starting_magnetization):
+        """
+        Set the starting_magnetization for a spin calculation.
+
+        Args:
+            starting_magnetization: a list with the starting magnetizations for each atomic type
+        """
+        if starting_magnetization is None: return
+        if len(starting_magnetization) != self.ntyp:
+            raise ValueError('Invalid size for starting_magnetization')
         for atom_type,magnetization in enumerate(starting_magnetization):
-            atom_type = atom_type + 1
             self.system['starting_magnetization(%d)' % atom_type] = magnetization
 
     def get_pseudos(self,destpath='.',pseudo_paths=[],verbose=0):
@@ -295,7 +307,7 @@ class PwIn():
         if self.pseudo_dir:
             if os.path.isdir(self.pseudo_dir): 
                 pseudo_paths.append(self.pseudo_dir)
-       
+
         ppstring = '\n'.join(pseudo_paths)
         if verbose: print('List of pseudo_paths:\n'+ppstring)
 
@@ -326,7 +338,7 @@ class PwIn():
         #find ATOMIC_SPECIES keyword in file and read next line
         for line in lines:
             if "ATOMIC_SPECIES" in line:
-                for i in range(int(self.system["ntyp"])):
+                for i in range(self.ntyp):
                     atype, mass, psp = next(lines).split()
                     self.atypes[atype] = [mass,psp]
 

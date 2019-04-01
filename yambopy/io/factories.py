@@ -426,7 +426,7 @@ def PhPhononTasks(structure,kpoints,ecut,qpoints=None):
 
     #create matdyn task
     matdyn_task = DynmatTask.from_phonon_task(ph_task,dependencies=ph_task)
- 
+
     return qe_scf_task, ph_task, matdyn_task
 
 def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
@@ -443,7 +443,7 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     qe_scf_task = PwTask.from_input(qe_input)
 
     #create a QE nscf task and run
-    if nscf_kpoints is None: nscf_kpoints = kpoints 
+    if nscf_kpoints is None: nscf_kpoints = kpoints
     qe_input = qe_input.copy().set_nscf(nscf_bands,nscf_kpoints,conv_thr=nscf_conv_thr)
     qe_nscf_task = PwTask.from_input([qe_input,qe_scf_task],dependencies=qe_scf_task,paralelization=nscf_paralelization)
 
@@ -452,74 +452,82 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
 
     return qe_scf_task, qe_nscf_task, p2y_task
 
-def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints=None,Spin=None,**kwargs):
+def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints,**kwargs):
     """
-    Return a ScfTask and BandsTask (Author: AMS)
-    Comments:
-    (i) More happy about the spin-orbit option but we need to add all options of spin and magnetization
+    Return a ScfTask and BandsTask (Author: AMS, HM)
+
+    Args:
+        kpoints: the k-mesh for the scf calculation
+        ecut: the planewave basis cutoff
+        nscf_bands: number of bands in the nscf_calculation
+        path_kpoints: the k-points along the path
+        spin: can be 'polarized' for calculation with spin or 'spinor' for calculation with spin-orbit
+        starting_magnetization: a list with the starting magnetizations for each atomic type
     """
     scf_conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
     scf_conv_thr = kwargs.pop("scf_conv_thr",scf_conv_thr)
     bands_conv_thr = kwargs.pop("nscf_conv_thr",scf_conv_thr*10)
 
-    starting_magnetization = kwargs.pop("starting_magnetization", None)
-
-    #create a QE scf task and run
+    #create a QE scf task
     qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
-    if Spin is "spinor": qe_input.set_spinorbit()
 
-    if starting_magnetization is not None: qe_input.set_magnetization(starting_magnetization)
+    spin = kwargs.pop("spin", None)
+    if spin is "spinor": qe_input.set_spinorbit()
+    if spin is "polarized": raise NotImplementedError('Spin polarized calculation not yet implemented')
 
-    qe_scf_task = PwTask.from_input(qe_input)
+    starting_magnetization = kwargs.pop("starting_magnetization", None)
+    qe_input.set_magnetization(starting_magnetization)
 
-    #create a QE bands task and run
-    if path_kpoints is None: 
-       path_kpoints = kpoints 
-       print("Warning: No path given; bands calculated in scf k-grid")
+    scf_paralelization = kwargs.pop("scf_paralelization","")
+    qe_scf_task = PwTask.from_input(qe_input,paralelization=scf_paralelization)
 
-    qe_input_bands = qe_input.copy().set_bands(nscf_bands,path_kpoints=path_kpoints,conv_thr=bands_conv_thr)
-    qe_bands_task  = PwTask.from_input([qe_input_bands,qe_scf_task],dependencies=qe_scf_task)  # Pending to define the parallelization (?)
+    #create a QE bands task
+    qe_input_bands = qe_input.copy().set_bands(nscf_bands,path_kpoints=path_kpoints,conv_thr=bands_conv_thr,**kwargs)
+    nscf_paralelization = kwargs.pop("nscf_paralelization","")
+    qe_bands_task = PwTask.from_input([qe_input_bands,qe_scf_task],dependencies=qe_scf_task,paralelization=nscf_paralelization,**kwargs)
 
     return qe_scf_task, qe_bands_task
 
-def PwRelaxTasks(structure,kpoints,ecut,cell_dofree=None,Spin=None,**kwargs):
+def PwRelaxTasks(structure,kpoints,ecut,cell_dofree='all',**kwargs):
     """
-    Return a RelaxTask and ScfTask (Author: AMS)
-    Comments:
-    (i)  More happy about the spin-orbit option but we need to add all options of spin and magnetization
-    (ii) Not sure if we need the two steps
+    Return a RelaxTask and ScfTask (Author: AMS, HM)
+
+    Args:
+        kpoints: the k-mesh for the scf calculation
+        ecut: the planewave basis cutoff
+        cell_free
+        spin: can be 'polarized' for calculation with spin or 'spinor' for calculation with spin-orbit
+        starting_magnetization: a list with the starting magnetizations for each atomic type
     """
+    raise NotImplementedError('This function is under development!')
+
     scf_conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
     scf_conv_thr = kwargs.pop("scf_conv_thr",scf_conv_thr)
-
-    starting_magnetization = kwargs.pop("starting_magnetization", None)
-
-    pseudo_dir = kwargs.pop("pseudo_dir", None)
+    paralelization = kwargs.pop("paralelization","")
 
     #create a QE input scf
-    
     qe_input_scf = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
 
-    if Spin is "spinor": qe_input_scf.set_spinorbit()
+    spin = kwargs.pop("spin", None)
+    if spin is "spinor": qe_input.set_spinorbit()
+    if spin is "polarized": raise NotImplementedError('spin polarized calculation yet not implemented')
 
-    if starting_magnetization is not None: qe_input_scf.set_magnetization(starting_magnetization)
+    starting_magnetization = kwargs.pop("starting_magnetization", None)
+    qe_input_scf.set_magnetization(starting_magnetization)
 
-    if pseudo_dir: qe_input_scf.control['pseudo_dir'] = "'%s'" % pseudo_dir
+    pseudo_dir = kwargs.pop("pseudo_dir", None)
+    if pseudo_dir: qe_input_scf.pseudo_dir = pseudo_dir
 
-    #create a QE relax-atom task and run
-
+    #create a QE relax-atom task
     qe_input_relax_atoms = qe_input_scf.copy().set_relax(cell_dofree=None)
-    qe_relax_atoms_task = PwTask.from_input(qe_input_relax_atoms)
+    qe_relax_atoms_task = PwTask.from_input(qe_input_relax_atoms,paralelization=paralelization)
 
-    #create a QE relax-cell task and run
-
+    #create a QE relax-cell task
     qe_input_relax_cell = qe_input_scf.copy().set_relax(cell_dofree=cell_dofree)
+    qe_relax_cell_task = PwTask.from_input([qe_input_relax_cell,qe_input_relax_atoms],dependencies=qe_relax_atoms_task,paralelization=paralelization)
 
-    qe_relax_cell_task = PwTask.from_input([qe_input_relax_cell,qe_input_relax_atoms],dependencies=qe_relax_atoms_task)
-
-    #create a QE scf task and run 
-
-    qe_scf_task = PwTask.from_input([qe_input_scf,qe_input_relax_cell],dependencies=qe_relax_cell_task)
+    #create a QE scf task
+    qe_scf_task = PwTask.from_input([qe_input_scf,qe_input_relax_cell],dependencies=qe_relax_cell_task,paralelization=paralelization)
 
     return qe_relax_atoms_task, qe_relax_cell_task, qe_scf_task
 
@@ -527,7 +535,7 @@ def AbinitNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs
     from abipy.core.structure import Structure
     from abipy.abio.factories import scf_for_phonons
     from pymatgen.core.units import bohr_to_ang
- 
+
     #extract pseudos
     pseudo_list = []
     for atype,(mass,pseudo) in structure['atypes'].items():
