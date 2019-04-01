@@ -272,6 +272,7 @@ class PwIn():
             self.control['calculation'] = "'vc-relax'"
             self.cell['cell_dynamics']  = "'bfgs'"
             self.cell['cell_dofree'] = "'%s'"%cell_dofree
+        return self
 
     def set_spinorbit(self):
         self.system['lspinorb'] = '.true.'

@@ -454,15 +454,13 @@ def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints=None,Spin=None,*
     """
     Return a ScfTask and BandsTask (Author: AMS)
     Comments:
-    (i) Not happy about the spin-orbit option
+    (i) More happy about the spin-orbit option but we need to add all options of spin and magnetization
     """
     scf_conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
     scf_conv_thr = kwargs.pop("scf_conv_thr",scf_conv_thr)
     bands_conv_thr = kwargs.pop("nscf_conv_thr",scf_conv_thr*10)
 
     starting_magnetization = kwargs.pop("starting_magnetization", None)
-
-    print(starting_magnetization)
 
     #create a QE scf task and run
     qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
@@ -481,30 +479,44 @@ def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints=None,Spin=None,*
     qe_bands_task  = PwTask.from_input([qe_input_bands,qe_scf_task],dependencies=qe_scf_task)  # Pending to define the parallelization (?)
 
     return qe_scf_task, qe_bands_task
-'''
-def PwRelaxTasks(structure,kpoints,ecut,cell_dofree=None,Spin=False,**kwargs):
+
+def PwRelaxTasks(structure,kpoints,ecut,cell_dofree=None,Spin=None,**kwargs):
     """
     Return a RelaxTask and ScfTask (Author: AMS)
     Comments:
-    (i) Not happy about the spin-orbit option
+    (i)  More happy about the spin-orbit option but we need to add all options of spin and magnetization
+    (ii) Not sure if we need the two steps
     """
     scf_conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
     scf_conv_thr = kwargs.pop("scf_conv_thr",scf_conv_thr)
 
-    #create a QE scf task and run
+    starting_magnetization = kwargs.pop("starting_magnetization", None)
+
+    #create a QE input scf
+    
     qe_input_scf = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
-    if Spin: qe_input_scf.set_spinorbit()
 
-    qe_scf_task = PwTask.from_input(qe_input_scf)
+    if Spin is "spinor": qe_input_scf.set_spinorbit()
 
-    qe_input_relax = qe_input_scf.copy().set_relax(cell_dofree=cell_dofree)
-
-    qe_relax_task = PwTask.from_input(qe_input)
+    if starting_magnetization is not None: qe_input_scf.set_magnetization(starting_magnetization)
 
 
-    return qe_relax_task, qe_scf_task
+    #create a QE relax-atom task and run
 
-'''
+    qe_input_relax_atoms = qe_input_scf.copy().set_relax(cell_dofree=None)
+    qe_relax_atoms_task = PwTask.from_input(qe_input_relax_atoms)
+
+    #create a QE relax-cell task and run
+
+    qe_input_relax_cell = qe_input_scf.copy().set_relax(cell_dofree=cell_dofree)
+
+    qe_relax_cell_task = PwTask.from_input([qe_input_relax_cell,qe_input_relax_atoms],dependencies=qe_relax_atoms_task)
+
+    #create a QE scf task and run 
+
+    qe_scf_task = PwTask.from_input([qe_input_scf,qe_input_relax_cell],dependencies=qe_relax_cell_task)
+
+    return qe_relax_atoms_task, qe_relax_cell_task, qe_scf_task
 
 def AbinitNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     from abipy.core.structure import Structure
