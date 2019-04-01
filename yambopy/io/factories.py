@@ -23,6 +23,8 @@ __all__ = [
 "PwNscfYamboIPChiTasks",
 "YamboQPBSETasks",
 "PwNscfTasks",
+"PwBandsTasks",
+"PwRelaxTasks",
 "PhPhononTasks"
 ]
 
@@ -492,6 +494,8 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree=None,Spin=None,**kwargs):
 
     starting_magnetization = kwargs.pop("starting_magnetization", None)
 
+    pseudo_dir = kwargs.pop("pseudo_dir", None)
+
     #create a QE input scf
     
     qe_input_scf = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
@@ -500,6 +504,7 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree=None,Spin=None,**kwargs):
 
     if starting_magnetization is not None: qe_input_scf.set_magnetization(starting_magnetization)
 
+    if pseudo_dir: qe_input_scf.control['pseudo_dir'] = "'%s'" % pseudo_dir
 
     #create a QE relax-atom task and run
 
