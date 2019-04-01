@@ -277,6 +277,11 @@ class PwIn():
         self.system['lspinorb'] = '.true.'
         self.system['noncolin'] = '.true.'
 
+    def set_magnetization(self,starting_magnetization):
+        for atom_type,magnetization in enumerate(starting_magnetization):
+            atom_type = atom_type + 1
+            self.system['starting_magnetization(%d)' % atom_type] = magnetization
+
     def get_pseudos(self,destpath='.',pseudo_paths=[],verbose=0):
         """
         Check if the pseudopotential files can be found in the specified path

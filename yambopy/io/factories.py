@@ -450,7 +450,7 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
 
     return qe_scf_task, qe_nscf_task, p2y_task
 
-def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints=None,Spin=False,**kwargs):
+def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints=None,Spin=None,**kwargs):
     """
     Return a ScfTask and BandsTask (Author: AMS)
     Comments:
@@ -460,9 +460,15 @@ def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints=None,Spin=False,
     scf_conv_thr = kwargs.pop("scf_conv_thr",scf_conv_thr)
     bands_conv_thr = kwargs.pop("nscf_conv_thr",scf_conv_thr*10)
 
+    starting_magnetization = kwargs.pop("starting_magnetization", None)
+
+    print(starting_magnetization)
+
     #create a QE scf task and run
     qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
-    if Spin: qe_input.set_spinorbit()
+    if Spin is "spinor": qe_input.set_spinorbit()
+
+    if starting_magnetization is not None: qe_input.set_magnetization(starting_magnetization)
 
     qe_scf_task = PwTask.from_input(qe_input)
 
