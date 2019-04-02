@@ -257,15 +257,10 @@ def update_cell_and_positions(self):
 
     relax_ion = self.get_vars("relax_task")
 
-    path_results = relax_ion.path
-    print(relax_ion.prefix)
+    print(relax_ion.path)
+    print(relax_ion.pwinput.prefix)
 
-    print(update_cell(path_results))
-
-
-    #relax_info = self.get_vars('qe_relax_atoms_task')
-    #print(relax_info.control['prefix'])
-    #update_cell() 
+    #print(update_cell(path_results))
 
 
 
