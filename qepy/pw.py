@@ -293,7 +293,7 @@ class PwIn():
         if len(starting_magnetization) != self.ntyp:
             raise ValueError('Invalid size for starting_magnetization')
         for atom_type,magnetization in enumerate(starting_magnetization):
-            self.system['starting_magnetization(%d)' % atom_type] = magnetization
+            self.system['starting_magnetization(%d)' % (atom_type+1)] = magnetization
 
     def get_pseudos(self,destpath='.',pseudo_paths=[],verbose=0):
         """
