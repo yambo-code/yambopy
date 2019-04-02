@@ -546,7 +546,7 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree='all',**kwargs):
 
     qe_relax_cell_task.set_vars("relax_task",qe_relax_atoms_task)
 
-    qe_relax_cell_task.set_code("updating",update_cell_and_positions)
+    qe_relax_cell_task.set_code("initialize",update_cell_and_positions)
 
     ###
 
