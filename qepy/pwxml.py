@@ -112,6 +112,9 @@ class PwXML():
         #get Bravais Lattice
         # Just do for ibrav 4, should we do more general for all ibravs?
         self.bravais_lattice = str(self.datafile_xml.find("CELL/BRAVAIS_LATTICE").text)
+
+        if "cubic" in self.bravais_lattice and "P" in self.bravais_lattice: self.ibrav = 1 
+
         if "Hexagonal" in self.bravais_lattice and "Trigonal" in self.bravais_lattice: self.ibrav = 4 
 
         return True 

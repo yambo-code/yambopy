@@ -11,6 +11,8 @@ The FiniteDifferencesPhononFlow
 
 from qepy.pw import PwIn
 from qepy.ph import PhIn
+from qepy.pwxml import PwXML
+from qepy.lattice import *
 from qepy.matdyn import Matdyn
 from qepy import qepyenv
 from yambopy.io.inputfile import YamboIn
@@ -252,11 +254,18 @@ def update_cell_and_positions(self):
     Code executed after the lattice relaxation to read the
     resulting cell parameters
     """
-    from qepy.lattice import * 
-   
-    path_relaxation = qe_relax_atoms_task
 
-    update_cell() 
+    relax_ion = self.get_vars("relax_task")
+
+    path_results = relax_ion.path
+    print(relax_ion.prefix)
+
+    print(update_cell(path_results))
+
+
+    #relax_info = self.get_vars('qe_relax_atoms_task')
+    #print(relax_info.control['prefix'])
+    #update_cell() 
 
 
 
@@ -511,7 +520,7 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree='all',**kwargs):
         spin: can be 'polarized' for calculation with spin or 'spinor' for calculation with spin-orbit
         starting_magnetization: a list with the starting magnetizations for each atomic type
     """
-    raise NotImplementedError('This function is under development!')
+    #raise NotImplementedError('This function is under development!')
 
     scf_conv_thr = kwargs.pop("conv_thr",qepyenv.CONV_THR)
     scf_conv_thr = kwargs.pop("scf_conv_thr",scf_conv_thr)
@@ -528,7 +537,7 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree='all',**kwargs):
     qe_input_scf.set_magnetization(starting_magnetization)
 
     pseudo_dir = kwargs.pop("pseudo_dir", None)
-    if pseudo_dir: qe_input_scf.pseudo_dir = pseudo_dir
+    if pseudo_dir: qe_input_scf.control['pseudo_dir'] = "'%s'" % pseudo_dir
 
     #create a QE relax-atom task
     qe_input_relax_atoms = qe_input_scf.copy().set_relax(cell_dofree=None)
@@ -540,7 +549,9 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree='all',**kwargs):
 
     # Here to update the cell???
 
-    qe_relax_cell_task.set_code("update cell", update_cell_and_atoms)
+    qe_relax_cell_task.set_vars("relax_task",qe_relax_atoms_task)
+
+    qe_relax_cell_task.set_code("updating",update_cell_and_positions)
 
     ###
 
