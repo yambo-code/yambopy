@@ -247,6 +247,18 @@ def copy_pp(self):
         dst_db.variables['SPIN_VARS'][1]=2
         dst_db.variables['X_PARS_1'][2]=spin_bands
 
+def update_cell_and_positions(self):
+    """
+    Code executed after the lattice relaxation to read the
+    resulting cell parameters
+    """
+    from qepy.lattice import * 
+   
+    path_relaxation = qe_relax_atoms_task
+
+    update_cell() 
+
+
 
 def get_scissor(self):
     """
@@ -528,7 +540,7 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree='all',**kwargs):
 
     # Here to update the cell???
 
-    qe_relax_cell_task.set_code("update cell", update_cell)
+    qe_relax_cell_task.set_code("update cell", update_cell_and_atoms)
 
     ###
 
