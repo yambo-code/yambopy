@@ -526,6 +526,12 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree='all',**kwargs):
     qe_input_relax_cell = qe_input_scf.copy().set_relax(cell_dofree=cell_dofree)
     qe_relax_cell_task = PwTask.from_input([qe_input_relax_cell,qe_input_relax_atoms],dependencies=qe_relax_atoms_task,paralelization=paralelization)
 
+    # Here to update the cell???
+
+    qe_relax_cell_task.set_code("update cell", update_cell)
+
+    ###
+
     #create a QE scf task
     qe_scf_task = PwTask.from_input([qe_input_scf,qe_input_relax_cell],dependencies=qe_relax_cell_task,paralelization=paralelization)
 
