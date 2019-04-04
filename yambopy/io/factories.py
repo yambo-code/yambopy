@@ -255,13 +255,18 @@ def update_cell_and_positions(self):
     resulting cell parameters
     """
 
-    relax_ion = self.get_vars("relax_task")
+    prefix = self.get_vars("prefix")
+    print("inside update")
+    print("why is not printing this")
+    print(prefix)
+    
+    #relax_ion = self.get_vars("relax_task")
 
-    print(relax_ion.path)
-    print(relax_ion.pwinput.prefix)
+    #print(relax_ion.path)
+    #print(relax_ion.pwinput.prefix)
 
-    #print(update_cell(path_results))
-
+    pos_red, atoms, lat_car, celldm = update_cell(path,prefix)
+    
 
 
 def get_scissor(self):
@@ -458,6 +463,15 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
     qe_scf_task = PwTask.from_input(qe_input)
 
+    #Spin
+    spin = kwargs.pop("spin", None)
+    if spin is "spinor": qe_input.set_spinorbit()
+    if spin is "polarized": raise NotImplementedError('Spin polarized calculation not yet implemented')
+
+    #Magnetization
+    starting_magnetization = kwargs.pop("starting_magnetization", None)
+    qe_input.set_magnetization(starting_magnetization)
+
     #create a QE nscf task and run
     if nscf_kpoints is None: nscf_kpoints = kpoints
     qe_input = qe_input.copy().set_nscf(nscf_bands,nscf_kpoints,conv_thr=nscf_conv_thr)
@@ -487,10 +501,12 @@ def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints,**kwargs):
     #create a QE scf task
     qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
 
+    #Spin
     spin = kwargs.pop("spin", None)
     if spin is "spinor": qe_input.set_spinorbit()
     if spin is "polarized": raise NotImplementedError('Spin polarized calculation not yet implemented')
 
+    #Magnetization
     starting_magnetization = kwargs.pop("starting_magnetization", None)
     qe_input.set_magnetization(starting_magnetization)
 
@@ -524,10 +540,12 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree='all',**kwargs):
     #create a QE input scf
     qe_input_scf = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
 
+    #Spin
     spin = kwargs.pop("spin", None)
     if spin is "spinor": qe_input.set_spinorbit()
     if spin is "polarized": raise NotImplementedError('spin polarized calculation yet not implemented')
 
+    #Magnetization
     starting_magnetization = kwargs.pop("starting_magnetization", None)
     qe_input_scf.set_magnetization(starting_magnetization)
 
@@ -544,7 +562,12 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree='all',**kwargs):
 
     # Here to update the cell???
 
-    qe_relax_cell_task.set_vars("relax_task",qe_relax_atoms_task)
+    print("path")
+    #print(qe_relax_atoms_task.path)
+    print("prefix")
+    print(qe_relax_atoms_task.pwinput.prefix)
+
+    qe_relax_cell_task.set_vars("prefix",qe_relax_atoms_task.pwinput.prefix)
 
     qe_relax_cell_task.set_code("initialize",update_cell_and_positions)
 

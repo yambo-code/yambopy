@@ -131,13 +131,13 @@ def rec_lat(lat):
     b3 = np.cross(a1,a2)/v
     return np.array([b1,b2,b3])
 
-def update_cell(path):
+def update_cell(path,prefix):
     from qepy import PwXML
     """
     Read the Lattice and the positions in the data.xml (from a relaxation job)
     AMS: Not sure if this is the best place
     """
-    cell = PwXML("pw")
+    cell = PwXML(prefix,path=path)
     pos_car = []
     lat_car = cell.cell
 
