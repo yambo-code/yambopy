@@ -799,14 +799,26 @@ class PwTask(YambopyTask):
     def pwinput(self):
         return self.get_instances_from_inputs(PwIn)[0]
 
-    @task_init
     def initialize(self,path):
         """write inputs and get pseudopotential"""
+        #get output from interface task
+        if self.status != "ready": return
+
+        #code injector
+        code = self.get_code('initialize')
+        code(self)
+
+        #write input
         self.pwinput.write(os.path.join(path,'pw.in'))
         self.pwinput.get_pseudos(destpath=path)
 
         #in case there is another PwTask task in inputs link it
         self.link_pwtask(path)
+
+        #set to initiailized
+        self.initialized = True
+        self.path = path
+
 
         paralelization = self.paralelization if hasattr(self,'paralelization') else ""
 

@@ -17,7 +17,7 @@ class PwXML():
     """
     _eig_xml  = 'eigenval.xml'
 
-    def __init__(self,prefix,path='.'):
+    def __init__(self,prefix,path='.',verbose=0):
         """ Initlize the structure with the path where the datafile.xml is
         """
         self.prefix = prefix
@@ -32,10 +32,10 @@ class PwXML():
         for filename,read in list(datafiles.items()):
             path_filename = "%s/%s.save/%s"%(path, prefix, filename)
             if os.path.isfile(path_filename):
-                print("reading %s"%filename)
+                if verbose: print("reading %s"%filename)
                 done_reading = read(path_filename)
                 break
-        
+
         #trap errors
         if not done_reading:
             possible_files = " or ".join(list(datafiles.keys()))
@@ -112,12 +112,10 @@ class PwXML():
         #get Bravais Lattice
         # Just do for ibrav 4, should we do more general for all ibravs?
         self.bravais_lattice = str(self.datafile_xml.find("CELL/BRAVAIS_LATTICE").text)
+        if all(s in self.bravais_lattice for s in ["cubic","P"]):            self.ibrav = 1
+        if all(s in self.bravais_lattice for s in ["Hexagonal","Trigonal"]): self.ibrav = 4
 
-        if "cubic" in self.bravais_lattice and "P" in self.bravais_lattice: self.ibrav = 1 
-
-        if "Hexagonal" in self.bravais_lattice and "Trigonal" in self.bravais_lattice: self.ibrav = 4 
-
-        return True 
+        return True
 
     def read_datafile_schema(self,filename):
         """

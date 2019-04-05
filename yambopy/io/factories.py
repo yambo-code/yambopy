@@ -254,20 +254,11 @@ def update_cell_and_positions(self):
     Code executed after the lattice relaxation to read the
     resulting cell parameters
     """
-
-    prefix = self.get_vars("prefix")
-    print("inside update")
-    print("why is not printing this")
-    print(prefix)
-    
-    #relax_ion = self.get_vars("relax_task")
-
-    #print(relax_ion.path)
-    #print(relax_ion.pwinput.prefix)
-
-    pos_red, atoms, lat_car, celldm = update_cell(path,prefix)
-    
-
+    from qepy import PwXML
+    pwtask = self.get_vars("pwtask")
+    prefix = pwtask.pwinput.prefix
+    pwxml = PwXML(prefix,path=pwtask.path)
+    self.pwinput.update_structure_from_xml(pwxml)
 
 def get_scissor(self):
     """
@@ -559,22 +550,13 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree='all',**kwargs):
     #create a QE relax-cell task
     qe_input_relax_cell = qe_input_scf.copy().set_relax(cell_dofree=cell_dofree)
     qe_relax_cell_task = PwTask.from_input([qe_input_relax_cell,qe_input_relax_atoms],dependencies=qe_relax_atoms_task,paralelization=paralelization)
-
-    # Here to update the cell???
-
-    print("path")
-    #print(qe_relax_atoms_task.path)
-    print("prefix")
-    print(qe_relax_atoms_task.pwinput.prefix)
-
-    qe_relax_cell_task.set_vars("prefix",qe_relax_atoms_task.pwinput.prefix)
-
+    qe_relax_cell_task.set_vars("pwtask",qe_relax_atoms_task)
     qe_relax_cell_task.set_code("initialize",update_cell_and_positions)
-
-    ###
 
     #create a QE scf task
     qe_scf_task = PwTask.from_input([qe_input_scf,qe_input_relax_cell],dependencies=qe_relax_cell_task,paralelization=paralelization)
+    qe_scf_task.set_vars("pwtask",qe_relax_cell_task)
+    qe_scf_task.set_code("initialize",update_cell_and_positions)
 
     return qe_relax_atoms_task, qe_relax_cell_task, qe_scf_task
 

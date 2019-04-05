@@ -239,6 +239,13 @@ class PwIn():
         #TODO: add consistency check
         self.atypes = atypes
 
+    def update_structure_from_xml(self,pwxml):
+        """
+        Update input from an PW xml file. Useful for relaxation.
+        """
+        structure_dict = pwxml.get_structure_dict()
+        self.set_structure(structure_dict)
+
     def set_nscf(self,nbnd,nscf_kpoints=None,conv_thr=1e-8,
                  diago_full_acc=True,force_symmorphic=True):
         """
@@ -517,7 +524,9 @@ class PwIn():
     def set_ibrav(self,value):
         if not hasattr(self,'_cell_parameters') and value == 0:
             raise ValueError('Must set cell_parameters before setting ibrav to 0')
-        if value == 0: self.remove_key(self.system,'celldm(1)')
+        if value == 0:
+            for i in range(1,7):
+                self.remove_key(self.system,'celldm(%d)'%i)
         self.system['ibrav'] = value
 
     def read_cell_parameters(self):
@@ -597,7 +606,7 @@ class PwIn():
 
     def remove_key(self,group,key):
         """ if a certain key exists in the group, remove it """
-        if key in list(group.items()):
+        if key in list(group.keys()):
             del group[key]
 
     def write(self,filename):
