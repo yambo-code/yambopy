@@ -9,15 +9,15 @@ from math import sqrt
 
 __all__ = ['PhIn']
 
-class PhIn():
+class PhIn(object):
     """
     A class to generate an manipulate quantum espresso input files for ph.x
     """
     def __init__(self):
         self.variable = dict()
         self['tr2_ph']   = 1.0e-12
-        self['prefix']   = '\"pwscf\"'
-        self['fildyn']   = '\"matdyn\"'
+        self['prefix']   = '\"pw\"'
+        self['fildyn']   = '\"dyn\"'
         self['qplot']    = '.false.'
         self['trans']    = '.true.'
         self.qpoints     = [] 
