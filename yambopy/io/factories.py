@@ -454,6 +454,10 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
     qe_scf_task = PwTask.from_input(qe_input)
 
+    # pseudo_dir
+    pseudo_dir = kwargs.pop("pseudo_dir", None)
+    if pseudo_dir: qe_input.control['pseudo_dir'] = "'%s'" % pseudo_dir
+
     #Spin
     spin = kwargs.pop("spin", None)
     if spin is "spinor": qe_input.set_spinorbit()
@@ -491,6 +495,10 @@ def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints,**kwargs):
 
     #create a QE scf task
     qe_input = PwIn.from_structure_dict(structure,kpoints=kpoints,ecut=ecut,conv_thr=scf_conv_thr)
+
+    # pseudo_dir
+    pseudo_dir = kwargs.pop("pseudo_dir", None)
+    if pseudo_dir: qe_input.control['pseudo_dir'] = "'%s'" % pseudo_dir
 
     #Spin
     spin = kwargs.pop("spin", None)
