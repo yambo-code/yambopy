@@ -158,7 +158,6 @@ class PwIn():
         if 'lattice' in structure: self.set_lattice(**structure['lattice'])
         if 'atypes'  in structure: self.set_atypes(structure['atypes'])
         if 'atoms'   in structure: self.set_atoms(structure['atoms'])
-        print(structure['occupations'])
         if 'occupations' in structure: self.set_occupations(structure['occupations'])
 
     def get_structure(self):
