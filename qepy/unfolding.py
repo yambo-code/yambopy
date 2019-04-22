@@ -51,12 +51,14 @@ class Unfolding():
         self.cell_pc = pc_xml.cell
         self.cell_sc = sc_xml.cell
 
-        self.rcell_pc = array(pc_xml.rcell)
-        self.rcell_sc = array(sc_xml.rcell)
+        self.rcell_pc = array(pc_xml.rcell)/pc_xml.celldm[0]   # Dont remember if we need to write the reciprocal vectors in cart. units?
+        self.rcell_sc = array(sc_xml.rcell)/sc_xml.celldm[0]
 
         self.eigen_pc = array(pc_xml.eigen)
         self.eigen_sc = array(sc_xml.eigen)
-       
+
+        format_string = "%12.4lf %12.4lf %12.4lf"
+        n_decs = 8
         # Angle between prim. cell and supercell
 
         v1 = array(pc_xml.rcell[:][0])
@@ -113,14 +115,16 @@ class Unfolding():
             #check this point
             for GRID in root_gk_sc.findall("GRID"):
                 gkold = GRID.text.split("\n")
+
             #print('Reading Supercell G-vectors')
-          
             for ig in arange(self.ng_sc):  # ATTENTION: Why was it xrange?
                 x,y,z = map( float, gkold[ig+1].split())
                 w = x*self.rcell_sc[:][0] + y*self.rcell_sc[:][1] + z*self.rcell_sc[:][2] #scaling
                 w = dot(self.rot,w) #rotations
-                w = "%.4lf %.4lf %.4lf" % (w[0],w[1],w[2]) #truncation
+                w = np.around(w, decimals=n_decs)+array([0,0,0]) #round and clean
+                w = format_string % (w[0],w[1],w[2]) #truncation
                 g_sc[w] = ig #create dictionary
+                print(ig,w)
     
             #print('Assigning Primitive cell g-vectors')
 
@@ -130,24 +134,29 @@ class Unfolding():
             #load(ig,ng_pc)
                 x,y,z = map( float, gkold[ig+1].split())
                 w = x*self.rcell_pc[:][0] + y*self.rcell_pc[:][1] + z*self.rcell_pc[:][2] #scaling
-                #w = (round(w[0],4),round(w[1],4),round(w[2],4)) #truncation
-                w = "%.4lf %.4lf %.4lf" % (w[0],w[1],w[2]) #truncation
+                w = np.around(w, decimals=n_decs)+array([0,0,0]) #round and clean
+                w = format_string % (w[0],w[1],w[2]) #truncation
                 try:
                     g_contain[ig] = g_sc[w]
                 except KeyError:
-                    #print("Missing k-point %d" % ig)
+                    print("Missing k-point %d" % ig)
+                    print(w)
                     #print("g_sc ")
                     #print(w,g_sc[w])
                     #print("g_contain ")
                     #print(w,g_contain[ig])
-                    g_contain[ig] = 0
-
+                    #g_contain[ig] = 0
+            print(g_contain)
+            print("ng_pc", self.ng_pc)
+            print("ng_sc", self.ng_sc)
+            
             ndim_gcontain = len(g_contain)
             print(ik)
             print("g_contain dimension")
             print(ndim_gcontain)
             print("ng_pc %d" % self.ng_pc)
             print()
+            exit()
 
         #evc = []
         #for ik in range(self.nkpoints_sc):
@@ -160,17 +169,29 @@ class Unfolding():
             for ib in range(self.nbands_sc):
                 eivec = root_evc_sc.find("evc."+str(ib+1)).text.split("\n")
                 eivecs.append( map(lambda x: complex( float(x.split(",")[0]), float(x.split(",")[1]) ), eivec[1:-1]) )
+                if ib==0:
+                   x = 0.0
+                   for ig in range(self.ng_sc):
+                       x += eivecs[-1][ig]*eivecs[-1][ig].conjugate()
+                       #print(ig, abs(eivecs[-1][ig]), eivecs[-1][ig].conjugate() )
+                       if abs(eivecs[-1][ig]*eivecs[-1][ig].conjugate()) > 0.05:
+                           print("warning",eivecs[-1][ig]*eivecs[-1][ig].conjugate())
+                   print(x)
             #evc.append(eivecs)
-
+            #    exit()     
         #sc.convert_dat_xml()
 
         # Projection
             for ib in range(self.nbands_sc): 
                 x = 0.0
-                for ig in range(ndim_gcontain):
-                    x = x + eivecs[ib][g_contain[ig]]*(eivecs[ib][g_contain[ig]].conjugate())
+                for ig in range(self.ng_pc): #ndim_gcontain):
+                    x += eivecs[ib][g_contain[ig]]*(eivecs[ib][g_contain[ig]].conjugate())
+                    if ib==0:
+                       print(ib,ig,g_contain[ig],eivecs[ib][g_contain[ig]])
+                    #if ib==0:
+                       #print(eivecs[ib][g_contain[ig]])
                 self.projection[ik][ib] = abs(x)
-
+        #print(self.projection)
     # Plotting adapted from PwXML (to be improved)
 
     def plot_eigen_ax(self,ax,path=[],xlim=(),ylim=()):
@@ -188,7 +209,7 @@ class Unfolding():
 
         #plot bands
         for ib in range(self.nbands_sc):
-           ax.scatter(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,s=self.projection[:,ib]*5,color='r')
+           ax.scatter(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,s=self.projection[:,ib]*20,color='r')
            ax.plot(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,'r--',lw=2)
         for ib in range(self.nbands_pc):
            ax.plot(list(range(self.nkpoints_pc)),self.eigen_pc[:,ib]*HatoeV,'k-',lw=2)
