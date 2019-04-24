@@ -509,6 +509,9 @@ def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints,**kwargs):
     starting_magnetization = kwargs.pop("starting_magnetization", None)
     qe_input.set_magnetization(starting_magnetization)
 
+    pseudo_dir = kwargs.pop("pseudo_dir", None)
+    if pseudo_dir: qe_input.control['pseudo_dir'] = "'%s'" % pseudo_dir
+
     scf_paralelization = kwargs.pop("scf_paralelization","")
     qe_scf_task = PwTask.from_input(qe_input,paralelization=scf_paralelization)
 

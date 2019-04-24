@@ -1,0 +1,35 @@
+&control
+         calculation = 'scf'
+              prefix = 'sc'
+          pseudo_dir = '.'
+           verbosity = 'high'
+          wf_collect = .true.
+/&end
+&system
+           celldm(1) = 9.4 
+           celldm(3) = 1.27659
+             ecutwfc = 40
+               ibrav = 4
+                 nat = 8
+                ntyp = 2
+         occupations = 'fixed'
+/&end
+&electrons
+            conv_thr = 1e-6
+/&end
+
+
+ATOMIC_SPECIES
+   B   10.811     B.pbe-mt_fhi.UPF
+   N  14.0067     N.pbe-mt_fhi.UPF
+ATOMIC_POSITIONS { crystal }
+  N   0.0000000000   0.0000000000   0.0000000000
+  N   0.5000000000   0.0000000000   0.0000000000
+  N   0.0000000000   0.5000000000   0.0000000000
+  N   0.5000000000   0.5000000000   0.0000000000
+  B   0.1666666667   0.3333333333   0.0000000000
+  B   0.6666666667   0.3333333333   0.0000000000
+  B   0.1666666667   0.8333333333   0.0000000000
+  B   0.6666666667   0.8333333333   0.0000000000
+K_POINTS { automatic }
+3 3 1 0 0 0

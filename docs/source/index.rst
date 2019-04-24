@@ -16,5 +16,6 @@ yambopy documentation
    qepy
    yambopy
    scheduler
+   flows
    tutorial
    autodoc

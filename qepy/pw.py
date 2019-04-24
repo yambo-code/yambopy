@@ -158,6 +158,7 @@ class PwIn():
         if 'lattice' in structure: self.set_lattice(**structure['lattice'])
         if 'atypes'  in structure: self.set_atypes(structure['atypes'])
         if 'atoms'   in structure: self.set_atoms(structure['atoms'])
+        if 'occupations' in structure: self.set_occupations(structure['occupations'])
 
     def get_structure(self):
         """ Return an instance of a structure dictionary
@@ -238,6 +239,12 @@ class PwIn():
         self.system['ntyp'] = len(atypes)
         #TODO: add consistency check
         self.atypes = atypes
+
+    def set_occupations(self,occupations):
+        self.system['occupations'] = "'%s'" % occupations['occupations'] 
+        
+        if 'smearing' in occupations: self.system['smearing'] = "'%s'" % occupations['smearing']
+        if 'degauss'  in occupations: self.system['degauss'] = occupations['degauss'] 
 
     def update_structure_from_xml(self,pwxml):
         """
