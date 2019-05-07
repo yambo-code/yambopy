@@ -544,7 +544,7 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree='all',**kwargs):
 
     #Spin
     spin = kwargs.pop("spin", None)
-    if spin is "spinor": qe_input.set_spinorbit()
+    if spin is "spinor": qe_input_scf.set_spinorbit()
     if spin is "polarized": raise NotImplementedError('spin polarized calculation yet not implemented')
 
     #Magnetization
