@@ -110,16 +110,20 @@ class PwIn():
         if pseudo_dir: pwi.pseudo_dir = pseudo_dir
         if conv_thr: pwi.electrons['conv_thr'] = conv_thr
         return pwi
-      
+
     @property
-    def natoms(self): 
+    def natoms(self):
         return len(self.atoms)
+
+    @property
+    def ntyp(self):
+        return int(self.system['ntyp'])
 
     @property
     def pseudo_dir(self):
         if 'pseudo_dir' not in self.control: return None
         return self.control['pseudo_dir'].replace("'",'')
-    
+
     @pseudo_dir.setter
     def pseudo_dir(self,value):
         self.control['pseudo_dir'] = "'%s'"%value.replace("'",'')
@@ -154,6 +158,7 @@ class PwIn():
         if 'lattice' in structure: self.set_lattice(**structure['lattice'])
         if 'atypes'  in structure: self.set_atypes(structure['atypes'])
         if 'atoms'   in structure: self.set_atoms(structure['atoms'])
+        if 'occupations' in structure: self.set_occupations(structure['occupations'])
 
     def get_structure(self):
         """ Return an instance of a structure dictionary
@@ -235,6 +240,19 @@ class PwIn():
         #TODO: add consistency check
         self.atypes = atypes
 
+    def set_occupations(self,occupations):
+        self.system['occupations'] = "'%s'" % occupations['occupations'] 
+        
+        if 'smearing' in occupations: self.system['smearing'] = "'%s'" % occupations['smearing']
+        if 'degauss'  in occupations: self.system['degauss'] = occupations['degauss'] 
+
+    def update_structure_from_xml(self,pwxml):
+        """
+        Update input from an PW xml file. Useful for relaxation.
+        """
+        structure_dict = pwxml.get_structure_dict()
+        self.set_structure(structure_dict)
+
     def set_nscf(self,nbnd,nscf_kpoints=None,conv_thr=1e-8,
                  diago_full_acc=True,force_symmorphic=True):
         """
@@ -248,20 +266,48 @@ class PwIn():
         if nscf_kpoints: self.set_kpoints(nscf_kpoints) 
         return self
 
+    def set_bands(self,nbnd,path_kpoints=None,conv_thr=1e-8,
+                 diago_full_acc=True,force_symmorphic=True):
+        """
+        set the calculation to be nscf
+        """
+        self.control['calculation'] = "'bands'"
+        self.electrons['conv_thr'] = conv_thr
+        self.system['nbnd'] = nbnd
+        self.electrons['diago_full_acc'] = fortran_bool(diago_full_acc)
+        self.system['force_symmorphic'] = fortran_bool(force_symmorphic)
+        self.ktype = 'crystal'
+        if path_kpoints: self.set_path(path_kpoints) 
+        return self
+
     def set_relax(self,cell_dofree=None):
         """
         set the calculation to be relax
         """
         self.control['calculation'] = "'relax'"
         self.ions['ion_dynamics']  = "'bfgs'"
-        if cell_dofree: 
+        if cell_dofree:
             self.control['calculation'] = "'vc-relax'"
             self.cell['cell_dynamics']  = "'bfgs'"
             self.cell['cell_dofree'] = "'%s'"%cell_dofree
+        return self
 
     def set_spinorbit(self):
         self.system['lspinorb'] = '.true.'
         self.system['noncolin'] = '.true.'
+
+    def set_magnetization(self,starting_magnetization):
+        """
+        Set the starting_magnetization for a spin calculation.
+
+        Args:
+            starting_magnetization: a list with the starting magnetizations for each atomic type
+        """
+        if starting_magnetization is None: return
+        if len(starting_magnetization) != self.ntyp:
+            raise ValueError('Invalid size for starting_magnetization')
+        for atom_type,magnetization in enumerate(starting_magnetization):
+            self.system['starting_magnetization(%d)' % (atom_type+1)] = magnetization
 
     def get_pseudos(self,destpath='.',pseudo_paths=[],verbose=0):
         """
@@ -275,7 +321,7 @@ class PwIn():
         if self.pseudo_dir:
             if os.path.isdir(self.pseudo_dir): 
                 pseudo_paths.append(self.pseudo_dir)
-       
+
         ppstring = '\n'.join(pseudo_paths)
         if verbose: print('List of pseudo_paths:\n'+ppstring)
 
@@ -306,7 +352,7 @@ class PwIn():
         #find ATOMIC_SPECIES keyword in file and read next line
         for line in lines:
             if "ATOMIC_SPECIES" in line:
-                for i in range(int(self.system["ntyp"])):
+                for i in range(self.ntyp):
                     atype, mass, psp = next(lines).split()
                     self.atypes[atype] = [mass,psp]
 
@@ -485,7 +531,9 @@ class PwIn():
     def set_ibrav(self,value):
         if not hasattr(self,'_cell_parameters') and value == 0:
             raise ValueError('Must set cell_parameters before setting ibrav to 0')
-        if value == 0: self.remove_key(self.system,'celldm(1)')
+        if value == 0:
+            for i in range(1,7):
+                self.remove_key(self.system,'celldm(%d)'%i)
         self.system['ibrav'] = value
 
     def read_cell_parameters(self):
@@ -565,7 +613,7 @@ class PwIn():
 
     def remove_key(self,group,key):
         """ if a certain key exists in the group, remove it """
-        if key in list(group.items()):
+        if key in list(group.keys()):
             del group[key]
 
     def write(self,filename):
