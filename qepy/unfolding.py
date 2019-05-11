@@ -15,6 +15,7 @@ from qepy.pwxml import *
 from .lattice import *
 from yambopy.plot.plotting import add_fig_kwargs 
 from numpy import array, sqrt, cross, dot, arange, zeros
+from sys import stdout
 
 HatoeV = 27.2107
 
@@ -79,8 +80,9 @@ class Unfolding():
         self.projection = zeros([self.nkpoints_sc,self.nbands_sc])
 
     #def convert_dat_xml(self):
-
+        print("converting dat files to xml...")
         for ik in range(self.nkpoints_sc):
+            load(ik,self.nkpoints_sc)
             #def convert_dat_xml(self):  Bring this to a function
             
             file_dat = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._gkv_dat)
@@ -109,10 +111,11 @@ class Unfolding():
                file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc2_dat)
                file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc2_xml)
                os.system('iotk convert %s %s' % (file_dat,file_xml))
-
+        print("done!") 
         #gkvectors = []
         for ik in range(self.nkpoints_sc):
 
+            load(ik,self.nkpoints_sc)
             # Reading the G-vectors and g-vectors
             tree_gk_sc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._gkv_xml) )
             tree_gk_pc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._gkv_xml) )
@@ -287,3 +290,14 @@ class Unfolding():
         #plot options
         if xlim: ax.set_xlim(xlim)
         if ylim: ax.set_ylim(ylim)
+
+def load(x,n):
+    bar_length = 100
+    x+=1
+    ratio = x/float(n)
+    c = int(ratio * bar_length)
+    stdout.write("["+"="*c+" "*(bar_length-c)+"] %03.3f%%" % (ratio*100))
+    if (x==n): stdout.write("\n")
+    stdout.flush()
+    stdout.write("\r")
+
