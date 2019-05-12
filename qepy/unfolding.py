@@ -34,7 +34,7 @@ class Unfolding():
     _evc1_dat = 'evc1.dat'
     _evc2_dat = 'evc2.dat'
 
-    def __init__(self,prefix_pc,prefix_sc,path_pc='.',path_sc='.',verbose=0,spin="none"):
+    def __init__(self,prefix_pc,prefix_sc,path_pc='.',path_sc='.',verbose=0,spin="none",convert_to_xml=True):
         """ 
         Initialize the structure with the paths where the datafile.xml
         of the primitive and supercell
@@ -80,39 +80,42 @@ class Unfolding():
         self.projection = zeros([self.nkpoints_sc,self.nbands_sc])
 
     #def convert_dat_xml(self):
-        print("converting dat files to xml...")
-        for ik in range(self.nkpoints_sc):
-            load(ik,self.nkpoints_sc)
-            #def convert_dat_xml(self):  Bring this to a function
+        if convert_to_xml == True:
+           print("converting dat files to xml...")
+           for ik in range(self.nkpoints_sc):
+               load(ik,self.nkpoints_sc)
+               #def convert_dat_xml(self):  Bring this to a function
+               
+               file_dat = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._gkv_dat)
+               file_xml = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._gkv_xml)
+               os.system('iotk convert %s %s' % (file_dat,file_xml))
+   
+               file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._gkv_dat)
+               file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._gkv_xml)
+               os.system('iotk convert %s %s' % (file_dat,file_xml))
+               
+               #file_dat = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._evc_dat)
+               #file_xml = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._evc_xml)
+               #os.system('iotk convert %s %s' % (file_dat,file_xml))
+
+               if spin == "none":
             
-            file_dat = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._gkv_dat)
-            file_xml = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._gkv_xml)
-            os.system('iotk convert %s %s' % (file_dat,file_xml))
-
-            file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._gkv_dat)
-            file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._gkv_xml)
-            os.system('iotk convert %s %s' % (file_dat,file_xml))
+                  file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc_dat)
+                  file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc_xml)
+                  os.system('iotk convert %s %s' % (file_dat,file_xml))
             
-            #file_dat = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._evc_dat)
-            #file_xml = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._evc_xml)
-            #os.system('iotk convert %s %s' % (file_dat,file_xml))
-
-            if spin == "none":
-
-               file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc_dat)
-               file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc_xml)
-               os.system('iotk convert %s %s' % (file_dat,file_xml))
-
-            if spin == "spinor":
-
-               file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc1_dat)
-               file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc1_xml)
-               os.system('iotk convert %s %s' % (file_dat,file_xml))
-               file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc2_dat)
-               file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc2_xml)
-               os.system('iotk convert %s %s' % (file_dat,file_xml))
-        print("done!") 
+               if spin == "spinor":
+            
+                  file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc1_dat)
+                  file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc1_xml)
+                  os.system('iotk convert %s %s' % (file_dat,file_xml))
+                  file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc2_dat)
+                  file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc2_xml)
+                  os.system('iotk convert %s %s' % (file_dat,file_xml))
+           print("done!") 
+           
         #gkvectors = []
+        print("Dictionary of G-vectors and projection")
         for ik in range(self.nkpoints_sc):
 
             load(ik,self.nkpoints_sc)
@@ -263,6 +266,7 @@ class Unfolding():
                        #print(eivecs[ib][g_contain[ig]])
                    self.projection[ik][ib] = abs(x)
 
+        print("Done!")
 
         #print(self.projection)
     # Plotting adapted from PwXML (to be improved)
