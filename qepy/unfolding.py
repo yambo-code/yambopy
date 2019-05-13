@@ -50,6 +50,8 @@ class Unfolding():
         self.nkpoints_pc = pc_xml.nkpoints
         self.nkpoints_sc = sc_xml.nkpoints
 
+        self.kpoints = sc_xml.kpoints
+
         self.nbands_pc = pc_xml.nbands 
         self.nbands_sc = sc_xml.nbands 
 
@@ -141,8 +143,8 @@ class Unfolding():
             g_sc_int = dict()  # dictionary of integers
             #print('Reading Supercell G-vectors')
             for ig in arange(self.ng_sc):  # ATTENTION: Why was it xrange?
-                print("Reading Supercell G-vectors") 
-                load(ig,self.ng_sc)
+                #print("Reading Supercell G-vectors") 
+                #load(ig,self.ng_sc)
 
                 x,y,z = map( float, gkold[ig+1].split())
                 g_sc_int[(int(x),int(y),int(z))] = ig
@@ -160,7 +162,7 @@ class Unfolding():
                 gkold = GRID.text.split("\n")
 
             for ig in arange(self.ng_pc):
-                load(ig,self.ng_pc)
+                #load(ig,self.ng_pc)
 
                 x,y,z = map( float, gkold[ig+1].split())
                 #print(ig,int(x),int(y),int(z))
@@ -222,8 +224,8 @@ class Unfolding():
 
                eivecs1, eivecs2 = [], []
                for ib in range(self.nbands_sc):
-                   print("Reading Supercell Wave functions") 
-                   load(ib,self.nbands_sc)
+                   #print("Reading Supercell Wave functions") 
+                   #load(ib,self.nbands_sc)
 
                    eivec1 = root_evc1_sc.find("evc."+str(ib+1)).text.split("\n")
                    eivec2 = root_evc2_sc.find("evc."+str(ib+1)).text.split("\n")
@@ -284,24 +286,36 @@ class Unfolding():
     # Plotting adapted from PwXML (to be improved)
 
     def plot_eigen_ax(self,ax,path=[],xlim=(),ylim=()):
+
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
             ax.set_xticks( *list(zip(*path)) )
         ax.set_ylabel('E (eV)')
 
+        #get kpoint_dists 
+        kpoints_dists = calculate_distances(self.kpoints)
+
+        #make labels
+        ticks, labels = list(zip(*path))
+        ax.set_xticks([kpoints_dists[t] for t in ticks])
+        ax.set_xticklabels(labels)
+        ax.set_ylabel('E (eV)')
+
         #plot vertical line
-        for point in path:
-            x, label = point
-            ax.axvline(x)
-        ax.axhline(0)
+        for t in ticks:
+            ax.axvline(kpoints_dists[t],c='k',lw=2)
+        ax.axhline(0,c='k',lw=1)
 
         #plot bands
         for ib in range(self.nbands_pc):
-           ax.plot(list(range(self.nkpoints_pc)),self.eigen_pc[:,ib]*HatoeV,'k-',lw=1)
+           #ax.plot(list(range(self.nkpoints_pc)),self.eigen_pc[:,ib]*HatoeV,'k--',lw=0.5)
+           ax.plot(kpoints_dists,self.eigen_pc[:,ib]*HatoeV,'k--',lw=0.5)
+
         for ib in range(self.nbands_sc):
-           ax.plot(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,'r--',lw=1)
-           ax.scatter(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,s=self.projection[:,ib]*20,color='r')
+           #ax.plot(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,'r--',lw=1)
+           #ax.scatter(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,s=self.projection[:,ib]*20,color='r')
+           ax.scatter(kpoints_dists,self.eigen_sc[:,ib]*HatoeV,s=self.projection[:,ib]*20,color='r')
 
         #plot options
         if xlim: ax.set_xlim(xlim)
