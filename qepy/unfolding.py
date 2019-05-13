@@ -8,6 +8,14 @@
 #
 # Authors: Alejandro Molina-Sanchez and Henrique Miranda
 # Revision from the first version of 24 of February of 2014
+#
+#
+# This class need major revision. So far is uneficcient and a waste of resources.
+# Future developments will be:
+# 
+# - Reading netcdf files from Yambo (faster than converting to xml)
+# - Assignment of the correspondence G-vectors to g-vectors without reading the PC g-vectors
+#
 
 import xml.etree.ElementTree as ET
 from qepy.auxiliary import *
@@ -34,7 +42,7 @@ class Unfolding():
     _evc1_dat = 'evc1.dat'
     _evc2_dat = 'evc2.dat'
 
-    def __init__(self,prefix_pc,prefix_sc,path_pc='.',path_sc='.',verbose=0,spin="none",convert_to_xml=True):
+    def __init__(self,prefix_pc,prefix_sc,path_pc='.',path_sc='.',verbose=0,spin="none",convert_to_xml=True,band_min=0):
         """ 
         Initialize the structure with the paths where the datafile.xml
         of the primitive and supercell
@@ -54,6 +62,10 @@ class Unfolding():
 
         self.nbands_pc = pc_xml.nbands 
         self.nbands_sc = sc_xml.nbands 
+        self.band_min  = band_min
+
+        if self.band_min > self.nbands_sc:
+           raise Exception("Minimum of bands larger than total number of bands")
 
         self.cell_pc = pc_xml.cell
         self.cell_sc = sc_xml.cell
@@ -79,7 +91,7 @@ class Unfolding():
 
         self.rot = array([ [cos_v1v2,sin_v1v2,0.0], [-sin_v1v2,cos_v1v2,0.0], [0.0,0.0,1.0]] )
 
-        self.projection = zeros([self.nkpoints_sc,self.nbands_sc])
+        self.projection = zeros([self.nkpoints_sc,self.nbands_sc-self.band_min])
 
     #def convert_dat_xml(self):
         if convert_to_xml == True:
@@ -212,7 +224,7 @@ class Unfolding():
             if spin == "none":
 
                eivecs = []
-               for ib in range(self.nbands_sc):
+               for ib in range(self.band_min,self.nbands_sc):
                    eivec = root_evc_sc.find("evc."+str(ib+1)).text.split("\n")
                    eivecs.append( map(lambda x: complex( float(x.split(",")[0]), float(x.split(",")[1]) ), eivec[1:-1]) )
                    if ib==0:
@@ -223,7 +235,7 @@ class Unfolding():
             if spin == "spinor":
 
                eivecs1, eivecs2 = [], []
-               for ib in range(self.nbands_sc):
+               for ib in range(self.band_min,self.nbands_sc):
                    #print("Reading Supercell Wave functions") 
                    #load(ib,self.nbands_sc)
 
@@ -254,7 +266,7 @@ class Unfolding():
         # Projection
             if spin == "none":
 
-               for ib in range(self.nbands_sc): 
+               for ib in range(self.nbands_sc-self.band_min): 
                    x = 0.0
                    for ig in range(self.ng_pc): #ndim_gcontain):
                        x += eivecs[ib][g_contain[ig]]*(eivecs[ib][g_contain[ig]].conjugate())
@@ -269,7 +281,7 @@ class Unfolding():
                #print(eivecs1)
                #exit()
 
-               for ib in range(self.nbands_sc): 
+               for ib in range(self.nbands_sc-self.band_min): 
                    x = 0.0
                    for ig in range(self.ng_pc): #ndim_gcontain):
                        x += eivecs1[ib][g_contain[ig]]*(eivecs1[ib][g_contain[ig]].conjugate())
@@ -312,10 +324,10 @@ class Unfolding():
            #ax.plot(list(range(self.nkpoints_pc)),self.eigen_pc[:,ib]*HatoeV,'k--',lw=0.5)
            ax.plot(kpoints_dists,self.eigen_pc[:,ib]*HatoeV,'k--',lw=0.5)
 
-        for ib in range(self.nbands_sc):
+        for ib in range(self.nbands_sc-self.band_min):
            #ax.plot(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,'r--',lw=1)
            #ax.scatter(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,s=self.projection[:,ib]*20,color='r')
-           ax.scatter(kpoints_dists,self.eigen_sc[:,ib]*HatoeV,s=self.projection[:,ib]*20,color='r')
+           ax.scatter(kpoints_dists,self.eigen_sc[:,ib+self.band_min]*HatoeV,s=self.projection[:,ib]*20,color='r')
 
         #plot options
         if xlim: ax.set_xlim(xlim)
