@@ -119,6 +119,7 @@ class Unfolding():
         for ik in range(self.nkpoints_sc):
 
             load(ik,self.nkpoints_sc)
+
             # Reading the G-vectors and g-vectors
             tree_gk_sc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._gkv_xml) )
             tree_gk_pc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._gkv_xml) )
@@ -140,16 +141,16 @@ class Unfolding():
             g_sc_int = dict()  # dictionary of integers
             #print('Reading Supercell G-vectors')
             for ig in arange(self.ng_sc):  # ATTENTION: Why was it xrange?
+                print("Reading Supercell G-vectors") 
+                load(ig,self.ng_sc)
+
                 x,y,z = map( float, gkold[ig+1].split())
                 g_sc_int[(int(x),int(y),int(z))] = ig
-                #print(ig,int(x),int(y),int(z))
                 w = x*self.rcell_sc[:][0] + y*self.rcell_sc[:][1] + z*self.rcell_sc[:][2] #scaling
                 w = dot(self.rot,w) #rotations
                 w = np.around(w, decimals=n_decs)+array([0,0,0]) #round and clean
                 w = format_string % (w[0],w[1],w[2]) #truncation
                 g_sc[w] = ig #create dictionary
-                #if g_sc[w][2] == -0.1667:
-                #print(ig,w,g_sc[w])
     
             #print('Assigning Primitive cell g-vectors')
 
@@ -159,7 +160,8 @@ class Unfolding():
                 gkold = GRID.text.split("\n")
 
             for ig in arange(self.ng_pc):
-            #load(ig,ng_pc)
+                load(ig,self.ng_pc)
+
                 x,y,z = map( float, gkold[ig+1].split())
                 #print(ig,int(x),int(y),int(z))
                 w = x*self.rcell_pc[:][0] + y*self.rcell_pc[:][1] + z*self.rcell_pc[:][2] #scaling
@@ -192,6 +194,7 @@ class Unfolding():
         #for ik in range(self.nkpoints_sc):
 
             # Reading the Super-cell Eigenvectors
+
             if spin == "none":
 
                tree_evc_sc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc_xml) )
@@ -219,16 +222,22 @@ class Unfolding():
 
                eivecs1, eivecs2 = [], []
                for ib in range(self.nbands_sc):
+                   print("Reading Supercell Wave functions") 
+                   load(ib,self.nbands_sc)
 
                    eivec1 = root_evc1_sc.find("evc."+str(ib+1)).text.split("\n")
                    eivec2 = root_evc2_sc.find("evc."+str(ib+1)).text.split("\n")
-                   eivecs1.append( map(lambda x: complex( float(x.split(",")[0]), float(x.split(",")[1]) ), eivec1[1:-1]) )
-                   eivecs2.append( map(lambda x: complex( float(x.split(",")[0]), float(x.split(",")[1]) ), eivec2[1:-1]) )
-                   if ib==0:
-                      x = 0.0
-                      for ig in range(self.ng_sc):
-                          x += eivecs1[-1][ig]*eivecs1[-1][ig].conjugate()
-                          x += eivecs2[-1][ig]*eivecs2[-1][ig].conjugate()
+                   eivecs1.append(list( map(lambda x: complex( float(x.split(",")[0]), float(x.split(",")[1]) ), eivec1[1:-1]) ) )
+                   eivecs2.append(list( map(lambda x: complex( float(x.split(",")[0]), float(x.split(",")[1]) ), eivec2[1:-1]) ) )
+               #print(eivecs1.shape) 
+               #print(eivecs2.shape) 
+                   #Why is this here? Was it a test?
+
+                   #if ib==0:
+                   #   x = 0.0
+                   #   for ig in range(self.ng_sc):
+                   #       x += eivecs1[-1][ig]*eivecs1[-1][ig].conjugate()
+                   #       x += eivecs2[-1][ig]*eivecs2[-1][ig].conjugate()
 
 
 
@@ -254,6 +263,9 @@ class Unfolding():
                    self.projection[ik][ib] = abs(x)
 
             if spin == "spinor":
+                  
+               #print(eivecs1)
+               #exit()
 
                for ib in range(self.nbands_sc): 
                    x = 0.0
