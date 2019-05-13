@@ -93,6 +93,14 @@ class UnfoldingYambo():
 
         self.projection = zeros([self.nkpoints_sc,self.nbands_sc-self.band_min])
 
+        save_pc = YamboSaveDB(save="%s/%s.save/SAVE" % (self.path_pc,self.prefix_pc))
+        save_sc = YamboSaveDB(save="%s/%s.save/SAVE" % (self.path_sc,self.prefix_sc))
+
+        self.wf_pc = YamboWFDB(path=self.path_pc)
+        self.wf_sc = YamboWFDB(path=self.path_sc)
+
+
+        '''
     #def convert_dat_xml(self):
         if convert_to_xml == True:
            print("converting dat files to xml...")
@@ -127,7 +135,10 @@ class UnfoldingYambo():
                   file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc2_xml)
                   os.system('iotk convert %s %s' % (file_dat,file_xml))
            print("done!") 
-           
+        ''' 
+
+         
+
         #gkvectors = []
         print("Dictionary of G-vectors and projection")
         for ik in range(self.nkpoints_sc):
