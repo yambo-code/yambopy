@@ -52,6 +52,9 @@ class YamboExcitonDB(YamboSaveDB):
     """ Read the excitonic states database from yambo
     """
     def __init__(self,lattice,eigenvalues,l_residual,r_residual,table=None,eigenvectors=None):
+        if not isinstance(lattice,YamboLatticeDB):
+            raise ValueError('Invalid type for lattice argument. It must be YamboLatticeDB')
+        print(lattice)
         self.lattice = lattice
         self.eigenvalues = eigenvalues
         self.l_residual = l_residual
@@ -313,7 +316,7 @@ class YamboExcitonDB(YamboSaveDB):
         #sum all the bands
         weights_bz_sum = np.sum(weights,axis=1)
         if f: weights_bz_sum = f(weights_bz_sum)
-        
+
         kmesh_full, kmesh_idx = replicate_red_kmesh(self.lattice.red_kpoints,repx=range(-1,2),repy=range(-1,2))
         x,y = red_car(kmesh_full,self.lattice.rlat)[:,:2].T
         weights_bz_sum = weights_bz_sum[kmesh_idx]
