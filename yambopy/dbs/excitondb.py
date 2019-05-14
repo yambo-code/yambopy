@@ -320,7 +320,17 @@ class YamboExcitonDB(YamboSaveDB):
         return x,y,weights_bz_sum
  
     def plot_exciton_2D_ax(self,ax,excitons,f=None,mode='hexagon',limfactor=0.8,**kwargs):
-        """plot the exciton weights in a 2D Brillouin zone"""
+        """
+        Plot the exciton weights in a 2D Brillouin zone
+       
+           Args:
+            excitons: list of exciton indexes to plot
+            f: function to apply to the exciton weights. Ex. f=log will compute the 
+               log of th weight to enhance the small contributions
+            mode: possible values are 'hexagon' to use hexagons as markers and 
+                  'rbf' to interpolate using radial basis functions.
+            limfactor: factor of the lattice parameter to choose the limits of the plot 
+        """
         x,y,weights_bz_sum = self.get_exciton_2D(excitons,f=f)
 
         #filter points outside of area
