@@ -19,6 +19,8 @@
 
 import xml.etree.ElementTree as ET
 from qepy.auxiliary import *
+from yambopy.dbs.savedb import *
+from yambopy.dbs.wfdb import *
 from qepy.pwxml import *
 from .lattice import *
 from yambopy.plot.plotting import add_fig_kwargs 
@@ -93,12 +95,13 @@ class UnfoldingYambo():
 
         self.projection = zeros([self.nkpoints_sc,self.nbands_sc-self.band_min])
 
-        save_pc = YamboSaveDB(save="%s/%s.save/SAVE" % (self.path_pc,self.prefix_pc))
-        save_sc = YamboSaveDB(save="%s/%s.save/SAVE" % (self.path_sc,self.prefix_sc))
+        save_pc = YamboSaveDB.from_db_file(folder="%s/%s.save/SAVE" % (self.path_pc,self.prefix_pc))
+        save_sc = YamboSaveDB.from_db_file(folder="%s/%s.save/SAVE" % (self.path_sc,self.prefix_sc))
 
-        self.wf_pc = YamboWFDB(path=self.path_pc)
-        self.wf_sc = YamboWFDB(path=self.path_sc)
+        self.wf_pc = YamboWFDB(save_pc,path=self.path_pc)
+        self.wf_sc = YamboWFDB(save_sc,path=self.path_sc)
 
+        print(self.wf_pc)
 
         '''
     #def convert_dat_xml(self):
