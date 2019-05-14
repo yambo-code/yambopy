@@ -323,13 +323,14 @@ class YamboExcitonDB(YamboSaveDB):
         """
         Plot the exciton weights in a 2D Brillouin zone
        
-           Args:
-            excitons: list of exciton indexes to plot
-            f: function to apply to the exciton weights. Ex. f=log will compute the 
-               log of th weight to enhance the small contributions
-            mode: possible values are 'hexagon' to use hexagons as markers and 
-                  'rbf' to interpolate using radial basis functions.
-            limfactor: factor of the lattice parameter to choose the limits of the plot 
+           Arguments:
+            excitons -> list of exciton indexes to plot
+            f -> function to apply to the exciton weights. Ex. f=log will compute the 
+                 log of th weight to enhance the small contributions
+            mode -> possible values are 'hexagon' to use hexagons as markers for the 
+                    weights plot and 'rbf' to interpolate the weights using radial basis functions.
+            limfactor -> factor of the lattice parameter to choose the limits of the plot 
+            scale -> size of the markers
         """
         x,y,weights_bz_sum = self.get_exciton_2D(excitons,f=f)
 
@@ -371,9 +372,21 @@ class YamboExcitonDB(YamboSaveDB):
         self.plot_exciton_2D_ax(ax,excitons,f=f,**kwargs)
         return fig
 
-    def plot_nbrightest_2D(self,emin=0,emax=10,estep=0.001,broad=0.1,mode='rbf',scale=3,nrows=2,ncols=2,eps=1e-5):
+    def plot_nbrightest_2D(self,emin=0,emax=10,estep=0.001,broad=0.1,
+                           mode='rbf',scale=3,nrows=2,ncols=2,eps=1e-5):
         """
-        Create a plot with multipls 2D brightest excitons
+        Create a plot with chi and vertical bars for the brightest excitons
+        Also plot the 2D wavefunctions of the brightest excitons.
+
+          Arguments:
+            emin,emax -> minimum and maximum energy range to plot chi
+            estep -> energy step to plot chi
+            broad -> broadening of the exciton peaks
+            mode -> possible values are 'hexagon' to use hexagons as markers for the 
+                    weights plot and 'rbf' to interpolate the weights using radial basis functions.
+            scale -> size of the markers
+            nrows,ncols -> number of rows and colums for the 2D plots (default: 2x2)
+            eps -> threshold to find degenerate states
         """
         import matplotlib.pyplot as plt
         figexc = plt.figure()
