@@ -296,6 +296,11 @@ class PwIn():
         self.system['lspinorb'] = '.true.'
         self.system['noncolin'] = '.true.'
 
+    def set_spinpolarized(self):
+        self.system['lspinorb'] = '.false.'
+        self.system['noncolin'] = '.false.'
+        self.system['nspin']    = 2
+
     def set_magnetization(self,starting_magnetization):
         """
         Set the starting_magnetization for a spin calculation.
