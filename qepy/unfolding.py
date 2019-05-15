@@ -42,7 +42,7 @@ class Unfolding():
     _evc1_dat = 'evc1.dat'
     _evc2_dat = 'evc2.dat'
 
-    def __init__(self,prefix_pc,prefix_sc,path_pc='.',path_sc='.',verbose=0,spin="none",convert_to_xml=True,band_min=0):
+    def __init__(self,prefix_pc,prefix_sc,path_pc='.',path_sc='.',verbose=0,spin="none",convert_to_xml=True,band_min=0,write_to_file=True):
         """ 
         Initialize the structure with the paths where the datafile.xml
         of the primitive and supercell
@@ -92,6 +92,9 @@ class Unfolding():
         self.rot = array([ [cos_v1v2,sin_v1v2,0.0], [-sin_v1v2,cos_v1v2,0.0], [0.0,0.0,1.0]] )
 
         self.projection = zeros([self.nkpoints_sc,self.nbands_sc-self.band_min])
+
+        if write_to_file==True:
+           f = open('projection.dat','w')
 
     #def convert_dat_xml(self):
         if convert_to_xml == True:
@@ -275,6 +278,7 @@ class Unfolding():
                     #if ib==0:
                        #print(eivecs[ib][g_contain[ig]])
                    self.projection[ik][ib] = abs(x)
+                   f.write("%lf  %lf  %lf  %lf  \n" % (float(ik), float(ib), self.eigen_sc[ik,ib+self.band_min]*HatoeV, abs(x)) )
 
             if spin == "spinor":
                   
@@ -291,6 +295,7 @@ class Unfolding():
                     #if ib==0:
                        #print(eivecs[ib][g_contain[ig]])
                    self.projection[ik][ib] = abs(x)
+                   f.write("%lf  %lf  %lf  %lf  \n" % (float(ik), float(ib), self.eigen_sc[ik,ib+self.band_min]*HatoeV, abs(x)) )
 
         print("Done!")
 
