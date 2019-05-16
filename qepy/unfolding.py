@@ -278,7 +278,7 @@ class Unfolding():
            ax.plot(kpoints_dists,self.eigen_pc[:,ib]*HatoeV,'k--',lw=0.5)
 
         for ib in range(self.nbands_sc-self.band_min):
-           ax.plot(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,'r--',lw=0.2)
+           ax.plot(kpoints_dists,self.eigen_sc[:,ib]*HatoeV,'r--',lw=0.2)
            ax.scatter(kpoints_dists,self.eigen_sc[:,ib+self.band_min]*HatoeV,s=self.projection[:,ib]*20,color='r')
 
         #plot options
