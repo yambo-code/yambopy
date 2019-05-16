@@ -46,6 +46,7 @@ class Unfolding():
         """ 
         Initialize the structure with the paths where the datafile.xml
         of the primitive and supercell
+        write_to_file: Useful if we need to do the unfolding in a cluster (I leave it activated always, to change later)
         """
         self.prefix_pc = prefix_pc
         self.prefix_sc = prefix_sc
@@ -111,10 +112,6 @@ class Unfolding():
                file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._gkv_xml)
                os.system('iotk convert %s %s' % (file_dat,file_xml))
                
-               #file_dat = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._evc_dat)
-               #file_xml = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._evc_xml)
-               #os.system('iotk convert %s %s' % (file_dat,file_xml))
-
                if spin == "none":
             
                   file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc_dat)
@@ -149,25 +146,25 @@ class Unfolding():
             self.ng_sc = int(n_gvec_sc/3)
             self.ng_pc = int(n_gvec_pc/3)
             g_sc= dict() 
-            #print("Dimension G- and g-vectors", self.ng_sc, self.ng_pc)
 
             #check this point
+
             for GRID in root_gk_sc.findall("GRID"):
                 gkold = GRID.text.split("\n")
 
             g_sc_int = dict()  # dictionary of integers
+
             #print('Reading Supercell G-vectors')
+
             for ig in arange(self.ng_sc):  # ATTENTION: Why was it xrange?
-                #print("Reading Supercell G-vectors") 
-                #load(ig,self.ng_sc)
 
                 x,y,z = map( float, gkold[ig+1].split())
                 g_sc_int[(int(x),int(y),int(z))] = ig
                 w = x*self.rcell_sc[:][0] + y*self.rcell_sc[:][1] + z*self.rcell_sc[:][2] #scaling
                 w = dot(self.rot,w) #rotations
-                w = np.around(w, decimals=n_decs)+array([0,0,0]) #round and clean
-                w = format_string % (w[0],w[1],w[2]) #truncation
-                g_sc[w] = ig #create dictionary
+                w = np.around(w, decimals=n_decs)+array([0,0,0])                          #round and clean
+                w = format_string % (w[0],w[1],w[2])                                      #truncation
+                g_sc[w] = ig                                                              #create dictionary
     
             #print('Assigning Primitive cell g-vectors')
 
@@ -177,38 +174,18 @@ class Unfolding():
                 gkold = GRID.text.split("\n")
 
             for ig in arange(self.ng_pc):
-                #load(ig,self.ng_pc)
 
                 x,y,z = map( float, gkold[ig+1].split())
-                #print(ig,int(x),int(y),int(z))
                 w = x*self.rcell_pc[:][0] + y*self.rcell_pc[:][1] + z*self.rcell_pc[:][2] #scaling
-                w = np.around(w, decimals=n_decs)+array([0,0,0]) #round and clean
-                w = format_string % (w[0],w[1],w[2]) #truncation
+                w = np.around(w, decimals=n_decs)+array([0,0,0])                          #round and clean
+                w = format_string % (w[0],w[1],w[2])                                      #truncation
                 try:
                     g_contain[ig] = g_sc[w]
                 except KeyError:
                     print("Missing k-point %d" % ig)
                     print(w)
-                    #print("g_sc ")
-                    #print(w,g_sc[w])
-                    #print("g_contain ")
-                    #print(w,g_contain[ig])
-                    #g_contain[ig] = 0
-            #exit()
-            #print(g_contain)
-            #print("ng_pc", self.ng_pc)
-            #print("ng_sc", self.ng_sc)
             
             ndim_gcontain = len(g_contain)
-            #print(ik)
-            #print("g_contain dimension")
-            #print(ndim_gcontain)
-            #print("ng_pc %d" % self.ng_pc)
-            #print()
-            #exit()
-
-        #evc = []
-        #for ik in range(self.nkpoints_sc):
 
             # Reading the Super-cell Eigenvectors
 
@@ -216,15 +193,6 @@ class Unfolding():
 
                tree_evc_sc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc_xml) )
                root_evc_sc = tree_evc_sc.getroot()
-               
-            if spin == "spinor":
-
-               tree_evc1_sc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc1_xml) )
-               root_evc1_sc = tree_evc1_sc.getroot()
-               tree_evc2_sc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc2_xml) )
-               root_evc2_sc = tree_evc2_sc.getroot()
-
-            if spin == "none":
 
                eivecs = []
                for ib in range(self.band_min,self.nbands_sc):
@@ -234,75 +202,56 @@ class Unfolding():
                       x = 0.0
                       for ig in range(self.ng_sc):
                           x += eivecs[-1][ig]*eivecs[-1][ig].conjugate()
-
+               
             if spin == "spinor":
+
+               tree_evc1_sc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc1_xml) )
+               root_evc1_sc = tree_evc1_sc.getroot()
+               tree_evc2_sc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc2_xml) )
+               root_evc2_sc = tree_evc2_sc.getroot()
 
                eivecs1, eivecs2 = [], []
                for ib in range(self.band_min,self.nbands_sc):
-                   #print("Reading Supercell Wave functions") 
-                   #load(ib,self.nbands_sc)
 
                    eivec1 = root_evc1_sc.find("evc."+str(ib+1)).text.split("\n")
                    eivec2 = root_evc2_sc.find("evc."+str(ib+1)).text.split("\n")
                    eivecs1.append(list( map(lambda x: complex( float(x.split(",")[0]), float(x.split(",")[1]) ), eivec1[1:-1]) ) )
                    eivecs2.append(list( map(lambda x: complex( float(x.split(",")[0]), float(x.split(",")[1]) ), eivec2[1:-1]) ) )
-               #print(eivecs1.shape) 
-               #print(eivecs2.shape) 
-                   #Why is this here? Was it a test?
 
-                   #if ib==0:
-                   #   x = 0.0
-                   #   for ig in range(self.ng_sc):
-                   #       x += eivecs1[-1][ig]*eivecs1[-1][ig].conjugate()
-                   #       x += eivecs2[-1][ig]*eivecs2[-1][ig].conjugate()
+            # Projection
 
-
-
-                       #print(ig, abs(eivecs[-1][ig]), eivecs[-1][ig].conjugate() )
-                       #if abs(eivecs[-1][ig]*eivecs[-1][ig].conjugate()) > 0.05:
-                       #    print("warning",eivecs[-1][ig]*eivecs[-1][ig].conjugate())
-                   #print(x)
-            #evc.append(eivecs)
-            #    exit()     
-        #sc.convert_dat_xml()
-
-        # Projection
             if spin == "none":
 
                for ib in range(self.nbands_sc-self.band_min): 
                    x = 0.0
                    for ig in range(self.ng_pc): #ndim_gcontain):
+
                        x += eivecs[ib][g_contain[ig]]*(eivecs[ib][g_contain[ig]].conjugate())
-                    #if ib==0:
-                    #   print(ib,ig,g_contain[ig],eivecs[ib][g_contain[ig]])
-                    #if ib==0:
-                       #print(eivecs[ib][g_contain[ig]])
+
                    self.projection[ik][ib] = abs(x)
-                   f.write("%lf  %lf  %lf  %lf  \n" % (float(ik), float(ib), self.eigen_sc[ik,ib+self.band_min]*HatoeV, abs(x)) )
+
+                   f.write("%lf  %lf  %lf  %lf  \n" % (float(ik), float(ib), self.eigen_sc[ik,ib+self.band_min]*HatoeV, self.projection[ik][ib] ) )
 
             if spin == "spinor":
-                  
-               #print(eivecs1)
-               #exit()
 
                for ib in range(self.nbands_sc-self.band_min): 
                    x = 0.0
-                   for ig in range(self.ng_pc): #ndim_gcontain):
+                   for ig in range(self.ng_pc):
+
                        x += eivecs1[ib][g_contain[ig]]*(eivecs1[ib][g_contain[ig]].conjugate())
                        x += eivecs2[ib][g_contain[ig]]*(eivecs2[ib][g_contain[ig]].conjugate())
-                    #if ib==0:
-                    #   print(ib,ig,g_contain[ig],eivecs[ib][g_contain[ig]])
-                    #if ib==0:
-                       #print(eivecs[ib][g_contain[ig]])
+
                    self.projection[ik][ib] = abs(x)
-                   f.write("%lf  %lf  %lf  %lf  \n" % (float(ik), float(ib), self.eigen_sc[ik,ib+self.band_min]*HatoeV, abs(x)) )
+
+                   f.write("%lf  %lf  %lf  %lf  \n" % (float(ik), float(ib), self.eigen_sc[ik,ib+self.band_min]*HatoeV, self.projection[ik][ib] ) )
 
         print("Done!")
 
-        #print(self.projection)
-    # Plotting adapted from PwXML (to be improved)
-
     def plot_eigen_ax(self,ax,path=[],xlim=(),ylim=()):
+        """
+        The plot function is in a provisional state and is basically useful for small calculations.
+        For large calculations is more useful writing the projections in a file and read with another script.
+        """
 
         if path:
             if isinstance(path,Path):
@@ -326,12 +275,10 @@ class Unfolding():
 
         #plot bands
         for ib in range(self.nbands_pc):
-           #ax.plot(list(range(self.nkpoints_pc)),self.eigen_pc[:,ib]*HatoeV,'k--',lw=0.5)
            ax.plot(kpoints_dists,self.eigen_pc[:,ib]*HatoeV,'k--',lw=0.5)
 
         for ib in range(self.nbands_sc-self.band_min):
-           #ax.plot(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,'r--',lw=1)
-           #ax.scatter(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,s=self.projection[:,ib]*20,color='r')
+           ax.plot(list(range(self.nkpoints_sc)),self.eigen_sc[:,ib]*HatoeV,'r--',lw=0.2)
            ax.scatter(kpoints_dists,self.eigen_sc[:,ib+self.band_min]*HatoeV,s=self.projection[:,ib]*20,color='r')
 
         #plot options
