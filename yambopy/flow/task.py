@@ -378,7 +378,7 @@ class YamboTask(YambopyTask):
     yamboin = 'yambo.in'
 
     @classmethod
-    def from_runlevel(cls,interface_task,runlevel,yamboin_dict={},dependencies=None,**kwargs):
+    def from_runlevel(cls,interface_task,runlevel,yamboin_dict={},yamboin_args=[],dependencies=None,**kwargs):
         """ Run yambo with the runlevel string to generate the inputfile """
         scheduler = kwargs.pop('scheduler',yambopyenv.SCHEDULER)
         executable = kwargs.pop('executable',yambopyenv.YAMBO)
@@ -386,6 +386,7 @@ class YamboTask(YambopyTask):
                        scheduler=scheduler,dependencies=dependencies)
         instance.runlevel = runlevel
         instance.yamboin_dict = yamboin_dict
+        instance.yamboin_args = yamboin_args
         return instance
 
     @classmethod
@@ -451,6 +452,7 @@ class YamboTask(YambopyTask):
         if verbose: print("Creating inputfile in %s"%path)
         self.yamboinput = YamboIn.from_runlevel(self.runlevel,executable=self.executable,folder=path)
         self.yamboinput.set_fromdict(self.yamboin_dict)
+        self.yamboinput.set_fromargs(self.yamboin_args)
         self.yamboinput.write(os.path.join(path,'run.in'))
 
         #create running script

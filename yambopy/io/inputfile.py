@@ -112,28 +112,33 @@ class YamboIn(object):
         err = instance.read_file(os.path.join(folder,filename))
 
         if err:
-            lines = []; app = lines.append         
+            lines = []; app = lines.append
             app('Yambo did not create the %s input file.'%filename)
             app('command: %s'%command)
             app('folder:  %s/'%folder)
             raise FileNotFoundError("\n".join(lines))
-  
+
         #read input file
         return cls.from_file(filename=filename,folder=folder)
-        
+
     @classmethod
     def from_dictionary(cls,yamboin_dict):
-        """Return an instance of this class from a dictionary""" 
+        """Return an instance of this class from a dictionary"""
         yamboin = cls()
         yamboin.set_fromdict(yamboin_dict)
-        return yamboin        
+        return yamboin
 
     def set_fromdict(self,yamboin_dict):
         """Write a python script to generate this input"""
         #monkey patch the input file
         for var,value in yamboin_dict.items():
             self[var] = value
-    
+
+    def set_fromargs(self,yamboin_args):
+        """Write a python script to generate this input"""
+        #monkey patch the input file
+        self.arguments += yamboin_args
+
     def __getitem__(self,key):
         """ Get the value of a variable in the input file
         """
