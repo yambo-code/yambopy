@@ -52,6 +52,9 @@ class YamboExcitonDB(YamboSaveDB):
     """ Read the excitonic states database from yambo
     """
     def __init__(self,lattice,eigenvalues,l_residual,r_residual,table=None,eigenvectors=None):
+        if not isinstance(lattice,YamboLatticeDB):
+            raise ValueError('Invalid type for lattice argument. It must be YamboLatticeDB')
+        print(lattice)
         self.lattice = lattice
         self.eigenvalues = eigenvalues
         self.l_residual = l_residual
@@ -217,6 +220,9 @@ class YamboExcitonDB(YamboSaveDB):
     def get_degenerate(self,index,eps=1e-4):
         """
         Get degenerate excitons
+        
+        Args:
+            eps: maximum energy difference to consider the two excitons degenerate in eV
         """
         energy = self.eigenvalues[index-1]
         excitons = [] 
@@ -310,30 +316,43 @@ class YamboExcitonDB(YamboSaveDB):
         #sum all the bands
         weights_bz_sum = np.sum(weights,axis=1)
         if f: weights_bz_sum = f(weights_bz_sum)
-        
+
         kmesh_full, kmesh_idx = replicate_red_kmesh(self.lattice.red_kpoints,repx=range(-1,2),repy=range(-1,2))
         x,y = red_car(kmesh_full,self.lattice.rlat)[:,:2].T
         weights_bz_sum = weights_bz_sum[kmesh_idx]
         return x,y,weights_bz_sum
  
-    def plot_exciton_2D_ax(self,ax,excitons,f=None,mode='rbf',limfactor=0.8,**kwargs):
-        """plot the exciton weights in a 2D Brillouin zone"""
+    def plot_exciton_2D_ax(self,ax,excitons,f=None,mode='hexagon',limfactor=0.8,**kwargs):
+        """
+        Plot the exciton weights in a 2D Brillouin zone
+       
+           Arguments:
+            excitons -> list of exciton indexes to plot
+            f -> function to apply to the exciton weights. Ex. f=log will compute the 
+                 log of th weight to enhance the small contributions
+            mode -> possible values are 'hexagon' to use hexagons as markers for the 
+                    weights plot and 'rbf' to interpolate the weights using radial basis functions.
+            limfactor -> factor of the lattice parameter to choose the limits of the plot 
+            scale -> size of the markers
+        """
         x,y,weights_bz_sum = self.get_exciton_2D(excitons,f=f)
 
-        #plotting
+        #filter points outside of area
         lim = np.max(self.lattice.rlat)*limfactor
+        dlim = lim*1.1
+        filtered_weights = [[xi,yi,di] for xi,yi,di in zip(x,y,weights_bz_sum) if -dlim<xi and xi<dlim and -dlim<yi and yi<dlim]
+        x,y,weights_bz_sum = np.array(filtered_weights).T
+
+        #plotting
         if mode == 'hexagon': 
             scale = kwargs.pop('scale',1)
-            ax.scatter(x,y,s=scale,c=weights_bz_sum,marker='H',rasterized=True,**kwargs)
+            ax.scatter(x,y,s=scale,c=weights_bz_sum,rasterized=True,**kwargs)
             ax.set_xlim(-lim,lim)
             ax.set_ylim(-lim,lim)
         elif mode == 'rbf':
             from scipy.interpolate import Rbf
             npts = kwargs.pop('npts',100)
             interp_method = kwargs.pop('interp_method','bicubic')
-            dlim = lim*1.1
-            filtered_weights = [[xi,yi,di] for xi,yi,di in zip(x,y,weights_bz_sum) if -dlim<xi and xi<dlim and -dlim<yi and yi<dlim]
-            x,y,weights_bz_sum = np.array(filtered_weights).T
             rbfi = Rbf(x,y,weights_bz_sum,function='linear')
             x = y = np.linspace(-lim,lim,npts)
             weights_bz_sum = np.zeros([npts,npts])
@@ -356,9 +375,21 @@ class YamboExcitonDB(YamboSaveDB):
         self.plot_exciton_2D_ax(ax,excitons,f=f,**kwargs)
         return fig
 
-    def plot_nbrightest_2D(self,emin=0,emax=10,estep=0.001,broad=0.1,scale=3,nrows=2,ncols=2,eps=1e-5):
+    def plot_nbrightest_2D(self,emin=0,emax=10,estep=0.001,broad=0.1,
+                           mode='rbf',scale=3,nrows=2,ncols=2,eps=1e-5):
         """
-        Create a plot with multipls 2D brightest excitons
+        Create a plot with chi and vertical bars for the brightest excitons
+        Also plot the 2D wavefunctions of the brightest excitons.
+
+          Arguments:
+            emin,emax -> minimum and maximum energy range to plot chi
+            estep -> energy step to plot chi
+            broad -> broadening of the exciton peaks
+            mode -> possible values are 'hexagon' to use hexagons as markers for the 
+                    weights plot and 'rbf' to interpolate the weights using radial basis functions.
+            scale -> size of the markers
+            nrows,ncols -> number of rows and colums for the 2D plots (default: 2x2)
+            eps -> threshold to find degenerate states
         """
         import matplotlib.pyplot as plt
         figexc = plt.figure()
@@ -370,7 +401,7 @@ class YamboExcitonDB(YamboSaveDB):
         for n,(i,idx) in enumerate(sorted_exc):
             ax = figexc.add_subplot(nrows,ncols,n+1)
             excitons = self.get_degenerate(idx,eps)
-            self.plot_exciton_2D_ax(ax,excitons,scale=scale)
+            self.plot_exciton_2D_ax(ax,excitons,scale=scale,mode=mode)
         return figchi,figexc
 
     def get_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False):

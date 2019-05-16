@@ -11,7 +11,7 @@ from collections import OrderedDict
 from yambopy import *
 
 #
-# by Henrique Miranda. 
+# by Henrique Miranda.
 #
 def pack_files_in_folder(folder,save_folder=None,mask='',verbose=True):
     """
@@ -93,8 +93,8 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose=Fal
         value, unit = inp[var]
 
         #get qp value
-        eigenvalues_dft, eigenvalues_qp, lifetimes = out.get_qps()
-        
+        eigenvalues_dft, eigenvalues_qp, lifetimes, z = out.get_qps()
+
         #save result
         qp_gap = eigenvalues_qp[kpointc-1,bandc-1] - eigenvalues_qp[kpointv-1,bandv-1]
 
@@ -104,7 +104,7 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose=Fal
 
     convergence_data = np.array(sorted(convergence_data))
     if convergence_data.dtype == 'object': raise ValueError('Unknown type of variable')
- 
+
     if text:
         output_folder = 'analyse_%s'%folder
         if not os.path.isdir(output_folder): os.mkdir(output_folder)
@@ -142,7 +142,7 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,text,draw,verbose=Fals
         text     -> Skips writing the .dat file (default: True)
         draw     -> Skips drawing (plotting) the abs spectra (default: True)
     """
-  
+
     #find the save folder
     lat = YamboSaveDB.from_db_file(os.path.join(folder,'SAVE'))
 
@@ -165,7 +165,7 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,text,draw,verbose=Fals
     for basename, (inp,out) in io.items():
         #get input
         value, unit = inp[var]
- 
+
         #get exiton energies
         exciton_energy = out.eigenvalues.real
 
@@ -176,7 +176,7 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,text,draw,verbose=Fals
         if isinstance(value,list): value = value[1]
         exciton_energies.append([value,exciton_energy])
         exciton_spectras.append([value,exciton_spectra])
-    
+
     exciton_spectras = sorted(exciton_spectras,key=lambda x: x[0])
     exciton_energies = sorted(exciton_energies,key=lambda x: x[0])
 
@@ -200,7 +200,7 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,text,draw,verbose=Fals
     cmap = plt.get_cmap('viridis')
     nspectra = len(exciton_spectras)
     for i,(value,(w,spectra)) in enumerate(exciton_spectras):
-        plt.plot(w,spectra.imag,c=cmap(i/nspectra),label="{} = {} {}".format(var,value,unit)) 
+        plt.plot(w,spectra.imag,c=cmap(i/nspectra),label="{} = {} {}".format(var,value,unit))
 
     ## Spectra plots
     ax.set_xlabel('$\omega$ (eV)')
@@ -208,7 +208,7 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,text,draw,verbose=Fals
     ax.legend(frameon=False)
     output_file = '%s_exciton_spectra.pdf'%var
     fig.savefig(os.path.join(output_folder,output_file))
-    if draw: plt.show() 
+    if draw: plt.show()
 
 #
 # by Fulvio Paleari & Henrique Miranda
@@ -386,7 +386,7 @@ def add_qp(output,add=[],substract=[],addimg=[],verbose=False):
 
     # create and init the QPs energies table
 
-    # The E0 is simply written in the real part (is 0 in the img part) 
+    # The E0 is simply written in the real part (is 0 in the img part)
     # and Z = 1 (since we merge different calculation types)
     for i,(n1,n2,k) in enumerate(qpkeys):
         QP_E_E0_Z_save[0,i,1] = qpdic[(n1,n2,k)]
