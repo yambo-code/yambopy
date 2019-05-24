@@ -244,7 +244,8 @@ class PwIn():
         self.system['occupations'] = "'%s'" % occupations['occupations'] 
         
         if 'smearing' in occupations: self.system['smearing'] = "'%s'" % occupations['smearing']
-        if 'degauss'  in occupations: self.system['degauss'] = occupations['degauss'] 
+        if 'degauss'  in occupations: self.system['degauss']  = occupations['degauss'] 
+        if 'nbnd'     in occupations: self.system['nbnd']     = occupations['nbnd']
 
     def update_structure_from_xml(self,pwxml):
         """
