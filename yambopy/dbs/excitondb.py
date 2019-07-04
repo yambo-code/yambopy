@@ -346,7 +346,7 @@ class YamboExcitonDB(YamboSaveDB):
         #plotting
         if mode == 'hexagon': 
             scale = kwargs.pop('scale',1)
-            ax.scatter(x,y,s=scale,c=weights_bz_sum,rasterized=True,**kwargs)
+            ax.scatter(x,y,s=scale,marker='H',c=weights_bz_sum,rasterized=True,**kwargs)
             ax.set_xlim(-lim,lim)
             ax.set_ylim(-lim,lim)
         elif mode == 'rbf':
