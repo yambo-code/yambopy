@@ -197,7 +197,9 @@ class YamboSaveDB():
     @property
     def efermi(self):
         if not hasattr(self,"_efermi"):
-            self._efermi = self.get_efermi
+            # break here??
+            # I have changed get_efermi by fermi and now it works. To be check by the author
+            self._efermi = self.get_fermi
         return self._efermi
 
     def get_fermi(self,inv_smear=0.001,verbose=0):
