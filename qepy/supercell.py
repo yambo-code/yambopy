@@ -12,12 +12,12 @@ import copy
 from math import *
 import fractions as frc
 # Dimensional constants for reference (actually only b2a is really used in the code for now)
-cm1_2_Tera=0.0299793 # Conversion from cm-1 to THz with 2pi factor included
-Tera=1.e12
-b2a =0.529177
-hbar=6.5821e-16 # Planck's constant (eV*s)
-kb=8.6173e-5 # Boltzmann's constant (eV/K)
-Mp=1.0073 # Proton mass (reference, u)
+cm1_2_Tera=0.0299793         # Conversion from cm-1 to THz with 2pi factor included
+Tera=1.e12                   
+b2a =0.529177                
+hbar=6.5821e-16              # Planck's constant (eV*s)
+kb=8.6173e-5                 # Boltzmann's constant (eV/K)
+Mp=1.0073                    # Proton mass (reference, u)
 cMp=Mp*1.660539*6.241509e-29 # Conversion of Mp in eV*\AA^{-2}*s^2
 #
 ## ISSUES TO FIX ##
