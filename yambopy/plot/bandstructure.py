@@ -169,16 +169,26 @@ class YambopyBandStructure():
         kwargs = self.get_kwargs(**kwargs)
         fermie = kwargs.pop('fermie',self.fermie)
         size = kwargs.pop('size',1)
-        c = kwargs.pop('c',None)
-        c_weights = kwargs.pop('c_weights',c)
+
+        # Set color bands and weights
+        c_bands   = kwargs.pop('color_bands',None)
+        c_weights = kwargs.pop('c_weights',None)
+        c_label   = kwargs.pop('c_label',None)
+
         for ib,band in enumerate(self.bands.T):
             x = self.distances
             y = band-fermie
-            ax.plot(x,y,c=c,**kwargs)
+            ax.plot(x,y,c=c_bands,**kwargs)
+            # fill between 
             if self.weights is not None:
                 dy = self.weights[:,ib]*size
-                ax.fill_between(x,y+dy,y-dy,alpha=alpha_weights,color=c_weights,linewidth=0)
+                ax.fill_between(x,y+dy,y-dy,alpha=alpha_weights,color=c_weights,linewidth=0,label=c_label)
+            # dot
+            #if self.weights is not None:
+            #    ax.scatter(x,y,c=c_weights,size=dy,alpha=alpha_weights)
+
             kwargs.pop('label',None)
+
         self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=xlim)
         ax.set_ylabel(ylabel)
         self.add_kpath_labels(ax)

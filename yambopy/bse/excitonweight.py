@@ -15,7 +15,15 @@ class YamboExcitonWeight(YamboSaveDB):
 
     def __init__(self,filename,save='SAVE',path='.'):
         #read save database
-        YamboSaveDB.__init__(self,save=save)
+
+        # ! I have commented line 20 because is was broken. Pls check
+
+        ysave = YamboSaveDB.from_db_file(folder=save,filename='ns.db1')
+        self.sym_car  = ysave.sym_car
+        self.kpts_car = ysave.car_kpoints #kpts_car
+        self.lat = ysave.lat
+
+        #super(YamboSaveDB,self).from_db_file(folder=save,filename='ns.db1')
 
         #read excitons file
         self.excitons = np.loadtxt(filename)

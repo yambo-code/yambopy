@@ -461,7 +461,7 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     #Spin
     spin = kwargs.pop("spin", None)
     if spin is "spinor": qe_input.set_spinorbit()
-    if spin is "polarized": raise NotImplementedError('Spin polarized calculation not yet implemented')
+    if spin is "polarized": qe_input_scf.set_spinpolarized() 
 
     #Magnetization
     starting_magnetization = kwargs.pop("starting_magnetization", None)
@@ -503,7 +503,7 @@ def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints,**kwargs):
     #Spin
     spin = kwargs.pop("spin", None)
     if spin is "spinor": qe_input.set_spinorbit()
-    if spin is "polarized": raise NotImplementedError('Spin polarized calculation not yet implemented')
+    if spin is "polarized": qe_input.set_spinpolarized() 
 
     #Magnetization
     starting_magnetization = kwargs.pop("starting_magnetization", None)
@@ -544,8 +544,8 @@ def PwRelaxTasks(structure,kpoints,ecut,cell_dofree='all',**kwargs):
 
     #Spin
     spin = kwargs.pop("spin", None)
-    if spin is "spinor": qe_input.set_spinorbit()
-    if spin is "polarized": raise NotImplementedError('spin polarized calculation yet not implemented')
+    if spin is "spinor": qe_input_scf.set_spinorbit()
+    if spin is "polarized": qe_input_scf.set_spinpolarized() 
 
     #Magnetization
     starting_magnetization = kwargs.pop("starting_magnetization", None)
