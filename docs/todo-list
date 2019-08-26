@@ -7,3 +7,4 @@
     - 
 - Evaluate merging of lattice.py and save.py
 - Check supercell.py is documented and there is an example. Another option is creating a full workflow for the phonon-assisted calculation
+- Add documentation to unfolding
