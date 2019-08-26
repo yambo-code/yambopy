@@ -59,12 +59,12 @@ path_kpoints_sc = Path([ [[0.0,  0.0, 0.0],'G'],
 
 def bands():
 
-    pw_scf_pc,pw_bands_pc = PwBandsTasks(BN,kpoints_pc,ecut,nscf_bands_pc,path_kpoints_pc,spin="spinor",pseudo_dir="/Users/alejandro/Software/yambopy/tutorial/bn/pseudos")
+    pw_scf_pc,pw_bands_pc = PwBandsTasks(BN,kpoints_pc,ecut,nscf_bands_pc,path_kpoints_pc,spin="spinor",pseudo_dir="../../../bn/pseudos")
     bands_flow = YambopyFlow.from_tasks('bands_pc',[pw_scf_pc,pw_bands_pc])
     bands_flow.create(agressive=True)
     bands_flow.run()
 
-    pw_scf_sc,pw_bands_sc = PwBandsTasks(BN_sc,kpoints_sc,ecut,nscf_bands_sc,path_kpoints_sc,spin="spinor",pseudo_dir="/Users/alejandro/Software/yambopy/tutorial/bn/pseudos")
+    pw_scf_sc,pw_bands_sc = PwBandsTasks(BN_sc,kpoints_sc,ecut,nscf_bands_sc,path_kpoints_sc,spin="spinor",pseudo_dir="../../../bn/pseudos")
     bands_flow = YambopyFlow.from_tasks('bands_sc',[pw_scf_sc,pw_bands_sc])
     bands_flow.create(agressive=True)
     bands_flow.run()

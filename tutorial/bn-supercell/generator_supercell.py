@@ -31,7 +31,7 @@ if args.diagonal:
     calculation = ''.join(ysup_diag.qe_d.control['calculation'].split('\''))
     prefix = ''.join(ysup_diag.qe_d.control['prefix'].split('\''))
     ysup_diag.qe_d.write('d_%s.%s'%(prefix,calculation))
-    print 'supercell input file written.'
+    print('supercell input file written.')
 #
 #Nondiagonal
 #
@@ -46,12 +46,12 @@ if args.nondiagonal:
     calculation = ''.join(ysup_ndiag.qe_nd.control['calculation'].split('\''))
     prefix = ''.join(ysup_ndiag.qe_nd.control['prefix'].split('\''))
     ysup_ndiag.qe_nd.write('n_%s.%s'%(prefix,calculation))
-    print 'supercell input file written.'
+    print('supercell input file written.')
     # Displace nondiagonal
     if args.displace:
         ysup_ndiag.displace(modes_file,nd_sup,Temp=0.1) #Displace atoms: intensity is Temp [BOHR], sign and direction (standing wave with Q) given by modes_file
         # Print supercell q-e input files
         # modes_qe is the list of displaced supercell in PwIn() format along each phonon mode
         for mode in range(N_M): ysup_ndiag.modes_qe[mode].write('n_%s_mode%d.%s'%(prefix,mode+1,calculation))
-        print 'displaced supercell input files written.'
+        print('displaced supercell input files written.')
 
