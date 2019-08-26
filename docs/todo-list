@@ -1,0 +1,8 @@
+- Check all examples are working in new version
+    - BN
+    - Si
+    - MoS2
+- Update documentation
+    - Write documentation for the flows
+    - 
+- Evaluate merging of lattice.py and save.py
