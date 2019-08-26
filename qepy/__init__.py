@@ -25,3 +25,6 @@ from .projwfcxml import *
 from .ph import *
 from .dynmat import *
 from .lattice import *
+from .unfolding import *
+from .unfoldingyambo import *
+from .supercell import *

@@ -16,7 +16,9 @@ class Slurm(Scheduler):
     from the schduler class to the variables needed in this class
     """
     _vardict = {"cores":"core",
-                "nodes":"nodes"}
+                "nodes":"nodes",
+                "cpus_per_task":"cpus_per_task"}
+                          
                 
     def initialize(self):
         self.get_vardict()
@@ -38,6 +40,7 @@ class Slurm(Scheduler):
 
         if self.nodes: app("#SBATCH -N %d" % self.nodes)
         if self.cores: app("#SBATCH --ntasks-per-node=%d" % self.cores)
+        if self.cpus_per_task: app("#SBATCH --cpus-per-task=%d" % self.cpus_per_task )
 
         mem_per_cpu = self.get_arg("mem-per-cpu",None) 
         if mem_per_cpu: app("#SBATCH --mem-per-cpu=%d" % mem_per_cpu)
