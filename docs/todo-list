@@ -6,3 +6,4 @@
     - Write documentation for the flows
     - 
 - Evaluate merging of lattice.py and save.py
+- Check supercell.py is documented and there is an example
