@@ -234,15 +234,16 @@ class Supercell():
         new_atoms      = np.array([atoms for n in range(int(self.sup_size))])  # Another problem with integers (Alejandro)
         T = []
         for nz,ny,nx in product(range(int(R[2])),range(int(R[1])),range(int(R[0])) ):   # Another problem with integers (Alejandro)
-            cell=nx+ny*R[0]+nz*R[0]*R[1]
+            cell=int(nx+ny*R[0]+nz*R[0]*R[1])    # is an integer?? (Alejandro)
             translation = nx*latvec[0] +ny*latvec[1] +nz*latvec[2]
-            for b in range(self.basis): new_atoms[cell,b]=new_atoms[cell,b] +translation
+            for b in range(self.basis): 
+                new_atoms[cell,b]=new_atoms[cell,b] + translation  # I don't understand what is doing this. is OK? (Alejandro)
             T.append(translation)
         T = np.array(T) #Positions of the repeated unit cells
         if self.aunits!='angstrom': self.T=car_red(T,self.latvec)
         else: self.T=T
         #new_atoms[super_basis][directions]$
-        new_atoms=new_atoms.reshape(self.basis*self.sup_size,3)
+        new_atoms=new_atoms.reshape(int(self.basis*self.sup_size),3)  # Another problem with integers (Alejandro)
         if self.aunits!='angstrom': new_atoms = car_red(new_atoms,self.new_latvec)
         return new_atoms
 
@@ -328,9 +329,9 @@ class Supercell():
         """ Put the atomic element labels in the right order
         """
         positions_input = new_atoms.tolist()
-        elements_input  = [[self.qe_input.atoms[i][0] for i in range(self.basis)] for j in range(self.sup_size)]
+        elements_input  = [[self.qe_input.atoms[i][0] for i in range(int(self.basis))] for j in range(int(self.sup_size))]  # Another problem with integers (Alejandro)
         elements_input  = [ item for sublist in elements_input for item in sublist ]
-        atoms_input     = [[elements_input[i], positions_input[i]] for i in range(self.sup_size*self.basis)]
+        atoms_input     = [[elements_input[i], positions_input[i]] for i in range(int(self.sup_size*self.basis))]  # Another problem with integers (Alejandro)
         return atoms_input
 
     def posint(self,value):
