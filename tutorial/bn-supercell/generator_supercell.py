@@ -22,7 +22,7 @@ if args.remove: os.system('rm -f n_* d_* *_expanded')
 #Diagonal
 #
 if args.diagonal:
-    qe1 = PwIn.from_file(filename1)               #PwIn class
+    qe1 = PwIn.from_file('unit-cell.scf')               #PwIn class
     R=[3,3,1]                           #[INPUT] Repetitions of unit cell in the lattice directions
     ysup_diag = Supercell(qe1)          #Supercell class
     ysup_diag.d_sup(R)                  #Generate diagonal supercell

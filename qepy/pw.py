@@ -477,7 +477,7 @@ class PwIn():
                 for i in range(int(self.system["nat"])):
                     atype, x,y,z = next(lines).split()
                     atoms.append([atype,[float(i) for i in (x,y,z)]])
-        self.atoms = atoms
+        self._atoms = atoms
         self.atomic_pos_type = atomic_pos_type.replace('{','').replace('}','').strip().split()[1]
 
     @property

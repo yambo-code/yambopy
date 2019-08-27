@@ -231,9 +231,9 @@ class Supercell():
         if self.aunits!='angstrom': atoms = red_car(atoms,latvec) 
         else: latvec = b2a*latvec
         #new_atoms[cell][basis][direction]
-        new_atoms      = np.array([atoms for n in range(self.sup_size)])
+        new_atoms      = np.array([atoms for n in range(int(self.sup_size))])  # Another problem with integers (Alejandro)
         T = []
-        for nz,ny,nx in product(range(R[2]),range(R[1]),range(R[0])): 
+        for nz,ny,nx in product(range(int(R[2])),range(int(R[1])),range(int(R[0])) ):   # Another problem with integers (Alejandro)
             cell=nx+ny*R[0]+nz*R[0]*R[1]
             translation = nx*latvec[0] +ny*latvec[1] +nz*latvec[2]
             for b in range(self.basis): new_atoms[cell,b]=new_atoms[cell,b] +translation
@@ -262,9 +262,9 @@ class Supercell():
         if nums[0]==0: q,r=[0,1] #[POSSIBLE BUG for certain q-vectors] These conditions must be checked carefully
         else:
             #Compute q
-            g12_r = g12/g123
-            g23_r = g23/g123
-            g31_r = g31/g123
+            g12_r = int(g12/g123)   # I have set all as integers but we should check this is correct! (Alejandro)
+            g23_r = int(g23/g123)
+            g31_r = int(g31/g123)
             if g12_r == 1: q = 0
             else:
                 for i in range(1,g12_r):
@@ -354,7 +354,7 @@ class Supercell():
             phonon = car_red(phonon,self.new_latvec)
             new_atoms = new_atoms + phonon
         qe_s = copy.deepcopy(qe)
-        qe_s.atoms = self.atoms_input(new_atoms)
+        qe_s.set_atoms(self.atoms_input(new_atoms))
         qe_s.control['prefix'] = qe.control['prefix'][:-1]+"_s'"
         #[POSSIBLE BUG] with only ibrav==0 and cell_parameters, it might fail the symmetry !?
         if 'celldm(1)' in qe_s.system: del qe_s.system['celldm(1)']

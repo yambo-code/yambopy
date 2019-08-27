@@ -3,7 +3,7 @@
     restart_mode='from_scratch',
     verbosity='high',
     prefix='hbn',
-    pseudo_dir = '/SCRATCH/unilu/2016038_HPCZENOBE_ULUX/fpaleari/nondiag',
+    pseudo_dir = '../bn/pseudos/',
     outdir='./'
     wf_collect=.true.
  /
@@ -29,5 +29,5 @@ N        0.666666667   0.333333333  0.0
 B        0.333333333   0.666666667  0.0
 B        0.666666667   0.333333333  0.5
 N        0.333333333    0.666666667  0.5
-K_POINTS automatic
+K_POINTS {automatic}
 12 12 4 0 0 0
