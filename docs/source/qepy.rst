@@ -88,7 +88,7 @@ from the  `Quantum Espresso <http://www.quantum-espresso.org/>`_ suite.
 Unfolding
 ~~~~~~~~~~~~~
 The class `Unfolding()` is useful to unfold the electronic structure calculated in a supercell into the original primitive cell of
-the material. Currently it generates and reads Quantum Espresso XML files. The class is based in the work of Popescu and Zunger published in Phys. Rev. B 85, 085201 (2012).
+the material. Currently it generates and reads Quantum Espresso XML files. The class is based in the work of Popescu and Zunger published in `Phys. Rev. B 85, 085201 (2012)`<https://journals.aps.org/prb/abstract/10.1103/PhysRevB.85.085201>.
 
 
 
