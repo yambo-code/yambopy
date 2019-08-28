@@ -96,6 +96,10 @@ There is an example adapted to hBN tutorial/bn-folding. Currently there are seve
 - spin: "none" or "spinor".
 - band_min: To avoid the processing in core levels we can set the starting band for the unfolding.
 
+The result of the unfolding in a 2x2 hBN supercell is shown below. Red dashed are the band structure of the 2x2 supercell. The red
+dots are the unfolded band states, on top of the primitive unit cell band structures (black solid lines).
 
+.. image:: figures/bn-unfolded.png
+   :width: 45%
 
 
