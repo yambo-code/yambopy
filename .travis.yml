@@ -3,8 +3,7 @@ language: python
 cache: pip
 
 python:
-    - 2.7
-    - 3.5
+    - 3.7
 
 env:
     - YAMBO_VERSION=4.4 PW_VERSION=6.3
@@ -41,5 +40,4 @@ branches:
   only:
     - master
     - travis
-    - devel
-    - merge_gw_netcdf
+    - devel-alejandro

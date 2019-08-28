@@ -46,15 +46,15 @@ atoms_sc  = [['N' ,  [0.0000000000  , 0.0000000000  ,-0.0000000000 ]],
 #occ = dict(occupations='smearing', smearing='mp', degauss=0.01)
 BN_sc = dict(lattice=lattice_sc,atypes=atypes,atoms=atoms_sc)
 
-path_kpoints_pc = Path([ [[0.0,  0.0, 0.0],'G'],
+path_kpoints_pc = Path([ [[0.0,  0.0, 0.0],'$\Gamma$'],
                          [[0.5,  0.0, 0.0],'M'],
                          [[1./3, 1./3,0.0],'K'],
-                         [[0.0,  0.0, 0.0],'G']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
+                         [[0.0,  0.0, 0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
-path_kpoints_sc = Path([ [[0.0,  0.0, 0.0],'G'],
+path_kpoints_sc = Path([ [[0.0,  0.0, 0.0],'$\Gamma$'],
                          [[1.0,  0.0, 0.0],'M'],
                          [[2./3, 2./3,0.0],'K'],
-                         [[0.0,  0.0, 0.0],'G']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
+                         [[0.0,  0.0, 0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
 
 def bands():
