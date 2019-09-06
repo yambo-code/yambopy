@@ -30,13 +30,43 @@ with the optimized cell parameters and atomic positions.
 
 atomic relaxation >> cell relaxation >> self-consistent calculation
 
+This flow includes some specific variables as inputs:
+
+.. code-block:: bash
+
+    cell_dofree
+    pseudo_dir
+    spinor 
+    pseudo_dir
+
+
+You can find examples for silicon and hexagonal BN in the folder ``tutorials/si`` and ``tutorials/bn``, respectively. The example runs with the following command:
+
+.. code-block:: bash
+    
+    python flow-pw.py -r
 
 
 PwNscfTasks
 -----------
 
+The Nscf task performs a self-consistent and a non-self consistent calculation plus the ``p2y`` runs to prepare the QE output file in the Yambo format . This is the preliminar calculation before using Yambo.
 
+This flow includes some specific variables as inputs:
 
+.. code-block:: bash
+
+    nscf_bands
+    nscf_kpoints
+    spinor
+    pseudo_dir
+
+   
+You can find examples for silicon and hexagonal BN in the folder ``tutorials/si`` and ``tutorials/bn``, respectively. The example runs with the following command:
+
+.. code-block:: bash
+    
+    python flow-pw.py -n
 
 PwBandsTasks
 ------------
