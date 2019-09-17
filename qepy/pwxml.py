@@ -15,7 +15,10 @@ HatoeV = 27.2107
 class PwXML():
     """ Class to read data from a Quantum espresso XML file
     """
-    _eig_xml  = 'eigenval.xml'
+    _eig_xml   = 'eigenval.xml'
+    _eig1_xml  = 'eigenval1.xml'
+    _eig2_xml  = 'eigenval2.xml'
+
 
     def __init__(self,prefix,path='.',verbose=0):
         """ Initlize the structure with the path where the datafile.xml is
@@ -46,6 +49,13 @@ class PwXML():
         Read some data from the xml file in the old format of quantum espresso
         """
         self.datafile_xml = ET.parse( filename ).getroot()
+
+
+        #get magnetization state
+
+        self.lsda = False
+        if 'T' in self.datafile_xml.findall("SPIN/LSDA")[0].text:
+            self.lsda = True
 
         #get acell
         self.celldm = [ float(x) for x in self.datafile_xml.findall("CELL/CELL_DIMENSIONS")[0].text.strip().split('\n') ]
@@ -100,11 +110,27 @@ class PwXML():
           self.kpoints.append([float(x) for x in k_aux.strip().split()])
  
         #get eigenvalues
-        eigen = []
-        for ik in range(self.nkpoints):
-            for EIGENVALUES in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig_xml) ).getroot().findall("EIGENVALUES"):
-                eigen.append(list(map(float, EIGENVALUES.text.split())))
-        self.eigen  = eigen
+
+        if not self.lsda:
+
+           eigen = []
+           for ik in range(self.nkpoints):
+               for EIGENVALUES in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig_xml) ).getroot().findall("EIGENVALUES"):
+                   eigen.append(list(map(float, EIGENVALUES.text.split())))
+           self.eigen  = eigen
+           self.eigen1 = eigen
+
+        #get eigenvalues of spin up & down
+
+        if self.lsda:
+           eigen1, eigen2 = [], []
+           for ik in range(self.nkpoints):
+               for EIGENVALUES in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig1_xml) ).getroot().findall("EIGENVALUES"):
+                    eigen1.append(list(map(float, EIGENVALUES.text.split())))
+               for EIGENVALUES in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig2_xml) ).getroot().findall("EIGENVALUES"):
+                    eigen2.append(list(map(float, EIGENVALUES.text.split())))
+           self.eigen1  = eigen1
+           self.eigen2  = eigen2
 
         #get fermi
         self.fermi = float(self.datafile_xml.find("BAND_STRUCTURE_INFO/FERMI_ENERGY").text)
@@ -246,9 +272,17 @@ class PwXML():
         ax.axhline(0)
 
         #plot bands
-        eigen = np.array(self.eigen)
+        eigen = np.array(self.eigen1)
         for ib in range(self.nbands):
-           ax.plot(list(range(self.nkpoints)),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
+            ax.plot(list(range(self.nkpoints)),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
+       
+        #plot spin-polarized bands
+        if self.lsda:
+
+           eigen2 = np.array(self.eigen2)
+           for ib in range(self.nbands):
+               ax.plot(list(range(self.nkpoints)),eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
+
 
         #plot options
         if xlim: ax.set_xlim(xlim)
