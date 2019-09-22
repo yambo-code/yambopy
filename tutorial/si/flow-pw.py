@@ -21,6 +21,7 @@ import argparse
 import os
 import shutil
 from yambopy.data.structures import Si
+from qepy import PwXML
 from qepy.lattice import Path
 from qepy.matdyn import Matdyn
 from yambopy.io.factories import PwNscfTasks, PwBandsTasks, PwRelaxTasks
@@ -58,11 +59,17 @@ def nscf():
     nscf_flow.run()
     print(nscf_flow)
 
+def plot_bands(show=True):
+    xml = PwXML(prefix='pw',path='bands_flow/t0')
+    xml.plot_eigen(path=path_kpoints,show=show)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Choose Yambopy Task.')
     parser.add_argument('-r' ,'--relax',       action="store_true", help='Structural relaxation Task')
     parser.add_argument('-b' ,'--bands',       action="store_true", help='Scf and Bands calculation Task')
     parser.add_argument('-n' ,'--nscf',        action="store_true", help='Scf, Nscf and p2y calculation Task')
+    parser.add_argument('-p' ,'--plot',        action="store_true", help='Plot bands')
     args = parser.parse_args()
 
 if args.relax:
@@ -71,4 +78,6 @@ if args.bands:
    bands()
 if args.nscf:
    nscf()
+if args.plot:
+   plot_bands()
 

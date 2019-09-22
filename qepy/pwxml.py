@@ -19,7 +19,7 @@ class PwXML():
     _eig1_xml  = 'eigenval1.xml'
     _eig2_xml  = 'eigenval2.xml'
 
-
+    
     def __init__(self,prefix,path='.',verbose=0):
         """ Initlize the structure with the path where the datafile.xml is
         """
@@ -259,29 +259,42 @@ class PwXML():
         return "\n".join(lines)
 
     def plot_eigen_ax(self,ax,path=[],xlim=(),ylim=()):
+        print(path)
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
             ax.set_xticks( *list(zip(*path)) )
         ax.set_ylabel('E (eV)')
 
+        #get kpoint_dists 
+        kpoints_dists = calculate_distances(self.kpoints)
+        ticks, labels = list(zip(*path))
+        ax.set_xticks([kpoints_dists[t] for t in ticks])
+        ax.set_xticklabels(labels)
+        ax.set_xlim(kpoints_dists[0],kpoints_dists[-1])
+
         #plot vertical line
-        for point in path:
-            x, label = point
-            ax.axvline(x)
-        ax.axhline(0)
+        #for point in path:
+        #    x, label = point
+        #    ax.axvline(x)
+        #ax.axhline(0)
+
+        #plot vertical lines
+        for t in ticks:
+            ax.axvline(kpoints_dists[t],c='k',lw=2)
+        ax.axhline(0,c='k')
 
         #plot bands
         eigen = np.array(self.eigen1)
         for ib in range(self.nbands):
-            ax.plot(list(range(self.nkpoints)),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
+            ax.plot(kpoints_dists,eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
        
         #plot spin-polarized bands
         if self.lsda:
 
            eigen2 = np.array(self.eigen2)
            for ib in range(self.nbands):
-               ax.plot(list(range(self.nkpoints)),eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
+               ax.plot(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
 
 
         #plot options
@@ -295,7 +308,7 @@ class PwXML():
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        self.plot_eigen_ax(ax)
+        self.plot_eigen_ax(ax,path=path)
         return fig
 
     def write_eigen(self,fmt='gnuplot'):

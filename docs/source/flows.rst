@@ -75,3 +75,24 @@ You can find examples for silicon and hexagonal BN in the folder ``tutorials/si`
 
 PwBandsTasks
 ------------
+
+This taks performs a self-consisten and a band calcualtion using QE. The options are similar to the options of PwNscfTasks with the exception of the variable ``path_kpoints``. This variable is defined using the class ``Path``. In the tutorial for silicon we have defined the path as follows:
+
+.. code-block:: bash
+
+    p = Path([ [[1.0,1.0,1.0],'$\Gamma$'],
+               [[0.0,0.5,0.5],'$X$'],
+               [[0.0,0.0,0.0],'$\Gamma$'],
+               [[0.5,0.0,0.0],'$L$']], [20,20,20])
+
+The example runs with the command:
+
+.. code-block:: bash
+    
+    python flow-pw.py -b
+    
+Optionally is possible to plot the band structure using the class ``PwXML``:
+ 
+.. code-block:: bash
+    
+    python flow-pw.py -p
