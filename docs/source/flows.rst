@@ -13,6 +13,76 @@ The basic tasks are one-shot calculations using Yambo. They are the building-blo
 BSE Task
 --------
 
+We have created the example ``flow-bse.py`` in the silicon folders to demonstrate how to create a task. The same
+can be used for any other run level of Yambo such as GW run levels, non-linear run levels or real-time run levels.
+
+The variables are set in dictionaries like ``yambo_dict`` and we create a list of task. The first task is to set
+the location of the SAVE folder.
+
+.. code-block:: bash
+
+    p2y_task = P2yTask.from_folder('nscf_flow/t2')
+
+We define the usual group of variables using dictionaries:
+
+.. code-block:: bash
+
+    # Coulomb-cutoff and RIM dictionary
+    cutoffdict = dict(RandQpts=1000000,RandGvec=[1,'RL'])
+
+    # Parallel Environment dictionary
+    paradict = dict(X_all_q_ROLEs="q",X_all_q_CPU="2")
+
+    # BSE variables dictionary
+    bse_dict = dict(BEnSteps=1000,  FFTGvecs=[10,'Ry'], BEnRange=[[0,5],'eV'], BndsRnXp=[1,10],
+                     NGsBlkXp=[1,'Ry'], BSENGexx=[10,'Ry'], BSENGBlk=[1,'Ry'], BSEBands=[2,7])
+                                                                                                                
+    # Merge all dict variables
+    yamboin_dict = {**yamboin_dict,**cutoffdict,**paradict}
+
+Once we have all variables we can define the BSE task (option ``from_runlevel``)
+
+.. code-block:: bash
+
+    bse_task = YamboTask.from_runlevel([p2y_task],'-r -o b -b -k sex -y h -V all',yamboin_dict)
+
+Once we have all the tasks defined we create a list of task:
+
+.. code-block:: bash
+
+    tasks.append(bse_task)
+
+Now the list of tasks defines the Yambopy Flow:
+
+.. code-block:: bash
+
+    yambo_flow = YambopyFlow.from_tasks('bse_flow',tasks)
+
+And we can create and run the flow.
+
+.. code-block:: bash
+
+    yambo_flow.create(agressive=True)
+    yambo_flow.run()
+
+If all was done correctly, running the example:
+
+.. code-block:: bash
+    python flow_bse.py
+
+We will obtain the following message:
+
+.. code-block:: bash
+
+   ======================YambopyFlow.run=======================
+   t0  YamboTask  ready
+   ========================YambopyFlow=========================
+   t0  YamboTask  done
+
+Note that by default we obtain the results in the folder ``bse_flow/t0`` with the jobname ``run``. We have only set one
+task and the corresponding folder is ``t0``. In the situation of multiple tasks the results will be separated
+according to the task order.
+
 
 Yambo Factories
 ~~~~~~~~~~~~~~~
