@@ -1,29 +1,48 @@
 Flows
 =====
 
-The flows structure (or function) take care of handling the tasks.
+The flows structure (or function) take care of handling the tasks. The tasks are
+interdependent works. For example, the calculation of the BSE spectra, the calculations of the ground-state and band structure, etc. We have created some default tasks, listed below.
+
+YamboTask
+~~~~~~~~~~~~~~~~~
+
+This is one of the basic and main tasks
+The basic tasks are one-shot calculations using Yambo. They are the building-blocks of combined tasks. 
+
+BSE Task
+--------
 
 
-Yambo Tasks
-~~~~~~~~~~~
+Yambo Factories
+~~~~~~~~~~~~~~~
 
-Tasks contain interdependent works.
+The ``factories`` are usually frequent interdependent Yambo tasks. For example, we have created some interdependent 
+Yambo tasks like convergence tests, QP+BSE calculations.
 
-YamboQPBSETasks
+PwNscfYamboIPChiTasks
+---------------------
+
+YamboIPChiTask
 ---------------
 
-This task run a GW and Bethe-Salpeter calculation.
+This factory run the calculation of the dielectric function at the independent-particle 
+approximation.
 
 YamboQPTask
 -----------
 
+This factory run a GW calculation.
 
+YamboQPBSETasks
+---------------
 
-Quantum Espresso Tasks
-~~~~~~~~~~~~~~~~~~~~~~
+This factory run a GW and Bethe-Salpeter calculation.
 
-In addition to the Yambo-related tasks, yambopy has also pw-related tasks to perform self-consistent
-non-selfconsistent calculations, band structure calculations and cell optimization.
+Quantum Espresso Factories
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In addition to the Yambo-related tasks, yambopy has also pw-related tasks to perform self-consistent non-selfconsistent calculations, band structure calculations and cell optimization.
 
 
 PwRelaxTasks
@@ -96,3 +115,16 @@ Optionally is possible to plot the band structure using the class ``PwXML``:
 .. code-block:: bash
     
     python flow-pw.py -p
+
+PhPhononTasks
+------------
+
+ABINIT Factories
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+AbinitNscfTasks
+---------------
+
+AbinitNscfTasksFromAbinitInput
+---------------
+

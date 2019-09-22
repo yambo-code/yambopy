@@ -6,7 +6,7 @@
 """
 This file contains classes to handle tasks.
 
-The rules to implment anything here are:
+The rules to implement anything here are:
   1. Minimalistic
   2. The state is stored in human readable files written in the disk to easily correct problems during the run
   3. The python code defines or is aware of where the main code (pw.x, ph.x, yambo, p2y, a2y, ypp) writes all the files
