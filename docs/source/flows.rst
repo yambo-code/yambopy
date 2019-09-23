@@ -2,7 +2,8 @@ Flows
 =====
 
 The flows structure (or function) take care of handling the tasks. The tasks are
-interdependent works. For example, the calculation of the BSE spectra, the calculations of the ground-state and band structure, etc. We have created some default tasks, listed below.
+interdependent works. For example, the calculation of the BSE spectra, the calculations of the ground-state and band structure, etc. 
+We have created already some flows with common yambo calculations, named as ``Yambopy Factories`` and hosted in ``yambopy/io/factories.py``.
 
 YamboTask
 ~~~~~~~~~~~~~~~~~
@@ -84,7 +85,7 @@ task and the corresponding folder is ``t0``. In the situation of multiple tasks 
 according to the task order.
 
 
-Yambo Factories
+Yambopy Factories
 ~~~~~~~~~~~~~~~
 
 The ``factories`` are usually frequent interdependent Yambo tasks. For example, we have created some interdependent 
