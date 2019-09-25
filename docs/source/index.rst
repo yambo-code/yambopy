@@ -19,3 +19,4 @@ yambopy documentation
    flows
    tutorial
    autodoc
+   dbs
