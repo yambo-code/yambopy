@@ -29,8 +29,8 @@ from schedulerpy import Scheduler
 from yambopy import yambopyenv
 
 nscf_bands = 60
-kpoints = [3,3,1]
-nscf_kpoints = [6,6,1]
+kpoints = [6,6,1]
+nscf_kpoints = [12,12,1]
 ecut = 20
 npoints = 10 
 path_kpoints = Path([ [[0.0, 0.0, 0.0],'G'],
