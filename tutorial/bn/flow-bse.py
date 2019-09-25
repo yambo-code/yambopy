@@ -32,11 +32,11 @@ paradict = dict(X_all_q_ROLEs="q",X_all_q_CPU="2")
 bse_dict = dict(BEnSteps=1000,
                 FFTGvecs=[10,'Ry'],
                 BEnRange=[[0,5],'eV'],
-                BndsRnXs=[1,10],
+                BndsRnXs=[1,60],
                 NGsBlkXs=[1,'Ry'],
                 BSENGexx=[10,'Ry'],
                 BSENGBlk=[1,'Ry'],
-                BSEBands=[8,9])
+                BSEBands=[7,10])
 
 # Merge all dict variables
 yamboin_dict = {**yamboin_dict,**cutoffdict,**paradict,**bse_dict}
