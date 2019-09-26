@@ -35,17 +35,17 @@ We define the usual group of variables using dictionaries:
     paradict = dict(X_all_q_ROLEs="q",X_all_q_CPU="2")
 
     # BSE variables dictionary
-    bse_dict = dict(BEnSteps=1000,  FFTGvecs=[10,'Ry'], BEnRange=[[0,5],'eV'], BndsRnXp=[1,10],
+    bsedict = dict(BEnSteps=1000,  FFTGvecs=[10,'Ry'], BEnRange=[[0,5],'eV'], BndsRnXp=[1,10],
                      NGsBlkXp=[1,'Ry'], BSENGexx=[10,'Ry'], BSENGBlk=[1,'Ry'], BSEBands=[2,7])
                                                                                                                 
     # Merge all dict variables
-    yamboin_dict = {**yamboin_dict,**cutoffdict,**paradict}
+    yamboin_dict = {**yamboin_dict,**cutoffdict,**paradict,**bsedict}
 
 Once we have all variables we can define the BSE task (option ``from_runlevel``)
 
 .. code-block:: bash
 
-    bse_task = YamboTask.from_runlevel([p2y_task],'-r -o b -b -k sex -y h -V all',yamboin_dict)
+    bse_task = YamboTask.from_runlevel([p2y_task],'-r -o b -b -k sex -y h -V all',yamboin_dict, yamboin_args=['WRbsWF'])
 
 Once we have all the tasks defined we create a list of task:
 
@@ -84,6 +84,26 @@ Note that by default we obtain the results in the folder ``bse_flow/t0`` with th
 task and the corresponding folder is ``t0``. In the situation of multiple tasks the results will be separated
 according to the task order.
 
+GW Task
+--------
+
+We have created the example ``flow-gw.py`` in the ``bn`` folder to demonstrate how to create a single GW task. The script is very similar to the one of the BSE task. The main changes is the replacement of the ``bsedict`` by a ``gwdict``:
+
+.. code-block:: bash
+
+    gwdict = dict(FFTGvecs=[10,'Ry'],
+                  BndsRnXp=[1,60],
+                  NGsBlkXp=[1,'Ry'],
+                  GbndRnge=[1,60],
+                  EXXRLvcs=[10,'Ry'],
+                  VXCRLvcs=[10,'Ry'],
+                  QPkrange=[1,19,3,6])
+
+In this dict we have defined the standard GW variables. More advanced features are discussed in the Yambo documentation.
+
+.. code-block:: bash
+
+    gw_task = YamboTask.from_runlevel([p2y_task],'-r -g n -p p -V all',yamboin_dict,yamboin_args=['ExtendOut'])
 
 Yambopy Factories
 ~~~~~~~~~~~~~~~
