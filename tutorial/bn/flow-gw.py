@@ -3,7 +3,7 @@
 #
 # This file is part of yambopy
 #
-# Tutorial File of Yambopy Tasks. BSE flow
+# Tutorial File of Yambopy Tasks. GW flow
 # 
 
 #import argparse
@@ -25,32 +25,31 @@ print(p2y_task)
 # Coulomb-cutoff and RIM dictionary
 cutoffdict = dict(CUTBox = [0,0,10],CUTGeo='box z',RandQpts=1000000,RandGvec=[1,'RL'])
 
-# Parallel Environment dictionary
-paradict = dict(X_all_q_ROLEs="q",X_all_q_CPU="2")
+# Parallel Environment dictionary (serial in this example)
+paradict = dict(X_all_q_ROLEs="",X_all_q_CPU="",SE_CPU= "",SE_ROLEs= "")
 
-# BSE variables dictionary
-bsedict = dict(BEnSteps=1000,
-                FFTGvecs=[10,'Ry'],
-                BEnRange=[[0,5],'eV'],
-                BndsRnXs=[1,60],
-                NGsBlkXs=[1,'Ry'],
-                BSENGexx=[10,'Ry'],
-                BSENGBlk=[1,'Ry'],
-                BSEBands=[7,10])
+# GW variables dictionary (standard variables, more advanced in Yambo Website)
+gwdict = dict(FFTGvecs=[10,'Ry'],
+              BndsRnXp=[1,60],
+              NGsBlkXp=[1,'Ry'],
+              GbndRnge=[1,60],
+              EXXRLvcs=[10,'Ry'],
+              VXCRLvcs=[10,'Ry'],
+              QPkrange=[1,19,3,6])
 
 # Merge all dict variables
-yamboin_dict = {**yamboin_dict,**cutoffdict,**paradict,**bsedict}
+yamboin_dict = {**yamboin_dict,**cutoffdict,**paradict,**gwdict}
 
-# Set Yambo task (BSE in this case)
+# Set Yambo task (GW in this case)
 # yamboin_args >> Add arguments (ExtendOut, WRbsWF, EvalKerr, etc.)
 
-bse_task = YamboTask.from_runlevel([p2y_task],'-r -o b -b -k sex -y d -V all',yamboin_dict,yamboin_args=['WRbsWF'])
+gw_task = YamboTask.from_runlevel([p2y_task],'-r -g n -p p -V all',yamboin_dict,yamboin_args=['ExtendOut'])
 
 # Introduce each task in the list of task
-tasks.append(bse_task)
+tasks.append(gw_task)
 
 # Set the Yambo flow
-yambo_flow = YambopyFlow.from_tasks('bse_flow',tasks)
+yambo_flow = YambopyFlow.from_tasks('gw_flow',tasks)
 print(yambo_flow)
 
 # Create the Yambo flow
