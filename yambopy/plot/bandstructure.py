@@ -175,6 +175,10 @@ class YambopyBandStructure():
         c_weights = kwargs.pop('c_weights',None)
         c_label   = kwargs.pop('c_label',None)
 
+        # Add option to plot lines or dots
+        #linetype
+        #dot symbol
+
         for ib,band in enumerate(self.bands.T):
             x = self.distances
             y = band-fermie

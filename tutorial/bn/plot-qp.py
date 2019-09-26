@@ -7,8 +7,6 @@ from qepy import *
 from yambopy import *
 import matplotlib.pyplot as plt
 
-fig = plt.figure(figsize=(4,6))
-#ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
 
 # Define path in reduced coordinates using Class Path
 npoints = 10
@@ -22,13 +20,49 @@ lat  = YamboSaveDB.from_db_file(folder='gw_flow/t0/SAVE',filename='ns.db1')
 # Read QP database
 y    = YamboQPDB.from_db(filename='ndb.QP',folder='gw_flow/t0/run')
 
-#print(y.eigenvalues_dft)
 
-#ks_bs, qp_bs = y.get_bs()
-ks_bs, qp_bs = y.interpolate(lat,path,what='KS',lpratio=20)
+# 1. Find scissor operator for valence and conduction bands
 
-ax = fig.add_axes( [ 0.10, 0.15, 0.40, 0.80 ])
+fig = plt.figure(figsize=(6,4))
+ax  = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
+ax.set_xlabel('$E_{KS}$')
+ax.set_ylabel('$E_{GW}$')
 
-ks_bs.plot_ax(ax)
+y.plot_scissor_ax(ax,8)
+
+plt.show()
+
+# 2. Plot of KS and QP eigenvalues NOT interpolated along the path
+ks_bs_0, qp_bs_0 = y.get_bs_path(lat,path)
+
+fig = plt.figure(figsize=(4,5))
+ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
+
+ks_bs_0.plot_ax(ax,legend=True,color_bands='r',c_label='KS')
+qp_bs_0.plot_ax(ax,legend=True,color_bands='b',c_label='QP-GW')
+
+plt.show()
+
+# 3. Interpolation of KS and QP eigenvalues
+
+ks_bs, qp_bs = y.interpolate(lat,path,what='QP+KS',lpratio=20)
+
+fig = plt.figure(figsize=(4,5))
+ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
+
+ks_bs.plot_ax(ax,legend=True,color_bands='r',c_label='KS')
+qp_bs.plot_ax(ax,legend=True,color_bands='b',c_label='QP-GW')
+
+plt.show()
+
+# 4. Comparison of not-interpolaed and  interpolated eigenvalues
+
+fig = plt.figure(figsize=(4,5))
+ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
+
+ks_bs_0.plot_ax(ax,legend=True,color_bands='r',c_label='KS')
+qp_bs_0.plot_ax(ax,legend=True,color_bands='b',c_label='QP-GW')
+ks_bs.plot_ax(ax,legend=True,color_bands='g',c_label='KS')
+qp_bs.plot_ax(ax,legend=True,color_bands='k',c_label='QP-GW')
 
 plt.show()
