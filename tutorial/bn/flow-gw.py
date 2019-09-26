@@ -35,7 +35,7 @@ gwdict = dict(FFTGvecs=[10,'Ry'],
               GbndRnge=[1,60],
               EXXRLvcs=[10,'Ry'],
               VXCRLvcs=[10,'Ry'],
-              QPkrange=[1,19,3,6])
+              QPkrange=[1,19,7,10])
 
 # Merge all dict variables
 yamboin_dict = {**yamboin_dict,**cutoffdict,**paradict,**gwdict}
