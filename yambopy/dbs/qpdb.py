@@ -17,7 +17,7 @@ class YamboQPDB():
     Class to read yambo ndb.QP files
 
     These files describe the quasiparticle states calculated from yambo
-    Includes the quasi-particl energies, the lifetimes and the Z factors
+    Includes the quasi-particle energies, the lifetimes and the Z factors
     """
     def __init__(self,qps):
         """
