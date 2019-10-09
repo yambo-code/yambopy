@@ -1,4 +1,3 @@
-- TOP PRIORITY. Evaluate merging of lattice.py and save.py
 
 - Check all examples are working in new version
     - BN
@@ -8,3 +7,5 @@
     - Write documentation for the flows. Henrique, can you give some feed back here?
 - Check supercell.py is documented and there is an example. Another option is creating a full workflow for the phonon-assisted calculation
 - Add documentation to unfolding (done). But unfolding need of a serious improvement.
+
+- FUTURE DEVELOPMENT. Evaluate merging of lattice.py and save.py.
