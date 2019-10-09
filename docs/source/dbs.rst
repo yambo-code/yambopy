@@ -62,3 +62,16 @@ The class ``YamboQPDB``
    :width: 10%
 
 
+YamboSaveDB
+~~~~~~~~~~~
+
+Reads the information from the SAVE database in Yambo. The arguments are:
+
+.. code-block:: bash
+   ``save``: Path with the save folder (default:SAVE)
+   ``filename``: name of the filename of the ns.db1 database created with yambo (default:ns.db1)
+
+YamboLatticeDB
+~~~~~~~~~~~~~~
+
+Class to read the lattice information from the netcdf file ``ns.db1``.
