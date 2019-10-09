@@ -53,12 +53,12 @@ the script.
 The class ``YamboQPDB``
 
 .. image:: figures/gw-scissor.png
-   :width = 30%
+:width: 30%
 
 .. image:: figures/gw-bands-not-interpolated.png
-   :width = 30%
+   :width: 30%
 
 .. image:: figures/gw-bands-interpolated.png
-   :width = 30%
+   :width: 30%
 
 
