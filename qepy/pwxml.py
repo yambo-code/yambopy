@@ -21,7 +21,7 @@ class PwXML():
 
     
     def __init__(self,prefix,path='.',verbose=0):
-        """ Initlize the structure with the path where the datafile.xml is
+        """ Initialize the structure with the path where the datafile.xml is
         """
         self.prefix = prefix
         self.path   = path
@@ -99,6 +99,8 @@ class PwXML():
             self.atypes[atype_string]=[atype_mass,atype_pseudo]
 
         #get nkpoints
+
+        #get nkpoints
         self.nkpoints = int(self.datafile_xml.findall("BRILLOUIN_ZONE/NUMBER_OF_K-POINTS")[0].text.strip())
         # Read the number of BANDS
         self.nbands   = int(self.datafile_xml.find("BAND_STRUCTURE_INFO/NUMBER_OF_BANDS").text)
@@ -125,13 +127,14 @@ class PwXML():
         if self.lsda:
            eigen1, eigen2 = [], []
            for ik in range(self.nkpoints):
-               for EIGENVALUES in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig1_xml) ).getroot().findall("EIGENVALUES"):
-                    eigen1.append(list(map(float, EIGENVALUES.text.split())))
-               for EIGENVALUES in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig2_xml) ).getroot().findall("EIGENVALUES"):
-                    eigen2.append(list(map(float, EIGENVALUES.text.split())))
+               for EIGENVALUES1 in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig1_xml) ).getroot().findall("EIGENVALUES"):
+                    eigen1.append(list(map(float, EIGENVALUES1.text.split())))
+               for EIGENVALUES2 in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig2_xml) ).getroot().findall("EIGENVALUES"):
+                    eigen2.append(list(map(float, EIGENVALUES2.text.split())))
+
+           self.eigen   = eigen1
            self.eigen1  = eigen1
            self.eigen2  = eigen2
-
         #get fermi
         self.fermi = float(self.datafile_xml.find("BAND_STRUCTURE_INFO/FERMI_ENERGY").text)
 
@@ -273,21 +276,15 @@ class PwXML():
         ax.set_xticklabels(labels)
         ax.set_xlim(kpoints_dists[0],kpoints_dists[-1])
 
-        #plot vertical line
-        #for point in path:
-        #    x, label = point
-        #    ax.axvline(x)
-        #ax.axhline(0)
-
         #plot vertical lines
         for t in ticks:
             ax.axvline(kpoints_dists[t],c='k',lw=2)
         ax.axhline(0,c='k')
 
         #plot bands
-        eigen = np.array(self.eigen1)
+        eigen1 = np.array(self.eigen1)
         for ib in range(self.nbands):
-            ax.plot(kpoints_dists,eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
+            ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
        
         #plot spin-polarized bands
         if self.lsda:
