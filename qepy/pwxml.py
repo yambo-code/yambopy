@@ -135,6 +135,19 @@ class PwXML():
            self.eigen   = eigen1
            self.eigen1  = eigen1
            self.eigen2  = eigen2
+
+        #get occupations of spin up & down
+        if self.lsda:
+           occ1, occ2 = [], []
+           for ik in range(self.nkpoints):
+               for OCCUPATIONS1 in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig1_xml) ).getroot().findall("OCCUPATIONS"):
+                    occ1.append(list(map(float, OCCUPATIONS1.text.split())))
+               for OCCUPATIONS2 in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig2_xml) ).getroot().findall("OCCUPATIONS"):
+                    occ2.append(list(map(float, OCCUPATIONS2.text.split())))
+        
+           self.occupation1 = occ1
+           self.occupation2 = occ2
+        
         #get fermi
         self.fermi = float(self.datafile_xml.find("BAND_STRUCTURE_INFO/FERMI_ENERGY").text)
 
@@ -262,7 +275,6 @@ class PwXML():
         return "\n".join(lines)
 
     def plot_eigen_ax(self,ax,path=[],xlim=(),ylim=()):
-        print(path)
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
@@ -292,6 +304,50 @@ class PwXML():
            eigen2 = np.array(self.eigen2)
            for ib in range(self.nbands):
                ax.plot(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
+
+
+        #plot options
+        if xlim: ax.set_xlim(xlim)
+        if ylim: ax.set_ylim(ylim)
+
+    '''
+    Workaround to include occupaitons in the plot. AMS
+    '''
+
+    def plot_eigen_occ_ax(self,ax,path=[],xlim=(),ylim=()):
+
+        if path:
+            if isinstance(path,Path):
+                path = path.get_indexes()
+            ax.set_xticks( *list(zip(*path)) )
+        ax.set_ylabel('E (eV)')
+
+        #get kpoint_dists 
+        kpoints_dists = calculate_distances(self.kpoints)
+        ticks, labels = list(zip(*path))
+        ax.set_xticks([kpoints_dists[t] for t in ticks])
+        ax.set_xticklabels(labels)
+        ax.set_xlim(kpoints_dists[0],kpoints_dists[-1])
+
+        #plot vertical lines
+        for t in ticks:
+            ax.axvline(kpoints_dists[t],c='k',lw=2)
+        ax.axhline(0,c='k')
+        import matplotlib.pyplot as plt
+
+        #plot bands
+        eigen1 = np.array(self.eigen1)
+        occ1   = np.array(self.occupation1)
+        for ib in range(self.nbands):
+            plt.scatter(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, s=10*occ1[:,ib],c='r')
+       
+        #plot spin-polarized bands
+        if self.lsda:
+
+           eigen2 = np.array(self.eigen2)
+           occ2   = np.array(self.occupation1)
+           for ib in range(self.nbands):
+               plt.scatter(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, s=10*occ2[:,ib],c='b')
 
 
         #plot options
