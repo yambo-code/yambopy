@@ -74,17 +74,30 @@ class YamboQPDB():
         Get quasiparticle energies in a list
         """
         #start arrays
-        eigenvalues_dft = np.zeros([self.nkpoints,self.nbands])
-        eigenvalues_qp  = np.zeros([self.nkpoints,self.nbands])
-        linewidths      = np.zeros([self.nkpoints,self.nbands])
+
+        # AMS: I changed the way we define the arrays. Hope is not breaking other things
+
+        ncalculatedkpoints = self.max_kpoint - self.min_kpoint + 1
+
+        eigenvalues_dft = np.zeros([ncalculatedkpoints,self.nbands])
+        eigenvalues_qp  = np.zeros([ncalculatedkpoints,self.nbands])
+        linewidths      = np.zeros([ncalculatedkpoints,self.nbands])
+
+        #old
+        #eigenvalues_dft = np.zeros([self.nkpoints,self.nbands])
+        #eigenvalues_qp  = np.zeros([self.nkpoints,self.nbands])
+        #linewidths      = np.zeros([self.nkpoints,self.nbands])
         z               = np.zeros([self.nkpoints,self.nbands])
         for ei,e0i,li,zi,ki,ni in zip(self.e,self.e0,self.linewidths,self.qpz,self.kpoint_index,self.band_index):
-            nkpoint = ki-self.min_kpoint
-            nband = ni-self.min_band
+
+            # position in array
+            nkpoint = ki - self.min_kpoint 
+            nband   = ni - self.min_band
+
             eigenvalues_dft[nkpoint,nband] = e0i
-            eigenvalues_qp[nkpoint,nband] = ei
-            linewidths[nkpoint,nband] = li
-            z[nkpoint,nband] = zi
+            eigenvalues_qp[nkpoint,nband]  = ei
+            linewidths[nkpoint,nband]      = li
+            z[nkpoint,nband]               = zi
 
         return eigenvalues_dft, eigenvalues_qp, linewidths, z
 

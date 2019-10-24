@@ -87,16 +87,18 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose=Fal
     #consistency check
     #TODO
 
+
     convergence_data = []
+
     for basename, (inp,out) in io.items():
         #get input
         value, unit = inp[var]
 
         #get qp value
+        # Be careful because the array of eigenvalues is defined now in another way
         eigenvalues_dft, eigenvalues_qp, lifetimes, z = out.get_qps()
-
         #save result
-        qp_gap = eigenvalues_qp[kpointc-1,bandc-1] - eigenvalues_qp[kpointv-1,bandv-1]
+        qp_gap = eigenvalues_qp[kpointc-out.min_kpoint,bandc-out.min_band] - eigenvalues_qp[kpointv-out.min_kpoint,bandv-out.min_band]
 
         #check type of variable
         if isinstance(value,list): value = value[1]
@@ -113,10 +115,11 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose=Fal
         np.savetxt(outname,convergence_data,delimiter='\t',header=header)
 
     if draw:
+        import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
         ax.plot(convergence_data[:,0],convergence_data[:,1],'o-')
-        ax.xlabel(var+' ('+unit+')')
+        ax.set_xlabel(var+' ('+unit+')')
         ax.set_ylabel('E_gw = E_lda + \Delta E')
         fig.savefig('%s.png'%var)
 
