@@ -22,7 +22,7 @@ class TestYamboOut(unittest.TestCase):
                            'l-yambo_em1d_ppa_HF_and_locXC_gw0_CPU_2']
         assert yo.run == ['r-yambo_em1d_ppa_HF_and_locXC_gw0']
         assert yo.output == ['o-yambo.qp']
-        assert yo.netcdf == ['ndb.HF_and_locXC','ndb.QP']
+        assert sorted(yo.netcdf) == sorted(['ndb.HF_and_locXC','ndb.QP'])
 
         #pack the data
         yo.pack()
