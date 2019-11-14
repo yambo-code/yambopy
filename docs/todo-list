@@ -1,5 +1,5 @@
 - Clean-up the list of open issues
-
+- Now TravisCI is working. Implement tests with the new features.
 - Check all examples are working in new version
     - BN
     - Si
