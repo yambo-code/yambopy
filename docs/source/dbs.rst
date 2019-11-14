@@ -53,13 +53,13 @@ the script.
 The class ``YamboQPDB``
 
 .. image:: figures/gw-scissor.png
-   :width: 10%
+   :width: 3%
 
 .. image:: figures/gw-bands-not-interpolated.png
-   :width: 10%
+   :width: 3%
 
 .. image:: figures/gw-bands-interpolated.png
-   :width: 10%
+   :width: 3%
 
 
 YamboSaveDB
