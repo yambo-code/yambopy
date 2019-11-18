@@ -66,3 +66,16 @@ MoS2
 1. BSE calculation for MoS2 (bse_mos2.py)
     - Set the variables for a yambo input file using python
     - Run the calculation
+
+Boron Nitride Band Unfolding (bn-folding)
+=========================================
+
+1. Calculations of Bands of the Primitive (PC) and Super Cell (SC) 
+2. Unfolding of the SC onto the PC
+
+Boron Nitride Supercell generation (bn-supercell)
+=================================================
+
+1. python gen_supercell.py -d
+2. python gen_supercell.py -nd
+3. python gen_supercell.py -nd -disp
