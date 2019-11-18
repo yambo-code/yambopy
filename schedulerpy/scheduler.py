@@ -44,10 +44,11 @@ class Scheduler(object):
     _config_path     = os.path.expanduser("~") + "/.yambopy"
     _config_filename = "%s/config.json"%_config_path
 
-    def __init__(self, name=None, nodes=None, cores=None, walltime="1:00:00", **kwargs ):
+    def __init__(self, name=None, nodes=None, cores=None, cpus_per_task=None, walltime="1:00:00", **kwargs ):
         self.name = name
         self.nodes = nodes
         self.cores = cores
+        self.cpus_per_task = cpus_per_task
         self.walltime = walltime
         self.kwargs = kwargs
 

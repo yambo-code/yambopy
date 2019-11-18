@@ -15,10 +15,13 @@ HatoeV = 27.2107
 class PwXML():
     """ Class to read data from a Quantum espresso XML file
     """
-    _eig_xml  = 'eigenval.xml'
+    _eig_xml   = 'eigenval.xml'
+    _eig1_xml  = 'eigenval1.xml'
+    _eig2_xml  = 'eigenval2.xml'
 
+    
     def __init__(self,prefix,path='.',verbose=0):
-        """ Initlize the structure with the path where the datafile.xml is
+        """ Initialize the structure with the path where the datafile.xml is
         """
         self.prefix = prefix
         self.path   = path
@@ -46,6 +49,13 @@ class PwXML():
         Read some data from the xml file in the old format of quantum espresso
         """
         self.datafile_xml = ET.parse( filename ).getroot()
+
+
+        #get magnetization state
+
+        self.lsda = False
+        if 'T' in self.datafile_xml.findall("SPIN/LSDA")[0].text:
+            self.lsda = True
 
         #get acell
         self.celldm = [ float(x) for x in self.datafile_xml.findall("CELL/CELL_DIMENSIONS")[0].text.strip().split('\n') ]
@@ -89,6 +99,8 @@ class PwXML():
             self.atypes[atype_string]=[atype_mass,atype_pseudo]
 
         #get nkpoints
+
+        #get nkpoints
         self.nkpoints = int(self.datafile_xml.findall("BRILLOUIN_ZONE/NUMBER_OF_K-POINTS")[0].text.strip())
         # Read the number of BANDS
         self.nbands   = int(self.datafile_xml.find("BAND_STRUCTURE_INFO/NUMBER_OF_BANDS").text)
@@ -100,12 +112,42 @@ class PwXML():
           self.kpoints.append([float(x) for x in k_aux.strip().split()])
  
         #get eigenvalues
-        eigen = []
-        for ik in range(self.nkpoints):
-            for EIGENVALUES in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig_xml) ).getroot().findall("EIGENVALUES"):
-                eigen.append(list(map(float, EIGENVALUES.text.split())))
-        self.eigen  = eigen
 
+        if not self.lsda:
+
+           eigen = []
+           for ik in range(self.nkpoints):
+               for EIGENVALUES in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig_xml) ).getroot().findall("EIGENVALUES"):
+                   eigen.append(list(map(float, EIGENVALUES.text.split())))
+           self.eigen  = eigen
+           self.eigen1 = eigen
+
+        #get eigenvalues of spin up & down
+
+        if self.lsda:
+           eigen1, eigen2 = [], []
+           for ik in range(self.nkpoints):
+               for EIGENVALUES1 in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig1_xml) ).getroot().findall("EIGENVALUES"):
+                    eigen1.append(list(map(float, EIGENVALUES1.text.split())))
+               for EIGENVALUES2 in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig2_xml) ).getroot().findall("EIGENVALUES"):
+                    eigen2.append(list(map(float, EIGENVALUES2.text.split())))
+
+           self.eigen   = eigen1
+           self.eigen1  = eigen1
+           self.eigen2  = eigen2
+
+        #get occupations of spin up & down
+        if self.lsda:
+           occ1, occ2 = [], []
+           for ik in range(self.nkpoints):
+               for OCCUPATIONS1 in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig1_xml) ).getroot().findall("OCCUPATIONS"):
+                    occ1.append(list(map(float, OCCUPATIONS1.text.split())))
+               for OCCUPATIONS2 in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig2_xml) ).getroot().findall("OCCUPATIONS"):
+                    occ2.append(list(map(float, OCCUPATIONS2.text.split())))
+        
+           self.occupation1 = occ1
+           self.occupation2 = occ2
+        
         #get fermi
         self.fermi = float(self.datafile_xml.find("BAND_STRUCTURE_INFO/FERMI_ENERGY").text)
 
@@ -239,16 +281,74 @@ class PwXML():
             ax.set_xticks( *list(zip(*path)) )
         ax.set_ylabel('E (eV)')
 
-        #plot vertical line
-        for point in path:
-            x, label = point
-            ax.axvline(x)
-        ax.axhline(0)
+        #get kpoint_dists 
+        kpoints_dists = calculate_distances(self.kpoints)
+        ticks, labels = list(zip(*path))
+        ax.set_xticks([kpoints_dists[t] for t in ticks])
+        ax.set_xticklabels(labels)
+        ax.set_xlim(kpoints_dists[0],kpoints_dists[-1])
+
+        #plot vertical lines
+        for t in ticks:
+            ax.axvline(kpoints_dists[t],c='k',lw=2)
+        ax.axhline(0,c='k')
 
         #plot bands
-        eigen = np.array(self.eigen)
+        eigen1 = np.array(self.eigen1)
         for ib in range(self.nbands):
-           ax.plot(list(range(self.nkpoints)),eigen[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
+            ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
+       
+        #plot spin-polarized bands
+        if self.lsda:
+
+           eigen2 = np.array(self.eigen2)
+           for ib in range(self.nbands):
+               ax.plot(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
+
+
+        #plot options
+        if xlim: ax.set_xlim(xlim)
+        if ylim: ax.set_ylim(ylim)
+
+    '''
+    Workaround to include occupaitons in the plot. AMS
+    '''
+
+    def plot_eigen_occ_ax(self,ax,path=[],xlim=(),ylim=()):
+
+        if path:
+            if isinstance(path,Path):
+                path = path.get_indexes()
+            ax.set_xticks( *list(zip(*path)) )
+        ax.set_ylabel('E (eV)')
+
+        #get kpoint_dists 
+        kpoints_dists = calculate_distances(self.kpoints)
+        ticks, labels = list(zip(*path))
+        ax.set_xticks([kpoints_dists[t] for t in ticks])
+        ax.set_xticklabels(labels)
+        ax.set_xlim(kpoints_dists[0],kpoints_dists[-1])
+
+        #plot vertical lines
+        for t in ticks:
+            ax.axvline(kpoints_dists[t],c='k',lw=2)
+        ax.axhline(0,c='k')
+        import matplotlib.pyplot as plt
+
+        #plot bands
+        eigen1 = np.array(self.eigen1)
+        occ1   = np.array(self.occupation1)
+        for ib in range(self.nbands):
+            plt.scatter(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, s=10*occ1[:,ib],c='r')
+       
+        #plot spin-polarized bands
+        if self.lsda:
+
+           eigen2 = np.array(self.eigen2)
+           occ2   = np.array(self.occupation1)
+           for ib in range(self.nbands):
+               plt.scatter(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, s=10*occ2[:,ib],c='b')
+
 
         #plot options
         if xlim: ax.set_xlim(xlim)
@@ -261,7 +361,7 @@ class PwXML():
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        self.plot_eigen_ax(ax)
+        self.plot_eigen_ax(ax,path=path)
         return fig
 
     def write_eigen(self,fmt='gnuplot'):
