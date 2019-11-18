@@ -3,6 +3,7 @@
 # Run a GW calculation using yambo
 #
 from __future__ import print_function
+from builtins import range
 from yambopy import *
 from qepy import *
 import argparse
@@ -109,7 +110,7 @@ def analyse():
     print( "nexcitons: %d"%len(excitons) )
     print( "excitons:" )
     print( excitons )
-    a.get_wavefunctions(Degen_Step=0.001,repx=range(-1,2),repy=range(-1,2),repz=range(1),
+    a.get_wavefunctions(Degen_Step=0.001,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(1)),
                         Cells=[13,13,1],Hole=[0,0,9+.5], FFTGvecs=10,wf=True)
     a.write_json()
 

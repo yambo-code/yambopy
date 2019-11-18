@@ -4,11 +4,12 @@
 #
 from __future__ import print_function, division
 import sys
-from qepy import *
 import argparse
+from qepy import *
 from schedulerpy import *
+from math import sqrt
 
-kpoints = [12,12,1]
+kpoints = [6,6,1]
 kpoints_double = [24,24,1]
 qpoints = [3,3,1]
 layer_separation = 12
@@ -31,8 +32,8 @@ def get_inputfile():
     """ Define a Quantum espresso input file for boron nitride
     """ 
     qe = PwIn()
-    qe.atoms = [['N',[0.0,0.0,0.5]],
-                ['B',[1/3,2/3,0.5]]]
+    qe.set_atoms([['N',[0.0,0.0,0.5]],
+                  ['B',[1/3,2/3,0.5]]])
     qe.atypes = {'B': [10.811, "B.pbe-mt_fhi.UPF"],
                  'N': [14.0067,"N.pbe-mt_fhi.UPF"]}
 
@@ -68,6 +69,7 @@ def scf(folder='scf'):
         os.mkdir(folder)
     qe = get_inputfile()
     qe.control['calculation'] = "'scf'"
+    qe.kpoints = kpoints
     qe.write('%s/%s.scf'%(folder,prefix))
  
 #nscf
@@ -123,6 +125,13 @@ def update_positions(pathin,pathout):
     e = PwXML(prefix,path=pathin)
     pos = e.get_scaled_positions()
 
+    q = PwIn('%s/%s.scf'%(pathin,prefix))
+    print("old celldm(1)", q.system['celldm(1)'])
+    q.system['celldm(1)'] = e.cell[0][0]
+    print("new celldm(1)", q.system['celldm(1)'])
+    q.atoms = list(zip([a[0] for a in q.atoms],pos))
+    q.write('%s/%s.scf'%(pathout,prefix))
+
     #open relaxed cell
     qin  = PwIn('%s/%s.scf'%(pathin,prefix))
 
@@ -133,7 +142,7 @@ def update_positions(pathin,pathout):
     print("old celldm(1)", qin.system['celldm(1)'])
     qout.system['celldm(1)'] = e.cell[0][0]
     print("new celldm(1)", qout.system['celldm(1)'])
-    qout.atoms = zip([a[0] for a in qin.atoms],pos)
+    qout.atoms = list(zip([a[0] for a in qin.atoms],pos))
     
     #write scf
     qout.write('%s/%s.scf'%(pathout,prefix))
@@ -142,6 +151,21 @@ def run_plot():
     print("running plotting:")
     xml = PwXML(prefix=prefix,path='bands')
     xml.plot_eigen(p)
+
+def run_projection(show=True):
+    import matplotlib.pyplot as plt
+    #write input file
+    projwfc = ProjwfcIn('bn')
+    projwfc.write(folder='bands')
+    projwfc.run(folder='bands')
+    #read xml file
+    projection = ProjwfcXML(prefix='bn',path='bands')
+    n_atom = range(16)
+    b_atom = range(16,32)
+    ax = plt.subplot(1,1,1)
+    cax = projection.plot_eigen(ax,path=p,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='bwr')
+    plt.colorbar(cax)
+    if show: plt.show()
 
 def run_bands(nthreads=1):
     print("running bands:")
@@ -161,6 +185,7 @@ if __name__ == "__main__":
     parser.add_argument('-n' ,'--nscf',        action="store_true", help='Non-self consistent calculation')
     parser.add_argument('-n2','--nscf_double', action="store_true", help='Non-self consistent calculation for the double grid')
     parser.add_argument('-b' ,'--bands',       action="store_true", help='Calculate band-structure')
+    parser.add_argument('-o' ,'--orbitals',    action="store_true", help='Plot atomic orbital projected band-structure')
     parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
     parser.add_argument('-d' ,'--dispersion',  action="store_true", help='Phonon dispersion')
     parser.add_argument('-t' ,'--nthreads',                         help='Number of threads', default=2 )
@@ -248,3 +273,6 @@ if __name__ == "__main__":
     if args.bands:
         run_bands(nthreads)
         run_plot()
+
+    if args.orbitals:
+        run_projection()

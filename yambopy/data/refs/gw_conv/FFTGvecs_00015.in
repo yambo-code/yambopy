@@ -1,0 +1,73 @@
+em1d
+gw0
+HF_and_locXC
+ppa
+XfnQP_Z = (1.000000,0.000000) 
+% GbndRnge
+ 1 | 30 |   
+%
+ElecTemp = 0.000000e+00 eV
+% GfnQP_Wv
+ 0.0 | 0.0 | 0.0 |   
+%
+DysSolver =        'n'
+GfnQP_Wc_E = 0.000000e+00 eV
+XfnQPdb =     'none'
+% XfnQP_E
+ 0.0 | 1.0 | 1.0 |   
+%
+XfnQP_Wc_E = 0.000000e+00 eV
+GTermEn = 40.817080 eV
+kind =       'BG'
+NGsBlkXp = 1 Ry
+% XfnQP_Wc
+ 0.0 | 0.0 | 0.0 |   
+%
+GTermKind =     'none'
+XTermEn = 40.817080 eV
+XTermKind =     'none'
+XfnQP_N = 1.000000 
+OccTresh = 0.000010 
+GfnQP_Wv_E = 0.000000e+00 eV
+BoseCut = 0.100000 
+GfnQP_N = 1.000000 
+DBsFRAGpm =     'none'
+% GfnQP_E
+ 0.0 | 1.0 | 1.0 |   
+%
+EXXRLvcs = 9409.000000 RL
+NLogCPUs = 0.000000e+00 
+dScStep = 0.100000 eV
+X_all_q_nCPU_LinAlg_INV = 1.000000 
+GfnQPdb =     'none'
+Nelectro = 8.000000 
+PPAPntXp = 27.211380 eV
+% EhEngyXp
+ -1.000000 | -1.000000 |  eV 
+%
+BoseTemp = -1.000000e+00 eV
+% XfnQP_Wv
+ 0.0 | 0.0 | 0.0 |   
+%
+CGrdSpXp = 100.000000 
+DBsIOoff =     'none'
+FFTGvecs = 15 Ry
+% QpntsRXp
+ 1 | 4 |   
+%
+% LongDrXp
+ 1.0 | 0.0 | 0.0 |   
+%
+StdoHash = 40.000000 
+GDamping = 0.100000 eV
+% GfnQP_Wc
+ 0.0 | 0.0 | 0.0 |   
+%
+XfnQP_Wv_E = 0.000000e+00 eV
+GfnQP_Z = (1.000000,0.000000) 
+% BndsRnXp
+ 1 | 10 |   
+%
+% QPkrange
+ 1 | 4 | 1 | 30 |   
+%

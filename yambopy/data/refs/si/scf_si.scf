@@ -1,0 +1,24 @@
+&control
+         calculation = 'scf'
+              prefix = 'si'
+          pseudo_dir = '../pseudos'
+          wf_collect = .true.
+/&end
+&system
+           celldm(1) = 10.3
+             ecutwfc = 40
+               ibrav = 2
+                 nat = 2
+                ntyp = 1
+         occupations = 'fixed'
+/&end
+&electrons
+            conv_thr = 1e-08
+/&end
+ATOMIC_SPECIES
+  Si   28.086    Si.pbe-mt_fhi.UPF
+ATOMIC_POSITIONS { crystal }
+ Si   0.1250000000   0.1250000000   0.1250000000
+ Si  -0.1250000000  -0.1250000000  -0.1250000000
+K_POINTS { automatic }
+  4  4  4  0  0  0

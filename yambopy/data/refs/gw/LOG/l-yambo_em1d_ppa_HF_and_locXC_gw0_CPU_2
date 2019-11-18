@@ -1,0 +1,116 @@
+
+
+ __   __  _______  __   __  _______  _______
+|  | |  ||   _   ||  |_|  ||  _    ||       |
+|  |_|  ||  |_|  ||       || |_|   ||   _   |
+|       ||       ||       ||       ||  | |  |
+|_     _||       ||       ||  _   | |  |_|  |
+  |   |  |   _   || ||_|| || |_|   ||       |
+  |___|  |__| |__||_|   |_||_______||_______|
+
+
+ <---> P0002: [01] CPU structure, Files & I/O Directories
+ <---> P0002: CPU-Threads:2(CPU)-1(threads)-1(threads@X)-1(threads@DIP)-1(threads@SE)-1(threads@RT)-1(threads@K)
+ <---> P0002: [02] CORE Variables Setup
+ <---> P0002: [02.01] Unit cells
+ <---> P0002: [02.02] Symmetries
+ <---> P0002: [02.03] RL shells
+ <---> P0002: [02.04] K-grid lattice
+ <---> P0002: [02.05] Energies [ev] & Occupations
+ <---> P0002: [03] Transferred momenta grid
+ <---> P0002: [04] External corrections
+ <---> P0002: [04.01] External QP corrections (X)
+ <---> P0002: [04.02] External QP corrections (G)
+ <---> P0002: [05] Dynamic Dielectric Matrix (PPA)
+ <---> P0002: CPU structure provided for the Response_G_space ENVIRONMENT is incomplete. Switching to defaults
+ <---> P0002: [PARALLEL Response_G_space for K(bz) on 1 CPU] Loaded/Total (Percentual):8/8(100%)
+ <---> P0002: [PARALLEL Response_G_space for Q(ibz) on 1 CPU] Loaded/Total (Percentual):4/4(100%)
+ <---> P0002: [PARALLEL Response_G_space for K-q(ibz) on 1 CPU] Loaded/Total (Percentual):4/4(100%)
+ <---> P0002: [LA] SERIAL linear algebra
+ <---> P0002: [PARALLEL Response_G_space for CON bands on 2 CPU] Loaded/Total (Percentual):13/26(50%)
+ <---> P0002: [PARALLEL Response_G_space for VAL bands on 1 CPU] Loaded/Total (Percentual):4/4(100%)
+ <---> P0002: [DIP] Checking dipoles header
+ <---> P0002: [x,Vnl] computed using 22 projectors
+ <---> P0002: [PARALLEL distribution for Wave-Function states] Loaded/Total(Percentual):68/120(57%)
+ <---> P0002: [WF] Performing Wave-Functions I/O from ./SAVE
+ <---> P0002: Reading wf_fragments_1_1
+ <---> P0002: Reading wf_fragments_2_1
+ <---> P0002: Reading wf_fragments_3_1
+ <---> P0002: Reading wf_fragments_4_1
+ <---> P0002: Dipoles: P and iR (T): |                                        | [000%] --(E) --(X)
+ <---> P0002: Reading kb_pp_pwscf_fragment_1
+ <---> P0002: Reading kb_pp_pwscf_fragment_2
+ <---> P0002: Reading kb_pp_pwscf_fragment_3
+ <---> P0002: Reading kb_pp_pwscf_fragment_4
+ <---> P0002: Dipoles: P and iR (T): |########################################| [100%] --(E) --(X)
+ <---> P0002: [DIP] Checking dipoles header
+ <---> P0002: [X-CG] R(p) Tot o/o(of R)  :   53   416   100
+ <---> P0002: [X] Upper matrix triangle filled
+ <---> P0002: Xo@q[1] |                                        | [000%] --(E) --(X)
+ <---> P0002: Xo@q[1] |########################################| [100%] --(E) --(X)
+ <---> P0002: [PARALLEL distribution for X Frequencies on 2 CPU] Loaded/Total (Percentual):1/2(50%)
+ <---> P0002: X@q[1] |                                        | [000%] --(E) --(X)
+ <---> P0002: X@q[1] |########################################| [100%] --(E) --(X)
+ <---> P0002: [PARALLEL distribution for Wave-Function states] Loaded/Total(Percentual):68/120(57%)
+ <---> P0002: [WF] Performing Wave-Functions I/O from ./SAVE
+ <---> P0002: [FFT-X] Mesh size: 15  15  15
+ <---> P0002: Reading wf_fragments_1_1
+ <---> P0002: Reading wf_fragments_2_1
+ <---> P0002: Reading wf_fragments_3_1
+ <---> P0002: Reading wf_fragments_4_1
+ <---> P0002: [X-CG] R(p) Tot o/o(of R)  :   75   416   100
+ <---> P0002: Xo@q[2] |                                        | [000%] --(E) --(X)
+ <---> P0002: Xo@q[2] |########################################| [100%] --(E) --(X)
+ <---> P0002: [PARALLEL distribution for X Frequencies on 2 CPU] Loaded/Total (Percentual):1/2(50%)
+ <---> P0002: X@q[2] |                                        | [000%] --(E) --(X)
+ <---> P0002: X@q[2] |########################################| [100%] --(E) --(X)
+ <---> P0002: [X-CG] R(p) Tot o/o(of R)  :   67   416   100
+ <---> P0002: Xo@q[3] |                                        | [000%] --(E) --(X)
+ <---> P0002: Xo@q[3] |########################################| [100%] --(E) --(X)
+ <---> P0002: [PARALLEL distribution for X Frequencies on 2 CPU] Loaded/Total (Percentual):1/2(50%)
+ <---> P0002: X@q[3] |                                        | [000%] --(E) --(X)
+ <---> P0002: X@q[3] |########################################| [100%] --(E) --(X)
+ <---> P0002: [X-CG] R(p) Tot o/o(of R)  :   75   416   100
+ <---> P0002: Xo@q[4] |                                        | [000%] --(E) --(X)
+ <---> P0002: Xo@q[4] |########################################| [100%] --(E) --(X)
+ <---> P0002: [PARALLEL distribution for X Frequencies on 2 CPU] Loaded/Total (Percentual):1/2(50%)
+ <---> P0002: X@q[4] |                                        | [000%] --(E) --(X)
+ <---> P0002: X@q[4] |########################################| [100%] --(E) --(X)
+ <---> P0002: [06] Bare local and non-local Exchange-Correlation
+ <---> P0002: CPU structure provided for the Self_Energy ENVIRONMENT is incomplete. Switching to defaults
+ <---> P0002: [PARALLEL Self_Energy for QPs on 1 CPU] Loaded/Total (Percentual):120/120(100%)
+ <---> P0002: [PARALLEL Self_Energy for Q(ibz) on 1 CPU] Loaded/Total (Percentual):4/4(100%)
+ <---> P0002: [PARALLEL Self_Energy for G bands on 2 CPU] Loaded/Total (Percentual):15/30(50%)
+ <---> P0002: [M  0.032 Gb] Alloc WF ( 0.029)
+ <---> P0002: [PARALLEL distribution for Wave-Function states] Loaded/Total(Percentual):120/120(100%)
+ <---> P0002: [WF] Performing Wave-Functions I/O from ./SAVE
+ <---> P0002: [FFT-HF/Rho] Mesh size:  32   32   32
+ <---> P0002: Reading wf_fragments_1_1
+ <---> P0002: Reading wf_fragments_2_1
+ <---> P0002: Reading wf_fragments_3_1
+ <---> P0002: Reading wf_fragments_4_1
+ <04s> P0002: [xc] Functional Perdew, Burke & Ernzerhof(X)+Perdew, Burke & Ernzerhof(C)
+ <04s> P0002: [xc] LIBXC used to calculate xc functional
+ <04s> P0002: [M  0.005 Gb] Free WF ( 0.029)
+ <04s> P0002: [06.01] HF occupations report
+ <04s> P0002: [07] Dyson equation: Newton solver
+ <04s> P0002: [07.01] G0W0 (W PPA)
+ <04s> P0002: [PARALLEL Self_Energy for QPs on 1 CPU] Loaded/Total (Percentual):120/120(100%)
+ <04s> P0002: [PARALLEL Self_Energy for Q(ibz) on 1 CPU] Loaded/Total (Percentual):4/4(100%)
+ <04s> P0002: [PARALLEL Self_Energy for G bands on 2 CPU] Loaded/Total (Percentual):15/30(50%)
+ <04s> P0002: [PARALLEL distribution for Wave-Function states] Loaded/Total(Percentual):120/120(100%)
+ <04s> P0002: [WF] Performing Wave-Functions I/O from ./SAVE
+ <04s> P0002: [FFT-GW] Mesh size: 15  15  15
+ <04s> P0002: Reading wf_fragments_1_1
+ <04s> P0002: Reading wf_fragments_2_1
+ <04s> P0002: Reading wf_fragments_3_1
+ <04s> P0002: Reading wf_fragments_4_1
+ <04s> P0002: Reading pp_fragment_1
+ <04s> P0002: G0W0 (W PPA) |                                        | [000%] --(E) --(X)
+ <04s> P0002: Reading pp_fragment_1
+ <04s> P0002: Reading pp_fragment_2
+ <05s> P0002: Reading pp_fragment_3
+ <05s> P0002: Reading pp_fragment_4
+ <05s> P0002: G0W0 (W PPA) |########################################| [100%] --(E) --(X)
+ <05s> P0002: [07.02] QP properties and I/O
+ <05s> P0002: [08] Game Over & Game summary

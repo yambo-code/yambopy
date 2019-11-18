@@ -3,9 +3,10 @@
 # Run a Silicon groundstate calculation using Quantum Espresso
 #
 from __future__ import print_function
+import os
 import sys
-from qepy import *
 import argparse
+from qepy import *
 
 scf_kpoints  = [2,2,2]
 nscf_kpoints = [2,2,2]
@@ -15,10 +16,10 @@ matdyn = 'matdyn.x'
 q2r =    'q2r.x'
 pw = 'pw.x'
 ph = 'ph.x'
-p = Path([ [[1.0,1.0,1.0],'G'],
-           [[0.0,0.5,0.5],'X'],
-           [[0.0,0.0,0.0],'G'],
-           [[0.5,0.0,0.0],'L']], [20,20,20])
+p = Path([ [[1.0,1.0,1.0],'$\Gamma$'],
+           [[0.0,0.5,0.5],'$X$'],
+           [[0.0,0.0,0.0],'$\Gamma$'],
+           [[0.5,0.0,0.0],'$L$']], [20,20,20])
 
 #
 # Create the input files
@@ -27,8 +28,8 @@ def get_inputfile():
     """ Define a Quantum espresso input file for silicon
     """
     qe = PwIn()
-    qe.atoms = [['Si',[0.125,0.125,0.125]],
-                ['Si',[-.125,-.125,-.125]]]
+    qe.set_atoms([['Si',[0.125,0.125,0.125]],
+                  ['Si',[-.125,-.125,-.125]]])
     qe.atypes = {'Si': [28.086,"Si.pbe-mt_fhi.UPF"]}
 
     qe.control['prefix'] = "'%s'"%prefix
@@ -103,19 +104,19 @@ def bands():
     qe.set_path(p)
     qe.write('bands/%s.bands'%prefix)
 
-def orbitals():
-    f = open('proj.in','w')
+def plot_orbitals(show=True):
+    import matplotlib.pyplot as plt
     projwfc = ProjwfcIn('si')
     projwfc.write(folder='bands')
     projwfc.run(folder='bands')
     projection = ProjwfcXML(prefix='si',path='bands')
-    import matplotlib.pyplot as plt
-    ax = plt.subplot(1,1,1)
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
     s_orb = [0,16]
     p_orb = [1,2,3,17,19,20]
     projection.plot_eigen(ax,path=p,selected_orbitals=s_orb,selected_orbitals_2=p_orb,size=40,cmap='RdBu')
     ax.set_ylim([-7,6])
-    plt.show()
+    if show: plt.show()
 
 def phonons():
     os.system('mkdir -p phonons')
@@ -163,7 +164,7 @@ def update_positions(pathin,pathout):
     print("old celldm(1)", qin.system['celldm(1)'])
     qout.system['celldm(1)'] = e.cell[0][2]*2
     print("new celldm(1)", qout.system['celldm(1)'])
-    qout.atoms = zip([a[0] for a in qin.atoms],pos)
+    qout.atoms = list(zip([a[0] for a in qin.atoms],pos))
 
     #write scf
     qout.write('%s/%s.scf'%(pathout,prefix))
@@ -197,10 +198,10 @@ def run_bands(nthreads=1):
     os.system("cd bands; mpirun -np %d %s -inp %s.bands > bands.log"%(nthreads,pw,prefix))
     print("done!")
 
-def run_plot():
+def run_plot(show=True):
     print("running plotting:")
     xml = PwXML(prefix='si',path='bands')
-    xml.plot_eigen(p)
+    xml.plot_eigen(p,show=show)
 
 def run_phonon(nthreads=1):
     print("running phonons:")
@@ -250,5 +251,5 @@ if __name__ == "__main__":
         run_bands(args.nthreads)
         run_plot()
     if args.orbitals:
-        orbitals()
+        plot_orbitals()
 

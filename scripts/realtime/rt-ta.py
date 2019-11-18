@@ -1,5 +1,8 @@
+from __future__ import print_function
 #import matplotlib
 #matplotlib.use('Agg') # prevents crashes if no X server present
+from builtins import str
+from builtins import range
 from yambopy import *
 import sys
 import os
@@ -26,15 +29,15 @@ prefix = args.prefix
 
 source = folder+'/'+job
 
-print 'Packing relevant calculations'
+print('Packing relevant calculations')
 pack_files_in_folder(source,mask=prefix)
-print 'Done.'
+print('Done.')
 
 data = YamboAnalyser(source)
 output = data.get_data((prefix,'eps'))
 
 # keys to read the outputs in order
-keys=output.keys()
+keys=list(output.keys())
 
 # sorting
 s=[]
@@ -47,7 +50,7 @@ s=sorted(s) # s is list of tuples (int,str)
 times = ['t'+str(i[0]) for i in s]
 keys  = [i[1] for i in s]
 
-print "Sorted keys: ",keys
+print("Sorted keys: ",keys)
 
 # output[key][n][0] is x
 # output[key][n][1] is y
@@ -79,7 +82,7 @@ for l in range(0,nlines):
 
 # Writing
 if args.notext:
-    print 'Writing data to files...'
+    print('Writing data to files...')
     f=open(job+prefix+'.dat','w')
     string = 'eV'
     for t in times:
@@ -96,9 +99,9 @@ if args.notext:
     np.savetxt(f,diff,delimiter='\t',header=string)
     f.close()
 
-    print 'Writing done.'
+    print('Writing done.')
 else:
-    print '"--notext" flag'
+    print('"--notext" flag')
 
 # Plotting
 fig,ax1=plt.subplots()
@@ -114,4 +117,4 @@ ax2 = ax1.twinx()
 plt.show()
 
 
-print 'Done.'
+print('Done.')

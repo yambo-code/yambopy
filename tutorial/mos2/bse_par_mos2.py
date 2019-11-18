@@ -4,6 +4,8 @@
 # one job per q-point for the dielectric function
 #
 from __future__ import print_function
+from builtins import map
+from builtins import range
 from multiprocessing import Pool
 from yambopy import *
 from qepy import *
@@ -52,11 +54,11 @@ def run(nthreads=1):
     y.write('%s/yambo_run.in'%folder)
 
     #get the number of q-points
-    startk,endk = map(int,y['QpntsRXs'][0])
+    startk,endk = list(map(int,y['QpntsRXs'][0]))
 
     #prepare the q-points input files
     jobs = []
-    for nk in xrange(1,endk+1):
+    for nk in range(1,endk+1):
         y['QpntsRXs'] = [[nk,nk],'']
         y.write('%s/yambo_q%d.in'%(folder,nk))
         if nk != 1:
