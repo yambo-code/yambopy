@@ -1,4 +1,4 @@
-# Copyright (c) 2016, Henrique Miranda
+# Copyright (c) 2018, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -85,9 +85,10 @@ class YamboElectronsDB():
         self.filename = '%s/%s'%(save,filename)
         self.efermi = None
         self.readDB()
-        if self.nkpoints != self.lattice.nkpoints: #sanity check
-            raise ValueError("The number of k-points in the lattice database and electrons database is different.")
         self.expandEigenvalues()
+        if self.nkpoints != lattice.nkpoints: #sanity check
+            raise ValueError("The number of k-points in the lattice database"
+                             " %d and electrons database %d is different."%(lattice.nkpoints,self.nkpoints))
         
     def readDB(self):
         try:
@@ -111,8 +112,8 @@ class YamboElectronsDB():
         self.spin_degen = [0,2,1][int(self.spin)]
         
         #number of occupied bands
-        self.nbandsv = self.nelectrons / self.spin_degen
-        self.nbandsc = self.nbands-self.nbandsv
+        self.nbandsv = int(self.nelectrons/self.spin_degen)
+        self.nbandsc = int(self.nbands-self.nbandsv)
 
     def expandEigenvalues(self):
         """
@@ -126,7 +127,7 @@ class YamboElectronsDB():
         self.nkpoints = len(self.eigenvalues)
         
         #counter counts the number of occurences of element in a list
-        for nk_ibz,inv_weight in collections.Counter(self.lattice.kpoints_indexes).items():
+        for nk_ibz,inv_weight in list(collections.Counter(self.lattice.kpoints_indexes).items()):
             self.weights_ibz[nk_ibz] = float(inv_weight)/self.nkpoints
         
         #kpoints weights
@@ -199,13 +200,13 @@ class YamboElectronsDB():
         #full brillouin zone
         self.eigenvalues     -= self.efermi
         self.occupations = np.zeros([self.nkpoints,self.nbands],dtype=np.float32)
-        for nk in xrange(self.nkpoints):
+        for nk in range(self.nkpoints):
             self.occupations[nk] = fermi_array(self.eigenvalues[nk,:],0,self.invsmear)
         
         #for the ibz
         self.eigenvalues_ibz -= self.efermi
         self.occupations_ibz = np.zeros([self.nkpoints_ibz,self.nbands],dtype=np.float32)
-        for nk in xrange(self.nkpoints_ibz):
+        for nk in range(self.nkpoints_ibz):
             self.occupations_ibz[nk] = fermi_array(self.eigenvalues_ibz[nk,:],0,self.invsmear)
         
         return self.efermi
@@ -231,7 +232,7 @@ class YamboElectronsDB():
         """
         Calculate the enegy of the gap (by Fulvio Paleari)
         """
-        eiv = self.eigenvalues_ibz
+        eiv = self.eigenvalues
         nv  = self.nbandsv
         nc  = self.nbandsc   
 
@@ -268,7 +269,7 @@ class YamboElectronsDB():
             """ 
             The total occupation minus the total number of electrons
             """
-            return sum([sum(self.spin_degen*fermi_array(eigenvalues[nk],ef,self.invsmear))*weights[nk] for nk in xrange(nkpoints)])-self.nelectrons
+            return sum([sum(self.spin_degen*fermi_array(eigenvalues[nk],ef,self.invsmear))*weights[nk] for nk in range(nkpoints)])-self.nelectrons
 
         fermi = bisect(occupation_minus_ne,min_eival,max_eival)
         if setfermi: self.setFermi(fermi,invsmear)

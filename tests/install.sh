@@ -6,8 +6,12 @@ set -x # print to stdout
 echo "Yambo: $YAMBO_VERSION"
 echo "Quantum Espresso: $PW_VERSION"
 
-wget https://www.dropbox.com/s/hna9v4yw6u7ea5e/yambo_4.1.tar?dl=0 -O yambo.tar # Yambo 4.1 tar
+ls /usr/lib
+
+# Yambo 4.4 tar
+wget https://www.dropbox.com/s/mi493jb67u1lcog/yambo_4.4.tar.gz?dl=0 -O yambo.tar
 sudo tar -xf yambo.tar -C /bin/
 
-wget https://www.dropbox.com/s/o91hx046chfk26d/espresso_5.4.tar?dl=0 -O espresso.tar # Espresso 5.4 tar
+# Espresso 6.3 tar
+wget https://www.dropbox.com/s/bxim3jgmjgd5v3h/qe_6.4.1.tar.gz?dl=0 -O espresso.tar
 sudo tar -xf espresso.tar -C /bin/

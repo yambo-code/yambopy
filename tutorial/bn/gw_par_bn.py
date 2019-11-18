@@ -1,3 +1,4 @@
+from __future__ import print_function, import division
 #
 # Author: Henrique Pereira Coutada Miranda
 # Date: 18/10/2015
@@ -7,7 +8,6 @@
 # These example runs locally, if you want to make it work behind a queing system you need to
 # modify it accordingly
 #
-from __future__ import print_function
 from yambopy import *
 from qepy import *
 
@@ -65,7 +65,7 @@ y['EnRngeXd'] = [[1,-1],'eV']
 
 #prepare the q-points input files
 f = open('jobs.sh','w')
-for nq in xrange(1,int(nqpoints)+1):
+for nq in range(1,int(nqpoints)+1):
     y['QpntsRXd'] = [[nq,nq],'']
     y.write('gw_par/yambo_q%d.in'%nq)
     if nq != 1:

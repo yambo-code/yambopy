@@ -85,4 +85,21 @@ from the  `Quantum Espresso <http://www.quantum-espresso.org/>`_ suite.
     print md
     md.write('si.dynmat'%folder)
 
+Unfolding
+~~~~~~~~~~~~~
+The class `Unfolding()` is useful to unfold the electronic structure calculated in a supercell into the original primitive cell of
+the material. Currently it generates and reads Quantum Espresso XML files. The class is based in the work of Popescu and Zunger published in `Phys. Rev. B 85, 085201 (2012) <https://journals.aps.org/prb/abstract/10.1103/PhysRevB.85.085201>`_.
+
+There is an example adapted to hBN tutorial/bn-folding. Currently there are several additional options:
+
+- write to file: If True it prints in the file projection.dat the results of the unfolding.
+- spin: "none" or "spinor".
+- band_min: To avoid the processing in core levels we can set the starting band for the unfolding.
+
+The result of the unfolding in a 2x2 hBN supercell is shown below. Red dashed are the band structure of the 2x2 supercell. The red
+dots are the unfolded band states, on top of the primitive unit cell band structures (black solid lines).
+
+.. image:: figures/bn-unfolded.png
+   :width: 45%
+
 

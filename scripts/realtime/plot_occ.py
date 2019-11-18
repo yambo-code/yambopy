@@ -2,17 +2,22 @@
 # and display it along a path in histogram form
 # along with a representation of the carriers in energy space
 
+from __future__ import print_function
+from __future__ import division
+from builtins import range
+from past.utils import old_div
 from yambopy import *
 import matplotlib.gridspec as gridspec
 from matplotlib.colors import Normalize
 from scipy.optimize import curve_fit
+import os
 
 ############
 # SETTINGS #
 ############
 
-folder = 'rt-24x24'
-calc   = 'QSSIN-100.0fs-2.07eV-300K' # Where RT carrier output is
+folder = 'rt-30x30'
+calc   = 'QSSIN-100.0fs-2.08eV-300K-DG' # Where RT carrier output is
 path = [[0.0,0.0,0.0],[0.5,0.0,0.0],[0.33333,0.33333,0.0],[0.0,0.0,0.0]]
 nbv = 2 ; nbc = 2 # nb of valence and conduction bands
 occ_scaling = 1 # max occupation will be 1eV high
@@ -21,6 +26,9 @@ degen_thres = 0.1 # Energy below which two bands are considered degenerate
 ########
 # INIT #
 ########
+
+# For saving pictures
+os.system('mkdir -p occupations/%s/%s'%(folder,calc))
 
 # Instance containing bandstructure (as used in RT sim) and occupations
 yrt = YamboRTDB(folder=folder,calc=calc)
@@ -48,7 +56,7 @@ xocc = np.arange(len(kindex)) # array of ints to plot occupation on path properl
 ## 'fit' variables and function
 # FD distrib for fit
 def fermi_dirac(E,a,T): # declare E first for fit
-    return 1/(1+np.exp((E-a)/T))
+    return old_div(1,(1+np.exp(old_div((E-a),T))))
 #
 KtoeV = 8.61733e-5
 #
@@ -62,7 +70,7 @@ xeng = np.linspace(np.amin(eigenvalues[:,list(range(nbv))]), np.amax(eigenvalues
 
 # The external field is read from the o- file
 ext = np.loadtxt('%s/%s/pulse/o-pulse.external_field'%(folder,calc))
-field = ext[:,2]/max(abs(ext[:,2])) # polarization : x=1,y=2,z=3
+field = old_div(ext[:,2],max(abs(ext[:,2]))) # polarization : x=1,y=2,z=3
 
 ##################
 # ENERGY DISTRIB #
@@ -137,7 +145,9 @@ ymax_c= max(np.amin(eigenvalues[:,nbv:])+np.amax(occ_c[:,:,nbv:])+0.1, np.amax(e
 
 for t in range(len(times)):
     i=t
-    print times[i]
+    print(times[i])
+
+    name = 'occupations/'+folder+'/'+calc+'/%d.png' % (times[t])
 
     fig = plt.figure()
 
@@ -217,7 +227,7 @@ for t in range(len(times)):
 
     ax3.scatter(occ_e[i,:,1],occ_e[i,:,0],s=10,color='black')
     ax3.plot(fermi_dirac(xeng,fit[0],fit[1]),xeng,'r-')
-    ax3.text(0.5,0.9,'Electrons\nT = %d K'%(fit[1]/KtoeV),transform=ax3.transAxes,ha='center',va='center')
+    ax3.text(0.5,0.9,'Electrons\nT = %d K'%(old_div(fit[1],KtoeV)),transform=ax3.transAxes,ha='center',va='center')
 
     try:
         fit,cov = curve_fit(fermi_dirac,occ_h[i,:,0],occ_h[i,:,1])
@@ -226,7 +236,7 @@ for t in range(len(times)):
 
     ax4.scatter(occ_h[i,:,1],-occ_h[i,:,0],color='black')
     ax4.plot(fermi_dirac(xeng,fit[0],fit[1]),-xeng,'b-')
-    ax4.text(0.5,0.1,'Holes\nT = %d K'%(fit[1]/KtoeV),transform=ax4.transAxes,ha='center',va='center')
+    ax4.text(0.5,0.1,'Holes\nT = %d K'%(old_div(fit[1],KtoeV)),transform=ax4.transAxes,ha='center',va='center')
 
 # set x and y range
     ax4.set_xlim(-0.1*max_occ,1.1*max_occ)
@@ -242,7 +252,10 @@ for t in range(len(times)):
     ax4.tick_params(axis='x',which='both',bottom='off',top='off',labelbottom='off')
     ax4.tick_params(axis='y',labelleft='off',labelright='off')
 
-    plt.show()
+    plt.savefig( name ,transparent=False,dpi=300)
+    print(name)
+    #plt.show()
+    plt.close(fig)
 
 
 

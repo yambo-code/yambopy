@@ -1,3 +1,4 @@
+from __future__ import print_function
 ##############################################################################
 #
 # Author: Alejandro Molina-Sanchez
@@ -33,10 +34,10 @@ parser.add_argument('-s' ,'--symmetry' ,help='Choice symmetry: 100 010 110')
 args = parser.parse_args()
 
 #  print ('No folder given')
-print ('Folder of nscf data     ===>>>  ' ,args.input)
-print ('Folder of RT simulation ===>>>  ' ,args.output)
-print ('Prefix                  ===>>>  ' ,args.prefix)
-print ('Symmetry                ===>>>  ' ,args.symmetry)
+print(('Folder of nscf data     ===>>>  ' ,args.input))
+print(('Folder of RT simulation ===>>>  ' ,args.output))
+print(('Prefix                  ===>>>  ' ,args.prefix))
+print(('Symmetry                ===>>>  ' ,args.symmetry))
 
 nscf_folder = args.input
 rt_folder   = args.output

@@ -3,6 +3,7 @@
 # Run a BSE calculation using yambo
 #
 from __future__ import print_function
+from builtins import range
 import sys
 from yambopy import *
 from qepy import *
@@ -102,7 +103,7 @@ def run(nthreads=1,cut=False):
     else:
         shell.add_command('cd bse; mpirun -np %d %s -F yambo_run.in -J yambo'%(nthreads,yambo))
     shell.run()
-    
+
 def analyse(dry=False):
     #pack in a json file
     y = YamboOut('bse')
@@ -130,7 +131,7 @@ def analyse(dry=False):
         # Hole=[0,0,6+.5]   #position of the hole in cartesian coordinates (Bohr units)
         # FFTGvecs=10       #number of FFT vecs to use, larger makes the
         #                   #image smoother, but takes more time to plot
-        a.get_wavefunctions(Degen_Step=0.01,repx=range(-1,2),repy=range(-1,2),repz=range(1),
+        a.get_wavefunctions(Degen_Step=0.01,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(1)),
                             Cells=[13,13,1],Hole=[0,0,6+.5], FFTGvecs=10,wf=True)
 
     a.write_json()
@@ -155,5 +156,5 @@ if __name__ == "__main__":
     cut = args.cut
     dg = args.doublegrid
     create_save(dg)
-    if args.run:     run(nthreads,cut) 
+    if args.run:     run(nthreads,cut)
     if args.analyse: analyse(args.dry)

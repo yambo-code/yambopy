@@ -1,0 +1,71 @@
+
+
+ __   __  _______  __   __  _______  _______
+|  | |  ||   _   ||  |_|  ||  _    ||       |
+|  |_|  ||  |_|  ||       || |_|   ||   _   |
+|       ||       ||       ||       ||  | |  |
+|_     _||       ||       ||  _   | |  |_|  |
+  |   |  |   _   || ||_|| || |_|   ||       |
+  |___|  |__| |__||_|   |_||_______||_______|
+
+
+ <---> [01] CPU structure, Files & I/O Directories
+ <---> [02] CORE Variables Setup
+ <---> [02.01] Unit cells
+ <---> [02.02] Symmetries
+ <---> [02.03] RL shells
+ <---> [02.04] K-grid lattice
+ <---> [02.05] Energies [ev] & Occupations
+ <---> [03] Transferred momenta grid
+ <---> [04] External corrections
+ <---> [04.01] External QP corrections (X)
+ <---> [04.02] External QP corrections (G)
+ <---> [05] Dynamic Dielectric Matrix (PPA)
+ <---> [LA] SERIAL linear algebra
+ <---> [DIP] Checking dipoles header
+ <---> [x,Vnl] computed using 22 projectors
+ <---> [WF] Performing Wave-Functions I/O from ./SAVE
+ <---> Dipoles: P and iR (T): |                                        | [000%] --(E) --(X)
+ <---> Dipoles: P and iR (T): |########################################| [100%] --(E) --(X)
+ <---> [DIP] Writing dipoles header
+ <---> [WF] Performing Wave-Functions I/O from ./SAVE
+ <---> [FFT-X] Mesh size:  5   5   5
+ <---> [X-CG] R(p) Tot o/o(of R)  :  104   832   100
+ <---> [X] Upper matrix triangle filled
+ <---> Xo@q[1] |                                        | [000%] --(E) --(X)
+ <---> Xo@q[1] |########################################| [100%] --(E) --(X)
+ <---> X@q[1] |                                        | [000%] --(E) --(X)
+ <---> X@q[1] |########################################| [100%] --(E) --(X)
+ <---> [X-CG] R(p) Tot o/o(of R)  :  147   832   100
+ <---> Xo@q[2] |                                        | [000%] --(E) --(X)
+ <---> Xo@q[2] |########################################| [100%] --(E) --(X)
+ <---> X@q[2] |                                        | [000%] --(E) --(X)
+ <---> X@q[2] |########################################| [100%] --(E) --(X)
+ <---> [X-CG] R(p) Tot o/o(of R)  :  130   832   100
+ <---> Xo@q[3] |                                        | [000%] --(E) --(X)
+ <---> Xo@q[3] |########################################| [100%] --(E) --(X)
+ <---> X@q[3] |                                        | [000%] --(E) --(X)
+ <---> X@q[3] |########################################| [100%] --(E) --(X)
+ <---> [X-CG] R(p) Tot o/o(of R)  :  147   832   100
+ <---> Xo@q[4] |                                        | [000%] --(E) --(X)
+ <---> Xo@q[4] |########################################| [100%] --(E) --(X)
+ <---> X@q[4] |                                        | [000%] --(E) --(X)
+ <---> X@q[4] |########################################| [100%] --(E) --(X)
+ <---> [06] Bare local and non-local Exchange-Correlation
+ <---> [M  0.032 Gb] Alloc WF ( 0.029)
+ <---> [WF] Performing Wave-Functions I/O from ./SAVE
+ <---> [FFT-HF/Rho] Mesh size:  32   32   32
+ <---> EXS |                                        | [000%] --(E) --(X)
+ <03s> EXS |########################################| [100%] 03s(E) 03s(X)
+ <03s> [xc] Functional Perdew, Burke & Ernzerhof(X)+Perdew, Burke & Ernzerhof(C)
+ <03s> [xc] LIBXC used to calculate xc functional
+ <03s> [M  0.005 Gb] Free WF ( 0.029)
+ <04s> [06.01] HF occupations report
+ <04s> [07] Dyson equation: Newton solver
+ <04s> [07.01] G0W0 (W PPA)
+ <04s> [WF] Performing Wave-Functions I/O from ./SAVE
+ <04s> [FFT-GW] Mesh size:  5   5   5
+ <04s> G0W0 (W PPA) |                                        | [000%] --(E) --(X)
+ <04s> G0W0 (W PPA) |########################################| [100%] --(E) --(X)
+ <04s> [07.02] QP properties and I/O
+ <04s> [08] Game Over & Game summary
