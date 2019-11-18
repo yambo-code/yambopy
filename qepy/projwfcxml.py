@@ -89,7 +89,7 @@ class ProjwfcXML(object):
         return proj
 
     def plot_eigen(self, ax, size=20, cmap=None, color='r', path=[], label_1=None, 
-                   selected_orbitals=[], selected_orbitals_2=[],bandmin=0,bandmax=None,alpha=1):
+                   selected_orbitals=[], selected_orbitals_2=[],bandmin=0,bandmax=None,alpha=1,size_projection=False):
         """ 
         Plot the band structure. The size of the points is the weigth of the selected orbitals.
 
@@ -133,7 +133,10 @@ class ProjwfcXML(object):
           #plot bands for fixed size
           for ib in range(bandmin,bandmax):
             eig = self.eigen[:,ib] - self.fermi
-            cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+            if size_projection==True:
+               cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+            else:
+               cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
 
         else:
           #plot bands for a varying size

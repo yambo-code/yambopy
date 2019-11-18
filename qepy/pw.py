@@ -244,7 +244,8 @@ class PwIn(object):
         self.system['occupations'] = "'%s'" % occupations['occupations'] 
         
         if 'smearing' in occupations: self.system['smearing'] = "'%s'" % occupations['smearing']
-        if 'degauss'  in occupations: self.system['degauss'] = occupations['degauss'] 
+        if 'degauss'  in occupations: self.system['degauss']  = occupations['degauss'] 
+        if 'nbnd'     in occupations: self.system['nbnd']     = occupations['nbnd']
 
     def update_structure_from_xml(self,pwxml):
         """
@@ -295,6 +296,11 @@ class PwIn(object):
     def set_spinorbit(self):
         self.system['lspinorb'] = '.true.'
         self.system['noncolin'] = '.true.'
+
+    def set_spinpolarized(self):
+        self.system['lspinorb'] = '.false.'
+        self.system['noncolin'] = '.false.'
+        self.system['nspin']    = 2
 
     def set_magnetization(self,starting_magnetization):
         """
@@ -471,7 +477,7 @@ class PwIn(object):
                 for i in range(int(self.system["nat"])):
                     atype, x,y,z = next(lines).split()
                     atoms.append([atype,[float(i) for i in (x,y,z)]])
-        self.atoms = atoms
+        self._atoms = atoms
         self.atomic_pos_type = atomic_pos_type.replace('{','').replace('}','').strip().split()[1]
 
     @property
