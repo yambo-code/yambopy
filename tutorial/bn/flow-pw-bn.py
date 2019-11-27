@@ -32,27 +32,28 @@ nscf_bands = 60
 kpoints = [6,6,1]
 nscf_kpoints = [12,12,1]
 ecut = 20
-npoints = 10 
+npoints = 10
+pseudo_dir = '../pseudos'
 path_kpoints = Path([ [[0.0, 0.0, 0.0],'G'],
                       [[0.5, 0.0, 0.0],'M'],
                       [[1./3,1./3,0.0],'K'],
                       [[0.0, 0.0, 0.0],'G']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
 def relax():
-    qe_relax_atoms_task, qe_relax_cell_task, qe_scf_task = PwRelaxTasks(BN,kpoints,ecut,cell_dofree='2Dxy',pseudo_dir="/Users/alejandro/Software/yambopy/tutorial/bn/pseudos")
+    qe_relax_atoms_task, qe_relax_cell_task, qe_scf_task = PwRelaxTasks(BN,kpoints,ecut,cell_dofree='2Dxy',pseudo_dir=pseudo_dir)
 
     relax_flow = YambopyFlow.from_tasks('relax_flow',[qe_relax_atoms_task,qe_relax_cell_task,qe_scf_task])
     relax_flow.create(agressive=True)
     relax_flow.run()
 
 def bands():
-    pw_scf,pw_bands = PwBandsTasks(BN,kpoints,ecut,nscf_bands,path_kpoints,spin="spinor",pseudo_dir="/Users/alejandro/Software/yambopy/tutorial/bn/pseudos")
+    pw_scf,pw_bands = PwBandsTasks(BN,kpoints,ecut,nscf_bands,path_kpoints,spin="spinor",pseudo_dir=pseudo_dir)
     bands_flow = YambopyFlow.from_tasks('bands_flow',[pw_scf,pw_bands])
     bands_flow.create(agressive=True)
     bands_flow.run()
 
 def nscf():
-    pw_scf,pw_nscf,p2y_task = PwNscfTasks(BN,kpoints,ecut,nscf_bands,nscf_kpoints,spin="spinor",pseudo_dir="/Users/alejandro/Software/yambopy/tutorial/bn/pseudos")
+    pw_scf,pw_nscf,p2y_task = PwNscfTasks(BN,kpoints,ecut,nscf_bands,nscf_kpoints,spin="spinor",pseudo_dir=pseudo_dir)
     nscf_flow = YambopyFlow.from_tasks('nscf_flow',[pw_scf,pw_nscf,p2y_task])
     nscf_flow.create(agressive=True)
     nscf_flow.run()

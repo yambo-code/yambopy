@@ -58,9 +58,12 @@ class YamboStaticScreeningDB(object):
         qpoints = database.variables['HEAD_QPT'][:].T
         self.qpoints = np.array([q/self.alat  for q in qpoints])
         self.nqpoints = len(self.qpoints)
-        
+
         #are we usign coulomb cutoff?
-        self.cutoff = "".join(database.variables['CUTOFF'][:][0]).strip()
+        #
+        # There is a bug here???
+        #
+        #self.cutoff = "".join(database.variables['CUTOFF'][:][0]).strip()
         
         self.readDBs()
 
