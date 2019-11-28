@@ -7,6 +7,7 @@ import sys
 from yambopy import *
 from qepy import *
 import argparse
+from schedulerpy import *
 
 #parse options
 parser = argparse.ArgumentParser(description='Test the yambopy script.')
@@ -21,18 +22,23 @@ if len(sys.argv)==1:
 
 yambo = "yambo"
 folder = 'ip'
+scheduler = Scheduler.factory
 
 #check if the SAVE folder is present
 if not os.path.isdir('database/SAVE'):
     print('preparing yambo database')
-    os.system('mkdir -p database')
-    os.system('cd nscf/bn.save; p2y > p2y.log')
-    os.system('cd nscf/bn.save; yambo > yambo.log')
-    os.system('mv nscf/bn.save/SAVE database')
+    p2y_run = scheduler()
+    p2y_run.add_command('mkdir -p database')
+    p2y_run.add_command('cd nscf/bn.save; p2y > p2y.log')
+    p2y_run.add_command('cd nscf/bn.save; yambo > yambo.log')
+    p2y_run.add_command('mv nscf/bn.save/SAVE database')
+    p2y_run.run()
 
-if not os.path.isdir(folder):
-    os.mkdir(folder)
-    os.system('cp -r database/SAVE %s'%folder)
+if not os.path.isdir('%s/SAVE'%folder):
+    s = scheduler()
+    s.add_command(folder)
+    s.add_command('cp -r database/SAVE %s'%folder)
+    s.run()
 
 #initialize the double grid
 if args.doublegrid:
@@ -43,11 +49,13 @@ if args.doublegrid:
     "../database_double"
     %""")
     f.close()
-    os.system('cd %s; ypp'%folder)
+    ypp_run = scheduler()
+    ypp_run.add_command('cd %s; ypp'%folder)
+    ypp_run.run()
 
 if args.calc:
     #create the yambo input file
-    y = YamboIn('yambo -o g -V all',folder=folder)
+    y = YamboIn.from_runlevel('yambo -o g -V all',folder=folder)
 
     y['FFTGvecs'] = [30,'Ry']
     y['BndsRnXs'] = [1,30]
@@ -57,7 +65,9 @@ if args.calc:
     y.write('%s/yambo_run.in'%folder)
 
     print('running yambo')
-    os.system('cd %s; %s -F yambo_run.in -J yambo'%(folder,yambo))
+    yambo_run = scheduler()
+    yambo_run.add_command('cd %s; %s -F yambo_run.in -J yambo'%(folder,yambo))
+    yambo_run.run()
 
 if args.plot:
     #pack in a json file
