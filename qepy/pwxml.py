@@ -152,10 +152,22 @@ class PwXML():
         self.fermi = float(self.datafile_xml.find("BAND_STRUCTURE_INFO/FERMI_ENERGY").text)
 
         #get Bravais Lattice
-        # Just do for ibrav 4, should we do more general for all ibravs?
         self.bravais_lattice = str(self.datafile_xml.find("CELL/BRAVAIS_LATTICE").text)
-        if all(s in self.bravais_lattice for s in ["cubic","P"]):            self.ibrav = 1
-        if all(s in self.bravais_lattice for s in ["Hexagonal","Trigonal"]): self.ibrav = 4
+        if all(s in self.bravais_lattice for s in ["cubic","P"]):               self.ibrav = 1
+        if all(s in self.bravais_lattice for s in ["cubic","F"]):               self.ibrav = 2
+        if all(s in self.bravais_lattice for s in ["cubic","I"]):               self.ibrav = 3
+        if all(s in self.bravais_lattice for s in ["Hexagonal","Trigonal"]):    self.ibrav = 4
+        if all(s in self.bravais_lattice for s in ["Trigonal","R"]):            self.ibrav = 5
+        if all(s in self.bravais_lattice for s in ["Tetragonal","P"]):          self.ibrav = 6
+        if all(s in self.bravais_lattice for s in ["Tetragonal","I"]):          self.ibrav = 7
+        if all(s in self.bravais_lattice for s in ["Orthorhombic","P"]):        self.ibrav = 8
+        if all(s in self.bravais_lattice for s in ["Orthorhombic","base-centered"]): self.ibrav = 9
+        if all(s in self.bravais_lattice for s in ["Orthorhombic","face-centered"]): self.ibrav = 10
+        if all(s in self.bravais_lattice for s in ["Orthorhombic","body-centered"]): self.ibrav = 11
+        if all(s in self.bravais_lattice for s in ["Monoclinic","P"]):          self.ibrav = 12
+        if all(s in self.bravais_lattice for s in ["Monoclinic","base-centered"]):   self.ibrav = 13
+        if all(s in self.bravais_lattice for s in ["Triclinic"]):               self.ibrav = 14
+
 
         return True
 
@@ -164,6 +176,10 @@ class PwXML():
         Read the data from the xml file in the new format of quantum espresso
         """
         self.datafile_xml = ET.parse( filename ).getroot()
+
+        #get magnetization state
+        # TO BE DONE!!!
+        self.lsda = False
 
         #get cell
         self.cell = []
@@ -217,11 +233,11 @@ class PwXML():
             self.kpoints.append( kpoint )
 
         #get eigenvalues
-        self.eigen = []
+        self.eigen1 = []
         for k in range(self.nkpoints):
             eigen = [float(x) for x in kstates[k].findall('eigenvalues')[0].text.strip().split()]
-            self.eigen.append( eigen )
-        self.eigen = np.array(self.eigen)
+            self.eigen1.append( eigen )
+        self.eigen1 = np.array(self.eigen1)
  
         #get fermi
         self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)
@@ -298,20 +314,19 @@ class PwXML():
         for ib in range(self.nbands):
             ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
        
-        #plot spin-polarized bands
-        if self.lsda:
+        #plot spin-polarized bands: TO BE DONE
+        #if self.lsda:
 
-           eigen2 = np.array(self.eigen2)
-           for ib in range(self.nbands):
-               ax.plot(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
-
+           #eigen2 = np.array(self.eigen2)
+           #for ib in range(self.nbands):
+               #ax.plot(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
 
         #plot options
         if xlim: ax.set_xlim(xlim)
         if ylim: ax.set_ylim(ylim)
 
     '''
-    Workaround to include occupaitons in the plot. AMS
+    Workaround to include occupations in the plot. AMS
     '''
 
     def plot_eigen_occ_ax(self,ax,path=[],xlim=(),ylim=()):

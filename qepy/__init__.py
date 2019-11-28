@@ -24,6 +24,7 @@ from .projwfc import *
 from .projwfcxml import *
 from .ph import *
 from .dynmat import *
+from .matdyn import *
 from .lattice import *
 from .unfolding import *
 from .unfoldingyambo import *
