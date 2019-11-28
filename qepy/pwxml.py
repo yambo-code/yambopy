@@ -180,6 +180,9 @@ class PwXML():
         #get magnetization state
         # TO BE DONE!!!
         self.lsda = False
+        if 'T' in self.datafile_xml.findall("input/spin/lsda")[0].text:
+            #self.lsda = True
+            raise ValueError('Spin states not yet implemented for data-file-schema.xml') 
 
         #get cell
         self.cell = []
@@ -241,6 +244,9 @@ class PwXML():
  
         #get fermi
         self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)
+    
+        #get Bravais lattice
+        self.ibrav = self.datafile_xml.findall("output/atomic_structure").get('bravais_index')
 
         return True
 
