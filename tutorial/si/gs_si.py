@@ -22,7 +22,8 @@ p = Path([ [[1.0,1.0,1.0],'$\Gamma$'],
            [[0.0,0.0,0.0],'$\Gamma$'],
            [[0.5,0.0,0.0],'$L$']], [20,20,20])
 
-
+# scheduler
+scheduler = Scheduler.factory
 #
 # Create the input files
 #
@@ -128,11 +129,18 @@ def phonons():
     ph['ldisp']  = '.true.'
     ph['trans']  = '.true.'
     ph['tr2_ph'] = 1e-12
+    ph['epsil'] = '.false.'
+    ph['qplot'] = '.false'
     ph['nq1'], ph['nq2'], ph['nq3'] = 2, 2, 2
     ph.write('phonons/%s.phonons'%prefix)
 
+    md = DynmatIn()
+    md['asr'] = "'simple'"
+    md['fildyn'] = "'%s.dyn1'"%prefix
+    md['filout'] = "'%s.modes'"%prefix
+    md.write('%s/%s.dynmat'%('phonons',prefix))
+
 def dispersion():
-    scheduler = Scheduler.factory
     qe_run = scheduler()    
 
     #q2r
@@ -141,7 +149,7 @@ def dispersion():
     disp['zasr']  = "'simple'" 
     disp['flfrc'] = "'%s.fc'"  % prefix
     disp.write('phonons/q2r.in')
-    qe_run.add_command('cd phonon; %s < q2r.in'%q2r)
+    qe_run.add_command('cd phonons; %s < q2r.in'%q2r)
 
     #dynmat
     dyn = DynmatIn()
@@ -181,31 +189,41 @@ def update_positions(pathin,pathout):
 
 def run_relax(nthreads=1):
     print("running relax:")
-    os.system("cd relax; mpirun -np %d %s -inp %s.relax > relax.log"%(nthreads,pw,prefix))
+    qe_run = scheduler()
+    qe_run.add_command("cd relax; mpirun -np %d %s -inp %s.relax > relax.log"%(nthreads,pw,prefix))
+    qe_run.run()
     update_positions('relax', 'scf')
     print("done!")
 
 def run_scf(nthreads=1):
     print("running scf:")
-    os.system("cd scf; mpirun -np %d %s -inp %s.scf > scf.log"%(nthreads,pw,prefix))
+    qe_run = scheduler()
+    qe_run.add_command("cd scf; mpirun -np %d %s -inp %s.scf > scf.log"%(nthreads,pw,prefix))
+    qe_run.run()
     print("done!")
 
 def run_nscf(nthreads=1):
     print("running nscf:")
-    os.system("cp -r scf/%s.save nscf/"%prefix)
-    os.system("cd nscf; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
+    qe_run = scheduler()
+    qe_run.add_command("cp -r scf/%s.save nscf/"%prefix)
+    qe_run.add_command("cd nscf; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
+    qe_run.run()
     print("done!")
 
 def run_dg(nthreads=1):
-    print("running nscf:")
-    os.system("cp -r scf/%s.save nscf-dg/"%prefix)
-    os.system("cd nscf-dg; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
+    print("running nscf_double:")
+    qe_run = scheduler()
+    qe_run.add_command("cp -r scf/%s.save nscf-dg/"%prefix)
+    qe_run.add_command("cd nscf-dg; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
+    qe_run.run()
     print("done!")
 
 def run_bands(nthreads=1):
     print("running bands:")
-    os.system("cp -r scf/%s.save bands/"%prefix)
-    os.system("cd bands; mpirun -np %d %s -inp %s.bands > bands.log"%(nthreads,pw,prefix))
+    qe_run = scheduler()
+    qe_run.add_command("cp -r scf/%s.save bands/"%prefix)
+    qe_run.add_command("cd bands; mpirun -np %d %s -inp %s.bands > bands.log"%(nthreads,pw,prefix))
+    qe_run.run()
     print("done!")
 
 def run_plot(show=True):
@@ -215,8 +233,11 @@ def run_plot(show=True):
 
 def run_phonon(nthreads=1):
     print("running phonons:")
-    os.system("cp -r scf/%s.save phonons/"%prefix)
-    os.system("cd phonons; mpirun -np %d %s -inp %s.phonons > phonons.log"%(nthreads,ph,prefix))
+    qe_run = scheduler()
+    qe_run.add_command("cp -r scf/%s.save phonons/"%prefix)
+    qe_run.add_command("cd phonons; mpirun -np %d %s -inp %s.phonons > phonons.log"%(nthreads,ph,prefix))
+    qe_run.add_command("dynmat.x < %s.dynmat > dynmat.log"%prefix) #dynmat
+    qe_run.run()
     print("done!")
 
 if __name__ == "__main__":
@@ -240,12 +261,11 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # create input files and folders
-   
+    scf()   
     if args.relax:
         relax()
         run_relax(nthreads) 
     if args.scf: 
-        scf()       
         run_scf(nthreads)
     if args.nscf:
         nscf()

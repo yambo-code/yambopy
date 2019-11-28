@@ -202,7 +202,7 @@ if __name__ == "__main__":
     if args.relax:
         print("running relax:")
         qe_run = scheduler() 
-        qe_run.add_command("cd relax; %s -inp %s.relax > relax.log"%(pw,prefix))  #relax
+        qe_run.add_command("cd relax; mpirun -np %d %s -inp %s.relax > relax.log"%(nthreads,pw,prefix))  #relax
         qe_run.run()
         update_positions('relax','scf') 
         print("done!")
