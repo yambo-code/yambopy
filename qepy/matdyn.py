@@ -8,6 +8,7 @@ import os
 import re
 from math import sqrt
 import numpy as np
+from .lattice import *
 from qepy.auxiliary import *
 
 eVtocm1 = 8065.54429
@@ -32,7 +33,7 @@ class Matdyn(object):
         self.eiv      = np.array(eiv)
 
     @classmethod
-    def from_modes_file(cls,folder='.',filename='pw.modes'):
+    def from_modes_file(cls,folder='.',filename='matdyn.modes'):
         """
         read the modes file from the hard drive 
         """
