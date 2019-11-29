@@ -38,8 +38,8 @@ ks_bs_0, qp_bs_0 = y.get_bs_path(lat,path)
 fig = plt.figure(figsize=(4,5))
 ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
 
-ks_bs_0.plot_ax(ax,legend=True,color_bands='r',c_label='KS')
-qp_bs_0.plot_ax(ax,legend=True,color_bands='b',c_label='QP-GW')
+ks_bs_0.plot_ax(ax,legend=True,color_bands='r',label='KS')
+qp_bs_0.plot_ax(ax,legend=True,color_bands='b',label='QP-GW')
 
 plt.show()
 
@@ -50,8 +50,8 @@ ks_bs, qp_bs = y.interpolate(lat,path,what='QP+KS',lpratio=20)
 fig = plt.figure(figsize=(4,5))
 ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
 
-ks_bs.plot_ax(ax,legend=True,color_bands='r',c_label='KS')
-qp_bs.plot_ax(ax,legend=True,color_bands='b',c_label='QP-GW')
+ks_bs.plot_ax(ax,legend=True,color_bands='r',label='KS')
+qp_bs.plot_ax(ax,legend=True,color_bands='b',label='QP-GW')
 
 plt.show()
 
@@ -60,9 +60,9 @@ plt.show()
 fig = plt.figure(figsize=(4,5))
 ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
 
-ks_bs_0.plot_ax(ax,legend=True,color_bands='r',c_label='KS')
-qp_bs_0.plot_ax(ax,legend=True,color_bands='b',c_label='QP-GW')
-ks_bs.plot_ax(ax,legend=True,color_bands='g',c_label='KS')
-qp_bs.plot_ax(ax,legend=True,color_bands='k',c_label='QP-GW')
+ks_bs_0.plot_ax(ax,legend=True,color_bands='r',label='KS')
+qp_bs_0.plot_ax(ax,legend=True,color_bands='b',label='QP-GW')
+ks_bs.plot_ax(ax,legend=True,color_bands='g',label='KS')
+qp_bs.plot_ax(ax,legend=True,color_bands='k',label='QP-GW')
 
 plt.show()
