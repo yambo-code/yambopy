@@ -30,7 +30,7 @@ if not os.path.isdir('bse_conv'):
     os.system('cp -r database/SAVE bse_conv')
 
 #create the yambo input file
-y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse_conv')
+y = YamboIn.from_runlevel('yambo -b -o b -k sex -y d -V all',folder='bse_conv')
 
 #list of variables to optimize and the values they might take
 conv = { 'FFTGvecs': [[10,15,20],'Ry'],
