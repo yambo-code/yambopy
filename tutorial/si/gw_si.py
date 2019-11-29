@@ -25,20 +25,19 @@ if not os.path.isdir('database/SAVE'):
     os.system('cd nscf/si.save; yambo')
     os.system('mv nscf/si.save/SAVE database')
 
-if not os.path.isdir('gw'):
-    os.mkdir('gw')
-    os.system('cp -r database/SAVE gw')
+if not os.path.isdir('gw_calc'):
+    os.mkdir('gw_calc')
+    os.system('cp -r database/SAVE gw_calc')
 
 #create the yambo input file
-y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw')
+y = YamboIn.from_runlevel('%s -p p -g n'%yambo,folder='gw_calc')
 QPKrange,_ = y['QPkrange']
 y['QPkrange'] = [QPKrange[:2]+[4,5],'']
-y['FFTGvecs'] = [20,'Ry']
-y['NGsBlkXp'] = [1,'Ry']
+y['FFTGvecs'] = [2000,'RL']
+y['NGsBlkXp'] = [10,'RL']
 y['BndsRnXp'] = [1,20]
 y['GbndRnge'] = [1,20]
-y.arguments.append('WFbuffIO')
-y.write('gw/yambo_run.in')
+y.write('gw_calc/yambo_run.in')
 
 print('running yambo')
-os.system('cd gw; %s -F yambo_run.in -J yambo'%yambo)
+os.system('cd gw_calc; %s -F yambo_run.in -J yambo'%yambo)

@@ -30,7 +30,7 @@ if not os.path.isdir('bse'):
     os.system('cp -r database/SAVE bse')
 
 #create the yambo input file
-y = YamboIn('yambo -r -b -o b -k sex -y d -V all',folder='bse')
+y = YamboIn.from_runlevel('yambo -r -b -o b -k sex -y d -V all',folder='bse')
 
 y['FFTGvecs'] = [5,'Ha']
 y['BSENGexx'] = [5,'Ha']
