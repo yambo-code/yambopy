@@ -42,3 +42,4 @@ branches:
     - master
     - travis
     - devel-alejandro
+    - master-whypy
