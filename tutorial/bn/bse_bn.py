@@ -9,14 +9,15 @@ from yambopy import *
 from qepy import *
 from schedulerpy import *
 import argparse
+import matplotlib.pyplot as plt
 
 prefix = 'bn'
-folder = 'bse'
+folder = 'bse_calc'
 yambo = "yambo"
 p2y = "p2y"
 ypp = "ypp"
 layer_separation = 12
-scheduler = Scheduler.factory
+bash = Scheduler.factory
 
 def create_save(doublegrid=False):
     #check if the nscf cycle is present
@@ -29,19 +30,12 @@ def create_save(doublegrid=False):
     #check if the SAVE folder is present
     if not os.path.isdir('database'):
         print('preparing yambo database')
-        shell = scheduler()
-        shell.add_command('pushd nscf/%s.save; %s; %s'%(prefix,p2y,yambo))
-        shell.add_command('popd')
+        shell = bash()
         shell.add_command('mkdir -p database')
-        shell.add_command('mv nscf/%s.save/SAVE database'%prefix)
+        shell.add_command('cd nscf/%s.save; %s; %s'%(prefix, p2y, yambo))
+        shell.add_command('mv SAVE ../../database/')
         shell.run()
-
-    #create the folder to run the calculation
-    if not os.path.isdir(folder):
-        shell = scheduler()
-        shell.add_command('mkdir -p %s'%folder)
-        shell.add_command('cp -r database/SAVE %s/'%folder)
-        shell.run()
+        shell.clean()
 
     #check if the SAVE folder is present
     if doublegrid:
@@ -74,8 +68,16 @@ def create_save(doublegrid=False):
             shell.run()
 
 def run(nthreads=1,cut=False):
+    #create the folder to run the calculation
+    if not os.path.isdir('bse_calc'):
+        shell = bash() 
+        shell.add_command('mkdir -p bse_calc')
+        shell.add_command('cp -r database/SAVE bse_calc/')
+        shell.run()
+        shell.clean()
+
     #create the yambo input file
-    y = YamboIn('%s -r -b -o b -k sex -y d -V all'%yambo,folder='bse')
+    y = YamboIn.from_runlevel('%s -r -b -o b -k sex -y d -V all'%yambo,folder='bse_calc')
 
     if cut:
         y['CUTGeo'] = 'box z'
@@ -94,47 +96,74 @@ def run(nthreads=1,cut=False):
         y['X_all_q_ROLEs'] = "q"
         y['X_all_q_CPUs'] = "%d"%nthreads
 
-    y.write('bse/yambo_run.in')
+    y.write('bse_calc/yambo_run.in')
 
     print('running yambo')
-    shell = scheduler()
+    shell = bash()
     if nthreads <= 1:
-        shell.add_command('cd bse; %s -F yambo_run.in -J yambo'%yambo)
+        shell.add_command('cd bse_calc; %s -F yambo_run.in -J yambo'%yambo)
     else:
-        shell.add_command('cd bse; mpirun -np %d %s -F yambo_run.in -J yambo'%(nthreads,yambo))
+        shell.add_command('cd bse_calc; mpirun -np %d %s -F yambo_run.in -J yambo'%(nthreads,yambo))
     shell.run()
 
 def analyse(dry=False):
+
+
+    # Option read Haydock calculation
+
+    y = YamboOut('bse_calc',save_folder='bse_calc/SAVE')
+
+    energy = y.files['o-yambo.eps_q1_diago_bse']['E/ev[1]']
+    im_eps = y.files['o-yambo.eps_q1_diago_bse']['EPS-Im[2]']
+
+    plt.plot(energy,im_eps)
+    plt.show()
+
+    # SAVE database
+    #save = YamboSaveDB.from_db_file(folder='bse_calc/SAVE')
+
+    # Lattice information
+    #lat  = YamboLatticeDB.from_db_file(filename='bse_calc/SAVE/ns.db1')
+    
+    # Exciton database read from db file
+    #yexc = YamboExcitonDB(lat)
+
+
+    #print(yexc)
+    #exit()
     #pack in a json file
-    y = YamboOut('bse')
-    y.pack()
+    #y = YamboOut('bse_calc',save_folder='bse_calc/SAVE')
+    #y.pack()
 
     #get the absorption spectra
     #'yambo' -> was the jobstring '-J' used when running yambo
     #'bse'   -> folder where the job was run
-    a = YamboBSEAbsorptionSpectra('yambo',path='bse')
+    #a = YamboBSEAbsorptionSpectra('yambo',path='bse_calc')
+
+    #print(str(a))
+
 
     # Here we choose which excitons to read
     # min_intensity -> choose the excitons that have at least this intensity
     # max_energy    -> choose excitons with energy lower than this
     # Degen_Step    -> take only excitons that have energies more different than Degen_Step
-    excitons = a.get_excitons(min_intensity=0.001,max_energy=8.0,Degen_Step=0.01)
-    print( "nexcitons: %d"%len(excitons) )
-    print( "excitons:" )
-    print( "  Energy  Intensity Index")
-    for exciton in excitons:
-        print( "%8.4lf %8.4lf %5d"%tuple(exciton) )
+    #excitons = a.get_excitons(min_intensity=0.001,max_energy=8.0,eps=0.0001)
+    #print( "nexcitons: %d"%len(excitons) )
+    #print( "excitons:" )
+    #print( "  Energy  Intensity Index")
+    #for exciton in excitons:
+    #    print( "%8.4lf %8.4lf %5d"%tuple(exciton) )
 
-    if dry:
+    #if dry:
         # read the wavefunctions
         # Cells=[13,13,1]   #number of cell repetitions
         # Hole=[0,0,6+.5]   #position of the hole in cartesian coordinates (Bohr units)
         # FFTGvecs=10       #number of FFT vecs to use, larger makes the
         #                   #image smoother, but takes more time to plot
-        a.get_wavefunctions(Degen_Step=0.01,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(1)),
-                            Cells=[13,13,1],Hole=[0,0,6+.5], FFTGvecs=10,wf=True)
+    #    a.get_wavefunctions(Degen_Step=0.01,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(1)),
+                            #Cells=[13,13,1],Hole=[0,0,6+.5], FFTGvecs=10,wf=True)
 
-    a.write_json()
+    #a.write_json()
 
 if __name__ == "__main__":
 
