@@ -31,12 +31,12 @@ if not os.path.isdir('database/SAVE'):
     p2y_run.add_command('mkdir -p database')
     p2y_run.add_command('cd nscf/bn.save; p2y > p2y.log')
     p2y_run.add_command('cd nscf/bn.save; yambo > yambo.log')
-    p2y_run.add_command('mv nscf/bn.save/SAVE database')
+    p2y_run.add_command('mv SAVE ../../database')
     p2y_run.run()
 
 if not os.path.isdir('%s/SAVE'%folder):
     s = scheduler()
-    s.add_command(folder)
+    s.add_command('mkdir -p %s'%folder)
     s.add_command('cp -r database/SAVE %s'%folder)
     s.run()
 
