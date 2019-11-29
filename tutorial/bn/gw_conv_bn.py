@@ -11,6 +11,7 @@ from yambopy     import *
 from qepy        import *
 from schedulerpy import *
 import argparse
+import matplotlib.pyplot as plt
 
 yambo = 'yambo'
 p2y = 'p2y'
@@ -45,7 +46,7 @@ def gw_convergence():
         shell.run()
         shell.clean()
 
-    y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw_conv')
+    y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw_conv')
     k_f = y['QPkrange'][0][1]         # Read the last k-points in the uniform k-grid
 
     y['BndsRnXp'] = [[1,10],'']             # Screening. Number of bands
@@ -69,16 +70,11 @@ def gw_convergence():
         shell.run()
         shell.clean()
 
-    y.optimize(conv,run=run,ref_run=False)
+    y.optimize(conv,folder='gw_conv',run=run,ref_run=False)
 
 def plot_convergence():
-    #y = YamboIn('%s -d -g n -V all'%yambo,folder='gw_conv')
-    #y = YamboIn('%s -d -g n -V all'%yambo)
-    y = YamboIn.from_file(folder='gw_conv')
-
-    k_f = y['QPkrange'][0][1]         # Read last k-points in the uniform k-grid
-    print (k_f) #pack the files in .json files
-    pack_files_in_folder('gw_conv')
+    y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw_conv')
+    k_f = y['QPkrange'][0][1]         # Read the last k-points in the uniform k-grid
 
     print('Select the converged value for each variable')
     shell = bash() 
@@ -99,7 +95,7 @@ def gw():
         shell.clean()
 
     # GW calculation. PPA Screening. Newton method
-    y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw')
+    y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw')
 
     y['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
     y['BndsRnXp'] = [1,25]          # Screening. Number of bands
@@ -121,18 +117,29 @@ def gw():
     shell.clean()
 
 def plot_gw():
-    #pack the files in .json files
-    print('plot all qpoints')
-    pack_files_in_folder('gw')
-    ya = YamboAnalyser('gw')
-    ya.plot_gw('qp',('lda','gw'))
-    #plot the results using yambm analyser
-    print('plot along a path')
-    path = [[[0,   0,   0],'$\Gamma$'],
-            [[0.5, 0,   0],'M'],
-            [[0.3333,0.3333, 0.0],'K'],
-            [[0.0, 0.0, 0.0],'$\Gamma$']]
-    ya.plot_gw_path(path,'qp',('lda','gw'))
+
+    # Define path in reduced coordinates using Class Path
+    npoints = 10
+    path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
+                  [[  0.5,  0.0,  0.0],'M'],
+                  [[1./3.,1./3.,  0.0],'K'],
+                  [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
+
+    # Read Lattice information from SAVE
+    lat  = YamboSaveDB.from_db_file(folder='gw/SAVE',filename='ns.db1')
+    # Read QP database
+    y    = YamboQPDB.from_db(filename='ndb.QP',folder='gw/gw')
+
+    # 2. Plot of KS and QP eigenvalues NOT interpolated along the path
+    ks_bs_0, qp_bs_0 = y.get_bs_path(lat,path)
+
+    fig = plt.figure(figsize=(4,5))
+    ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
+ 
+    ks_bs_0.plot_ax(ax,legend=True,color_bands='r',label='KS')
+    qp_bs_0.plot_ax(ax,legend=True,color_bands='b',label='QP-GW')
+
+    plt.show()
 
 def xi():
     #create the folder to run the calculation
@@ -144,7 +151,7 @@ def xi():
         shell.clean()
 
     print ("Running COHSEX in folder 'gw-xi/coh'")
-    cohsex = YamboIn('%s -p c -g n -V all'%yambo,folder='gw-xi')
+    cohsex = YamboIn.from_runlevel('%s -p c -g n -V all'%yambo,folder='gw-xi')
     cohsex['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
     cohsex['BndsRnXs'] = [1,25]          # Screening. Number of bands
     cohsex['NGsBlkXs'] = [3,'Ry']        # Cutoff Screening
@@ -159,7 +166,7 @@ def xi():
     shell.clean()
 
     print ("Running COHSEX in folder 'gw-xi/pp'")
-    ppa = YamboIn('%s -p p -g n -V all'%yambo,folder='gw-xi')
+    ppa = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw-xi')
     ppa['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
     ppa['BndsRnXp'] = [1,25]          # Screening. Number of bands
     ppa['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
@@ -174,7 +181,7 @@ def xi():
     shell.clean()
 
     print ("Running Real Axis in folder 'gw-xi/ra'")
-    ra = YamboIn('%s -d -g n -V all'%yambo,folder='gw-xi')
+    ra = YamboIn.from_runlevel('%s -d -g n -V all'%yambo,folder='gw-xi')
     ra['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
     ra['BndsRnXd'] = [1,25]          # Screening. Number of bands
     ra['NGsBlkXd'] = [3,'Ry']        # Cutoff Screening
@@ -189,15 +196,34 @@ def xi():
     shell.clean()
 
 def plot_xi():
-    #pack the files in .json files
-    pack_files_in_folder('gw-xi')
-    ya = YamboAnalyser('gw-xi')
-    print('Plot Band structure for COHSEX, PPA and RA')
-    path = [[[0,   0,   0],'$\Gamma$'],
-            [[0.5, 0,   0],'M'],
-            [[0.3333,0.3333, 0.0],'K'],
-            [[0.0, 0.0, 0.0],'$\Gamma$']]
-    ya.plot_gw_path(path,'qp',path,('lda','gw'))
+
+    # Define path in reduced coordinates using Class Path
+    npoints = 10
+    path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
+                  [[  0.5,  0.0,  0.0],'M'],
+                  [[1./3.,1./3.,  0.0],'K'],
+                  [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
+
+    # Read Lattice information from SAVE
+    lat  = YamboSaveDB.from_db_file(folder='gw-xi/SAVE',filename='ns.db1')
+    # Read QP database
+    y1   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-xi/coh')
+    y2   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-xi/pp')
+    y3   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-xi/ra')
+
+    # 2. Plot of KS and QP eigenvalues NOT interpolated along the path
+    ks_bs_1, qp_bs_1 = y1.get_bs_path(lat,path)
+    ks_bs_2, qp_bs_2 = y2.get_bs_path(lat,path)
+    ks_bs_3, qp_bs_3 = y3.get_bs_path(lat,path)
+
+    fig = plt.figure(figsize=(4,5))
+    ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
+ 
+    qp_bs_1.plot_ax(ax,legend=True,color_bands='r',label='QP-GW-COH')
+    qp_bs_2.plot_ax(ax,legend=True,color_bands='b',label='QP-GW-PP')
+    qp_bs_3.plot_ax(ax,legend=True,color_bands='g',label='QP-GW-RA')
+
+    plt.show()
 
 def dyson_eq():
     #create the folder to run the calculation
@@ -209,7 +235,7 @@ def dyson_eq():
         shell.run()
         shell.clean()
 
-    dyson = YamboIn('%s -p p -g n -V all'%yambo,folder=folder_dyson)
+    dyson = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder=folder_dyson)
 
     dyson['EXXRLvcs'] = [80,'Ry']           # Self-energy. Exchange
     dyson['BndsRnXp'] = [1,25]              # Screening. Number of bands
@@ -232,15 +258,32 @@ def dyson_eq():
     shell.clean()
 
 def plot_dyson():
-    #pack the files in .json files
-    pack_files_in_folder('gw-zeros')
-    ya = YamboAnalyser('gw-zeros')
-    print('plot kpoints for Newton and secant solver')
-    path = [[[0,   0,   0],'$\Gamma$'],
-            [[0.5, 0,   0],'M'],
-            [[0.3333,0.3333, 0.0],'K'],
-            [[0.0, 0.0, 0.0],'$\Gamma$']]
-    ya.plot_gw_path(path,'qp',path,('lda','gw'))
+
+    # Define path in reduced coordinates using Class Path
+    npoints = 10
+    path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
+                  [[  0.5,  0.0,  0.0],'M'],
+                  [[1./3.,1./3.,  0.0],'K'],
+                  [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
+
+    # Read Lattice information from SAVE
+    lat  = YamboSaveDB.from_db_file(folder='gw-zeros/SAVE',filename='ns.db1')
+    # Read QP database
+    y1   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-zeros/newton')
+    y2   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-zeros/secant')
+
+    # 2. Plot of KS and QP eigenvalues NOT interpolated along the path
+    ks_bs_1, qp_bs_1 = y1.get_bs_path(lat,path)
+    ks_bs_2, qp_bs_2 = y2.get_bs_path(lat,path)
+
+    fig = plt.figure(figsize=(4,5))
+    ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
+ 
+    qp_bs_1.plot_ax(ax,legend=True,color_bands='r',label='QP-GW-Newton')
+    qp_bs_2.plot_ax(ax,legend=True,color_bands='b',label='QP-GW-Secant')
+
+    plt.show()
+
 
 if __name__ == "__main__":
     #parse options
