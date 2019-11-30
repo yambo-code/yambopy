@@ -37,7 +37,7 @@ def gw_convergence():
         os.system('cp -r database/SAVE gw_conv')
 
     #create the yambo input file
-    y = YamboIn('%s -p p -g n -V all'%yambo,folder='gw_conv')
+    y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw_conv')
     y['GbndRnge'] = [[1,15],'']
     y['QPkrange'][0][2:4] = [2,6]
     conv = { 'FFTGvecs': [[5,10,15],'Ry'],
@@ -50,17 +50,17 @@ def gw_convergence():
         print(filename,folder)
         os.system('cd gw_conv; %s -F %s -J %s -C %s 2> %s.log'%(yambo,filename,folder,folder,folder))
 
-    y.optimize(conv,run=run)
+    y.optimize(conv,folder='gw_conv',run=run)
 
 def plot_convergence(show=True):
     #pack the files in .json files
-    pack_files_in_folder('gw_conv')
+#    pack_files_in_folder('gw_conv')
 
     #plot the results using yambm analyser
     ya = YamboAnalyser('gw_conv')
     print(ya)
     print('plot all qpoints')
-    ya.plot_gw(show=show)
+    #ya.plot_gw(show=show)
     print('plot along a path')
 
     path = Path([ [[1.0,1.0,1.0],'G'],
