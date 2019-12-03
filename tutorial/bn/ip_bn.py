@@ -34,10 +34,10 @@ if not os.path.isdir('database/SAVE'):
     p2y_run.add_command('mv SAVE ../../database')
     p2y_run.run()
 
-if not os.path.isdir('%s/SAVE'%folder):
+if not os.path.islink('%s/SAVE'%folder):
     s = scheduler()
     s.add_command('mkdir -p %s'%folder)
-    s.add_command('cp -r database/SAVE %s'%folder)
+    s.add_command('cd %s; ln -s ../database/SAVE .'%folder)
     s.run()
 
 #initialize the double grid
@@ -61,7 +61,7 @@ if args.calc:
     y['BndsRnXs'] = [1,30]
     y['QpntsRXd'] = [[1,1],'']
     y['ETStpsXd'] = 500
-    
+
     y.write('%s/yambo_run.in'%folder)
 
     print('running yambo')

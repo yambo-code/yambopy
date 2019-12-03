@@ -5,6 +5,7 @@
 from __future__ import print_function
 from yambopy import *
 from qepy import *
+from schedulerpy import * #USE SCHEDULERPY INSTEAD OF OS
 
 yambo =  'yambo'
 
@@ -16,7 +17,7 @@ if os.path.isdir('nscf/bn.save'):
     print('nscf calculation found!')
 else:
     print('nscf calculation not found!')
-    exit() 
+    exit()
 
 #check if the SAVE folder is present
 if not os.path.isdir('database/SAVE'):
@@ -30,7 +31,7 @@ if not os.path.isdir('gw'):
     os.system('cp -r database/SAVE gw')
 
 #create the yambo input file
-y = YamboIn('%s -d -g n -V all'%yambo,folder='gw')
+y = YamboIn.from_runlevel('%s -d -g n -V all'%yambo,folder='gw')
 QPKrange,_ = y['QPkrange']
 y['QPkrange'] = [QPKrange[:2]+[4,5],'']
 y['FFTGvecs'] = [30,'Ry']
