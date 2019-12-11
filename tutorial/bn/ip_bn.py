@@ -30,8 +30,8 @@ if not os.path.isdir('database/SAVE'):
     p2y_run = scheduler()
     p2y_run.add_command('mkdir -p database')
     p2y_run.add_command('cd nscf/bn.save; p2y > p2y.log')
-    p2y_run.add_command('cd nscf/bn.save; yambo > yambo.log')
-    p2y_run.add_command('mv SAVE ../../database')
+    p2y_run.add_command('yambo > yambo.log')
+    p2y_run.add_command('mv SAVE ../../database/')
     p2y_run.run()
 
 if not os.path.islink('%s/SAVE'%folder):

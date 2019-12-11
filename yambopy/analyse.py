@@ -198,7 +198,7 @@ class YamboAnalyser():
         Use this function to plot the kohn sham energies from a GW calculation
         """
         #get bands from these files
-        ks_bands = self.get_bands(tags=tags,path=path,type_calc=('ks'))
+        ks_bands,_ = self.get_bands(tags=tags,path=path,type_calc=('ks'))
 
         #plot the bands
         return ks_bands.plot(show=False)
@@ -209,7 +209,7 @@ class YamboAnalyser():
         Use this function to plot the quasiparticle energies from a GW calculation
         """
         #get bands from these files
-        gw_bands = self.get_bands(tags=tags,path=path,type_calc=('gw'))
+        _,gw_bands = self.get_bands(tags=tags,path=path,type_calc=('gw'))
 
         #plot the bands
         return gw_bands.plot(show=False)
