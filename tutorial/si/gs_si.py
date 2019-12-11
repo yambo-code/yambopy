@@ -10,14 +10,14 @@ from schedulerpy import *
 from qepy import *
 
 scf_kpoints  = [2,2,2]
-nscf_kpoints = [2,2,2]
+nscf_kpoints = [8,8,8]
 dg_kpoints   = [4,4,4]
 prefix = 'si'
 matdyn = 'matdyn.x'
 q2r =    'q2r.x'
 pw = 'pw.x'
 ph = 'ph.x'
-p = Path([ [[1.0,1.0,1.0],'$\Gamma$'],
+p = Path([ [[0.0,0.0,0.0],'$\Gamma$'],
            [[0.0,0.5,0.5],'$X$'],
            [[0.0,0.0,0.0],'$\Gamma$'],
            [[0.5,0.0,0.0],'$L$']], [20,20,20])
