@@ -11,6 +11,7 @@
 from yambopy import *
 from qepy import *
 from schedulerpy import *
+import matplotlib.pyplot as plt
 import argparse
 
 #parse options
@@ -96,16 +97,25 @@ if args.calc:
 
 if args.plot:
 
-    #plot the results using yambo analyser
-    ya = YamboAnalyser(folder)
-    print(ya)
-    print('plot all qpoints')
-    ya.plot_gw()
-    print('plot along a path')
-    path = [[   0,   0,   0],
-            [ 0.5,   0,   0],
-            [1./3, 1/3,   0],
-            [0,   0,   0]]
-    ya.plot_gw_path('qp',path)
+    # Define path in reduced coordinates using Class Path
+    npoints = 10
+    path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
+                  [[  0.5,  0.0,  0.0],'M'],
+                  [[1./3.,1./3.,  0.0],'K'],
+                  [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
 
-    print('done!')
+    # Read Lattice information from SAVE
+    lat  = YamboSaveDB.from_db_file(folder='%s/SAVE'%folder,filename='ns.db1')
+    # Read QP database
+    y    = YamboQPDB.from_db(filename='ndb.QP',folder='%s/yambo'%folder)
+
+    # 2. Plot of KS and QP eigenvalues NOT interpolated along the path
+    ks_bs_0, qp_bs_0 = y.get_bs_path(lat,path)
+
+    fig = plt.figure(figsize=(4,5))
+    ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
+
+    ks_bs_0.plot_ax(ax,legend=True,color_bands='r',label='KS')
+    qp_bs_0.plot_ax(ax,legend=True,color_bands='b',label='QP-GW')
+
+    plt.show()
