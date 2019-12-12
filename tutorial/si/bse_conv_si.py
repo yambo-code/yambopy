@@ -43,7 +43,7 @@ def run(filename):
     print(filename, folder)
     os.system('cd bse_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
 
-y.optimize(conv,run=run)
+y.optimize(conv,folder='bse_conv',run=run)
 
 #pack the files in .json files
 pack_files_in_folder('bse_conv')
@@ -51,5 +51,5 @@ pack_files_in_folder('bse_conv')
 #plot the results using yambmo analyser
 y = YamboAnalyser('bse_conv')
 print(y)
-y.plot_bse('eps')
-print('done!')
+#y.plot_bse('eps')
+#print('done!')
