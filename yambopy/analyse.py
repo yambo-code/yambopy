@@ -55,13 +55,14 @@ class YamboAnalyser():
         #iterate over all the json files
         for json_filename in json_files.keys():
             json_file = json_files[json_filename]
+
             #all the output files in each json file
             for output_filename in json_file["files"]:
                 output_file = json_file["files"][output_filename]
                 if output_file["type"] == type:
                     filename, extension = os.path.splitext(json_filename)
                     files[filename] =  output_file
-
+       
         #filter files with tags
         if tags:
             if isstring(tags):
@@ -71,10 +72,14 @@ class YamboAnalyser():
             for filename in filenames:
                 if all(tag not in filename for tag in tags):
                     files.pop(filename)
+
         return files
 
     def get_colors(self,tags):
         """ 
+        !!!!!!
+        !!!!!! This function was buggy. Let's check it better
+        !!!!!!
         Select the colors according to the number of files to plot
         the files to plot are the ones that have all the tags in their name
         """
@@ -82,11 +87,12 @@ class YamboAnalyser():
         #count the number of files
         nfiles = 0
         for k in self.jsonfiles.keys():
-            for filename in list(self.jsonfiles[k]["data"].keys()):
+            for filename in list(self.jsonfiles[k]['files'].keys()):
                 nfiles+=all(i in filename for i in tags)
 
         cmap = plt.get_cmap(self._colormap) #get color map
         colors = [cmap(i) for i in np.linspace(0, 1, nfiles)]
+
         return colors
 
     def get_inputfiles_tag(self,tags):
@@ -125,7 +131,7 @@ class YamboAnalyser():
 
         return inputfiles_tags
 
-    def get_bands(self,tags=None,path=None,type_calc=('ks','gw')):
+    def get_bands(self,tags=None,path_kpoints=None,type_calc=('ks','gw')):
         """
         Get the gw bands from a gw calculation from a filename
 
@@ -176,11 +182,11 @@ class YamboAnalyser():
                 bands_e[nkpoint,nband] = ei
             #end section
 
-            if path:
+            if path_kpoints:
                 #get data from json file
                 jsonfile = list(self.jsonfiles.values())[0]
                 lat = YamboLatticeDB.from_dict(jsonfile['lattice'])
-                kpoints, bands_indexes, path_car = lat.get_path(path)  
+                kpoints, bands_indexes, path_car = lat.get_path(path_kpoints)  
                 bands_e0 = bands_e0[bands_indexes]
                 bands_e  = bands_e[bands_indexes] 
 
@@ -198,18 +204,18 @@ class YamboAnalyser():
         Use this function to plot the kohn sham energies from a GW calculation
         """
         #get bands from these files
-        ks_bands = self.get_bands(tags=tags,path=path,type_calc=('ks'))
-
+        ks_bands = self.get_bands(tags=tags,path=path,type_calc=('ks'))[0]
+        
         #plot the bands
         return ks_bands.plot(show=False)
 
     @add_fig_kwargs
-    def plot_gw(self,path=None,tags=None,**kwargs):
+    def plot_gw(self,path_kpoints=None,tags=None,**kwargs):
         """
         Use this function to plot the quasiparticle energies from a GW calculation
         """
         #get bands from these files
-        gw_bands = self.get_bands(tags=tags,path=path,type_calc=('gw'))
+        gw_bands = self.get_bands(tags=tags,path_kpoints=path_kpoints,type_calc=('gw',))[1]
 
         #plot the bands
         return gw_bands.plot(show=False)
@@ -224,6 +230,10 @@ class YamboAnalyser():
 
             Will plot only files with 'eps' in their filename (absorption spectra)
             Will plot the second column (absorption spectra)
+
+        !!!!!
+        !!!!! Problems here. I have removed there reference to data ["data"]
+
         """
         import matplotlib.pyplot as plt
         if ax is None:
@@ -237,17 +247,20 @@ class YamboAnalyser():
 
         n=0
         for k in sorted(self.jsonfiles.keys()):
-            for filename in list(self.jsonfiles[k]["data"].keys()):
+            for filename in list(self.jsonfiles[k]["files"].keys()):
                 if all(i in filename for i in tags):
-                    data = np.array( self.jsonfiles[k]["data"][filename] )
-
+                    # I prefer to work directly with the dictionary...
+                    #data = np.array( self.jsonfiles[k]["files"][filename] )
+                    data = self.jsonfiles[k]["files"][filename]
                     #select the color to plot with
                     color = colors[n]
                     n+=1
 
                     for col in cols:
-                        x = data[:,0]
-                        y = data[:,col-1]
+                        #x = data[:,0]
+                        #y = data[:,col-1]
+                        x = data['E/ev[1]']
+                        y = data['EPS-Im[2]']
                         label = filename.split('/')[-1]+" col=%d"%col
                         ax.plot(x,y,label=label,color=color)
                         plot = True
