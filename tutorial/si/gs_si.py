@@ -10,7 +10,7 @@ from schedulerpy import *
 from qepy import *
 
 scf_kpoints  = [2,2,2]
-nscf_kpoints = [8,8,8]
+nscf_kpoints = [2,2,2]
 dg_kpoints   = [4,4,4]
 prefix = 'si'
 matdyn = 'matdyn.x'
