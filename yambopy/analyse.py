@@ -214,6 +214,9 @@ class YamboAnalyser():
         """
         Use this function to plot the quasiparticle energies from a GW calculation
         """
+        print('tags')
+        print(tags)
+        print()
         #get bands from these files
         gw_bands = self.get_bands(tags=tags,path_kpoints=path_kpoints,type_calc=('gw',))[1]
 
@@ -309,6 +312,40 @@ class YamboAnalyser():
                 y.arguments = content["arguments"]
                 y.variables = content["variables"]
                 print(y+'\n')
+
+    def plot_gw_all_kpoints_convergence(self,tag=None):
+        '''
+        Function to plot the GW-QPs energies of all k-points
+        for a given tag
+        Please test
+        '''
+        import matplotlib.pyplot as plt
+        # 1. Find the json files with the tag given: FFTGvecs, BndsRnXp, etc.
+
+        tag_list = []
+
+        for word in self.jsonfiles.keys():
+            if tag in word:
+               tag_list.append(word.replace('.json','') )
+
+        ntags = len(tag_list)
+
+        cmap = plt.get_cmap('rainbow')
+        colors=[cmap(i) for i in np.linspace(0,1,ntags)]
+
+        bands_tag = []
+
+        # 2. Get the bands of all keys
+        for it in range(ntags):
+            bands_tag.append(self.get_bands(tags=tag_list[it],type_calc=('gw',))[1])
+            
+        # 3. Get the bands of all keys
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        for it in range(ntags):
+            bands_tag[it].plot_ax(ax,color_bands=colors[it],c_label=tag_list[it],legend=True)
+
+        plt.show()
 
     def __str__(self):
         lines = []; app = lines.append
