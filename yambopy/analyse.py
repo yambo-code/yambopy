@@ -223,16 +223,21 @@ class YamboAnalyser():
         #plot the bands
         return gw_bands.plot(show=False)
 
-    def plot_bse(self,tags,cols=(2,),ax=None):
+    def plot_bse(self,tags,cols=(2,),ax=None,png_file=False):
         """
         Use this function to plot the absorption spectrum calculated using the BSE
         cols: a list of indexes to select which columns from the file to plot
 
         Example:
-            a.plot_bse('eps',cols=(2,))
+            a.plot_bse('eps_q1',cols=(2,))
 
-            Will plot only files with 'eps' in their filename (absorption spectra)
+            Will plot only files with 'eps_q1' in their filename (absorption spectra)
             Will plot the second column (absorption spectra)
+
+
+            a.plot_bse(('eps_q1,'FFTGvecs'),cols=(2,))
+            Will plot only files with 'eps_q1' in their filename (absorption spectra)
+            and for FFTGvecs variable
 
         !!!!!
         !!!!! Problems here. I have removed there reference to data ["data"]
@@ -265,14 +270,20 @@ class YamboAnalyser():
                         x = data['E/ev[1]']
                         y = data['EPS-Im[2]']
                         label = filename.split('/')[-1]+" col=%d"%col
+                        # Should we clean the label?
+                        label=label.replace('.eps_q1_haydock_bse','')
+                        label=label.replace('o-','')
                         ax.plot(x,y,label=label,color=color)
                         plot = True
         if plot:
             ax.set_ylabel('Im$[\\chi(\omega)]$')
             ax.set_xlabel('$\omega$ (eV)')
 
-            ax.legend(frameon=False)
+            ax.legend(frameon=False,loc=1)
             if standalone: plt.show()
+        if png_file:
+            plt.savefig('%s.png' % label[:8])
+
         return ax
 
     def plot_spectral_function(self,tags):
