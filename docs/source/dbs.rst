@@ -41,10 +41,10 @@ of performing an interpolation using the function ``interpolate``.
    exc_bands_inter = yexc.interpolate(save,path,states,lpratio=5,f=None,size=0.5,verbose=True)
 
 .. image:: figures/exciton-band-not-interpolated.png
-   :width: 3%
+   :width: 200
 
 .. image:: figures/exciton-band-interpolated.png
-   :width: 3%
+   :width: 200
 
 YamboQPDB
 ~~~~~~~~~
