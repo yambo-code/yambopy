@@ -7,6 +7,12 @@ from yambopy import *
 from qepy import *
 import subprocess
 
+def run(filename):
+    """ Function to be called by the optimize function """
+    folder = filename.split('.')[0]
+    print(filename, folder)
+    os.system('cd bse_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
+
 if not os.path.isdir('database'):
     os.mkdir('database')
 
@@ -30,26 +36,11 @@ if not os.path.isdir('bse_conv'):
     os.system('cp -r database/SAVE bse_conv')
 
 #create the yambo input file
-y = YamboIn('yambo -b -o b -k sex -y d -V all',folder='bse_conv')
+y = YamboIn.from_runlevel('yambo -b -o b -k sex -y h -V all',folder='bse_conv')
 
 #list of variables to optimize and the values they might take
-conv = { 'FFTGvecs': [[10,15,20],'Ry'],
-         'NGsBlkXs': [[5,10,20], 'Ry'],
+conv = { 'FFTGvecs': [[2,5,10,15,20],'Ry'],
+         'NGsBlkXs': [[0,1,2,5], 'Ry'],
          'BndsRnXs': [[1,10],[1,20],[1,30]] }
 
-def run(filename):
-    """ Function to be called by the optimize function """
-    folder = filename.split('.')[0]
-    print(filename, folder)
-    os.system('cd bse_conv; yambo -F %s -J %s -C %s 2> %s.log'%(filename,folder,folder,folder))
-
-y.optimize(conv,run=run)
-
-#pack the files in .json files
-pack_files_in_folder('bse_conv')
-
-#plot the results using yambmo analyser
-y = YamboAnalyser('bse_conv')
-print(y)
-y.plot_bse('eps')
-print('done!')
+y.optimize(conv,folder='bse_conv',run=run)

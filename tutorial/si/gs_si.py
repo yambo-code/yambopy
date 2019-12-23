@@ -6,21 +6,26 @@ from __future__ import print_function
 import os
 import sys
 import argparse
+from schedulerpy import *
 from qepy import *
 
 scf_kpoints  = [2,2,2]
-nscf_kpoints = [2,2,2]
+nscf_kpoints = [3,3,3]
 dg_kpoints   = [4,4,4]
 prefix = 'si'
 matdyn = 'matdyn.x'
 q2r =    'q2r.x'
 pw = 'pw.x'
 ph = 'ph.x'
-p = Path([ [[1.0,1.0,1.0],'$\Gamma$'],
-           [[0.0,0.5,0.5],'$X$'],
-           [[0.0,0.0,0.0],'$\Gamma$'],
-           [[0.5,0.0,0.0],'$L$']], [20,20,20])
+nk = 50
+p = Path([ [[0.5,0.5,0.5],'$L$'         ],
+           [[0.0,0.0,0.0],'$\Gamma$'    ],
+           [[0.0,0.5,0.0],'$X$'         ],
+           [[3./8.,3./4.,3./8],'$K$' ],
+           [[0.0,0.0,0.0],'$\Gamma$'    ]], [nk,int(nk*2./sqrt(3.0)),int(nk/sqrt(6.)),int(nk*3./sqrt(3.0)/2.)] )
 
+# scheduler
+scheduler = Scheduler.factory
 #
 # Create the input files
 #
@@ -53,7 +58,7 @@ def relax():
     qe.ions['ion_dynamics']  = "'bfgs'"
     qe.cell['cell_dynamics']  = "'bfgs'"
     qe.kpoints = scf_kpoints
-    qe.write('relax/%s.scf'%prefix)
+    qe.write('relax/%s.relax'%prefix)
 
 #scf
 def scf():
@@ -72,7 +77,7 @@ def nscf():
     qe.control['calculation'] = "'nscf'"
     qe.electrons['diago_full_acc'] = ".true."
     qe.electrons['conv_thr'] = 1e-8
-    qe.system['nbnd'] = 30
+    qe.system['nbnd'] = 40
     qe.system['force_symmorphic'] = ".true."
     qe.kpoints = nscf_kpoints
     qe.write('nscf/%s.nscf'%prefix)
@@ -126,16 +131,29 @@ def phonons():
     ph['ldisp']  = '.true.'
     ph['trans']  = '.true.'
     ph['tr2_ph'] = 1e-12
+    ph['epsil'] = '.false.'
+    ph['qplot'] = '.false'
     ph['nq1'], ph['nq2'], ph['nq3'] = 2, 2, 2
     ph.write('phonons/%s.phonons'%prefix)
 
+    md = DynmatIn()
+    md['asr'] = "'simple'"
+    md['fildyn'] = "'%s.dyn1'"%prefix
+    md['filout'] = "'%s.modes'"%prefix
+    md.write('%s/%s.dynmat'%('phonons',prefix))
+
 def dispersion():
+    qe_run = scheduler()    
+
+    #q2r
     disp = DynmatIn()
     disp['fildyn']= "'%s.dyn'" % prefix
     disp['zasr']  = "'simple'" 
     disp['flfrc'] = "'%s.fc'"  % prefix
     disp.write('phonons/q2r.in')
-    os.system('cd phonons; %s < q2r.in'%q2r)
+    qe_run.add_command('cd phonons; %s < q2r.in'%q2r)
+
+    #dynmat
     dyn = DynmatIn()
     dyn['flfrc'] = "'%s.fc'" % prefix
     dyn['asr']   = "'simple'"  
@@ -143,10 +161,12 @@ def dispersion():
     dyn['q_in_cryst_coord'] = '.true.'
     dyn.qpoints = p.get_klist()
     dyn.write('phonons/matdyn.in')
-    os.system('cd phonons; %s < matdyn.in'%matdyn)
-    print( len(p.get_klist()) ) 
+    qe_run.add_command('%s < matdyn.in'%matdyn)
+    qe_run.run()
+
     # Use a class to read and plot the frequencies
-    Matdyn(natoms=2,path=p,folder='phonons').plot_eigen()
+    m=Matdyn.from_modes_file(folder='phonons')
+    m.plot_eigen(path=p)
 
 def update_positions(pathin,pathout):
     """ update the positions of the atoms in the scf file using the output of the relaxation loop
@@ -155,47 +175,57 @@ def update_positions(pathin,pathout):
     pos = e.get_scaled_positions()
      
     #open relaxed cell
-    qin  = PwIn('%s/%s.scf'%(pathin,prefix))
+    qin  = PwIn.from_file('%s/%s.relax'%(pathin,prefix))
   
     #open scf file
-    qout = PwIn('%s/%s.scf'%(pathout,prefix))
+    qout = PwIn.from_file('%s/%s.scf'%(pathout,prefix))
 
     #update positions on scf file
     print("old celldm(1)", qin.system['celldm(1)'])
     qout.system['celldm(1)'] = e.cell[0][2]*2
     print("new celldm(1)", qout.system['celldm(1)'])
-    qout.atoms = list(zip([a[0] for a in qin.atoms],pos))
+    qout.set_atoms = list(zip([a[0] for a in qin.atoms],pos))
 
     #write scf
     qout.write('%s/%s.scf'%(pathout,prefix))
 
 def run_relax(nthreads=1):
     print("running relax:")
-    os.system("cd relax; mpirun -np %d %s -inp %s.scf > relax.log"%(nthreads,pw,prefix))
+    qe_run = scheduler()
+    qe_run.add_command("cd relax; mpirun -np %d %s -inp %s.relax > relax.log"%(nthreads,pw,prefix))
+    qe_run.run()
     update_positions('relax', 'scf')
     print("done!")
 
 def run_scf(nthreads=1):
     print("running scf:")
-    os.system("cd scf; mpirun -np %d %s -inp %s.scf > scf.log"%(nthreads,pw,prefix))
+    qe_run = scheduler()
+    qe_run.add_command("cd scf; mpirun -np %d %s -inp %s.scf > scf.log"%(nthreads,pw,prefix))
+    qe_run.run()
     print("done!")
 
 def run_nscf(nthreads=1):
     print("running nscf:")
-    os.system("cp -r scf/%s.save nscf/"%prefix)
-    os.system("cd nscf; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
+    qe_run = scheduler()
+    qe_run.add_command("cp -r scf/%s.save nscf/"%prefix)
+    qe_run.add_command("cd nscf; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
+    qe_run.run()
     print("done!")
 
 def run_dg(nthreads=1):
-    print("running nscf:")
-    os.system("cp -r scf/%s.save nscf-dg/"%prefix)
-    os.system("cd nscf-dg; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
+    print("running nscf_double:")
+    qe_run = scheduler()
+    qe_run.add_command("cp -r scf/%s.save nscf-dg/"%prefix)
+    qe_run.add_command("cd nscf-dg; mpirun -np %d %s -inp %s.nscf > nscf.log"%(nthreads,pw,prefix))
+    qe_run.run()
     print("done!")
 
 def run_bands(nthreads=1):
     print("running bands:")
-    os.system("cp -r scf/%s.save bands/"%prefix)
-    os.system("cd bands; mpirun -np %d %s -inp %s.bands > bands.log"%(nthreads,pw,prefix))
+    qe_run = scheduler()
+    qe_run.add_command("cp -r scf/%s.save bands/"%prefix)
+    qe_run.add_command("cd bands; mpirun -np %d %s -inp %s.bands > bands.log"%(nthreads,pw,prefix))
+    qe_run.run()
     print("done!")
 
 def run_plot(show=True):
@@ -205,8 +235,11 @@ def run_plot(show=True):
 
 def run_phonon(nthreads=1):
     print("running phonons:")
-    os.system("cp -r scf/%s.save phonons/"%prefix)
-    os.system("cd phonons; mpirun -np %d %s -inp %s.phonons > phonons.log"%(nthreads,ph,prefix))
+    qe_run = scheduler()
+    qe_run.add_command("cp -r scf/%s.save phonons/"%prefix)
+    qe_run.add_command("cd phonons; mpirun -np %d %s -inp %s.phonons > phonons.log"%(nthreads,ph,prefix))
+    qe_run.add_command("dynmat.x < %s.dynmat > dynmat.log"%prefix) #dynmat
+    qe_run.run()
     print("done!")
 
 if __name__ == "__main__":
@@ -223,32 +256,32 @@ if __name__ == "__main__":
     parser.add_argument('-d' ,'--dispersion',  action="store_true", help='Phonon dispersion')
     parser.add_argument('-t' ,'--nthreads',                         help='Number of threads', default=2 )
     args = parser.parse_args()
+    nthreads = int(args.nthreads)
 
     if len(sys.argv)==1:
         parser.print_help()
         sys.exit(1)
 
     # create input files and folders
-   
-    scf()
+    scf()   
     if args.relax:
         relax()
-        run_relax(args.nthreads) 
-    if args.scf:        
-        run_scf(args.nthreads)
+        run_relax(nthreads) 
+    if args.scf: 
+        run_scf(nthreads)
     if args.nscf:
         nscf()
-        run_nscf(args.nthreads)
+        run_nscf(nthreads)
     if args.nscf_double:
         dg()
-        run_dg(args.nthreads)
+        run_dg(nthreads)
     if args.phonon:     
         phonons()
-        run_phonon(args.nthreads)
+        run_phonon(nthreads)
     if args.dispersion: dispersion()
     if args.bands:
         bands()
-        run_bands(args.nthreads)
+        run_bands(nthreads)
         run_plot()
     if args.orbitals:
         plot_orbitals()

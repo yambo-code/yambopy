@@ -15,10 +15,8 @@ from __future__ import print_function
 
 #########################################################
 #from __future__ import print_function
-from yambopy.inputfile import *
-from pwpy.inputfile import *
-from pwpy.outputxml import *
-from oarfile import *
+from yambopy import *
+from qepy import *
 
 yambo_rt     = 'yambo_rt'
 ypp_rt       = 'ypp_rt'
@@ -53,7 +51,7 @@ if not os.path.isdir(link_pump):
 # Select the Yambo Run-level
 dir_inputs = 'inputs'
 os.system('mkdir -p %s'%dir_inputs)
-cs = YamboIn('%s -r -p c -g n'%yambo_rt,vim=False) # NEQ COHSEX
+cs = YamboIn.from_runlevel('%s -r -p c -g n'%yambo_rt) # NEQ COHSEX
 #coulomb cutoff
 cs['DBsIOoff'] = 'DIP'
 cs['RandQpts'] =  1000000
@@ -76,12 +74,12 @@ cs.arguments.append('ExtendOut')
 
 # B. Merging DBs Steps
 
-db = YamboIn('ypp_rt -q m',filename='ypp.in')
+db = YamboIn.from_runlevel('ypp_rt -q m',filename='ypp.in')
 db['Z_input'] = 1.0
 db['Actions_and_names'] = [['\"C\"', '\"./COHSEX-T0/ndb.QP\"', '\n\"N\"', '', '\n\"E\"', '\"./GW/ndb.QP\"'],'']
 
 # C. Bethe-Salpeter Step
-bs = YamboIn('%s  -r -b -o b -k sex -y d -Q'%yambo_rt,vim=False)  # BS
+bs = YamboIn.from_runlevel('%s  -r -b -o b -k sex -y d -Q'%yambo_rt)  # BS
 bs['DBsIOoff'] = 'DIP'
 bs['RandQpts'] =  1000000
 bs['RandGvec'] =  [ 1, 'RL' ]
