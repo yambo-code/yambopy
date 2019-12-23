@@ -8,7 +8,7 @@ from __future__ import print_function
 # properly. Before using this scripts compulsively is recommended
 # to understand the different run levels.
 #
-# This script map a fine grid to a coarse grid
+# This script map a dense grid to a coarse grid
 #
 ##############################################################################
 #from __future__ import print_function
@@ -35,7 +35,7 @@ folder_in  = args.input
 folder_out = args.output
 folder_dg  = args.folder_dg
 
-sym = YamboIn('ypp_rt -m',folder=folder_out,filename='ypp.in')
+sym = YamboIn.from_runlevel('ypp_rt -m',folder=folder_out,filename='ypp.in')
 sym['DbGd_DB1_paths']= [ ["'../%s'" % folder_in], '' ]
 sym.arguments.append('noBZExpand')
 sym.write('%s/map-dg.in' % (folder_out))

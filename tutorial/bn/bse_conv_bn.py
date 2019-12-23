@@ -10,6 +10,7 @@ from qepy import *
 from schedulerpy import *
 import argparse
 import shutil
+import matplotlib.pyplot as plt
 
 yambo = "yambo"
 p2y = "p2y"
@@ -47,7 +48,7 @@ def bse_convergence(what='dielectric',threads=1,nohup=False):
     else:     nohup = ''
  
     #create the yambo input file
-    y = YamboIn('%s -b -o b -k sex -y d -V all'%yambo,folder=folder)
+    y = YamboIn.from_runlevel('%s -b -o b -k sex -y d -V all'%yambo,folder=folder)
 
     #default variables
     y['BSEBands'] = [4,5]
@@ -93,7 +94,7 @@ def bse_convergence(what='dielectric',threads=1,nohup=False):
         if not os.path.isfile("%s/%s/done"%(folder,path)):
             shell.run()
 
-    y.optimize(conv,run=run)
+    y.optimize(conv,folder='bse_conv',run=run,ref_run=False)
 
 def analyse():
     #pack the files in .json files

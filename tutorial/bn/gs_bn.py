@@ -61,7 +61,7 @@ def relax():
     qe.ions['ion_dynamics']  = "'bfgs'"
     qe.cell['cell_dynamics']  = "'bfgs'"
     qe.cell['cell_dofree']  = "'2Dxy'"
-    qe.write('relax/%s.scf'%prefix)
+    qe.write('relax/%s.relax'%prefix)
 
 #scf
 def scf(folder='scf'):
@@ -122,29 +122,24 @@ def phonon(kpoints,qpoints,folder='phonon'):
 def update_positions(pathin,pathout):
     """ update the positions of the atoms in the scf file using the output of the relaxation loop
     """
+    # Read scaled positions
     e = PwXML(prefix,path=pathin)
     pos = e.get_scaled_positions()
-
-    q = PwIn('%s/%s.scf'%(pathin,prefix))
-    print("old celldm(1)", q.system['celldm(1)'])
-    q.system['celldm(1)'] = e.cell[0][0]
-    print("new celldm(1)", q.system['celldm(1)'])
-    q.atoms = list(zip([a[0] for a in q.atoms],pos))
-    q.write('%s/%s.scf'%(pathout,prefix))
-
-    #open relaxed cell
-    qin  = PwIn('%s/%s.scf'%(pathin,prefix))
-
-    #open scf file
-    qout = PwIn('%s/%s.scf'%(pathout,prefix))
-
-    #update positions on scf file
+    
+    #open relax input
+    qin = PwIn.from_file('%s/%s.relax'%(pathin,prefix))
     print("old celldm(1)", qin.system['celldm(1)'])
+
+    #open scf input
+    qout = PwIn.from_file('%s/%s.scf'%(pathout,prefix))
+    #replace lattice parameter
     qout.system['celldm(1)'] = e.cell[0][0]
     print("new celldm(1)", qout.system['celldm(1)'])
-    qout.atoms = list(zip([a[0] for a in qin.atoms],pos))
+    #replace atomic positions
+    new_atomic_pos = [[qout.atoms[i][0],list(pos[i])] for i in range(len(qout.atoms))]
+    qout.set_atoms(new_atomic_pos)
     
-    #write scf
+    #re-write scf input
     qout.write('%s/%s.scf'%(pathout,prefix))
 
 def run_plot():
@@ -207,7 +202,7 @@ if __name__ == "__main__":
     if args.relax:
         print("running relax:")
         qe_run = scheduler() 
-        qe_run.add_command("cd relax; %s -inp %s.scf > relax.log"%(pw,prefix))  #relax
+        qe_run.add_command("cd relax; mpirun -np %d %s -inp %s.relax > relax.log"%(nthreads,pw,prefix))  #relax
         qe_run.run()
         update_positions('relax','scf') 
         print("done!")
@@ -267,8 +262,8 @@ if __name__ == "__main__":
         qe_run.run()
 
         # matdyn class to read and plot the frequencies
-        m = Matdyn(natoms=2,path=p,folder='phonon')
-        m.plot_eigen()
+        m = Matdyn.from_modes_file(folder='phonon')
+        m.plot_eigen(path=p)
  
     if args.bands:
         run_bands(nthreads)
