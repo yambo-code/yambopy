@@ -40,8 +40,12 @@ of performing an interpolation using the function ``interpolate``.
 .. code-block:: bash
    exc_bands_inter = yexc.interpolate(save,path,states,lpratio=5,f=None,size=0.5,verbose=True)
 
-.. image:: figures/exciton-band-not-interpolated.png
-   :width: 50
+.. figure:: figures/exciton-band-not-interpolated.png
+    :width: 200px
+    :align: center
+    :height: 100px
+    :alt: alternate text
+    :figclass: align-center
 
 .. image:: figures/exciton-band-interpolated.png
    :width: 50
