@@ -14,6 +14,7 @@ kpoints_double = [24,24,1]
 qpoints = [3,3,1]
 layer_separation = 12
 pw = 'pw.x'
+ph = 'ph.x'
 q2r = 'q2r.x'
 matdyn = 'matdyn.x'
 prefix = 'bn'
@@ -234,7 +235,7 @@ if __name__ == "__main__":
         print("running phonon:")
         qe_run = scheduler() 
         qe_run.add_command("cp -r scf/%s.save phonon/"%prefix)
-        qe_run.add_command("cd phonon; mpirun -np %d ph.x -inp %s.ph > phonon.log"%(nthreads,prefix)) #phonon
+        qe_run.add_command("cd phonon; mpirun -np %d %s -inp %s.ph > phonon.log"%(nthreads,ph,prefix)) #phonon
         qe_run.add_command("dynmat.x < %s.dynmat > dynmat.log"%prefix) #matdyn
         qe_run.run()
         print("done!")
