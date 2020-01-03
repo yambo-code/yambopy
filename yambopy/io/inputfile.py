@@ -10,6 +10,11 @@ from subprocess import Popen, PIPE
 from yambopy import yambopyenv
 from yambopy.tools.duck import isstring
 
+def issave(path):
+    """ Check if yambo SAVE folder is present either as directory or as symlink """
+    if os.path.isdir(path) or os.path.islink(path): return True
+    else: return False
+
 class YamboIn(object):
     """
     Class to read, write, create and manipulate yambo input files with python.
@@ -97,7 +102,7 @@ class YamboIn(object):
 
         #check if there exists a SAVE folder
         save_path = os.path.join(folder,'SAVE')
-        if not os.path.isdir(save_path): raise ValueError('SAVE folder not found in %s'%save_path)
+        if not issave(save_path): raise ValueError('SAVE folder not found in %s'%save_path)
         
         #run yambo
         os.chdir(folder)
