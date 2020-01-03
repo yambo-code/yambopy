@@ -1,10 +1,13 @@
 #
-# Author: Henrique Pereira Coutada Miranda
-# Run a GW calculation using yambo
+# Run a BSE calculation using yambo
 #
 from __future__ import print_function
 from yambopy import *
 from qepy import *
+from schedulerpy import *
+
+# scheduler
+scheduler = Scheduler.factory
 
 yambo = "yambo"
 
@@ -25,12 +28,12 @@ if not os.path.isdir('database/SAVE'):
     os.system('cd nscf/si.save; yambo')
     os.system('mv nscf/si.save/SAVE database')
 
-if not os.path.isdir('bse'):
-    os.mkdir('bse')
-    os.system('cp -r database/SAVE bse')
+if not os.path.isdir('bse_calc'):
+    os.mkdir('bse_calc')
+    os.system('cp -r database/SAVE bse_calc')
 
 #create the yambo input file
-y = YamboIn.from_runlevel('yambo -r -b -o b -k sex -y d -V all',folder='bse')
+y = YamboIn.from_runlevel('yambo -r -b -o b -k sex -y d -V all',folder='bse_calc')
 
 y['FFTGvecs'] = [5,'Ha']
 y['BSENGexx'] = [5,'Ha']
@@ -42,7 +45,11 @@ y['RandQpts'] = 1000000
 y['BEnSteps'] = 1000
 y.arguments.append('WRbsWF')
 y.arguments.append('ALLGexx')
-y.write('bse/yambo_run.in')
+y.write('bse_calc/yambo_run.in')
 
 print('running yambo')
-os.system('cd  bse; %s -F yambo_run.in -J yambo'%yambo)
+shell=scheduler()
+shell.add_command('cd  bse_calc; %s -F yambo_run.in -J yambo -C yambo'%yambo)
+shell.run()
+shell.clean()
+print('done!')

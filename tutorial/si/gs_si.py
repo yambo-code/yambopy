@@ -10,17 +10,19 @@ from schedulerpy import *
 from qepy import *
 
 scf_kpoints  = [2,2,2]
-nscf_kpoints = [2,2,2]
+nscf_kpoints = [3,3,3]
 dg_kpoints   = [4,4,4]
 prefix = 'si'
 matdyn = 'matdyn.x'
 q2r =    'q2r.x'
 pw = 'pw.x'
 ph = 'ph.x'
-p = Path([ [[1.0,1.0,1.0],'$\Gamma$'],
-           [[0.0,0.5,0.5],'$X$'],
-           [[0.0,0.0,0.0],'$\Gamma$'],
-           [[0.5,0.0,0.0],'$L$']], [20,20,20])
+nk = 50
+p = Path([ [[0.5,0.5,0.5],'$L$'         ],
+           [[0.0,0.0,0.0],'$\Gamma$'    ],
+           [[0.0,0.5,0.0],'$X$'         ],
+           [[3./8.,3./4.,3./8],'$K$' ],
+           [[0.0,0.0,0.0],'$\Gamma$'    ]], [nk,int(nk*2./sqrt(3.0)),int(nk/sqrt(6.)),int(nk*3./sqrt(3.0)/2.)] )
 
 # scheduler
 scheduler = Scheduler.factory
@@ -75,7 +77,7 @@ def nscf():
     qe.control['calculation'] = "'nscf'"
     qe.electrons['diago_full_acc'] = ".true."
     qe.electrons['conv_thr'] = 1e-8
-    qe.system['nbnd'] = 30
+    qe.system['nbnd'] = 40
     qe.system['force_symmorphic'] = ".true."
     qe.kpoints = nscf_kpoints
     qe.write('nscf/%s.nscf'%prefix)

@@ -53,7 +53,7 @@ class TestYamboAnalyse(unittest.TestCase):
                      [[0.0,0.5,0.5],'X'],
                      [[0.0,0.0,0.0],'G'],
                      [[0.5,0.0,0.0],'L']], [20,20,20])
-        ks_bands_path,qp_bands_path = y.get_bands(tags='FFTGvecs',type_calc=('gw'),path=path)
+        ks_bands_path,qp_bands_path = y.get_bands(tags='FFTGvecs',path_kpoints=path,type_calc=('gw'))
         qp_bands_path.plot(show=False) 
 
     def tearDown(self):

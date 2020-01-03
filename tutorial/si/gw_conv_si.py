@@ -37,12 +37,13 @@ def gw_convergence():
         os.system('cp -r database/SAVE gw_conv')
 
     #create the yambo input file
-    y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw_conv')
+    y = YamboIn.from_runlevel('%s -d -p p -g n -V all'%yambo,folder='gw_conv')
     y['GbndRnge'] = [[1,15],'']
     y['QPkrange'][0][2:4] = [2,6]
-    conv = { 'FFTGvecs': [[5,10,15],'Ry'],
-             'NGsBlkXp': [[1,2,3], 'Ry'],
-             'BndsRnXp': [[1,10],[1,20],[1,30]] }
+    conv = { 'FFTGvecs': [[1,1,2,5,10],'Ry'],
+             'NGsBlkXp': [[0,0,500,1000,2000], 'mRy'],
+             'BndsRnXp': [[1,10],[1,10],[1,20],[1,30],[1,40]] ,
+             'GbndRnge': [[1,10],[1,10],[1,20],[1,30],[1,40]] }
 
     def run(filename):
         """ Function to be called by the optimize function """

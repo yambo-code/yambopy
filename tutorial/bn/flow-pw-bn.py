@@ -33,7 +33,7 @@ kpoints = [6,6,1]
 nscf_kpoints = [12,12,1]
 ecut = 20
 npoints = 10
-pseudo_dir = '../pseudos'
+pseudo_dir = '../../pseudos'
 path_kpoints = Path([ [[0.0, 0.0, 0.0],'G'],
                       [[0.5, 0.0, 0.0],'M'],
                       [[1./3,1./3,0.0],'K'],
