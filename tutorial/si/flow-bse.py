@@ -42,7 +42,7 @@ bse_dict = dict(BEnSteps=1000,
 yamboin_dict = {**yamboin_dict,**cutoffdict,**paradict}
 
 # Set Yambo task (BSE in this case)
-bse_task = YamboTask.from_runlevel([p2y_task],'-r -o b -b -k sex -y h -V all',yamboin_dict)
+bse_task = YamboTask.from_runlevel([p2y_task],'-r -o b -b -k sex -y d -V all',yamboin_dict,yamboin_args=['WRbsWF'])
 
 # Introduce each task in the list of task
 tasks.append(bse_task)

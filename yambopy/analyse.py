@@ -55,13 +55,14 @@ class YamboAnalyser():
         #iterate over all the json files
         for json_filename in json_files.keys():
             json_file = json_files[json_filename]
+
             #all the output files in each json file
             for output_filename in json_file["files"]:
                 output_file = json_file["files"][output_filename]
                 if output_file["type"] == type:
                     filename, extension = os.path.splitext(json_filename)
                     files[filename] =  output_file
-
+       
         #filter files with tags
         if tags:
             if isstring(tags):
@@ -71,10 +72,14 @@ class YamboAnalyser():
             for filename in filenames:
                 if all(tag not in filename for tag in tags):
                     files.pop(filename)
+
         return files
 
     def get_colors(self,tags):
         """ 
+        !!!!!!
+        !!!!!! This function was buggy. Let's check it better
+        !!!!!!
         Select the colors according to the number of files to plot
         the files to plot are the ones that have all the tags in their name
         """
@@ -82,11 +87,12 @@ class YamboAnalyser():
         #count the number of files
         nfiles = 0
         for k in self.jsonfiles.keys():
-            for filename in list(self.jsonfiles[k]["data"].keys()):
+            for filename in list(self.jsonfiles[k]['files'].keys()):
                 nfiles+=all(i in filename for i in tags)
 
         cmap = plt.get_cmap(self._colormap) #get color map
         colors = [cmap(i) for i in np.linspace(0, 1, nfiles)]
+
         return colors
 
     def get_inputfiles_tag(self,tags):
@@ -125,7 +131,7 @@ class YamboAnalyser():
 
         return inputfiles_tags
 
-    def get_bands(self,tags=None,path=None,type_calc=('ks','gw')):
+    def get_bands(self,tags=None,path_kpoints=None,type_calc=('ks','gw')):
         """
         Get the gw bands from a gw calculation from a filename
 
@@ -176,11 +182,11 @@ class YamboAnalyser():
                 bands_e[nkpoint,nband] = ei
             #end section
 
-            if path:
+            if path_kpoints:
                 #get data from json file
                 jsonfile = list(self.jsonfiles.values())[0]
                 lat = YamboLatticeDB.from_dict(jsonfile['lattice'])
-                kpoints, bands_indexes, path_car = lat.get_path(path)  
+                kpoints, bands_indexes, path_car = lat.get_path(path_kpoints)  
                 bands_e0 = bands_e0[bands_indexes]
                 bands_e  = bands_e[bands_indexes] 
 
@@ -198,32 +204,44 @@ class YamboAnalyser():
         Use this function to plot the kohn sham energies from a GW calculation
         """
         #get bands from these files
-        ks_bands = self.get_bands(tags=tags,path=path,type_calc=('ks'))
-
+        ks_bands = self.get_bands(tags=tags,path=path,type_calc=('ks'))[0]
+        
         #plot the bands
         return ks_bands.plot(show=False)
 
     @add_fig_kwargs
-    def plot_gw(self,path=None,tags=None,**kwargs):
+    def plot_gw(self,path_kpoints=None,tags=None,**kwargs):
         """
         Use this function to plot the quasiparticle energies from a GW calculation
         """
+        print('tags')
+        print(tags)
+        print()
         #get bands from these files
-        gw_bands = self.get_bands(tags=tags,path=path,type_calc=('gw'))
+        gw_bands = self.get_bands(tags=tags,path_kpoints=path_kpoints,type_calc=('gw',))[1]
 
         #plot the bands
         return gw_bands.plot(show=False)
 
-    def plot_bse(self,tags,cols=(2,),ax=None):
+    def plot_bse(self,tags,cols=(2,),ax=None,png_file=False):
         """
         Use this function to plot the absorption spectrum calculated using the BSE
         cols: a list of indexes to select which columns from the file to plot
 
         Example:
-            a.plot_bse('eps',cols=(2,))
+            a.plot_bse('eps_q1',cols=(2,))
 
-            Will plot only files with 'eps' in their filename (absorption spectra)
+            Will plot only files with 'eps_q1' in their filename (absorption spectra)
             Will plot the second column (absorption spectra)
+
+
+            a.plot_bse(('eps_q1,'FFTGvecs'),cols=(2,))
+            Will plot only files with 'eps_q1' in their filename (absorption spectra)
+            and for FFTGvecs variable
+
+        !!!!!
+        !!!!! Problems here. I have removed there reference to data ["data"]
+
         """
         import matplotlib.pyplot as plt
         if ax is None:
@@ -237,26 +255,35 @@ class YamboAnalyser():
 
         n=0
         for k in sorted(self.jsonfiles.keys()):
-            for filename in list(self.jsonfiles[k]["data"].keys()):
+            for filename in list(self.jsonfiles[k]["files"].keys()):
                 if all(i in filename for i in tags):
-                    data = np.array( self.jsonfiles[k]["data"][filename] )
-
+                    # I prefer to work directly with the dictionary...
+                    #data = np.array( self.jsonfiles[k]["files"][filename] )
+                    data = self.jsonfiles[k]["files"][filename]
                     #select the color to plot with
                     color = colors[n]
                     n+=1
 
                     for col in cols:
-                        x = data[:,0]
-                        y = data[:,col-1]
+                        #x = data[:,0]
+                        #y = data[:,col-1]
+                        x = data['E/ev[1]']
+                        y = data['EPS-Im[2]']
                         label = filename.split('/')[-1]+" col=%d"%col
+                        # Should we clean the label?
+                        label=label.replace('.eps_q1_haydock_bse','')
+                        label=label.replace('o-','')
                         ax.plot(x,y,label=label,color=color)
                         plot = True
         if plot:
             ax.set_ylabel('Im$[\\chi(\omega)]$')
             ax.set_xlabel('$\omega$ (eV)')
 
-            ax.legend(frameon=False)
+            ax.legend(frameon=False,loc=1)
             if standalone: plt.show()
+        if png_file:
+            plt.savefig('%s.png' % label[:8])
+
         return ax
 
     def plot_spectral_function(self,tags):
@@ -296,6 +323,40 @@ class YamboAnalyser():
                 y.arguments = content["arguments"]
                 y.variables = content["variables"]
                 print(y+'\n')
+
+    def plot_gw_all_kpoints_convergence(self,tag=None):
+        '''
+        Function to plot the GW-QPs energies of all k-points
+        for a given tag
+        Please test
+        '''
+        import matplotlib.pyplot as plt
+        # 1. Find the json files with the tag given: FFTGvecs, BndsRnXp, etc.
+
+        tag_list = []
+
+        for word in self.jsonfiles.keys():
+            if tag in word:
+               tag_list.append(word.replace('.json','') )
+
+        ntags = len(tag_list)
+
+        cmap = plt.get_cmap('rainbow')
+        colors=[cmap(i) for i in np.linspace(0,1,ntags)]
+
+        bands_tag = []
+
+        # 2. Get the bands of all keys
+        for it in range(ntags):
+            bands_tag.append(self.get_bands(tags=tag_list[it],type_calc=('gw',))[1])
+            
+        # 3. Get the bands of all keys
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1)
+        for it in range(ntags):
+            bands_tag[it].plot_ax(ax,color_bands=colors[it],c_label=tag_list[it],legend=True)
+
+        plt.show()
 
     def __str__(self):
         lines = []; app = lines.append
