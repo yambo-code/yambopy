@@ -66,7 +66,7 @@ class YamboIn(object):
     _complexexp = '\('+_spacexp+_numexp+_spacexp+','+_spacexp+_numexp+_spacexp+'\)' #complex numbers
     _runexp     = '([a-zA-Z0-9_]+)' #runlevels
     # list of available runlevels to be stored in the arguments array
-    _runlevels  = ['rim_cut','chi','em1s','bse','optics','bsk','bss',
+    _runlevels  = ['rim_cut','chi','em1s','bse','optics','bsk','bss','dipoles','ExcitonGkkp'
                    'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life',
                    'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsyms',
                    'QPDBs', 'QPDB_merge','RealTime','RT_X','RToccDos','RToccBnd','RToccEner',
