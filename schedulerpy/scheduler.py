@@ -68,7 +68,7 @@ class Scheduler(object):
     @classmethod    
     def factory(cls,scheduler=None,cores=None,nodes=None,walltime="1:00:00",**kwargs):
         """
-        Initialize a schduler instance.
+        Initialize a scheduler instance.
 
         Default arguments:
         cores    - Number of cores to use
@@ -199,7 +199,7 @@ class Scheduler(object):
 
         return:
         None - if the variable does not exist
-        value - if the variable existe return the value of the variable
+        value - if the variable exists return the value of the variable
         """
         if argument in self.kwargs:
             arg = self.kwargs[argument]

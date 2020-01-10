@@ -10,6 +10,11 @@ from subprocess import Popen, PIPE
 from yambopy import yambopyenv
 from yambopy.tools.duck import isstring
 
+def issave(path):
+    """ Check if yambo SAVE folder is present either as directory or as symlink """
+    if os.path.isdir(path) or os.path.islink(path): return True
+    else: return False
+
 class YamboIn(object):
     """
     Class to read, write, create and manipulate yambo input files with python.
@@ -61,7 +66,7 @@ class YamboIn(object):
     _complexexp = '\('+_spacexp+_numexp+_spacexp+','+_spacexp+_numexp+_spacexp+'\)' #complex numbers
     _runexp     = '([a-zA-Z0-9_]+)' #runlevels
     # list of available runlevels to be stored in the arguments array
-    _runlevels  = ['rim_cut','chi','em1s','bse','optics','bsk','bss',
+    _runlevels  = ['rim_cut','chi','em1s','bse','optics','bsk','bss','dipoles','ExcitonGkkp'
                    'em1d','gw0','HF_and_locXC','setup','ppa','cohsex','life',
                    'collisions','negf','el_ph_scatt','el_el_scatt','excitons','wavefunction','fixsyms',
                    'QPDBs', 'QPDB_merge','RealTime','RT_X','RToccDos','RToccBnd','RToccEner',
@@ -90,19 +95,19 @@ class YamboIn(object):
     def from_runlevel(cls,runlevel,executable=yambopyenv.YAMBO,folder='.',filename='yambo.in'):
         """
         Create an input file from the runlevel.
-        Will execute yambo in the folder with the runlevel arguments, 
+        Will execute yambo in the folder with the runlevel arguments,
         read the file and return an instance of this class
         """
         workdir = os.getcwd()
 
         #check if there exists a SAVE folder
         save_path = os.path.join(folder,'SAVE')
-        if not os.path.isdir(save_path): raise ValueError('SAVE folder not found in %s'%save_path)
-        
+        if not issave(save_path): raise ValueError('SAVE folder not found in %s'%save_path)
+
         #run yambo
         os.chdir(folder)
         if os.path.isfile(filename): os.remove(filename)
-        if '-Q' not in runlevel: runlevel += ' -Q' 
+        if '-Q' not in runlevel: runlevel += ' -Q'
         command = "%s %s"%(executable,runlevel)
         yambo = Popen(command, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
         yambo.wait()
