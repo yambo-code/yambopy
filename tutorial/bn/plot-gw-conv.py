@@ -12,7 +12,7 @@ pack_files_in_folder('gw_conv')
 ya = YamboAnalyser('gw_conv')
 
 # Plot of all the k-points converging one parameter
-#ya.plot_gw_all_kpoints_convergence(tag='FFT')
+ya.plot_gw_all_kpoints_convergence(tag='EXX')
 
 ya.plot_gw_all_kpoints_convergence(tag='Bnds')
 

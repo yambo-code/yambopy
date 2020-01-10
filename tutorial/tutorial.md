@@ -35,7 +35,7 @@ Boron Nitride GW+BSE
     - Set the variables for a yambo input file using python
     - Run the calculation
 
-6. BSE calculation for boron nitride (bse_conv_bn.py, bse_cutoff.py, plot-bse-conv.py)
+6. Convergence of BSE calculation for boron nitride (bse_conv_bn.py, bse_cutoff.py, plot-bse-conv.py)
     - Set a python dictionary with different values for the variables to converge
     - Run multiple calculations
     - Plot the results

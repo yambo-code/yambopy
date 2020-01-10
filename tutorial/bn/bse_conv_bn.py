@@ -12,9 +12,10 @@ import argparse
 import shutil
 import matplotlib.pyplot as plt
 
-yambo = "yambo"
-p2y = "p2y"
+yambo  = 'yambo'
+p2y    = 'p2y'
 prefix = 'bn'
+folder = 'bse_conv'
 
 scheduler = Scheduler.factory
 
@@ -43,10 +44,10 @@ def create_save():
         shell.add_command('cp -r database/SAVE %s/'%folder)
         shell.run()
 
-def bse_convergence(what='dielectric',threads=1,nohup=False):
+def bse_convergence(what='screening',threads=1,nohup=False):
     if nohup: nohup = 'nohup'
     else:     nohup = ''
- 
+
     #create the yambo input file
     y = YamboIn.from_runlevel('%s -b -o b -k sex -y d -V all'%yambo,folder=folder)
 
@@ -61,14 +62,14 @@ def bse_convergence(what='dielectric',threads=1,nohup=False):
 
     print(what)
 
-    if what == 'dielectric':
-        #list of variables to optimize the dielectric screening
+    if what == 'screening':
+        #list of variables to optimize the screening screening
         conv = { 'FFTGvecs': [[10,15,20,30],'Ry'],
                  'NGsBlkXs': [[1,2,3,5,6], 'Ry'],
                  'BndsRnXs': [[1,10],[1,20],[1,30],[1,40]] }
     else:
         # converged parameters for epsilon
-        y['FFTGvecs'] = [30,'Ry'] 
+        y['FFTGvecs'] = [30,'Ry']
         y['NGsBlkXs'] = [2,'Ry']
         y['BndsRnXs'] = [[1,40],'Ry']
 
@@ -87,7 +88,7 @@ def bse_convergence(what='dielectric',threads=1,nohup=False):
         """
         path = filename.split('.')[0]
         print(filename, path)
-        shell = scheduler()        
+        shell = scheduler()
         shell.add_command('cd %s'%folder)
         shell.add_command('%s mpirun -np %d %s -F %s -J %s -C %s 2> %s.log'%(nohup,threads,yambo,filename,path,path,path))
         shell.add_command('touch %s/done'%path)
@@ -132,7 +133,7 @@ def plot(what):
     print(y)
 
     fig = plt.figure(figsize=(10,8))
-    if what == "dielectric":
+    if what == "screening":
         ax = plt.subplot(3,1,1)
         y.plot_bse(['eps','FFTGvecs'],ax=ax)
         ax = plt.subplot(3,1,2)
@@ -161,13 +162,9 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--epsilon', action="store_true",  help='converge epsilon parameters')
     parser.add_argument('-b', '--bse',     action="store_true",  help='converge bse parameters')
     parser.add_argument('-u', '--nohup',   action="store_true",  help='run the commands with nohup')
-    parser.add_argument('-f', '--folder',  default="bse_conv",    help='choose folder to put the results')
     parser.add_argument('-t', '--threads', default=1, type=int,  help='number of threads to use')
-    parser.add_argument('--p2y',     default="store_true", help='p2y executable')
-    parser.add_argument('--yambo',   default="store_true", help='yambo executable')
 
     args = parser.parse_args()
-    folder = args.folder
     threads = args.threads
     nohup = args.nohup
 
@@ -178,7 +175,7 @@ if __name__ == "__main__":
     if args.bse:
         what = 'bse'
     else:
-        what = 'dielectric'
+        what = 'screening'
 
     create_save()
     if args.run:     bse_convergence(what=what,threads=threads,nohup=nohup)
