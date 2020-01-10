@@ -1,6 +1,5 @@
 #
-# Author: Henrique Pereira Coutada Miranda
-# Run a GW calculation using Yambo
+# Run a GW convergence calculation using Yambo
 #
 from __future__ import print_function
 import sys
@@ -53,36 +52,5 @@ def gw_convergence():
 
     y.optimize(conv,folder='gw_conv',run=run)
 
-def plot_convergence(show=True):
-    #pack the files in .json files
-#    pack_files_in_folder('gw_conv')
-
-    #plot the results using yambm analyser
-    ya = YamboAnalyser('gw_conv')
-    print(ya)
-    print('plot all qpoints')
-    #ya.plot_gw(show=show)
-    print('plot along a path')
-
-    path = Path([ [[1.0,1.0,1.0],'G'],
-               [[0.0,0.5,0.5],'X'],
-               [[0.0,0.0,0.0],'G'],
-               [[0.5,0.0,0.0],'L']], [20,20,20])
-    ya.plot_gw(path=path,show=show)
-
-if __name__ == "__main__":
-    #parse options
-    parser = argparse.ArgumentParser(description='GW convergence')
-    parser.add_argument('-r' ,'--run',  action="store_true", help='Run the calculation')
-    parser.add_argument('-p' ,'--plot', action="store_true", help='Pack into json files and plot the results')
-    args = parser.parse_args()
-
-    if len(sys.argv)==1:
-        parser.print_help()
-        sys.exit(1)
-
-    if not os.path.isdir('database'): os.mkdir('database')
-
-    create_save()
-    if args.run:    gw_convergence()
-    if args.plot:   plot_convergence()
+create_save()
+gw_convergence()
