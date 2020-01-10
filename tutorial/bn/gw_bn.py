@@ -5,32 +5,36 @@
 from __future__ import print_function
 from yambopy import *
 from qepy import *
+from schedulerpy import *
 
 yambo =  'yambo'
-
-if not os.path.isdir('database'):
-    os.mkdir('database')
+scheduler = Scheduler.factory
 
 #check if the nscf cycle is present
 if os.path.isdir('nscf/bn.save'):
     print('nscf calculation found!')
 else:
     print('nscf calculation not found!')
-    exit() 
+    exit()
 
 #check if the SAVE folder is present
 if not os.path.isdir('database/SAVE'):
     print('preparing yambo database')
-    os.system('cd nscf/bn.save; p2y')
-    os.system('cd nscf/bn.save; yambo')
-    os.system('mv nscf/bn.save/SAVE database')
+    p2y_run = scheduler()
+    p2y_run.add_command('mkdir -p database')    
+    p2y_run.add_command('cd nscf/bn.save; p2y > p2y.log')
+    p2y_run.add_command('yambo > yambo.log')
+    p2y_run.add_command('mv SAVE ../../database')
+    p2y_run.run()
 
-if not os.path.isdir('gw'):
-    os.mkdir('gw')
-    os.system('cp -r database/SAVE gw')
+if not os.path.islink('gw/SAVE'):
+    s = scheduler()
+    s.add_command('mkdir -p gw')
+    s.add_command('cd gw; ln -s ../database/SAVE')
+    s.run()
 
 #create the yambo input file
-y = YamboIn('%s -d -g n -V all'%yambo,folder='gw')
+y = YamboIn.from_runlevel('%s -d -g n -V all'%yambo,folder='gw')
 QPKrange,_ = y['QPkrange']
 y['QPkrange'] = [QPKrange[:2]+[4,5],'']
 y['FFTGvecs'] = [30,'Ry']
@@ -39,4 +43,6 @@ y['BndsRnXd'] = [[1,30],'']
 y.write('gw/yambo_run.in')
 
 print('running yambo')
-os.system('cd gw; %s -F yambo_run.in -J yambo'%yambo)
+yambo_run = scheduler()
+yambo_run.add_command('cd gw; %s -F yambo_run.in -J yambo'%yambo)
+yambo_run.run()
