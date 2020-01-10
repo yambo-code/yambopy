@@ -76,7 +76,7 @@ def plot_convergence():
     y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw_conv')
     k_f = y['QPkrange'][0][1]         # Read the last k-points in the uniform k-grid
 
-    print('Select the converged value for each variable')
+    print('Plots of band gap convergence for BN (.png)')
     shell = bash() 
     shell.add_command('yambopy analysegw -bc 5 -kc %s -bv 4 -kv %s gw_conv EXXRLvcs' % (k_f, k_f))
     shell.add_command('yambopy analysegw -bc 5 -kc %s -bv 4 -kv %s gw_conv NGsBlkXp' % (k_f, k_f))
