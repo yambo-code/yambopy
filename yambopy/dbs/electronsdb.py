@@ -24,7 +24,7 @@ def fermi(e):
     return 1/(np.exp(e)+1)
 
 def fermi_array(e_array,ef,invsmear):
-    """ 
+    """
     Fermi dirac function for an array
     """
     e_array = (e_array-ef)/invsmear
@@ -40,6 +40,7 @@ def histogram_eiv(eiv,weights,emin=-5.0,emax=5.0,step=0.01,sigma=0.05,ctype='lor
     y = np.zeros([len(x)],dtype=np.float32)
 
     if ctype == 'gaussian':
+        from math import sqrt
         c =  1.0/(sigma*sqrt(2))
         a = -1.0/(2*sigma)
 
@@ -60,7 +61,7 @@ def histogram_eiv(eiv,weights,emin=-5.0,emax=5.0,step=0.01,sigma=0.05,ctype='lor
         for e,w in zip(eiv,weights):
             x1 = (x-e)**2
             #add gaussian
-            y += c*np.exp(a*x1)
+            y += w*c*np.exp(a*x1)
     else:
         #lorentzian stuff
         for e,w in zip(eiv,weights):
@@ -72,9 +73,9 @@ def histogram_eiv(eiv,weights,emin=-5.0,emax=5.0,step=0.01,sigma=0.05,ctype='lor
 class YamboElectronsDB():
     """
     Class to read information about the electrons from the ``ns.db1`` produced by yambo
-    
+
     Arguments:
-        
+
         ``lattice``: instance of YamboLatticeDB or YamboSaveDB
 
         ``filename``: netcdf database to read from (default:ns.db1)
@@ -89,7 +90,7 @@ class YamboElectronsDB():
         if self.nkpoints != lattice.nkpoints: #sanity check
             raise ValueError("The number of k-points in the lattice database"
                              " %d and electrons database %d is different."%(lattice.nkpoints,self.nkpoints))
-        
+
     def readDB(self):
         try:
             database = Dataset(self.filename)
@@ -107,10 +108,10 @@ class YamboElectronsDB():
         self.spin = int(dimensions[11])
         self.time_rev = dimensions[9]
         database.close()
-        
+
         #spin degeneracy if 2 components degen 1 else degen 2
         self.spin_degen = [0,2,1][int(self.spin)]
-        
+
         #number of occupied bands
         self.nbandsv = int(self.nelectrons/self.spin_degen)
         self.nbandsc = int(self.nbands-self.nbandsv)
@@ -119,21 +120,21 @@ class YamboElectronsDB():
         """
         Expand eigenvalues to the full brillouin zone
         """
-        
+
         self.eigenvalues = self.eigenvalues_ibz[self.lattice.kpoints_indexes]
-        
+
         self.nkpoints_ibz = len(self.eigenvalues_ibz)
         self.weights_ibz = np.zeros([self.nkpoints_ibz],dtype=np.float32)
         self.nkpoints = len(self.eigenvalues)
-        
+
         #counter counts the number of occurences of element in a list
         for nk_ibz,inv_weight in list(collections.Counter(self.lattice.kpoints_indexes).items()):
             self.weights_ibz[nk_ibz] = float(inv_weight)/self.nkpoints
-        
+
         #kpoints weights
         self.weights = np.full((self.nkpoints), 1.0/self.nkpoints,dtype=np.float32)
 
-    def getDOS(self,broad=0.1,emin=-10,emax=10,step=0.01):
+    def getDOS(self,broad=0.1,emin=-10,emax=10,step=0.01,ctype="lorentzian"):
         """
         Calculate the density of states.
         Should work for metals as well but untested for that case
@@ -144,9 +145,39 @@ class YamboElectronsDB():
 
         na = np.newaxis
         weights_bands = np.ones(eigenvalues.shape,dtype=np.float32)*weights[:,na]
-        energies, self.dos = histogram_eiv(eigenvalues,weights_bands,emin=emin,emax=emax,step=step,sigma=broad)
+        energies, self.dos = histogram_eiv(eigenvalues,weights_bands,emin=emin,emax=emax,step=step,sigma=broad,ctype=ctype)
 
         return energies, self.dos
+
+    def get_transitions(self):
+        """
+        Calculate transition energies
+        """
+        eigenvalues = self.eigenvalues_ibz
+        nvalence  = self.nbandsv
+        nconduction  = self.nbandsc
+        nkpoints = self.nkpoints_ibz
+
+        transitions = np.zeros([nkpoints,nvalence*nconduction])
+        for k,v,c in product(range(nkpoints),range(nvalence),range(nconduction)):
+            vc = v*nvalence+c
+            transitions[k,vc] = eigenvalues[k,c+nvalence]-eigenvalues[k,v]
+        self.transitions = transitions
+
+        return self.transitions
+
+    def getJDOS(self,broad=0.1,emin=0,emax=10,step=0.01,ctype="lorentzian"):
+        """
+        Calculate the joint density of states
+        """
+        transitions = self.get_transitions()
+        weights = self.weights_ibz
+
+        na = np.newaxis
+        weights_transitions = np.ones(transitions.shape,dtype=np.float32)*weights[:,na]
+        energies, self.jdos = histogram_eiv(self.transitions,weights_transitions,emin=emin,emax=emax,step=step,sigma=broad,ctype=ctype)
+
+        return energies, self.jdos
 
     def setLifetimes(self,broad=0.1):
         """
@@ -189,28 +220,28 @@ class YamboElectronsDB():
         #add imaginary part to the energies proportional to the DOS
         self.lifetimes_ibz = np.array([ [f(eig) for eig in eigk] for eigk in self.eigenvalues_ibz],dtype=np.float32)
         self.lifetimes     = np.array([ [f(eig) for eig in eigk] for eigk in self.eigenvalues],dtype=np.float32)
- 
+
     def setFermi(self,fermi,invsmear):
         """
         Set the fermi energy of the system
         """
         self.invsmear = invsmear
         self.efermi = fermi
-        
+
         #full brillouin zone
         self.eigenvalues     -= self.efermi
         self.occupations = np.zeros([self.nkpoints,self.nbands],dtype=np.float32)
         for nk in range(self.nkpoints):
             self.occupations[nk] = fermi_array(self.eigenvalues[nk,:],0,self.invsmear)
-        
+
         #for the ibz
         self.eigenvalues_ibz -= self.efermi
         self.occupations_ibz = np.zeros([self.nkpoints_ibz,self.nbands],dtype=np.float32)
         for nk in range(self.nkpoints_ibz):
             self.occupations_ibz[nk] = fermi_array(self.eigenvalues_ibz[nk,:],0,self.invsmear)
-        
+
         return self.efermi
-        
+
     def setFermiFixed(self,broad=1e-5):
         """
         Get fermi level using fixed occupations method
@@ -227,19 +258,19 @@ class YamboElectronsDB():
         bot = np.max(eigenvalues[:,nbands-1])
         self.efermi = (top+bot)/2
         self.setFermi(self.efermi,broad)
-    
+
     def energy_gaps(self,GWshift=0.):
         """
         Calculate the enegy of the gap (by Fulvio Paleari)
         """
         eiv = self.eigenvalues
         nv  = self.nbandsv
-        nc  = self.nbandsc   
+        nc  = self.nbandsc
 
         homo = np.max(eiv[:,nv-1])
         lumo = np.min(eiv[:,nv])
         Egap = lumo-homo
-        for k in eiv: 
+        for k in eiv:
             if k[nv-1]==homo:
                 lumo_dir=k[nv]
         Edir = lumo_dir-homo
@@ -248,25 +279,25 @@ class YamboElectronsDB():
         print('DFT Energy gap: %s eV'%Egap)
         print('DFT Direct gap: %s eV'%Edir)
         print('GW shift:       %s eV'%GWshift)
- 
+
         return np.copy(eiv)
 
     def getFermi(self,invsmear,setfermi=True):
-        """ 
+        """
         Determine the fermi energy
         """
         if self.efermi: return self.efermi
         from scipy.optimize import bisect
-        
+
         eigenvalues = self.eigenvalues_ibz
         weights     = self.weights_ibz
         nkpoints    = self.nkpoints_ibz
-        
+
         min_eival, max_eival = np.min(eigenvalues), np.max(eigenvalues)
         self.invsmear = invsmear
-        
+
         def occupation_minus_ne(ef):
-            """ 
+            """
             The total occupation minus the total number of electrons
             """
             return sum([sum(self.spin_degen*fermi_array(eigenvalues[nk],ef,self.invsmear))*weights[nk] for nk in range(nkpoints)])-self.nelectrons
