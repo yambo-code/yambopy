@@ -12,7 +12,8 @@ import matplotlib.pyplot as plt
 
 #parse options
 parser = argparse.ArgumentParser(description='Test the yambopy script.')
-parser.add_argument('-dg','--doublegrid', action="store_true", help='Use double grid')
+"""parser.add_argument('-dg','--doublegrid', action="store_true", help='Use double grid')
+"""
 parser.add_argument('-c', '--calc', action="store_true", help='calculate the IP absorption')
 parser.add_argument('-p', '--plot', action="store_true", help='plot the results')
 args = parser.parse_args()
@@ -21,8 +22,10 @@ if len(sys.argv)==1:
     parser.print_help()
     sys.exit(1)
 
-yambo = "yambo"
+yambo  = 'yambo'
+p2y    = 'p2y'
 folder = 'ip'
+prefix = 'bn'
 scheduler = Scheduler.factory
 
 #check if the SAVE folder is present
@@ -30,8 +33,8 @@ if not os.path.isdir('database/SAVE'):
     print('preparing yambo database')
     p2y_run = scheduler()
     p2y_run.add_command('mkdir -p database')
-    p2y_run.add_command('cd nscf/bn.save; p2y > p2y.log')
-    p2y_run.add_command('yambo > yambo.log')
+    p2y_run.add_command('cd nscf/bn.save; %s > %s.log'%(p2y,p2y))
+    p2y_run.add_command('%s > %s.log'%(yambo,yambo))
     p2y_run.add_command('mv SAVE ../../database/')
     p2y_run.run()
 
@@ -41,22 +44,41 @@ if not os.path.islink('%s/SAVE'%folder):
     s.add_command('cd %s; ln -s ../database/SAVE .'%folder)
     s.run()
 
+"""
 #initialize the double grid
 if args.doublegrid:
-    print("creating double grid")
-    f = open('%s/ypp.in'%folder,'w')
-    f.write("""kpts_map
-    %DbGd_DB1_paths
-    "../database_double"
-    %""")
-    f.close()
-    ypp_run = scheduler()
-    ypp_run.add_command('cd %s; ypp'%folder)
-    ypp_run.run()
+    #check if the double grid nscf cycle is present
+    if os.path.isdir('nscf_double/%s.save'%prefix):
+        print('nscf_double calculation found!')
+    else:
+        print('nscf_double calculation not found!')
+        exit()
+
+    if not os.path.isdir('database_double/SAVE'):
+        print('preparing yambo double database')
+        shell = scheduler()
+        shell.add_command('pushd nscf_double/%s.save; %s; %s'%(prefix,p2y,yambo))
+        shell.add_command('popd')
+        shell.add_command('mkdir -p database_double')
+        shell.add_command('mv nscf_double/%s.save/SAVE database_double'%prefix)
+        shell.run()
+
+    if os.path.isfile("%s/SAVE/ndb.Double_Grid"%folder):
+        #initialize the double grid
+        print("creating double grid")
+        yppin = YamboIn('ypp -m',filename='ypp.in',folder='database')
+        yppin['DbGd_DB1_paths'] = ["../database_double"]
+        yppin.write('database/ypp.in')
+        shell = scheduler()
+        shell.add_command('cd database; %s'%ypp)
+        shell.add_command('mv SAVE/ndb.Double_Grid ../%s/SAVE'%folder)
+        print(shell)
+        shell.run()
+"""
 
 if args.calc:
     #create the yambo input file
-    y = YamboIn.from_runlevel('yambo -o g -V all',folder=folder)
+    y = YamboIn.from_runlevel('%s -o g -V all'%yambo,folder=folder)
 
     y['FFTGvecs'] = [30,'Ry']
     y['BndsRnXs'] = [1,30]

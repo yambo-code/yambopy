@@ -32,13 +32,15 @@ Requirements
 ------------
 - yambo (>4.0.0): http://www.yambo-code.org/
 - numpy: http://www.numpy.org/
+- scipy: https://www.scipy.org/
 - matplotlib: http://matplotlib.org/
 - netCDF4: http://unidata.github.io/netcdf4-python/
 - Quantum Espresso (optional): http://www.quantum-espresso.org/
+- Abipy (optional): https://abinit.github.io/abipy/
 
 TODO
 ----
-- Enhance modularisation (object-oriented instead of goal-oriented) to support wider developments.
+- Enhance modularisation (task-oriented instead of goal-oriented) to support wider developments.
 
 Authors
 ------

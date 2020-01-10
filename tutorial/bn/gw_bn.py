@@ -34,12 +34,19 @@ if not os.path.islink('gw/SAVE'):
     s.run()
 
 #create the yambo input file
-y = YamboIn.from_runlevel('%s -d -g n -V all'%yambo,folder='gw')
-QPKrange,_ = y['QPkrange']
-y['QPkrange'] = [1,7,2,7]
+y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw')
+    
 y['FFTGvecs'] = [30,'Ry']
-y['NGsBlkXd'] = [1,'Ry']
-y['BndsRnXd'] = [[1,30],'']
+y['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
+y['BndsRnXp'] = [1,30]          # Screening. Number of bands
+y['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
+y['GbndRnge'] = [1,30]          # Self-energy. Number of bands
+#read values from QPkrange
+values, units = y['QPkrange']
+kpoint_start, kpoint_end, band_start, band_end = values
+#set the values of QPkrange
+y['QPkrange'] = [kpoint_start,kpoint_end,2,6]
+
 y.write('gw/yambo_run.in')
 
 print('running yambo')

@@ -47,7 +47,8 @@ def gw_convergence():
         shell.clean()
 
     y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw_conv')
-    k_f = y['QPkrange'][0][1]         # Read the last k-points in the uniform k-grid
+    k_f = y['QPkrange'][0][1]         # Read the last k-point in the uniform k-grid
+    k_i = y['QPkrange'][0][0]         # Read the first k-point in the uniform k-grid
 
     y['BndsRnXp'] = [[1,10],'']             # Screening. Number of bands
     y['NGsBlkXp'] = [0,'Ry']                # Cutoff Screening
@@ -84,62 +85,6 @@ def plot_convergence():
     shell.add_command('yambopy analysegw -bc 5 -kc %s -bv 4 -kv %s gw_conv GbndRnge' % (k_f, k_f))
     shell.run()
     shell.clean()
-
-def gw():
-    #create the folder to run the calculation
-    if not os.path.isdir('gw'):
-        shell = bash() 
-        shell.add_command('mkdir -p gw')
-        shell.add_command('cp -r database/SAVE gw/')
-        shell.run()
-        shell.clean()
-
-    # GW calculation. PPA Screening. Newton method
-    y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw')
-
-    y['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    y['BndsRnXp'] = [1,25]          # Screening. Number of bands
-    y['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
-    y['GbndRnge'] = [1,25]          # Self-energy. Number of bands
-    #read values from QPkrange
-    values, units = y['QPkrange']
-    kpoint_start, kpoint_end, band_start, band_end = values
-    #set the values of QPkrange
-    y['QPkrange'] = [kpoint_start,kpoint_end,2,6]
-    y.write('gw/yambo_gw.in')
-
-    print('calculating...')
-    shell = bash() 
-    shell.add_command('cd gw')
-    shell.add_command('rm -f *.json gw/o-*') #cleanup
-    shell.add_command('%s -F yambo_gw.in -J gw -C gw' % yambo)
-    shell.run()
-    shell.clean()
-
-def plot_gw():
-
-    # Define path in reduced coordinates using Class Path
-    npoints = 10
-    path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
-                  [[  0.5,  0.0,  0.0],'M'],
-                  [[1./3.,1./3.,  0.0],'K'],
-                  [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
-
-    # Read Lattice information from SAVE
-    lat  = YamboSaveDB.from_db_file(folder='gw/SAVE',filename='ns.db1')
-    # Read QP database
-    y    = YamboQPDB.from_db(filename='ndb.QP',folder='gw/gw')
-
-    # 2. Plot of KS and QP eigenvalues NOT interpolated along the path
-    ks_bs_0, qp_bs_0 = y.get_bs_path(lat,path)
-
-    fig = plt.figure(figsize=(4,5))
-    ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
- 
-    ks_bs_0.plot_ax(ax,legend=True,color_bands='r',label='KS')
-    qp_bs_0.plot_ax(ax,legend=True,color_bands='b',label='QP-GW')
-
-    plt.show()
 
 def xi():
     #create the folder to run the calculation
@@ -290,8 +235,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='GW convergence')
     parser.add_argument('-c'  ,'--convergence',  action="store_true", help='Run convergence calculations')
     parser.add_argument('-p'  ,'--plot', action="store_true",         help='Pack into json files and plot the convergence results')
-    parser.add_argument('-g'  ,'--gw', action="store_true",           help='Run a single GW calculation')
-    parser.add_argument('-r'  ,'--results', action="store_true",      help='Pack into json files and plot a single GW calculation')
     parser.add_argument('-x'  ,'--xi', action="store_true",           help='GW calculations for several approximations of the Screenning')
     parser.add_argument('-xp' ,'--xp', action="store_true",           help='Plot GW results for COHSEX, PPA and RA')
     parser.add_argument('-z'  ,'--zeros', action="store_true",        help='GW calculations for Newton and Secant Solver')
@@ -306,8 +249,6 @@ if __name__ == "__main__":
     create_save()
     if args.convergence:    gw_convergence()
     if args.plot:           plot_convergence()
-    if args.gw:             gw()
-    if args.results:        plot_gw()
     if args.xi:             xi()
     if args.xp:             plot_xi()
     if args.zeros:          dyson_eq()

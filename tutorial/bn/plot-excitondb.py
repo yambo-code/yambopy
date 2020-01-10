@@ -2,6 +2,7 @@
 from qepy import *
 from yambopy import *
 import matplotlib.pyplot as plt
+import os
 
 npoints = 20
 
@@ -18,21 +19,24 @@ path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
 # Load databases
 
 # SAVE database
-save = YamboSaveDB.from_db_file(folder='bse_calc/SAVE')
+save = YamboSaveDB.from_db_file(folder='bse/SAVE')
 
 # Lattice information
-lat  = YamboLatticeDB.from_db_file(filename='bse_calc/SAVE/ns.db1')
+lat  = YamboLatticeDB.from_db_file(filename='bse/SAVE/ns.db1')
 
 # Exciton database read from db file
-yexc = YamboExcitonDB.from_db_file(lat,filename='ndb.BS_diago_Q01',folder='bse_calc/yambo')
+if os.path.isfile('bse/yambo/ndb.BS_diago_Q01'):
+    yexc = YamboExcitonDB.from_db_file(lat,filename='ndb.BS_diago_Q01',folder='bse/yambo')
+if os.path.isfile('bse/yambo/ndb.BS_diago_Q1'):
+    yexc = YamboExcitonDB.from_db_file(lat,filename='ndb.BS_diago_Q1',folder='bse/yambo')
 
 print("Ground state energy: %lf" % yexc.eigenvalues[0].real )
-print("Intensity: %lf" % (yexc.get_intensities()[0]+yexc.get_intensities()[1]) )
+print("Intensity: %lf" % (yexc.get_intensities()[0].real+yexc.get_intensities()[1].real) )
 print("1st-excited state energy: %lf" % yexc.eigenvalues[2].real )
-print("Intensity: %lf" % (yexc.get_intensities()[2]+yexc.get_intensities()[3]) )
+print("Intensity: %lf" % (yexc.get_intensities()[2].real+yexc.get_intensities()[3].real) )
 
 # List of states to be merged
-states = [3,4]
+states = [1,2]
 
 # 1. Plot exciton weights in band structure NOT interpolated
 
@@ -72,4 +76,3 @@ yexc.plot_exciton_2D_ax(ax,states,mode='hexagon',limfactor=0.8,scale=160)
 ax.add_patch(Polygon(hexagon,closed=True,fill=False,color='w',lw=1.0))
 
 plt.show()
-
