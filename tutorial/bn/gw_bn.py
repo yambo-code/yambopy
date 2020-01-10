@@ -36,7 +36,7 @@ if not os.path.islink('gw/SAVE'):
 #create the yambo input file
 y = YamboIn.from_runlevel('%s -d -g n -V all'%yambo,folder='gw')
 QPKrange,_ = y['QPkrange']
-y['QPkrange'] = [QPKrange[:2]+[4,5],'']
+y['QPkrange'] = [1,7,2,7]
 y['FFTGvecs'] = [30,'Ry']
 y['NGsBlkXd'] = [1,'Ry']
 y['BndsRnXd'] = [[1,30],'']
