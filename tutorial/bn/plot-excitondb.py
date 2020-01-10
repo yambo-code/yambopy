@@ -18,13 +18,13 @@ path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
 # Load databases
 
 # SAVE database
-save = YamboSaveDB.from_db_file(folder='bse_flow/t0/SAVE')
+save = YamboSaveDB.from_db_file(folder='bse_calc/SAVE')
 
 # Lattice information
-lat  = YamboLatticeDB.from_db_file(filename='bse_flow/t0/SAVE/ns.db1')
+lat  = YamboLatticeDB.from_db_file(filename='bse_calc/SAVE/ns.db1')
 
 # Exciton database read from db file
-yexc = YamboExcitonDB.from_db_file(lat,filename='ndb.BS_diago_Q01',folder='bse_flow/t0/run')
+yexc = YamboExcitonDB.from_db_file(lat,filename='ndb.BS_diago_Q01',folder='bse_calc/yambo')
 
 print("Ground state energy: %lf" % yexc.eigenvalues[0].real )
 print("Intensity: %lf" % (yexc.get_intensities()[0]+yexc.get_intensities()[1]) )
