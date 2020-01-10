@@ -41,8 +41,9 @@ Boron Nitride GW+BSE
     - Plot the results
 
 7. GW+BSE calculation for boron nitride (gw_bse_bn.py)
-    - Run GW calculation using yambo
-    - Run BSE calculation using yambo using the dielectric function from the previous calculation
+    - Run full GW+BSE calculation using yambo
 
-8. BSE parallelisation and job submission for boron nitride ()
-    - TO BE DONE
+8. TO BE DONE: BSE parallelisation and job submission for boron nitride (gw_par_bn.py, plot-par.py)
+    - Submit job to HPC cluster
+    - Manage parallelisation
+    - Plot CPU and memory usage

@@ -9,7 +9,7 @@ from qepy import *
 from schedulerpy import *
 from math import sqrt
 
-kpoints = [12,12,1]#[6,6,1]
+kpoints = [6,6,1]
 kpoints_double = [24,24,1]
 qpoints = [3,3,1]
 layer_separation = 12
