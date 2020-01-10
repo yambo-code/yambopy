@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import argparse
 
 #parse options
-parser = argparse.ArgumentParser(description='Test the yambopy script.')
+parser = argparse.ArgumentParser(description='Manual parallelisation of the dielectric function along q points.')
 parser.add_argument('-c', '--calc', action="store_true", help='calculate the manually parallelised GW')
 parser.add_argument('-p', '--plot', action="store_true", help='plot the results')
 args = parser.parse_args()

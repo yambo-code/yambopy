@@ -8,6 +8,7 @@ from yambopy import *
 from qepy import *
 import argparse
 from schedulerpy import *
+import matplotlib.pyplot as plt
 
 #parse options
 parser = argparse.ArgumentParser(description='Test the yambopy script.')
@@ -70,6 +71,12 @@ if args.calc:
     yambo_run.run()
 
 if args.plot:
-    #pack in a json file
-    y = YamboOut(folder)
-    y.pack()
+    # Plot absorption spectrum
+    data=np.genfromtxt('%s/o-yambo.eps_q1_ip'%folder,usecols=(0,1))
+    fig = plt.figure(figsize=(4,5))
+    ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
+
+    plt.plot(data[:,0],data[:,1],'-',c='b',label='IP Absorption')
+    plt.legend()
+
+    plt.show()

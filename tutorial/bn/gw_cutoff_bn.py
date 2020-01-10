@@ -25,6 +25,7 @@ def get_inputfile(vac):
 
     qe.control['prefix'] = "'bn'"
     qe.control['wf_collect'] = '.true.'
+    qe.control['pseudo_dir'] = "'../../../pseudos/'"
     qe.system['celldm(1)'] = 4.7
     qe.system['celldm(3)'] = vac/qe.system['celldm(1)']
     qe.system['ecutwfc'] = 60
@@ -58,11 +59,11 @@ def nscf(vac,kpoints,folder):
     qe.write('%s/bn.nscf'%folder)
 
 #parse options
-parser = argparse.ArgumentParser(description='Test the yambopy script.')
+parser = argparse.ArgumentParser(description='Calculations w/o Coulomb cutoff for various vacuum separations.')
 parser.add_argument('-r','--run',      action="store_true", help='Run scf+nscf+GW calculations for different vacuum distances')
 parser.add_argument('-a','--analyse',  action="store_true", help='Analyse GW results')
 parser.add_argument('-c','--cut',      action="store_true", help='Use Coulomb cutoff in GW runs')
-parser.add_argument('-t','--nthreads', action="store_true", help='Number of threads', default=2 )
+parser.add_argument('-t','--nthreads',                      help='Number of threads', default=2 )
 args = parser.parse_args()
 
 if len(sys.argv)==1:
@@ -86,14 +87,14 @@ if args.run:
             print("vacuum: %d"%vac)
             print('calculate scf')
             scf(vac,'%s/scf'%folder)
-            scf_run.add_command("cd %s; mpirun -np %d pw.x -inp bn.scf > scf.log"%(scf_folder,args.nthreads))  #scf
+            scf_run.add_command("cd %s; mpirun -np %s pw.x -inp bn.scf > scf.log"%(scf_folder,args.nthreads))  #scf
             scf_run.run()
 
             print('calculate nscf')
             nscf_run = scheduler()
             nscf_run.add_command('cp -r %s/bn.save %s/'%(scf_folder,nscf_folder))
             nscf(vac,[6,6,1],'%s/nscf'%folder)
-            nscf_run.add_command("cd %s; mpirun -np %d pw.x -inp bn.nscf > nscf.log"%(nscf_folder,args.nthreads)) #nscf
+            nscf_run.add_command("cd %s; mpirun -np %s pw.x -inp bn.nscf > nscf.log"%(nscf_folder,args.nthreads)) #nscf
             nscf_run.run()
 
             print('run p2y and yambo')
@@ -133,7 +134,7 @@ if args.analyse:
         folder = 'gw_cutoff/%d/yambo'%vac
         save_folder = 'gw_cutoff/%d'%vac
         y = YamboOut(folder=folder,save_folder=save_folder)
-        y.pack()    
+        y.pack()
 
         shell = scheduler()
         shell.add_command('cp gw_cutoff/%d/yambo.json gw_cutoff/%d.json'%(vac,vac))
