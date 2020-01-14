@@ -20,10 +20,10 @@ matdyn = 'matdyn.x'
 prefix = 'bn'
 
 npoints = 10 
-p = Path([ [[0.0, 0.0, 0.0],'G'],
+p = Path([ [[0.0, 0.0, 0.0],'$\Gamma$'],
            [[0.5, 0.0, 0.0],'M'],
            [[1./3,1./3,0.0],'K'],
-           [[0.0, 0.0, 0.0],'G']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
+           [[0.0, 0.0, 0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
 # scheduler
 scheduler = Scheduler.factory
@@ -159,7 +159,7 @@ def run_projection(show=True):
     n_atom = range(16)
     b_atom = range(16,32)
     ax = plt.subplot(1,1,1)
-    cax = projection.plot_eigen(ax,path=p,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='bwr')
+    cax = projection.plot_eigen(ax,path=p,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='seismic')
     plt.colorbar(cax)
     if show: plt.show()
 
@@ -181,6 +181,7 @@ if __name__ == "__main__":
     parser.add_argument('-n' ,'--nscf',        action="store_true", help='Non-self consistent calculation')
     parser.add_argument('-n2','--nscf_double', action="store_true", help='Non-self consistent calculation for the double grid')
     parser.add_argument('-b' ,'--bands',       action="store_true", help='Calculate band-structure')
+    parser.add_argument('-l' ,'--plot',        action="store_true", help='Plot band-structure')
     parser.add_argument('-o' ,'--orbitals',    action="store_true", help='Plot atomic orbital projected band-structure')
     parser.add_argument('-p' ,'--phonon',      action="store_true", help='Phonon calculation')
     parser.add_argument('-d' ,'--dispersion',  action="store_true", help='Phonon dispersion')
@@ -272,3 +273,7 @@ if __name__ == "__main__":
 
     if args.orbitals:
         run_projection()
+
+    if args.plot:
+        run_plot()
+
