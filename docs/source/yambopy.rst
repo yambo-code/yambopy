@@ -2,7 +2,7 @@ yambopy
 ==========
 
 Only the `yambo` run levels are hardcoded in `yambopy`. This means that any new
-variable in `yambo` can me immediately used from `yambopy` without needing to
+variable in `yambo` can be immediately used from `yambopy` without needing to
 add new variables to the `yambopy` python code.
 
 YamboIn
@@ -18,7 +18,7 @@ The class can be initialized in two ways:
 
     from yambopy import YamboIn
 
-    yi = YamboIn('-b -o b -k sex -y d',folder='tutorial')
+    yi = YamboIn.from_runlevel('-b -o b -k sex -y d',folder='tutorial')
 
     #set some variables
     yi['FFTGvecs'] = [15,'Ry']
