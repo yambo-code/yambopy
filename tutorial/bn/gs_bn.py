@@ -9,7 +9,8 @@ from qepy import *
 from schedulerpy import *
 from math import sqrt
 
-kpoints = [6,6,1]
+kpoints      = [6,6,1]
+kpoints_nscf = [6,6,1]
 kpoints_double = [24,24,1]
 qpoints = [3,3,1]
 layer_separation = 12
@@ -65,7 +66,7 @@ def relax():
     qe.write('relax/%s.relax'%prefix)
 
 #scf
-def scf(folder='scf'):
+def scf(kpoints,folder='scf'):
     if not os.path.isdir(folder):
         os.mkdir(folder)
     qe = get_inputfile()
@@ -81,7 +82,7 @@ def nscf(kpoints,folder='nscf'):
     qe.control['calculation'] = "'nscf'"
     qe.electrons['diago_full_acc'] = ".true."
     qe.electrons['conv_thr'] = 1e-8
-    qe.system['nbnd'] = 60
+    qe.system['nbnd'] = 70
     qe.system['force_symmorphic'] = ".true."
     qe.kpoints = kpoints
     qe.write('%s/%s.nscf'%(folder,prefix))
@@ -195,7 +196,7 @@ if __name__ == "__main__":
 
     # create input files and folders
     relax()
-    scf()
+    scf(kpoints,folder='scf')
     nscf(kpoints)
     nscf(kpoints_double, folder='nscf_double')
     bands()
