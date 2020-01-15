@@ -49,16 +49,17 @@ def gw_convergence():
     y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw_conv')
     k_f = y['QPkrange'][0][1]         # Read the last k-point in the uniform k-grid
     k_i = y['QPkrange'][0][0]         # Read the first k-point in the uniform k-grid
+    print('The K-point is at the k-index %d' % k_f)
 
     y['BndsRnXp'] = [[1,10],'']             # Screening. Number of bands
     y['NGsBlkXp'] = [0,'Ry']                # Cutoff Screening
     y['GbndRnge'] = [[1,10],'']             # Self-energy. Number of bands
     y['QPkrange'] = [ [k_f,k_f,4,5], '' ]
 
-    conv = { 'EXXRLvcs': [[10,10,20,40,60,80,100,150],'Ry'],
-             'NGsBlkXp': [[0,0,1,2,3], 'Ry'],
-             'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] ,
-             'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] }
+    conv = { 'EXXRLvcs': [[10,10,20,30,40,50,60,70,80,90,100],'Ry'],
+             'NGsBlkXp': [[0,0,1,2,3,4,5,6,7,8], 'Ry'],
+             'BndsRnXp': [[[1,10],[1,10],[1,20],[1,30],[1,40],[1,50],[1,60],[1,70]],''] ,
+             'GbndRnge': [[[1,10],[1,10],[1,20],[1,30],[1,40],[1,50],[1,60],[1,70]],''] }
 
     def run(filename):
         """ Function to be called by the optimize function """
