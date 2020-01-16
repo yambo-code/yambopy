@@ -8,10 +8,11 @@ The idea of yambopy is to call qe and yambo to generate the base input files, re
 Boron Nitride GW+BSE
 ==============
 
-0. Calculate the Ground state properties of silicon using Quantum espresso (gs_bn.py)
+0. Calculate the Ground state properties of boron nitride using Quantum espresso (gs_bn.py)
     - Relax unit cell
     - Self-consistent cycle
     - Non self-consistent cycle
+    - Band structure
     - Phonon dispersion (DFPT)
 
 1. Generate the yambo databases automatically (included in the scripts)
