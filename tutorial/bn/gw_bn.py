@@ -36,11 +36,11 @@ if not os.path.islink('gw/SAVE'):
 #create the yambo input file
 y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw')
     
-y['FFTGvecs'] = [30,'Ry']
-y['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-y['BndsRnXp'] = [1,30]          # Screening. Number of bands
+y['EXXRLvcs'] = [60,'Ry']       # Self-energy. Exchange
+y['BndsRnXp'] = [1,40]          # Screening. Number of bands
 y['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
 y['GbndRnge'] = [1,30]          # Self-energy. Number of bands
+
 #read values from QPkrange
 values, units = y['QPkrange']
 kpoint_start, kpoint_end, band_start, band_end = values

@@ -18,7 +18,7 @@ path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
 # Read Lattice information from SAVE
 lat  = YamboSaveDB.from_db_file(folder='gw/SAVE',filename='ns.db1')
 # Read QP database
-y    = YamboQPDB.from_db(filename='ndb.QP',folder='gw/yambo')
+ydb  = YamboQPDB.from_db(filename='ndb.QP',folder='gw/yambo')
 
 
 # 1. Find scissor operator for valence and conduction bands
@@ -29,12 +29,12 @@ ax.set_xlabel('$E_{KS}$')
 ax.set_ylabel('$E_{GW}$')
 
 n_top_vb = 4
-y.plot_scissor_ax(ax,n_top_vb)
+ydb.plot_scissor_ax(ax,n_top_vb)
 
 plt.show()
 
 # 2. Plot of KS and QP eigenvalues NOT interpolated along the path
-ks_bs_0, qp_bs_0 = y.get_bs_path(lat,path)
+ks_bs_0, qp_bs_0 = ydb.get_bs_path(lat,path)
 
 fig = plt.figure(figsize=(4,5))
 ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
@@ -46,7 +46,7 @@ plt.show()
 
 # 3. Interpolation of KS and QP eigenvalues
 
-ks_bs, qp_bs = y.interpolate(lat,path,what='QP+KS',lpratio=20)
+ks_bs, qp_bs = ydb.interpolate(lat,path,what='QP+KS',lpratio=20)
 
 fig = plt.figure(figsize=(4,5))
 ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
