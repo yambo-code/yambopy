@@ -197,7 +197,7 @@ if __name__ == "__main__":
     # create input files and folders
     relax()
     scf(kpoints,folder='scf')
-    nscf(kpoints)
+    nscf(kpoints_nscf)
     nscf(kpoints_double, folder='nscf_double')
     bands()
     phonon(kpoints,qpoints)
