@@ -58,8 +58,8 @@ if args.doublegrid and not os.path.isfile('database/SAVE/ndb.Double_Grid'):
     if not os.path.isdir('database_double/SAVE'):
         print('preparing yambo double database')
         shell = scheduler()
-        shell.add_command('pushd nscf_double/%s.save; %s; %s'%(prefix,p2y,yambo))
-        shell.add_command('popd')
+        shell.add_command('cd nscf_double/%s.save; %s; %s'%(prefix,p2y,yambo))
+        shell.add_command('cd ../../')
         shell.add_command('mkdir -p database_double')
         shell.add_command('mv nscf_double/%s.save/SAVE database_double'%prefix)
         shell.run()
