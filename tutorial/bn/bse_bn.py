@@ -56,8 +56,8 @@ def create_save():
         if not os.path.isdir('database_double/SAVE'):
             print('preparing yambo double database')
             shell = bash()
-            shell.add_command('pushd nscf_double/%s.save; %s; %s'%(prefix,p2y,yambo))
-            shell.add_command('popd')
+            shell.add_command('cd nscf_double/%s.save; %s; %s'%(prefix,p2y,yambo))
+            shell.add_command('cd ../../')
             shell.add_command('mkdir -p database_double')
             shell.add_command('mv nscf_double/%s.save/SAVE database_double'%prefix)
             shell.run()
@@ -100,11 +100,13 @@ def run(nthreads=1,cut=False):
     y['BSEBands'] = [3,6]
     y['BEnSteps'] = 500
     y['BEnRange'] = [[0.0,10.0],'eV']
+    """ 
     if os.path.isfile('gw/yambo/ndb.QP'):
         y['KfnQPdb'] = 'E < ../gw/yambo/ndb.QP' #Include previously computed quasiparticle energies
     else:
-        y['KfnQP_E']  = [2.91355133,1.0,1.0] #some scissor shift
-
+    """ 
+    y['KfnQP_E']  = [2.91355133,1.0,1.0] #some scissor shift
+    
     y.arguments.append('WRbsWF')
 
     if nthreads > 1:

@@ -31,8 +31,8 @@ def create_save():
     if not os.path.isdir('database'):
         print('preparing yambo database')
         shell = scheduler()
-        shell.add_command('pushd nscf/%s.save; %s; %s'%(prefix,p2y,yambo))
-        shell.add_command('popd')
+        shell.add_command('cd nscf/%s.save; %s; %s'%(prefix,p2y,yambo))
+        shell.add_command('cd ../../')
         shell.add_command('mkdir -p database')
         shell.add_command('mv nscf/%s.save/SAVE database'%prefix)
         shell.run()
@@ -115,13 +115,7 @@ def analyse():
     for path in paths:
         print( path )
         #get the absorption spectra
-        a = YamboBSEAbsorptionSpectra(path,path=folder)
-        excitons = a.get_excitons(min_intensity=0.0005,max_energy=7,Degen_Step=0.01)
-        print( "nexcitons: %d"%len(excitons) )
-        print( "excitons:" )
-        print( excitons )
-        a.get_wavefunctions(Degen_Step=0.01,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(1)))
-        a.write_json(path)
+        a = YamboBSEAbsorptionSpectra(path)
 
     print( "To plot the data run:" )
     print( "python bse_conv_bn.py -p -e" )
@@ -157,10 +151,10 @@ if __name__ == "__main__":
     #parse options
     parser = argparse.ArgumentParser(description='Test the yambopy script.')
     parser.add_argument('-r', '--run',     action="store_true",  help='run BSE convergence calculation')
-    parser.add_argument('-a', '--analyse', action="store_true",  help='plot the results')
+    parser.add_argument('-a', '--analyse', action="store_true",  help='analyse results data')
     parser.add_argument('-p', '--plot',    action="store_true",  help='plot the results')
-    parser.add_argument('-e', '--epsilon', action="store_true",  help='converge epsilon parameters')
-    parser.add_argument('-b', '--bse',     action="store_true",  help='converge bse parameters')
+    parser.add_argument('-e', '--epsilon', action="store_true",  help='converge also epsilon parameters')
+    parser.add_argument('-b', '--bse',     action="store_true",  help='converge only bse parameters')
     parser.add_argument('-u', '--nohup',   action="store_true",  help='run the commands with nohup')
     parser.add_argument('-t', '--threads', default=1, type=int,  help='number of threads to use')
 

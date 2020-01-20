@@ -23,8 +23,8 @@ def create_save():
     if not os.path.isdir('database'):
         print('preparing yambo database')
         shell = scheduler()
-        shell.add_command('pushd nscf/%s.save; %s; %s'%(prefix,p2y,yambo))
-        shell.add_command('popd')
+        shell.add_command('cd nscf/%s.save; %s; %s'%(prefix,p2y,yambo))
+        shell.add_command('cd ../../')
         shell.add_command('mkdir -p database')
         shell.add_command('mv nscf/%s.save/SAVE database'%prefix)
         shell.run()

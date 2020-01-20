@@ -246,7 +246,7 @@ class PwXML():
         self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)
     
         #get Bravais lattice
-        self.ibrav = self.datafile_xml.findall("output/atomic_structure").get('bravais_index')
+        self.ibrav = self.datafile_xml.find("output/atomic_structure").attrib['bravais_index']
 
         return True
 

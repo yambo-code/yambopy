@@ -216,7 +216,7 @@ if __name__ == "__main__":
     parser.add_argument('-c'  ,'--convergence',  action="store_true", help='Run convergence calculations')
     parser.add_argument('-p'  ,'--plot', action="store_true",         help='Pack into json files and plot the convergence results')
     parser.add_argument('-x'  ,'--xi', action="store_true",           help='GW calculations for several approximations of the Screenning')
-    parser.add_argument('-xp' ,'--xp', action="store_true",           help='Plot GW results for COHSEX, PPA and RA')
+    parser.add_argument('-xp' ,'--xp', action="store_true",           help='Plot GW results for COHSEX and PPA')
     parser.add_argument('-z'  ,'--zeros', action="store_true",        help='GW calculations for Newton and Secant Solver')
     parser.add_argument('-zp' ,'--zp', action="store_true",           help='Plot GW results for Newton and Secant Solver')
 
