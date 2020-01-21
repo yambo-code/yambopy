@@ -153,8 +153,8 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--run',     action="store_true",  help='run BSE convergence calculation')
     parser.add_argument('-a', '--analyse', action="store_true",  help='analyse results data')
     parser.add_argument('-p', '--plot',    action="store_true",  help='plot the results')
-    parser.add_argument('-e', '--epsilon', action="store_true",  help='converge also epsilon parameters')
-    parser.add_argument('-b', '--bse',     action="store_true",  help='converge only bse parameters')
+    parser.add_argument('-e', '--epsilon', action="store_true",  help='converge epsilon parameters')
+    parser.add_argument('-b', '--bse',     action="store_true",  help='converge bse parameters')
     parser.add_argument('-u', '--nohup',   action="store_true",  help='run the commands with nohup')
     parser.add_argument('-t', '--threads', default=1, type=int,  help='number of threads to use')
 
