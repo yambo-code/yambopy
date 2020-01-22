@@ -99,7 +99,7 @@ def xi():
     cohsex['BndsRnXs'] = [1,40]          # Screening. Number of bands
     cohsex['NGsBlkXs'] = [3,'Ry']        # Cutoff Screening
     cohsex['GbndRnge'] = [1,30]          # Self-energy. Number of bands
-    cohsex['QPkrange'][0][2:] = [2,6]
+    cohsex['QPkrange'][0][2:] = [1,6]
     cohsex.write('gw-xi/yambo_cohsex.in')
     shell = bash() 
     shell.add_command('cd gw-xi')
@@ -108,13 +108,13 @@ def xi():
     shell.run()
     shell.clean()
 
-    print ("Running COHSEX in folder 'gw-xi/pp'")
+    print ("Running PPA in folder 'gw-xi/pp'")
     ppa = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw-xi')
     ppa['EXXRLvcs'] = [60,'Ry']       # Self-energy. Exchange
     ppa['BndsRnXp'] = [1,40]          # Screening. Number of bands
     ppa['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
     ppa['GbndRnge'] = [1,30]          # Self-energy. Number of bands
-    ppa['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
+    ppa['QPkrange'][0][2:] = [1, 6]       # QP range. All BZ
     ppa.write('gw-xi/yambo_ppa.in')
     shell = bash() 
     shell.add_command('cd gw-xi')
@@ -142,12 +142,20 @@ def plot_xi():
     ks_bs_1, qp_bs_1 = y1.get_bs_path(lat,path)
     ks_bs_2, qp_bs_2 = y2.get_bs_path(lat,path)
 
+    # 3. Set Fermi energy at the top of the valence band
+    n_top_valence_band = 4
+
+    ks_bs_1.set_fermi(n_top_valence_band)
+    ks_bs_2.set_fermi(n_top_valence_band)
+    qp_bs_1.set_fermi(n_top_valence_band)
+    qp_bs_2.set_fermi(n_top_valence_band)
+
     fig = plt.figure(figsize=(4,5))
     ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
  
     qp_bs_1.plot_ax(ax,legend=True,color_bands='r',label='QP-GW-COHSEX')
     qp_bs_2.plot_ax(ax,legend=True,color_bands='b',label='QP-GW-PPA')
-
+    plt.ylim((-20,20))
     plt.show()
 
 def dyson_eq():
