@@ -64,9 +64,9 @@ def bse_convergence(what='screening',threads=1,nohup=False):
 
     if what == 'screening':
         #list of variables to optimize the screening screening
-        conv = { 'FFTGvecs': [[10,15,20,30],'Ry'],
-                 'NGsBlkXs': [[1,2,3,5,6], 'Ry'],
-                 'BndsRnXs': [[1,10],[1,20],[1,30],[1,40]] }
+        conv = { 'FFTGvecs': [[10,10,15,20,30],'Ry'],
+                 'NGsBlkXs': [[1,1,2,3,5,6], 'Ry'],
+                 'BndsRnXs': [[1,10],[1,10],[1,20],[1,30],[1,40]] }
     else:
         # converged parameters for epsilon
         y['FFTGvecs'] = [30,'Ry']
@@ -78,9 +78,9 @@ def bse_convergence(what='screening',threads=1,nohup=False):
         y['BSEBands'] = [1,10]
 
         #list of variables to optimize the BSE
-        conv = { 'BSEEhEny': [[[1,10],[1,12],[1,14]],'eV'],
-                 'BSENGBlk': [[0,1,2], 'Ry'],
-                 'BSENGexx': [[10,15,20],'Ry']}
+        conv = { 'BSEEhEny': [[[1,10],[1,10],[1,12],[1,14]],'eV'],
+                 'BSENGBlk': [[0,0,1,2], 'Ry'],
+                 'BSENGexx': [[10,10,15,20],'Ry']}
 
     def run(filename):
         """
