@@ -28,11 +28,11 @@ class YamboLatticeDB(object):
         self.time_rev             = time_rev
 
     @classmethod
-    def from_db(cls,filename='ns.db1'):
-        return cls.from_db_file(filename)
+    def from_db(cls,filename='ns.db1',Expand=True):
+        return cls.from_db_file(filename,Expand)
     
     @classmethod
-    def from_db_file(cls,filename='ns.db1'):
+    def from_db_file(cls,filename='ns.db1',Expand=True):
         """ Initialize YamboLattice from a local dbfile """
 
         if not os.path.isfile(filename):
@@ -59,7 +59,7 @@ class YamboLatticeDB(object):
                          time_rev             = dimensions[9] )
 
         y = cls(**args)
-        y.expand_kpoints()
+        if Expand: y.expand_kpoints()
         return y
  
     @classmethod    
