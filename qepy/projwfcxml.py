@@ -38,14 +38,18 @@ class ProjwfcXML(object):
         self.nproj    = int(self.datafile_xml.find("HEADER/NUMBER_OF_ATOMIC_WFC").text)
         #get weights of kpoints projections
         self.weights  = list(map(float,self.datafile_xml.find("WEIGHT_OF_K-POINTS").text.split()))
+        #get number of spin components
+        self.spin_components = int(self.datafile_xml.find("HEADER/NUMBER_OF_SPIN_COMPONENTS").text)
         #get kpoints
         kpoints_lines = self.datafile_xml.find("K-POINTS").text.strip().split('\n')
         kpoints_float = [ list(map(float, kline.split())) for kline in kpoints_lines ]
         self.kpoints  = np.array(kpoints_float)
 
-        self.eigen = self.get_eigen()
-        self.proj  = self.get_proj()
-
+        if self.spin_components == 1: self.eigen = self.get_eigen()
+        if self.spin_components == 2: self.eigen1,self.eigen2  = self.get_eigen()
+        
+        if self.spin_components == 1: self.proj  = self.get_proj()
+        if self.spin_components == 2: self.proj1,self.proj2 = self.get_proj()
         #here we open the ouput file of projwfc and get the quantum numbers of the orbitals
         try:
             f = open("%s/%s"%(path,output_filename),'r')
@@ -88,7 +92,7 @@ class ProjwfcXML(object):
 
         return proj
 
-    def plot_eigen(self, ax, size=20, cmap=None, color='r', path=[], label_1=None, 
+    def plot_eigen(self, ax, size=20, cmap=None, cmap2=None,color='r', color_2='b',path_kpoints=[], label_1=None, label_2=None,
                    selected_orbitals=[], selected_orbitals_2=[],bandmin=0,bandmax=None,alpha=1,size_projection=False):
         """ 
         Plot the band structure. The size of the points is the weigth of the selected orbitals.
@@ -97,27 +101,32 @@ class ProjwfcXML(object):
 
             (a) Relative weight between two compositions. Pass a second set of orbitals
             (b) Colormap enters as a string
+            (c) spin = 1 (no spin) and 2 (collinear spin)
 
         Under development to include also colormap and a dictionary for the
         selection of the orbitals...
         """
+        # Careful with the path variable! I am changing this variable to path_kpoints
+        # Check we are not breaking the code some where
         import matplotlib.pyplot as plt
         import matplotlib as mpl
-        if path:
-            if isinstance(path,Path):
-                path = path.get_indexes()
+        if path_kpoints:
+            if isinstance(path_kpoints,Path):
+                path_kpoints = path_kpoints.get_indexes()
         if bandmax is None or bandmax > self.nbands:
             bandmax = self.nbands
 
         #Colormap
         if cmap:
-          color_map = plt.get_cmap(cmap)
+          color_map  = plt.get_cmap(cmap)
+        if cmap2:
+          color_map2 = plt.get_cmap(cmap2)
 
         #get kpoint_dists 
         kpoints_dists = calculate_distances(self.kpoints)
  
         #make labels
-        ticks, labels = list(zip(*path))
+        ticks, labels = list(zip(*path_kpoints))
         ax.set_xticks([kpoints_dists[t] for t in ticks])
         ax.set_xticklabels(labels)
         ax.set_ylabel('E (eV)')
@@ -128,22 +137,47 @@ class ProjwfcXML(object):
         ax.axhline(0,c='k')
       
         if selected_orbitals_2:
-          #get weights of second set of orbitals
-          w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
-          #plot bands for fixed size
-          for ib in range(bandmin,bandmax):
-            eig = self.eigen[:,ib] - self.fermi
-            if size_projection==True:
-               cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
-            else:
-               cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+          if self.spin_components == 1:
+             #get weights of second set of orbitals
+             w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
+             #plot bands for fixed size
+             for ib in range(bandmin,bandmax):
+                 eig = self.eigen[:,ib] - self.fermi
+                 if size_projection==True:
+                    cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+                 else:
+                    cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+
+          if self.spin_components == 2:
+             #get weights of second set of orbitals
+             w_rel1, w_rel2 = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
+             #plot bands for fixed size
+             for ib in range(bandmin,bandmax):
+                 eig1 = self.eigen1[:,ib] - self.fermi
+                 eig2 = self.eigen2[:,ib] - self.fermi
+                 if size_projection==True:
+                    cax = ax.scatter(kpoints_dists,eig1,s=size[:,ib],c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+                    cax = ax.scatter(kpoints_dists,eig2,s=size[:,ib],c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_2)
+                 else:
+                    cax = ax.scatter(kpoints_dists,eig1,s=size,c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+                    cax = ax.scatter(kpoints_dists,eig2,s=size,c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_2)
 
         else:
+          if self.spin_components == 1:
           #plot bands for a varying size
-          w_proj = self.get_weights(selected_orbitals=selected_orbitals)
-          for ib in range(bandmin,bandmax):
-            eig = self.eigen[:,ib] - self.fermi
-            cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=label_1)
+             w_proj = self.get_weights(selected_orbitals=selected_orbitals)
+             for ib in range(bandmin,bandmax):
+                 eig = self.eigen[:,ib] - self.fermi
+                 cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=label_1)
+
+          if self.spin_components == 2:
+          #plot bands for a varying size
+             w_proj1, w_proj2 = self.get_weights(selected_orbitals=selected_orbitals)
+             for ib in range(bandmin,bandmax):
+                 eig1 = self.eigen1[:,ib] - self.fermi
+                 eig2 = self.eigen2[:,ib] - self.fermi
+                 cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=label_1)
+                 cax = ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=label_2)
 
         ax.set_xlim(0, max(kpoints_dists))
         return cax
@@ -152,35 +186,83 @@ class ProjwfcXML(object):
         if bandmax is None:
             bandmax = self.nbands
 
-        # Selection of the bands
-        w_proj = zeros([self.nkpoints,self.nbands])
-        for ik in range(self.nkpoints):
-          for ib in range(bandmin,bandmax):
-            w_proj[ik,ib] = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
-        return w_proj
+        if self.spin_components == 1:
+
+           # Selection of the bands
+           w_proj = zeros([self.nkpoints,self.nbands])
+           for ik in range(self.nkpoints):
+               for ib in range(bandmin,bandmax):
+                   w_proj[ik,ib] = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
+           return w_proj
+
+        if self.spin_components == 2:
+
+           # Selection of the bands
+           w_proj1 = zeros([self.nkpoints,self.nbands])
+           w_proj2 = zeros([self.nkpoints,self.nbands])
+           for ik in range(self.nkpoints):
+               for ib in range(bandmin,bandmax):
+                   w_proj1[ik,ib] = sum(abs(self.proj1[ik,selected_orbitals,ib])**2)
+                   w_proj2[ik,ib] = sum(abs(self.proj2[ik,selected_orbitals,ib])**2)
+           return w_proj1, w_proj2
 
     def get_relative_weight(self,selected_orbitals=[],selected_orbitals_2=[],bandmin=0,bandmax=None):
         if bandmax is None:
             bandmax = self.nbands
 
-        # Selection of the bands
-        w_rel = zeros([self.nkpoints,self.nbands])
-        for ik in range(self.nkpoints):
-          for ib in range(bandmin,bandmax):
-            a = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
-            b = sum(abs(self.proj[ik,selected_orbitals_2,ib])**2)
-            w_rel[ik,ib] = a/(a+b)
-        return w_rel
+        # No spin polarized
+        if self.spin_components == 1:
+           # Selection of the bands
+           w_rel = zeros([self.nkpoints,self.nbands])
+           for ik in range(self.nkpoints):
+               for ib in range(bandmin,bandmax):
+                   a = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
+                   b = sum(abs(self.proj[ik,selected_orbitals_2,ib])**2)
+                   w_rel[ik,ib] = a/(a+b)
+           return w_rel
+
+        # Spin polarized collinear
+        if self.spin_components == 2:
+           # Selection of the bands
+           w_rel1 = zeros([self.nkpoints,self.nbands])
+           w_rel2 = zeros([self.nkpoints,self.nbands])
+           for ik in range(self.nkpoints):
+               for ib in range(bandmin,bandmax):
+                   a1 = sum(abs(self.proj1[ik,selected_orbitals,ib])**2)
+                   b1 = sum(abs(self.proj1[ik,selected_orbitals_2,ib])**2)
+                   w_rel1[ik,ib] = a1/(a1+b1)
+                   a2 = sum(abs(self.proj2[ik,selected_orbitals,ib])**2)
+                   b2 = sum(abs(self.proj2[ik,selected_orbitals_2,ib])**2)
+                   w_rel2[ik,ib] = a2/(a2+b2)
+           return w_rel1, w_rel2
 
     def get_eigen(self):
         """ Return eigenvalues
         """
         datafile_xml = self.datafile_xml
         eigen = []
-        for ik in range(self.nkpoints):
-          eigen.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG"%(ik+1)).text.split() )))
-        self.eigen = np.array(eigen)*RytoeV
-        return self.eigen
+        eigen1 = []
+        eigen2 = []
+
+        # No spin polarized
+        if self.spin_components == 1:
+
+           for ik in range(self.nkpoints):
+               eigen.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG"%(ik+1)).text.split() )))
+           self.eigen = np.array(eigen)*RytoeV
+
+           return self.eigen
+
+        # Spin polarized
+        if self.spin_components == 2:
+
+           for ik in range(self.nkpoints):
+               eigen1.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG.1"%(ik+1)).text.split() )))
+               eigen2.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG.2"%(ik+1)).text.split() )))
+           self.eigen1 = np.array(eigen1)*RytoeV
+           self.eigen2 = np.array(eigen2)*RytoeV
+
+           return self.eigen1, self.eigen2
 
     def write_proj(self,filename='proj'):
         """
@@ -192,13 +274,34 @@ class ProjwfcXML(object):
         """ Return projections
         """
         datafile_xml = self.datafile_xml
-        proj = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
-        for ik in range(self.nkpoints):
-          for ip in range(self.nproj):
-             projlist    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
-             proj[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist ]
-        self.proj = np.array(proj)
-        return proj
+        proj  = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+
+        if self.spin_components == 1:
+
+           for ik in range(self.nkpoints):
+               for ip in range(self.nproj):
+                   projlist    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
+                   proj[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist ]
+           self.proj = np.array(proj)
+           return proj
+
+        if self.spin_components == 2:
+           proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+           proj2 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+
+           for ik in range(self.nkpoints):
+               for ip in range(self.nproj):
+                   projlist1    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/SPIN.1/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
+                   projlist2    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/SPIN.2/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
+                   proj1[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist1 ]
+                   proj2[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist2 ]
+           self.proj1 = np.array(proj1)
+           self.proj2 = np.array(proj2)
+           return proj1, proj2
+
+    
+    #def get_overlaps(self):
+
 
     def __str__(self):
         s  = "nbands:   %d\n"%self.nbands
