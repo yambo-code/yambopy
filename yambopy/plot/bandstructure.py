@@ -182,7 +182,7 @@ class YambopyBandStructure():
         for ib,band in enumerate(self.bands.T):
             x = self.distances
             y = band-fermie
-            ax.plot(x,y,c=c_bands,**kwargs)
+            ax.plot(x,y,color=c_bands,**kwargs)
             # fill between 
             if self.weights is not None:
                 dy = self.weights[:,ib]*size

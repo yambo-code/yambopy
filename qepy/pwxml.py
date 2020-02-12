@@ -296,7 +296,7 @@ class PwXML():
         app("nbands:   %d"%self.nbands)
         return "\n".join(lines)
 
-    def plot_eigen_ax(self,ax,path_kpoints=[],xlim=(),ylim=()):
+    def plot_eigen_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),color='r'):
         #
         # Careful with variable path. I am substituting vy path_kpoints
         # To be done in all the code (and in the tutorials)
@@ -322,7 +322,7 @@ class PwXML():
         #plot bands
         eigen1 = np.array(self.eigen1)
         for ib in range(self.nbands):
-            ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
+            ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2)
        
         #plot spin-polarized bands: TO BE DONE
         if self.lsda:
@@ -339,7 +339,7 @@ class PwXML():
     Workaround to include occupations in the plot. AMS
     '''
 
-    def plot_eigen_occ_ax(self,ax,path_kpoints=[],xlim=(),ylim=()):
+    def plot_eigen_occ_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),color='r'):
 
         if path_kpoints:
             if isinstance(path_kpoints,Path):
@@ -364,7 +364,7 @@ class PwXML():
         eigen1 = np.array(self.eigen1)
         occ1   = np.array(self.occupation1)
         for ib in range(self.nbands):
-            plt.scatter(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, s=10*occ1[:,ib],c='r')
+            plt.scatter(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, s=10*occ1[:,ib],c=color)
        
         #plot spin-polarized bands
         if self.lsda:
