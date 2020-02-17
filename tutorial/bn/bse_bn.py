@@ -12,14 +12,14 @@ import argparse
 import matplotlib.pyplot as plt
 
 prefix = 'bn'
-folder = 'bse_calc'
-yambo = "yambo"
-p2y = "p2y"
-ypp = "ypp"
+folder = 'bse'
+yambo  = 'yambo'
+p2y    = 'p2y'
+ypp    = 'ypp'
 layer_separation = 12
 bash = Scheduler.factory
 
-def create_save(doublegrid=False):
+def create_save():
     #check if the nscf cycle is present
     if os.path.isdir('nscf/%s.save'%prefix):
         print('nscf calculation found!')
@@ -28,7 +28,7 @@ def create_save(doublegrid=False):
         exit()
 
     #check if the SAVE folder is present
-    if not os.path.isdir('database'):
+    if not os.path.isdir('database/SAVE'):
         print('preparing yambo database')
         shell = bash()
         shell.add_command('mkdir -p database')
@@ -37,8 +37,15 @@ def create_save(doublegrid=False):
         shell.run()
         shell.clean()
 
-    #check if the SAVE folder is present
-    if doublegrid:
+    if not os.path.islink('bse/SAVE'):
+        s = bash()
+        s.add_command('mkdir -p bse')
+        s.add_command('cd bse; ln -s ../database/SAVE')
+        if not dg: s.add_command('cd .. ; rm -f database/SAVE/ndb.Double_Grid')
+        s.run()
+
+    if dg and not os.path.isfile('database/SAVE/ndb.Double_Grid'):
+
         #check if the double grid nscf cycle is present
         if os.path.isdir('nscf_double/%s.save'%prefix):
             print('nscf_double calculation found!')
@@ -48,36 +55,40 @@ def create_save(doublegrid=False):
 
         if not os.path.isdir('database_double/SAVE'):
             print('preparing yambo double database')
-            shell = scheduler()
-            shell.add_command('pushd nscf_double/%s.save; %s; %s'%(prefix,p2y,yambo))
-            shell.add_command('popd')
+            shell = bash()
+            shell.add_command('cd nscf_double/%s.save; %s; %s'%(prefix,p2y,yambo))
+            shell.add_command('cd ../../')
             shell.add_command('mkdir -p database_double')
             shell.add_command('mv nscf_double/%s.save/SAVE database_double'%prefix)
             shell.run()
 
-        if os.path.isfile("%s/SAVE/ndb.Double_Grid"%folder):
-            #initialize the double grid
-            print("creating double grid")
-            yppin = YamboIn('ypp -m',filename='ypp.in',folder='database')
-            yppin['DbGd_DB1_paths'] = ["../database_double"]
-            yppin.write('database/ypp.in')
-            shell = scheduler()
-            shell.add_command('cd database; %s'%ypp)
-            shell.add_command('mv SAVE/ndb.Double_Grid ../%s/SAVE'%folder)
-            print(shell)
-            shell.run()
+        #initialize the double grid
+        print("creating double grid")
+
+        yppin = YamboIn.from_runlevel('%s -m',filename='ypp.in',executable=ypp,folder='database')
+
+        yppin['DbGd_DB1_paths'] = ["../database_double"]
+        yppin.arguments.append('SkipCheck')
+
+        yppin.write('database/ypp.in')
+
+        shell = bash()
+        shell.add_command('cd database; %s'%ypp)
+        shell.add_command('cd ../%s ; rm -rf yambo o-*'%folder)
+        #print(shell)
+        shell.run()
 
 def run(nthreads=1,cut=False):
     #create the folder to run the calculation
-    if not os.path.isdir('bse_calc'):
-        shell = bash() 
-        shell.add_command('mkdir -p bse_calc')
-        shell.add_command('cp -r database/SAVE bse_calc/')
+    if not os.path.isdir('bse'):
+        shell = bash()
+        shell.add_command('mkdir -p bse')
+        shell.add_command('cp -r database/SAVE bse/')
         shell.run()
         shell.clean()
 
     #create the yambo input file
-    y = YamboIn.from_runlevel('%s -r -b -o b -k sex -y d -V all'%yambo,folder='bse_calc')
+    y = YamboIn.from_runlevel('%s -r -b -o b -k sex -y d -V all'%yambo,folder='bse')
 
     if cut:
         y['CUTGeo'] = 'box z'
@@ -89,81 +100,29 @@ def run(nthreads=1,cut=False):
     y['BSEBands'] = [3,6]
     y['BEnSteps'] = 500
     y['BEnRange'] = [[0.0,10.0],'eV']
+    """ 
+    if os.path.isfile('gw/yambo/ndb.QP'):
+        y['KfnQPdb'] = 'E < ../gw/yambo/ndb.QP' #Include previously computed quasiparticle energies
+    else:
+    """ 
     y['KfnQP_E']  = [2.91355133,1.0,1.0] #some scissor shift
+    
     y.arguments.append('WRbsWF')
 
     if nthreads > 1:
         y['X_all_q_ROLEs'] = "q"
         y['X_all_q_CPUs'] = "%d"%nthreads
 
-    y.write('bse_calc/yambo_run.in')
+    y.write('bse/yambo_run.in')
 
     print('running yambo')
     shell = bash()
     if nthreads <= 1:
-        shell.add_command('cd bse_calc; %s -F yambo_run.in -J yambo'%yambo)
+        shell.add_command('cd bse; %s -F yambo_run.in -J yambo'%yambo)
     else:
-        shell.add_command('cd bse_calc; mpirun -np %d %s -F yambo_run.in -J yambo'%(nthreads,yambo))
+        shell.add_command('cd bse; mpirun -np %d %s -F yambo_run.in -J yambo'%(nthreads,yambo))
+    if dg: shell.add_command('cd ..; rm database/SAVE/ndb.Double_Grid')
     shell.run()
-
-def analyse(dry=False):
-
-
-    # Option read Haydock calculation
-
-    y = YamboOut('bse_calc',save_folder='bse_calc/SAVE')
-
-    energy = y.files['o-yambo.eps_q1_diago_bse']['E/ev[1]']
-    im_eps = y.files['o-yambo.eps_q1_diago_bse']['EPS-Im[2]']
-
-    plt.plot(energy,im_eps)
-    plt.show()
-
-    # SAVE database
-    #save = YamboSaveDB.from_db_file(folder='bse_calc/SAVE')
-
-    # Lattice information
-    #lat  = YamboLatticeDB.from_db_file(filename='bse_calc/SAVE/ns.db1')
-    
-    # Exciton database read from db file
-    #yexc = YamboExcitonDB(lat)
-
-
-    #print(yexc)
-    #exit()
-    #pack in a json file
-    #y = YamboOut('bse_calc',save_folder='bse_calc/SAVE')
-    #y.pack()
-
-    #get the absorption spectra
-    #'yambo' -> was the jobstring '-J' used when running yambo
-    #'bse'   -> folder where the job was run
-    #a = YamboBSEAbsorptionSpectra('yambo',path='bse_calc')
-
-    #print(str(a))
-
-
-    # Here we choose which excitons to read
-    # min_intensity -> choose the excitons that have at least this intensity
-    # max_energy    -> choose excitons with energy lower than this
-    # Degen_Step    -> take only excitons that have energies more different than Degen_Step
-    #excitons = a.get_excitons(min_intensity=0.001,max_energy=8.0,eps=0.0001)
-    #print( "nexcitons: %d"%len(excitons) )
-    #print( "excitons:" )
-    #print( "  Energy  Intensity Index")
-    #for exciton in excitons:
-    #    print( "%8.4lf %8.4lf %5d"%tuple(exciton) )
-
-    #if dry:
-        # read the wavefunctions
-        # Cells=[13,13,1]   #number of cell repetitions
-        # Hole=[0,0,6+.5]   #position of the hole in cartesian coordinates (Bohr units)
-        # FFTGvecs=10       #number of FFT vecs to use, larger makes the
-        #                   #image smoother, but takes more time to plot
-    #    a.get_wavefunctions(Degen_Step=0.01,repx=list(range(-1,2)),repy=list(range(-1,2)),repz=list(range(1)),
-                            #Cells=[13,13,1],Hole=[0,0,6+.5], FFTGvecs=10,wf=True)
-
-    #a.write_json()
 
 if __name__ == "__main__":
 
@@ -172,8 +131,6 @@ if __name__ == "__main__":
     parser.add_argument('-dg','--doublegrid', action="store_true", help='Use double grid')
     parser.add_argument('-r', '--run',        action="store_true", help='Run BSE calculation')
     parser.add_argument('-c', '--cut',        action="store_true", help='Use coulomb truncation')
-    parser.add_argument('-a', '--analyse',    action="store_true", help='plot the results')
-    parser.add_argument('-d', '--dry',        action="store_false", help='print excitons only')
     parser.add_argument('-t' ,'--nthreads',                        help='Number of threads', default=1)
     args = parser.parse_args()
     nthreads = int(args.nthreads)
@@ -184,6 +141,6 @@ if __name__ == "__main__":
 
     cut = args.cut
     dg = args.doublegrid
-    create_save(dg)
+
+    create_save()
     if args.run:     run(nthreads,cut)
-    if args.analyse: analyse(args.dry)

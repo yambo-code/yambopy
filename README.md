@@ -1,7 +1,8 @@
 yambopy
 =======
 
-Create automatic workflows for yambo using python.
+Create automatic workflows for yambo and quantum espresso using python.
+Do pre/post-processing, data analysis and plotting for yambo and quantum espresso.
 
 Yambo official website: http://www.yambo-code.org/ 
 
@@ -15,7 +16,8 @@ http://yambopy.readthedocs.org/en/latest/
 Features
 --------
 - Create Yambo and Quantum Espresso input files from python
-- Collect the output data in .json files for analysis
+- Collect and manipulate the output data for analysis
+- Automatic submissions of calculations (e.g., convergence workflows)
 - Plot the results using matplotlib
 - Test suite
 - Tutorial
@@ -30,13 +32,15 @@ Requirements
 ------------
 - yambo (>4.0.0): http://www.yambo-code.org/
 - numpy: http://www.numpy.org/
+- scipy: https://www.scipy.org/
 - matplotlib: http://matplotlib.org/
 - netCDF4: http://unidata.github.io/netcdf4-python/
 - Quantum Espresso (optional): http://www.quantum-espresso.org/
+- Abipy (optional): https://abinit.github.io/abipy/
 
 TODO
 ----
-- Automatic convergence tests (increase a certain variable until the final result changes less than a certain threshold)
+- Enhance modularisation (task-oriented instead of goal-oriented) to support wider developments.
 
 Authors
 ------
@@ -45,4 +49,4 @@ Authors
 - Fulvio Paleari
 - Alexandre Morlet
 
-The code is at an early stage of development, help us by sending bug reports, patches and suggestions!
+The code is at an ongoing stage of development, help us by sending bug reports, patches and suggestions!

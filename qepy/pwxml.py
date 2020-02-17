@@ -296,16 +296,20 @@ class PwXML():
         app("nbands:   %d"%self.nbands)
         return "\n".join(lines)
 
-    def plot_eigen_ax(self,ax,path=[],xlim=(),ylim=()):
-        if path:
-            if isinstance(path,Path):
-                path = path.get_indexes()
-            ax.set_xticks( *list(zip(*path)) )
+    def plot_eigen_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),color='r'):
+        #
+        # Careful with variable path. I am substituting vy path_kpoints
+        # To be done in all the code (and in the tutorials)
+        #
+        if path_kpoints:
+            if isinstance(path_kpoints,Path):
+                path_kpoints = path_kpoints.get_indexes()
+            ax.set_xticks( *list(zip(*path_kpoints)) )
         ax.set_ylabel('E (eV)')
 
         #get kpoint_dists 
         kpoints_dists = calculate_distances(self.kpoints)
-        ticks, labels = list(zip(*path))
+        ticks, labels = list(zip(*path_kpoints))
         ax.set_xticks([kpoints_dists[t] for t in ticks])
         ax.set_xticklabels(labels)
         ax.set_xlim(kpoints_dists[0],kpoints_dists[-1])
@@ -318,14 +322,14 @@ class PwXML():
         #plot bands
         eigen1 = np.array(self.eigen1)
         for ib in range(self.nbands):
-            ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, 'r-', lw=2)
+            ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2)
        
         #plot spin-polarized bands: TO BE DONE
-        #if self.lsda:
+        if self.lsda:
 
-           #eigen2 = np.array(self.eigen2)
-           #for ib in range(self.nbands):
-               #ax.plot(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
+           eigen2 = np.array(self.eigen2)
+           for ib in range(self.nbands):
+               ax.plot(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
 
         #plot options
         if xlim: ax.set_xlim(xlim)
@@ -335,17 +339,17 @@ class PwXML():
     Workaround to include occupations in the plot. AMS
     '''
 
-    def plot_eigen_occ_ax(self,ax,path=[],xlim=(),ylim=()):
+    def plot_eigen_occ_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),color='r'):
 
-        if path:
-            if isinstance(path,Path):
-                path = path.get_indexes()
-            ax.set_xticks( *list(zip(*path)) )
+        if path_kpoints:
+            if isinstance(path_kpoints,Path):
+                path_kpoints = path_kpoints.get_indexes()
+            ax.set_xticks( *list(zip(*path_kpoints)) )
         ax.set_ylabel('E (eV)')
 
         #get kpoint_dists 
         kpoints_dists = calculate_distances(self.kpoints)
-        ticks, labels = list(zip(*path))
+        ticks, labels = list(zip(*path_kpoints))
         ax.set_xticks([kpoints_dists[t] for t in ticks])
         ax.set_xticklabels(labels)
         ax.set_xlim(kpoints_dists[0],kpoints_dists[-1])
@@ -360,7 +364,7 @@ class PwXML():
         eigen1 = np.array(self.eigen1)
         occ1   = np.array(self.occupation1)
         for ib in range(self.nbands):
-            plt.scatter(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, s=10*occ1[:,ib],c='r')
+            plt.scatter(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, s=10*occ1[:,ib],c=color)
        
         #plot spin-polarized bands
         if self.lsda:
@@ -376,13 +380,13 @@ class PwXML():
         if ylim: ax.set_ylim(ylim)
 
     @add_fig_kwargs
-    def plot_eigen(self,path=[],xlim=(),ylim=()):
+    def plot_eigen(self,path_kpoints=[],xlim=(),ylim=()):
         """ plot the eigenvalues using matplotlib
         """
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        self.plot_eigen_ax(ax,path=path)
+        self.plot_eigen_ax(ax,path_kpoints=path_kpoints)
         return fig
 
     def write_eigen(self,fmt='gnuplot'):
