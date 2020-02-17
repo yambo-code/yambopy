@@ -1,9 +1,6 @@
 #
-#
-# Tutorial Yambo School. Lausanne, 24-28 April 2017
 # Convergence GW on hexagonal BN
 # Alejandro Molina-Sanchez & Henrique P. C. Miranda
-#
 #
 from __future__ import print_function
 import sys
@@ -47,17 +44,19 @@ def gw_convergence():
         shell.clean()
 
     y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw_conv')
-    k_f = y['QPkrange'][0][1]         # Read the last k-points in the uniform k-grid
+    k_i = y['QPkrange'][0][0]         # Read the first k-point in the uniform k-grid
+    k_f = y['QPkrange'][0][1]         # Read the last k-point in the uniform k-grid
+    print('The K-point is at the k-index %d' % k_f)
 
     y['BndsRnXp'] = [[1,10],'']             # Screening. Number of bands
     y['NGsBlkXp'] = [0,'Ry']                # Cutoff Screening
     y['GbndRnge'] = [[1,10],'']             # Self-energy. Number of bands
-    y['QPkrange'] = [ [k_f,k_f,4,5], '' ]
+    y['QPkrange'] = [ [k_i,k_f,4,5], '' ]
 
-    conv = { 'EXXRLvcs': [[10,10,20,40,60,80,100,150],'Ry'],
-             'NGsBlkXp': [[0,0,1,2,3], 'Ry'],
-             'BndsRnXp': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] ,
-             'GbndRnge': [[[1,10],[1,10],[1,15],[1,20],[1,30]],''] }
+    conv = { 'EXXRLvcs': [[10,10,20,30,40,50,60,70,80,90,100],'Ry'],
+             'NGsBlkXp': [[0,0,1,2,3,4,5,6,7,8,9,10,11,12], 'Ry'],
+             'BndsRnXp': [[[1,10],[1,10],[1,20],[1,30],[1,40],[1,50],[1,60],[1,70]],''] ,
+             'GbndRnge': [[[1,10],[1,10],[1,20],[1,30],[1,40],[1,50],[1,60],[1,70]],''] }
 
     def run(filename):
         """ Function to be called by the optimize function """
@@ -76,7 +75,7 @@ def plot_convergence():
     y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw_conv')
     k_f = y['QPkrange'][0][1]         # Read the last k-points in the uniform k-grid
 
-    print('Select the converged value for each variable')
+    print('Plots of band gap convergence for BN (.png)')
     shell = bash() 
     shell.add_command('yambopy analysegw -bc 5 -kc %s -bv 4 -kv %s gw_conv EXXRLvcs' % (k_f, k_f))
     shell.add_command('yambopy analysegw -bc 5 -kc %s -bv 4 -kv %s gw_conv NGsBlkXp' % (k_f, k_f))
@@ -84,62 +83,6 @@ def plot_convergence():
     shell.add_command('yambopy analysegw -bc 5 -kc %s -bv 4 -kv %s gw_conv GbndRnge' % (k_f, k_f))
     shell.run()
     shell.clean()
-
-def gw():
-    #create the folder to run the calculation
-    if not os.path.isdir('gw'):
-        shell = bash() 
-        shell.add_command('mkdir -p gw')
-        shell.add_command('cp -r database/SAVE gw/')
-        shell.run()
-        shell.clean()
-
-    # GW calculation. PPA Screening. Newton method
-    y = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw')
-
-    y['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    y['BndsRnXp'] = [1,25]          # Screening. Number of bands
-    y['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
-    y['GbndRnge'] = [1,25]          # Self-energy. Number of bands
-    #read values from QPkrange
-    values, units = y['QPkrange']
-    kpoint_start, kpoint_end, band_start, band_end = values
-    #set the values of QPkrange
-    y['QPkrange'] = [kpoint_start,kpoint_end,2,6]
-    y.write('gw/yambo_gw.in')
-
-    print('calculating...')
-    shell = bash() 
-    shell.add_command('cd gw')
-    shell.add_command('rm -f *.json gw/o-*') #cleanup
-    shell.add_command('%s -F yambo_gw.in -J gw -C gw' % yambo)
-    shell.run()
-    shell.clean()
-
-def plot_gw():
-
-    # Define path in reduced coordinates using Class Path
-    npoints = 10
-    path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
-                  [[  0.5,  0.0,  0.0],'M'],
-                  [[1./3.,1./3.,  0.0],'K'],
-                  [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
-
-    # Read Lattice information from SAVE
-    lat  = YamboSaveDB.from_db_file(folder='gw/SAVE',filename='ns.db1')
-    # Read QP database
-    y    = YamboQPDB.from_db(filename='ndb.QP',folder='gw/gw')
-
-    # 2. Plot of KS and QP eigenvalues NOT interpolated along the path
-    ks_bs_0, qp_bs_0 = y.get_bs_path(lat,path)
-
-    fig = plt.figure(figsize=(4,5))
-    ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
- 
-    ks_bs_0.plot_ax(ax,legend=True,color_bands='r',label='KS')
-    qp_bs_0.plot_ax(ax,legend=True,color_bands='b',label='QP-GW')
-
-    plt.show()
 
 def xi():
     #create the folder to run the calculation
@@ -152,11 +95,11 @@ def xi():
 
     print ("Running COHSEX in folder 'gw-xi/coh'")
     cohsex = YamboIn.from_runlevel('%s -p c -g n -V all'%yambo,folder='gw-xi')
-    cohsex['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    cohsex['BndsRnXs'] = [1,25]          # Screening. Number of bands
+    cohsex['EXXRLvcs'] = [60,'Ry']       # Self-energy. Exchange
+    cohsex['BndsRnXs'] = [1,40]          # Screening. Number of bands
     cohsex['NGsBlkXs'] = [3,'Ry']        # Cutoff Screening
-    cohsex['GbndRnge'] = [1,25]          # Self-energy. Number of bands
-    cohsex['QPkrange'][0][2:] = [2,6]
+    cohsex['GbndRnge'] = [1,30]          # Self-energy. Number of bands
+    cohsex['QPkrange'][0][2:] = [1,6]
     cohsex.write('gw-xi/yambo_cohsex.in')
     shell = bash() 
     shell.add_command('cd gw-xi')
@@ -165,33 +108,18 @@ def xi():
     shell.run()
     shell.clean()
 
-    print ("Running COHSEX in folder 'gw-xi/pp'")
+    print ("Running PPA in folder 'gw-xi/pp'")
     ppa = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder='gw-xi')
-    ppa['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    ppa['BndsRnXp'] = [1,25]          # Screening. Number of bands
+    ppa['EXXRLvcs'] = [60,'Ry']       # Self-energy. Exchange
+    ppa['BndsRnXp'] = [1,40]          # Screening. Number of bands
     ppa['NGsBlkXp'] = [3,'Ry']        # Cutoff Screening
-    ppa['GbndRnge'] = [1,25]          # Self-energy. Number of bands
-    ppa['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
+    ppa['GbndRnge'] = [1,30]          # Self-energy. Number of bands
+    ppa['QPkrange'][0][2:] = [1, 6]       # QP range. All BZ
     ppa.write('gw-xi/yambo_ppa.in')
     shell = bash() 
     shell.add_command('cd gw-xi')
     shell.add_command('rm -f pp.json pp/o-pp*') #cleanup
     shell.add_command('%s -F yambo_ppa.in -J pp -C pp' % yambo)
-    shell.run()
-    shell.clean()
-
-    print ("Running Real Axis in folder 'gw-xi/ra'")
-    ra = YamboIn.from_runlevel('%s -d -g n -V all'%yambo,folder='gw-xi')
-    ra['EXXRLvcs'] = [80,'Ry']       # Self-energy. Exchange
-    ra['BndsRnXd'] = [1,25]          # Screening. Number of bands
-    ra['NGsBlkXd'] = [3,'Ry']        # Cutoff Screening
-    ra['GbndRnge'] = [1,25]          # Self-energy. Number of bands
-    ra['QPkrange'][0][2:] = [2, 6]       # QP range. All BZ
-    ra.write('gw-xi/yambo_ra.in')
-    shell = bash() 
-    shell.add_command('cd gw-xi')
-    shell.add_command('rm -f ra.json ra/o-ra*') #cleanup
-    shell.add_command('%s -F yambo_ra.in -J ra -C ra' % yambo)
     shell.run()
     shell.clean()
 
@@ -209,20 +137,25 @@ def plot_xi():
     # Read QP database
     y1   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-xi/coh')
     y2   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-xi/pp')
-    y3   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-xi/ra')
 
     # 2. Plot of KS and QP eigenvalues NOT interpolated along the path
     ks_bs_1, qp_bs_1 = y1.get_bs_path(lat,path)
     ks_bs_2, qp_bs_2 = y2.get_bs_path(lat,path)
-    ks_bs_3, qp_bs_3 = y3.get_bs_path(lat,path)
+
+    # 3. Set Fermi energy at the top of the valence band
+    n_top_valence_band = 4
+
+    ks_bs_1.set_fermi(n_top_valence_band)
+    ks_bs_2.set_fermi(n_top_valence_band)
+    qp_bs_1.set_fermi(n_top_valence_band)
+    qp_bs_2.set_fermi(n_top_valence_band)
 
     fig = plt.figure(figsize=(4,5))
     ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
  
-    qp_bs_1.plot_ax(ax,legend=True,color_bands='r',label='QP-GW-COH')
-    qp_bs_2.plot_ax(ax,legend=True,color_bands='b',label='QP-GW-PP')
-    qp_bs_3.plot_ax(ax,legend=True,color_bands='g',label='QP-GW-RA')
-
+    qp_bs_1.plot_ax(ax,legend=True,color_bands='r',label='QP-GW-COHSEX')
+    qp_bs_2.plot_ax(ax,legend=True,color_bands='b',label='QP-GW-PPA')
+    plt.ylim((-20,20))
     plt.show()
 
 def dyson_eq():
@@ -237,10 +170,10 @@ def dyson_eq():
 
     dyson = YamboIn.from_runlevel('%s -p p -g n -V all'%yambo,folder=folder_dyson)
 
-    dyson['EXXRLvcs'] = [80,'Ry']           # Self-energy. Exchange
-    dyson['BndsRnXp'] = [1,25]              # Screening. Number of bands
+    dyson['EXXRLvcs'] = [60,'Ry']           # Self-energy. Exchange
+    dyson['BndsRnXp'] = [1,40]              # Screening. Number of bands
     dyson['NGsBlkXp'] = [ 3,'Ry']        # Cutoff Screening
-    dyson['GbndRnge'] = [1,25]              # Self-energy. Number of bands
+    dyson['GbndRnge'] = [1,30]              # Self-energy. Number of bands
     dyson['QPkrange'][0][2:] = [2, 6]
 
     dyson['DysSolver'] = "n" 
@@ -290,10 +223,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='GW convergence')
     parser.add_argument('-c'  ,'--convergence',  action="store_true", help='Run convergence calculations')
     parser.add_argument('-p'  ,'--plot', action="store_true",         help='Pack into json files and plot the convergence results')
-    parser.add_argument('-g'  ,'--gw', action="store_true",           help='Run a single GW calculation')
-    parser.add_argument('-r'  ,'--results', action="store_true",      help='Pack into json files and plot a single GW calculation')
     parser.add_argument('-x'  ,'--xi', action="store_true",           help='GW calculations for several approximations of the Screenning')
-    parser.add_argument('-xp' ,'--xp', action="store_true",           help='Plot GW results for COHSEX, PPA and RA')
+    parser.add_argument('-xp' ,'--xp', action="store_true",           help='Plot GW results for COHSEX and PPA')
     parser.add_argument('-z'  ,'--zeros', action="store_true",        help='GW calculations for Newton and Secant Solver')
     parser.add_argument('-zp' ,'--zp', action="store_true",           help='Plot GW results for Newton and Secant Solver')
 
@@ -306,8 +237,6 @@ if __name__ == "__main__":
     create_save()
     if args.convergence:    gw_convergence()
     if args.plot:           plot_convergence()
-    if args.gw:             gw()
-    if args.results:        plot_gw()
     if args.xi:             xi()
     if args.xp:             plot_xi()
     if args.zeros:          dyson_eq()

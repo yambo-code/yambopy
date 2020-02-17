@@ -120,7 +120,8 @@ def analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose=Fal
         ax = fig.add_subplot(1,1,1)
         ax.plot(convergence_data[:,0],convergence_data[:,1],'o-')
         ax.set_xlabel(var+' ('+unit+')')
-        ax.set_ylabel('E_gw = E_lda + \Delta E')
+        ax.set_ylabel('$E_{GW} = E_{LDA} + \Delta E$')
+        plt.show()
         fig.savefig('%s.png'%var)
 
 #

@@ -7,6 +7,7 @@ from yambopy import *
 from qepy import *
 from schedulerpy import *
 from functools import partial
+import matplotlib.pyplot as plt
 import multiprocessing
 import argparse
 import sys
@@ -28,8 +29,8 @@ def get_inputfile():
     """ Define a Quantum espresso input file for boron nitride
     """ 
     qe = PwIn()
-    qe.atoms = [['N',[ 0.0, 0.0,0.5]],
-                ['B',[1./3,2./3,0.5]]]
+    qe.set_atoms([['N',[ 0.0, 0.0,0.5]],
+                ['B',[1./3,2./3,0.5]]])
     qe.atypes = {'B': [10.811, "B.pbe-mt_fhi.UPF"],
                  'N': [14.0067,"N.pbe-mt_fhi.UPF"]}
 
@@ -74,8 +75,7 @@ def database(shell,output_folder,nscf_folder='nscf'):
     if not os.path.isdir('%s/SAVE'%output_folder):
         print('preparing yambo database...')
         shell.add_command('mkdir -p %s'%nscf_folder)
-        shell.add_command('pushd %s/%s.save; %s; %s'%(nscf_folder,prefix,p2y,yambo))
-        shell.add_command('popd')
+        shell.add_command('cd %s/%s.save; %s; %s; cd ../../../../'%(nscf_folder,prefix,p2y,yambo))
         shell.add_command('mv %s/%s.save/SAVE %s'%(nscf_folder,prefix,output_folder))
         print('done!')
 
@@ -102,8 +102,8 @@ def run_job(layer_separation,nthreads=1,work_folder='bse_cutoff',cut=False):
     print("scf cycle")
     print("kpoints",scf_kpoints)
     scf(layer_separation,folder="%s/scf"%root_folder)
-    shell.add_command("pushd %s/scf; mpirun -np %d %s < %s.scf > scf.log"%(root_folder,nthreads,pw,prefix))
-    shell.add_command("popd")
+    shell.add_command("cd %s/scf; mpirun -np %d %s < %s.scf > scf.log "%(root_folder,nthreads,pw,prefix))
+    shell.add_command("cd ../../../")
 
     # 2. run the non self consistent calculation
     print("nscf cycle")
@@ -113,8 +113,8 @@ def run_job(layer_separation,nthreads=1,work_folder='bse_cutoff',cut=False):
     nscf(layer_separation,folder="%s/nscf"%root_folder)
 
     shell.add_command('cp -r %s %s'%(src,dst) )
-    shell.add_command("pushd %s/nscf; mpirun -np %d %s < %s.nscf > nscf.log"%(root_folder,nthreads,pw,prefix))
-    shell.add_command('popd')
+    shell.add_command("cd %s/nscf; mpirun -np %d %s < %s.nscf > nscf.log"%(root_folder,nthreads,pw,prefix))
+    shell.add_command("cd ../../../" )
 
     # generate the database
     database(shell,'%s'%root_folder,nscf_folder="%s/nscf"%root_folder)
@@ -122,7 +122,7 @@ def run_job(layer_separation,nthreads=1,work_folder='bse_cutoff',cut=False):
     #wait for execution
 
     # 3. calculate the absorption spectra
-    y = YamboIn('mpirun -np %d yambo -r -b -o b -k sex -y d -V all'%nthreads,folder=root_folder)
+    y = YamboIn.from_runlevel('%s -r -b -o b -k sex -y d -V all'%yambo,executable=yambo,folder=root_folder)
 
     if cut:
         y['CUTGeo'] = 'box z'
@@ -142,7 +142,7 @@ def run_job(layer_separation,nthreads=1,work_folder='bse_cutoff',cut=False):
     y.write('%s/yambo_run.in'%root_folder)
 
     shell = scheduler()
-    shell.add_command('cd %s; %s -F yambo_run.in -J %d'%(root_folder,yambo,layer_separation))
+    shell.add_command('cd %s; mpirun -np %d %s -F yambo_run.in -J %d'%(root_folder,nthreads,yambo,layer_separation))
     shell.add_command('touch done')
     shell.run()
 
@@ -174,7 +174,7 @@ def plot(work_folder,filename,cut):
     #plot the results
     ya = YamboAnalyser(work_folder)
     print(ya)
-    ax = ya.plot_bse('eps',ax=ax)
+    ax = ya.plot_bse(('eps_q1'),cols=(2,),ax=ax)
 
     if cut: title = "with coulomb cutoff"
     else:   title = "without coulomb cutoff"
