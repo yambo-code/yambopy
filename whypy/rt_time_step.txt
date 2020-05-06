@@ -1,0 +1,40 @@
+Goal: whypy must find the optimal rt time step for a simulation
+
+Observations:
+- If t_step is too large, it will give nan
+- t_step must be converged
+
+What should happen: whypy receives an rt input, checks the length of the laser pulse, sets up a simulation time a bit above this length, then selects a variety of possible time steps and runs the simulations. It reads the results and compares the polarizations: when no new changes happen between two successive time steps, then it will take the larger one of the two as the converged one.
+
+What we need:
+- Minimal input from the user ->
+- Reading rt input and setting up inputs for the simulations ->
+    PROBLEM: no indication of maximum or minimum time steps
+    PROBLEM: need to understand how to set simulation length from laser pulse
+    PROBLEM: not clear if simulation length close to laser pulse duration will be enough
+- Creating folder structures for the simulations with automatic naming convention ->
+- Running simulations in groups of two and comparing every time ->
+- Keep track of which simulations are already done (e.g. recover/restart system) ->
+- Reading netcdf outputs for polarizations ->
+    PROBLEM: account for nan case
+- Perform analysis also with log file (comparison up to some tolerance)
+    PROBLEM: how to compare? Standard deviation of subsegments of total length is a start but not enough
+
+Hidden variables in input:
+- plotting or not
+- setting tolerance by hand
+- setting maximum and minimum t_steps by hand
+
+Optional:
+- Add live plotting of polarisations as an integrated option for each simulation ID
+
+WHAT I'M DOING RIGHT NOW:
+- Setting up test calculations with yambo_rt (TD-IP) on my machine
+- Familiarising with input and output types 
+
+ROBE DA CHIEDERE A DAVIDE:
+[1] Come settare time step e durate simulazioni iniziali
+[2] Contenuto dei file o-DATA.polarization
+[3] Contenuto dei database ndb.RT_OBSERVABLES_Time_X_fs nella variabile di polarization
+[4] Forma dell'impulso laser (durata e frequenza)
+[5] Come aggiungere uno scissor 
