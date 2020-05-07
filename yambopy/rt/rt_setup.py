@@ -2,7 +2,7 @@ import os
 from yambopy import *
 from schedulerpy import *
 
-class RTSetup():
+class YamboRTSetup():
     """
     Class to run the setup for RT calculations.
 

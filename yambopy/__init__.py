@@ -38,6 +38,8 @@ class yambopyenv():
     E2Y = "e2y"
     YPP = "ypp"
     SCHEDULER = "bash"
+    YAMBO_RT = "yambo_rt"
+    YPP_RT = "ypp_rt"
 
 #tools and units
 from yambopy.tools.jsonencoder import *
@@ -74,6 +76,7 @@ from yambopy.recipes import *
 #realtime files
 from yambopy.rt.rt_movie import *
 from yambopy.rt.rt_setup import *
+from yambopy.rt.rt_timestep_optimize import *
 
 #data
 from yambopy.data import *
