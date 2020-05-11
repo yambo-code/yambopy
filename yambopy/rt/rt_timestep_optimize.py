@@ -57,23 +57,30 @@ class YamboRTStep_Optimize():
 
     def COMPUTE_dipoles(self,DIP_folder='dipoles'):
         """
-        Compute the dipoles once and for all
+        Compute the dipoles once and for all:
+        In order for the dipoles to be compatible with a negf run 
+        [a default optics run does not produce compatible dipoles], 
+        the 'negf' argument is appended which causes the calculation to crash
+        *after* the dipoles are computed.
         """
-        ydipoles = YamboIn()
-        ydipoles.arguments.append('dipoles')
-        #ydipoles.arguments.append('negf')
-        ydipoles['DIP_ROLEs'] = self.yin['DIP_ROLEs']
-        ydipoles['DIP_CPU'] = self.yin['DIP_CPU']
-        ydipoles['HARRLvcs'] = self.yin['HARRLvcs']
-        ydipoles['DipBands'] = self.yin['DipBands']
-        ydipoles.write('%s/dipoles.in'%self.RUN_path)
-        print("Running dipoles...")
-        shell = self.scheduler()
-        shell.add_command('cd %s'%self.RUN_path)
-        #THIS must be replaced by a more advanced submission method
-        shell.add_command('%s -F dipoles.in -J %s -C %s 2> %s.log'%(self.yambo_rt,DIP_folder,DIP_folder,DIP_folder))
-        shell.run()
-        shell.clean() 
+        if not os.path.isfile('%s/ndb.dipoles'%DIP_folder):
+            ydipoles = YamboIn()
+            ydipoles.arguments.append('dipoles')
+            ydipoles.arguments.append('negf')
+            ydipoles['DIP_ROLEs'] = self.yin['DIP_ROLEs']
+            ydipoles['DIP_CPU'] = self.yin['DIP_CPU']
+            ydipoles['DipBands'] = self.yin['DipBands']
+            ydipoles.write('%s/dipoles.in'%self.RUN_path)
+            print("Running dipoles...")
+            shell = self.scheduler()
+            shell.add_command('cd %s'%self.RUN_path)
+            #THIS must be replaced by a more advanced submission method
+            shell.add_command('%s -F dipoles.in -J %s -C %s 2> %s.log'%(self.yambo_rt,DIP_folder,DIP_folder,DIP_folder))
+            shell.run()
+            shell.clean() 
+        else:
+            print("Dipoles found.")
+
         self.DIP_folder = DIP_folder
 
     def RUN_convergence(self,conv):
@@ -94,3 +101,8 @@ class YamboRTStep_Optimize():
             shell.clean()
 
         self.yin.optimize(conv,folder=self.RUN_path,run=run,ref_run=False)
+
+    #def READ_output()
+    #"""
+    #Read carriers and polarization data
+    #"""
