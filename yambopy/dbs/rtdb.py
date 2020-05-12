@@ -15,7 +15,7 @@ class YamboRTDB(object):
     So far treating COHERENT runs: reading polarization and carriers.
     """
 
-    def __init__(self,folder='.',calc='.',observablesdb='ndb.RT_OBSERVABLES',carriersdb='ndb.RT_carriers'):
+    def __init__(self,folder='.',calc='.',observablesdb='ndb.RT_OBSERVABLES',carriersdb='ndb.output_carriers'):
         # Find path with RT data
         obspath = '%s/%s/%s'%(folder,calc,observablesdb)
         carrpath = '%s/%s/%s'%(folder,calc,carriersdb)
@@ -48,8 +48,9 @@ class YamboRTDB(object):
 
     def read_carriers(self,database):
         """
-        Read carriers
+        Read output carriers
         """
+        self.diff_carriers = database.variables['carriers_values'][:,1] #Only N_e-N_h        
 
     def __str__(self):
         s = ""
