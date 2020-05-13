@@ -143,16 +143,39 @@ class YamboRTStep_Optimize():
             shell.run()
             shell.clean()
 
-
+        time_steps = self.time_steps
+        lwidth=0.8
+        ts_colors = ['blue','green','red','orange','cyan'] #Hardcoded. Put color scale
+        # Plot for each time step
         for ts in range(len(self.RToutput)):
         
             times = self.times[ts]
             pol   = self.RToutput[ts].polarization
-            plt.figure()
-            ax = plt.gca()    
-            ax.plot(times, pol[0], '-', label='pol-x')
-            plt.legend()
-            
+            pol_sq = pol[0]*pol[0] + pol[1]*pol[1] + pol[2]*pol[2]
+            f, (axes) = plt.subplots(4,1,sharex=True)
+            axes[0].plot(times, pol[0], '-', lw=lwidth, color='blue',  label='pol-x')
+            axes[1].plot(times, pol[1], '-', lw=lwidth, color='green', label='pol-y') 
+            axes[2].plot(times, pol[2], '-', lw=lwidth, color='red',   label='pol-z')
+            axes[3].plot(times, pol_sq, '-', lw=lwidth, color='orange',label='|pol|^2')
+            for ax in axes:
+                ax.axhline(0.,lw=0.5,color='gray',zorder=-5)
+                ax.legend(loc='upper left')
+            f.tight_layout()
+             
             plt.savefig('%s/polarizations_%das.png'%(out_dir,self.time_steps[ts]),format='png',dpi=150)
+        # Plot for all time steps
+        f, (axes) = plt.subplots(4,1,sharex=True)
+        for ts in range(len(self.RToutput)):
+            times = self.times[ts]
+            pol   = self.RToutput[ts].polarization
+            pol_sq = pol[0]*pol[0] + pol[1]*pol[1] + pol[2]*pol[2]
+            axes[0].plot(times, pol[0], '-', lw=lwidth, color=ts_colors[ts], label=time_steps[ts])
+            axes[1].plot(times, pol[1], '-', lw=lwidth, color=ts_colors[ts], label=time_steps[ts])
+            axes[2].plot(times, pol[2], '-', lw=lwidth, color=ts_colors[ts], label=time_steps[ts])
+            axes[3].plot(times, pol_sq, '-', lw=lwidth, color=ts_colors[ts], label=time_steps[ts])
+        for ax in axes:
+            ax.axhline(0.,lw=0.5,color='gray',zorder=-5)
+            #ax.legend(loc='upper left')
+        f.tight_layout()
 
-    
+        plt.savefig('%s/polarizations_comparison.png'%out_dir,format='png',dpi=150) 
