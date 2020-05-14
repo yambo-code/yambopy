@@ -14,7 +14,7 @@ class YamboRTSetup():
 
         .. code-block:: python
         
-            RTSetup(FIELD_direction,QE_prefix,nscf=nscf_path,database=save_path)
+            YamboRTSetup(FIELD_direction,QE_prefix,nscf=nscf_path,database=save_path)
 
     TO DO: make it a command-line tool
     """

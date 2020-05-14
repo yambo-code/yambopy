@@ -2,24 +2,30 @@ from yambopy import *
 from schedulerpy import *
 import os
 
+def int_round(value):
+    return int(round(value))
+
 class YamboRTStep_Optimize():
     """ 
     Class to run convergence tests for the RT time step.
+
+    Note: time steps must be given in as units.    
 
     Example of use:
 
         .. code-block:: python
     
-            RTStep_Optimize(input_path,SAVE_path,RUN_path)
+            YamboRTStep_Optimize(input_path,SAVE_path,RUN_path)
 
     SO FAR: creation of folder structure and running of the TD simulations
-    TO DO: (1) output reading; 
-           (2) option to produce figures/plot for analysis in specific folders
+    TO DO: (1) output reading; DONE 
+           (2) option to produce figures/plot for analysis in specific folders; DONE
+           (3) database_manager: separate class that is called if db_manager is True; prints the __str__ function of this class (to be coded) along with timestamp in specific file that is checked. If printed info are present, calculations move to a different folder, if not, file is added. If db_manager is False, this doesn't happen. Database manager can also be called with 'retrieve_info' function to display contents of file (maybe with yamboin format)
            (3) calculation of optimal time step(s)
            (4) dynamic convergence runs
     """
 
-    def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt'):
+    def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',TSteps_min_max=[5,25],NSimulations=5,db_manager=True):
     
         self.scheduler = Scheduler.factory
         input_path, input_name = input_path.rsplit('/',1)
@@ -28,6 +34,8 @@ class YamboRTStep_Optimize():
         self.yambo_rt = yambo_rt
 
         self.ref_time = 30. #Simulation duration (fs) after field ends.
+        self.TSteps_min_max = TSteps_min_max
+        self.NSimulations = NSimulations
 
         self.create_folder_structure(SAVE_path)
         
@@ -56,20 +64,39 @@ class YamboRTStep_Optimize():
         """ 
         Determine time step values to be run and simulation lengths.
         """
-        #QSSIN field type to implement
+
+        #Check which laser is used
         if self.yin['Field1_kind']=="DELTA":
             print("Field kind: DELTA")
-            NETime = self.ref_time 
-            self.yin['NETime'] = [ NETime, 'fs' ] 
+            FieldTime = 0.
 
-        self.time_steps = [5,10,11,12,15] #Hardcoded. To do: dynamical
-        conv = { 'RTstep': [[1,5,10,11,12,15],'as'] }
+        if self.yin['Field1_kind']=="QSSIN":
+            print("Field kind: QSSIN")
+            if 'Field1_FWHM' in self.yin.variables.keys():
+                if self.yin['Field1_FWHM']==0.:
+                    print("Please use the variable Field1_FWHM to set field width (not Field1_kind)")
+                    print("Exiting...")
+                    exit()
+            else:
+                print("Please use the variable Field1_FWHM to set field width (not Field1_Width)")
+                print("Exiting...")
+                exit()
+            print("with FWHM: %f %s"%(self.yin['Field1_FWHM'][0],self.yin['Field1_FWHM'][1]))
+            FieldTime = 6.*self.yin['Field1_FWHM'][0]            
+
+        #Set simulations duration            
+        NETime = FieldTime + self.ref_time 
+        self.yin['NETime'] = [ NETime, 'fs' ]
+        self.NETime = NETime
+        print("Total duration of simulation set to: %f fs"%NETime)
+
+        #Set time steps
+        nstep = (self.TSteps_min_max[1]-self.TSteps_min_max[0])/(self.NSimulations-1.)
+        self.time_steps=[int_round(self.TSteps_min_max[0]+nstep*i) for i in range(self.NSimulations)]
+        if self.time_steps[-1] != self.TSteps_min_max[-1]: 
+            self.TSteps_min_max[-1]==self.time_step[-1]
+        conv = { 'RTstep': [ [self.time_steps[0]]+self.time_steps,'as'] }
  
-        from math import floor
-        ts_fs = np.array(self.time_steps)/1000.
-        itimes = np.array([ floor( NETime / ts ) + 1 for ts in ts_fs ])
-        self.times=np.array([ [it*ts_fs[i] for it in range(itimes[i])] for i in range(len(ts_fs)) ])
-
         return conv
 
     def COMPUTE_dipoles(self,DIP_folder='dipoles'):
@@ -122,6 +149,8 @@ class YamboRTStep_Optimize():
             out_dir = '%s/%s'%(self.RUN_path,folder)
             RToutput.append(YamboRTDB(calc=out_dir)) #Read output
 
+        print("Running %d simulations for time steps from %d to %d as"%(self.NSimulations,self.TSteps_min_max[0],self.TSteps_min_max[1]))
+
         self.yin.optimize(conv,folder=self.RUN_path,run=run,ref_run=False)
         self.RToutput = RToutput
 
@@ -145,13 +174,14 @@ class YamboRTStep_Optimize():
 
         time_steps = self.time_steps
         lwidth=0.8
-        ts_colors = ['blue','green','red','orange','cyan'] #Hardcoded. Put color scale
+        ts_colors = plt.cm.gist_rainbow(np.linspace(0.,1.,num=self.NSimulations))
+
         # Plot for each time step
         for ts in range(len(self.RToutput)):
         
-            times = self.times[ts]
             pol   = self.RToutput[ts].polarization
             pol_sq = pol[0]*pol[0] + pol[1]*pol[1] + pol[2]*pol[2]
+            times = np.linspace(0.,self.NETime,num=pol.shape[1])
             f, (axes) = plt.subplots(4,1,sharex=True)
             axes[0].plot(times, pol[0], '-', lw=lwidth, color='blue',  label='pol-x')
             axes[1].plot(times, pol[1], '-', lw=lwidth, color='green', label='pol-y') 
@@ -166,9 +196,10 @@ class YamboRTStep_Optimize():
         # Plot for all time steps
         f, (axes) = plt.subplots(4,1,sharex=True)
         for ts in range(len(self.RToutput)):
-            times = self.times[ts]
+
             pol   = self.RToutput[ts].polarization
             pol_sq = pol[0]*pol[0] + pol[1]*pol[1] + pol[2]*pol[2]
+            times = np.linspace(0.,self.NETime,num=pol.shape[1])
             axes[0].plot(times, pol[0], '-', lw=lwidth, color=ts_colors[ts], label=time_steps[ts])
             axes[1].plot(times, pol[1], '-', lw=lwidth, color=ts_colors[ts], label=time_steps[ts])
             axes[2].plot(times, pol[2], '-', lw=lwidth, color=ts_colors[ts], label=time_steps[ts])
