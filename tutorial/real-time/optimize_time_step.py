@@ -14,4 +14,6 @@ if __name__ == "__main__":
         sys.exit(1)
 
     SAVE_path = 'database/FixSymm/SAVE'    
-    YamboRTStep_Optimize(input_path=args.input_file,SAVE_path=SAVE_path)
+    #YamboRTStep_Optimize(input_path=args.input_file,SAVE_path=SAVE_path)
+    #YamboRTStep_Optimize(input_path=args.input_file,SAVE_path=SAVE_path,RUN_path='RT_test_SimNumber',NSimulations=7)
+    YamboRTStep_Optimize(input_path=args.input_file,SAVE_path=SAVE_path,RUN_path='RT_test_QSSIN',NSimulations=5)
