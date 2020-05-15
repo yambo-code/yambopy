@@ -35,11 +35,12 @@ NETime= 30.000000      fs      # [RT] Simulation Time
  0.050000 | 5.000000 | 0.100000 |  fs    # [RT] Time between to consecutive I/O (OBSERVABLEs,CARRIERs - GF - OUTPUT)
 %
 % Field1_Freq
- 0.0000000 | 0.0000000 | eV      # [RT Field1] Frequency
+ 4.5000000 | 4.5000000 | eV      # [RT Field1] Frequency
 %
 Field1_Int= 1.E3   kWLm2   # [RT Field1] Intensity
-Field1_Width= 0.000000 fs      # [RT Field1] Width
-Field1_kind= "DELTA"            # [RT Field1] Kind(SIN|RES|ANTIRES|GAUSS|DELTA|QSSIN)
+Field1_Width= 10.000000 fs      # [RT Field1] Width
+Field1_FWHM = 10.00 fs
+Field1_kind= "QSSIN"            # [RT Field1] Kind(SIN|RES|ANTIRES|GAUSS|DELTA|QSSIN)
 Field1_pol= "linear"             # [RT Field1] Pol(linear|circular)
 % Field1_Dir
  1.000000 | 0.000000 | 0.000000 |        # [RT Field1] Versor
