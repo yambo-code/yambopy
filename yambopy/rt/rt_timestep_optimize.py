@@ -15,17 +15,16 @@ class YamboRTStep_Optimize():
 
         .. code-block:: python
     
-            YamboRTStep_Optimize(input_path,SAVE_path,RUN_path)
+            YamboRTStep_Optimize(input_path,SAVE_path,RUN_path,TSteps_min_max,NSimulations)
 
-    SO FAR: creation of folder structure and running of the TD simulations
-    TO DO: (1) output reading; DONE 
-           (2) option to produce figures/plot for analysis in specific folders; DONE
-           (3) database_manager: separate class that is called if db_manager is True; prints the __str__ function of this class (to be coded) along with timestamp in specific file that is checked. If printed info are present, calculations move to a different folder, if not, file is added. If db_manager is False, this doesn't happen. Database manager can also be called with 'retrieve_info' function to display contents of file (maybe with yamboin format)
-           (3) calculation of optimal time step(s)
-           (4) dynamic convergence runs
+        TO DO:
+           (1) database_manager: separate class that is called if db_manager is True; prints the __str__ function of this class (to be coded) along with timestamp in specific file that is checked. If printed info are present, calculations move to a different folder, if not, file is added. If db_manager is False, this doesn't happen. Database manager can also be called with 'retrieve_info' function to display contents of file (maybe with yamboin format)
+           (2) Scheduler fit for cluster submission
+           (3) Replace prints with output file (dedicated class?)
+           (2) determination of optimal time step(s): TWO OUT OF FOUR STEPS DONE
     """
 
-    def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',TSteps_min_max=[5,25],NSimulations=5,db_manager=True):
+    def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',TSteps_min_max=[5,50],NSimulations=5,db_manager=True,tol_eh=1e-6,tol_pol=1e-3):
     
         self.scheduler = Scheduler.factory
         input_path, input_name = input_path.rsplit('/',1)
@@ -33,9 +32,11 @@ class YamboRTStep_Optimize():
         self.RUN_path = RUN_path
         self.yambo_rt = yambo_rt
 
-        self.ref_time = 30. #Simulation duration (fs) after field ends.
+        self.ref_time = 30. #Simulation duration (fs) after field ends. HARDCODED.
         self.TSteps_min_max = TSteps_min_max
         self.NSimulations = NSimulations
+        self.tol_eh = tol_eh
+        self.tol_pol= tol_pol
 
         self.create_folder_structure(SAVE_path)
         
@@ -43,6 +44,7 @@ class YamboRTStep_Optimize():
         conv = self.FIND_values()
         self.RUN_convergence(conv)
 
+        self.ANALYSE_output()
         self.PLOT_output()
 
     def create_folder_structure(self,SAVE_path):
@@ -83,6 +85,8 @@ class YamboRTStep_Optimize():
                 exit()
             print("with FWHM: %f %s"%(self.yin['Field1_FWHM'][0],self.yin['Field1_FWHM'][1]))
             FieldTime = 6.*self.yin['Field1_FWHM'][0]            
+
+        print("Field direction: %s"%(str(self.yin['Field1_Dir'][0])))
 
         #Set simulations duration            
         NETime = FieldTime + self.ref_time 
@@ -134,6 +138,7 @@ class YamboRTStep_Optimize():
         print("Running RT time step convergence...")
 
         RToutput = []
+        NaN_check = []
         def run(filename):
             """ Function to be called by the optimize function """
             folder = filename.split('.')[0]
@@ -147,17 +152,73 @@ class YamboRTStep_Optimize():
             shell.clean()
 
             out_dir = '%s/%s'%(self.RUN_path,folder)
-            RToutput.append(YamboRTDB(calc=out_dir)) #Read output
+            #Read output
+            RTDB = YamboRTDB(calc=out_dir)
+            RToutput_no_nan, NaN_test = self.check_nan(RTDB)
+            NaN_check.append(NaN_test)
+            RToutput.append(RToutput_no_nan) 
 
         print("Running %d simulations for time steps from %d to %d as"%(self.NSimulations,self.TSteps_min_max[0],self.TSteps_min_max[1]))
 
         self.yin.optimize(conv,folder=self.RUN_path,run=run,ref_run=False)
         self.RToutput = RToutput
+        self.NaN_check = NaN_check
 
-    #def ANALYSE_output():
-    #"""
-    #Analyse carriers and polarization data to get optimal time step
-    #"""
+    def check_nan(self,RTDB):
+        """ 
+        Check computed polarizations for NaN values.
+        """
+        NaN_test = True
+        if np.isnan(RTDB.polarization).any(): 
+            RTDB.polarization = np.nan_to_num(RTDB.polarization)
+            Nan_test = False
+            print("[WARNING] Yambo produced NaN values during this run")
+            
+        return RTDB, NaN_test
+
+    def ANALYSE_output(self):
+        """
+        Driver to analyse output and provide a suggestion for an optimal time step.
+        - There are two values of tolerance: one for carriers, one for polarization
+        - Four increasingly stringent checks are performed: 
+            [1] NaN check to exclude botched runs
+            [2] Conservation of electron number check 
+            [3] Error check of |pol|^2 (assuming lowest time step as reference)
+            [4] Error check of pol along the field direction
+        """
+        print("---------- ANALYSIS ----------")
+        list_passed = [ts for ts,sim in enumerate(self.NaN_check) if sim]
+        print("[1] NaN test:")
+        print("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
+        eh_check = self.electron_conservation_test(list_passed) 
+        list_passed = [ts for ts,sim in enumerate(eh_check) if sim]
+        print("[2] Conservation of electron number test (tol=%.0e):"%self.tol_eh)
+        print("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
+        #pol2_check = self.pol_squared_error_test(list_passed)
+        print("Based on the analysis, the suggested time step is: ")
+        if len(list_passed)==0.:
+            print("### NONE of the time step values considered passed the tests!")
+            print("### Consider decreasing the time steps and trying again.")
+        else:
+            print("### %d as ###"%self.time_steps[list_passed[-1]])
+        print("------------------------------")
+
+    def electron_conservation_test(self,sims):
+        """
+        Tests if elements of diff_carriers are greater than tolerance.
+        If any of them is, then the simulation in question has not passed the eh_test.
+        """
+        eh_check = []
+        for ts in sims:
+            eh_test = True
+            eh_carriers = np.greater(self.RToutput[ts].diff_carriers,self.tol_eh)
+            if any(eh_carriers): eh_test = False
+            eh_check.append(eh_test)
+        return eh_check
+
+    #def pol_squared_error_test(self,sims):
+        
+
     def PLOT_output(self,save_dir='plots'):
         """
         Generic plots generated by default, to be accessed by the user
@@ -177,7 +238,7 @@ class YamboRTStep_Optimize():
         ts_colors = plt.cm.gist_rainbow(np.linspace(0.,1.,num=self.NSimulations))
 
         # Plot for each time step
-        for ts in range(len(self.RToutput)):
+        for ts in range(self.NSimulations):
         
             pol   = self.RToutput[ts].polarization
             pol_sq = pol[0]*pol[0] + pol[1]*pol[1] + pol[2]*pol[2]
@@ -193,20 +254,44 @@ class YamboRTStep_Optimize():
             f.tight_layout()
              
             plt.savefig('%s/polarizations_%das.png'%(out_dir,self.time_steps[ts]),format='png',dpi=150)
+
         # Plot for all time steps
         f, (axes) = plt.subplots(4,1,sharex=True)
-        for ts in range(len(self.RToutput)):
+        for ts in range(self.NSimulations):
 
+            label = '%das'%time_steps[ts]
             pol   = self.RToutput[ts].polarization
             pol_sq = pol[0]*pol[0] + pol[1]*pol[1] + pol[2]*pol[2]
             times = np.linspace(0.,self.NETime,num=pol.shape[1])
-            axes[0].plot(times, pol[0], '-', lw=lwidth, color=ts_colors[ts], label=time_steps[ts])
-            axes[1].plot(times, pol[1], '-', lw=lwidth, color=ts_colors[ts], label=time_steps[ts])
-            axes[2].plot(times, pol[2], '-', lw=lwidth, color=ts_colors[ts], label=time_steps[ts])
-            axes[3].plot(times, pol_sq, '-', lw=lwidth, color=ts_colors[ts], label=time_steps[ts])
-        for ax in axes:
-            ax.axhline(0.,lw=0.5,color='gray',zorder=-5)
-            #ax.legend(loc='upper left')
+            axes[0].plot(times, pol[0], '-', lw=lwidth, color=ts_colors[ts], label=label)
+            axes[1].plot(times, pol[1], '-', lw=lwidth, color=ts_colors[ts], label=label)
+            axes[2].plot(times, pol[2], '-', lw=lwidth, color=ts_colors[ts], label=label)
+            axes[3].plot(times, pol_sq, '-', lw=lwidth, color=ts_colors[ts], label=label)
+            handles, labels = axes[3].get_legend_handles_labels()
+        for ax in axes: ax.axhline(0.,lw=0.5,color='gray',zorder=-5)
+        
+        f.legend(handles, labels, loc='center right')
         f.tight_layout()
 
         plt.savefig('%s/polarizations_comparison.png'%out_dir,format='png',dpi=150) 
+
+        # Plot for all time steps along field direction
+        field = self.yin['Field1_Dir']
+        if field[0]!=0.:   dr,pol_label=[0,'pol-x'] 
+        elif field[1]!=0.: dr,pol_label=[0,'pol-y']
+        elif field[2]!=0.: dr,pol_label=[0,'pol-z']
+        else:              dr,pol_label=[0,'pol-x']
+        f, (axes) = plt.subplots(self.NSimulations,1,sharex=True)
+        for ts in range(self.NSimulations):
+    
+            pol = self.RToutput[ts].polarization
+            times = np.linspace(0.,self.NETime,num=pol.shape[1])
+            pol_ts_label = "%s_%das"%(pol_label,time_steps[ts])
+            axes[ts].plot(times, pol[dr], '-', lw=lwidth, color=ts_colors[ts], label=pol_ts_label) 
+        for ax in axes:
+            ax.axhline(0.,lw=0.5,color='gray',zorder=-5)
+            ax.legend(loc='upper left')
+        f.tight_layout()        
+
+        plt.savefig('%s/polarizations_field_direction.png'%out_dir,format='png',dpi=150)
+            
