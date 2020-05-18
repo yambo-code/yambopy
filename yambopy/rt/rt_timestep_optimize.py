@@ -5,6 +5,25 @@ import os
 def int_round(value):
     return int(round(value))
 
+def is_exactly_divisible(num,den,step=0):
+    num_test = num - step
+    if num_test % den ==0:
+        return num_test,step
+    else:
+        step_new = step+1
+        return is_exactly_divisible(num,den,step=step_new)
+
+def relative_error(values,reference,tol):
+    """
+    Computes relative error (as deviation from reference) of values.
+    """    
+    err = 0.
+    for iv,value in enumerate(values):
+        err_tmp = ( (value-reference[iv])/tol )**2.
+        err += err_tmp
+    global_error = np.sqrt( err/len(values) )
+    return global_error
+
 class YamboRTStep_Optimize():
     """ 
     Class to run convergence tests for the RT time step.
@@ -21,10 +40,9 @@ class YamboRTStep_Optimize():
            (1) database_manager: separate class that is called if db_manager is True; prints the __str__ function of this class (to be coded) along with timestamp in specific file that is checked. If printed info are present, calculations move to a different folder, if not, file is added. If db_manager is False, this doesn't happen. Database manager can also be called with 'retrieve_info' function to display contents of file (maybe with yamboin format)
            (2) Scheduler fit for cluster submission
            (3) Replace prints with output file (dedicated class?)
-           (2) determination of optimal time step(s): TWO OUT OF FOUR STEPS DONE
     """
 
-    def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',TSteps_min_max=[5,50],NSimulations=5,db_manager=True,tol_eh=1e-6,tol_pol=1e-3):
+    def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',TSteps_min_max=[5,50],NSimulations=5,db_manager=True,tol_eh=1e-6,tol_pol=1e-4):
     
         self.scheduler = Scheduler.factory
         input_path, input_name = input_path.rsplit('/',1)
@@ -194,7 +212,15 @@ class YamboRTStep_Optimize():
         list_passed = [ts for ts,sim in enumerate(eh_check) if sim]
         print("[2] Conservation of electron number test (tol=%.0e):"%self.tol_eh)
         print("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
-        #pol2_check = self.pol_squared_error_test(list_passed)
+        pol_sq_check = self.pol_error_test(list_passed,which_pol='pol_sq')
+        list_passed = [ts for ts,sim in enumerate(pol_sq_check) if sim]
+        print("[3] Error in |pol|^2 test (tol=%.0e):"%self.tol_pol)
+        print("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
+        pol_x_check = self.pol_error_test(list_passed,which_pol='pol_along_field')
+        list_passed = [ts for ts,sim in enumerate(pol_x_check) if sim]
+        print("[4] Error in pol along field test (tol=%.0e):"%self.tol_pol)
+        print("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
+        print(" ")
         print("Based on the analysis, the suggested time step is: ")
         if len(list_passed)==0.:
             print("### NONE of the time step values considered passed the tests!")
@@ -216,8 +242,48 @@ class YamboRTStep_Optimize():
             eh_check.append(eh_test)
         return eh_check
 
-    #def pol_squared_error_test(self,sims):
-        
+    def pol_error_test(self,sims,which_pol):
+        """
+        Bins the pol array into 5 fs intervals after the laser, computes the means
+        of the various bins, and compares them to the means of the reference time step.
+        The test is passed if all the means are within tolerance.
+        """
+        #Set up binning for different lasers, time steps
+        ratio_laser = self.ref_time/self.NETime
+        n_bins = int(self.ref_time/5) #[WARNING] self.ret_time must be in fs and divisible by 5
+        bins_average = np.zeros([len(sims),n_bins])
+        for i,ts in enumerate(sims):
+            pol   = self.RToutput[ts].polarization    
+            if which_pol == 'pol_sq':  # Test for |pol|^2
+                pol_analyse = pol[0]*pol[0] + pol[1]*pol[1] + pol[2]*pol[2] 
+            if which_pol == 'pol_along_field': # Test for pol along field
+                dr, _ = self.pol_along_field()
+                pol_analyse = pol[dr]
+            l_tmp = len(pol_analyse)
+            cut_pol = int_round((1.-ratio_laser)*l_tmp)
+            l_pol = len(pol_analyse[cut_pol:])
+            new_l, steps = is_exactly_divisible(l_pol,n_bins)
+
+            #Do the binning and compute the mean
+            bins_ts = pol_analyse[cut_pol+steps:].reshape(-1,n_bins)
+            bins_average[i]=bins_ts.mean(axis=0)
+ 
+        #Perform the test
+        pol_check = []
+        for i in range(len(sims)):
+            error = relative_error(bins_average[i],bins_average[0],self.tol_pol)
+            if error< 1.: pol_check.append(True)
+            else:         pol_check.append(False)        
+
+        return pol_check
+ 
+    def pol_along_field(self):
+        field = self.yin['Field1_Dir']
+        if field[0]!=0.:   dr,pol_label=[0,'pol-x']
+        elif field[1]!=0.: dr,pol_label=[0,'pol-y']
+        elif field[2]!=0.: dr,pol_label=[0,'pol-z']
+        else:              dr,pol_label=[0,'pol-x']
+        return dr,pol_label
 
     def PLOT_output(self,save_dir='plots'):
         """
@@ -276,11 +342,7 @@ class YamboRTStep_Optimize():
         plt.savefig('%s/polarizations_comparison.png'%out_dir,format='png',dpi=150) 
 
         # Plot for all time steps along field direction
-        field = self.yin['Field1_Dir']
-        if field[0]!=0.:   dr,pol_label=[0,'pol-x'] 
-        elif field[1]!=0.: dr,pol_label=[0,'pol-y']
-        elif field[2]!=0.: dr,pol_label=[0,'pol-z']
-        else:              dr,pol_label=[0,'pol-x']
+        dr, pol_label = self.pol_along_field()
         f, (axes) = plt.subplots(self.NSimulations,1,sharex=True)
         for ts in range(self.NSimulations):
     
