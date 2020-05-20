@@ -38,9 +38,7 @@ class YamboRTStep_Optimize():
             YamboRTStep_Optimize(input_path,SAVE_path,RUN_path,TSteps_min_max,NSimulations)
 
         TO DO:
-           (1) database_manager: separate class that is called if db_manager is True; prints the __str__ function of this class (to be coded) along with timestamp in specific file that is checked. If printed info are present, calculations move to a different folder, if not, file is added. If db_manager is False, this doesn't happen. Database manager can also be called with 'retrieve_info' function to display contents of file (maybe with yamboin format)
-           (2) Scheduler fit for cluster submission
-           (3) Replace prints with output file (dedicated class?)
+           (2) New tests for polarization
     """
 
     def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',TSteps_min_max=[5,50],NSimulations=5,db_manager=True,tol_eh=1e-4,tol_pol=1e-4):
@@ -58,6 +56,9 @@ class YamboRTStep_Optimize():
         self.tol_pol= tol_pol
 
         self.create_folder_structure(SAVE_path)
+
+        self.yf = YamboIO(out_name='YAMBOPY_RTStepConvergence.log',out_path=self.RUN_path,print_to_shell=True)
+        self.yf.IO_start()
         
         self.COMPUTE_dipoles()
         conv = self.FIND_values()
@@ -65,6 +66,8 @@ class YamboRTStep_Optimize():
 
         self.ANALYSE_output()
         self.PLOT_output()
+
+        self.yf.IO_close()
 
     def create_folder_structure(self,SAVE_path):
         
@@ -88,30 +91,30 @@ class YamboRTStep_Optimize():
 
         #Check which laser is used
         if self.yin['Field1_kind']=="DELTA":
-            print("Field kind: DELTA")
+            self.yf.msg("Field kind: DELTA")
             FieldTime = 0.
 
         if self.yin['Field1_kind']=="QSSIN":
-            print("Field kind: QSSIN")
+            self.yf.msg("Field kind: QSSIN")
             if 'Field1_FWHM' in self.yin.variables.keys():
                 if self.yin['Field1_FWHM']==0.:
-                    print("Please use the variable Field1_FWHM to set field width (not Field1_kind)")
-                    print("Exiting...")
+                    self.yf.msg("Please use the variable Field1_FWHM to set field width (not Field1_kind)")
+                    self.yf.msg("Exiting...")
                     exit()
             else:
-                print("Please use the variable Field1_FWHM to set field width (not Field1_Width)")
-                print("Exiting...")
+                self.yf.msg("Please use the variable Field1_FWHM to set field width (not Field1_Width)")
+                self.yf.msg("Exiting...")
                 exit()
-            print("with FWHM: %f %s"%(self.yin['Field1_FWHM'][0],self.yin['Field1_FWHM'][1]))
+            self.yf.msg("with FWHM: %f %s"%(self.yin['Field1_FWHM'][0],self.yin['Field1_FWHM'][1]))
             FieldTime = 6.*self.yin['Field1_FWHM'][0]            
 
-        print("Field direction: %s"%(str(self.yin['Field1_Dir'][0])))
+        self.yf.msg("Field direction: %s"%(str(self.yin['Field1_Dir'][0])))
 
         #Set simulations duration            
         NETime = FieldTime + self.ref_time 
         self.yin['NETime'] = [ NETime, 'fs' ]
         self.NETime = NETime
-        print("Total duration of simulation set to: %f fs"%NETime)
+        self.yf.msg("Total duration of simulation set to: %f fs"%NETime)
 
         #Set time steps
         nstep = (self.TSteps_min_max[1]-self.TSteps_min_max[0])/(self.NSimulations-1.)
@@ -138,7 +141,7 @@ class YamboRTStep_Optimize():
             ydipoles['DIP_CPU'] = self.yin['DIP_CPU']
             ydipoles['DipBands'] = self.yin['DipBands']
             ydipoles.write('%s/dipoles.in'%self.RUN_path)
-            print("Running dipoles...")
+            self.yf.msg("Running dipoles...")
             shell = self.scheduler()
             shell.add_command('cd %s'%self.RUN_path)
             #THIS must be replaced by a more advanced submission method
@@ -146,7 +149,7 @@ class YamboRTStep_Optimize():
             shell.run()
             shell.clean() 
         else:
-            print("Dipoles found.")
+            self.yf.msg("Dipoles found.")
 
         self.DIP_folder = DIP_folder
 
@@ -154,7 +157,7 @@ class YamboRTStep_Optimize():
         """
         Run the yambo_rt calculations
         """
-        print("Running RT time step convergence...")
+        self.yf.msg("Running RT time step convergence...")
 
         RToutput = []
         NaN_check = []
@@ -162,7 +165,7 @@ class YamboRTStep_Optimize():
             """ Function to be called by the optimize function """
             folder = filename.split('.')[0]
             folder = folder + conv.get('RTstep')[1] #Add time step units
-            print(filename,folder)
+            self.yf.msg('%s %s'%(filename,folder))
             shell = self.scheduler()
             shell.add_command('cd %s'%self.RUN_path)
             #THIS must be replaced by a more advanced submission method
@@ -177,7 +180,7 @@ class YamboRTStep_Optimize():
             NaN_check.append(NaN_test)
             RToutput.append(RToutput_no_nan) 
 
-        print("Running %d simulations for time steps from %d to %d as"%(self.NSimulations,self.TSteps_min_max[0],self.TSteps_min_max[1]))
+        self.yf.msg("Running %d simulations for time steps from %d to %d as"%(self.NSimulations,self.TSteps_min_max[0],self.TSteps_min_max[1]))
 
         self.yin.optimize(conv,folder=self.RUN_path,run=run,ref_run=False)
         self.RToutput = RToutput
@@ -192,12 +195,12 @@ class YamboRTStep_Optimize():
         if np.isnan(RTDB.polarization).any() or np.isnan(RTDB.diff_carriers).any(): 
             RTDB.polarization = np.nan_to_num(RTDB.polarization) #Set to zero for plots
             NaN_test = False 
-            print("[WARNING] Yambo produced NaN values during this run")
+            self.yf.msg("[WARNING] Yambo produced NaN values during this run")
         # Check for +/-Infinity
         if np.greater(np.abs(RTDB.polarization),overflow).any():
             RTDB.polarization[np.abs(RTDB.polarization)>overflow] = 0. #Set to zero for plots
             NaN_test = False
-            print("[WARNING] Yambo produced Infinity values during this run")           
+            self.yf.msg("[WARNING] Yambo produced Infinity values during this run")           
  
         return RTDB, NaN_test
 
@@ -211,30 +214,30 @@ class YamboRTStep_Optimize():
             [3] Error check of |pol|^2 (assuming lowest time step as reference)
             [4] Error check of pol along the field direction
         """
-        print("---------- ANALYSIS ----------")
+        self.yf.msg("---------- ANALYSIS ----------")
         list_passed = [ts for ts,sim in enumerate(self.NaN_check) if sim]
-        print("[1] NaN and overflow test:")
-        print("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
+        self.yf.msg("[1] NaN and overflow test:")
+        self.yf.msg("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
         eh_check = self.electron_conservation_test(list_passed) 
         list_passed = [ts for ts,sim in enumerate(eh_check) if sim]
-        print("[2] Conservation of electron number test (tol=%.0e):"%self.tol_eh)
-        print("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
+        self.yf.msg("[2] Conservation of electron number test (tol=%.0e):"%self.tol_eh)
+        self.yf.msg("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
         pol_sq_check = self.pol_error_test(list_passed,which_pol='pol_sq')
         list_passed = [ts for ts,sim in enumerate(pol_sq_check) if sim]
-        print("[3] Error in |pol|^2 test (tol=%.0e):"%self.tol_pol)
-        print("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
+        self.yf.msg("[3] Error in |pol|^2 test (tol=%.0e):"%self.tol_pol)
+        self.yf.msg("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
         pol_x_check = self.pol_error_test(list_passed,which_pol='pol_along_field')
         list_passed = [ts for ts,sim in enumerate(pol_x_check) if sim]
-        print("[4] Error in pol along field test (tol=%.0e):"%self.tol_pol)
-        print("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
-        print(" ")
-        print("Based on the analysis, the suggested time step is: ")
+        self.yf.msg("[4] Error in pol along field test (tol=%.0e):"%self.tol_pol)
+        self.yf.msg("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
+        self.yf.msg(" ")
+        self.yf.msg("Based on the analysis, the suggested time step is: ")
         if len(list_passed)==0.:
-            print("### NONE of the time step values considered passed the tests!")
-            print("### Consider decreasing the time steps and trying again.")
+            self.yf.msg("### NONE of the time step values considered passed the tests!")
+            self.yf.msg("### Consider decreasing the time steps and trying again.")
         else:
-            print("### %d as ###"%self.time_steps[list_passed[-1]])
-        print("------------------------------")
+            self.yf.msg("### %d as ###"%self.time_steps[list_passed[-1]])
+        self.yf.msg("------------------------------")
 
     def electron_conservation_test(self,sims):
         """
@@ -298,7 +301,7 @@ class YamboRTStep_Optimize():
         """
         import matplotlib.pyplot as plt
 
-        print("Plotting results.")
+        self.yf.msg("Plotting results.")
         out_dir = '%s/%s'%(self.RUN_path,save_dir)
         if not os.path.isdir(out_dir): 
             shell = self.scheduler()
