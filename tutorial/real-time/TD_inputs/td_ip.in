@@ -27,7 +27,7 @@ HXC_Potential= "IP"           # [SC] SC HXC Potential
 % RTBands
   3 | 6 |                     # [RT] Bands
 %
-Integrator= "EULER RK2 RWA"              # [RT] Integrator. Use keywords space separated  ( "EULER/EXPn/INV" "SIMPLE/RK2/RK4/HEUN" "RWA")
+Integrator= "EULER RK2"              # [RT] Integrator. Use keywords space separated  ( "EULER/EXPn/INV" "SIMPLE/RK2/RK4/HEUN" "RWA")
 PhLifeTime= 0.000000   fs      # [RT] Constant Dephasing Time
 RTstep= 10.00000       as      # [RT] Real Time step length
 NETime= 30.000000      fs      # [RT] Simulation Time
