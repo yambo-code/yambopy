@@ -50,8 +50,12 @@ class YamboRTDB(object):
         """
         Read output carriers
         """
-        self.diff_carriers = database.variables['carriers_values'][:,1] #Only N_e-N_h        
-
+        self.diff_carriers = database.variables['carriers_values'][:,1]    
+        self.hole_carriers = database.variables['carriers_values'][:,2]
+        self.elec_carriers = database.variables['carriers_values'][:,3]
+        #Ratio between carrier difference and average
+        self.ratio_carriers = self.diff_carriers/(0.5*(self.hole_carriers+self.elec_carriers))
+    
     def __str__(self):
         s = ""
         s += "times: %d\n"%self.polarization.shape[1]

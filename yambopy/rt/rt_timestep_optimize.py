@@ -1,6 +1,7 @@
 from yambopy import *
 from schedulerpy import *
 import os
+overflow = 1e8
 
 def int_round(value):
     return int(round(value))
@@ -42,7 +43,7 @@ class YamboRTStep_Optimize():
            (3) Replace prints with output file (dedicated class?)
     """
 
-    def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',TSteps_min_max=[5,50],NSimulations=5,db_manager=True,tol_eh=1e-6,tol_pol=1e-4):
+    def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',TSteps_min_max=[5,50],NSimulations=5,db_manager=True,tol_eh=1e-4,tol_pol=1e-4):
     
         self.scheduler = Scheduler.factory
         input_path, input_name = input_path.rsplit('/',1)
@@ -116,9 +117,9 @@ class YamboRTStep_Optimize():
         nstep = (self.TSteps_min_max[1]-self.TSteps_min_max[0])/(self.NSimulations-1.)
         self.time_steps=[int_round(self.TSteps_min_max[0]+nstep*i) for i in range(self.NSimulations)]
         if self.time_steps[-1] != self.TSteps_min_max[-1]: 
-            self.TSteps_min_max[-1]==self.time_step[-1]
+            self.TSteps_min_max[-1]==self.time_steps[-1]
         conv = { 'RTstep': [ [self.time_steps[0]]+self.time_steps,'as'] }
- 
+
         return conv
 
     def COMPUTE_dipoles(self,DIP_folder='dipoles'):
@@ -187,11 +188,17 @@ class YamboRTStep_Optimize():
         Check computed polarizations for NaN values.
         """
         NaN_test = True
-        if np.isnan(RTDB.polarization).any(): 
-            RTDB.polarization = np.nan_to_num(RTDB.polarization)
-            Nan_test = False
+        # Check for NaN
+        if np.isnan(RTDB.polarization).any() or np.isnan(RTDB.diff_carriers).any(): 
+            RTDB.polarization = np.nan_to_num(RTDB.polarization) #Set to zero for plots
+            NaN_test = False 
             print("[WARNING] Yambo produced NaN values during this run")
-            
+        # Check for +/-Infinity
+        if np.greater(np.abs(RTDB.polarization),overflow).any():
+            RTDB.polarization[np.abs(RTDB.polarization)>overflow] = 0. #Set to zero for plots
+            NaN_test = False
+            print("[WARNING] Yambo produced Infinity values during this run")           
+ 
         return RTDB, NaN_test
 
     def ANALYSE_output(self):
@@ -199,14 +206,14 @@ class YamboRTStep_Optimize():
         Driver to analyse output and provide a suggestion for an optimal time step.
         - There are two values of tolerance: one for carriers, one for polarization
         - Four increasingly stringent checks are performed: 
-            [1] NaN check to exclude botched runs
+            [1] NaN and overflow check to exclude botched runs
             [2] Conservation of electron number check 
             [3] Error check of |pol|^2 (assuming lowest time step as reference)
             [4] Error check of pol along the field direction
         """
         print("---------- ANALYSIS ----------")
         list_passed = [ts for ts,sim in enumerate(self.NaN_check) if sim]
-        print("[1] NaN test:")
+        print("[1] NaN and overflow test:")
         print("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
         eh_check = self.electron_conservation_test(list_passed) 
         list_passed = [ts for ts,sim in enumerate(eh_check) if sim]
@@ -231,13 +238,13 @@ class YamboRTStep_Optimize():
 
     def electron_conservation_test(self,sims):
         """
-        Tests if elements of diff_carriers are greater than tolerance.
+        Tests if elements of ratio_carriers are greater than tolerance.
         If any of them is, then the simulation in question has not passed the eh_test.
         """
         eh_check = []
         for ts in sims:
             eh_test = True
-            eh_carriers = np.greater(self.RToutput[ts].diff_carriers,self.tol_eh)
+            eh_carriers = np.greater(self.RToutput[ts].ratio_carriers,self.tol_eh)
             if any(eh_carriers): eh_test = False
             eh_check.append(eh_test)
         return eh_check
