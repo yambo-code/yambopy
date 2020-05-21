@@ -16,5 +16,5 @@ if __name__ == "__main__":
 
     SAVE_path = 'database/FixSymm/SAVE'    
     #YamboRTStep_Optimize(input_path=args.input_file,SAVE_path=SAVE_path)
-    YamboRTStep_Optimize(input_path=args.input_file,SAVE_path=SAVE_path,RUN_path=args.directory)
-    #YamboRTStep_Optimize(input_path=args.input_file,SAVE_path=SAVE_path,RUN_path='RT_test_QSSIN_NAN',TSteps_min_max=[100,2000],NSimulations=8)
+    YamboRTStep_Optimize(input_path=args.input_file,SAVE_path=SAVE_path,RUN_path=args.directory,tol_pol=1e-3)
+    #YamboRTStep_Optimize(input_path=args.input_file,SAVE_path=SAVE_path,RUN_path=args.directory,TStep_MAX=30,TStep_increase=10,NSimulations=4)
