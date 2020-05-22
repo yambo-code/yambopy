@@ -9,8 +9,11 @@ class YamboRTStep_Optimize():
 
     Note: time steps must be given in as units.    
 
-    Example of use:
+    - Needs an initialised RT SAVE
+    - Needs an RT input 
+    - Optional arguments: directory paths, max time step, time step increase, max number of runs
 
+    Example of use:
         .. code-block:: python
     
             YamboRTStep_Optimize(input_path,SAVE_path,RUN_path,ref_time,TStep_MAX,TStep_increase,NSimulations)
@@ -43,12 +46,16 @@ class YamboRTStep_Optimize():
             self.yf.msg("please select a time increment that divides exactly the max time step.")
             self.yf.msg("Exiting...")
             exit() 
-        #Compute the dipoles, then prepare RT input and run RT simulations
+        if self.NSimulations < 2:
+            self.yf.msg("NSimulations is too small to perform convergence tests.")
+            self.yf.msg("Exiting...")
+            exit()
+        #Compute the dipoles, then prepare RT input
         self.COMPUTE_dipoles()
-        conv = self.FIND_values()
+        self.FIND_values()
+        #Run RT simulations and analyse data
         self.RUN_convergence()
-        #Test time step convergence and plot results
-        #self.ANALYSE_output()
+        #[OPTIONAL] plot results
         if plot_results: self.PLOT_output()
 
         self.yf.IO_close()
@@ -109,9 +116,6 @@ class YamboRTStep_Optimize():
         self.yf.msg("Total duration of simulations set to: %f fs"%NETime)
         self.yin['IOCachetime'] = [[ts_lcm,ts_lcm],'fs']
 
-        conv = { 'RTstep': [ [self.time_steps[0]]+self.time_steps,'as'] }
-        return conv
-
     def COMPUTE_dipoles(self,DIP_folder='dipoles'):
         """
         Compute the dipoles once and for all:
@@ -166,7 +170,7 @@ class YamboRTStep_Optimize():
             # Part 1: file preparation and run
             filename = '%s_%05d%s.in'%(param,ts,units)
             folder   = filename.split('.')[0]
-            self.yf.msg('%s %s'%(filename,folder))
+            #self.yf.msg('%s %s'%(filename,folder))
             yrun = self.input_to_run(param,ts,units)
             yrun.write('%s/%s'%(self.RUN_path,filename))
             shell = self.scheduler()
@@ -186,30 +190,72 @@ class YamboRTStep_Optimize():
             else:        eh_test = False
             NaN_check.append(NaN_test) 
             eh_check.append(eh_test) 
-            print('NaN test',NaN_test)
-            print('eh test',eh_test)
 
             # Part 3: perform polarization tests between subsequent runs
             if i==0: passed_counter = 0
             if i>0: 
-                pol_sq_test, pol_x_test, passed_counter = self.ANALYSE_pol(RToutput,eh_check,passed_counter)
+                pol_sq_test, pol_x_test, passed_counter = self.ANALYSE_pol(RToutput,eh_check,passed_counter) #[TEST3],[TEST4] Polarization squared and along field direction
                 pol_sq_check.append(pol_sq_test)
                 pol_x_check.append(pol_x_test)
-                print('pol2 test',pol_sq_test)
-                print('polx test',pol_x_test)
 
             # Part 4: decide if convergence was reached or we have to keep going
             if passed_counter==2:
-                print(ts)
-                print(self.time_steps[i-1])
+                TStep_passed = self.time_steps[i-2]
                 break
+            
+        if passed_counter==2: self.TStep_passed = TStep_passed
+        if passed_counter==1: self.TStep_passed = self.time_steps[-1]
+        if passed_counter==0: self.TStep_passed = None
             
         self.NSimulations = len(RToutput)
         self.RToutput = RToutput
-        #self.ANALYSE_report(NaN_check,eh_check,pol_sq_check,pol_x_check)
-        #Special cases: (1) NSimulations runs out with passed=1
-        #               (2) Max TStep is already converged
+        self.ANALYSE_output(NaN_check,eh_check,pol_sq_check,pol_x_check,passed_counter)
 
+    def ANALYSE_output(self,NaN,eh,pol2,polx,passed):
+        """
+        Output information and suggestion for an optimal time step.
+        - There are two values of tolerance: one for carriers, one for polarization
+        - Four increasingly stringent checks are performed:
+            [1] NaN and overflow check to exclude botched runs
+            [2] Conservation of electron number check
+            [3] Error check of |pol|^2 (assuming lowest time step as reference)
+            [4] Error check of pol along the field direction
+        """
+        self.yf.msg("---------- ANALYSIS ----------")
+
+        NaN_passed = sum(NaN)
+        self.yf.msg("[1] NaN and overflow test:")
+        self.yf.msg("    Passed by %d out of %d."%(NaN_passed,self.NSimulations))
+
+        eh_passed = sum(eh)
+        self.yf.msg("[2] Conservation of electron number test (tol=%.0e):"%self.tol_eh)
+        self.yf.msg("    Passed by %d out of %d."%(eh_passed,self.NSimulations))
+
+        pol2_passed = sum(pol2)
+        self.yf.msg("[3] Error in |pol|^2 test (tol=%.0e):"%self.tol_pol)
+        self.yf.msg("    Passed by %d out of %d."%(pol2_passed,self.NSimulations-1))
+
+        polx_passed = sum(polx)
+        self.yf.msg("[4] Error in pol along field test (tol=%.0e):"%self.tol_pol)
+        self.yf.msg("    Passed by %d out of %d."%(polx_passed,self.NSimulations-1))
+
+        if passed == 1:
+            self.yf.msg(" ")
+            self.yf.msg("[WARNING] The lowest time step passed all the tests, but the")
+            self.yf.msg("          additional safety run with a reduced step was")
+            self.yf.msg("          not done due to NSimulations limit being reached.")
+
+        if self.NSimulations == 2 or self.NSimulations == 3:
+            self.yf.msg(" ")
+            self.yf.msg("[WARNING] The largest time step already looks converged.")
+
+        tp = self.TStep_passed
+        self.yf.msg(" ")
+        self.yf.msg("Based on the analysis, the suggested time step is: ")
+        if tp is not None: self.yf.msg("### %d as ###"%tp)
+        else: self.yf.msg("[ERR] NSimulations limit reached before converged value was found.")
+        self.yf.msg("------------------------------")        
+ 
     def ANALYSE_pol(self,RToutput,eh_check,passed):
         """
         Driver with the logical structure to manage polarization tests
@@ -244,56 +290,6 @@ class YamboRTStep_Optimize():
             #self.yf.msg("[WARNING] Yambo produced Infinity values during this run")           
  
         return RTDB, NaN_test
-
-    def ANALYSE_output(self):
-        """
-        Driver to analyse output and provide a suggestion for an optimal time step.
-        - There are two values of tolerance: one for carriers, one for polarization
-        - Four increasingly stringent checks are performed: 
-            [1] NaN and overflow check to exclude botched runs
-            [2] Conservation of electron number check 
-            [3] Error check of |pol|^2 (assuming lowest time step as reference)
-            [4] Error check of pol along the field direction
-        """
-        self.yf.msg("---------- ANALYSIS ----------")
-        
-        #print([ts for ts,sim in enumerate(self.NaN_check)])
-        list_passed = [ts for ts,sim in enumerate(self.NaN_check) if sim]
-        self.yf.msg("[1] NaN and overflow test:")
-        self.yf.msg("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
-        self.list_error(len(list_passed))
-        #print(list_passed)
-        #print(self.NaN_check)
-        
-        eh_check = self.electron_conservation_test(list_passed) 
-        list_passed = [ts for i,ts in enumerate(list_passed) if eh_check[i]]
-        self.yf.msg("[2] Conservation of electron number test (tol=%.0e):"%self.tol_eh)
-        self.yf.msg("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
-        self.list_error(len(list_passed))
-        #print(list_passed)
-        #print(eh_check)
-        
-        pol_sq_check = self.pol_error_test(list_passed,which_pol='pol_sq')
-        list_passed = [ts for i,ts in enumerate(list_passed) if pol_sq_check[i]]
-        self.yf.msg("[3] Error in |pol|^2 test (tol=%.0e):"%self.tol_pol)
-        self.yf.msg("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
-        self.list_error(len(list_passed))
-        #print(list_passed)
-        #print(pol_sq_check)        
-
-        pol_x_check = self.pol_error_test(list_passed,which_pol='pol_along_field')
-        list_passed = [ts for i,ts in enumerate(list_passed) if pol_x_check[i]]
-        self.yf.msg("[4] Error in pol along field test (tol=%.0e):"%self.tol_pol)
-        self.yf.msg("    Passed by %d out of %d."%(len(list_passed),self.NSimulations))
-        self.list_error(len(list_passed))
-        #print(list_passed)
-        #print(pol_x_check)
-
-        #print(self.time_steps)
-        self.yf.msg(" ")
-        self.yf.msg("Based on the analysis, the suggested time step is: ")
-        self.yf.msg("### %d as ###"%self.time_steps[list_passed[0]])
-        self.yf.msg("------------------------------")
 
     def electron_conservation_test(self,RTDB):
         """
