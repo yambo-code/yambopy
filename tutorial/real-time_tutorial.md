@@ -1,42 +1,37 @@
 Tutorial
 ========
 
-UNDER DEVELOPMENT
+How to converge the time step of a Yambo RT simulation.
 
-Boron Nitride REAL TIME
-==============
+- Examples are in: tutorial/real-time
+- Yambopy code is at: yambopy/rt, yambopy/io, yambopy/dbs
 
-0. Calculate the Ground state properties of boron nitride using Quantum espresso (gs_bn.py)
-    - TO RUN SCF AND NSCF: python gs_bn.py -sn
+## Ground state calculation
 
+0. Calculate the ground state properties of your system using Quantum espresso (scf and nscf runs).
+    - Examples: python gs_bn.py -sn
 
-1. Setup the RT yambo database automatically (prepare_rt.py)
-    - TO RUN RT setup: call function YamboRTSetup(field_direction,prefix[,OPTIONAL VARIABLES])
+## RT Convergence
 
-    Info on YamboRTSetup (../yambopy/rt/rt_setup.py):
-
-    Class to run the setup for RT calculations.
-    Must be run outside the folder where the nscf calculation took place.
-    Example of use:
-    Generate a SAVE file with reduced symmetries:
-        .. code-block:: python
-            YamboRTSetup(FIELD_direction,QE_prefix,nscf=nscf_path,database=save_path)
-
-
-    (file already prepared: prepare_rt.py -f E_x E_y E_z -p qe_prefix)
+1. Setup the RT yambo database automatically
+    - call function YamboRTSetup(field_direction,prefix,[OPTIONAL VARIABLES])
+    - Optional variables include setting nscf, SAVE, and yambo executable paths
+    - Info on YamboRTSetup in yambopy/rt/rt_setup.py
+    - Examples: python prepare_rt.py -f E_x E_y E_z -p qe_prefix
 
 2. Run convergence tests for time steps (optimize_time_step.py)
-    - TO RUN RT time step optimization: call function YamboRTStep_Optimize(input_path,SAVE_path[,OPTIONAL VARIABLES])
+    - call function YamboRTStep_Optimize(input_path,SAVE_path,TStep_MAX,TStep_increase,NSimulations,[OPTIONAL VARIABLES])
+    - Optional variables include setting max time step, time step increase, max number of runs, run duration, tolerance for convergence tests
+    - Info on YamboRTStep_Optimize in yambopy/rt/rt_timestep_optimize.py
+    - Examples: python optimize_time_step.py -F input_file_path -D RUN_path
 
-    Info on YamboRTStep_Optimize (../yambopy/rt/rt_timestep_optimize.py):
+3. Minimal python script to run the bn tutorial:
 
-    Class to run convergence tests for the RT time step.
-    Note: time steps must be given in as units.
-    Example of use:
-        .. code-block:: python
-            YamboRTStep_Optimize(input_path,SAVE_path,RUN_path)
+ .. code-block:: python
 
-    (file already prepared: python optimize_time_step.py -F input_file_path)
+    from yambopy import *
 
+    YamboRTSetup([1,0,0],'bn') #Field direction and QE prefix
 
-
+    YamboRTStep_Optimize('TD_inputs/td_ip.in','database/FixSymm/SAVE') #RT input and SAVE paths
+ ..
