@@ -20,7 +20,7 @@ class YamboRTStep_Optimize():
 
     """
 
-    def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',ref_time=30,TStep_MAX=30,TStep_increase=5,NSimulations=6,db_manager=True,tol_eh=1e-4,tol_pol=1e-3,plot_results=True):
+    def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',ref_time=60,TStep_MAX=30,TStep_increase=5,NSimulations=6,db_manager=True,tol_eh=1e-4,tol_pol=5e-3,Tpoints_min=30,plot_results=True):
         #Setting global variables
         self.scheduler = Scheduler.factory
         input_path, input_name = input_path.rsplit('/',1)
@@ -32,6 +32,7 @@ class YamboRTStep_Optimize():
         self.TStep_MAX = TStep_MAX
         self.TStep_increase = TStep_increase
         self.NSimulations = NSimulations
+        self.Tpoints_min = Tpoints_min
         self.tol_eh = tol_eh
         self.tol_pol= tol_pol
         #Generate directories
@@ -51,8 +52,8 @@ class YamboRTStep_Optimize():
             self.yf.msg("Exiting...")
             exit()
         #Compute the dipoles, then prepare RT input
-        self.COMPUTE_dipoles()
         self.FIND_values()
+        self.COMPUTE_dipoles()
         #Run RT simulations and analyse data
         self.RUN_convergence()
         #[OPTIONAL] plot results
@@ -96,8 +97,12 @@ class YamboRTStep_Optimize():
                 self.yf.msg("Please use the variable Field1_FWHM to set field width (not Field1_Width)")
                 self.yf.msg("Exiting...")
                 exit()
-            self.yf.msg("with FWHM: %f %s"%(self.yin['Field1_FWHM'][0],self.yin['Field1_FWHM'][1]))
-            FieldTime = 6.*self.yin['Field1_FWHM'][0]            
+            fwhm = self.yin['Field1_FWHM'][0]
+            sigma = fwhm/(2*np.sqrt(2*np.log(2))) #Standard deviation from FWHM from normal distr.
+            sigma = np.around(sigma,2)
+            self.yf.msg("with FWHM:    %f %s"%(fwhm,self.yin['Field1_FWHM'][1]))
+            self.yf.msg("with dev.st.: %f %s"%(sigma,self.yin['Field1_FWHM'][1]))
+            FieldTime = 6.*sigma      
 
         self.yf.msg("Field direction: %s"%(str(self.yin['Field1_Dir'][0])))
 
@@ -109,6 +114,10 @@ class YamboRTStep_Optimize():
 
         #Set simulations time settings (field time + lcm(time_steps) + hardcoded duration to analyse)
         ts_lcm = float(np.lcm.reduce(self.time_steps))/1000. # in fs
+        if self.ref_time/ts_lcm<self.Tpoints_min:
+            self.yf.msg("[ERR] less than %d time points for polarization."%self.Tpoints_min)
+            self.yf.msg("Exiting...")
+            exit()
         self.yin['Field1_Tstart'] = [ts_lcm, 'fs']
         NETime = ts_lcm + FieldTime + self.ref_time
         self.yin['NETime'] = [ NETime, 'fs' ]
@@ -204,7 +213,7 @@ class YamboRTStep_Optimize():
                 break
             
         if passed_counter==2: self.TStep_passed = TStep_passed
-        if passed_counter==1: self.TStep_passed = self.time_steps[-1]
+        if passed_counter==1: self.TStep_passed = self.time_steps[-2]
         if passed_counter==0: self.TStep_passed = None
             
         self.NSimulations = len(RToutput)
