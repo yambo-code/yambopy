@@ -5,10 +5,12 @@ packages_yambopy = ['yambopy',
                     'yambopy.dbs',
                     'yambopy.bse',
                     'yambopy.rt',
+                    'yambopy.double_grid',
                     'yambopy.data',
                     'yambopy.plot',
                     'yambopy.tools',
                     'qepy',
+                    'materials',
                     'schedulerpy',
                     'yamboparser']
 
