@@ -79,8 +79,8 @@ from yambopy.rt.rt_movie import *
 from yambopy.rt.rt_setup import *
 from yambopy.rt.rt_timestep_optimize import *
 
+#doublegrid files
+from yambopy.double_grid.dg_convergence import *
+
 #data
 from yambopy.data import *
-
-
-
