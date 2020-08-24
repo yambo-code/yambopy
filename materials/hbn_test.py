@@ -74,7 +74,7 @@ class hBN_1l_test():
         yip['BndsRnXd']=[1,70]
         yip['EnRngeXd']=[[0.,10.],'eV']
         yip['LongDrXd']=[1.0,0.0,0.0]
-        yip['Chimod']="'IP'" 
+        yip['Chimod']="IP" 
         return yip
 
     def __str__(self):
