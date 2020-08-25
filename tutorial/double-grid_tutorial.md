@@ -1,37 +1,63 @@
 Tutorial
 ========
 
-How to converge the time step of a Yambo RT simulation.
+How to converge generate a double grid and test it against optical absorption
 
-- Examples are in: tutorial/real-time
-- Yambopy code is at: yambopy/rt, yambopy/io, yambopy/dbs
+- Examples are in: tutorial/double-grid
+- Yambopy code is at: yambopy/double_grid, yambopy/io, ./materials
 
-## Ground state calculation
+## Input data
+- Path to executables pw, p2y, yambo, ypp [OPTIONAL]
+- Material prefix for quantum espresso
+- List of coarse grids CG_1, CG_2, ... CG_N
+- List of fine grids FG_1i, FG_2i, .. FG_Mi for each CG_i
+- Energy of laser impinging on the sample
+- Quantum espresso save folder of an scf calculation (previously computed) and path to it
+- Path to pseudopotentials
+- Path to work directory
+- Path to quantum espresso and yambo submission scripts [OPTIONAL] 
+- Base input file for nscf (qe) and independent-particle (yambo) calculations [Can be taken from ./materials]
+- Prefix of the output file name for qe and yambo (the report file).
 
-0. Calculate the ground state properties of your system using Quantum espresso (scf and nscf runs).
-    - Examples: python gs_bn.py -sn
+## Workflow
 
-## RT Convergence
-
-1. Setup the RT yambo database automatically
-    - call function YamboRTSetup(field_direction,prefix,[OPTIONAL VARIABLES])
-    - Optional variables include setting nscf, SAVE, and yambo executable paths
-    - Info on YamboRTSetup in yambopy/rt/rt_setup.py
-    - Examples: python prepare_rt.py -f E_x E_y E_z -p qe_prefix
-
-2. Run convergence tests for time steps (optimize_time_step.py)
-    - call function YamboRTStep_Optimize(input_path,SAVE_path,TStep_MAX,TStep_increase,NSimulations,[OPTIONAL VARIABLES])
-    - Optional variables include setting max time step, time step increase, max number of runs, run duration, tolerance for convergence tests
-    - Info on YamboRTStep_Optimize in yambopy/rt/rt_timestep_optimize.py
-    - Examples: python optimize_time_step.py -F input_file_path -D RUN_path
-
-3. Minimal python script to run the bn tutorial:
+1. Use the function YamboDG_Optimize
+    - Optional variables:
+        - Run individual steps of the workflow (see below) 
+        - Generate folder trees and inputs without running qe and yambo
+    - NSCF calculations are in nscf_grids
+    - IP calculations are in ip_grids
+    - Plots of the results are in plots
+    - Example: dg_test.py script (using monolayer hBN)
+    
+2. Minimal python script to run the bn tutorial:
 
  .. code-block:: python
 
     from yambopy import *
 
-    YamboRTSetup([1,0,0],'bn') #Field direction and QE prefix
+ .. code-block:: All the non-optional inputs
 
-    YamboRTStep_Optimize('TD_inputs/td_ip.in','database/FixSymm/SAVE') #RT input and SAVE paths
+    YamboDG_Optimize(cg_grids,fg_grids,prefix,qe_input,yambo_input,scf_save_path,pseudo_path,RUN_path=work_dir,nscf_out=nscf_out,y_out_dir=y_out_dir,E_laser=E_laser,pw=pw,yambo=yambo,ypp=ypp,p2y=p2y,STEPS='all')
  ..
+
+3. Scheme of the workflow
+
+    - The workflow is divided in FOUR STEPS that can be executed separately or together:
+        1. nscf CG [STEPS='1']
+        2. nscf FG and ip CG [STEPS='2']
+        3. ip FG [STEPS='3']
+        4. plot results [STEPS='4']
+        
+    - Scheme of the workflow:
+    
+            NSCF                                       IP
+            |                                          |
+    step 1  CG_1              CG_2 ... CG_N            |
+            |                 |                        |
+    step 2  FG_11 ... FG_M1   FG_12 ... FG_M2 ...      CG_1              CG_2 ... CG_N
+                                                       |                 |
+    step 3                                             FG_11 ... FG_M1   FG_12 ... FG_M2 ...
+                                                        \         |      |         /
+                                                         \        \      |        /
+    step 4                                                 _________ PLOTS ______
