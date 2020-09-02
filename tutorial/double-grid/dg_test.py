@@ -39,4 +39,6 @@ nscf_out = "nscf" #"slurm"
 y_out_dir = "results"
 
 #Call to main class
-YamboDG_Optimize(cg_grids,fg_grids,prefix,qe_input,yambo_input,scf_save_path,pseudo_path,RUN_path=work_dir,nscf_out=nscf_out,y_out_dir=y_out_dir,E_laser=E_laser,pw=pw,yambo=yambo,ypp=ypp,p2y=p2y,STEPS='all')
+YamboDG_Optimize(cg_grids,fg_grids,prefix,qe_input,yambo_input,scf_save_path, / 
+                pseudo_path,RUN_path=work_dir,nscf_out=nscf_out,y_out_dir=y_out_dir, / 
+                E_laser=E_laser,pw=pw,yambo=yambo,ypp=ypp,p2y=p2y,STEPS='all')
