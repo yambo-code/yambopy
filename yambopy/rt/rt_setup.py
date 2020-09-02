@@ -142,6 +142,6 @@ class YamboRTSetup():
             y2.write('%s/%s'%(database,filnm2))
             ypp_run = self.scheduler()
             ypp_run.add_command('cd %s ; %s -F %s ; cd -'%(database,self.ypp,filnm2))
-            ypp_run.add_command('cd %s/FixSymm/SAVE ; cp ../SAVE/ndb.elph_gkkp_expanded* . ; cd -')
+            ypp_run.add_command('cd %s/FixSymm/SAVE ; cp ../../SAVE/ndb.elph_gkkp_expanded* . ; cd -')
             ypp_run.add_command('cd %s/FixSymm ; %s ; cd -'%(database,self.yambo_rt))
             ypp_run.run()
