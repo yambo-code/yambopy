@@ -132,7 +132,7 @@ class YamboRTSetup():
                 
                 yph = YamboIn.from_runlevel('-gkkp',executable=self.ypp_ph,filename=filnmph,folder=database)
                 yph.arguments.append('GkkpExpand')
-                yph['DBsPATH'] = "./"
+                yph['DBsPATH'] = "./elph_dir"
                 yph.write('%s/%s'%(database,filnmph))          
                 yppph_run = self.scheduler()
                 yppph_run.add_command('cd %s ; %s -F %s; cd -'%(database,self.ypp_ph,filnmph))
