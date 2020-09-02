@@ -118,7 +118,7 @@ class YamboRTSetup():
         
             if os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'):
                 self.yf.msg('gkkp already expanded.')
-            if os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'):
+            if not os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'):
                 self.yf.msg('Reading and expanding gkkp')
                 y1 = YamboIn.from_runlevel('-i -V RL',executable=self.yambo_ph,filename=filnm1,folder=database)
                 y1.arguments.append('BSEscatt')
