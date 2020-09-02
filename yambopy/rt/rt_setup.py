@@ -70,8 +70,8 @@ class YamboRTSetup():
             if os.path.isfile('%s/data-file-schema.xml'%qe_save): qe_xml = 'data-file-schema.xml'
             p2y_run = self.scheduler()
             p2y_run.add_command('mkdir -p %s'%database)
-            p2y_run.add_command('cd %s; %s -F %s > p2y.log'%(qe_save,self.p2y,qe_xml))
-            p2y_run.add_command('mv SAVE ../../%s'%database)
+            p2y_run.add_command('cd %s; %s -F %s > p2y.log ; cd -'%(qe_save,self.p2y,qe_xml))
+            p2y_run.add_command('cd %s; mv SAVE %s ; cd -'%(qe_save,database))
             p2y_run.run()
 
     def FixSymm(self,database):
@@ -90,7 +90,7 @@ class YamboRTSetup():
                 y1['MaxGvecs'] = self.MaxGvecs
                 y1.write('%s/%s'%(database,filnm1))
             yambort_run = self.scheduler()
-            yambort_run.add_command('cd %s ; %s -F %s; cd ../'%(database,self.yambo_rt,filnm1))
+            yambort_run.add_command('cd %s ; %s -F %s; cd -'%(database,self.yambo_rt,filnm1))
             yambort_run.run()
 
             y2 = YamboIn.from_runlevel('-y',executable=self.ypp,filename=filnm2,folder=database)
@@ -99,8 +99,8 @@ class YamboRTSetup():
             y2.write('%s/%s'%(database,filnm2))
 
             ypp_run = self.scheduler()
-            ypp_run.add_command('cd %s ; %s -F %s ; cd ../'%(database,self.ypp,filnm2))
-            ypp_run.add_command('cd %s/FixSymm ; %s ; cd ../../'%(database,self.yambo_rt))
+            ypp_run.add_command('cd %s ; %s -F %s ; cd -'%(database,self.ypp,filnm2))
+            ypp_run.add_command('cd %s/FixSymm ; %s ; cd -'%(database,self.yambo_rt))
             ypp_run.run()
     
     def FixSymm_with_elph(self,database,elph_path):
@@ -123,8 +123,8 @@ class YamboRTSetup():
                 y1['MaxGvecs'] = self.MaxGvecs
             y1.write('%s/%s'%(database,filnm1))  
             yamboph_run = self.scheduler()
-            if not os.path.islink('elph_dir'): yamboph_run.add_command('cd %s ; ln -s %s/elph_dir . ; cd ../'%(database,elph_path))
-            yamboph_run.add_command('cd %s ; %s -F %s; cd ../'%(database,self.yambo_ph,filnm1))
+            if not os.path.islink('elph_dir'): yamboph_run.add_command('cd %s ; ln -s %s/elph_dir . ; cd -'%(database,elph_path))
+            yamboph_run.add_command('cd %s ; %s -F %s; cd -'%(database,self.yambo_ph,filnm1))
             yamboph_run.run()
             
             yph = YamboIn.from_runlevel('-gkkp',executable=self.ypp_ph,filename=filnmph,folder=database)
@@ -132,7 +132,7 @@ class YamboRTSetup():
             yph['DBsPATH'] = "'./elph_dir'"
             yph.write('%s/%s'%(database,filnmph))          
             yppph_run = self.scheduler()
-            yppph_run.add_command('cd %s ; %s -F %s; cd ../'%(database,self.ypp_ph,filnmph))
+            yppph_run.add_command('cd %s ; %s -F %s; cd -'%(database,self.ypp_ph,filnmph))
             yppph_run.run()            
             
             self.yf.msg('Removing symmetries')
@@ -141,7 +141,7 @@ class YamboRTSetup():
             y2.arguments.append('RmTimeRev')
             y2.write('%s/%s'%(database,filnm2))
             ypp_run = self.scheduler()
-            ypp_run.add_command('cd %s ; %s -F %s ; cd ../'%(database,self.ypp,filnm2))
-            ypp_run.add_command('cd %s/FixSymm/SAVE ; cp ../SAVE/ndb.elph_gkkp_expanded* . ; cd ../../../')
-            ypp_run.add_command('cd %s/FixSymm ; %s ; cd ../../'%(database,self.yambo_rt))
+            ypp_run.add_command('cd %s ; %s -F %s ; cd -'%(database,self.ypp,filnm2))
+            ypp_run.add_command('cd %s/FixSymm/SAVE ; cp ../SAVE/ndb.elph_gkkp_expanded* . ; cd -')
+            ypp_run.add_command('cd %s/FixSymm ; %s ; cd -'%(database,self.yambo_rt))
             ypp_run.run()
