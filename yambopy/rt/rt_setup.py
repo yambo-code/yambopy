@@ -115,10 +115,10 @@ class YamboRTSetup():
         if os.path.isdir('%s/FixSymm'%database):
             self.yf.msg('FixSymm folder found!')
         if not os.path.isdir('%s/FixSymm'%database):
-        
-            if os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'):
+            #check if gkkp databases are already present 
+            if os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'%database):
                 self.yf.msg('gkkp already expanded.')
-            if not os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'):
+            if not os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'%database):
                 self.yf.msg('Reading and expanding gkkp')
                 y1 = YamboIn.from_runlevel('-i -V RL',executable=self.yambo_ph,filename=filnm1,folder=database)
                 y1.arguments.append('BSEscatt')
@@ -127,12 +127,12 @@ class YamboRTSetup():
                 y1.write('%s/%s'%(database,filnm1))  
                 yamboph_run = self.scheduler()
                 if not os.path.islink('elph_dir'): yamboph_run.add_command('cd %s ; ln -s %s/elph_dir . ; cd -'%(database,elph_path))
-                yamboph_run.add_command('cd %s ; %s -F %s; cd -'%(database,self.yambo_ph,filnm1))
+                yamboph_run.add_command('cd %s ; %s -F %s -J ./elph_dir ; cd -'%(database,self.yambo_ph,filnm1))
                 yamboph_run.run()
-            
+                
                 yph = YamboIn.from_runlevel('-gkkp',executable=self.ypp_ph,filename=filnmph,folder=database)
                 yph.arguments.append('GkkpExpand')
-                yph['DBsPATH'] = "'./elph_dir'"
+                yph['DBsPATH'] = "./"
                 yph.write('%s/%s'%(database,filnmph))          
                 yppph_run = self.scheduler()
                 yppph_run.add_command('cd %s ; %s -F %s; cd -'%(database,self.ypp_ph,filnmph))
