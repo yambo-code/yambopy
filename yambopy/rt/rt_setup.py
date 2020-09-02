@@ -103,7 +103,7 @@ class YamboRTSetup():
             ypp_run.add_command('cd %s/FixSymm ; %s ; cd ../../'%(database,self.yambo_rt))
             ypp_run.run()
     
-    def FixSymm(self,database,elph_path):
+    def FixSymm_with_elph(self,database,elph_path):
         """
         Generate SAVE folder with reduced symmetries starting from original SAVE
         and adding expanded gkkp matrix elements
