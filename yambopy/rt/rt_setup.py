@@ -38,10 +38,16 @@ class YamboRTSetup():
         self.p2y       = p2y
         self.ypp       = ypp
         self.ypp_ph    = ypp_ph
+        
+        #Start IO
+        self.yf = YamboIO(out_name='YAMBOPY_RTsetup.log',out_path=database,print_to_shell=True)
+        self.yf.IO_start()
 
         self.initialize_SAVE(nscf,database)
         if elph_path is None: self.FixSymm(database)
         else: self.FixSymm_with_elph(database,elph_path) 
+        
+        self.yf.IO_close()
 
     def initialize_SAVE(self,nscf,database):
         """
@@ -50,16 +56,16 @@ class YamboRTSetup():
         qe_save = '%s/%s.save'%(nscf,self.prefix)
         #check if the nscf cycle is present
         if os.path.isdir(qe_save):
-            print('nscf calculation found!')
+            self.yf.msg('nscf calculation found!')
         else:
-            print('nscf calculation not found!')
+            self.yf.msg('nscf calculation not found!')
             exit()
 
         #check if the SAVE folder is present
         if os.path.isdir('%s/SAVE'%database):
-            print('SAVE database found!')
+            self.yf.msg('SAVE database found!')
         if not os.path.isdir('%s/SAVE'%database):
-            print('preparing yambo RT database')
+            self.yf.msg('preparing yambo RT database')
             if os.path.isfile('%s/data-file.xml'%qe_save): qe_xml = 'data-file.xml'
             if os.path.isfile('%s/data-file-schema.xml'%qe_save): qe_xml = 'data-file-schema.xml'
             p2y_run = self.scheduler()
@@ -76,9 +82,9 @@ class YamboRTSetup():
         filnm2 = 'fixsymm.in'
         #check if symmetries have been removed
         if os.path.isdir('%s/FixSymm'%database):
-            print('FixSymm folder found!')
+            self.yf.msg('FixSymm folder found!')
         if not os.path.isdir('%s/FixSymm'%database):
-            print('Removing symmetries')
+            self.yf.msg('Removing symmetries')
             y1 = YamboIn.from_runlevel('-i -V RL',executable=self.yambo_rt,filename=filnm1,folder=database)
             if self.MaxGvecs is not None:
                 y1['MaxGvecs'] = self.MaxGvecs
@@ -107,10 +113,10 @@ class YamboRTSetup():
         filnmph = 'gkkp.in'
         #check if symmetries have been removed
         if os.path.isdir('%s/FixSymm'%database):
-            print('FixSymm folder found!')
+            self.yf.msg('FixSymm folder found!')
         if not os.path.isdir('%s/FixSymm'%database):
             
-            print('Reading and expanding gkkp')
+            self.yf.msg('Reading and expanding gkkp')
             y1 = YamboIn.from_runlevel('-i -V RL',executable=self.yambo_ph,filename=filnm1,folder=database)
             y1.arguments.append('BSEscatt')
             if self.MaxGvecs is not None:
@@ -129,7 +135,7 @@ class YamboRTSetup():
             yppph_run.add_command('cd %s ; %s -F %s; cd ../'%(database,self.ypp_ph,filnmph))
             yppph_run.run()            
             
-            print('Removing symmetries')
+            self.yf.msg('Removing symmetries')
             y2 = YamboIn.from_runlevel('-y',executable=self.ypp,filename=filnm2,folder=database)
             y2['Efield1']=self.field_dir
             y2.arguments.append('RmTimeRev')
