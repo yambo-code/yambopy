@@ -25,21 +25,18 @@ class Slurm(Scheduler):
 
     def get_script(self):
         """
-        get a .pbs file to be submitted using qsub
-        qsub <filename>.pbs
+        get a .sh file to be submitted using sbatch
+        sbatch <filename>.sh
         """
         lines = []; app = lines.append
         app('#!/bin/bash -l\n')
         
         partition = self.get_arg("partition",None)
-        if self.name: app("#SBATCH -J \"%s\""%self.name)
+        if self.name: app("#SBATCH -J %s"%self.name)
         if partition: app('#SBATCH --partition %s'%partition)
 
         qos = self.get_arg("qos",None)
         if qos: app('#SBATCH --qos=%s'%qos)
-
-        partition = self.get_arg("partition",None)
-        if partition: app('#SBATCH --partition=%s'%partition)
 
         if self.nodes: app("#SBATCH -N %d" % self.nodes)
         if self.cores: app("#SBATCH --ntasks-per-node=%d" % self.cores)
