@@ -12,6 +12,7 @@ class YamboRTStep_Optimize():
     - Needs an initialised RT SAVE
     - Needs an RT input 
     - Optional arguments: directory paths, max time step, time step increase, max number of runs
+    - Optional: specify "yscheduler" as an instance of schedulerpy to run on clusters
     - Optional: add convergence loop with respect to field intensity
 
     Example of use:
@@ -26,7 +27,7 @@ class YamboRTStep_Optimize():
     """
 
     def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',\
-                 ref_time=60,TStep_MAX=30,TStep_increase=5,NSimulations=6,FieldInts=None,\
+                 ref_time=60,TStep_MAX=30,TStep_increase=5,NSimulations=6,FieldInts=None,yscheduler=None,\
                  tol_eh=1e-4,tol_pol=5e-3,Tpoints_min=30,plot_results=True):
         #Setting global variables
         self.scheduler = Scheduler.factory
