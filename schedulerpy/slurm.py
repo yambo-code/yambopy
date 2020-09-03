@@ -56,7 +56,7 @@ class Slurm(Scheduler):
         """
         return self.get_script()
 
-    def run(self,filename='run.sh',dry=False,command="sbatch",verbose=0,get_id=0):
+    def run(self,filename='run.sh',dry=False,command="sbatch",verbose=0):
         """
         Create the submission script and submit the job
         
@@ -71,11 +71,11 @@ class Slurm(Scheduler):
         self.write(filename)        
         workdir  = os.path.dirname(filename)
         basename = os.path.basename(filename) 
- 
-        if get_id: command = 'get_id=$(sbatch %s)'%basename
- 
+
         p = subprocess.Popen([command,basename],stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=workdir)
         self.stdout,self.stderr = p.communicate()
+        #Slurm-specific instruction to store jobid
+        self.JOBID = self.stdout.decode().split(' ')[-1].strip()
         
         #check if there is stderr
         if self.stderr: raise Exception(self.stderr)
