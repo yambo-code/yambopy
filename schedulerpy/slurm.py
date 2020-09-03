@@ -38,6 +38,9 @@ class Slurm(Scheduler):
         qos = self.get_arg("qos",None)
         if qos: app('#SBATCH --qos=%s'%qos)
 
+        dependency = self.get_arg("dependency",None)
+        if dependency: app("#SBATCH --dependency=%s")
+
         if self.nodes: app("#SBATCH -N %d" % self.nodes)
         if self.cores: app("#SBATCH --ntasks-per-node=%d" % self.cores)
         if self.cpus_per_task: app("#SBATCH --cpus-per-task=%d" % self.cpus_per_task )
