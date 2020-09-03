@@ -38,12 +38,15 @@ class Slurm(Scheduler):
         qos = self.get_arg("qos",None)
         if qos: app('#SBATCH --qos=%s'%qos)
 
+        partition = self.get_arg("partition",None)
+        if partition: app('#SBATCH --partition=%s'%partition)
+
         if self.nodes: app("#SBATCH -N %d" % self.nodes)
         if self.cores: app("#SBATCH --ntasks-per-node=%d" % self.cores)
         if self.cpus_per_task: app("#SBATCH --cpus-per-task=%d" % self.cpus_per_task )
 
         mem_per_cpu = self.get_arg("mem-per-cpu",None) 
-        if mem_per_cpu: app("#SBATCH --mem-per-cpu=%d" % mem_per_cpu)
+        if mem_per_cpu: app("#SBATCH --mem-per-cpu=%s" % mem_per_cpu)
 
         app("#SBATCH --time=0-%s" % self.walltime)
 
