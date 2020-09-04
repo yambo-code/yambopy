@@ -85,3 +85,11 @@ class Slurm(Scheduler):
         
         #check if there is stdout
         if verbose: print(self.stdout)
+        
+    def check_job_status(self,workdir):
+        """
+        Return status of slurm job
+        """
+        p = subprocess.Popen(['squeue','-j %s'%self.jobid],stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=workdir)
+        stdout,stderr = p.communicate()
+        return stdout.decode().split('\n')[1].split()[4]
