@@ -1,5 +1,6 @@
 from yambopy import *
 from schedulerpy import *
+import time
 import os
 overflow = 1e8
 
@@ -12,7 +13,7 @@ class YamboRTStep_Optimize():
     - Needs an initialised RT SAVE
     - Needs an RT input 
     - Optional arguments: directory paths, max time step, time step increase, max number of runs
-    - Optional: specify "yscheduler" as an instance of schedulerpy to run on clusters
+    - Optional: specify "yscheduler" as an instance of schedulerpy to run on clusters. This needs dynamical managing of submitted jobs.
     - Optional: add convergence loop with respect to field intensity
 
     Example of use:
@@ -29,8 +30,15 @@ class YamboRTStep_Optimize():
     def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',\
                  ref_time=60,TStep_MAX=30,TStep_increase=5,NSimulations=6,FieldInts=None,yscheduler=None,\
                  tol_eh=1e-4,tol_pol=5e-3,Tpoints_min=30,plot_results=True):
+        #Configuring schedulers
+        self.frontend = Scheduler.factory(scheduler="bash")
+        if yscheduler is not None: #Here we use, e.g., slurm 
+            self.jobrun = yscheduler
+            self.wait_up = True #This will enable calls to a function that will make the code wait upon completion of previous submitted job
+        else: 
+            self.jobrun = Scheduler.factory(scheduler="bash")
+            self.wait_up = False
         #Setting global variables
-        self.scheduler = Scheduler.factory
         input_path, input_name = input_path.rsplit('/',1)
         self.yin = YamboIn.from_file(filename=input_name,folder=input_path)
         self.RUN_path = RUN_path
@@ -48,6 +56,9 @@ class YamboRTStep_Optimize():
         #Start IO
         self.yf = YamboIO(out_name='YAMBOPY_RTStepConvergence.log',out_path=self.RUN_path,print_to_shell=True)
         self.yf.IO_start()
+        #
+        if self.wait_up: self.yf.msg("The workflow is run using job submission through a scheduler.")
+        else: self.yf.msg("The workflow is run locally.")
         #Check for consistent input parameters
         if self.TStep_MAX % self.TStep_increase !=0: #Here RaiseError may be used
             self.yf.msg("The polarization is computed at discrete times.")
@@ -72,14 +83,14 @@ class YamboRTStep_Optimize():
     def create_folder_structure(self,SAVE_path):
         
         if not os.path.isdir(self.RUN_path):
-            shell = self.scheduler()
+            shell = self.frontend
             shell.add_command('mkdir -p %s'%self.RUN_path)
             shell.add_command('cd %s ; ln -s ../%s . ; cd ..'%(self.RUN_path,SAVE_path))
             shell.run()
             shell.clean()
 
         if not os.path.islink('%s/SAVE'%self.RUN_path):
-            shell = self.scheduler()
+            shell = self.frontend
             shell.add_command('cd %s ; ln -s ../%s . ; cd ..'%(self.RUN_path,SAVE_path))
             shell.run()
             shell.clean()
@@ -142,6 +153,7 @@ class YamboRTStep_Optimize():
         *after* the dipoles are computed.
         """
         if not os.path.isfile('%s/%s/ndb.dipoles'%(self.RUN_path,DIP_folder)):
+            # Input...
             ydipoles = YamboIn()
             ydipoles.arguments.append('dipoles')
             ydipoles.arguments.append('negf')
@@ -149,12 +161,12 @@ class YamboRTStep_Optimize():
             ydipoles['DIP_CPU'] = self.yin['DIP_CPU']
             ydipoles['DipBands'] = self.yin['DipBands']
             ydipoles.write('%s/dipoles.in'%self.RUN_path)
+            # Running...
             self.yf.msg("Running dipoles...")
-            shell = self.scheduler()
-            shell.add_command('cd %s'%self.RUN_path)
-            #THIS must be replaced by a more advanced submission method
-            shell.add_command('%s -F dipoles.in -J %s -C %s 2> %s.log'%(self.yambo_rt,DIP_folder,DIP_folder,DIP_folder))
-            shell.run()
+            shell = self.jobrun
+            shell.add_mpirun_command('%s -F dipoles.in -J %s -C %s 2> %s.log'%(self.yambo_rt,DIP_folder,DIP_folder,DIP_folder))
+            shell.run(filename='%s/rt.sh'%self.RUN_path)
+            if self.wait_up: self.wait_for_job()
             shell.clean() 
         else:
             self.yf.msg("Dipoles found.")
@@ -190,11 +202,10 @@ class YamboRTStep_Optimize():
             #self.yf.msg('%s %s'%(filename,folder))
             yrun = self.input_to_run(param,ts,units)
             yrun.write('%s/%s'%(self.RUN_path,filename))
-            shell = self.scheduler()
-            shell.add_command('cd %s'%self.RUN_path)
-            #THIS must be replaced by a more advanced submission method
-            shell.add_command('%s -F %s -J %s,%s -C %s 2> %s.log'%(self.yambo_rt,filename,folder,self.DIP_folder,folder,folder))
-            shell.run()
+            shell = self.jobrun
+            shell.add_mpirun_command('%s -F %s -J %s,%s -C %s 2> %s.log'%(self.yambo_rt,filename,folder,self.DIP_folder,folder,folder))
+            shell.run(filename='%s/rt.sh'%self.RUN_path)
+            if self.wait_up: self.wait_for_job()
             shell.clean()
 
             # Part 2: perform single-run analysis and store output
@@ -330,9 +341,8 @@ class YamboRTStep_Optimize():
             pol_analyse_n1 = pol_n1[0]*pol_n1[0] + pol_n1[1]*pol_n1[1] + pol_n1[2]*pol_n1[2] 
             pol_analyse_n0 = pol_n0[0]*pol_n0[0] + pol_n0[1]*pol_n0[1] + pol_n0[2]*pol_n0[2] 
         if which_pol == 'pol_along_field': # Test for pol along field
-            dr, _ = self.pol_along_field()
-            pol_analyse_n1 = pol_n1[dr]
-            pol_analyse_n0 = pol_n0[dr]            
+            pol_analyse_n1, _ = self.pol_along_field(pol_n1)
+            pol_analyse_n0, _ = self.pol_along_field(pol_n0)            
  
         #Perform the test
         rel_err_pol = (pol_analyse_n1-pol_analyse_n0)/self.tol_pol
@@ -342,13 +352,16 @@ class YamboRTStep_Optimize():
 
         return pol_test
  
-    def pol_along_field(self):
-        field = self.yin['Field1_Dir']
-        if field[0]!=0.:   dr,pol_label=[0,'pol-x']
-        elif field[1]!=0.: dr,pol_label=[0,'pol-y']
-        elif field[2]!=0.: dr,pol_label=[0,'pol-z']
-        else:              dr,pol_label=[0,'pol-x']
-        return dr,pol_label
+    def pol_along_field(self,pol):
+        field = self.yin['Field1_Dir'][0]
+        n_dirs = np.count_nonzero(field)
+        pol_x = field[0]*pol[0]+field[1]*pol[1]+field[2]*pol[2]
+        pol_x = pol_x/float(n_dirs)
+        if field[0]!=0.:   pol_label='pol-x'
+        elif field[1]!=0.: pol_label='pol-y'
+        elif field[2]!=0.: pol_label='pol-z'
+        else:              pol_label='pol-xyz'
+        return pol_x,pol_label
 
     def PLOT_output(self,save_dir='plots'):
         """
@@ -359,7 +372,7 @@ class YamboRTStep_Optimize():
         self.yf.msg("Plotting results.")
         out_dir = '%s/%s'%(self.RUN_path,save_dir)
         if not os.path.isdir(out_dir): 
-            shell = self.scheduler()
+            shell = self.frontend
             shell.add_command('mkdir -p %s'%out_dir)
             shell.run()
             shell.clean()
@@ -423,18 +436,27 @@ class YamboRTStep_Optimize():
         plt.savefig('%s/polarizations_squared.png'%out_dir,format='png',dpi=150)
 
         # Plot for all time steps along field direction
-        dr, pol_label = self.pol_along_field()
         f, (axes) = plt.subplots(self.NSimulations,1,sharex=True)
         for ts in range(self.NSimulations):
     
             pol = self.RToutput[ts].polarization
+            pol_x,pol_label = self.pol_along_field(pol)
             times = np.linspace(0.,self.NETime,num=pol.shape[1])
             pol_ts_label = "%s_%das"%(pol_label,time_steps[ts])
-            axes[ts].plot(times, pol[dr], '-', lw=lwidth, color=ts_colors[ts], label=pol_ts_label) 
+            axes[ts].plot(times, pol_x, '-', lw=lwidth, color=ts_colors[ts], label=pol_ts_label) 
         for ax in axes:
             ax.axhline(0.,lw=0.5,color='gray',zorder=-5)
             ax.legend(loc='upper left')
         f.tight_layout()        
 
         plt.savefig('%s/polarizations_field_direction.png'%out_dir,format='png',dpi=150)
-            
+    
+    def wait_for_job(self,shell,time_step=10.):
+        """
+        Let the python execution sleep until job completion
+        """
+        job_status = shell.check_job_status(self.RUN_path)
+        while job_status=='R':
+            time.sleep(time_step)
+            job_status = shell.check_job_status(self.RUN_path) 
+    
