@@ -45,7 +45,7 @@ class Slurm(Scheduler):
         if self.cores: app("#SBATCH --ntasks-per-node=%d" % self.cores)
         if self.cpus_per_task: app("#SBATCH --cpus-per-task=%d" % self.cpus_per_task )
 
-        mem_per_cpu = self.get_arg("mem-per-cpu",None) 
+        mem_per_cpu = self.get_arg("mem_per_cpu",None) 
         if mem_per_cpu: app("#SBATCH --mem-per-cpu=%s" % mem_per_cpu)
 
         app("#SBATCH --time=0-%s" % self.walltime)
@@ -78,7 +78,7 @@ class Slurm(Scheduler):
         p = subprocess.Popen([command,basename],stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=workdir)
         self.stdout,self.stderr = p.communicate()
         #Slurm-specific instruction to store jobid
-        self.JOBID = self.stdout.decode().split(' ')[-1].strip()
+        self.jobid = self.stdout.decode().split(' ')[-1].strip()
         
         #check if there is stderr
         if self.stderr: raise Exception(self.stderr)
@@ -88,8 +88,13 @@ class Slurm(Scheduler):
         
     def check_job_status(self,workdir):
         """
-        Return status of slurm job
+        Return status of slurm job (empty if job is not present)
         """
         p = subprocess.Popen(['squeue','-j %s'%self.jobid],stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=workdir)
         stdout,stderr = p.communicate()
-        return stdout.decode().split('\n')[1].split()[4]
+        if stdout:
+            if stdout.decode()[-9:-1]=='(REASON)': job_status = 'NULL' 
+            else: job_status = stdout.decode().split('\n')[1].split()[4]
+        else: 
+            job_status = 'NULL'
+        return job_status

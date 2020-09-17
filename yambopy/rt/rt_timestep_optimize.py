@@ -2,6 +2,7 @@ from yambopy import *
 from schedulerpy import *
 import time
 import os
+from copy import deepcopy
 overflow = 1e8
 
 class YamboRTStep_Optimize():
@@ -165,10 +166,10 @@ class YamboRTStep_Optimize():
             ydipoles.write('%s/dipoles.in'%self.RUN_path)
             # Running...
             self.yf.msg("Running dipoles...")
-            shell = self.jobrun
+            shell = deepcopy(self.jobrun)
             shell.add_mpirun_command('%s -F dipoles.in -J %s -C %s 2> %s.log'%(self.yambo_rt,DIP_folder,DIP_folder,DIP_folder))
             shell.run(filename='%s/rt.sh'%self.RUN_path)
-            if self.wait_up: self.wait_for_job()
+            if self.wait_up: self.wait_for_job(shell)
             shell.clean() 
         else:
             self.yf.msg("Dipoles found.")
@@ -179,7 +180,6 @@ class YamboRTStep_Optimize():
         """
         Generate input for a specific run
         """
-        from copy import deepcopy
         yrun = deepcopy(self.yin)
         yrun[param] = [ value, units]
         return yrun
@@ -204,10 +204,10 @@ class YamboRTStep_Optimize():
             #self.yf.msg('%s %s'%(filename,folder))
             yrun = self.input_to_run(param,ts,units)
             yrun.write('%s/%s'%(self.RUN_path,filename))
-            shell = self.jobrun
+            shell = deepcopy(self.jobrun)
             shell.add_mpirun_command('%s -F %s -J %s,%s -C %s 2> %s.log'%(self.yambo_rt,filename,folder,self.DIP_folder,folder,folder))
             shell.run(filename='%s/rt.sh'%self.RUN_path)
-            if self.wait_up: self.wait_for_job()
+            if self.wait_up: self.wait_for_job(shell)
             shell.clean()
 
             # Part 2: perform single-run analysis and store output
@@ -458,7 +458,8 @@ class YamboRTStep_Optimize():
         Let the python execution sleep until job completion
         """
         job_status = shell.check_job_status(self.RUN_path)
-        while job_status=='R':
+        condition = job_status=='R' or job_status=='PD' or job_status=='CG'
+        while condition:
             time.sleep(time_step)
             job_status = shell.check_job_status(self.RUN_path) 
-    
+            condition = job_status=='R' or job_status=='PD' or job_status=='CG'
