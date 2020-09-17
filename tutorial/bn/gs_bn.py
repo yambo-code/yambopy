@@ -13,8 +13,9 @@ kpoints      = [6,6,1]
 kpoints_nscf = [6,6,1]
 kpoints_double = [24,24,1]
 qpoints = [3,3,1]
+pw_dir = './work/fpaleari/my_compilations/q-e-qe-6.1.0/bin'
 layer_separation = 12
-pw = 'pw.x'
+pw = '%s/pw.x'%pw_dir
 ph = 'ph.x'
 q2r = 'q2r.x'
 matdyn = 'matdyn.x'
@@ -27,7 +28,8 @@ p = Path([ [[0.0, 0.0, 0.0],'$\Gamma$'],
            [[0.0, 0.0, 0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
 # scheduler
-scheduler = Scheduler.factory
+#scheduler = Scheduler.factory(scheduler="bash")
+scheduler = Scheduler.factory()
 
 # create the input files
 def get_inputfile():
