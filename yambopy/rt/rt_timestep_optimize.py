@@ -54,7 +54,9 @@ class YamboRTStep_Optimize():
         #Generate directories
         self.create_folder_structure(SAVE_path)
         #Start IO
-        self.yf = YamboIO(out_name='YAMBOPY_RTStepConvergence.log',out_path=self.RUN_path,print_to_shell=True)
+        if self.wait_up: prnt_io = False
+        else: prnt_io = True
+        self.yf = YamboIO(out_name='YAMBOPY_RTStepConvergence.log',out_path=self.RUN_path,print_to_shell=prnt_io)
         self.yf.IO_start()
         #
         if self.wait_up: self.yf.msg("The workflow is run using job submission through a scheduler.")
