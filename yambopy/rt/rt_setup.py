@@ -27,7 +27,7 @@ class YamboRTSetup():
       - make it a command-line tool
       - add double grid support
     """
-    def __init__(self,field_dir,prefix,nscf='nscf',database='database',MaxGvecs=None,elph_path=None,yambo_rt='yambo_rt',p2y='p2y',ypp='ypp',yambo_ph='yambo_ph',ypp_ph='ypp_ph'):
+    def __init__(self,field_dir,prefix,nscf='./nscf',database='./database',MaxGvecs=None,elph_path=None,yambo_rt='yambo_rt',p2y='p2y',ypp='ypp',yambo_ph='yambo_ph',ypp_ph='ypp_ph'):
 
         if not os.path.isdir(database): os.mkdir(database)
         
