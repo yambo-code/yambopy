@@ -230,11 +230,11 @@ class YamboRTStep_Optimize():
 
             # Part 4: decide if convergence was reached or we have to keep going
             if passed_counter==2:
-                TStep_passed = self.time_steps[i-2]
+                TStep_passed = self.time_steps[i-1]
                 break
             
         if passed_counter==2: self.TStep_passed = TStep_passed
-        if passed_counter==1: self.TStep_passed = self.time_steps[-2]
+        if passed_counter==1: self.TStep_passed = self.time_steps[-1]
         if passed_counter==0: self.TStep_passed = None
             
         self.NSimulations = len(RToutput)
