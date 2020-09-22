@@ -24,12 +24,12 @@ class YamboRTStep_Optimize():
     
         .. code-block:: python
     
-            YamboRTStep_Optimize(input_path,SAVE_path,RUN_path,ref_time,TStep_MAX,TStep_increase,NSimulations,FieldInts)
+            YamboRTStep_Optimize(input_path,SAVE_path,RUN_path,ref_time,TStep_MAX,TStep_increase,NSimulations,FieldInt)
 
     """
 
     def __init__(self,input_path='./yambo.in',SAVE_path='./SAVE',RUN_path='./RT_time-step_optimize',yambo_rt='yambo_rt',\
-                 ref_time=60,TStep_MAX=30,TStep_increase=5,NSimulations=6,FieldInts=None,yscheduler=None,\
+                 ref_time=60,TStep_MAX=30,TStep_increase=5,NSimulations=6,FieldInt=None,yscheduler=None,\
                  tol_eh=1e-4,tol_pol=5e-3,Tpoints_min=30,plot_results=True):
         #Configuring schedulers
         self.frontend = Scheduler.factory(scheduler="bash")
@@ -52,6 +52,7 @@ class YamboRTStep_Optimize():
         self.Tpoints_min = Tpoints_min
         self.tol_eh = tol_eh
         self.tol_pol= tol_pol
+        self.FieldInt = FieldInt
         #Generate directories
         self.create_folder_structure(SAVE_path)
         #Start IO
@@ -128,6 +129,9 @@ class YamboRTStep_Optimize():
 
         self.yf.msg("Field direction: %s"%(str(self.yin['Field1_Dir'][0])))
 
+        #Set field intensity if given in input
+        if self.FieldInt is not None: self.yin['Field1_Int']=[ self.FieldInt, 'kWLm2' ]
+
         #Set time steps
         time_steps = [ self.TStep_MAX - i*self.TStep_increase for i in range(self.NSimulations)]
         self.time_steps = [ ts for ts in time_steps if ts>0 ]
@@ -145,7 +149,7 @@ class YamboRTStep_Optimize():
         self.yin['NETime'] = [ NETime, 'fs' ]
         self.NETime = NETime
         self.yf.msg("Total duration of simulations set to: %f fs"%NETime)
-        self.yin['IOCachetime'] = [[ts_lcm,ts_lcm],'fs']
+        self.yin['IOCachetime'] = [[ts_lcm,5*ts_lcm],'fs']
 
     def COMPUTE_dipoles(self,DIP_folder='dipoles'):
         """
@@ -167,6 +171,7 @@ class YamboRTStep_Optimize():
             # Running...
             self.yf.msg("Running dipoles...")
             shell = deepcopy(self.jobrun)
+            shell.name = 'dipoles'
             shell.add_mpirun_command('%s -F dipoles.in -J %s -C %s 2> %s.log'%(self.yambo_rt,DIP_folder,DIP_folder,DIP_folder))
             shell.run(filename='%s/rt.sh'%self.RUN_path)
             if self.wait_up: self.wait_for_job(shell)
@@ -201,14 +206,18 @@ class YamboRTStep_Optimize():
             # Part 1: file preparation and run
             filename = '%s_%05d%s.in'%(param,ts,units)
             folder   = filename.split('.')[0]
-            #self.yf.msg('%s %s'%(filename,folder))
-            yrun = self.input_to_run(param,ts,units)
-            yrun.write('%s/%s'%(self.RUN_path,filename))
-            shell = deepcopy(self.jobrun)
-            shell.add_mpirun_command('%s -F %s -J %s,%s -C %s 2> %s.log'%(self.yambo_rt,filename,folder,self.DIP_folder,folder,folder))
-            shell.run(filename='%s/rt.sh'%self.RUN_path)
-            if self.wait_up: self.wait_for_job(shell)
-            shell.clean()
+            #Skip execution if output found:
+            if os.path.isfile('%s/%s/ndb.output_polarization'%(self.RUN_path,folder)):
+                self.yf.msg("Found output for time step: %d as"%ts)
+            else:
+                yrun = self.input_to_run(param,ts,units)
+                yrun.write('%s/%s'%(self.RUN_path,filename))
+                shell = deepcopy(self.jobrun)
+                shell.name = '%s_%d_%s'%('{:.0E}'.format(self.FieldInt).replace("E+0", "E"),ts,shell.name)
+                shell.add_mpirun_command('%s -F %s -J %s,%s -C %s 2> %s.log'%(self.yambo_rt,filename,folder,self.DIP_folder,folder,folder))
+                shell.run(filename='%s/rt.sh'%self.RUN_path)
+                if self.wait_up: self.wait_for_job(shell)
+                shell.clean()
 
             # Part 2: perform single-run analysis and store output
             out_dir = '%s/%s'%(self.RUN_path,folder)
@@ -371,14 +380,18 @@ class YamboRTStep_Optimize():
         """
         import matplotlib.pyplot as plt
 
+        plots_dir = 'runs'
+        for ts in self.time_steps: plots_dir += '_%d'%ts
+
         self.yf.msg("Plotting results.")
         out_dir = '%s/%s'%(self.RUN_path,save_dir)
-        if not os.path.isdir(out_dir): 
-            shell = self.frontend
-            shell.add_command('mkdir -p %s'%out_dir)
-            shell.run()
-            shell.clean()
+        shell = self.frontend
+        if not os.path.isdir(out_dir): shell.add_command('mkdir -p %s'%out_dir)
+        shell.add_command('mkdir -p %s/%s'%(out_dir,plots_dir))
+        shell.run()
+        shell.clean()
 
+        plots_dir = '%s/%s'%(out_dir,plots_dir)
         time_steps = self.time_steps
         lwidth=0.8
         ts_colors = plt.cm.gist_rainbow(np.linspace(0.,1.,num=self.NSimulations))
@@ -399,7 +412,7 @@ class YamboRTStep_Optimize():
                 ax.legend(loc='upper left')
             f.tight_layout()
              
-            plt.savefig('%s/polarizations_%das.png'%(out_dir,self.time_steps[ts]),format='png',dpi=150)
+            plt.savefig('%s/polarizations_%das.png'%(plots_dir,self.time_steps[ts]),format='png',dpi=150)
 
         # Plot for all time steps
         f, (axes) = plt.subplots(4,1,sharex=True)
@@ -419,7 +432,7 @@ class YamboRTStep_Optimize():
         f.legend(handles, labels, loc='center right')
         f.tight_layout()
 
-        plt.savefig('%s/polarizations_comparison.png'%out_dir,format='png',dpi=150) 
+        plt.savefig('%s/polarizations_comparison.png'%plots_dir,format='png',dpi=150) 
 
         # Plot for all time steps |pol|^2
         f, (axes) = plt.subplots(self.NSimulations,1,sharex=True)
@@ -435,7 +448,7 @@ class YamboRTStep_Optimize():
             ax.legend(loc='upper left')
         f.tight_layout()
 
-        plt.savefig('%s/polarizations_squared.png'%out_dir,format='png',dpi=150)
+        plt.savefig('%s/polarizations_squared.png'%plots_dir,format='png',dpi=150)
 
         # Plot for all time steps along field direction
         f, (axes) = plt.subplots(self.NSimulations,1,sharex=True)
@@ -451,7 +464,7 @@ class YamboRTStep_Optimize():
             ax.legend(loc='upper left')
         f.tight_layout()        
 
-        plt.savefig('%s/polarizations_field_direction.png'%out_dir,format='png',dpi=150)
+        plt.savefig('%s/polarizations_field_direction.png'%plots_dir,format='png',dpi=150)
     
     def wait_for_job(self,shell,time_step=10.):
         """
