@@ -53,6 +53,7 @@ class YamboRTStep_Optimize():
         self.tol_eh = tol_eh
         self.tol_pol= tol_pol
         self.FieldInt = FieldInt
+        self.time_odm = 1
         #Generate directories
         self.create_folder_structure(SAVE_path)
         #Start IO
@@ -131,15 +132,18 @@ class YamboRTStep_Optimize():
 
         #Set field intensity if given in input
         if self.FieldInt is not None: self.yin['Field1_Int']=[ self.FieldInt, 'kWLm2' ]
+        else: self.FieldInt=self.yin['Field1_Int'][0] 
 
         #Set time steps
         time_steps = [ self.TStep_MAX - i*self.TStep_increase for i in range(self.NSimulations)]
-        self.time_steps = [ ts for ts in time_steps if ts>0 ]
+        self.time_steps = np.array( [ ts for ts in time_steps if ts>0 ] )
         self.NSimulations = len(self.time_steps)
         self.TSteps_min_max=[self.TStep_MAX,self.TStep_MAX-(self.NSimulations-1)*self.TStep_increase]
+        # We have to consider the case of non-integer below-as time steps
+        if self.TStep_increase % 1 > 0: self.time_odm = 1000
 
         #Set simulations time settings (field time + lcm(time_steps) + hardcoded duration to analyse)
-        ts_lcm = float(np.lcm.reduce(self.time_steps))/1000. # in fs
+        ts_lcm = float(np.lcm.reduce((self.time_steps*self.time_odm).astype(int)))/(1000.*self.time_odm) # in fs
         if self.ref_time/ts_lcm<self.Tpoints_min:
             self.yf.msg("[ERR] less than %d time points for polarization."%self.Tpoints_min)
             self.yf.msg("Exiting...")
@@ -201,16 +205,17 @@ class YamboRTStep_Optimize():
         pol_x_check  = []
         time_steps = self.time_steps
         for i,ts in enumerate(time_steps):
-            self.yf.msg("Running simulation for time step: %d as"%ts)
+            self.yf.msg("Running simulation for time step: %s %s"%('{0:g}'.format(ts),units))
 
             # Part 1: file preparation and run
-            filename = '%s_%05d%s.in'%(param,ts,units)
+            if self.time_odm==1: filename = '%s_%05d%s.in'%(param,ts,units)
+            if self.time_odm==1000: filename = '%s_%05d%s.in'%(param,ts*self.time_odm,'zs')
             folder   = filename.split('.')[0]
             #Skip execution if output found:
             if os.path.isfile('%s/%s/ndb.output_polarization'%(self.RUN_path,folder)):
-                self.yf.msg("Found output for time step: %d as"%ts)
+                self.yf.msg("Found output for time step: %s %s"%('{0:g}'.format(ts),units))
             else:
-                yrun = self.input_to_run(param,ts,units)
+                yrun = self.input_to_run(param,float(ts),units)
                 yrun.write('%s/%s'%(self.RUN_path,filename))
                 shell = deepcopy(self.jobrun)
                 shell.name = '%s_%d_%s'%('{:.0E}'.format(self.FieldInt).replace("E+0", "E"),ts,shell.name)
@@ -250,7 +255,7 @@ class YamboRTStep_Optimize():
         self.RToutput = RToutput
         self.ANALYSE_output(NaN_check,eh_check,pol_sq_check,pol_x_check,passed_counter)
 
-    def ANALYSE_output(self,NaN,eh,pol2,polx,passed):
+    def ANALYSE_output(self,NaN,eh,pol2,polx,passed,units='as'):
         """
         Output information and suggestion for an optimal time step.
         - There are two values of tolerance: one for carriers, one for polarization
@@ -291,7 +296,7 @@ class YamboRTStep_Optimize():
         tp = self.TStep_passed
         self.yf.msg(" ")
         self.yf.msg("Based on the analysis, the suggested time step is: ")
-        if tp is not None: self.yf.msg("### %d as ###"%tp)
+        if tp is not None: self.yf.msg("### %s %s ###"%('{0:g}'.format(tp),units))
         else: self.yf.msg("[ERR] NSimulations limit reached before converged value was found.")
         self.yf.msg("------------------------------")        
  
@@ -381,7 +386,11 @@ class YamboRTStep_Optimize():
         import matplotlib.pyplot as plt
 
         plots_dir = 'runs'
-        for ts in self.time_steps: plots_dir += '_%d'%ts
+        odm = self.time_odm
+        
+        if odm==1: units='as'
+        if odm==1000: units='zs'
+        for ts in self.time_steps: plots_dir += '_%s'%('{0:g}'.format(ts*odm))
 
         self.yf.msg("Plotting results.")
         out_dir = '%s/%s'%(self.RUN_path,save_dir)
@@ -412,13 +421,13 @@ class YamboRTStep_Optimize():
                 ax.legend(loc='upper left')
             f.tight_layout()
              
-            plt.savefig('%s/polarizations_%das.png'%(plots_dir,self.time_steps[ts]),format='png',dpi=150)
+            plt.savefig('%s/polarizations_%d%s.png'%(plots_dir,self.time_steps[ts]*odm,units),format='png',dpi=150)
 
         # Plot for all time steps
         f, (axes) = plt.subplots(4,1,sharex=True)
         for ts in range(self.NSimulations):
 
-            label = '%das'%time_steps[ts]
+            label = '%d%s'%(time_steps[ts]*odm,units)
             pol   = self.RToutput[ts].polarization
             pol_sq = pol[0]*pol[0] + pol[1]*pol[1] + pol[2]*pol[2]
             times = np.linspace(0.,self.NETime,num=pol.shape[1])
@@ -441,7 +450,7 @@ class YamboRTStep_Optimize():
             pol = self.RToutput[ts].polarization
             pol_sq = pol[0]*pol[0] + pol[1]*pol[1] + pol[2]*pol[2]
             times = np.linspace(0.,self.NETime,num=pol.shape[1])
-            pol_ts_label = "%das"%time_steps[ts]
+            pol_ts_label = "%d%s"%(time_steps[ts]*odm,units)
             axes[ts].plot(times, pol_sq, '-', lw=lwidth, color=ts_colors[ts], label=pol_ts_label)
         for ax in axes:
             ax.axhline(0.,lw=0.5,color='gray',zorder=-5)
@@ -457,7 +466,7 @@ class YamboRTStep_Optimize():
             pol = self.RToutput[ts].polarization
             pol_x,pol_label = self.pol_along_field(pol)
             times = np.linspace(0.,self.NETime,num=pol.shape[1])
-            pol_ts_label = "%s_%das"%(pol_label,time_steps[ts])
+            pol_ts_label = "%s_%d%s"%(pol_label,time_steps[ts]*odm,units)
             axes[ts].plot(times, pol_x, '-', lw=lwidth, color=ts_colors[ts], label=pol_ts_label) 
         for ax in axes:
             ax.axhline(0.,lw=0.5,color='gray',zorder=-5)
