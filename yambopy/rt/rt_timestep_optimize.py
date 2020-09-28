@@ -5,6 +5,15 @@ import os
 from copy import deepcopy
 overflow = 1e8
 
+def integerize(number):
+    """
+    Check if number is integer, if False make it integer
+    """
+    if isinstance(number,int): return number
+    if isinstance(number,float):
+        if number.is_integer(): return int(number)
+        else: return integerize(number*10)
+
 class YamboRTStep_Optimize():
     """ 
     Class to run convergence tests for the RT time step.
@@ -65,7 +74,7 @@ class YamboRTStep_Optimize():
         if self.wait_up: self.yf.msg("The workflow is run using job submission through a scheduler.")
         else: self.yf.msg("The workflow is run locally.")
         #Check for consistent input parameters
-        if self.TStep_MAX % self.TStep_increase !=0: #Here RaiseError may be used
+        if integerize(self.TStep_MAX) % integerize(self.TStep_increase) !=0: #Here RaiseError may be used
             self.yf.msg("The polarization is computed at discrete times.")
             self.yf.msg("In order to compare efficiently results with different time steps,")
             self.yf.msg("please select a time increment that divides exactly the max time step.")
