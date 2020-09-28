@@ -153,6 +153,9 @@ class YamboRTStep_Optimize():
 
         #Set simulations time settings (field time + lcm(time_steps) + hardcoded duration to analyse)
         ts_lcm = float(np.lcm.reduce((self.time_steps*self.time_odm).astype(int)))/(1000.*self.time_odm) # in fs
+        print(self.TStep_increase % 1)
+        print(ts_lcm)
+        print(self.ref_time/ts_lcm)
         if self.ref_time/ts_lcm<self.Tpoints_min:
             self.yf.msg("[ERR] less than %d time points for polarization."%self.Tpoints_min)
             self.yf.msg("Exiting...")
