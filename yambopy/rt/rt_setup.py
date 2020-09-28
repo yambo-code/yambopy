@@ -68,11 +68,13 @@ class YamboRTSetup():
             self.yf.msg('SAVE database found!')
         if not os.path.isdir('%s/SAVE'%database):
             self.yf.msg('preparing yambo RT database')
-            if os.path.isfile('%s/data-file.xml'%qe_save): qe_xml = 'data-file.xml'
-            if os.path.isfile('%s/data-file-schema.xml'%qe_save): qe_xml = 'data-file-schema.xml'
+            # p2y does not support -F option to select data-file or data-file-schema anymore 
+            #if os.path.isfile('%s/data-file.xml'%qe_save): qe_xml = 'data-file.xml'
+            #if os.path.isfile('%s/data-file-schema.xml'%qe_save): qe_xml = 'data-file-schema.xml'
             p2y_run = self.scheduler()
             p2y_run.add_command('mkdir -p %s'%database)
-            p2y_run.add_command('cd %s; %s -F %s > p2y.log ; cd -'%(qe_save,self.p2y,qe_xml))
+            #p2y_run.add_command('cd %s; %s -F %s > p2y.log ; cd -'%(qe_save,self.p2y,qe_xml))
+            p2y_run.add_command('cd %s; %s > p2y.log ; cd -'%(qe_save,self.p2y))
             p2y_run.add_command('cd %s; mv SAVE %s ; cd -'%(qe_save,database))
             p2y_run.run()
 
