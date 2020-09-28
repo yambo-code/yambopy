@@ -229,7 +229,7 @@ class YamboRTStep_Optimize():
                 yrun = self.input_to_run(param,float(ts),units)
                 yrun.write('%s/%s'%(self.RUN_path,filename))
                 shell = deepcopy(self.jobrun)
-                shell.name = '%s_%d_%s'%('{:.0E}'.format(self.FieldInt).replace("E+0", "E"),'{0:g}'.format(ts),shell.name)
+                shell.name = '%s_%s_%s'%('{:.0E}'.format(self.FieldInt).replace("E+0", "E"),'{0:g}'.format(ts),shell.name)
                 shell.add_mpirun_command('%s -F %s -J %s,%s -C %s 2> %s.log'%(self.yambo_rt,filename,folder,self.DIP_folder,folder,folder))
                 shell.run(filename='%s/rt.sh'%self.RUN_path)
                 if self.wait_up: self.wait_for_job(shell)
