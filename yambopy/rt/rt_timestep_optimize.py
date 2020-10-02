@@ -62,7 +62,7 @@ class YamboRTStep_Optimize():
         self.tol_eh = tol_eh
         self.tol_pol= tol_pol
         self.FieldInt = FieldInt
-        self.time_odm = 1
+        self.time_odm = 1 # Important: this needs to be an integer
         #Generate directories
         self.create_folder_structure(SAVE_path)
         #Start IO
@@ -152,10 +152,9 @@ class YamboRTStep_Optimize():
         if self.TStep_increase % 1 > 0: self.time_odm = 1000
 
         #Set simulations time settings (field time + lcm(time_steps) + hardcoded duration to analyse)
-        ts_lcm = float(np.lcm.reduce((self.time_steps*self.time_odm).astype(int)))/(1000.*self.time_odm) # in fs
-        print(self.TStep_increase % 1)
-        print(ts_lcm)
-        print(self.ref_time/ts_lcm)
+        ts_integerized = np.array( [ int('{0:g}'.format(ts*self.time_odm)) for ts in self.time_steps ] ) 
+        # Grievous floating-point issues here for non-integer time steps... solved with above line
+        ts_lcm = float(np.lcm.reduce(ts_integerized))/(1000.*self.time_odm) # in fs
         if self.ref_time/ts_lcm<self.Tpoints_min:
             self.yf.msg("[ERR] less than %d time points for polarization."%self.Tpoints_min)
             self.yf.msg("Exiting...")
@@ -230,7 +229,7 @@ class YamboRTStep_Optimize():
                 yrun = self.input_to_run(param,float(ts),units)
                 yrun.write('%s/%s'%(self.RUN_path,filename))
                 shell = deepcopy(self.jobrun)
-                shell.name = '%s_%d_%s'%('{:.0E}'.format(self.FieldInt).replace("E+0", "E"),'{0:g}'.format(ts),shell.name)
+                shell.name = '%s_%s_%s'%('{:.0E}'.format(self.FieldInt).replace("E+0", "E"),'{0:g}'.format(ts),shell.name)
                 shell.add_mpirun_command('%s -F %s -J %s,%s -C %s 2> %s.log'%(self.yambo_rt,filename,folder,self.DIP_folder,folder,folder))
                 shell.run(filename='%s/rt.sh'%self.RUN_path)
                 if self.wait_up: self.wait_for_job(shell)
