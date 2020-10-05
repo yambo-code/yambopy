@@ -17,6 +17,8 @@ Here you can find some user contributed scripts for yambopy.
 4. plot_excitons.py
  Plot the BSE spectra including excitonic energies and the exciton weights in the Brillouin Zone of a BSE calculation.
 
+5. gkkp.py
+ Generate SAVE folder along with electron-phonon ndb.elph_gkkp databases
 
   Realtime Folder
   ===============
