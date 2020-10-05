@@ -17,7 +17,7 @@ NB:
 
 """
 
-def initialize_SAVE(database,qe_save,y_dir,scheduler,out):
+def generate_SAVE(database,qe_save,y_dir,scheduler,out):
     """
     Generate SAVE folder from QE nscf calculation
     """
@@ -44,7 +44,7 @@ def initialize_SAVE(database,qe_save,y_dir,scheduler,out):
         p2y_run.add_command('cd %s; mv SAVE %s ; cd -'%(qe_save,database))
         p2y_run.run()
 
-def initialize_gkkp(database,elph_save,y_dir,scheduler):
+def generate_gkkp(database,elph_save,y_dir,scheduler):
     """
     Read gkkp from dfpt calculation
     """
