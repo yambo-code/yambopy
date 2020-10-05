@@ -2,7 +2,8 @@
 #TODO: use scripts contained in this directory instead of yambopy/recipes.py
 from yambopy import *
 #TODO: gkkp and generate_save can be disentangled more (gkkp can separately call generate_save)
-from scripts import gkkp, generate_save 
+from scripts import generate_save 
+from scripts import gkkp
 import argparse
 import sys
 
@@ -393,8 +394,8 @@ class GkkpCmd(Cmd):
         yf.IO_start()
 
         #call gkkp
-        initialize_SAVE(database,nscf_dir,yambo_dir,scheduler,yf)
-        initialize_gkkp(database,elph_dir,yambo_dir,scheduler,yf)
+        gkkp.generate_SAVE(database,nscf_dir,yambo_dir,scheduler,yf)
+        gkkp.generate_gkkp(database,elph_dir,yambo_dir,scheduler,yf)
 
         # End IO
         yf.IO_close()
@@ -425,7 +426,7 @@ class SaveCmd(Cmd):
         scheduler = Scheduler.factory
 
         #call generate_save
-        SAVE(database,nscf_dir,yambo_dir,scheduler,yf)
+        generate_save.generate_save(database,nscf_dir,yambo_dir,scheduler)
 
 class YambopyCmd(Cmd):
     """
