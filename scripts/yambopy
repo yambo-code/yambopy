@@ -362,7 +362,7 @@ class AddQPCmd(Cmd):
 
 class GkkpCmd(Cmd):
     """
-    Class to produce a SAVE folder including elph_gkkp databases
+    Produce a SAVE folder including elph_gkkp databases
     
     Arguments are:
         -nscf, --nscf_dir  -> Path to nscf save folder
@@ -401,7 +401,7 @@ class GkkpCmd(Cmd):
         
 class SaveCmd(Cmd):
     """
-    Class to produce a SAVE folder
+    Produce a SAVE folder
     
     Arguments are:
         -nscf, --nscf_dir  -> Path to nscf save folder
