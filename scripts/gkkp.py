@@ -83,7 +83,7 @@ def initialize_gkkp(database,elph_save,y_dir,scheduler):
             if not os.path.isfile('%s/SAVE/ndb.elph_gkkp'%database):
                 out.msg('[ERROR] ndb.elph_gkkp databases not created. Check the logs.')
         
-if __name__ == "__main__"
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate SAVE folder including gkkp databases')
     parser.add_argument('-nscf','--nscf_dir', type=str,help='<Required> Path to nscf save folder', required=True)
     parser.add_argument('-elph','--elph_dir', type=str,help='<Required> Path to elph_dir folder',required=True)

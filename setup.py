@@ -12,7 +12,8 @@ packages_yambopy = ['yambopy',
                     'qepy',
                     'materials',
                     'schedulerpy',
-                    'yamboparser']
+                    'yamboparser',
+                    'scripts']
 
 install_requires = [
 "numpy",
@@ -23,11 +24,11 @@ install_requires = [
 
 if __name__ == '__main__':
     setup(name='yambopy',
-          version='0.1',
-          description='Automatic workflows for Yambo.',
-          author='Henrique Miranda',
-          author_email='miranda.henrique@gmail.com',
-          requires=['numpy','matplotlib','netCDF4'],
+          version='1',
+          description='Pre-Postprocessing and automatic workflows for Yambo (and Quantum Espresso).',
+          author='Henrique Miranda, Alejandro Molina-Sánchez, Fulvio Paleari, Alexandre Morlet',
+          author_email='fulvio.paleari90@gmail.com',
+          requires=['numpy','scipy','matplotlib','netCDF4'],
           scripts=['scripts/yambopy'],
           packages=packages_yambopy,
           install_requires=install_requires,
