@@ -30,8 +30,8 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,scheduler):
         print('gkkp found!')
     else:
         #check if the elph_dir folder is present
-        if not os.path.isfile('%s/s.dbph_000001'):
-            print('problem with dbph databases at %s'%elph_dir)
+        if not os.path.isfile('%s/s.dbph_000001'%elph_save):
+            print('problem with dbph databases at %s'%elph_save)
             exit()
         else:
             print('reading gkkp')
@@ -49,11 +49,11 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,scheduler):
             yamboph_run.add_command('cd %s ; %s -F %s -J ./elph_dir ; cd -'%(database,yambo_ph,filnm1))
             yamboph_run.run()
 
-            yph = YamboIn.from_runlevel('-gkkp',executable=ypp_ph,filename=filnmph,folder=database)
+            yph = YamboIn.from_runlevel('-gkkp',executable=ypp_ph,filename=filnm2,folder=database)
             #yph.arguments.append('GkkpExpand')
             yph['DBsPATH'] = "./elph_dir"
             yph.write('%s/%s'%(database,filnm2))
-            yppph_run = self.scheduler()
+            yppph_run = scheduler()
 
             yppph_run.add_command('cd %s ; %s -F %s; cd -'%(database,ypp_ph,filnm2))
             yppph_run.run()
