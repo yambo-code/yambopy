@@ -1,5 +1,8 @@
 #!/usr/bin/env python3.7
+#TODO: use scripts contained in this directory instead of yambopy/recipes.py
 from yambopy import *
+#TODO: separate initialize_SAVE into its own script and keep initialize_gkkp simply as gkkp
+from scripts import gkkp 
 import argparse
 import sys
 
@@ -357,7 +360,7 @@ class AddQPCmd(Cmd):
         """
         print(self.__doc__)
 
-class YambopyGkkpCmd(Cmd):
+class GkkpCmd(Cmd):
     """
     Class to produce a SAVE folder including elph_gkkp databases
     
@@ -382,8 +385,19 @@ class YambopyGkkpCmd(Cmd):
         elph_dir  = args.elph_dir
         yambo_dir = args.yambo_dir
         
+        database = './'
+        scheduler = Scheduler.factory
+
+        # Start IO
+        yf = YamboIO(out_name='YAMBOPY_GKKPsetup.log',out_path=database,print_to_shell=True)
+        yf.IO_start()
+
         #call gkkp
-        gkkp(nscf_dir,elph_dir,yambo_dir)
+        initialize_SAVE(database,nscf_dir,yambo_dir,scheduler,yf)
+        initialize_gkkp(database,elph_dir,yambo_dir,scheduler,yf)
+
+        # End IO
+        yf.IO_close()
 
 class YambopyCmd(Cmd):
     """
