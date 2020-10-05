@@ -1,8 +1,8 @@
 #!/usr/bin/env python3.7
 #TODO: use scripts contained in this directory instead of yambopy/recipes.py
 from yambopy import *
-#TODO: separate initialize_SAVE into its own script and keep initialize_gkkp simply as gkkp
-from scripts import gkkp 
+#TODO: gkkp and generate_save can be disentangled more (gkkp can separately call generate_save)
+from scripts import gkkp, generate_save 
 import argparse
 import sys
 
@@ -398,6 +398,34 @@ class GkkpCmd(Cmd):
 
         # End IO
         yf.IO_close()
+        
+class SaveCmd(Cmd):
+    """
+    Class to produce a SAVE folder
+    
+    Arguments are:
+        -nscf, --nscf_dir  -> Path to nscf save folder
+        -y, --yambo_dir    -> <Optional> Path to yambo executables
+    """
+    def __init__(self,args):
+        #check for args
+        if len(args) < 1:
+            print((self.__doc__))
+            exit(0)
+            
+        parser = argparse.ArgumentParser(description='Generate SAVE folder including gkkp databases')
+        parser.add_argument('-nscf','--nscf_dir', type=str,help='<Required> Path to nscf save folder', required=True)
+        parser.add_argument('-y','--yambo_dir', default="", type=str,help='<Optional> Path to yambo executables')
+        args = parser.parse_args(args)
+        
+        nscf_dir  = args.nscf_dir
+        yambo_dir = args.yambo_dir
+        
+        database = './'
+        scheduler = Scheduler.factory
+
+        #call generate_save
+        SAVE(database,nscf_dir,yambo_dir,scheduler,yf)
 
 class YambopyCmd(Cmd):
     """
@@ -410,6 +438,7 @@ class YambopyCmd(Cmd):
                  'plotexcitons': PlotExcitons,
                  'addqp':        AddQPCmd,
                  'mergeqp':      MergeQPCmd,
+                 'save':         SaveCmd,
                  'gkkp':         GkkpCmd,
                  'test':         TestCmd}
 
