@@ -81,19 +81,18 @@ def initialize_gkkp(database,elph_save,y_dir,scheduler):
             yppph_run.add_command('cd %s ; %s -F %s; cd -'%(database,ypp_ph,filnm2))
             yppph_run.run()
             if not os.path.isfile('%s/SAVE/ndb.elph_gkkp'%database):
-                out.msg('[ERROR] ndb.elph_gkkp_expanded databases not created. Check the logs.')
+                out.msg('[ERROR] ndb.elph_gkkp databases not created. Check the logs.')
         
 if __name__ == "__main__"
     parser = argparse.ArgumentParser(description='Generate SAVE folder including gkkp databases')
     parser.add_argument('-nscf','--nscf_dir', type=str,help='<Required> Path to nscf save folder', required=True)
     parser.add_argument('-elph','--elph_dir', type=str,help='<Required> Path to elph_dir folder',required=True)
-    parser.add_argument('-y','--yambo_dir', type=str,help='<Optional> Path to yambo executables')
+    parser.add_argument('-y','--yambo_dir', type=str, default="", help='<Optional> Path to yambo executables')
     args = parser.parse_args()
 
     nscf_dir = args.nscf_dir
     elph_dir = args.elph_dir
-    if yambo_dir: yambo_dir = args.yambo_dir
-    else: yambo_dir = ""
+    yambo_dir = args.yambo_dir
 
     database = './'
     scheduler = Scheduler.factory
