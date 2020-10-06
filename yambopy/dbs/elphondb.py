@@ -92,7 +92,7 @@ class YamboElectronPhononDB():
 
         print('The transition from band n = %d to band n\'= %d has yambo index %d' % (ib1, ib2, iband) )
 
-        for nq in xrange(self.nqpoints):
+        for nq in range(self.nqpoints):
             filename = '%s_fragment_%d'%(self.filename,nq+1)
 
             database = Dataset(filename)
