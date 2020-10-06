@@ -518,6 +518,19 @@ class PwIn(object):
             cell_parameters = [[  a,   0,   0],
                                [  0,   a,   0],
                                [  0,   0, c*a]]
+        elif self.ibrav == -5:
+            a = float(self.system['celldm(1)'])
+            c = float(self.system['celldm(4)'])
+            ap = a/sqrt(3.0)
+            ty = sqrt((1.0-c)/6.0)
+            tz = sqrt((1.0+2.0*c)/3.0)
+            u = tz - 2.0*sqrt(2.0)*ty
+            v = tz + sqrt(2.0)*ty
+            cell_parameters = [[  ap*u, ap*v, ap*v],
+                               [  ap*v, ap*u, ap*v],
+                               [  ap*v, ap*v, ap*u]]
+            
+
         else:
             raise NotImplementedError('ibrav = %d not implemented'%self.ibrav)
         return cell_parameters
