@@ -183,13 +183,11 @@ class YamboElectronPhononDB():
             self.gkkp[iq] = (gkkp[:,:,:,:,0] + I*gkkp[:,:,:,:,1]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
             database.close()
     
-    def plot_elph(self,ib=1,inu=-1,z_cut=-100.,cmap='viridis',size=300):
+    def plot_elph(self,ib=1,inu=-1,cmap='viridis',size=300):
         """
-        Scatterplot in the 2D (kx,ky,kz=fixed) BZ of the quantity G_{nk} = 1/N_q * \sum_{q,nu} | elph_{qnu,knn} |^2 .
+        Scatterplot in the BZ of the quantity G_{nk} = 1/N_q * \sum_{q,nu} | elph_{qnu,knn} |^2 .
     
         Band and kpoint indices are user-specified.
-        
-        The altitude of the 2D slice of the BZ can be secified with z_cut (its value must be known from car_kpoints).
     
         It is possible to plot the contribution of a single phonon mode specifying inu.
         """
@@ -229,6 +227,10 @@ class YamboElectronPhononDB():
         ax.set_xlim(-xlim,xlim)
         ax.set_ylim(-ylim,ylim)
         ax.set_ylim(-zlim,zlim)
+        
+        # Plot title
+        if inu>-1: ax.set_title('G^l_nk = 1/N_q * \sum_q | elph^ql_knn |^2')
+        else: ax.set_title('G_nk = 1/N_q * \sum_ql | elph^ql_knn |^2')
         
         # Reciprocal lattice vectors
         lx,ly,lz = [ np.linalg.norm(self.rlat[i]) for i in range(3) ]
