@@ -53,6 +53,7 @@ class YamboElectronPhononDB():
         database.close()
         
         #Check how many databases are present
+        self.nfrags = self.nqpoints
         for iq in range(self.nqpoints):
             if not os.path.isfile("%s%d"%(self.frag_filename,iq+1)): 
                 self.nfrags = iq
@@ -247,18 +248,18 @@ class YamboElectronPhononDB():
     
     def __str__(self):
 
-        try: 
-            self.ph_energies and self.ph_eigenvectors
-        except AttributeError:
-            self.read_frequencies()
-            self.read_eigenmodes()
+        try: self.ph_energies
+        except AttributeError: self.read_frequencies()
+
+        try: self.ph_eigenvectors
+        except AttributeError: self.read_eigenmodes()
             
         s = 'nqpoints: %d\n'%self.nqpoints
         s+= 'nkpoints: %d\n'%self.nkpoints
         s+= 'nmodes: %d\n'%self.nmodes
         s+= 'natoms: %d\n'%self.natoms
         s+= 'nbands: %d\n'%self.nbands
-        if self.nfrags == self. nqpoints: s+= 'fragments: %d\n'%self.nfrags
+        if self.nfrags == self.nqpoints: s+= 'fragments: %d\n'%self.nfrags
         else: s+= 'fragments: %d [WARNING] nfrags < nqpoints\n'%self.nfrags
         s+= '-----------------------------------\n'
         for iq in range(self.nfrags):
