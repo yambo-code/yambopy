@@ -52,9 +52,12 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,scheduler):
             yph = YamboIn.from_runlevel('-gkkp',executable=ypp_ph,filename=filnm2,folder=database)
             #yph.arguments.append('GkkpExpand')
             yph['DBsPATH'] = "./elph_dir"
+            if os.path.isfile('%s/s.dbph_bare_000001'%elph_save):
+                print('    reading also bare gkkp')
+                yph.arguments.append('GkkpReadBare')
             yph.write('%s/%s'%(database,filnm2))
-            yppph_run = scheduler()
 
+            yppph_run = scheduler()
             yppph_run.add_command('cd %s ; %s -F %s; cd -'%(database,ypp_ph,filnm2))
             yppph_run.run()
             if not os.path.isfile('%s/SAVE/ndb.elph_gkkp'%database):
