@@ -28,6 +28,7 @@ class YamboElectronPhononDB():
         
         filename = "%s/%s"%(folder_gkkp,filename)
         self.frag_filename = filename + "_fragment_"
+        self.are_bare_there = False
         
         # necessary lattice information
         self.alat        = lattice.alat
@@ -41,8 +42,16 @@ class YamboElectronPhononDB():
         
         try: database_frag = Dataset("%s1"%self.frag_filename)
         except FileNotFoundError: print("[WARNING] Database fragment at q=0 not detected")
-        else: database_frag.close() 
-        
+        else: 
+            # Check if bare matrix elements are present
+            try: 
+                database_frag.variables['ELPH_GKKP_BARE_Q1']
+            except KeyError: 
+                database_frag.close()
+            else:
+                self.are_bare_there = True
+                database_frag.close()
+                 
         #read qpoints    
         self.qpoints = database.variables['PH_Q'][:].T
         self.car_qpoints = np.array([ q/self.alat for q in self.qpoints ])
@@ -85,15 +94,20 @@ class YamboElectronPhononDB():
             self.ph_eigenvectors[iq] = eigs_q[0,:,:,:] + eigs_q[1,:,:,:]*I
             database.close()
     
-    def read_elph(self,iq=-1,ik=-1,ib1=-1,ib2=-1,inu=-1):
+    def read_elph(self,iq=-1,ik=-1,ib1=-1,ib2=-1,inu=-1,read_bare=False):
         """
         Driver to read electron-phonon matrix elements:
         
         - If no options are specified, read all calling read_elph_full
         - If options (q) or (k,b1,b2) are specified, read the appropriate slice of the gkkp
+        - If read_bare=True is specified, read bare elph matrix elements if present
         
         """
-        
+        self.var_nm = 'ELPH_GKKP_Q'
+        if read_bare:
+            if self.are_bare_there: self.var_nm = 'ELPH_GKKP_BARE_Q'
+            else: raise ValueError("The bare couplings are not present.")
+                    
         # Read a single q
         if iq>-1: 
             if iq<self.nfrags: self.read_elph_q(iq)
@@ -111,6 +125,8 @@ class YamboElectronPhononDB():
         
                         
         else: self.read_elph_full()
+        
+        self.var_nm = 'ELPH_GKKP_Q'
 
     def read_elph_nm(self,i_n,i_m):
         """
@@ -121,8 +137,8 @@ class YamboElectronPhononDB():
         for iq in range(self.nfrags):
             fil = self.frag_filename + "%d"%(iq+1)
             database = Dataset(fil)
-            gkkp_nm[iq] = database.variables['ELPH_GKKP_Q%d'%(iq+1)][:,i_n,i_m,:,0] +\
-                       I* database.variables['ELPH_GKKP_Q%d'%(iq+1)][:,i_n,i_m,:,1]
+            gkkp_nm[iq] = database.variables['%s%d'%(self.var_nm,iq+1)][:,i_n,i_m,:,0] +\
+                       I* database.variables['%s%d'%(self.var_nm,iq+1)][:,i_n,i_m,:,1]
             database.close()
         return gkkp_nm
     
@@ -135,8 +151,8 @@ class YamboElectronPhononDB():
         for iq in range(self.nfrags):
             fil = self.frag_filename + "%d"%(iq+1)
             database = Dataset(fil)
-            gkkp_knm[iq] = database.variables['ELPH_GKKP_Q%d'%(iq+1)][ik,i_n,i_m,:,0] +\
-                        I* database.variables['ELPH_GKKP_Q%d'%(iq+1)][ik,i_n,i_m,:,1]
+            gkkp_knm[iq] = database.variables['%s%d'%(self.var_nm,iq+1)][ik,i_n,i_m,:,0] +\
+                        I* database.variables['%s%d'%(self.var_nm,iq+1)][ik,i_n,i_m,:,1]
             database.close()
         return gkkp_knm
         
@@ -146,7 +162,7 @@ class YamboElectronPhononDB():
         """
         fil = self.frag_filename + "%d"%(iq+1)
         database = Dataset(fil)
-        g_q = database.variables['ELPH_GKKP_Q%d'%(iq+1)][:]
+        g_q = database.variables['%s%d'%(self.var_nm,iq+1)][:]
         gkkp_q = (g_q[:,:,:,:,0] + I*g_q[:,:,:,:,1]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
         database.close()
         
@@ -157,14 +173,17 @@ class YamboElectronPhononDB():
         Read electron-phonon matrix elements
         """
         # gkkp[q][k][mode][bnd1][bnd2]
-        self.gkkp = np.zeros([self.nfrags,self.nkpoints,self.nmodes,self.nbands,self.nbands],dtype=np.complex64)
+        gkkp_full = np.zeros([self.nfrags,self.nkpoints,self.nmodes,self.nbands,self.nbands],dtype=np.complex64)   
         
         for iq in range(self.nfrags):
             fil = self.frag_filename + "%d"%(iq+1)
             database = Dataset(fil)
-            gkkp = database.variables['ELPH_GKKP_Q%d'%(iq+1)][:]
-            self.gkkp[iq] = (gkkp[:,:,:,:,0] + I*gkkp[:,:,:,:,1]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
+            gkkp = database.variables['%s%d'%(self.var_nm,iq+1)][:]
+            gkkp_full[iq] = (gkkp[:,:,:,:,0] + I*gkkp[:,:,:,:,1]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
             database.close()
+
+        if self.var_nm == 'ELPH_GKKP_Q': self.gkkp = gkkp_full
+        if self.var_nm == 'ELPH_GKKP_BARE_Q': self.gkkp_bare = gkkp_full          
 
     def read_DB(self,only_freqs=False):
         """ 
@@ -173,6 +192,8 @@ class YamboElectronPhononDB():
         self.ph_energies  = np.zeros([self.nfrags,self.nmodes])
         self.ph_eigenvectors = np.zeros([self.nfrags,self.nmodes,self.natoms,3],dtype=np.complex64)
         self.gkkp = np.zeros([self.nfrags,self.nkpoints,self.nmodes,self.nbands,self.nbands],dtype=np.complex64)
+        if self.are_bare_there:
+            self.gkkp_bare = np.zeros([self.nfrags,self.nkpoints,self.nmodes,self.nbands,self.nbands],dtype=np.complex64)
         
         for iq in range(self.nfrags):
             fil = self.frag_filename + "%d"%(iq+1)
@@ -182,9 +203,12 @@ class YamboElectronPhononDB():
             self.ph_eigenvectors[iq] = eigs_q[0,:,:,:] + eigs_q[1,:,:,:]*I
             gkkp = database.variables['ELPH_GKKP_Q%d'%(iq+1)][:]
             self.gkkp[iq] = (gkkp[:,:,:,:,0] + I*gkkp[:,:,:,:,1]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
+            if self.are_bare_there:
+                gkkp_bare = database.variables['ELPH_GKKP_BARE_Q%d'%(iq+1)][:]
+                self.gkkp_bare[iq] = (gkkp_bare[:,:,:,:,0] + I*gkkp_bare[:,:,:,:,1]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
             database.close()
     
-    def plot_elph(self,ib=1,inu=-1,cmap='viridis',size=300):
+    def plot_elph(self,ib=1,inu=-1,cmap='viridis',size=300,read_bare=False):
         """
         Scatterplot in the BZ of the quantity G_{nk} = 1/N_q * \sum_{q,nu} | elph_{qnu,knn} |^2 .
     
@@ -204,7 +228,7 @@ class YamboElectronPhononDB():
     
         # Get raw data to plot
         kx, ky, kz = self.car_kpoints.T
-        data = self.read_elph(ib1=ib,ib2=ib)
+        data = self.read_elph(ib1=ib,ib2=ib,read_bare=read_bare)
         
         # Prepare function G_{nk}
         to_plot = np.zeros(self.nkpoints)
@@ -261,6 +285,7 @@ class YamboElectronPhononDB():
         s+= 'nbands: %d\n'%self.nbands
         if self.nfrags == self.nqpoints: s+= 'fragments: %d\n'%self.nfrags
         else: s+= 'fragments: %d [WARNING] nfrags < nqpoints\n'%self.nfrags
+        if self.are_bare_there: s+= 'bare couplings are present\n'
         s+= '-----------------------------------\n'
         for iq in range(self.nfrags):
             s+= 'nqpoint %d\n'%iq
