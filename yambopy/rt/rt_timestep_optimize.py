@@ -204,6 +204,24 @@ class YamboRTStep_Optimize():
         yrun[param] = [ value, units]
         return yrun
 
+    def check_if_run_has_been_already_done(self,folder):
+        """
+        Skips running ts if:
+        - ndb.output_polarization is found (sloppy check), AND
+        - The string "Game over" appears in the report file (strict check)
+        """
+        skip1=False
+        skip2=False
+        ndb_pol_file='%s/%s/ndb.output_polarization'%(self.RUN_path,folder)
+        report_file='%s/%s/r-%s_dipoles_negf'%(self.RUN_path,folder,folder)
+
+        if os.path.isfile(ndb_pol_file): skip1=True
+        if os.path.isfile(report_file):
+            with open(report_file) as report:
+                if 'Game Over' in report.read(): skip2=True
+
+        return skip1*skip2
+
     def RUN_convergence(self,param='RTstep',units='as'):
         """
         Run the yambo_rt calculations flow.
@@ -223,7 +241,7 @@ class YamboRTStep_Optimize():
             if self.time_odm==1000: filename = '%s_%05d%s.in'%(param,ts*self.time_odm,'zs')
             folder   = filename.split('.')[0]
             #Skip execution if output found:
-            if os.path.isfile('%s/%s/ndb.output_polarization'%(self.RUN_path,folder)):
+            if self.check_if_run_has_been_already_done(folder):
                 self.yf.msg("Found output for time step: %s %s"%('{0:g}'.format(ts),units))
             else:
                 yrun = self.input_to_run(param,float(ts),units)
