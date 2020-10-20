@@ -152,7 +152,7 @@ class YamboRTSetup():
             y2.write('%s/%s'%(database,filnm2))
             ypp_run = self.scheduler()
             ypp_run.add_command('cd %s ; %s -F %s ; cd -'%(database,self.ypp,filnm2))
-            ypp_run.add_command('cd %s/FixSymm/SAVE ; cp ../../SAVE/ndb.elph_gkkp_expanded* . ; cd -'%database)
+            ypp_run.add_command('cd %s/FixSymm/SAVE ; mv ../../SAVE/ndb.elph_gkkp_expanded* . ; cd -'%database)
             # NB: The new SAVE folder needs another yambo_ph setup in order to be ready!
             ypp_run.add_command('cd %s/FixSymm ; cp ../%s . ; cd -'%(database,filnm1))
             ypp_run.add_command('cd %s/FixSymm ; %s -F %s -J SAVE ; cd -'%(database,self.yambo_ph,filnm1))
