@@ -369,7 +369,7 @@ class YamboRTStep_Optimize():
         Tests if elements of ratio_carriers are greater than tolerance.
         If any of them is, then the simulation in question has not passed the eh_test.
         """
-        eh_carriers = np.greater(RTDB.ratio_carriers,self.tol_eh)
+        eh_carriers = np.greater(np.abs(RTDB.ratio_carriers),self.tol_eh)
         if any(eh_carriers): eh_test = False
         else:                eh_test = True
         return eh_test
