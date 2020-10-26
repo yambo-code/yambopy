@@ -36,6 +36,13 @@ class YamboDG_Optimize():
         .. code-block:: python
     
             YamboDG_Optimize(cg_grids,fg_grids,prefix,scf_path,pseudo_path,...,STEPS='all')
+    
+    TO DO:
+      - Merge DG setup and RT setup
+      - Separate double grid generation and double grid convergence (simple option 'only_dg_saves' might suffice)
+      - Make it agnostic of yambo calculation type (not necessarily ip)
+      - If automatic DG convergence assessment is on, then the calculation must be ip
+      - If automatic DG convergence assessment is on, then implement MOMENTA of the abs spectra as a method to check convergence
 
     """
     
