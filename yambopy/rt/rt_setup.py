@@ -135,6 +135,11 @@ class YamboRTSetup():
                 yamboph_run.run()
                 
                 yph = YamboIn.from_runlevel('-gkkp',executable=self.ypp_ph,filename=filnmph,folder=database)
+                #add bare couplings if present
+                if os.path.isfile('%s/elph_dir/s.dbph_bare_000001'%database):
+                    print('    reading also bare gkkp')
+                    yph.arguments.append('GkkpReadBare')
+                #
                 yph.arguments.append('GkkpExpand')
                 yph['DBsPATH'] = "./elph_dir"
                 yph.write('%s/%s'%(database,filnmph))          
