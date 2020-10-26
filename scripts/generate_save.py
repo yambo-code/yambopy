@@ -16,7 +16,7 @@ NB:
 
 """
 
-def generate_save(database,qe_save,y_dir,scheduler):
+def generate_save(database,qe_save,y_dir,scheduler,noinit=False):
     """
     Generate SAVE folder from QE nscf calculation
     """
@@ -39,7 +39,7 @@ def generate_save(database,qe_save,y_dir,scheduler):
         p2y_run = scheduler()
         p2y_run.add_command('mkdir -p %s'%database)
         p2y_run.add_command('cd %s; %s > p2y.log ; cd -'%(qe_save,p2y))
-        p2y_run.add_command('cd %s; %s > yambo.log ; cd -'%(qe_save,yambo))
+        if not noinit: p2y_run.add_command('cd %s; %s > yambo.log ; cd -'%(qe_save,yambo))
         p2y_run.add_command('mv %s/SAVE %s'%(qe_save,database))
         p2y_run.run()
         

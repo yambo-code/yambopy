@@ -368,6 +368,7 @@ class GkkpCmd(Cmd):
         -nscf, --nscf_dir  -> <Optional> Path to nscf save folder
         -elph, --elph_dir  -> Path to elph_dir folder
         -y, --yambo_dir    -> <Optional> Path to yambo executables
+        -e, --expand       -> <Optional> Expand gkkp databases
     """
     def __init__(self,args):
         #check for args
@@ -379,17 +380,19 @@ class GkkpCmd(Cmd):
         parser.add_argument('-nscf','--nscf_dir', type=str, default="", help='<Optional> Path to nscf save folder')
         parser.add_argument('-elph','--elph_dir', type=str,help='<Required> Path to elph_dir folder',required=True)
         parser.add_argument('-y','--yambo_dir', default="", type=str,help='<Optional> Path to yambo executables')
+        parser.add_argument('-e','--expand', action="store_true", help="Expand GKKP")
         args = parser.parse_args(args)
         
         nscf_dir  = args.nscf_dir
         elph_dir  = args.elph_dir
         yambo_dir = args.yambo_dir
+        expand    = args.expand
         
         database = './'
         scheduler = Scheduler.factory
 
         #call gkkp
-        gkkp.generate_gkkp(database,nscf_dir,elph_dir,yambo_dir,scheduler)
+        gkkp.generate_gkkp(database,nscf_dir,elph_dir,yambo_dir,expand,scheduler)
         
 class SaveCmd(Cmd):
     """
