@@ -82,5 +82,8 @@ from yambopy.rt.rt_timestep_optimize import *
 #doublegrid files
 from yambopy.double_grid.dg_convergence import *
 
+#common files
+from yambopy.common.save_generation import *
+
 #data
 from yambopy.data import *
