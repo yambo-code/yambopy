@@ -76,7 +76,6 @@ from yambopy.recipes import *
 
 #realtime files
 from yambopy.rt.rt_movie import *
-from yambopy.rt.rt_setup import *
 from yambopy.rt.rt_timestep_optimize import *
 
 #doublegrid files
