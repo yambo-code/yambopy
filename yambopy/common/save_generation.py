@@ -2,39 +2,44 @@ import os
 from yambopy import *
 from schedulerpy import *
 
-class Create_YamboSave():
+class CreateYamboSave():
     """
-    Driver for the generation of the yambo SAVE folder
+    Generation of any type of yambo SAVE folder
 
     Must be run outside the folder where the nscf calculation took place.
 
     It contains:                                                                  CASES:      
-        - get_SAVE function to generate basic p2y+yambo SAVE -------------------> save_type='simple' [default]
-        - logic to generate more advanced SAVEs as :
+        - function to generate basic p2y+yambo SAVE ----------------------------> save_type='simple' [default]
+        - functions to generate more advanced SAVEs as :
 
-             -- fixsymm (for real-time calculations)  --------------------------> save_type='fixsymm' [turned on by field_dir]
-             -- elph    (for electron-phonon calculations) ---------------------> save_type='elph'    [turned on by elph_path]
+             -- fixsymm (for real-time calculations)  --------------------------> save_type='fixsymm' [also turned on by field_dir]
+             -- elph    (for electron-phonon calculations) ---------------------> save_type='elph'    [also turned on by elph_path]
              -- combinations of the above, including:
 
                  --- expansion of elph matrix elements -------------------------> save_type='expanded_elph'
                  --- fixsymm with elph matrix elements -------------------------> save_type='fixsymm+elph'
                  --- reading of bare elph matrix elements (always when found)
 
-    Example of use:
+    Cases supported:
+        - simple, elph, expanded_elph, fixsymm, fixsymm+elph
+   
+    Additional relevant variables:
+        - elph_path : path of dfpt electron-phonon databases
+        - field_dir : direction of incoming external field
 
-    TO BE FILLED
-
-    Generate a SAVE file with reduced symmetries:
-
-        .. code-block:: python
-        
-            YamboRTSetup(FIELD_direction,QE_prefix,nscf=nscf_path,database=save_path)
+    Examples of use:
+ 
+        :: Generate a SAVE file:
+      
+               CreateYamboSave(prefix,save_type='simple',nscf=nscf_dir,database=save_dir,yambo_exec_path=yambo_bin)
     
-    Include electron-phonon matrix elements:
-    
-        .. code-block:: python
+        :: Generate a SAVE file with reduced symmetries:
         
-        YamboRTSetup(FIELD_direction,QE_prefix,nscf=nscf_path,database=save_path,elph=elph_path)
+               CreateYamboSave(prefix,save_type='fixsymm',field_dir=[1,0,0])
+
+        :: Generate a SAVE file with expanded elph matrix elements:
+    
+               CreateYamboSave(prefix,save_type='expanded_elph',elph_path=elph_dir)
 
     """
     def __init__(self,prefix,nscf='./nscf',database='./database',save_type='simple',field_dir=None,elph_path=None,MaxGvecs=None,yambo_exec_path=''):
@@ -79,16 +84,16 @@ class Create_YamboSave():
             self.get_SAVE(nscf,database,noinit=True)
             
             # [3] Additional operations
-            if self.save_type=='elph'
+            if self.save_type=='elph':
                 # [3a] SAVE including ndb.elph_gkkp databases
-                self.get_SAVE_elph()
-            elif self.save_type=='expanded_elph'
+                self.get_SAVE_elph(database)
+            elif self.save_type=='expanded_elph':
                 # [3b] SAVE including expanded ndb.elph_gkkp_expanded databases
-                self.get_SAVE_elph(expand=True)
-            elif self.save_type=='fixsymm'
+                self.get_SAVE_elph(database,expand=True)
+            elif self.save_type=='fixsymm':
                 # [3c] SAVE with symmetries removed according to an external field
                 self.get_SAVE_fixsymm(database)
-            elif self.save_type=='fixsymm+elph'
+            elif self.save_type=='fixsymm+elph':
                 # [3d] SAVE in cases [3c]+[3b]
                 self.get_SAVE_fixsymm(database,with_elph=True)
             else: 
@@ -97,26 +102,81 @@ class Create_YamboSave():
         #End IO
         self.yf.IO_close()
 
-    def which_SAVE():
+    def which_SAVE(self):
         """
-        Set logicals for execution
+        Set logicals for execution.
+
+        This lengthy function serves only one purpose:
+        instruct the code about what to do if the user gives sloppy inputs; by default it tries to be as generous as possible.
         """
-        if self.save_type[:3]=='fix' and self.field_dir is None: 
-            self.yf.msg('Field direction not specified, setting it to [1,0,0].')
-            self.field_dir = [1,0,0]
-            
-        if self.field_dir is not None and self.save_type[:3]!='fix':
-            self.yf.msg('External field found: fixsymm turned on.')
-            self.save_type='fixsymm'
-            
-        if self.save_type[-4:]=='elph' and self.elph_path is None:
-            try: os.isdir('./elph_dir') or os.isfile('./elph_dir')
-            except: raise FileNotFoundError('elph_dir directory not specified.')
-            
-        if self.elph_path is not None and self.save_type[-4:]!='elph':
-            self.yf.msg('elph_dir path found: elph turned on.')
-            if self.save_type=='fixsymm': self.save_type='fixsymm+elph'
-            else: self.save_type='elph'
+
+        elph_is_there = os.path.isdir('./elph_dir') or os.path.isfile('./elph_dir')
+
+        # The user has not specified elph_path and field_dir but may have set a save_type that requires them
+        if self.elph_path is None and self.field_dir is None:
+            if self.save_type=='simple': 
+                self.yf.msg('## Creating standard SAVE ##')
+            elif self.save_type=='elph':
+                if not elph_is_there: raise FileNotFoundError('elph_dir directory not specified.')
+                else: self.yf.msg('## Creating SAVE with electron-phonon databases ##')
+            elif self.save_type=='expanded_elph': 
+                if not elph_is_there: raise FileNotFoundError('elph_dir directory not specified.')
+                else: self.yf.msg('## Creating SAVE with expanded electron-phonon databases ##')
+            elif self.save_type=='fixsymm':
+                self.yf.msg('## Creating SAVE with fixed symmetry ##')
+                self.yf.msg('Field direction not specified, setting it to [1,0,0].')
+                self.field_dir = [1,0,0]
+            elif self.save_type=='fixsymm+elph':
+                if not elph_is_there: raise FileNotFoundError('elph_dir directory not specified.')
+                else: self.yf.msg('## Creating SAVE with fixed symmetry and expanded electron-phonon databases ##')
+                self.yf.msg('Field direction not specified, setting it to [1,0,0].')
+                self.field_dir = [1,0,0]
+
+        # The user has specified both elph_path and field_dir but may have set an inconsistent save_type
+        elif self.elph_path is not None and self.field_dir is not None:
+            if self.save_type in ['simple','elph','expanded_elph','fixsymm']:
+                self.yf.msg('## Creating SAVE with fixed symmetry and expanded electron-phonon databases ##')
+                self.save_type='fixsymm+elph'
+            elif self.save_type=='fixsymm+elph':
+                self.yf.msg('## Creating SAVE with fixed symmetry and expanded electron-phonon databases ##')
+
+        # The user has specified only field_dir but may have set an inconsistent save_type
+        elif self.elph_path is None and self.field_dir is not None:
+            if self.save_type=='simple':
+                self.yf.msg('## Creating SAVE with fixed symmetry ##')
+                self.save_type='fixsymm'
+            elif self.save_type in ['elph','expanded_elph']:
+                if not elph_is_there: raise FileNotFoundError('elph_dir directory not specified.')
+                else: self.yf.msg('## Creating SAVE with fixed symmetry and expanded electron-phonon databases ##')
+                self.save_type='fixsymm+elph'
+            elif self.save_type=='fixsymm':
+                self.yf.msg('## Creating SAVE with fixed symmetry ##')
+            elif self.save_type=='fixsymm+elph':
+                if not elph_is_there:
+                    self.yf.msg('[WARNING]: elph_dir directory not specified')
+                    self.yf.msg('## Creating SAVE with fixed symmetry (but no elph databases) ##')
+                    self.save_type='fixsymm'
+                else: 
+                    self.yf.msg('## Creating SAVE with fixed symmetry and expanded electron-phonon databases ##')
+
+        # The user has specified only elph_path but may have set an inconsistent save_type
+        elif self.elph_path is not None and self.field_dir is None:
+            if self.save_type=='simple':
+                self.yf.msg('## Creating SAVE with electron-phonon databases ##')
+                self.save_type='elph'
+            elif self.save_type=='elph':
+                self.yf.msg('## Creating SAVE with electron-phonon databases ##')
+            elif self.save_type=='expanded_elph':
+                self.yf.msg('## Creating SAVE with expanded electron-phonon databases ##')
+            elif self.save_type=='fixsymm':
+                self.yf.msg('## Creating SAVE with fixed symmetry and expanded electron-phonon databases ##')
+                self.yf.msg('Field direction not specified, setting it to [1,0,0].')
+                self.field_dir = [1,0,0]
+                self.save_type='fixsymm+elph'
+            elif self.save_type=='fixsymm+elph':
+                self.yf.msg('## Creating SAVE with fixed symmetry and expanded electron-phonon databases ##')
+                self.yf.msg('Field direction not specified, setting it to [1,0,0].')
+                self.field_dir = [1,0,0]
 
     def get_SAVE(self,nscf,database,noinit=False):
         """
@@ -136,7 +196,7 @@ class Create_YamboSave():
             
         #generate SAVE
         if not os.path.isdir('%s/SAVE'%database):
-            self.yf.msg('preparing yambo RT database')
+            self.yf.msg('preparing yambo database')
             p2y_run = self.scheduler()
             p2y_run.add_command('mkdir -p %s'%database)
             p2y_run.add_command('cd %s; %s > p2y.log ; cd -'%(qe_save,self.p2y))
@@ -157,8 +217,8 @@ class Create_YamboSave():
             self.yf.msg('gkkp already present.')
         else:
             #check if the elph_dir folder is present
-            try: os.path.isfile('%s/elph_dir/s.dbph_000001'%self.elph_path)
-            except: raise FileNotFoundError('problem with dbph databases at %s/elph_dir'%self.elph_path)
+            if not os.path.isfile('%s/elph_dir/s.dbph_000001'%self.elph_path):
+                raise FileNotFoundError('problem with dbph databases at %s/elph_dir'%self.elph_path)
             else:
                 self.yf.msg('Reading gkkp')
             
@@ -169,8 +229,8 @@ class Create_YamboSave():
                 y1.arguments.append('BSEscatt')
                 if self.MaxGvecs is not None: y1['MaxGvecs'] = self.MaxGvecs
                 y1.write('%s/%s'%(database,filnm1))
-                yamboph_run = scheduler()
-                if not os.path.islink('%s/elph_dir'%database): yamboph_run.add_command('cd %s ; ln -s %s . ; cd -'%(database,self.elph_path))
+                yamboph_run = self.scheduler()
+                if not os.path.islink('%s/elph_dir'%database): yamboph_run.add_command('cd %s ; ln -s %s/elph_dir . ; cd -'%(database,self.elph_path))
                 yamboph_run.add_command('cd %s ; %s -F %s -J ./elph_dir ; cd -'%(database,self.yambo_ph,filnm1))
                 yamboph_run.run()
 
@@ -187,8 +247,8 @@ class Create_YamboSave():
                     yph.arguments.append('GkkpReadBare')
                 yph.write('%s/%s'%(database,filnm2))
                 
-                yppph_run = scheduler()
-                yppph_run.add_command('cd %s ; %s -F %s; cd -'%(database,ypp_ph,filnm2))
+                yppph_run = self.scheduler()
+                yppph_run.add_command('cd %s ; %s -F %s; cd -'%(database,self.ypp_ph,filnm2))
                 yppph_run.run()
                     
                 if not os.path.isfile('%s/SAVE/%s'%(database,gkkp_dbs)):
