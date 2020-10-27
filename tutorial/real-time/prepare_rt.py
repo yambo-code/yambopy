@@ -14,4 +14,5 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(1)
 
-    YamboRTSetup(args.field_direction,args.prefix)
+    CreateYamboSave(args.prefix,field_dir=args.field_direction,database='/Users/fulvio.paleari/software/whypy/yambo-whypy-devel/tutorial/real-time/database')
+    #YamboRTSetup(args.field_direction,args.prefix)

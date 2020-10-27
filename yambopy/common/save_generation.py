@@ -201,7 +201,7 @@ class CreateYamboSave():
             p2y_run.add_command('mkdir -p %s'%database)
             p2y_run.add_command('cd %s; %s > p2y.log ; cd -'%(qe_save,self.p2y))
             if not noinit: p2y_run.add_command('cd %s; %s > yambo.log ; cd -'%(qe_save,self.yambo))
-            p2y_run.add_command('cd %s; mv SAVE %s ; cd -'%(qe_save,database))
+            p2y_run.add_command('mv %s/SAVE  %s/'%(qe_save,database))
             p2y_run.run()
 
     def get_SAVE_elph(self,database,expand=False,filnm1='setup.in'):
