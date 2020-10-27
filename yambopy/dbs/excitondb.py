@@ -54,7 +54,7 @@ class YamboExcitonDB(YamboSaveDB):
     def __init__(self,lattice,eigenvalues,l_residual,r_residual,table=None,eigenvectors=None):
         if not isinstance(lattice,YamboLatticeDB):
             raise ValueError('Invalid type for lattice argument. It must be YamboLatticeDB')
-        print(lattice)
+        #print(lattice)
         self.lattice = lattice
         self.eigenvalues = eigenvalues
         self.l_residual = l_residual
