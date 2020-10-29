@@ -117,6 +117,13 @@ class YamboDG_Optimize():
         if yambo_exec == 'yambo': save_type='simple'
         elif yambo_exec == 'yambo_ph' and not save_type[-4:]=='elph': save_type='elph'
         elif yambo_exec == 'yambo_rt' and not save_type[3:]=='fix': save_type='fixsymm'
+        # Deal with elph_path
+        elph_path = None
+        if save_type[-4:]=='elph': 
+            if ( not os.path.isdir('%s/elph_dir'%self.RUN_path) ) and ( not os.path.isfile('%s/elph_dir'%self.RUN_path) ):
+                raise FileNotFoundError('Please mv or symlink the elph_dir folder to the RUN_path of this workflow.')
+            else:
+                elph_path='%s/elph_dir'%self.RUN_path
 
         #Start IO
         self.yf = YamboIO(out_name='YAMBOPY_double-grid_Optimize.log',out_path=self.RUN_path,print_to_shell=True)
@@ -146,7 +153,7 @@ class YamboDG_Optimize():
                 #          
                 if calc and ycalc:
                     yambo_dir = '%s/%s_coarse_grid'%(self.yambo_dir,cg)
-                    CreateYamboSave(self.prefix,save_type=save_type,nscf=calc_dir,\
+                    CreateYamboSave(self.prefix,save_type=save_type,nscf=calc_dir,elph_path=elph_path,\
                                     database=os.path.abspath(yambo_dir),yambo_exec_path=yambo_exec_path,printIO=False)
                     self.setup_fg(calc_dir,yambo_dir,self.fg_grids[ig],self.fg_strings[ig])
             if RUN: self.run_jobs(nscf_out,y_out_dir)
@@ -169,7 +176,7 @@ class YamboDG_Optimize():
                     if calc and ycalc:
                         yambo_dir = '%s/%s_coarse_grid/%s'%(self.yambo_dir,cg,fg)
                         if not os.path.isfile('%s/SAVE/ndb.Double_Grid'%yambo_dir):
-                            CreateYamboSave(self.prefix,save_type='simple',nscf=calc_dir,\
+                            CreateYamboSave(self.prefix,save_type='simple',nscf=calc_dir,elph_path=elph_path,\
                                             database="%s/dg_SAVE"%os.path.abspath(yambo_dir),yambo_exec_path=yambo_exec_path,printIO=False)
                             self.setup_yambo_fg(yambo_dir,self.fg_grids[ig][iff],y_out_dir)
             if RUN: self.run_jobs(nscf_out,y_out_dir)
