@@ -9,9 +9,11 @@ y_path = '/Users/fulvio.paleari/software/yambo-andreaM/bin'
 prefix = 'bn'
 
 # List of coarse grids (CG)
-cg_grids = [[3,3,1],[6,6,1],[9,9,1],[12,12,1]]
+#cg_grids = [[3,3,1],[6,6,1],[9,9,1],[12,12,1]]
+cg_grids = [[3,3,1],[6,6,1]]
 # List of random fine grids (FG)
-fg_grids = [[9,18,36],[36,72,144],[81],[144]]
+#fg_grids = [[9,18,36],[36,72,144],[81],[144]]
+fg_grids = [[9,18,36],[36]]
 
 # Laser energy (eV)
 E_laser = 5.

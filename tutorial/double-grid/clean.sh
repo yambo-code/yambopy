@@ -1,1 +1,1 @@
-rm -rf *_grids run.sh YAMBOPY_double-grid_Optimize.log
+rm -rf *_grids __pycache__ run.sh plots YAMBOPY_double-grid_Optimize.log
