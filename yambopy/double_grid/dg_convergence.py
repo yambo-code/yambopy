@@ -26,8 +26,9 @@ class YamboDG_Optimize():
              -- TODO: Analyis, report, plot results and give ip-converged value [STEPS='4']
         
     - Scheme of the workflow:
+        -- for the traversal of this tree with job submissions, see function branch_wise_flow
     
-            NSCF                                       IP
+            NSCF                                       YAMBO
             |                                          |
     step 1  CG_1              CG_2 ... CG_N            |
             |                 |                        |
@@ -57,6 +58,7 @@ class YamboDG_Optimize():
             YamboDG_Optimize(cg_grids,fg_grids,prefix,scf_path,pseudo_path,...,STEPS='all')
     
     TO DO:
+      - Devise a way to parallelise job submissions according to branch_wise_flow()
       - Separate double grid generation and double grid convergence (simple option 'converge_DG' might suffice)
       - If automatic DG convergence assessment is on, then implement MOMENTA of the abs spectra as a method to check convergence
 
@@ -72,9 +74,10 @@ class YamboDG_Optimize():
         if y_scheduler is not None and qe_scheduler is not None: #Here we use, e.g., slurm 
             self.qejobrun, self.yjobrun = qe_scheduler, y_scheduler
             self.wait_up = True #This will enable calls to a function that will make the code wait upon completion of previous submitted job
-        else: # Both schedulers must be present to activate job submission
+        elif y_scheduler is None and qe_scheduler is None: # Both schedulers must be present to activate job submission
             self.qejobrun, self.yjobrun = Scheduler.factory(scheduler="bash"), Scheduler.factory(scheduler="bash")
             self.wait_up = False
+        else: raise UserWarning('Submission mode is on only for either yambo or qe')
 
         #Setting global variables
         self.cg_grids = cg_grids
@@ -91,6 +94,13 @@ class YamboDG_Optimize():
         self.pseudo_path = pseudo_path
         self.RUN_path = RUN_path
         self.yambo_calc_type = yambo_calc_type
+        self.E_laser = E_laser
+        
+        # Initialize JOBID lists (used only in submission mode)
+        self.qe_id_cg = [ -1 for cg in self.cg_strings ]
+        self.ya_id_cg = [ -1 for cg in self.cg_strings ]
+        self.qe_id_fg = [ [ -1 for fg_i in fg ] for fg in self.fg_strings ]
+        self.ya_id_fg = [ [ -1 for fg_i in fg ] for fg in self.fg_strings ]
         
         # Path of nscf and ip calculations and final plots
         if converge_DG: self.yambo_calc_type='ip'
@@ -113,6 +123,7 @@ class YamboDG_Optimize():
         self.pw = pw_exec_path + 'pw.x'
         self.ypp = yambo_exec_path_aux + 'ypp'
         self.yambo = yambo_exec_path_aux + yambo_exec
+        
         # Automatically determine which SAVE to create (better to specify it explicitly)
         if yambo_exec == 'yambo': save_type='simple'
         elif yambo_exec == 'yambo_ph' and not save_type[-4:]=='elph': save_type='elph'
@@ -129,9 +140,23 @@ class YamboDG_Optimize():
         self.yf = YamboIO(out_name='YAMBOPY_double-grid_Optimize.log',out_path=self.RUN_path,print_to_shell=True)
         self.yf.IO_start()
         
-        if converge_DG: self.yf.msg('#### DOUBLE GRID CONVERGENCE ####')
+        if converge_DG: self.yf.msg('#### DOUBLE GRID CONVERGENCE WORKFLOW ####')
         else: self.yf.msg('#### DOUBLE GRID WORKFLOW FOR %s CALCULATIONS ####'%self.yambo_calc_type)
-
+        
+        self.driver(STEPS,RUN,nscf_out,y_out_dir,save_type,elph_path,yambo_exec_path,converge_DG)
+        
+        #End IO        
+        self.yf.IO_close()
+    
+    def driver(self,STEPS,RUN,nscf_out,y_out_dir,save_type,elph_path,yambo_exec_path,converge_DG):
+        """
+        Worflow driver.
+        
+        It runs the following:
+            - setup functions
+            - job submission functions
+            - double grid convergence functions
+        """
         if STEPS=='1' or STEPS=='all': 
             self.yf.msg("------  STEP 1 ------")
             self.setup_cg()
@@ -214,9 +239,7 @@ class YamboDG_Optimize():
             #
             ip_data = [ip for ip in ip_data if ip != []]
             ip_labels = [ip for ip in ip_labels if ip != []]
-            self.plot_ip_spectra(ip_data,ip_labels,E_laser)
-        
-        self.yf.IO_close()
+            self.plot_ip_spectra(ip_data,ip_labels,self.E_laser)
         
     def setup_cg(self):
         """ First step of the workflow: setup CG folder tree and CG nscf calculations
@@ -233,7 +256,7 @@ class YamboDG_Optimize():
                 self.ya_inp.write('%s/%s.in'%(yambo_dir,self.yambo_calc_type))
                 
     def setup_fg(self,nscf_cg_dir,yambo_cg_dir,fg_grid,fg_string):
-        """ Second step of the workflow: setup FG folder tree and FG (CG) nscf (ip) calculations
+        """ Second step of the workflow: setup FG folder tree and FG (CG) nscf (yambo) calculations
         """
         for iff,fg in enumerate(fg_grid):
             fg_nscf_inp = '%s_fg.nscf'%self.prefix
@@ -261,7 +284,7 @@ class YamboDG_Optimize():
                 self.generate_inputfile(work_dir,fg,klist=kpts_rndm)
 
     def setup_yambo_fg(self,yambo_fg_dir,fg_num,yresults_dir,clean_dg_saves=True):
-        """ Third step of the workflow: map FG to CG and FG ip calculations
+        """ Third step of the workflow: map FG to CG and FG yambo calculations
         """
         ypp_inp = 'ypp_map.in'
         os_run = self.frontend
@@ -334,35 +357,35 @@ class YamboDG_Optimize():
             
             if not self.check_nscf_completed(temp_dir,out_qe):
                 self.yf.msg("Running NSCF CG %s..."%cg)      ############## Run NSCF CG
-                self.shell_run("y_%s"%cg,temp_dir,out_qe,'qe')
+                self.qe_id_cg[ig] = self.shell_run("y_%s"%cg,temp_dir,out_qe,'qe')
 
             save_dir = '%s/%s_coarse_grid'%(self.yambo_dir,cg)
             if os.path.isdir('%s/SAVE'%save_dir):
 
                 if self.yambo_output_is_NOT_there(save_dir,out_yambo):
                     self.yf.msg("Running YAMBO CG %s..."%cg)     ############ Run YAMBO CG
-                    self.shell_run("y_%s"%cg,save_dir,out_yambo,'y')
+                    self.ya_id_cg[ig] = self.shell_run("y_%s"%cg,save_dir,out_yambo,'y',JOBID='%d'%self.qe_id_cg[ig])
 
             try: self.fg_strings[ig]
             except IndexError as err: raise Exception('No fine grid(s) provided for CG %s.'%cg) from err 
                       
-            for fg in self.fg_strings[ig]:      # ---------- Inner FINE GRID loop ----------
+            for iff,fg in enumerate(self.fg_strings[ig]):      # ---------- Inner FINE GRID loop ----------
 
                 temp_dir = '%s/%s_coarse_grid/%s'%(self.nscf_dir,cg,fg)
                 if os.path.isdir(temp_dir):
 
                     if not self.check_nscf_completed(temp_dir,out_qe):
                         self.yf.msg("Running NSCF CG %s FG %s..."%(cg,fg)) ######### Run NSCF FG
-                        self.shell_run("y_%s"%cg,temp_dir,out_qe,'qe')
+                        self.qe_id_fg[ig][iff] = self.shell_run("y_%s"%cg,temp_dir,out_qe,'qe',JOBID='%d'%self.qe_id_cg[ig])
 
                 save_dir = '%s/%s_coarse_grid/%s'%(self.yambo_dir,cg,fg)
                 if os.path.isdir('%s/SAVE'%save_dir) and os.path.isfile('%s/SAVE/ndb.Double_Grid'%save_dir):
                     
                     if self.yambo_output_is_NOT_there(save_dir,out_yambo):
                         self.yf.msg("Running YAMBO CG %s FG %s..."%(cg,fg))     ############ Run YAMBO FG
-                        self.shell_run("y_%s"%cg,save_dir,out_yambo,'y')
+                        self.ya_id_fg[ig][iff] = self.shell_run("y_%s"%cg,save_dir,out_yambo,'y',JOBID='%d:%d'%(self.ya_id_cg[ig],self.qe_id_fg[ig][iff]))
 
-    def shell_run(self,jname,run_dir,out_dir,exec):
+    def shell_run(self,jname,run_dir,out_dir,exec,JOBID=None):
         """ 
         Submit job
         
@@ -371,17 +394,32 @@ class YamboDG_Optimize():
                 y:  runs the yambo* executable of choice
             
             jname: job name
+            JOBID: job id of simulation that the present job has a dependency on
             run_dir: where job is run
-            out_dir: name of output (folder and log for yambo; '%s.out'%out_dir file for qe)            
+            out_dir: name of output (folder and log for yambo; '%s.out'%out_dir file for qe)  
+            
+            returns id of present submitted job          
         """
         if exec=='qe': shell = deepcopy(self.qejobrun)
         if exec=='y':  shell = deepcopy(self.yjobrun)
         shell.name = '%s_%s'%(jname,shell.name)
+        
+        # Add dependency if specified
+        if self.wait_up and JOBID is not None:
+            dependency='afterok:%s'%JOBID
+            shell.dependency=dependency
+        
         if exec=='qe': shell.add_mpirun_command('%s -inp %s.nscf > %s.out'%(self.pw,self.prefix,out_dir))
         if exec=='y': shell.add_mpirun_command('%s -F %s.in -J %s -C %s 2> %s.log'%(self.yambo,self.yambo_calc_type,out_dir,out_dir,out_dir))
         shell.run(filename='%s/%s.sh'%(run_dir,exec)) ### Specify run path
+        
+        # Manage submissions if specified
         if self.wait_up: wait_for_job(shell,run_dir)
+        if self.wait_up: this_job_id = shell.jobid
+        else:            this_job_id = -1 
         shell.clean()
+        
+        return this_job_id
     
     def ip_input_is_there(self):
         """ Check if yambo ip input is correctly given in converge_DG case
@@ -417,6 +455,7 @@ class YamboDG_Optimize():
         elif condition==0: return False # This means all output files have been produced: this calculation must be skipped
         else: raise UserWarning('Some output files have been produced and some not -- check the above calculation.') 
     
+    #TODO: move convergence-related functions to a new submodule
     def plot_ip_spectra(self,data,labels,w_laser,fig_name='ip_spectra',xlims=None):
         """ Plot results in a dynamic layout (chosen by FP)
         """
@@ -447,3 +486,52 @@ class YamboDG_Optimize():
         rm_run.add_command('rm -rf %s %s %s'%(self.nscf_dir,self.yambo_dir,self.plot_dir))
         rm_run.run()
         self.yf.msg("Workflow removed.")
+    
+    def branch_wise_flow(self):
+        """
+        The workflow in a HPC facility (i.e., with job submission) is run with a complicated topology.
+        We understand it in two steps.
+        
+        First, how the actual job submissions depend on each other:
+        
+                qe_CG_1                     qe_CG_2              ...            qe_CG_n
+                   |                          |                                    |
+             ______|________________          |                                    |    
+             |         |           |       (same in parallel)                   (same in parallel)
+             |         |           |       
+        qe_FG_1  ... qe_FG_n    y_CG_1
+           |           |______ ... | ... _____
+           |_______________________|_________|
+                              |              |
+                              |              |
+                            y_FG_1   ...   y_FG_n      
+                            
+                            if converge_DG: REDUX ALL JOBS
+                                                  |
+                                                  |
+                                                PLOTS  
+                            
+        All the separate branches of the workflow can be sequentially using the dependency system of the scheduler.
+        
+        Second, how the workflow functions actually depend on each other (single tree branch is shown here):
+        
+                        qe_CG_1           
+                           | 
+                     ______|________________                    first barrier   
+                     |         |           | 
+                     |         |           |
+                     |---------|--------- SAVE   
+                     |         |           |                    second barrier
+                setup_fg    setup_fg       |                (very small delay here)
+                     |         |           |                    third barrier
+                     |         |           |
+                qe_FG_1  ... qe_FG_n    y_CG_1
+                   |           |______ ... | ... _____
+                   |_______________________|_________|          fourth barrier
+                                      |              |
+                                      |              | 
+                                setup_yambo_fg  setup_yambo_fg
+                                      |              |          fifth barrier
+                                      |              |
+                                    y_FG_1   ...   y_FG_n 
+        """
