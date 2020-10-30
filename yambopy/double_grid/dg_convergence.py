@@ -26,8 +26,10 @@ class YamboDG_Optimize():
              -- TODO: Analyis, report, plot results and give ip-converged value [STEPS='4']
         
     - Scheme of the workflow:
-        -- for the traversal of this tree with job submissions, see function branch_wise_flow
-    
+        -- If job submissions are used, the workflow is better submitted in subsequent steps
+        -- If planning a parallel traversal (each independent branch simultaneously) of this tree 
+           with job submissions, see function branch_wise_flow
+           
             NSCF                                       YAMBO
             |                                          |
     step 1  CG_1              CG_2 ... CG_N            |
@@ -58,7 +60,6 @@ class YamboDG_Optimize():
             YamboDG_Optimize(cg_grids,fg_grids,prefix,scf_path,pseudo_path,...,STEPS='all')
     
     TO DO:
-      - Devise a way to parallelise job submissions according to branch_wise_flow()
       - Separate double grid generation and double grid convergence (simple option 'converge_DG' might suffice)
       - If automatic DG convergence assessment is on, then implement MOMENTA of the abs spectra as a method to check convergence
 
@@ -489,8 +490,8 @@ class YamboDG_Optimize():
     
     def branch_wise_flow(self):
         """
-        The workflow in a HPC facility (i.e., with job submission) is run with a complicated topology.
-        We understand it in two steps.
+        The workflow dependencies are complicated.
+        We understand them in two steps.
         
         First, how the actual job submissions depend on each other:
         
@@ -511,7 +512,7 @@ class YamboDG_Optimize():
                                                   |
                                                 PLOTS  
                             
-        All the separate branches of the workflow can be sequentially using the dependency system of the scheduler.
+        All the separate branches of the workflow could be run sequentially using the dependency system of the scheduler.
         
         Second, how the workflow functions actually depend on each other (single tree branch is shown here):
         
@@ -534,4 +535,7 @@ class YamboDG_Optimize():
                                       |              |          fifth barrier
                                       |              |
                                     y_FG_1   ...   y_FG_n 
+                                    
+        For this reason, it's better to plan a submission 'STEP by STEP' of the workflow instead than 'branch by branch'. 
+        However, the latter way would be more efficient if implemented. 
         """
