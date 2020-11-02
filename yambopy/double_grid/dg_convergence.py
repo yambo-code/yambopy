@@ -366,7 +366,7 @@ class YamboDG_Optimize():
 
                 if self.yambo_output_is_NOT_there(save_dir,out_yambo):
                     self.yf.msg("Running YAMBO CG %s..."%cg)     ############ Run YAMBO CG
-                    self.ya_id_cg[ig] = self.shell_run("y_%s"%cg,save_dir,out_yambo,'y',JOBID='%d'%self.qe_id_cg[ig])
+                    self.ya_id_cg[ig] = self.shell_run("y_%s"%cg,save_dir,out_yambo,'y')    # depends on JOBID='%d'%self.qe_id_cg[ig])
 
             try: self.fg_strings[ig]
             except IndexError as err: raise Exception('No fine grid(s) provided for CG %s.'%cg) from err 
@@ -378,14 +378,14 @@ class YamboDG_Optimize():
 
                     if not self.check_nscf_completed(temp_dir,out_qe):
                         self.yf.msg("Running NSCF CG %s FG %s..."%(cg,fg)) ######### Run NSCF FG
-                        self.qe_id_fg[ig][iff] = self.shell_run("y_%s"%cg,temp_dir,out_qe,'qe',JOBID='%d'%self.qe_id_cg[ig])
+                        self.qe_id_fg[ig][iff] = self.shell_run("y_%s"%cg,temp_dir,out_qe,'qe') # depends on JOBID='%d'%self.qe_id_cg[ig])
 
                 save_dir = '%s/%s_coarse_grid/%s'%(self.yambo_dir,cg,fg)
                 if os.path.isdir('%s/SAVE'%save_dir) and os.path.isfile('%s/SAVE/ndb.Double_Grid'%save_dir):
                     
                     if self.yambo_output_is_NOT_there(save_dir,out_yambo):
                         self.yf.msg("Running YAMBO CG %s FG %s..."%(cg,fg))     ############ Run YAMBO FG
-                        self.ya_id_fg[ig][iff] = self.shell_run("y_%s"%cg,save_dir,out_yambo,'y',JOBID='%d:%d'%(self.ya_id_cg[ig],self.qe_id_fg[ig][iff]))
+                        self.ya_id_fg[ig][iff] = self.shell_run("y_%s"%cg,save_dir,out_yambo,'y') # depends on JOBID='%d:%d'%(self.ya_id_cg[ig],self.qe_id_fg[ig][iff]))
 
     def shell_run(self,jname,run_dir,out_dir,exec,JOBID=None):
         """ 
