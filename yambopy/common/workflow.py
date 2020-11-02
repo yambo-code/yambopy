@@ -8,7 +8,7 @@ This file contains the basic functions needed to check and manage workflows
     - TODO: submit_job, check_for_job_completion, ... 
 """
 
-def wait_for_job(self,shell,run_dir,time_step=10.):
+def wait_for_job(shell,run_dir,time_step=10.):
     """
     Let the python execution sleep until job completion.
     
@@ -28,7 +28,7 @@ def wait_for_job(self,shell,run_dir,time_step=10.):
         job_status = shell.check_job_status(run_dir) 
         condition = job_status=='R' or job_status=='PD' or job_status=='CG'
         
-def wait_for_all_jobs(self,shell_list,run_dir_list,time_step=10.):
+def wait_for_all_jobs(shell_list,run_dir_list,time_step=10.):
     """
     As above, but waits for completion of a list of jobs
     """

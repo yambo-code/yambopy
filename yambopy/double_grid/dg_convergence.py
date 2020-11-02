@@ -390,7 +390,7 @@ class YamboDG_Optimize():
             
             if not self.check_nscf_completed(temp_dir,out_qe):
                 self.yf.msg("Running NSCF CG %s..."%cg)      ############## Run NSCF CG
-                self.qe_id_cg[ig] = self.shell_run("y_%s"%cg,temp_dir,out_qe,'qe')
+                self.qe_id_cg[ig] = self.shell_run("qe_%s"%cg,temp_dir,out_qe,'qe')
                 if self.wait_up: self.job_folders.append(temp_dir)
 
             save_dir = '%s/%s_coarse_grid'%(self.yambo_dir,cg)
@@ -398,7 +398,7 @@ class YamboDG_Optimize():
 
                 if self.yambo_output_is_NOT_there(save_dir,out_yambo):
                     self.yf.msg("Running YAMBO CG %s..."%cg)     ############ Run YAMBO CG
-                    self.ya_id_cg[ig] = self.shell_run("y_%s"%cg,save_dir,out_yambo,'y')    # depends on JOBID='%d'%self.qe_id_cg[ig])
+                    self.ya_id_cg[ig] = self.shell_run("ya_%s"%cg,save_dir,out_yambo,'y')    # depends on JOBID='%d'%self.qe_id_cg[ig])
                     if self.wait_up: self.job_folders.append(save_dir)
 
             try: self.fg_strings[ig]
@@ -411,7 +411,7 @@ class YamboDG_Optimize():
 
                     if not self.check_nscf_completed(temp_dir,out_qe):
                         self.yf.msg("Running NSCF CG %s FG %s..."%(cg,fg)) ######### Run NSCF FG
-                        self.qe_id_fg[ig][iff] = self.shell_run("y_%s"%cg,temp_dir,out_qe,'qe') # depends on JOBID='%d'%self.qe_id_cg[ig])
+                        self.qe_id_fg[ig][iff] = self.shell_run("qe_%s"%cg,temp_dir,out_qe,'qe') # depends on JOBID='%d'%self.qe_id_cg[ig])
                         if self.wait_up: self.job_folders.append(temp_dir)
 
                 save_dir = '%s/%s_coarse_grid/%s'%(self.yambo_dir,cg,fg)
@@ -419,7 +419,7 @@ class YamboDG_Optimize():
                     
                     if self.yambo_output_is_NOT_there(save_dir,out_yambo):
                         self.yf.msg("Running YAMBO CG %s FG %s..."%(cg,fg))     ############ Run YAMBO FG
-                        self.ya_id_fg[ig][iff] = self.shell_run("y_%s"%cg,save_dir,out_yambo,'y') # depends on JOBID='%d:%d'%(self.ya_id_cg[ig],self.qe_id_fg[ig][iff]))
+                        self.ya_id_fg[ig][iff] = self.shell_run("ya_%s"%cg,save_dir,out_yambo,'y') # depends on JOBID='%d:%d'%(self.ya_id_cg[ig],self.qe_id_fg[ig][iff]))
                         if self.wait_up: self.job_folders.append(save_dir)
 
     def shell_run(self,jname,run_dir,out_dir,exec,JOBID=None):
