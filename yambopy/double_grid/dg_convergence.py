@@ -49,15 +49,39 @@ class YamboDG_Optimize():
       - converge_DG: if True, enables automatic double grid convergence; requires IP yambo input.
       - nscf_out, y_out_dir: pw and yambo output directories
       - qe_scheduler,y_scheduler: SchedulerPy object for cluster submission (default: bash)
+      - wait_all: if cluster submission is on, forces the master python process to wait for all sumbitted jobs to complete before exiting
       - yambo_calc_type: name the yambo calculations
       - yambo_exec: either yambo, yambo_ph or yambo_rt
       - save_type: simple, elph, expanded_elph, fixsymm, fixsymm+elph
             -- NOTE: if *elph is used: prepare a symlink to elph_dir in RUN_path
 
-    Example of use:           
+    Example of use (frontend):           
         .. code-block:: python
     
             YamboDG_Optimize(cg_grids,fg_grids,prefix,scf_path,pseudo_path,...,STEPS='all')
+            
+    Example of use (job submission: each step dependent on the one before)
+    
+        .. code-block:: python 
+            
+            scheduler1 = Scheduler(...)
+            scheduler2 = Scheduler(...,dependency=scheduler1)
+            scheduler3 = Scheduler(...,dependency=scheduler2)
+            
+            scheduler1.add_command('python dg_script.py -steps 1')
+            sheduler1.run()
+            
+            scheduler2.add_command('python dg_script.py -steps 2')
+            sheduler2.run()
+            
+            scheduler3.add_command('python dg_script.py -steps 3')
+            sheduler3.run()            
+       
+        ..
+        
+        .. code-block:: dg_script.py 
+           
+           YamboDG_Optimize(cg_grids,fg_grids,prefix,scf_path,pseudo_path,...,wait_all==True,STEPS=args.steps)
     
     TO DO:
       - Separate double grid generation and double grid convergence (simple option 'converge_DG' might suffice)
@@ -67,7 +91,7 @@ class YamboDG_Optimize():
     
     def __init__(self,cg_grids,fg_grids,prefix,nscf_input,ya_input,E_laser=0.,STEPS='all',RUN=True, converge_DG=False,\
                  scf_save_path='./scf',pseudo_path='./pseudos',RUN_path='./',nscf_out="nscf",y_out_dir="results",\
-                 qe_scheduler=None,y_scheduler=None,pw_exec_path='',yambo_exec_path='',\
+                 qe_scheduler=None,y_scheduler=None,wait_all=True,pw_exec_path='',yambo_exec_path='',\
                  yambo_exec='yambo',save_type='simple',yambo_calc_type="yambo"):
 
         #Configuring schedulers
@@ -75,6 +99,8 @@ class YamboDG_Optimize():
         if y_scheduler is not None and qe_scheduler is not None: #Here we use, e.g., slurm 
             self.qejobrun, self.yjobrun = qe_scheduler, y_scheduler
             self.wait_up = True #This will enable calls to a function that will make the code wait upon completion of previous submitted job
+            self.job_folders = []
+            self.job_shells  = []
         elif y_scheduler is None and qe_scheduler is None: # Both schedulers must be present to activate job submission
             self.qejobrun, self.yjobrun = Scheduler.factory(scheduler="bash"), Scheduler.factory(scheduler="bash")
             self.wait_up = False
@@ -149,6 +175,11 @@ class YamboDG_Optimize():
         
         #End IO        
         self.yf.IO_close()
+        
+        # Check if python must exit immediately or after all submitted jobs have completed
+        if self.wait_up:
+            if wait_all: wait_for_all_jobs(self.job_shells,self.job_folders)
+            for shell in self.job_shells: shell.clean()
     
     def driver(self,STEPS,RUN,nscf_out,y_out_dir,save_type,elph_path,yambo_exec_path,converge_DG):
         """
@@ -360,6 +391,7 @@ class YamboDG_Optimize():
             if not self.check_nscf_completed(temp_dir,out_qe):
                 self.yf.msg("Running NSCF CG %s..."%cg)      ############## Run NSCF CG
                 self.qe_id_cg[ig] = self.shell_run("y_%s"%cg,temp_dir,out_qe,'qe')
+                if self.wait_up: self.job_folders.append(temp_dir)
 
             save_dir = '%s/%s_coarse_grid'%(self.yambo_dir,cg)
             if os.path.isdir('%s/SAVE'%save_dir):
@@ -367,6 +399,7 @@ class YamboDG_Optimize():
                 if self.yambo_output_is_NOT_there(save_dir,out_yambo):
                     self.yf.msg("Running YAMBO CG %s..."%cg)     ############ Run YAMBO CG
                     self.ya_id_cg[ig] = self.shell_run("y_%s"%cg,save_dir,out_yambo,'y')    # depends on JOBID='%d'%self.qe_id_cg[ig])
+                    if self.wait_up: self.job_folders.append(save_dir)
 
             try: self.fg_strings[ig]
             except IndexError as err: raise Exception('No fine grid(s) provided for CG %s.'%cg) from err 
@@ -379,6 +412,7 @@ class YamboDG_Optimize():
                     if not self.check_nscf_completed(temp_dir,out_qe):
                         self.yf.msg("Running NSCF CG %s FG %s..."%(cg,fg)) ######### Run NSCF FG
                         self.qe_id_fg[ig][iff] = self.shell_run("y_%s"%cg,temp_dir,out_qe,'qe') # depends on JOBID='%d'%self.qe_id_cg[ig])
+                        if self.wait_up: self.job_folders.append(temp_dir)
 
                 save_dir = '%s/%s_coarse_grid/%s'%(self.yambo_dir,cg,fg)
                 if os.path.isdir('%s/SAVE'%save_dir) and os.path.isfile('%s/SAVE/ndb.Double_Grid'%save_dir):
@@ -386,6 +420,7 @@ class YamboDG_Optimize():
                     if self.yambo_output_is_NOT_there(save_dir,out_yambo):
                         self.yf.msg("Running YAMBO CG %s FG %s..."%(cg,fg))     ############ Run YAMBO FG
                         self.ya_id_fg[ig][iff] = self.shell_run("y_%s"%cg,save_dir,out_yambo,'y') # depends on JOBID='%d:%d'%(self.ya_id_cg[ig],self.qe_id_fg[ig][iff]))
+                        if self.wait_up: self.job_folders.append(save_dir)
 
     def shell_run(self,jname,run_dir,out_dir,exec,JOBID=None):
         """ 
@@ -418,8 +453,9 @@ class YamboDG_Optimize():
         # Manage submissions if specified
         #if self.wait_up: wait_for_job(shell,run_dir)
         if self.wait_up: this_job_id = shell.jobid
-        else:            this_job_id = -1 
-        shell.clean()
+        else:            this_job_id = -1
+        if self.wait_up: self.job_shells.append(shell) 
+        else: shell.clean()
         
         return this_job_id
     
