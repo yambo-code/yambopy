@@ -105,6 +105,7 @@ class YamboDG_Optimize():
         
         # Path of nscf and ip calculations and final plots
         if converge_DG: self.yambo_calc_type='ip'
+        if not os.path.isdir(RUN_path): os.mkdir(RUN_path)
         self.nscf_dir = '%s/nscf_grids'%RUN_path
         self.yambo_dir = '%s/%s_grids'%(RUN_path,self.yambo_calc_type)
         self.plot_dir = '%s/plots'%RUN_path
@@ -415,7 +416,7 @@ class YamboDG_Optimize():
         shell.run(filename='%s/%s.sh'%(run_dir,exec)) ### Specify run path
         
         # Manage submissions if specified
-        if self.wait_up: wait_for_job(shell,run_dir)
+        #if self.wait_up: wait_for_job(shell,run_dir)
         if self.wait_up: this_job_id = shell.jobid
         else:            this_job_id = -1 
         shell.clean()
