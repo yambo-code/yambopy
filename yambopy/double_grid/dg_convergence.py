@@ -290,7 +290,7 @@ class YamboDG_Optimize():
         """
         ypp_inp = 'ypp_map.in'
         os_run = self.frontend
-        os_run.add_command('cd %s; cp ../%s/ndb.dipoles ../SAVE/ ; cp -r ../SAVE .'%(yambo_fg_dir,yresults_dir))
+        os_run.add_command('cd %s; cp ../%s/ndb.dipoles* ../SAVE/ ; cp -r ../SAVE .'%(yambo_fg_dir,yresults_dir))
         os_run.run()
         self.generate_ypp_input_map_grid(yambo_fg_dir,fg_num,ypp_inp)
         ypp_run = self.frontend
