@@ -27,6 +27,37 @@ def wait_for_job(self,shell,run_dir,time_step=10.):
         time.sleep(time_step)
         job_status = shell.check_job_status(run_dir) 
         condition = job_status=='R' or job_status=='PD' or job_status=='CG'
+        
+def wait_for_all_jobs(self,shell_list,run_dir_list,time_step=10.):
+    """
+    As above, but waits for completion of a list of jobs
+    """
+    if len(shell_list) != len(run_dir_list):
+        raise UserWarning('ERROR in parallel job management: list of job ids not corresponding to list run directories.')
+    
+    # Get initial statuses
+    job_status_list = []
+    conditions = []
+    for i in range(len(shell_list)):
+        job_status =  shell_list[i].check_job_status(run_dir_list[i])
+        job_status_list.append( job_status )
+        condition = job_status=='R' or job_status=='PD' or job_status=='CG'
+        conditions.append(condition)
+    
+    # Dynamically evaluate all conditions
+    while any(conditions):
+        time.sleep(time_step)
+        job_status_list = []
+        conditions = []
+        for i in range(len(shell_list)):
+            job_status =  shell_list[i].check_job_status(run_dir_list[i])
+            job_status_list.append( job_status )
+            condition = job_status=='R' or job_status=='PD' or job_status=='CG'
+            conditions.append(condition)
+        
+        # Remove finished calculation (i.e., False) from checks
+        for i, condition in enumerate(conditions):
+            if not condition: del shell_list[i]
 
 def wait_for_setup_operations(filename,run_dir,time_step=10.):
     """
