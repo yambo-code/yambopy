@@ -164,7 +164,7 @@ class YamboDG_Optimize():
             if ( not os.path.isdir('%s/elph_dir'%self.RUN_path) ) and ( not os.path.isfile('%s/elph_dir'%self.RUN_path) ):
                 raise FileNotFoundError('Please mv or symlink the elph_dir folder to the RUN_path of this workflow.')
             else:
-                elph_path='%s/elph_dir'%self.RUN_path
+                elph_path=self.RUN_path
 
         #Start IO
         self.yf = YamboIO(out_name='YAMBOPY_double-grid_Optimize.log',out_path=self.RUN_path,print_to_shell=True)
@@ -236,7 +236,7 @@ class YamboDG_Optimize():
                     if calc and ycalc:
                         yambo_dir = '%s/%s_coarse_grid/%s'%(self.yambo_dir,cg,fg)
                         if not os.path.isfile('%s/SAVE/ndb.Double_Grid'%yambo_dir):
-                            CreateYamboSave(self.prefix,save_type='simple',nscf=calc_dir,elph_path=elph_path,\
+                            CreateYamboSave(self.prefix,save_type='simple',nscf=calc_dir,elph_path=None,\
                                             database="%s/dg_SAVE"%os.path.abspath(yambo_dir),yambo_exec_path=yambo_exec_path,printIO=False)
                             self.setup_yambo_fg(yambo_dir,self.fg_grids[ig][iff],y_out_dir)
             if RUN: self.run_jobs(nscf_out,y_out_dir)
@@ -322,10 +322,12 @@ class YamboDG_Optimize():
         """ Third step of the workflow: map FG to CG and FG yambo calculations
         """
         ypp_inp = 'ypp_map.in'
+        os_run = self.frontend
         if os.path.isfile('%s/../%s/ndb.dipoles'%(yambo_fg_dir,yresults_dir)):
-            os_run = self.frontend
             os_run.add_command('cd %s; cp ../%s/ndb.dipoles* ../SAVE/ ; cp -r ../SAVE .'%(yambo_fg_dir,yresults_dir))
-            os_run.run()
+        else:
+            os_run.add_command('cd %s; cp -r ../SAVE .'%yambo_fg_dir)
+        os_run.run()
         self.generate_ypp_input_map_grid(yambo_fg_dir,fg_num,ypp_inp)
         ypp_run = self.frontend
         ypp_run.add_command('cd %s; %s -F %s > ypp_map.log'%(yambo_fg_dir,self.ypp,ypp_inp))
