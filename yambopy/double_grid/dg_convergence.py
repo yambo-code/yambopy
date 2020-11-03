@@ -54,6 +54,7 @@ class YamboDG_Optimize():
       - yambo_exec: either yambo, yambo_ph or yambo_rt
       - save_type: simple, elph, expanded_elph, fixsymm, fixsymm+elph
             -- NOTE: if *elph is used: prepare a symlink to elph_dir in RUN_path
+      - noyambo: if RUN is True, run only QE steps plus SAVEs, but not actual yambo calculations
 
     Example of use (frontend):           
         .. code-block:: python
@@ -92,7 +93,7 @@ class YamboDG_Optimize():
     def __init__(self,cg_grids,fg_grids,prefix,nscf_input,ya_input,E_laser=0.,STEPS='all',RUN=True, converge_DG=False,\
                  scf_save_path='./scf',pseudo_path='./pseudos',RUN_path='./',nscf_out="nscf",y_out_dir="results",\
                  qe_scheduler=None,y_scheduler=None,wait_all=True,pw_exec_path='',yambo_exec_path='',\
-                 yambo_exec='yambo',save_type='simple',yambo_calc_type="yambo"):
+                 yambo_exec='yambo',save_type='simple',yambo_calc_type="yambo",noyambo=False):
 
         #Configuring schedulers
         self.frontend = Scheduler.factory(scheduler="bash")
@@ -121,6 +122,7 @@ class YamboDG_Optimize():
         self.pseudo_path = pseudo_path
         self.RUN_path = RUN_path
         self.yambo_calc_type = yambo_calc_type
+        self.noyambo = noyambo
         self.E_laser = E_laser
         
         # Initialize JOBID lists (used only in submission mode)
@@ -320,9 +322,10 @@ class YamboDG_Optimize():
         """ Third step of the workflow: map FG to CG and FG yambo calculations
         """
         ypp_inp = 'ypp_map.in'
-        os_run = self.frontend
-        os_run.add_command('cd %s; cp ../%s/ndb.dipoles* ../SAVE/ ; cp -r ../SAVE .'%(yambo_fg_dir,yresults_dir))
-        os_run.run()
+        if os.path.isfile('%s/../%s/ndb.dipoles'%(yambo_fg_dir,yresults_dir)):
+            os_run = self.frontend
+            os_run.add_command('cd %s; cp ../%s/ndb.dipoles* ../SAVE/ ; cp -r ../SAVE .'%(yambo_fg_dir,yresults_dir))
+            os_run.run()
         self.generate_ypp_input_map_grid(yambo_fg_dir,fg_num,ypp_inp)
         ypp_run = self.frontend
         ypp_run.add_command('cd %s; %s -F %s > ypp_map.log'%(yambo_fg_dir,self.ypp,ypp_inp))
@@ -396,7 +399,7 @@ class YamboDG_Optimize():
             save_dir = '%s/%s_coarse_grid'%(self.yambo_dir,cg)
             if os.path.isdir('%s/SAVE'%save_dir):
 
-                if self.yambo_output_is_NOT_there(save_dir,out_yambo):
+                if self.yambo_output_is_NOT_there(save_dir,out_yambo) and not self.noyambo:
                     self.yf.msg("Running YAMBO CG %s..."%cg)     ############ Run YAMBO CG
                     self.ya_id_cg[ig] = self.shell_run("ya_%s"%cg,save_dir,out_yambo,'y')    # depends on JOBID='%d'%self.qe_id_cg[ig])
                     if self.wait_up: self.job_folders.append(save_dir)
@@ -417,7 +420,7 @@ class YamboDG_Optimize():
                 save_dir = '%s/%s_coarse_grid/%s'%(self.yambo_dir,cg,fg)
                 if os.path.isdir('%s/SAVE'%save_dir) and os.path.isfile('%s/SAVE/ndb.Double_Grid'%save_dir):
                     
-                    if self.yambo_output_is_NOT_there(save_dir,out_yambo):
+                    if self.yambo_output_is_NOT_there(save_dir,out_yambo) and not self.noyambo:
                         self.yf.msg("Running YAMBO CG %s FG %s..."%(cg,fg))     ############ Run YAMBO FG
                         self.ya_id_fg[ig][iff] = self.shell_run("ya_%s"%cg,save_dir,out_yambo,'y') # depends on JOBID='%d:%d'%(self.ya_id_cg[ig],self.qe_id_fg[ig][iff]))
                         if self.wait_up: self.job_folders.append(save_dir)
