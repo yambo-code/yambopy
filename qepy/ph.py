@@ -34,6 +34,17 @@ class PhIn(object):
         else: instance.set_nq(*qpoints)
         return instance
 
+    @classmethod
+    def from_file(cls,filename):
+        """ Initialize the QE structure from a file """
+        new = cls()
+
+        with open(filename,"r") as f:
+            new.file_lines = f.readlines() #set file lines
+            new.store(new.inputph,"inputph")     #read &inputph
+
+        return new
+
     @property
     def prefix(self):
         return self['prefix'].replace("'",'')
