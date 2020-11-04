@@ -87,6 +87,7 @@ class YamboDG_Optimize():
     TO DO:
       - Separate double grid generation and double grid convergence (simple option 'converge_DG' might suffice)
       - If automatic DG convergence assessment is on, then implement MOMENTA of the abs spectra as a method to check convergence
+      - Change check_nscf_completed into common/check_qe_completed
 
     """
     
