@@ -38,7 +38,7 @@ class YamboElectronPhononDB():
             
         # Check if databases exist. Exit only if header is missing.
         try: database = Dataset(filename)
-        except: raise FileNotFoundError("error opening %s in YamboElectronPhononDB"%self.filename)
+        except: raise FileNotFoundError("error opening %s in YamboElectronPhononDB"%filename)
         
         try: database_frag = Dataset("%s1"%self.frag_filename)
         except FileNotFoundError: print("[WARNING] Database fragment at q=0 not detected")
