@@ -26,7 +26,10 @@ class YamboElectronPhononDB():
     """
     def __init__(self,lattice,filename='ndb.elph_gkkp',folder_gkkp='SAVE',save='SAVE'):
         
-        filename = "%s/%s"%(folder_gkkp,filename)
+        # Find correct database names
+        if os.path.isfile("%s/ndb.elph_gkkp"%folder_gkkp): filename='%s/ndb.elph_gkkp'%folder_gkkp
+        elif os.path.isfile("%s/ndb.elph_gkkp_expanded"%folder_gkkp): filename='%s/ndb.elph_gkkp_expanded'%folder_gkkp
+        else: filename = "%s/%s"%(folder_gkkp,filename)
         self.frag_filename = filename + "_fragment_"
         self.are_bare_there = False
         
