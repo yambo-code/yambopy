@@ -10,7 +10,7 @@ completion and more.
 TODO: Include a shell_run function for all executables
 
 """
-def shell_qe_run(job_name,inp_name,out_name,run_dir,exec='pw.x',scheduler=None,depend_on_JOBID=None,hang_python=False,commands=[]):
+def shell_qe_run(job_name,inp_name,out_name,run_dir,exec='pw.x',shell_name='qe',scheduler=None,depend_on_JOBID=None,hang_python=False,commands=[]):
     """ 
     Submit QUANTUM ESPRESSO job
     
@@ -18,6 +18,7 @@ def shell_qe_run(job_name,inp_name,out_name,run_dir,exec='pw.x',scheduler=None,d
             options: /path/to/pw.x, /path/to/ph.x
         
         job_name: job name
+        shell_name: name of *.sh script which is generated
         JOBID: job id of simulation that the present job has a dependency on
         run_dir: where job is run
         out_name: name of output file
@@ -35,19 +36,19 @@ def shell_qe_run(job_name,inp_name,out_name,run_dir,exec='pw.x',scheduler=None,d
     if scheduler is None: shell = Scheduler.factory(scheduler="bash")
     else: shell = deepcopy(scheduler)
     
-    shell.name = '%s_%s'%(jname,shell.name)
+    shell.name = '%s_%s'%(job_name,shell.name)
     
     # Add dependency if specified
-    if depend_on_JOBID is not None:
+    if depend_on_JOBID is not None and shell.schedulertype != 'bash':
         dependency='afterok:%s'%depend_on_JOBID
-        shell.dependency=dependency
+        shell.get_arg("dependency",'%s'%dependency)
         
     # Add additional commands if present
     if len(commands) != 0:
         for command in commands: shell.add_command(command)
     
     shell.add_mpirun_command('%s -inp %s > %s'%(exec,inp_name,out_name))
-    shell.run(filename='%s/qe.sh'%run_dir) ### Specify run path
+    shell.run(filename='%s/%s.sh'%(run_dir,shell_name)) ### Specify run path
     
     # Manage submissions if specified
     if hang_python: wait_for_job(shell,run_dir)
@@ -57,7 +58,6 @@ def shell_qe_run(job_name,inp_name,out_name,run_dir,exec='pw.x',scheduler=None,d
     shell.clean()
     
     return this_job_id
-
 
 def check_qe_completed(folder,prefix,output_file,calc_type='pw'):
     """ 
@@ -81,7 +81,7 @@ def check_qe_completed(folder,prefix,output_file,calc_type='pw'):
     elif calc_type=='gkkp' and not os.path.isdir('%s/elph_dir'%folder):
         status = False
         return status
-    else:
+    if calc_type != 'pw' and calc_type != 'ph' and calc_type != 'gkkp':
         raise ValueError("calc_type not recognised: it has to be either 'pw' or 'ph' or 'gkkp'.")
         
     # Next, check if output is correctly completed

@@ -1,5 +1,5 @@
-from yambopy import *
 from qepy import *
+from yambopy import *
 from schedulerpy import *
 import os
 from copy import deepcopy
@@ -12,30 +12,30 @@ class YamboGkkpCompute():
     
     Inputs needed:
         - work_dir: directory where flow is run and yambo SAVE will appear
-        - scf_input:   pw scf input file
-        - dvscf_input: ph dvscf input file
-        - gkkp_input:  ph gkkp input file
-        - expand:      whether to expand the matrix elements
-        - pw_exec_path, yambo_exec_path: paths to executables
+        - scf_input: pw scf input file [NOTE: dvscf and gkkp inputs are automatically generated, check parameters if interested]
+        - pw_exec_path: path to executables
         - qe_scheduler: optional scheduler for cluster submission
-        - wait_up: if True, during cluster submission python process remains active and creates SAVE at the end
-                   if False, python process exits after submitting jobs and class must be called again to generate SAVE later
-        
+        - with_SAVE: if True, workflow will generate yambo SAVE at the end (the python master process will remain active).
+                     The workflow can be called a second time switchin with_SAVE to True to immediately generate the SAVE.
+
+          [SUBOPTIONS for with_SAVE]
+
+              -- expand: whether to expand the matrix elements
+              -- yambo_exec_path: path to executables
+
     TODO: allow for random qpoints in ph calculations
     """
     
-    def __init__(self,scf_input,dvscf_input,gkkp_input,work_dir='.',pw_exec_path='',yambo_exec_path='',qe_scheduler=None,expand=False,wait_up=False):
+    def __init__(self,scf_input,work_dir='.',pw_exec_path='',qe_scheduler=None,with_SAVE=False,yambo_exec_path='',expand=False):
 
-        self.RUN_path = work_dir
+        self.RUN_path = os.path.abspath(work_dir)
+        self.wait_up = with_SAVE #Slightly restructure dependencies and waith for job completions if SAVE is to be created
 
         #Configuring schedulers
-        self.frontend = Scheduler.factory(scheduler="bash")
-        if qe_scheduler is not None: #Here we use, e.g., slurm 
-            self.qejobrun = qe_scheduler
-            self.wait_up = wait_up
-        else: 
-            self.qejobrun = Scheduler.factory(scheduler="bash")
-            self.wait_up = False
+        if with_SAVE: self.frontend = Scheduler.factory(scheduler="bash") # SAVE is created by python process, not submitted job
+
+        if qe_scheduler is not None: self.qejobrun= qe_scheduler                          # Here we use, e.g., slurm 
+        else:                        self.qejobrun = Scheduler.factory(scheduler="bash")  # Run without submission
 
         #Executables
         if yambo_exec_path != '': yambo_exec_path+='/'
@@ -48,10 +48,8 @@ class YamboGkkpCompute():
         self.ph = pw_exec_path + 'ph.x'
 
         # Inputs
-        self.scf_input   = scf_input
-        self.dvscf_input = dvscf_input
-        self.gkkp_input  = gkkp_input
-        self.prefix = self.scf_input['prefix']
+        self.scf_input = scf_input
+        self.prefix    = scf_input.prefix
         
         # Output names
         self.out_scf   = 'scf.out'
@@ -70,29 +68,36 @@ class YamboGkkpCompute():
 
         # Run jobs
         if not self.scf_status:
-            self.run_scf()
             self.yf.msg('Running scf.')
+            self.run_scf()
         
         if not self.dvscf_status:
-            self.run_dvscf()
             self.yf.msg('Running dvscf.')
+            self.run_dvscf()
 
         if not self.gkkp_status:
-            self.run_gkkp()
             self.yf.msg('Running gkkp.')
+            self.run_gkkp()
         
         if not self.nscf_status:
-            self.run_nscf()
             self.yf.msg('Running nscf.')
+            self.run_nscf()
             
-        # Create SAVE
-        if not self.are_gkkp_there:
-            if self.is_SAVE_there: os.rmdir('%s/SAVE'%self.RUN_path)
-            if expand: save_type = 'expanded_elph'
-            else:      save_type = 'elph'
+        # [OPTIONAL] Create SAVE
+        if with_SAVE:
+            self.setup_SAVE()
+
+            if not self.are_gkkp_there:
+                if self.is_SAVE_there: 
+                     import shutil
+                     shutil.rmtree('%s/SAVE'%self.RUN_path)
+                if expand: save_type = 'expanded_elph'
+                else:      save_type = 'elph'
             
-            CreateYamboSave(self.prefix,save_type=save_type,nscf=self.nscf_dir,elph_path=self.gkkp_dir,database=self.RUN_path,\
-                            yambo_exec_path=yambo_exec_path,printIO=False)
+                self.yf.msg('---- Generating SAVE folder: ----') 
+                CreateYamboSave(self.prefix,save_type=save_type,nscf=self.nscf_dir,elph_path=self.gkkp_dir,database=self.RUN_path,\
+                                yambo_exec_path=yambo_exec_path,printIO=True)
+                self.clean_rubbish()
 
         #End IO        
         self.yf.IO_close()
@@ -103,10 +108,10 @@ class YamboGkkpCompute():
         """
         
         # Directory names (hardcoded)
-        self.dft_dir  = '%s/dft'%self.RUN_path
-        self.scf_dir  = '%s/scf'%dft
-        self.gkkp_dir = '%s/gkkp'%dft
-        self.nscf_dir = '%s/nscf'%dft
+        dft_dir  = '%s/dft'%self.RUN_path
+        self.scf_dir  = '%s/scf'%dft_dir
+        self.gkkp_dir = '%s/gkkp'%dft_dir
+        self.nscf_dir = '%s/nscf'%dft_dir
         
         # Logicals
         self.gkkp_status  = False
@@ -114,11 +119,46 @@ class YamboGkkpCompute():
         self.scf_status   = False
         self.nscf_status  = False
         
+        if not os.path.isdir(dft_dir):  os.mkdir(dft_dir)
+        if not os.path.isdir(self.scf_dir):  os.mkdir(self.scf_dir)
+        if not os.path.isdir(self.gkkp_dir): os.mkdir(self.gkkp_dir)
+        if not os.path.isdir(self.nscf_dir): os.mkdir(self.nscf_dir)
+        
+        # Check if any gkkp->dvscf->scf calculations have been already done
+        self.gkkp_status = check_qe_completed(self.gkkp_dir,self.prefix,self.out_gkkp,calc_type='gkkp')
+        if self.gkkp_status: 
+            self.yf.msg('gkkp calculation found!') 
+            self.dvscf_status = True
+        else:
+            self.dvscf_status = check_qe_completed(self.gkkp_dir,self.prefix,self.out_dvscf,calc_type='ph')
+            if self.dvscf_status: 
+                self.yf.msg('dvscf calculation found!')
+            else:
+                self.scf_status = check_qe_completed(self.scf_dir,self.prefix,self.out_scf,calc_type='pw')
+                if self.scf_status: 
+                    self.yf.msg('scf calculation found!')
+                       
+        # Check if any nscf->scf calculations have been already done
+        self.nscf_status = check_qe_completed(self.nscf_dir,self.prefix,self.out_nscf,calc_type='pw')
+        if self.nscf_status: 
+             self.yf.msg('nscf calculation found')
+             self.scf_status = True
+        else:
+             if not self.scf_status:
+                  self.scf_status = check_qe_completed(self.scf_dir,self.prefix,self.out_scf,calc_type='pw')
+                  if self.scf_status: self.yf.msg('scf calculation found!')
+
+    def setup_SAVE(self):
+        """
+        Expand the workflow tree to include yambo SAVE
+        """
+
         # Check if SAVE and/or gkkp dbs are there already
-        if os.path.isdir('%s/SAVE'%self.RUN_path):
+        save_dir = '%s/SAVE'%self.RUN_path
+        if os.path.isdir(save_dir):
             self.yf.msg('SAVE folder found!')
             self.is_SAVE_there = True
-            if os.path.isfile('%s/SAVE/ndb.elph_gkkp') or os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'):
+            if os.path.isfile('%s/ndb.elph_gkkp'%save_dir) or os.path.isfile('%s/ndb.elph_gkkp_expanded'%save_dir):
                 self.yf.msg('ndb.elph databases already found!')
                 self.are_gkkp_there = True
             else:
@@ -126,28 +166,6 @@ class YamboGkkpCompute():
         else:
             self.is_SAVE_there  = False
             self.are_gkkp_there = False
-            
-        if not self.are_gkkp_there:
-            if not os.path.isdir(self.dft_dir):  os.mkdir(self.dft_dir)
-            if not os.path.isdir(self.scf_dir):  os.mkdir(self.scf_dir)
-            if not os.path.isdir(self.gkkp_dir): os.mkdir(self.gkkp_dir)
-            if not os.path.isdir(self.nscf_dir): os.mkdir(self.nscf_dir)
-            
-            # Check if any qe calculations have been already done
-            self.gkkp_status = check_qe_completed(self.gkkp_dir,self.prefix,self.out_gkkp,calc_type='gkkp')
-            if self.gkkp_status: 
-                self.yf.msg('gkkp calculation found!') 
-            else:
-                self.dvscf_status = check_qe_completed(self.gkkp_dir,self.prefix,self.out_dvscf,calc_type='ph')
-                if self.dvscf_status: 
-                    self.yf.msg('dvscf calculation found!')
-                else:
-                    self.scf_status = check_qe_completed(self.scf_dir,self.prefix,self.out_scf,calc_type='pw')
-                    if self.scf_status: 
-                        self.yf.msg('scf calculation found!')
-                           
-            self.nscf_status = check_qe_completed(self.nscf_dir,self.prefix,self.out_nscf,calc_type='pw')
-            if self.nscf_status: self.yf.msg('nscf calculation found')
             
     def run_scf(self):
         """
@@ -161,67 +179,83 @@ class YamboGkkpCompute():
         self.scf_input.write('%s/%s'%(self.scf_dir,inp_name))
         
         # Submit calculation
-        jname = 'scf_'+self.prefix
+        jname = 'scf'
         self.scf_id = shell_qe_run(jname,inp_name,self.out_scf,self.scf_dir,exec=self.pw,scheduler=self.qejobrun)
         
     def run_dvscf(self):
         """
         Run dvscf calculation
         """
-        # Write down input
+        # Generate and write down input
+        dvscf_input = self.generate_ph_input('dvscf')
         inp_name = self.prefix + '.dvscf'
-        self.dvscf_input.write('%s/%s'%(self.gkkp_dir,inp_name))
+        dvscf_input.write('%s/%s'%(self.gkkp_dir,inp_name))
         
         # Create symlink to qe save if needed
         commands = []
-        if not os.path.isfile('%s/%s.save'%(self.gkkp_dir,self.prefix)):
+        if not os.path.islink('%s/%s.save'%(self.gkkp_dir,self.prefix)):
             commands.append('ln -s %s/%s.save %s/'%(self.scf_dir,self.prefix,self.gkkp_dir)) 
+
+        # Manage dependency
+        if self.scf_status: depend = None # No dependency if scf was found
+        else: depend = self.scf_id
         
         # Submit calculation
-        jname = 'dvscf_'+self.prefix
-        self.dvscf_id = shell_qe_run(jname,inp_name,self.out_dvscf,self.gkkp_dir,exec=self.ph,scheduler=self.qejobrun,\
-                                     commands=commands,depend_on_JOBID=self.scf_id)   
+        jname = 'dvscf'
+        self.dvscf_id = shell_qe_run(jname,inp_name,self.out_dvscf,self.gkkp_dir,exec=self.ph,shell_name='dvscf',\
+                                     scheduler=self.qejobrun,commands=commands,depend_on_JOBID=depend) 
                                      
     def run_gkkp(self):
         """
         Run gkkp calculation
         """
-        # Write down input
+        # Generate and write down input
+        gkkp_input = self.generate_ph_input('gkkp')
         inp_name = self.prefix + '.gkkp'
-        self.gkkp_input.write('%s/%s'%(self.gkkp_dir,inp_name))
+        gkkp_input.write('%s/%s'%(self.gkkp_dir,inp_name))
         
         # Create symlink to qe save if needed
         commands = []
-        if not os.path.isfile('%s/%s.save'%(self.gkkp_dir,self.prefix)):
+        if not os.path.islink('%s/%s.save'%(self.gkkp_dir,self.prefix)):
             commands.append('ln -s %s/%s.save %s/'%(self.scf_dir,self.prefix,self.gkkp_dir)) 
         
+        # Manage dependency
+        if self.dvscf_status: depend = None # No dependency if dvscf was found
+        else: depend = self.dvscf_id
+
         # Submit calculation
-        jname = 'gkkp_'+self.prefix
-        self.gkkp_id = shell_qe_run(jname,inp_name,self.out_gkkp,self.gkkp_dir,exec=self.ph,scheduler=self.qejobrun,\
-                                    commands=commands,depend_on_JOBID=self.dvscf_id)    
+        jname = 'gkkp'
+        self.gkkp_id = shell_qe_run(jname,inp_name,self.out_gkkp,self.gkkp_dir,exec=self.ph,shell_name='gkkp',\
+                                    scheduler=self.qejobrun,commands=commands,depend_on_JOBID=depend)    
                                     
     def run_nscf(self):
         """
-        Run gkkp calculation
+        Run nscf calculation
         """
-        # Write down input
+        # Generate and write down input
         nscf_input = self.generate_nscf_input()
         inp_name = self.prefix + '.nscf'
         nscf_input.write('%s/%s'%(self.nscf_dir,inp_name))
         
         # Create symlink to qe save if needed
         commands = []
-        if not os.path.isfile('%s/%s.save'%(self.nscf_dir,self.prefix)):
-            commands.append('ln -s %s/%s.save %s/'%(self.scf_dir,self.prefix,self.nscf_dir)) 
+        if not os.path.isdir('%s/%s.save'%(self.nscf_dir,self.prefix)):
+            commands.append('cp -r %s/%s.save %s/'%(self.scf_dir,self.prefix,self.nscf_dir)) 
                 
         # Dependency here may include gkkp job to ensure that this is the last job to be completed if SAVE is to be generated
-        if self.wait_up: deps = '%d:%d'%(self.scf_id,self.gkkp_id) 
-        else: deps = self.scf_id    
+        if self.wait_up:
+            if self.gkkp_status and self.scf_status:       depend = None # No dependency if scf and gkkp were found
+            elif self.gkkp_status and not self.scf_status: depend = self.gkkp_id # scf was found, not gkkp
+            elif not self.gkkp_status and self.scf_status: depend = self.scf_id  # gkkp was found, not scf
+            else:                                          depend = '%d:%d'%(self.scf_id,self.gkkp_id) # double dependency
+        else: 
+            if self.scf_status: depend = None # No dependency if scf was found
+            else:               depend = self.scf_id    
         
         # Submit calculation
-        jname = 'gkkp_'+self.prefix
+        jname = 'nscf'
         self.gkkp_id = shell_qe_run(jname,inp_name,self.out_nscf,self.nscf_dir,exec=self.pw,scheduler=self.qejobrun,\
-                                    commands=commands,depend_on_JOBID=deps,hang_python=self.wait_up)       
+                                    commands=commands,depend_on_JOBID=depend,hang_python=self.wait_up)       
 
     def generate_nscf_input(self):
         """
@@ -232,6 +266,54 @@ class YamboGkkpCompute():
         nscf_input.control['calculation']="'nscf'"
         nscf_input.electrons['diago_full_acc'] = ".true."
         nscf_input.electrons['conv_thr'] = 1e-8
-        nscf_input.electrons['force_symmorphic'] = ".true."
+        nscf_input.system['force_symmorphic'] = ".true."
         
         return nscf_input
+
+    def generate_ph_input(self,mode):
+       """
+       Create dvscf or gkkp input starting from scf input
+ 
+       - mode: either 'dvscf' or 'gkkp'
+       """
+
+       from qepy import PhIn 
+       ph_input = PhIn()
+       # Common to dvscf and gkkp
+       ph_input['prefix'] = "'%s'"%self.prefix
+       ph_input['fildyn'] = "'%s'"%(self.prefix+'.dyn')
+       nq1,nq2,nq3 = [ int(nk) for nk in self.scf_input.kpoints ]
+       ph_input.set_nq(nq1,nq2,nq3)
+       ph_input['tr2_ph'] = 1e-14
+       ph_input['fildvscf']="'dvscf'"
+       ph_input['ldisp']='.true.'
+       ph_input['qplot']='.false.'
+       # Only dvscf
+       if mode=='dvscf':
+           ph_input['electron_phonon']="'dvscf'"
+           ph_input['recover']='.true.'
+           ph_input['trans']='.true.'
+       elif mode=='gkkp':
+           ph_input['electron_phonon']="'yambo'"
+           ph_input['trans']='.false.'
+       else: raise ValueError("ph input mode not recognized (either 'dvscf' or 'gkkp')")
+
+       return ph_input
+
+    def clean_rubbish(self):
+       """
+       Remove logs, reports and inputs generated during SAVE creation
+       """
+       from glob import glob
+       logs1 =    glob('l-*')
+       logs2 =    glob('l_*')
+       reports1 = glob('r-*')
+       reports2 = glob('r_*')
+       setups   = glob('setup.in*')
+       for log in logs1:       os.remove(log)
+       for log in logs2:       os.remove(log)
+       for report in reports1: os.remove(report)
+       for report in reports2: os.remove(report)
+       for setup in setups:    os.remove(setup)
+       os.remove('gkkp.in')
+     
