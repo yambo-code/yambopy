@@ -6,17 +6,20 @@ from copy import deepcopy
 
 class YamboGkkpCompute():
     """
-    Class to obtain yambo ndb.elph* databases starting from scratch.
+    Class to obtain qe s.dbph* and yambo ndb.elph* databases starting from scratch.
     
-    It runs the necessary pw.x and ph.x simulations, followed by the yambo setup.
+    It runs the necessary pw.x and ph.x simulations, optionally followed by the yambo setup.
     
     Inputs needed:
-        - work_dir: directory where flow is run and yambo SAVE will appear
+        <required> 
         - scf_input: pw scf input file [NOTE: dvscf and gkkp inputs are automatically generated, check parameters if interested]
+
+        <optional>
+        - work_dir: directory where flow is run and yambo SAVE will appear
         - pw_exec_path: path to executables
         - qe_scheduler: optional scheduler for cluster submission
         - with_SAVE: if True, workflow will generate yambo SAVE at the end (the python master process will remain active).
-                     The workflow can be called a second time switchin with_SAVE to True to immediately generate the SAVE.
+                     The workflow can be called a second time switching with_SAVE to True to immediately generate the SAVE.
 
           [SUBOPTIONS for with_SAVE]
 
@@ -28,12 +31,11 @@ class YamboGkkpCompute():
     
     def __init__(self,scf_input,work_dir='.',pw_exec_path='',qe_scheduler=None,with_SAVE=False,yambo_exec_path='',expand=False):
 
+        if not os.path.isdir(work_dir): os.mkdir(work_dir)
         self.RUN_path = os.path.abspath(work_dir)
         self.wait_up = with_SAVE #Slightly restructure dependencies and waith for job completions if SAVE is to be created
 
         #Configuring schedulers
-        if with_SAVE: self.frontend = Scheduler.factory(scheduler="bash") # SAVE is created by python process, not submitted job
-
         if qe_scheduler is not None: self.qejobrun= qe_scheduler                          # Here we use, e.g., slurm 
         else:                        self.qejobrun = Scheduler.factory(scheduler="bash")  # Run without submission
 
@@ -247,14 +249,14 @@ class YamboGkkpCompute():
             if self.gkkp_status and self.scf_status:       depend = None # No dependency if scf and gkkp were found
             elif self.gkkp_status and not self.scf_status: depend = self.gkkp_id # scf was found, not gkkp
             elif not self.gkkp_status and self.scf_status: depend = self.scf_id  # gkkp was found, not scf
-            else:                                          depend = '%d:%d'%(self.scf_id,self.gkkp_id) # double dependency
+            else:                                          depend = '%s:%s'%(self.scf_id,self.gkkp_id) # double dependency
         else: 
             if self.scf_status: depend = None # No dependency if scf was found
             else:               depend = self.scf_id    
         
         # Submit calculation
         jname = 'nscf'
-        self.gkkp_id = shell_qe_run(jname,inp_name,self.out_nscf,self.nscf_dir,exec=self.pw,scheduler=self.qejobrun,\
+        self.nscf_id = shell_qe_run(jname,inp_name,self.out_nscf,self.nscf_dir,exec=self.pw,scheduler=self.qejobrun,\
                                     commands=commands,depend_on_JOBID=depend,hang_python=self.wait_up)       
 
     def generate_nscf_input(self):
@@ -305,15 +307,16 @@ class YamboGkkpCompute():
        Remove logs, reports and inputs generated during SAVE creation
        """
        from glob import glob
-       logs1 =    glob('l-*')
-       logs2 =    glob('l_*')
-       reports1 = glob('r-*')
-       reports2 = glob('r_*')
-       setups   = glob('setup.in*')
+       run_dir = self.RUN_path+'/'
+       logs1 =    glob(run_dir+'l-*')
+       logs2 =    glob(run_dir+'l_*')
+       reports1 = glob(run_dir+'r-*')
+       reports2 = glob(run_dir+'r_*')
+       setups   = glob(run_dir+'setup.in*')
        for log in logs1:       os.remove(log)
        for log in logs2:       os.remove(log)
        for report in reports1: os.remove(report)
        for report in reports2: os.remove(report)
        for setup in setups:    os.remove(setup)
-       os.remove('gkkp.in')
+       os.remove(run_dir+'gkkp.in')
      

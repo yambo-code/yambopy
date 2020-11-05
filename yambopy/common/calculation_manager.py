@@ -1,3 +1,4 @@
+from yambopy.common.workflow import wait_for_job
 import subprocess
 import os
 from schedulerpy import *
@@ -19,7 +20,7 @@ def shell_qe_run(job_name,inp_name,out_name,run_dir,exec='pw.x',shell_name='qe',
         
         job_name: job name
         shell_name: name of *.sh script which is generated
-        JOBID: job id of simulation that the present job has a dependency on
+        depend_on_JOBID: job id of simulation that the present job has a dependency on
         run_dir: where job is run
         out_name: name of output file
         inp_name: name of input file
@@ -34,14 +35,14 @@ def shell_qe_run(job_name,inp_name,out_name,run_dir,exec='pw.x',shell_name='qe',
         
     # Copy scheduler instance in order to safely edit it
     if scheduler is None: shell = Scheduler.factory(scheduler="bash")
-    else: shell = deepcopy(scheduler)
+    else:                 shell = deepcopy(scheduler)
     
     shell.name = '%s_%s'%(job_name,shell.name)
     
     # Add dependency if specified
     if depend_on_JOBID is not None and shell.schedulertype != 'bash':
         dependency='afterok:%s'%depend_on_JOBID
-        shell.get_arg("dependency",'%s'%dependency)
+        shell.kwargs['dependency']=dependency
         
     # Add additional commands if present
     if len(commands) != 0:
