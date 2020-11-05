@@ -115,7 +115,7 @@ class Scheduler(object):
             raise ValueError("Scheduler name %s is invalid"%schedulername)
 
         #check type from outside class
-        self.schedulertype = schedulertype
+        cls.schedulertype = schedulertype
 
         if "nodes" in schedulerconfig and nodes is None:
             nodes = int(schedulerconfig["nodes"])
