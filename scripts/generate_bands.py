@@ -30,10 +30,16 @@ def read_input(inp_file):
     Read input file in yaml format (see above docstring)
     """
     
-    # Get input data in dictionary form
+    # Get input data from yaml file in dictionary form
     stream = open(inp_file, 'r')
     dictionary = yaml.load(stream)
     stream.close()
+    
+    global save_dir
+    global prefix
+    global KPTs
+    global KPTs_labels
+    global shift_Delta_c_v
     
     # Transform input data in shape used by the code
     if 'save_dir' not in dictionary: 
@@ -52,9 +58,7 @@ def read_input(inp_file):
         shift_Delta_c_v = np.array( dictionary['shift_Delta_c_v'] ) 
         if ( shift_Delta_c_v == np.array([0.,1.,1.]) ).all(): shift_Delta_c_v = None
     else: 
-        shift_Delta_c_v = None 
-    
-    return prefix, save_dir, KPTs, KPTs_labels, shift_Delta_c_v 
+        shift_Delta_c_v = None  
 
 if __name__ == "__main__":
 
@@ -64,8 +68,8 @@ if __name__ == "__main__":
 
     inp = args.input 
     
-    # Read input data
-    prefix, save_dir, KPTs, KPTs_labels, shift_Delta_c_v = read_input(inp)
+    # Read input file
+    read_input(inp)
     
     
 
