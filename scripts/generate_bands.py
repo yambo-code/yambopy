@@ -1,7 +1,6 @@
-import os
-from yambopy import *
-from schedulerpy import *
+import yaml
 import argparse
+import numpy as np
 
 """
 Script to produce band structure data and visualization from QE.
@@ -18,7 +17,7 @@ This is a yaml file in the following format, to be copy-pasted and edited:
  :: 
 
 The input parameters are:
- - save_dir: path to QE save folder
+ - save_dir: path to folder containing 'data-file-schema.xml' (in principle the QE save folder)
  - KPTs: band circuit in reduced coordinates
  - KPTs_labels: labels for the band circuit points
  - shift_Delta_c_v: k-dependent scissor shift as a list of three values (gap shift, cond. stretch, val. stretch)
@@ -26,11 +25,36 @@ The input parameters are:
  - n_valence_bands: AUTOMATICALLY DETERMINE
 """
 
-def some_function():
+def read_input(inp_file):
     """
-    Sample function
+    Read input file in yaml format (see above docstring)
     """
-    return some_function.__doc__
+    
+    # Get input data in dictionary form
+    stream = open(inp_file, 'r')
+    dictionary = yaml.load(stream)
+    stream.close()
+    
+    # Transform input data in shape used by the code
+    if 'save_dir' not in dictionary: 
+        raise ValueError('QE save path save_dir not found in the input file')
+    else: 
+        save_dir = dictionary['save_dir']
+        prefix   = save_dir.split('/')[-1][:-5]
+    
+    if 'KPTs' not in dictionary: raise ValueError('Band circuit KPTs not found in the input file.')
+    else: KPTs = dictionary['KPTs']
+    
+    if 'KPTs_labels' not in dictionary: raise ValueError('Kpoint labels KPTs_labels not found in the input file.')
+    else: KPTs_labels = dictionary['KPTs_labels']
+    
+    if 'shift_Delta_c_v' in dictionary: 
+        shift_Delta_c_v = np.array( dictionary['shift_Delta_c_v'] ) 
+        if ( shift_Delta_c_v == np.array([0.,1.,1.]) ).all(): shift_Delta_c_v = None
+    else: 
+        shift_Delta_c_v = None 
+    
+    return prefix, save_dir, KPTs, KPTs_labels, shift_Delta_c_v 
 
 if __name__ == "__main__":
 
@@ -39,5 +63,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     inp = args.input 
+    
+    # Read input data
+    prefix, save_dir, KPTs, KPTs_labels, shift_Delta_c_v = read_input(inp)
+    
+    
 
 
