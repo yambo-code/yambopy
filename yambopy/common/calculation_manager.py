@@ -11,12 +11,12 @@ completion and more.
 TODO: Include a shell_run function for all executables
 
 """
-def shell_qe_run(job_name,inp_name,out_name,run_dir,exec='pw.x',shell_name='qe',scheduler=None,depend_on_JOBID=None,hang_python=False,commands=[]):
+def shell_qe_run(job_name,inp_name,out_name,run_dir,exec='pw.x',shell_name='qe',scheduler=None,depend_on_JOBID=None,hang_python=False,pre_run=[],pos_run=[]):
     """ 
     Submit QUANTUM ESPRESSO job
     
         exec: executable to be run with full path.
-            options: /path/to/pw.x, /path/to/ph.x
+              options: /path/to/pw.x, /path/to/ph.x
         
         job_name: job name
         shell_name: name of *.sh script which is generated
@@ -25,6 +25,7 @@ def shell_qe_run(job_name,inp_name,out_name,run_dir,exec='pw.x',shell_name='qe',
         out_name: name of output file
         inp_name: name of input file
         scheduler: instance of scheduler class (if not present, bash is initialised)
+        pre_run / pos_run: LISTS containing commands to be added before / after the mpirun command
         hang_python: if True, python process sleeps until job is completed
         
         returns id of present submitted job (-1 if scheduler is bash)         
@@ -45,9 +46,14 @@ def shell_qe_run(job_name,inp_name,out_name,run_dir,exec='pw.x',shell_name='qe',
         shell.kwargs['dependency']=dependency
         
     # Add additional commands if present
-    if len(commands) != 0:
-        for command in commands: shell.add_command(command)
-    
+    if len(pre_run) != 0:
+        for command in pre_run: shell.pre_run.append(command)
+
+    # Additional commands to be executed after the main mpirun command
+    if len(pos_run) != 0:   
+        for command in pos_run: shell.pos_run.append(command)
+ 
+    # Main mpirun command
     shell.add_mpirun_command('%s -inp %s > %s'%(exec,inp_name,out_name))
     shell.run(filename='%s/%s.sh'%(run_dir,shell_name)) ### Specify run path
     

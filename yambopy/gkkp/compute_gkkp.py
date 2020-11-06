@@ -48,6 +48,7 @@ class YamboGkkpCompute():
         if pw_exec_path != '': pw_exec_path+='/'
         self.pw = pw_exec_path + 'pw.x'
         self.ph = pw_exec_path + 'ph.x'
+        self.dynmat = pw_exec_path + 'dynmat.x'
 
         # Inputs
         self.scf_input = scf_input
@@ -193,6 +194,14 @@ class YamboGkkpCompute():
         inp_name = self.prefix + '.dvscf'
         dvscf_input.write('%s/%s'%(self.gkkp_dir,inp_name))
         
+        # Generate and write down dynmat input
+        dynmat_input = self.generate_dynmat_input()
+        dynp_name = self.prefix + '.dynmat'
+        dynmat_input.write('%s/%s'%(self.gkkp_dir,dynp_name))
+
+        # Set dynmat run after completion of main task
+        dyn_run = ["mpirun -np 1 %s -inp %s > dynmat.out"%(self.dynmat,dynp_name)]
+
         # Create symlink to qe save if needed
         commands = []
         if not os.path.islink('%s/%s.save'%(self.gkkp_dir,self.prefix)):
@@ -205,7 +214,7 @@ class YamboGkkpCompute():
         # Submit calculation
         jname = 'dvscf'
         self.dvscf_id = shell_qe_run(jname,inp_name,self.out_dvscf,self.gkkp_dir,exec=self.ph,shell_name='dvscf',\
-                                     scheduler=self.qejobrun,commands=commands,depend_on_JOBID=depend) 
+                                     scheduler=self.qejobrun,pre_run=commands,pos_run=dyn_run,depend_on_JOBID=depend) 
                                      
     def run_gkkp(self):
         """
@@ -228,7 +237,7 @@ class YamboGkkpCompute():
         # Submit calculation
         jname = 'gkkp'
         self.gkkp_id = shell_qe_run(jname,inp_name,self.out_gkkp,self.gkkp_dir,exec=self.ph,shell_name='gkkp',\
-                                    scheduler=self.qejobrun,commands=commands,depend_on_JOBID=depend)    
+                                    scheduler=self.qejobrun,pre_run=commands,depend_on_JOBID=depend)    
                                     
     def run_nscf(self):
         """
@@ -257,7 +266,7 @@ class YamboGkkpCompute():
         # Submit calculation
         jname = 'nscf'
         self.nscf_id = shell_qe_run(jname,inp_name,self.out_nscf,self.nscf_dir,exec=self.pw,scheduler=self.qejobrun,\
-                                    commands=commands,depend_on_JOBID=depend,hang_python=self.wait_up)       
+                                    pre_run=commands,depend_on_JOBID=depend,hang_python=self.wait_up)       
 
     def generate_nscf_input(self):
         """
@@ -292,15 +301,45 @@ class YamboGkkpCompute():
        ph_input['qplot']='.false.'
        # Only dvscf
        if mode=='dvscf':
+
+           # Add effective charges if dealing with a non-metal
+           is_insulator = 'occupations' not in self.scf_input.system or self.scf_input.system['occupations'] != "'smearing'"
+           if is_insulator: ph_input['epsil']='.true.'
+           self.is_insulator = is_insulator
+
            ph_input['electron_phonon']="'dvscf'"
            ph_input['recover']='.true.'
            ph_input['trans']='.true.'
+
        elif mode=='gkkp':
            ph_input['electron_phonon']="'yambo'"
            ph_input['trans']='.false.'
        else: raise ValueError("ph input mode not recognized (either 'dvscf' or 'gkkp')")
 
        return ph_input
+
+    def generate_dynmat_input(self):
+       """
+       Create dynmat input file in order to treat issues with the frequencies at the Gamma point:
+         -- Apply the acoustic sum rule
+         -- Correct the LO mode (if non-metal)
+
+         Outputs are saved in the gkkp folder as prefix.GAMMA_eigs_eivs and prefix.GAMMA_eigs_norm_eivs
+       """
+       from qepy import DynmatIn
+       dm_input = DynmatIn()
+       dm_input['asr']="'crystal'"
+       dm_input['fildyn']="'%s.dyn1'"%self.prefix
+       dm_input['fileig']="'%s.GAMMA_eigs_eivs'"%self.prefix
+       dm_input['filout']="'%s.GAMMA_eigs_norm_eivs'"%self.prefix
+
+       # Add LO correction along first cartesian axis if dealing with non-metal
+       if self.is_insulator:
+           dm_input['q(1)']=1
+           dm_input['q(2)']=0
+           dm_input['q(3)']=0
+
+       return dm_input
 
     def clean_rubbish(self):
        """
