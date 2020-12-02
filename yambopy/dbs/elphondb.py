@@ -257,8 +257,8 @@ class YamboElectronPhononDB():
         ax.set_ylim(-zlim,zlim)
         
         # Plot title
-        if inu>-1: ax.set_title('G^l_nk = 1/N_q * \sum_q | elph^ql_knn |^2')
-        else: ax.set_title('G_nk = 1/N_q * \sum_ql | elph^ql_knn |^2')
+        if inu>-1: ax.set_title(r'$G^\lambda_{nk} = \frac{1}{N_q}  \sum_q \left| elph^{q\lambda}_{knn} \right|^2$')
+        else: ax.set_title(r'$G_{nk} = \frac{1}{N_q}  \sum_{q\lambda} \left| g^{q\lambda}_{knn} \right|^2$')
         
         # Reciprocal lattice vectors
         lx,ly,lz = [ np.linalg.norm(self.rlat[i]) for i in range(3) ]

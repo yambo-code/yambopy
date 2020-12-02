@@ -3,6 +3,7 @@
 from yambopy import *
 from scripts import generate_save 
 from scripts import gkkp
+from scripts import generate_bands
 import argparse
 import sys
 
@@ -422,6 +423,53 @@ class SaveCmd(Cmd):
         #call generate_save
         generate_save.generate_save(database,nscf_dir,yambo_dir,scheduler)
 
+class PlotBndStrCmd(Cmd):
+    """
+    Script to produce band structure data and visualization from QE.
+    
+    It reads data-file-schema.xml found in the save folders of newer pw versions.
+    
+    Arguments are:
+        -bi, --band_input  -> Path to yaml input file
+
+    - INPUT 
+    This is a yaml file in the following format, to be copy-pasted and edited:
+    
+    :: yaml
+    
+        ---
+         save_dir: "PREFIX.save"
+         KPTs: [[0.,0.,0.],[0.,0.5,0.],[0.5,0.5,0.],[0.5,0.,0.]]
+         KPTs_labels: [G, Y, S, X]
+         shift_Delta_c_v: [0.,1.,1.]
+    
+    :: 
+    
+    The input parameters are:
+    - save_dir: path to folder containing 'data-file-schema.xml' (in principle the QE save folder)
+    - KPTs: band circuit in reduced coordinates
+    - KPTs_labels: labels for the band circuit points
+    - shift_Delta_c_v: k-dependent scissor shift as a list of three values (gap shift, cond. stretch, val. stretch)
+    """
+    def __init__(self,args):
+
+        #check for args
+        if len(args) < 1:
+            print((self.__doc__))
+            exit(0)
+        
+        parser = argparse.ArgumentParser(description='Generate band plot')
+        parser.add_argument('-bi','--band_input', type=str,help='<Required> Path to input file', required=True)
+        args = parser.parse_args(args)
+        
+        inp = args.band_input 
+        
+        # Read input file
+        input_params = generate_bands.read_input(inp)
+        
+        # BZ setup 
+        generate_bands.setup_BZ_points(input_params)
+
 class YambopyCmd(Cmd):
     """
     class to implement commands for yambopy.
@@ -435,6 +483,7 @@ class YambopyCmd(Cmd):
                  'mergeqp':      MergeQPCmd,
                  'save':         SaveCmd,
                  'gkkp':         GkkpCmd,
+                 'bands':        PlotBndStrCmd,
                  'test':         TestCmd}
 
     def __init__(self,*args):
