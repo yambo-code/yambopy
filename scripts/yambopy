@@ -464,11 +464,15 @@ class PlotBndStrCmd(Cmd):
         
         inp = args.band_input 
         
-        # Read input file
+        # Read user input file
         input_params = generate_bands.read_input(inp)
         
+        # Read data from .xml file
+        output_data = generate_bands.get_data_from_xml(input_params)
+        
         # BZ setup 
-        generate_bands.setup_BZ_points(input_params)
+        data_to_plot = generate_bands.setup_BZ_points(input_params,output_data)
+        
 
 class YambopyCmd(Cmd):
     """
