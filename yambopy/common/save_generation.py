@@ -42,7 +42,7 @@ class CreateYamboSave():
                CreateYamboSave(prefix,save_type='expanded_elph',elph_path=elph_dir)
 
     """
-    def __init__(self,prefix,nscf='./nscf',database='./database',save_type='simple',field_dir=None,elph_path=None,MaxGvecs=None,yambo_exec_path=''):
+    def __init__(self,prefix,nscf='./nscf',database='./database',save_type='simple',field_dir=None,elph_path=None,MaxGvecs=None,yambo_exec_path='',printIO=True):
 
         list_of_possibilities = ['simple','elph','expanded_elph','fixsymm','fixsymm+elph']
 
@@ -68,7 +68,7 @@ class CreateYamboSave():
         self.save_type = save_type
         
         #Start IO
-        self.yf = YamboIO(out_name='YAMBOPY_SAVEsetup.log',out_path=database,print_to_shell=True)
+        self.yf = YamboIO(out_name='YAMBOPY_SAVEsetup.log',out_path=database,print_to_shell=printIO)
         self.yf.IO_start()
 
         # [1] Logic to determine which SAVE to generate

@@ -20,13 +20,21 @@ class YamboElectronPhononDB():
     - Call function read_eigenmodes for phonon modes.
     - Call function read_elph for electron-phonon matrix elements.
     - Call function read_DB to read everything.
-    
+    - Call function get_gkkp_sq for squared matrix elements (gkkp_sq)
+    - Call function get_gkkp_mixed for mixed matrix elements (gkkp_mixed)
+   
+    Format:
+    - gkkp[iq][ik][il][ib1][ib2]
+
     Plot(s) provided:
-    - Scatterplot in the BZ of G_{nk} = 1/N_q * \sum_{q,nu} | elph_{qnu,knn} |^2         
+    - Call function plot for scatterplot in the BZ of G_{nk} = 1/N_q * \sum_{q,nu} | elph_{qnu,knn} |^2         
     """
     def __init__(self,lattice,filename='ndb.elph_gkkp',folder_gkkp='SAVE',save='SAVE'):
         
-        filename = "%s/%s"%(folder_gkkp,filename)
+        # Find correct database names
+        if os.path.isfile("%s/ndb.elph_gkkp"%folder_gkkp): filename='%s/ndb.elph_gkkp'%folder_gkkp
+        elif os.path.isfile("%s/ndb.elph_gkkp_expanded"%folder_gkkp): filename='%s/ndb.elph_gkkp_expanded'%folder_gkkp
+        else: filename = "%s/%s"%(folder_gkkp,filename)
         self.frag_filename = filename + "_fragment_"
         self.are_bare_there = False
         
@@ -38,7 +46,7 @@ class YamboElectronPhononDB():
             
         # Check if databases exist. Exit only if header is missing.
         try: database = Dataset(filename)
-        except: raise FileNotFoundError("error opening %s in YamboElectronPhononDB"%self.filename)
+        except: raise FileNotFoundError("error opening %s in YamboElectronPhononDB"%filename)
         
         try: database_frag = Dataset("%s1"%self.frag_filename)
         except FileNotFoundError: print("[WARNING] Database fragment at q=0 not detected")
@@ -269,6 +277,21 @@ class YamboElectronPhononDB():
         # Actual plot
         plot = ax.scatter(kx,ky,kz,marker='o',s=size*norm_to_plot,edgecolors='black',c=norm_to_plot,cmap=color_map,zorder=1)
         fig.colorbar(plot)
+
+    def get_gkkp_sq(self,read_bare=False):
+        """
+        Return g^2
+        """
+        self.read_elph(read_bare=read_bare)
+        self.gkkp_sq = np.abs(self.gkkp)**2. 
+
+    def get_gkkp_mixed(self):
+        """
+        Return the symmetrised dressed-bare coupling
+        """
+        self.read_elph()
+        self.read_elph(read_bare=True)
+        self.gkkp_mixed = np.real(self.gkkp)*np.real(self.gkkp_bare)+np.imag(self.gkkp)*np.imag(self.gkkp_bare)
     
     def __str__(self):
 
