@@ -74,6 +74,11 @@ from yambopy.bse.bse_absorption import *
 from yambopy.analyse import *
 from yambopy.recipes import *
 
+#workflow files
+from yambopy.common.save_generation import *
+from yambopy.common.workflow import *
+from yambopy.common.calculation_manager import *
+
 #realtime files
 from yambopy.rt.rt_movie import *
 from yambopy.rt.rt_timestep_optimize import *
@@ -81,8 +86,8 @@ from yambopy.rt.rt_timestep_optimize import *
 #doublegrid files
 from yambopy.double_grid.dg_convergence import *
 
-#common files
-from yambopy.common.save_generation import *
+#gkkp files
+from yambopy.gkkp.compute_gkkp import *
 
 #data
 from yambopy.data import *

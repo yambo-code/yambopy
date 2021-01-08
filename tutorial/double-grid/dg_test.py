@@ -3,17 +3,17 @@ from yambopy import *
 from materials import *
 
 # Path of executables
-pw = 'pw.x'
-p2y = '/Users/fulvio.paleari/software/yambo-andreaM/bin/p2y'
-yambo = '/Users/fulvio.paleari/software/yambo-andreaM/bin/yambo'
-ypp = '/Users/fulvio.paleari/software/yambo-andreaM/bin/ypp'
+pw_path = '/Users/fulvio.paleari/software/q-e/bin'
+y_path = '/Users/fulvio.paleari/software/yambo-andreaM/bin'
 
 prefix = 'bn'
 
 # List of coarse grids (CG)
-cg_grids = [[3,3,1],[6,6,1],[9,9,1],[12,12,1]]
+#cg_grids = [[3,3,1],[6,6,1],[9,9,1],[12,12,1]]
+cg_grids = [[3,3,1],[6,6,1]]
 # List of random fine grids (FG)
-fg_grids = [[9,18,36],[36,72,144],[81],[144]]
+#fg_grids = [[9,18,36],[36,72,144],[81],[144]]
+fg_grids = [[9,18,36],[36]]
 
 # Laser energy (eV)
 E_laser = 5.
@@ -23,10 +23,6 @@ input_data = '/Users/fulvio.paleari/software/whypy/yambo-whypy-devel/tutorial/do
 scf_save_path = input_data
 pseudo_path = '%s/pseudos'%input_data
 work_dir = '/Users/fulvio.paleari/software/whypy/yambo-whypy-devel/tutorial/double-grid'
-
-#Submission script to scheduler
-qe_run_script = None
-yambo_run_script = None
 
 # BN inputs
 bn_inp = hBN_1l_test(prefix=prefix,pseudo_path=pseudo_path)
@@ -38,7 +34,9 @@ nscf_out = "nscf" #"slurm"
 #Yambo output folder(s):
 y_out_dir = "results"
 
-#Call to main class
-YamboDG_Optimize(cg_grids,fg_grids,prefix,qe_input,yambo_input,scf_save_path, / 
-                pseudo_path,RUN_path=work_dir,nscf_out=nscf_out,y_out_dir=y_out_dir, / 
-                E_laser=E_laser,pw=pw,yambo=yambo,ypp=ypp,p2y=p2y,STEPS='all')
+#Call to main class [convergence on]
+YamboDG_Optimize(cg_grids,fg_grids,prefix,qe_input,yambo_input,E_laser=E_laser,STEPS='all',converge_DG=True,\
+                scf_save_path=scf_save_path,pseudo_path=pseudo_path,RUN_path=work_dir,\
+                nscf_out=nscf_out,y_out_dir=y_out_dir,\
+                pw_exec_path=pw_path,yambo_exec_path=y_path,yambo_exec='yambo',\
+                save_type='simple',yambo_calc_type='ip')

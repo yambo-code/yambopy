@@ -189,7 +189,7 @@ class YamboRTStep_Optimize():
             shell.name = 'dipoles'
             shell.add_mpirun_command('%s -F dipoles.in -J %s -C %s 2> %s.log'%(self.yambo_rt,DIP_folder,DIP_folder,DIP_folder))
             shell.run(filename='%s/rt.sh'%self.RUN_path)
-            if self.wait_up: self.wait_for_job(shell)
+            if self.wait_up: wait_for_job(shell,self.RUN_path) #OLD VERSION: self.wait_for_job(shell)
             shell.clean() 
         else:
             self.yf.msg("Dipoles found.")
@@ -250,7 +250,7 @@ class YamboRTStep_Optimize():
                 shell.name = '%s_%s_%s'%('{:.0E}'.format(self.FieldInt).replace("E+0", "E"),'{0:g}'.format(ts),shell.name)
                 shell.add_mpirun_command('%s -F %s -J %s,%s -C %s 2> %s.log'%(self.yambo_rt,filename,folder,self.DIP_folder,folder,folder))
                 shell.run(filename='%s/rt.sh'%self.RUN_path)
-                if self.wait_up: self.wait_for_job(shell)
+                if self.wait_up: wait_for_job(shell,self.RUN_path) #OLD VERSION: self.wait_for_job(shell)
                 shell.clean()
 
             # Part 2: perform single-run analysis and store output
@@ -503,14 +503,15 @@ class YamboRTStep_Optimize():
         f.tight_layout()        
 
         plt.savefig('%s/polarizations_field_direction.png'%plots_dir,format='png',dpi=150)
-    
-    def wait_for_job(self,shell,time_step=10.):
-        """
-        Let the python execution sleep until job completion
-        """
-        job_status = shell.check_job_status(self.RUN_path)
-        condition = job_status=='R' or job_status=='PD' or job_status=='CG'
-        while condition:
-            time.sleep(time_step)
-            job_status = shell.check_job_status(self.RUN_path) 
-            condition = job_status=='R' or job_status=='PD' or job_status=='CG'
+
+    # OLD_VERSION: IN-WORKFLOW wait_for_job
+    # def wait_for_job(self,shell,time_step=10.):
+    #     """
+    #     Let the python execution sleep until job completion
+    #     """
+    #     job_status = shell.check_job_status(self.RUN_path)
+    #     condition = job_status=='R' or job_status=='PD' or job_status=='CG'
+    #     while condition:
+    #         time.sleep(time_step)
+    #         job_status = shell.check_job_status(self.RUN_path) 
+    #         condition = job_status=='R' or job_status=='PD' or job_status=='CG'
