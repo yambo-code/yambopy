@@ -304,7 +304,9 @@ class PwXML():
         if path_kpoints:
             if isinstance(path_kpoints,Path):
                 path_kpoints = path_kpoints.get_indexes()
-            ax.set_xticks( *list(zip(*path_kpoints)) )
+                path_ticks, path_labels = list(zip(*path_kpoints))
+            ax.set_xticks( path_ticks )
+            ax.set_xticklabels( path_labels )
         ax.set_ylabel('E (eV)')
 
         #get kpoint_dists 
