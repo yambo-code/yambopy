@@ -465,9 +465,7 @@ class YamboExcitonDB(YamboSaveDB):
         nelect = 0
         # Here there is something strange...
 
-
         fermie = kwargs.pop('fermie',0)
-
         ##
         symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
         time_rev = True
@@ -508,9 +506,9 @@ class YamboExcitonDB(YamboSaveDB):
         exc_weights = skw.interp_kpts(kpoints_path).eigens
     
         #create band-structure object
-        exc_bands = YambopyBandStructure(energies[0]-fermie,kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
-        print('nivel de fermi')
-        print(fermie)
+        exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
+        exc_bands.set_fermi(self.nvbands)
+
         return exc_bands
  
     def get_amplitudes_phases(self,excitons=(0,),repx=list(range(1)),repy=list(range(1)),repz=list(range(1))):

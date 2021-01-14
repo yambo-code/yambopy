@@ -7,6 +7,8 @@ import xml.etree.ElementTree as ET
 from qepy.auxiliary import *
 from .lattice import *
 from yambopy.plot.plotting import add_fig_kwargs 
+from re import findall
+from numpy import zeros
 
 __all__ = ['PwXML']
 
@@ -246,7 +248,7 @@ class PwXML():
         self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)
     
         #get Bravais lattice
-        self.ibrav = self.datafile_xml.findall("output/atomic_structure").get('bravais_index')
+        self.ibrav = self.datafile_xml.findall("output/atomic_structure")[0].get('bravais_index')
 
         return True
 
@@ -403,3 +405,32 @@ class PwXML():
             f.close()
         else:
             print('fmt %s not implemented'%fmt)
+
+    def spin_projection(self,spin_dir=3,folder='.',prefix='bands'):
+        """
+        This function reads the spin projection given by bands.x in txt file
+        lsigma(i) = .true.
+        By default I set the spin direction z ==3
+
+        """
+        if spin_dir ==3:  
+        #data_eigen  = open('%s/%s.out'  % (folder,prefix),'r').readlines()
+           data_spin_3 = open('%s/%s.out.3'% (folder,prefix),'r').readlines()
+           
+           # check consistency file from bands.x and xml file
+           nband = int(findall(r"[-+]?\d*\.\d+|\d+", data_spin_3[0].strip().split()[2]  )[0])
+           nk    = int(data_spin_3[0].strip().split()[-2])
+           nline = int(nband/10)
+           if nband < 10: print("Error, uses only nband => 10 and multiple of 10")
+           print(nband,nk)
+           print(self.nbands,self.nkpoints)
+           if self.nbands != nband or self.nkpoints != nk: print("Warning: Dimensions are different!")
+
+           self.spin_3 = zeros([self.nkpoints,self.nbands])
+
+        for ik in range(self.nkpoints):
+            for ib in range(nline):
+                ib1, ib2, ib3 = int(ib*10), int((ib+1)*10), int(ik*(nband/10+1)+2+ib)
+                self.spin_3[ik,ib1:ib2] = list( map(float,data_spin_3[ib3].split()))
+
+
