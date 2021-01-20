@@ -339,6 +339,62 @@ class PwXML():
         if xlim: ax.set_xlim(xlim)
         if ylim: ax.set_ylim(ylim)
 
+     
+    def plot_eigen_spin_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),spin_proj=None):
+        #
+        # Careful with variable path. I am substituting vy path_kpoints
+        # To be done in all the code (and in the tutorials)
+        # This is a test function for spin-polarized bands
+        #
+        #
+        
+        import matplotlib.pyplot as plt
+        self.spin_proj = np.array(spin_proj) if spin_proj is not None else None 
+
+        if path_kpoints:
+            if isinstance(path_kpoints,Path):
+                path_kpoints = path_kpoints.get_indexes()
+                path_ticks, path_labels = list(zip(*path_kpoints))
+            ax.set_xticks( path_ticks )
+            ax.set_xticklabels( path_labels )
+        ax.set_ylabel('E (eV)')
+
+        # I choose a colormap for spin
+        color_map  = plt.get_cmap('seismic')
+
+        #get kpoint_dists 
+        kpoints_dists = calculate_distances(self.kpoints)
+        ticks, labels = list(zip(*path_kpoints))
+        ax.set_xticks([kpoints_dists[t] for t in ticks])
+        ax.set_xticklabels(labels)
+        ax.set_xlim(kpoints_dists[0],kpoints_dists[-1])
+
+        # NOT WORKING, CHECK IT!
+        #plot vertical lines
+        #for t in ticks:
+        #    ax.axvline(kpoints_dists[t],c='k',lw=2)
+        #ax.axhline(0,c='k')
+
+        #plot bands
+        eigen1 = np.array(self.eigen1)
+        for ib in range(self.nbands):
+            x = kpoints_dists
+            y = eigen1[:,ib]*HatoeV - self.fermi*HatoeV
+            color_spin = self.spin_proj[:,ib] + 0.5 # I renormalize 0 => down; 1 => up
+            ax.scatter(x,y,s=100,c=color_spin,cmap=color_map,vmin=0.0,vmax=1.0,edgecolors='none')
+       
+        #plot spin-polarized bands: TO BE DONE
+        #if self.lsda:
+
+        #  eigen2 = np.array(self.eigen2)
+        #   for ib in range(self.nbands):
+        #       ax.plot(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
+
+        #plot options
+        if xlim: ax.set_xlim(xlim)
+        if ylim: ax.set_ylim(ylim)
+
+
     '''
     Workaround to include occupations in the plot. AMS
     '''
@@ -422,8 +478,6 @@ class PwXML():
            nk    = int(data_spin_3[0].strip().split()[-2])
            nline = int(nband/10)
            if nband < 10: print("Error, uses only nband => 10 and multiple of 10")
-           print(nband,nk)
-           print(self.nbands,self.nkpoints)
            if self.nbands != nband or self.nkpoints != nk: print("Warning: Dimensions are different!")
 
            self.spin_3 = zeros([self.nkpoints,self.nbands])
