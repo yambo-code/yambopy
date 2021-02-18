@@ -1,9 +1,7 @@
 #!/usr/bin/env python3.7
-#TODO: use scripts contained in this directory instead of yambopy/recipes.py
+#TODO: delete/move any other scripts in this directory
 from yambopy import *
-from scripts import generate_save 
-from scripts import gkkp
-from scripts import generate_bands
+from command_line import *
 import argparse
 import sys
 
