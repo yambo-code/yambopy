@@ -15,7 +15,7 @@ packages_yambopy = ['yambopy',
                     'materials',
                     'schedulerpy',
                     'yamboparser',
-                    'scripts']
+                    'command_line']
 
 install_requires = [
 "numpy",

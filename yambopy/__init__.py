@@ -28,7 +28,6 @@ Modules:
 
     analyse:
         - YamboAnalyser: read .json files generated with yamboout and plot them together
-        - recipes: user contributed scripts
 """
 import numpy as np
 
@@ -72,7 +71,6 @@ from yambopy.bse.bse_absorption import *
 
 #analyse stuff
 from yambopy.analyse import *
-from yambopy.recipes import *
 
 #workflow files
 from yambopy.common.save_generation import *
