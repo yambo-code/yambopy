@@ -18,6 +18,8 @@ class qepyenv():
     PSEUDODIR = os.path.join(os.path.dirname(__file__),'data','pseudos')
     CONV_THR = 1e-8
 
+from .xml import *
+from .bravais import *
 from .pw import *
 from .pwxml import *
 from .projwfc import *
