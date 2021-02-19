@@ -5,6 +5,8 @@ from math import sqrt
 import xml.etree.ElementTree as ET
 from qepy import xml
 from qepy import bravais
+from copy import deepcopy
+from command_line import band_plots
 
 """
 Script to produce band structure data and visualization from QE.
@@ -32,8 +34,6 @@ The input parameters are:
  - KPTs: band circuit in reduced coordinates
  - KPTs_labels: labels for the band circuit points
  - shift_Delta_c_v: k-dependent scissor shift as a list of three values (gap shift, cond. stretch, val. stretch)
-
- - n_valence_bands: AUTOMATICALLY DETERMINE
 """
 def read_input(inp_file):
     """
@@ -42,7 +42,7 @@ def read_input(inp_file):
     
     # Get input data from yaml file in dictionary form
     stream = open(inp_file, 'r')
-    dictionary = yaml.load(stream)
+    dictionary = yaml.safe_load(stream)
     stream.close()
     
     # Transform input data in shape used by the code
@@ -104,12 +104,12 @@ def get_data_from_xml(input_params):
             print('[WARNING]: if your system is a metal, the scissor shift will NOT work!')
     
     # Get topmost valence band (only valid for gapped systems)
-    n_VBM = np.sum(occs[0])
+    n_VBM = int( np.sum(occs[0]) )
     
     # Get eigenvalues
     eigen, s_eigen = process_bands(eigen,kpts_cart,fermi_e,shift_Delta_c_v,n_VBM)
     
-    return lat_vecs, nkpoints, nbands, kpts_cart, eigen, s_eigen
+    return lat_vecs, nkpoints, nbands, kpts_cart, eigen, s_eigen, n_VBM
     
 def setup_BZ_points(input_params,output_data):
     """
@@ -119,7 +119,7 @@ def setup_BZ_points(input_params,output_data):
     ***ASSUMING SAME NUMBER OF POINTS FOR EACH SEGMENT***)
     """
     save_dir, prefix, KPTs, KPTs_labels, shift_Delta_c_v  = input_params
-    lat_vecs, nkpoints, nbands, kpts_cart, eigen, s_eigen = output_data
+    lat_vecs, nkpoints, nbands, kpts_cart, eigen, s_eigen, n_VBM = output_data
 
     # Describe BZ symmetry lines
     nKPTs = len(KPTs)
@@ -147,14 +147,17 @@ def setup_BZ_points(input_params,output_data):
         for ik in range(n_l+1,n_r+1): kstps[ik] = kstps[ik-1]+KPT_lengths[i-1]
         points.append(kstps[n_r])
 
+    # Get energy gaps
+    gaps = find_gaps(s_eigen,n_VBM)
+
     # Print info
-    setup_info(nKPTs,nkpt_per_direction,KPTs,KPT_lengths,nkpoints,nbands,points)
+    setup_info(nKPTs,nkpt_per_direction,KPTs,KPT_lengths,nkpoints,nbands,points,gaps,shift_Delta_c_v)
     
-    if shift_Delta_c_v is not None: return prefix,nkpoints,nbands,kstps,eigen,s_eigen    
-    else: return prefix,nkpoints,nbands,kstps,eigen
+    if shift_Delta_c_v is not None: return prefix,nkpoints,nbands,kstps,KPTs_labels,points,gaps,eigen,s_eigen    
+    else: return prefix,nkpoints,nbands,kstps,KPTs_labels,points,gaps,eigen
         
     
-def setup_info(nKPTs,nkpt_per_direction,KPTs,KPT_lengths,nkpoints,nbands,points):
+def setup_info(nKPTs,nkpt_per_direction,KPTs,KPT_lengths,nkpoints,nbands,points,gaps,scissor):
     """
     Print information about the system
     """
@@ -167,40 +170,69 @@ def setup_info(nKPTs,nkpt_per_direction,KPTs,KPT_lengths,nkpoints,nbands,points)
     print(KPT_lengths) 
     
     # Bands info 
-    print("=== BAND PLOT ===")
+    print("=== BANDS ===")
     print("nkpoints: %d"%nkpoints)
     print("kpoint density per direction: %d"%nkpt_per_direction)
     print("nbands: %d"%nbands)  
+    if scissor is None: print("scissor shift: No")
+    else: print("scissor shift: Yes")
+    print("direct band gap:   %f eV"%gaps[0])
+    print("indirect band gap: %f eV"%gaps[1])
     
     # Symmetry points info
+    print("=== PLOT ===")
     print("Internal high-symmetry points at: ")
     print(points)  
-    
+
+def find_gaps(eigen,n_val):
+    """
+    Find smallest direct and indirect band gaps
+    """
+    Nk,Nb = eigen.shape
+    top_v, bottom_c = eigen[:,n_val-1], eigen[:,n_val]    
+    dir_gaps = bottom_c - top_v
+    E_dir_gap = np.min(dir_gaps)
+    indir_gaps = []
+    for ik in range(Nk):
+        for ip in range(Nk):
+            if ip!=ik: indir_gaps.append(bottom_c[ip]-top_v[ik])
+    indir_gaps = np.array(indir_gaps)
+    E_ind_gap = np.min(indir_gaps)
+    return E_dir_gap, E_ind_gap
+            
 def process_bands(eigen,kpts_cart,fermi_e,shift_Delta_c_v,n_val):
     """
     Fix Fermi level to zero, apply scissor shift, return useful dictionary for plotting 
     
     Output:
-        eigenvalues and shifted eigenvalues (equal if not scissor applied)
+        eigenvalues and shifted eigenvalues (equal if scissor not applied)
     """
     # Rescale in eV and shift Fermi level to zero
     ha2ev  = 27.211396132
     processed_eigen  = ha2ev*(eigen-fermi_e)
     
     # Apply scissor shift
-    shifted_eigen = processed_eigen
+    shifted_eigen = deepcopy(processed_eigen)
     if shift_Delta_c_v is not None:
         scissor = shift_Delta_c_v
-        top_v, bottom_c = eigen[:,n_val-1], eigen[:,n_val]
+        top_v, bottom_c = processed_eigen[:,n_val-1], processed_eigen[:,n_val]
         ind_k_dir_gap = np.argmin(bottom_c-top_v)
         ev_max, ec_min = top_v[ind_k_dir_gap], bottom_c[ind_k_dir_gap]
-        shifted_eigen = processed_eigen
         for ik in range( len(kpts_cart) ):
             for ib in range( len(processed_eigen[0]) ):
-                if ib<n_val: shifted_eigen[ik][ib] = ev_max-(ev_max-eigen[ik][ib])*scissor[2]
-                else:        shifted_eigen[ik][ib] = ec_min+scissor[0]+(eigen[ik][ib]-ec_min)*scissor[1]
+                if ib<n_val: shifted_eigen[ik][ib] = ev_max-(ev_max-processed_eigen[ik][ib])*scissor[2]
+                else:        shifted_eigen[ik][ib] = ec_min+scissor[0]+(processed_eigen[ik][ib]-ec_min)*scissor[1]
 
     return processed_eigen, shifted_eigen
+
+def launch_plot(data,plt_type='bands',out_name=None,erange=None,show=True):
+    """
+    Plot driver. 
+    
+    Calls band_plots with the appropriate plt_type
+    """
+    
+    band_plots.plot_driver(data,plt_type,out_name=out_name,erange=erange,show=show)
 
 if __name__ == "__main__":
 
@@ -216,8 +248,11 @@ if __name__ == "__main__":
     # Read data from .xml file
     output_data = get_data_from_xml(input_params)
     
-    # BZ setup 
+    # Plot setup
     data_to_plot = setup_BZ_points(input_params,output_data)
+    
+    # Produce the plot
+    launch_plot(data_to_plot,plt_type='bands',out_name=None,erange=4.,show=True)
     
     
 
