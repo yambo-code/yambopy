@@ -13,4 +13,5 @@ Scripts to be run from the command line using the 'yambopy' executable
 import command_line.recipes
 import command_line.generate_save
 import command_line.generate_bands
+import command_line.band_plots
 import command_line.gkkp
