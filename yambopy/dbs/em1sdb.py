@@ -5,6 +5,7 @@
 #
 from yambopy import *
 from netCDF4 import Dataset
+from yambopy.lattice import rec_lat, car_red
 
 class YamboStaticScreeningDB(object):
     """
@@ -34,6 +35,7 @@ class YamboStaticScreeningDB(object):
             self.alat = database.variables['LATTICE_PARAMETER'][:]
             self.lat  = database.variables['LATTICE_VECTORS'][:].T
             self.volume = np.linalg.det(self.lat)
+            self.rlat = rec_lat(self.lat)
         except:
             raise IOError("Error opening %s in YamboStaticScreeningDB"%filename)
 
@@ -55,9 +57,10 @@ class YamboStaticScreeningDB(object):
         self.ngvectors = len(self.gvectors)
         
         #read q-points
-        qpoints = database.variables['HEAD_QPT'][:].T
-        self.qpoints = np.array([q/self.alat  for q in qpoints])
-        self.nqpoints = len(self.qpoints)
+        self.iku_qpoints = database.variables['HEAD_QPT'][:].T
+        self.car_qpoints = np.array([ q/self.alat for q in self.iku_qpoints ])
+        self.red_qpoints = car_red(self.car_qpoints,self.rlat) 
+        self.nqpoints = len(self.car_qpoints)
 
         #are we usign coulomb cutoff?
         #
@@ -151,7 +154,7 @@ class YamboStaticScreeningDB(object):
             ng1, ng2 -> Choose local field components
             volume   -> Normalize with the volume of the cell
         """
-        x = [np.linalg.norm(q) for q in self.qpoints]
+        x = [np.linalg.norm(q) for q in self.car_qpoints]
         y = [np.linalg.inv(np.eye(self.ngvectors)+xq)[0,0] for xq in self.X ]
       
         #order according to the distance
@@ -176,7 +179,7 @@ class YamboStaticScreeningDB(object):
             ng1, ng2 -> Choose local field components
             volume   -> Normalize with the volume of the cell
         """
-        x = [np.linalg.norm(q) for q in self.qpoints]
+        x = [np.linalg.norm(q) for q in self.car_qpoints]
         y = [xq[ng2,ng1] for xq in self.X ]
       
         #order according to the distance
