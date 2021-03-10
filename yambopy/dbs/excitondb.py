@@ -304,7 +304,7 @@ class YamboExcitonDB(YamboSaveDB):
             #add weights
             sum_weights = 0
             for t,kcv in enumerate(self.table):
-                k,c,v = kcv-1
+                k,c,v = kcv[0:3]-1    # This is bug's source between yambo 4.4 and 5.0 
                 this_weight = abs2(eivec[t])
                 weights[k,c] += this_weight
                 weights[k,v] += this_weight
@@ -504,7 +504,7 @@ class YamboExcitonDB(YamboSaveDB):
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
         kpoints_path = path.get_klist()[:,:3]
         exc_weights = skw.interp_kpts(kpoints_path).eigens
-    
+
         #create band-structure object
         exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
         exc_bands.set_fermi(self.nvbands)

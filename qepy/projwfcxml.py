@@ -138,9 +138,21 @@ class ProjwfcXML(object):
         ax.axhline(0,c='k')
       
         if selected_orbitals_2:
-          #if self.spin_components == 1:
-             #get weights of second set of orbitals
-           w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
+           # No spin or full spinor
+           if self.spin_components == 1 or self.spin_components == 4:
+              #get weights of second set of orbitals
+              w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
+              #plot bands for fixed size
+              for ib in range(bandmin,bandmax):
+                  eig = self.eigen[:,ib] - self.fermi
+                  if size_projection==True:
+                     cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+                  else:
+                     cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+
+           # Spin polarized
+           if self.spin_components == 2:
+              w_rel_up, w_rel_dw = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
              #plot bands for fixed size
            for ib in range(bandmin,bandmax):
                eig = self.eigen[:,ib] - self.fermi
@@ -212,7 +224,7 @@ class ProjwfcXML(object):
             bandmax = self.nbands
 
         # No spin polarized
-        if self.spin_components == 1 or 4:
+        if self.spin_components == 1 or self.spin_components == 4:
            # Selection of the bands
            w_rel = zeros([self.nkpoints,self.nbands])
            for ik in range(self.nkpoints):
@@ -246,7 +258,7 @@ class ProjwfcXML(object):
         eigen2 = []
 
         # No spin polarized
-        if self.spin_components == 1 or 4:
+        if self.spin_components == 1 or self.spin_components == 4:
 
            for ik in range(self.nkpoints):
                eigen.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG"%(ik+1)).text.split() )))
@@ -277,7 +289,7 @@ class ProjwfcXML(object):
         datafile_xml = self.datafile_xml
         proj  = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
 
-        if self.spin_components == 1 or 4:
+        if self.spin_components == 1 or self.spin_components == 4:
 
            for ik in range(self.nkpoints):
                for ip in range(self.nproj):
