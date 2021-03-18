@@ -179,6 +179,10 @@ class PwXML():
         """
         self.datafile_xml = ET.parse( filename ).getroot()
 
+        # occupation type
+
+        self.occ_type = self.datafile_xml.findall("input/bands/occupations")[0].text
+
         #get magnetization state
         # TO BE DONE!!!
         self.lsda = False
@@ -250,9 +254,11 @@ class PwXML():
         self.eigen1 = np.array(self.eigen1)
  
         #get fermi
-        # it depends on the occupations????
-        #self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)
-        self.fermi = float(self.datafile_xml.find("output/band_structure/fermi_energy").text)
+        # it depends on the occupations
+        if self.occ_type == 'fixed':
+           self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)
+        else:
+           self.fermi = float(self.datafile_xml.find("output/band_structure/fermi_energy").text)
     
         #get Bravais lattice
         self.ibrav = self.datafile_xml.findall("output/atomic_structure")[0].get('bravais_index')
