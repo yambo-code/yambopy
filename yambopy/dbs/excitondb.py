@@ -312,7 +312,32 @@ class YamboExcitonDB(YamboSaveDB):
             if abs(sum_weights - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
  
         return weights
-   
+  
+    def get_exciton_transitions(self,excitons):
+        """get weight of state in each band"""
+        # Double check the part of the array w_k_v_to_c
+        # We should comment more this part
+        weights = np.zeros([self.nkpoints,self.mband])
+        w_k_v_to_c = np.zeros([self.nkpoints,self.nvbands,self.ncbands])
+        v_min = self.unique_vbands[0]
+        c_min = self.unique_cbands[0]
+        for exciton in excitons:
+            #get the eigenstate
+            eivec = self.eigenvectors[exciton-1]
+            #add weights
+            sum_weights = 0
+            for t,kcv in enumerate(self.table):
+                k,c,v = kcv-1
+                k,v,c = kcv-1                                 # bug??
+                this_weight = abs2(eivec[t])
+                w_k_v_to_c[k,v-v_min,c-c_min] = this_weight   # new
+                weights[k,c] += this_weight
+                weights[k,v] += this_weight
+                sum_weights += this_weight
+            if abs(sum_weights - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
+ 
+        return weights, w_k_v_to_c
+
     def get_exciton_2D(self,excitons,f=None):
         """get data of the exciton in 2D"""
         weights = self.get_exciton_weights(excitons)
