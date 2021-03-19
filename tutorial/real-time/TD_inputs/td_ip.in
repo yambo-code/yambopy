@@ -1,0 +1,50 @@
+#                                                                     
+#  __  __   ________   ___ __ __    _______   ______                  
+# /_/\/_/\ /_______/\ /__//_//_/\ /_______/\ /_____/\                 
+# \ \ \ \ \\::: _  \ \\::\| \| \ \\::: _  \ \\:::_ \ \                
+#  \:\_\ \ \\::(_)  \ \\:.      \ \\::(_)  \/_\:\ \ \ \               
+#   \::::_\/ \:: __  \ \\:.\-/\  \ \\::  _  \ \\:\ \ \ \              
+#     \::\ \  \:.\ \  \ \\. \  \  \ \\::(_)  \ \\:\_\ \ \             
+#      \__\/   \__\/\__\/ \__\/ \__\/ \_______\/ \_____\/             
+#                                                                     
+#                                                                     
+#       Version 4.5.0 Revision 18069 Hash 31233e0e7                   
+#                Branch is testing-fulvio                             
+#                        MPI Build                                    
+#                http://www.yambo-code.org                            
+#
+dipoles
+negf                           # [R] NEQ Real-time dynamics
+DIP_CPU= "1 1 1"
+DIP_ROLEs= "k c v"
+RT_CPU= "1 1 1 1"
+RT_ROLEs= "k b q qp"
+HARRLvcs= 20       Ry         # [HA] Hartree     RL components
+HXC_Potential= "IP"           # [SC] SC HXC Potential
+% DipBands
+  3 | 6 |
+%
+% RTBands
+  3 | 6 |                     # [RT] Bands
+%
+Integrator= "EULER RK2"              # [RT] Integrator. Use keywords space separated  ( "EULER/EXPn/INV" "SIMPLE/RK2/RK4/HEUN" "RWA")
+PhLifeTime= 0.000000   fs      # [RT] Constant Dephasing Time
+RTstep= 10.00000       as      # [RT] Real Time step length
+NETime= 30.000000      fs      # [RT] Simulation Time
+% IOtime
+ 0.050000 | 5.000000 | 0.100000 |  fs    # [RT] Time between to consecutive I/O (OBSERVABLEs,CARRIERs - GF - OUTPUT)
+%
+% Field1_Freq
+ 0.0000000 | 0.0000000 | eV      # [RT Field1] Frequency
+%
+Field1_Int= 1.E3   kWLm2   # [RT Field1] Intensity
+Field1_Width= 0.000000 fs      # [RT Field1] Width
+Field1_kind= "DELTA"            # [RT Field1] Kind(SIN|RES|ANTIRES|GAUSS|DELTA|QSSIN)
+Field1_pol= "linear"             # [RT Field1] Pol(linear|circular)
+% Field1_Dir
+ 1.000000 | 0.000000 | 0.000000 |        # [RT Field1] Versor
+%
+% Field1_Dir_circ
+ 0.000000 | 1.000000 | 0.000000 |        # [RT Field1] Versor_circ
+%
+Field1_Tstart= 0.000000fs      # [RT Field1] Initial Time

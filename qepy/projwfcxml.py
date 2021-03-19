@@ -44,12 +44,13 @@ class ProjwfcXML(object):
         kpoints_lines = self.datafile_xml.find("K-POINTS").text.strip().split('\n')
         kpoints_float = [ list(map(float, kline.split())) for kline in kpoints_lines ]
         self.kpoints  = np.array(kpoints_float)
-
         if self.spin_components == 1: self.eigen = self.get_eigen()
         if self.spin_components == 2: self.eigen1,self.eigen2  = self.get_eigen()
-        
+        if self.spin_components == 4: self.eigen = self.get_eigen()
+          
         if self.spin_components == 1: self.proj  = self.get_proj()
         if self.spin_components == 2: self.proj1,self.proj2 = self.get_proj()
+        if self.spin_components == 4: self.proj  = self.get_proj()
         #here we open the ouput file of projwfc and get the quantum numbers of the orbitals
         try:
             f = open("%s/%s"%(path,output_filename),'r')
@@ -137,47 +138,59 @@ class ProjwfcXML(object):
         ax.axhline(0,c='k')
       
         if selected_orbitals_2:
-          if self.spin_components == 1:
-             #get weights of second set of orbitals
-             w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
-             #plot bands for fixed size
-             for ib in range(bandmin,bandmax):
-                 eig = self.eigen[:,ib] - self.fermi
-                 if size_projection==True:
-                    cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
-                 else:
-                    cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+           # No spin or full spinor
+           if self.spin_components == 1 or self.spin_components == 4:
+              #get weights of second set of orbitals
+              w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
+              #plot bands for fixed size
+              for ib in range(bandmin,bandmax):
+                  eig = self.eigen[:,ib] - self.fermi
+                  if size_projection==True:
+                     cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+                  else:
+                     cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
 
-          if self.spin_components == 2:
-             #get weights of second set of orbitals
-             w_rel1, w_rel2 = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
+           # Spin polarized
+           if self.spin_components == 2:
+              w_rel_up, w_rel_dw = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
              #plot bands for fixed size
-             for ib in range(bandmin,bandmax):
-                 eig1 = self.eigen1[:,ib] - self.fermi
-                 eig2 = self.eigen2[:,ib] - self.fermi
-                 if size_projection==True:
-                    cax = ax.scatter(kpoints_dists,eig1,s=size[:,ib],c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
-                    cax = ax.scatter(kpoints_dists,eig2,s=size[:,ib],c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_2)
-                 else:
-                    cax = ax.scatter(kpoints_dists,eig1,s=size,c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
-                    cax = ax.scatter(kpoints_dists,eig2,s=size,c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_2)
+           for ib in range(bandmin,bandmax):
+               eig = self.eigen[:,ib] - self.fermi
+               if size_projection==True:
+                  cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+               else:
+                  cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+
+#          if self.spin_components == 2:
+#             #get weights of second set of orbitals
+#             w_rel1, w_rel2 = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
+#             #plot bands for fixed size
+#             for ib in range(bandmin,bandmax):
+#                 eig1 = self.eigen1[:,ib] - self.fermi
+#                 eig2 = self.eigen2[:,ib] - self.fermi
+#                 if size_projection==True:
+#                    cax = ax.scatter(kpoints_dists,eig1,s=size[:,ib],c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+#                    cax = ax.scatter(kpoints_dists,eig2,s=size[:,ib],c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_2)
+#                 else:
+#                    cax = ax.scatter(kpoints_dists,eig1,s=size,c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+#                    cax = ax.scatter(kpoints_dists,eig2,s=size,c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_2)
 
         else:
-          if self.spin_components == 1:
+#          if self.spin_components == 1:
           #plot bands for a varying size
              w_proj = self.get_weights(selected_orbitals=selected_orbitals)
              for ib in range(bandmin,bandmax):
                  eig = self.eigen[:,ib] - self.fermi
                  cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=label_1)
-
-          if self.spin_components == 2:
-          #plot bands for a varying size
-             w_proj1, w_proj2 = self.get_weights(selected_orbitals=selected_orbitals)
-             for ib in range(bandmin,bandmax):
-                 eig1 = self.eigen1[:,ib] - self.fermi
-                 eig2 = self.eigen2[:,ib] - self.fermi
-                 cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=label_1)
-                 cax = ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=label_2)
+#
+#          if self.spin_components == 2:
+#          #plot bands for a varying size
+#             w_proj1, w_proj2 = self.get_weights(selected_orbitals=selected_orbitals)
+#             for ib in range(bandmin,bandmax):
+#                 eig1 = self.eigen1[:,ib] - self.fermi
+#                 eig2 = self.eigen2[:,ib] - self.fermi
+#                 cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=label_1)
+#                 cax = ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=label_2)
 
         ax.set_xlim(0, max(kpoints_dists))
         return cax
@@ -211,7 +224,7 @@ class ProjwfcXML(object):
             bandmax = self.nbands
 
         # No spin polarized
-        if self.spin_components == 1:
+        if self.spin_components == 1 or self.spin_components == 4:
            # Selection of the bands
            w_rel = zeros([self.nkpoints,self.nbands])
            for ik in range(self.nkpoints):
@@ -245,7 +258,7 @@ class ProjwfcXML(object):
         eigen2 = []
 
         # No spin polarized
-        if self.spin_components == 1:
+        if self.spin_components == 1 or self.spin_components == 4:
 
            for ik in range(self.nkpoints):
                eigen.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG"%(ik+1)).text.split() )))
@@ -276,7 +289,7 @@ class ProjwfcXML(object):
         datafile_xml = self.datafile_xml
         proj  = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
 
-        if self.spin_components == 1:
+        if self.spin_components == 1 or self.spin_components == 4:
 
            for ik in range(self.nkpoints):
                for ip in range(self.nproj):

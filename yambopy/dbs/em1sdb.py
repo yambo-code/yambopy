@@ -5,6 +5,7 @@
 #
 from yambopy import *
 from netCDF4 import Dataset
+from yambopy.lattice import rec_lat, car_red
 
 class YamboStaticScreeningDB(object):
     """
@@ -20,28 +21,32 @@ class YamboStaticScreeningDB(object):
         \epsilon^{-1} = 1-v\chi
 
     """
-    def __init__(self,save='.',filename='ndb.em1s',db1='ns.db1'):
+    def __init__(self,save='.',em1s='.',filename='ndb.em1s',db1='ns.db1'):
         self.save = save
+        self.em1s = em1s
         self.filename = filename
 
-        #read the lattice paramaters
-        try:
-            #posibilities where to find db1
-            for filename in ['%s/%s'%(save,db1)]:#,'%s/../SAVE/%s'%(save,db1)]:
-                if os.path.isfile(filename):
-                    break
-            database = Dataset(filename, 'r')
-            self.alat = database.variables['LATTICE_PARAMETER'][:]
-            self.lat  = database.variables['LATTICE_VECTORS'][:].T
-            self.volume = np.linalg.det(self.lat)
-        except:
-            raise IOError("Error opening %s in YamboStaticScreeningDB"%filename)
+        #read lattice parameters
+        if os.path.isfile('%s/%s'%(self.save,db1)):
+            try:
+                database = Dataset("%s/%s"%(self.save,db1), 'r')
+                self.alat = database.variables['LATTICE_PARAMETER'][:]
+                self.lat  = database.variables['LATTICE_VECTORS'][:].T
+                self.volume = np.linalg.det(self.lat)
+                self.rlat = rec_lat(self.lat)
+            except:
+                raise IOError("Error opening %s."%db1)
+        else:
+            raise FileNotFoundError("File %s not found."%db1)
 
         #read em1s database
-        try:
-            database = Dataset("%s/%s"%(self.save,self.filename), 'r')
-        except:
-            raise IOError("Error opening %s/%s in YamboStaticScreeningDB"%(self.save,self.filename))
+        if os.path.isfile("%s/%s"%(self.em1s,self.filename)): 
+            try:
+                database = Dataset("%s/%s"%(self.em1s,self.filename), 'r')
+            except:
+                raise IOError("Error opening %s/%s in YamboStaticScreeningDB"%(self.save,self.filename))
+        else:
+            raise FileNotFoundError("File %s not found."%self.filename)
 
         #read some parameters
         size,nbands,eh = database.variables['X_PARS_1'][:3]
@@ -55,9 +60,10 @@ class YamboStaticScreeningDB(object):
         self.ngvectors = len(self.gvectors)
         
         #read q-points
-        qpoints = database.variables['HEAD_QPT'][:].T
-        self.qpoints = np.array([q/self.alat  for q in qpoints])
-        self.nqpoints = len(self.qpoints)
+        self.iku_qpoints = database.variables['HEAD_QPT'][:].T
+        self.car_qpoints = np.array([ q/self.alat for q in self.iku_qpoints ])
+        self.red_qpoints = car_red(self.car_qpoints,self.rlat) 
+        self.nqpoints = len(self.car_qpoints)
 
         #are we usign coulomb cutoff?
         #
@@ -65,7 +71,11 @@ class YamboStaticScreeningDB(object):
         #
         #self.cutoff = "".join(database.variables['CUTOFF'][:][0]).strip()
         
-        self.readDBs()
+        #read fragments
+        read_fragments=True
+        for iQ in range(self.nqpoints):
+            if not os.path.isfile("%s/%s_fragment_%d"%(self.em1s,self.filename,iQ+1)): read_fragments=False
+        if read_fragments: self.readDBs()
 
     def readDBs(self):
         """
@@ -151,7 +161,7 @@ class YamboStaticScreeningDB(object):
             ng1, ng2 -> Choose local field components
             volume   -> Normalize with the volume of the cell
         """
-        x = [np.linalg.norm(q) for q in self.qpoints]
+        x = [np.linalg.norm(q) for q in self.car_qpoints]
         y = [np.linalg.inv(np.eye(self.ngvectors)+xq)[0,0] for xq in self.X ]
       
         #order according to the distance
@@ -176,7 +186,7 @@ class YamboStaticScreeningDB(object):
             ng1, ng2 -> Choose local field components
             volume   -> Normalize with the volume of the cell
         """
-        x = [np.linalg.norm(q) for q in self.qpoints]
+        x = [np.linalg.norm(q) for q in self.car_qpoints]
         y = [xq[ng2,ng1] for xq in self.X ]
       
         #order according to the distance

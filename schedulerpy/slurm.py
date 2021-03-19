@@ -25,25 +25,28 @@ class Slurm(Scheduler):
 
     def get_script(self):
         """
-        get a .pbs file to be submitted using qsub
-        qsub <filename>.pbs
+        get a .sh file to be submitted using sbatch
+        sbatch <filename>.sh
         """
         lines = []; app = lines.append
         app('#!/bin/bash -l\n')
         
         partition = self.get_arg("partition",None)
-        if self.name: app("#SBATCH -J \"%s\""%self.name)
+        if self.name: app("#SBATCH -J %s"%self.name)
         if partition: app('#SBATCH --partition %s'%partition)
 
         qos = self.get_arg("qos",None)
         if qos: app('#SBATCH --qos=%s'%qos)
 
+        dependency = self.get_arg("dependency",None)
+        if dependency: app("#SBATCH --dependency=%s"%dependency)
+
         if self.nodes: app("#SBATCH -N %d" % self.nodes)
         if self.cores: app("#SBATCH --ntasks-per-node=%d" % self.cores)
         if self.cpus_per_task: app("#SBATCH --cpus-per-task=%d" % self.cpus_per_task )
 
-        mem_per_cpu = self.get_arg("mem-per-cpu",None) 
-        if mem_per_cpu: app("#SBATCH --mem-per-cpu=%d" % mem_per_cpu)
+        mem_per_cpu = self.get_arg("mem_per_cpu",None) 
+        if mem_per_cpu: app("#SBATCH --mem-per-cpu=%s" % mem_per_cpu)
 
         app("#SBATCH --time=0-%s" % self.walltime)
 
@@ -71,12 +74,27 @@ class Slurm(Scheduler):
         self.write(filename)        
         workdir  = os.path.dirname(filename)
         basename = os.path.basename(filename) 
- 
+
         p = subprocess.Popen([command,basename],stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=workdir)
         self.stdout,self.stderr = p.communicate()
+        #Slurm-specific instruction to store jobid
+        self.jobid = self.stdout.decode().split(' ')[-1].strip()
         
         #check if there is stderr
         if self.stderr: raise Exception(self.stderr)
         
         #check if there is stdout
         if verbose: print(self.stdout)
+        
+    def check_job_status(self,workdir):
+        """
+        Return status of slurm job (empty if job is not present)
+        """
+        p = subprocess.Popen(['squeue','-j %s'%self.jobid],stdout=subprocess.PIPE,stderr=subprocess.PIPE,cwd=workdir)
+        stdout,stderr = p.communicate()
+        if stdout:
+            if stdout.decode()[-9:-1]=='(REASON)': job_status = 'NULL' 
+            else: job_status = stdout.decode().split('\n')[1].split()[4]
+        else: 
+            job_status = 'NULL'
+        return job_status

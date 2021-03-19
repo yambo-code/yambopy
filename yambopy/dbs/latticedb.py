@@ -301,6 +301,22 @@ class YamboLatticeDB(object):
 
         return bands_kpoints, bands_indexes, path_car
 
+    def get_units_info(self):
+
+        info_string = \
+        "          Yambo cartesian units [cc in yambo]: \n\
+                ::   self.car_kpoints*2.*pi\n\
+         \n\
+          QE cartesian unists [cart. coord. in units 2pi/alat in QE: \n\
+                ::   self.car_kpoints*self.alat[0]\n\
+         \n\
+          Internal yambo units [iku]: \n\
+                ::   self.iku_kpoints\n\
+         \n\
+          Reduced coordinates [rlu in yambo, cryst. coord. in QE]: \n\
+                ::   self.red_kpoints\n"
+        print(info_string)
+
     def __str__(self):
         lines = []; app = lines.append
         app(marquee(self.__class__.__name__))

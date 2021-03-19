@@ -114,6 +114,9 @@ class Scheduler(object):
         if schedulername not in list(schedulers.keys()):
             raise ValueError("Scheduler name %s is invalid"%schedulername)
 
+        #check type from outside class
+        cls.schedulertype = schedulertype
+
         if "nodes" in schedulerconfig and nodes is None:
             nodes = int(schedulerconfig["nodes"])
             del schedulerconfig["nodes"]
