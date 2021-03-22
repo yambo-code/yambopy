@@ -317,7 +317,7 @@ class YamboExcitonDB(YamboSaveDB):
         """get weight of state in each band"""
         # Double check the part of the array w_k_v_to_c
         # We should comment more this part
-        weights = np.zeros([self.nkpoints,self.mband])
+        #weights = np.zeros([self.nkpoints,self.mband])
         w_k_v_to_c = np.zeros([self.nkpoints,self.nvbands,self.ncbands])
         v_min = self.unique_vbands[0]
         c_min = self.unique_cbands[0]
@@ -325,18 +325,16 @@ class YamboExcitonDB(YamboSaveDB):
             #get the eigenstate
             eivec = self.eigenvectors[exciton-1]
             #add weights
-            sum_weights = 0
+            #sum_weights = 0
             for t,kcv in enumerate(self.table):
                 k,c,v = kcv-1
-                k,v,c = kcv-1                                 # bug??
+                #k,v,c = kcv-1                                 # bug?? Double-check
                 this_weight = abs2(eivec[t])
                 w_k_v_to_c[k,v-v_min,c-c_min] = this_weight   # new
-                weights[k,c] += this_weight
-                weights[k,v] += this_weight
-                sum_weights += this_weight
-            if abs(sum_weights - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
+            #if abs(sum_weights - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
  
-        return weights, w_k_v_to_c
+        #return weights, w_k_v_to_c
+        return w_k_v_to_c
 
     def get_exciton_2D(self,excitons,f=None):
         """get data of the exciton in 2D"""
@@ -535,6 +533,70 @@ class YamboExcitonDB(YamboSaveDB):
         exc_bands.set_fermi(self.nvbands)
 
         return exc_bands
+
+    def interpolate_transitions(self,energies,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
+        """ Interpolate exciton bandstructure using SKW interpolation from Abipy
+        """
+        from abipy.core.skw import SkwInterpolator
+
+        if verbose:
+            print("This interpolation is provided by the SKW interpolator implemented in Abipy")
+
+        lattice = self.lattice
+        cell = (lattice.lat, lattice.red_atomic_positions, lattice.atomic_numbers)
+        nelect = 0
+        # Here there is something strange...
+        fermie = kwargs.pop('fermie',0)
+        ##
+        symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
+        time_rev = True
+
+        #vmin, vmax = self.unique_vbands[0], self.unique_vbands[1]
+        #cmin, cmax = self.unique_cbands[0], self.unique_cbands[1]
+
+        transitions = self.get_exciton_transitions(excitons)
+        transitions = transitions[:,:,:]
+
+        ibz_nkpoints = max(lattice.kpoints_indexes)+1
+        kpoints = lattice.red_kpoints
+
+        #map from bz -> ibz:
+        ibz_transitions = np.zeros([ibz_nkpoints,self.nvbands,self.ncbands])
+        ibz_kpoints = np.zeros([ibz_nkpoints,3])
+        for idx_bz,idx_ibz in enumerate(lattice.kpoints_indexes):
+            ibz_transitions[idx_ibz,:,:] = transitions[idx_bz,:,:] 
+            ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
+
+        #get eigenvalues along the path
+        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
+            ibz_energies = energies.eigenvalues[:,self.start_band:self.mband]
+        elif isinstance(energies,YamboQPDB):
+            ibz_energies = energies.eigenvalues_qp
+        else:
+            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
+                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+
+        #interpolate energies
+        na = np.newaxis
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        kpoints_path = path.get_klist()[:,:3]
+        energies = skw.interp_kpts(kpoints_path).eigens
+     
+        #interpolate transitions
+        na = np.newaxis
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_transitions[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        kpoints_path = path.get_klist()[:,:3]
+        exc_transitions = skw.interp_kpts(kpoints_path).eigens
+
+        print(exc_transitions.shape)
+        exit()
+
+        #create band-structure object
+        exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
+        exc_bands.set_fermi(self.nvbands)
+
+        return exc_transitions
+
 
     def interpolate_spin(self,energies,spin_proj,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
         """ Interpolate exciton bandstructure using SKW interpolation from Abipy
