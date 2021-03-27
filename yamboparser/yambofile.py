@@ -122,7 +122,7 @@ class YamboFile(object):
                  if k_index[ind] not in list(_kdata.keys()):
                      _kdata[k_index[ind]] = {}
                  try:
-                     _kdata[k_index[ind]][tags[itag]].append(table[ind,itag])
+                     _kdata[k_index[ind]][tags[itag]].append(table[ind,itag]) #errors when you have multiple qp? IndexError: index 5 is out of bounds for axis 1 with size 5
                  except KeyError:
                      _kdata[k_index[ind]][tags[itag]]  = [ table[ind,itag] ]
 
