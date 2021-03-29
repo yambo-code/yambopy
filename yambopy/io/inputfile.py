@@ -374,6 +374,9 @@ class YamboIn(object):
         s += "\n".join(self.arguments)+'\n'
 
         for key,value in list(self.variables.items()):
+            if key == 'DrudeWXd':
+                s+= 'DrudeWXd= '+value+"\n"
+                continue
             if isstring(value):
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue
