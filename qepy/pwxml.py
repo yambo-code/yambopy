@@ -179,12 +179,16 @@ class PwXML():
         """
         self.datafile_xml = ET.parse( filename ).getroot()
 
+        # occupation type
+
+        self.occ_type = self.datafile_xml.findall("input/bands/occupations")[0].text
+
         #get magnetization state
         # TO BE DONE!!!
         self.lsda = False
-        if 'T' in self.datafile_xml.findall("input/spin/lsda")[0].text:
-            #self.lsda = True
-            raise ValueError('Spin states not yet implemented for data-file-schema.xml') 
+        if 'true' in self.datafile_xml.findall("input/spin/lsda")[0].text:
+            self.lsda = True
+            #raise ValueError('Spin states not yet implemented for data-file-schema.xml') 
 
         #get cell
         self.cell = []
@@ -226,7 +230,12 @@ class PwXML():
         #get nkpoints
         self.nkpoints = int(self.datafile_xml.findall("output/band_structure/nks")[0].text.strip())
         # Read the number of BANDS
-        self.nbands = int(self.datafile_xml.findall("output/band_structure/nbnd")[0].text.strip())
+        if self.lsda:
+           self.nbands_up = int(self.datafile_xml.findall("output/band_structure/nbnd_up")[0].text.strip())
+           self.nbands_dw = int(self.datafile_xml.findall("output/band_structure/nbnd_dw")[0].text.strip())
+           self.nbands = self.nbands_up + self.nbands_dw
+        else:
+           self.nbands = int(self.datafile_xml.findall("output/band_structure/nbnd")[0].text.strip())
 
         #get ks states
         kstates = self.datafile_xml.findall('output/band_structure/ks_energies')
@@ -245,7 +254,11 @@ class PwXML():
         self.eigen1 = np.array(self.eigen1)
  
         #get fermi
-        self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)
+        # it depends on the occupations
+        if self.occ_type == 'fixed':
+           self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)
+        else:
+           self.fermi = float(self.datafile_xml.find("output/band_structure/fermi_energy").text)
     
         #get Bravais lattice
         self.ibrav = self.datafile_xml.findall("output/atomic_structure")[0].get('bravais_index')
@@ -324,16 +337,19 @@ class PwXML():
         ax.axhline(0,c='k')
 
         #plot bands
-        eigen1 = np.array(self.eigen1)
-        for ib in range(self.nbands):
-            ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2)
        
-        #plot spin-polarized bands: TO BE DONE
         if self.lsda:
+           eigen1 = np.array(self.eigen1)
 
-           eigen2 = np.array(self.eigen2)
+           for ib in range(self.nbands_up):
+               ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2)
+               ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
+
+        else:
+           eigen1 = np.array(self.eigen1)
+
            for ib in range(self.nbands):
-               ax.plot(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
+               ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2)
 
         #plot options
         if xlim: ax.set_xlim(xlim)
