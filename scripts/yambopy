@@ -295,15 +295,13 @@ class MergeQPCmd(Cmd):
         parser = argparse.ArgumentParser(description='Join different NetCDF quasi-particle databases')
         parser.add_argument('files', nargs='+', type=argparse.FileType('r'))
         parser.add_argument('-o','--output',                       help='Output filename', default='ndb_out.QP')
-        parser.add_argument('-v','--verbose', action="store_true", help='Verbose mode')
         args = parser.parse_args(args)
 
         output  = args.output
         files   = args.files
-        verbose = args.verbose
         
         #call merge_qp from recipes.py
-        merge_qp(output,files,verbose)
+        recipes.merge_qp(output,files)
 
     def info(self):
         """
