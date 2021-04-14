@@ -311,7 +311,7 @@ class PwXML():
         app("nbands:   %d"%self.nbands)
         return "\n".join(lines)
 
-    def plot_eigen_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),color='r'):
+    def plot_eigen_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),color='r',**kwargs):
         #
         # Careful with variable path. I am substituting vy path_kpoints
         # To be done in all the code (and in the tutorials)
@@ -323,6 +323,9 @@ class PwXML():
             ax.set_xticks( path_ticks )
             ax.set_xticklabels( path_labels )
         ax.set_ylabel('E (eV)')
+
+        ls = kwargs.pop('ls',1)
+        lw = kwargs.pop('lw',1)
 
         #get kpoint_dists 
         kpoints_dists = calculate_distances(self.kpoints)
@@ -342,14 +345,14 @@ class PwXML():
            eigen1 = np.array(self.eigen1)
 
            for ib in range(self.nbands_up):
-               ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2)
-               ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
+               ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2, zorder=1)
+               ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up]*HatoeV - self.fermi*HatoeV, 'b-', lw=2, zorder=1)
 
         else:
            eigen1 = np.array(self.eigen1)
 
            for ib in range(self.nbands):
-               ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2)
+               ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=lw, zorder =1,linestyle=ls)
 
         #plot options
         if xlim: ax.set_xlim(xlim)

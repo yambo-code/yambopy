@@ -146,9 +146,9 @@ class ProjwfcXML(object):
               for ib in range(bandmin,bandmax):
                   eig = self.eigen[:,ib] - self.fermi
                   if size_projection==True:
-                     cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+                     cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
                   else:
-                     cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+                     cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
 
            # Spin polarized
            if self.spin_components == 2:
@@ -157,9 +157,9 @@ class ProjwfcXML(object):
            for ib in range(bandmin,bandmax):
                eig = self.eigen[:,ib] - self.fermi
                if size_projection==True:
-                  cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+                  cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
                else:
-                  cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
+                  cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
 
 #          if self.spin_components == 2:
 #             #get weights of second set of orbitals
@@ -181,7 +181,7 @@ class ProjwfcXML(object):
              w_proj = self.get_weights(selected_orbitals=selected_orbitals)
              for ib in range(bandmin,bandmax):
                  eig = self.eigen[:,ib] - self.fermi
-                 cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=label_1)
+                 cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=label_1,rasterized=True,zorder=2)
 #
 #          if self.spin_components == 2:
 #          #plot bands for a varying size
