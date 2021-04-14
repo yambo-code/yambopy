@@ -46,11 +46,12 @@ exc_bands.plot_ax(ax,color_bands='grey',c_weights='red')
 plt.show()
 
 # 2. Plot exciton weights in band structure INTERPOLATED
+# In case the interpolation fails, increase the lpratio
 
 fig = plt.figure(figsize=(4,6))
 ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
 
-exc_bands_inter = yexc.interpolate(save,path,states,lpratio=5,f=None,size=0.5,verbose=True)
+exc_bands_inter = yexc.interpolate(save,path,states,lpratio=10,f=None,size=0.5,verbose=True)
 
 exc_bands_inter.plot_ax(ax,color_bands='grey',c_weights='red',alpha_weights=0.5,c_label='$X_1$')
 
