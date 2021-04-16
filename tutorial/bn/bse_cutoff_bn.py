@@ -122,7 +122,7 @@ def run_job(layer_separation,nthreads=1,work_folder='bse_cutoff',cut=False):
     #wait for execution
 
     # 3. calculate the absorption spectra
-    y = YamboIn.from_runlevel('%s -r -b -o b -k sex -y d -V all'%yambo,executable=yambo,folder=root_folder)
+    y = YamboIn.from_runlevel('%s -r -X s -o b -k sex -y d -V all'%yambo,executable=yambo,folder=root_folder)
 
     if cut:
         y['CUTGeo'] = 'box z'
