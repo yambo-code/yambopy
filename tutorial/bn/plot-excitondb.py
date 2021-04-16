@@ -4,6 +4,7 @@ from yambopy import *
 import matplotlib.pyplot as plt
 import os
 
+interpolate = False
 npoints = 20
 
 fig = plt.figure(figsize=(4,6))
@@ -45,17 +46,19 @@ exc_bands.plot_ax(ax,color_bands='grey',c_weights='red')
 
 plt.show()
 
-# 2. Plot exciton weights in band structure INTERPOLATED
-# In case the interpolation fails, increase the lpratio
+if interpolate:
+    # 2. Plot exciton weights in band structure INTERPOLATED
 
-fig = plt.figure(figsize=(4,6))
-ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
+    fig = plt.figure(figsize=(4,6))
+    ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
 
-exc_bands_inter = yexc.interpolate(save,path,states,lpratio=10,f=None,size=0.5,verbose=True)
+    # In case of problems with the interpolation, try to increase lpratio
+    exc_bands_inter = yexc.interpolate(save,path,states,lpratio=10,f=None,size=0.5,verbose=True)
 
-exc_bands_inter.plot_ax(ax,color_bands='grey',c_weights='red',alpha_weights=0.5,c_label='$X_1$')
+    exc_bands_inter.plot_ax(ax,color_bands='grey',c_weights='red',alpha_weights=0.5,c_label='$X_1$')
 
-plt.show()
+    plt.show()
+
 
 # 3. Plot exciton weights in a 2D map of the BZ
 
@@ -73,7 +76,7 @@ x5 = -x2
 x6 = -x3
 hexagon = [x1,x2,x3,x4,x5,x6]
 
-yexc.plot_exciton_2D_ax(ax,states,mode='hexagon',limfactor=0.8,scale=160)
+yexc.plot_exciton_2D_ax(ax,states,mode='hexagon',limfactor=0.8,scale= 80)
 ax.add_patch(Polygon(hexagon,closed=True,fill=False,color='w',lw=1.0))
 
 plt.show()
