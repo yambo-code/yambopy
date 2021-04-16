@@ -65,7 +65,7 @@ def create_save():
         #initialize the double grid
         print("creating double grid")
 
-        yppin = YamboIn.from_runlevel('%s -m',filename='ypp.in',executable=ypp,folder='database')
+        yppin = YamboIn.from_runlevel('-m',filename='ypp.in',executable=ypp,folder='database')
 
         yppin['DbGd_DB1_paths'] = ["../database_double"]
         yppin.arguments.append('SkipCheck')
