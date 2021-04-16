@@ -49,7 +49,7 @@ def bse_convergence(what='screening',threads=1,nohup=False):
     else:     nohup = ''
 
     #create the yambo input file
-    y = YamboIn.from_runlevel('%s -b -o b -k sex -y d -V all'%yambo,folder=folder)
+    y = YamboIn.from_runlevel('%s -X s -o b -k sex -y d -V all'%yambo,folder=folder)
 
     #default variables
     y['BSEBands'] = [4,5]
