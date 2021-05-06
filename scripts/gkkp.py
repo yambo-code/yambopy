@@ -37,8 +37,9 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
         else:
             print('reading gkkp')
 
-            yambo_ph = "%s/yambo_ph"%y_dir
-            ypp_ph = "%s/ypp_ph"%y_dir
+            if y_dir!="": y_dir=y_dir+"/"
+            yambo_ph = y_dir+"yambo_ph"
+            ypp_ph = y_dir+"ypp_ph"
             filnm1 = 'setup.in'
             filnm2 = 'gkkp.in'
 
