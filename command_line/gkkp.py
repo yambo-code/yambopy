@@ -1,6 +1,6 @@
 import os
 from yambopy import *
-from scripts import generate_save
+from command_line import generate_save
 from schedulerpy import *
 import argparse
 

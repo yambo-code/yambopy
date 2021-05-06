@@ -7,6 +7,8 @@ import xml.etree.ElementTree as ET
 from qepy.auxiliary import *
 from .lattice import *
 from yambopy.plot.plotting import add_fig_kwargs 
+from re import findall
+from numpy import zeros
 
 __all__ = ['PwXML']
 
@@ -177,12 +179,16 @@ class PwXML():
         """
         self.datafile_xml = ET.parse( filename ).getroot()
 
+        # occupation type
+
+        self.occ_type = self.datafile_xml.findall("input/bands/occupations")[0].text
+
         #get magnetization state
         # TO BE DONE!!!
         self.lsda = False
-        if 'T' in self.datafile_xml.findall("input/spin/lsda")[0].text:
-            #self.lsda = True
-            raise ValueError('Spin states not yet implemented for data-file-schema.xml') 
+        if 'true' in self.datafile_xml.findall("input/spin/lsda")[0].text:
+            self.lsda = True
+            #raise ValueError('Spin states not yet implemented for data-file-schema.xml') 
 
         #get cell
         self.cell = []
@@ -224,7 +230,12 @@ class PwXML():
         #get nkpoints
         self.nkpoints = int(self.datafile_xml.findall("output/band_structure/nks")[0].text.strip())
         # Read the number of BANDS
-        self.nbands = int(self.datafile_xml.findall("output/band_structure/nbnd")[0].text.strip())
+        if self.lsda:
+           self.nbands_up = int(self.datafile_xml.findall("output/band_structure/nbnd_up")[0].text.strip())
+           self.nbands_dw = int(self.datafile_xml.findall("output/band_structure/nbnd_dw")[0].text.strip())
+           self.nbands = self.nbands_up + self.nbands_dw
+        else:
+           self.nbands = int(self.datafile_xml.findall("output/band_structure/nbnd")[0].text.strip())
 
         #get ks states
         kstates = self.datafile_xml.findall('output/band_structure/ks_energies')
@@ -243,10 +254,14 @@ class PwXML():
         self.eigen1 = np.array(self.eigen1)
  
         #get fermi
-        self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)
+        # it depends on the occupations
+        if self.occ_type == 'fixed':
+           self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)
+        else:
+           self.fermi = float(self.datafile_xml.find("output/band_structure/fermi_energy").text)
     
         #get Bravais lattice
-        self.ibrav = self.datafile_xml.findall("output/atomic_structure").get('bravais_index')
+        self.ibrav = self.datafile_xml.findall("output/atomic_structure")[0].get('bravais_index')
 
         return True
 
@@ -296,7 +311,7 @@ class PwXML():
         app("nbands:   %d"%self.nbands)
         return "\n".join(lines)
 
-    def plot_eigen_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),color='r'):
+    def plot_eigen_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),color='r',**kwargs):
         #
         # Careful with variable path. I am substituting vy path_kpoints
         # To be done in all the code (and in the tutorials)
@@ -304,8 +319,13 @@ class PwXML():
         if path_kpoints:
             if isinstance(path_kpoints,Path):
                 path_kpoints = path_kpoints.get_indexes()
-            ax.set_xticks( *list(zip(*path_kpoints)) )
+                path_ticks, path_labels = list(zip(*path_kpoints))
+            ax.set_xticks( path_ticks )
+            ax.set_xticklabels( path_labels )
         ax.set_ylabel('E (eV)')
+
+        ls = kwargs.pop('ls',1)
+        lw = kwargs.pop('lw',1)
 
         #get kpoint_dists 
         kpoints_dists = calculate_distances(self.kpoints)
@@ -320,20 +340,79 @@ class PwXML():
         ax.axhline(0,c='k')
 
         #plot bands
-        eigen1 = np.array(self.eigen1)
-        for ib in range(self.nbands):
-            ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2)
        
-        #plot spin-polarized bands: TO BE DONE
         if self.lsda:
+           eigen1 = np.array(self.eigen1)
 
-           eigen2 = np.array(self.eigen2)
+           for ib in range(self.nbands_up):
+               ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2, zorder=1)
+               ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up]*HatoeV - self.fermi*HatoeV, 'b-', lw=2, zorder=1)
+
+        else:
+           eigen1 = np.array(self.eigen1)
+
            for ib in range(self.nbands):
-               ax.plot(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
+               ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=lw, zorder =1,linestyle=ls)
 
         #plot options
         if xlim: ax.set_xlim(xlim)
         if ylim: ax.set_ylim(ylim)
+
+     
+    def plot_eigen_spin_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),spin_proj=None):
+        #
+        # Careful with variable path. I am substituting vy path_kpoints
+        # To be done in all the code (and in the tutorials)
+        # This is a test function for spin-polarized bands
+        #
+        #
+        
+        import matplotlib.pyplot as plt
+        self.spin_proj = np.array(spin_proj) if spin_proj is not None else None 
+
+        if path_kpoints:
+            if isinstance(path_kpoints,Path):
+                path_kpoints = path_kpoints.get_indexes()
+                path_ticks, path_labels = list(zip(*path_kpoints))
+            ax.set_xticks( path_ticks )
+            ax.set_xticklabels( path_labels )
+        ax.set_ylabel('E (eV)')
+
+        # I choose a colormap for spin
+        color_map  = plt.get_cmap('seismic')
+
+        #get kpoint_dists 
+        kpoints_dists = calculate_distances(self.kpoints)
+        ticks, labels = list(zip(*path_kpoints))
+        ax.set_xticks([kpoints_dists[t] for t in ticks])
+        ax.set_xticklabels(labels)
+        ax.set_xlim(kpoints_dists[0],kpoints_dists[-1])
+
+        # NOT WORKING, CHECK IT!
+        #plot vertical lines
+        #for t in ticks:
+        #    ax.axvline(kpoints_dists[t],c='k',lw=2)
+        #ax.axhline(0,c='k')
+
+        #plot bands
+        eigen1 = np.array(self.eigen1)
+        for ib in range(self.nbands):
+            x = kpoints_dists
+            y = eigen1[:,ib]*HatoeV - self.fermi*HatoeV
+            color_spin = self.spin_proj[:,ib] + 0.5 # I renormalize 0 => down; 1 => up
+            ax.scatter(x,y,s=100,c=color_spin,cmap=color_map,vmin=0.0,vmax=1.0,edgecolors='none')
+       
+        #plot spin-polarized bands: TO BE DONE
+        #if self.lsda:
+
+        #  eigen2 = np.array(self.eigen2)
+        #   for ib in range(self.nbands):
+        #       ax.plot(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
+
+        #plot options
+        if xlim: ax.set_xlim(xlim)
+        if ylim: ax.set_ylim(ylim)
+
 
     '''
     Workaround to include occupations in the plot. AMS
@@ -401,3 +480,30 @@ class PwXML():
             f.close()
         else:
             print('fmt %s not implemented'%fmt)
+
+    def spin_projection(self,spin_dir=3,folder='.',prefix='bands'):
+        """
+        This function reads the spin projection given by bands.x in txt file
+        lsigma(i) = .true.
+        By default I set the spin direction z ==3
+
+        """
+        if spin_dir ==3:  
+        #data_eigen  = open('%s/%s.out'  % (folder,prefix),'r').readlines()
+           data_spin_3 = open('%s/%s.out.3'% (folder,prefix),'r').readlines()
+           
+           # check consistency file from bands.x and xml file
+           nband = int(findall(r"[-+]?\d*\.\d+|\d+", data_spin_3[0].strip().split()[2]  )[0])
+           nk    = int(data_spin_3[0].strip().split()[-2])
+           nline = int(nband/10)
+           if nband < 10: print("Error, uses only nband => 10 and multiple of 10")
+           if self.nbands != nband or self.nkpoints != nk: print("Warning: Dimensions are different!")
+
+           self.spin_3 = zeros([self.nkpoints,self.nbands])
+
+        for ik in range(self.nkpoints):
+            for ib in range(nline):
+                ib1, ib2, ib3 = int(ib*10), int((ib+1)*10), int(ik*(nband/10+1)+2+ib)
+                self.spin_3[ik,ib1:ib2] = list( map(float,data_spin_3[ib3].split()))
+
+
