@@ -20,9 +20,14 @@ class YamboElectronPhononDB():
     - Call function read_eigenmodes for phonon modes.
     - Call function read_elph for electron-phonon matrix elements.
     - Call function read_DB to read everything.
-    
+    - Call function get_gkkp_sq for squared matrix elements (gkkp_sq)
+    - Call function get_gkkp_mixed for mixed matrix elements (gkkp_mixed)
+   
+    Format:
+    - gkkp[iq][ik][il][ib1][ib2]
+
     Plot(s) provided:
-    - Scatterplot in the BZ of G_{nk} = 1/N_q * \sum_{q,nu} | elph_{qnu,knn} |^2         
+    - Call function plot for scatterplot in the BZ of G_{nk} = 1/N_q * \sum_{q,nu} | elph_{qnu,knn} |^2         
     """
     def __init__(self,lattice,filename='ndb.elph_gkkp',folder_gkkp='SAVE',save='SAVE'):
         
@@ -257,8 +262,8 @@ class YamboElectronPhononDB():
         ax.set_ylim(-zlim,zlim)
         
         # Plot title
-        if inu>-1: ax.set_title('G^l_nk = 1/N_q * \sum_q | elph^ql_knn |^2')
-        else: ax.set_title('G_nk = 1/N_q * \sum_ql | elph^ql_knn |^2')
+        if inu>-1: ax.set_title(r'$G^\lambda_{nk} = \frac{1}{N_q}  \sum_q \left| elph^{q\lambda}_{knn} \right|^2$')
+        else: ax.set_title(r'$G_{nk} = \frac{1}{N_q}  \sum_{q\lambda} \left| g^{q\lambda}_{knn} \right|^2$')
         
         # Reciprocal lattice vectors
         lx,ly,lz = [ np.linalg.norm(self.rlat[i]) for i in range(3) ]
@@ -272,6 +277,21 @@ class YamboElectronPhononDB():
         # Actual plot
         plot = ax.scatter(kx,ky,kz,marker='o',s=size*norm_to_plot,edgecolors='black',c=norm_to_plot,cmap=color_map,zorder=1)
         fig.colorbar(plot)
+
+    def get_gkkp_sq(self,read_bare=False):
+        """
+        Return g^2
+        """
+        self.read_elph(read_bare=read_bare)
+        self.gkkp_sq = np.abs(self.gkkp)**2. 
+
+    def get_gkkp_mixed(self):
+        """
+        Return the symmetrised dressed-bare coupling
+        """
+        self.read_elph()
+        self.read_elph(read_bare=True)
+        self.gkkp_mixed = np.real(self.gkkp)*np.real(self.gkkp_bare)+np.imag(self.gkkp)*np.imag(self.gkkp_bare)
     
     def __str__(self):
 
