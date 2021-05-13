@@ -59,11 +59,10 @@ class YamboStaticScreeningDB(object):
         self.qpoints = np.array([q/self.alat  for q in qpoints])
         self.nqpoints = len(self.qpoints)
 
-        #are we usign coulomb cutoff?
-        #
-        # There is a bug here???
-        #
-        #self.cutoff = "".join(database.variables['CUTOFF'][:][0]).strip()
+        try:
+            database.variables['CUTOFF'][:]
+            self.cutoff = str(database.variables['CUTOFF'][:][0],'UTF-8').strip()
+        except: IndexError
         
         self.readDBs()
 
