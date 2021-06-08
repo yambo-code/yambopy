@@ -26,6 +26,7 @@ class YamboLatticeDB(object):
         self.car_atomic_positions = np.array(car_atomic_positions)
         self.atomic_numbers       = np.array(atomic_numbers)
         self.time_rev             = time_rev
+        self.ibz_nkpoints         = len(iku_kpoints)
 
     @classmethod
     def from_db(cls,filename='ns.db1',Expand=True):

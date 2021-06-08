@@ -65,11 +65,10 @@ class YamboStaticScreeningDB(object):
         self.red_qpoints = car_red(self.car_qpoints,self.rlat) 
         self.nqpoints = len(self.car_qpoints)
 
-        #are we usign coulomb cutoff?
-        #
-        # There is a bug here???
-        #
-        #self.cutoff = "".join(database.variables['CUTOFF'][:][0]).strip()
+        try:
+            database.variables['CUTOFF'][:]
+            self.cutoff = str(database.variables['CUTOFF'][:][0],'UTF-8').strip()
+        except: IndexError
         
         #read fragments
         read_fragments=True
