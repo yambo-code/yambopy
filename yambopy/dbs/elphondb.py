@@ -102,12 +102,12 @@ class YamboElectronPhononDB():
             self.ph_eigenvectors[iq] = eigs_q[0,:,:,:] + eigs_q[1,:,:,:]*I
             database.close()
     
-    def read_elph(self,iq=-1,ik=-1,ib1=-1,ib2=-1,inu=-1,read_bare=False):
+    def read_elph(self,iq=-1,ik=-1,ib1=-1,ib2=-1,ib_rnge=None,inu=-1,read_bare=False):
         """
         Driver to read electron-phonon matrix elements:
         
         - If no options are specified, read all calling read_elph_full
-        - If options (q) or (k,b1,b2) are specified, read the appropriate slice of the gkkp
+        - If options (q) or (k,b1,b2,b_range) are specified, read the appropriate slice of the gkkp
         - If read_bare=True is specified, read bare elph matrix elements if present
         
         """
@@ -115,20 +115,26 @@ class YamboElectronPhononDB():
         if read_bare:
             if self.are_bare_there: self.var_nm = 'ELPH_GKKP_BARE_Q'
             else: raise ValueError("The bare couplings are not present.")
-                    
-        # Read a single q
-        if iq>-1: 
-            if iq<self.nfrags: self.read_elph_q(iq)
-            else: raise ValueError("The database corresponding to iq = %d is not present."%iq)
         
+        # Read a single q        
+        if iq>-1:
+            if not iq<self.nfrags: raise ValueError("The database corresponding to iq = %d is not present."%iq) 
+            # Read all bands at the selected q
+            if ib_rnge is None: 
+                self.read_elph_q(iq) 
+            # Read only bands in the specified range
+            else:
+                if ib_rnge[0]<ib_rnge[1] and ib_rnge[0]>-1 and ib_rnge[1]<self.nbands: self.read_elph_qbrnge(iq,ib_rnge)
+                else: raise ValueError("Problem with band range [%d, %d]"%(ib_rnge[0],ib_rnge[1]))
+                
         # Read all phonon quantum numbers (q and modes) for specified electronic quantum numbers (k band1 band2)
         elif ( ib1>-1 and ib2>-1 and ik>-1 ):
-            if ib1<self.nbands and ib2<self.nbands and ik<self.nkpoints: return self.read_elph_knm(ik,ib1,ib2)
+            if ib1<self.nbands and ib2<self.nbands and ik<self.nkpoints: self.read_elph_knm(ik,ib1,ib2)
             else: raise ValueError("The database corresponding to (k,n,m) = (%d, %d, %d) is not present."%(ik,ib1,ib2))
             
         # Read a single transition (band1,band2) for all k,q,modes
         elif ( ib1>-1 and ib2>-1 ):
-            if ib1<self.nbands and ib2<self.nbands: return self.read_elph_nm(ib1,ib2)
+            if ib1<self.nbands and ib2<self.nbands: self.read_elph_nm(ib1,ib2)
             else: raise ValueError("The database corresponding to transition (n,m) = (%d, %d) is not present."%(ib1,ib2))            
         
                         
@@ -148,7 +154,10 @@ class YamboElectronPhononDB():
             gkkp_nm[iq] = database.variables['%s%d'%(self.var_nm,iq+1)][:,i_n,i_m,:,0] +\
                        I* database.variables['%s%d'%(self.var_nm,iq+1)][:,i_n,i_m,:,1]
             database.close()
-        return gkkp_nm
+            
+        if self.var_nm == 'ELPH_GKKP_Q': self.gkkp = gkkp_nm
+        if self.var_nm == 'ELPH_GKKP_BARE_Q': self.gkkp_bare = gkkp_nm     
+
     
     def read_elph_knm(self,ik,i_n,i_m):
         """
@@ -162,7 +171,9 @@ class YamboElectronPhononDB():
             gkkp_knm[iq] = database.variables['%s%d'%(self.var_nm,iq+1)][ik,i_n,i_m,:,0] +\
                         I* database.variables['%s%d'%(self.var_nm,iq+1)][ik,i_n,i_m,:,1]
             database.close()
-        return gkkp_knm
+            
+        if self.var_nm == 'ELPH_GKKP_Q': self.gkkp = gkkp_knm
+        if self.var_nm == 'ELPH_GKKP_BARE_Q': self.gkkp_bare = gkkp_knm                
         
     def read_elph_q(self,iq):
         """
@@ -174,8 +185,26 @@ class YamboElectronPhononDB():
         gkkp_q = (g_q[:,:,:,:,0] + I*g_q[:,:,:,:,1]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
         database.close()
         
-        return gkkp_q
-        
+        if self.var_nm == 'ELPH_GKKP_Q': self.gkkp = gkkp_q
+        if self.var_nm == 'ELPH_GKKP_BARE_Q': self.gkkp_bare = gkkp_q  
+
+    def read_elph_qbrnge(self,iq,ib_rnge):
+        """
+        Read electron-phonon matrix element at a user-specified q point and band range 
+        """        
+        ib_i = ib_rnge[0]
+        ib_f = ib_rnge[1]+1
+        nbands_range = ib_f-ib_i
+        fil = self.frag_filename + "%d"%(iq+1)
+        database = Dataset(fil)
+        g_qb = database.variables['%s%d'%(self.var_nm,iq+1)][:]
+        gkkp_qb = (g_qb[:,:,:,:,0] + I*g_qb[:,:,:,:,1]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
+        gkkp_qb = gkkp_qb[:,:,ib_i:ib_f,ib_i:ib_f]
+        database.close()   
+
+        if self.var_nm == 'ELPH_GKKP_Q': self.gkkp = gkkp_qb
+        if self.var_nm == 'ELPH_GKKP_BARE_Q': self.gkkp_bare = gkkp_qb        
+            
     def read_elph_full(self):
         """
         Read electron-phonon matrix elements
