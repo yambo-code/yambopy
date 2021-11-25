@@ -158,11 +158,11 @@ def run_projection(show=True):
     projwfc.write(folder='bands')
     projwfc.run(folder='bands')
     #read xml file
-    projection = ProjwfcXML(prefix='bn',path='bands')
+    projection = ProjwfcXML(prefix='bn',path='bands',qe_version='6.7')
     n_atom = range(16)
     b_atom = range(16,32)
     ax = plt.subplot(1,1,1)
-    cax = projection.plot_eigen(ax,path=p,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='seismic')
+    cax = projection.plot_eigen(ax,path_kpoints=p,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='seismic')
     plt.colorbar(cax)
     if show: plt.show()
 
