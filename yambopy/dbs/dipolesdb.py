@@ -69,11 +69,33 @@ class YamboDipolesDB():
     def readDB(self,dip_type):
         """
         The dipole matrix has the following indexes:
-        [nkpoints, 3, nspin, nbands conduction, nbands valence]
+        [nkpoints, cartesian directions, nspin, nbands conduction, nbands valence]
         """
+        #check if output is in the old format
+        fragmentname = "%s_fragment_1"%(self.filename)
+        if os.path.isfile(fragmentname): return self.readDB_oldformat(dip_type)
+
         self.dip_type = dip_type
         dipoles = np.zeros([self.nk_ibz,3,self.nbandsc,self.nbandsv],dtype=np.complex64)
         
+        database = Dataset(self.filename)
+        dip = np.squeeze(database.variables['DIP_%s'%(dip_type)])
+        dip = (dip[:,:,:,:,0]+1j*dip[:,:,:,:,1]) # Read as nk,nv,nc,ir
+        dipoles = np.swapaxes(dip,1,3) # Swap indices as mentioned in the docstring
+        database.close()
+
+        return dipoles
+
+    def readDB_oldformat(self,dip_type):
+        """
+        Legacy function for compatibility
+
+        The dipole matrix has the following indexes:
+        [nkpoints, cartesian directions, nspin, nbands conduction, nbands valence]
+        """
+        self.dip_type = dip_type
+        dipoles = np.zeros([self.nk_ibz,3,self.nbandsc,self.nbandsv],dtype=np.complex64)
+   
         #check dipole db format
         filename = "%s_fragment_1"%(self.filename)
         database = Dataset(filename)
@@ -137,6 +159,7 @@ class YamboDipolesDB():
         nbands = self.min_band+self.nbands-1
         
         #Note that P is Hermitian and iR anti-hermitian.
+        # [FP] Other possible dipole options (i.e., velocity gauge) to be checked. Treat them as not supported.
         if self.dip_type == 'P':
             factor =  1.0
         else:

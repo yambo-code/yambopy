@@ -27,8 +27,9 @@ def generate_save(database,qe_save,y_dir,scheduler,noinit=False):
         print('nscf calculation not found!')
         exit()
 
-    p2y = "%s/p2y"%y_dir
-    yambo = "%s/yambo"%y_dir
+    if y_dir!="": y_dir=y_dir+"/"
+    p2y = y_dir+"p2y"
+    yambo = y_dir+"yambo"
 
     #check if the SAVE folder is present
     if os.path.isdir('%s/SAVE'%database):

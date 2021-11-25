@@ -18,6 +18,17 @@ NB:
  The SAVE folder is created in the directory where the script is launched!
 
 """
+def get_q_k_size(database,elph_save):
+    """
+    Get number of k and q points in the (IBZ) grids
+    """
+    # kpoints
+    db = Dataset(database+"/SAVE/ns.db1")
+    Nk = len(db.variables['K-POINTS'][:].T)
+    db.close()
+    # qpoints
+    Nq = len(glob('./elph_dir/s.dbph_0*'))
+    return Nq,Nk
 
 def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
     """
@@ -37,8 +48,9 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
         else:
             print('reading gkkp')
 
-            yambo_ph = "%s/yambo_ph"%y_dir
-            ypp_ph = "%s/ypp_ph"%y_dir
+            if y_dir!="": y_dir=y_dir+"/"
+            yambo_ph = y_dir+"yambo_ph"
+            ypp_ph = y_dir+"ypp_ph"
             filnm1 = 'setup.in'
             filnm2 = 'gkkp.in'
 
@@ -47,11 +59,17 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
             y1.write('%s/%s'%(database,filnm1))
             yamboph_run = scheduler()
             if not os.path.islink('%s/elph_dir'%database): yamboph_run.add_command('cd %s ; ln -s %s . ; cd -'%(database,elph_save))
-            yamboph_run.add_command('cd %s ; %s -F %s -J ./elph_dir ; cd -'%(database,yambo_ph,filnm1))
+            # Check if a custom grid is used
+            Nk,Nq = get_q_k_size(database,elph_save)
+            # Regular grid
+            if Nk==Nq: yamboph_run.add_command('cd %s ; %s -F %s -J ./elph_dir ; cd -'%(database,yambo_ph,filnm1))
+            # Custom grid
+            else: yamboph_run.add_command('cd %s ; %s -F %s ; cd -'%(database,yambo_ph,filnm1))
             yamboph_run.run()
 
             yph = YamboIn.from_runlevel('-gkkp',executable=ypp_ph,filename=filnm2,folder=database)
             if expand:
+                if Nq!=Nk: yph.arguments.append('gkkp_db')
                 yph.arguments.append('GkkpExpand')
                 print('    expanding gkkp in the full BZ')
             yph['DBsPATH'] = "./elph_dir"
