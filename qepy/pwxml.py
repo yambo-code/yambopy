@@ -316,6 +316,8 @@ class PwXML():
         # Careful with variable path. I am substituting vy path_kpoints
         # To be done in all the code (and in the tutorials)
         #
+        # argurments:
+        # ls: linestyle
         if path_kpoints:
             if isinstance(path_kpoints,Path):
                 path_kpoints = path_kpoints.get_indexes()
@@ -324,9 +326,10 @@ class PwXML():
             ax.set_xticklabels( path_labels )
         ax.set_ylabel('E (eV)')
 
-        ls = kwargs.pop('ls',1)
+        ls = kwargs.pop('ls','solid')
         lw = kwargs.pop('lw',1)
-
+        y_offset = kwargs.pop('y_offset',0.0)
+        print(y_offset)
         #get kpoint_dists 
         kpoints_dists = calculate_distances(self.kpoints)
         ticks, labels = list(zip(*path_kpoints))
@@ -346,13 +349,17 @@ class PwXML():
 
            for ib in range(self.nbands_up):
                ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2, zorder=1)
-               ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up]*HatoeV - self.fermi*HatoeV, 'b-', lw=2, zorder=1)
+               ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up]*HatoeV
+                       - self.fermi*HatoeV+y_offset, 'b-', lw=2, zorder=1)
 
+        # Case: Non spin polarization
         else:
            eigen1 = np.array(self.eigen1)
 
            for ib in range(self.nbands):
-               ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=lw, zorder =1,linestyle=ls)
+               ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV
+                       - self.fermi*HatoeV+y_offset,
+                       color=color, linestyle=ls ,zorder =1)
 
         #plot options
         if xlim: ax.set_xlim(xlim)
@@ -475,7 +482,7 @@ class PwXML():
             f = open('%s.dat'%self.prefix,'w')
             for ib in range(self.nbands):
                 for ik in range(self.nkpoints):
-                    f.write("%.1lf %.4lf \n " % (ik,self.eigen[ik][ib]*HatoeV) )
+                    f.write("%.1lf %.4lf \n " % (ik,self.eigen1[ik][ib]*HatoeV) )
                 f.write("\n")
             f.close()
         else:
