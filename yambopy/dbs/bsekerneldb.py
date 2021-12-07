@@ -16,19 +16,15 @@ class YamboBSEKernelDB(YamboSaveDB):
         Only supports "RESONANT" case for BSE calculation.
         TODO: support more cases
     """
-    def __init__(self,lattice,excitons,kernel,ker):
+    def __init__(self,lattice,kernel):
         if not isinstance(lattice,YamboLatticeDB):
             raise ValueError('Invalid type for lattice argument. It must be YamboLatticeDB')
-        if not isinstance(excitons,YamboExcitonDB):
-            raise ValueError('Invalid type for exciton argument. It must be YamboExcitonDB')
         
         self.lattice  = lattice
-        self.excitons = excitons
         self.kernel   = kernel
-        self.ker      = ker
 
     @classmethod
-    def from_db_file(cls,lattice,excitons,Qpt=1,folder='.'):
+    def from_db_file(cls,lattice,Qpt=1,folder='.'):
         """ initialize this class from a ndb.BS_PAR_Q# file
         """
         filename='ndb.BS_PAR_Q%d'%Qpt
@@ -47,33 +43,33 @@ class YamboBSEKernelDB(YamboSaveDB):
             else:
                 raise ValueError('Only BSE_RESONANT case supported so far')
 
-        return cls(lattice,excitons,kernel,ker)
+        return cls(lattice,kernel)
 
     @property
     def ntransitions(self): return len(self.kernel)
 
-    def consistency_BSE_BSK(self):
+    def consistency_BSE_BSK(self,excitons):
         """ Check that exciton and kernel dbs are consistent
         """
-        if self.excitons.nexcitons != self.ntransitions:
-            raise ValueError('Exciton and transition spaces have different dimensions!')
-        if self.excitons.ntransitions != self.ntransitions:
-            raise ValueError('Mismatch in ntransitions between ExcitonDB and BSEkernelDB!')        
+        if excitons.nexcitons != self.ntransitions:
+            print('[WARNING] Exciton and transition spaces have different dimensions!')
+        if excitons.ntransitions != self.ntransitions:
+            print('[WARNING] Mismatch in ntransitions between ExcitonDB and BSEkernelDB!')        
 
-    def get_kernel_exciton_basis(self):
+    def get_kernel_exciton_basis(self,excitons):
         """ Switch from transition |tq>=|kc,k-qv> to excitonic |lq> basis. 
             In this basis the kernel is diagonal.
             
             <l|K|l> = sum_{t,t'}( <l|t><t|K|t'><t'|l> )
                     = sum_{t,t'}( (A^l_t)^* K_tt' A^l_t' ) 
-        
+       
+            exciton: YamboExcitonDB object 
             Here t->kcv according to table from YamboExcitonDB database
         """
-
         kernel   = self.kernel
         Nstates  = self.ntransitions
-        eivs     = self.excitons.eigenvectors
-        self.consistency_BSE_BSK()
+        eivs     = excitons.eigenvectors
+        self.consistency_BSE_BSK(excitons)
 
         # Basis transformation
         kernel_exc_basis = np.zeros(Nstates,dtype=np.complex_)
@@ -82,18 +78,19 @@ class YamboBSEKernelDB(YamboSaveDB):
 
         return kernel_exc_basis
 
-    def get_kernel_value_bands(self,bands):#size,bands,yker,yexc):
+    def get_kernel_value_bands(self,excitons,bands):
         """ Get value of kernel matrix elements 
             as a function of k in BZ for fixed c,v bands:
             
                 K_cv(k,p) = <ck,vk-q|K|cp,vp-q>
                 
+            exciton: YamboExcitonDB object
             bands = [iv,ic] (NB: enumerated starting from one instead of zero) 
         """
-        table  = self.excitons.table
+        table  = excitons.table
         nk     = self.lattice.nkpoints
         kernel = self.kernel
-        self.consistency_BSE_BSK()
+        self.consistency_BSE_BSK(excitons)
         
         if bands[0] not in table[:,1] or bands[1] not in table[:,2]:
             raise ValueError('Band indices not matching available transitions')
