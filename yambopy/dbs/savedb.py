@@ -38,7 +38,7 @@ class YamboSaveDB():
         ``nkpoints`` : number of kpoints
     """
     def __init__(self,atomic_numbers,car_atomic_positions,eigenvalues,sym_car,kpts_iku,
-                 lat,alat,temperature,electrons,spin,time_rev):
+                 lat,alat,temperature,electrons,spin,time_rev,spinor):
 
         self.atomic_numbers       = atomic_numbers   
         self.car_atomic_positions = car_atomic_positions
@@ -50,7 +50,8 @@ class YamboSaveDB():
         self.temperature          = temperature     
         self.electrons            = electrons       
         self.spin                 = spin            
-        self.time_rev             = time_rev        
+        self.time_rev             = time_rev
+        self.spinor               = spinor
 
         #TODO: remove this
         self.expanded = False
@@ -78,7 +79,7 @@ class YamboSaveDB():
 
             args = dict( atomic_numbers       = atomic_numbers,
                          car_atomic_positions = atomic_positions,
-                         eigenvalues          = database.variables['EIGENVALUES'][0,:]*ha2ev,
+                         eigenvalues          = database.variables['EIGENVALUES'][:,:]*ha2ev,
                          sym_car              = database.variables['SYMMETRY'][:],
                          kpts_iku             = database.variables['K-POINTS'][:].T,
                          lat                  = database.variables['LATTICE_VECTORS'][:].T,
@@ -86,7 +87,9 @@ class YamboSaveDB():
                          temperature          = dimensions[13],
                          electrons            = dimensions[14],
                          spin                 = int(dimensions[11]),
-                         time_rev             = dimensions[9] )
+                         time_rev             = dimensions[9],
+                         spinor               = database.variables['EIGENVALUES'].shape[0],
+                         )
 
         return cls(**args)
 
@@ -138,7 +141,7 @@ class YamboSaveDB():
 
     @property
     def nbands(self):
-        _,nbands = self.eigenvalues.shape
+        _,_,nbands = self.eigenvalues.shape
         return nbands
 
     @property
@@ -227,7 +230,12 @@ class YamboSaveDB():
         def occupation_minus_ne(ef):
             """ The total occupation minus the total number of electrons
             """
-            return sum([sum(self.spin_degen*fermi_array(self.eigenvalues[nk],ef))*self.weights[nk] for nk in range(self.nkpoints)])-self.electrons
+            if self.spinor == 1:
+               return sum([sum(self.spin_degen*fermi_array(self.eigenvalues[nk],ef))*self.weights[nk] for nk in range(self.nkpoints)])-self.electrons
+            elif self.spinor == 2:
+               sum_up = sum([sum(self.spin_degen*fermi_array(self.eigenvalues[0,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)]) 
+               sum_dw = sum([sum(self.spin_degen*fermi_array(self.eigenvalues[1,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)]) 
+               return sum_up + sum_dw -self.electrons
 
         efermi = bisect(occupation_minus_ne,self.min_eival,self.max_eival)
 
@@ -235,9 +243,10 @@ class YamboSaveDB():
 
         self.eigenvalues -= efermi
 
-        self.occupations = np.zeros([self.nkpoints,self.nbands],dtype=np.float32)
-        for nk in range(self.nkpoints):
-            self.occupations[nk] = fermi_array(self.eigenvalues[nk,:self.nbands],0)
+        self.occupations = np.zeros([self.spinor,self.nkpoints,self.nbands],dtype=np.float32)
+        for nspin in range(self.spinor):
+            for nk in range(self.nkpoints):
+                self.occupations[nspin,nk] = fermi_array(self.eigenvalues[nspin,nk,:self.nbands],0)
 
         return efermi
 
@@ -264,6 +273,8 @@ class YamboSaveDB():
         else:
             nks = list(range(len(kpts)))
 
+        # bug
+        #
         #points in cartesian coordinates
         path_car = red_car(path, self.rlat)
 
@@ -393,8 +404,11 @@ class YamboSaveDB():
         ax.axvline(distance,color='k')
 
         #plot bands
-        color = kwargs.pop('c','red')
-        ax.plot(bands_distances,self.eigenvalues[bands_indexes,bandmin:bandmax],c=color,**kwargs)
+        if self.spinor == 2:
+           color = kwargs.pop('c','red')
+           ax.plot(bands_distances,self.eigenvalues[0,bands_indexes,bandmin:bandmax],c=color,**kwargs)
+           color = kwargs.pop('c','blue')
+           ax.plot(bands_distances,self.eigenvalues[1,bands_indexes,bandmin:bandmax],c=color,**kwargs)
         ax.set_xlim(0,max(bands_distances))
 
         if add_indexes:
