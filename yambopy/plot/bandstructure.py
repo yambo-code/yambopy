@@ -193,7 +193,7 @@ class YambopyBandStructure():
 
             kwargs.pop('label',None)
 
-        self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=xlim)
+        self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=ylim)
         ax.set_ylabel(ylabel)
         self.add_kpath_labels(ax)
         if legend: ax.legend()
