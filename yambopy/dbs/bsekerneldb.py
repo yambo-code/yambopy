@@ -1,4 +1,4 @@
-# Author: Davide Romanin, FP
+# Author: Davide Romanin
 #
 # This file is part of the yambopy project
 #
