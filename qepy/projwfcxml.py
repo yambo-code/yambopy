@@ -150,8 +150,9 @@ class ProjwfcXML(object):
           color_map2 = plt.get_cmap('rainbow')
 
         # Fix here
-        #get kpoint_dists 
-        kpoints_dists = calculate_distances(self.kpoints)
+        #get kpoint_dists
+        print(self.kpoints)
+        kpoints_dists = calculate_distances(self.kpoints[:self.nkpoints])
  
         #make labels
         ticks, labels = list(zip(*path_kpoints))
@@ -180,14 +181,20 @@ class ProjwfcXML(object):
 
            # Spin polarized
            if self.spin_components == 2:
-              w_rel_up, w_rel_dw = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
-             #plot bands for fixed size
-           for ib in range(bandmin,bandmax):
-               eig = self.eigen[:,ib] - self.fermi + y_offset
-               if size_projection==True:
-                  cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
-               else:
-                  cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
+              w_rel1, w_rel2 = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
+              #plot bands for fixed size
+              for ib in range(bandmin,bandmax):
+                  eig1 = self.eigen1[:,ib] - self.fermi + y_offset
+                  eig2 = self.eigen2[:,ib] - self.fermi + y_offset
+                  if size_projection==True:
+                     cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
+                  else:
+                    #cax = ax.scatter(kpoints_dists,eig2,s=size,c=w_rel2[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
+                    print(len(kpoints_dists))
+                    print(len(eig1))
+
+                    cax = ax.scatter(kpoints_dists,eig1,s=size,c='r',label=label_1,rasterized=True,zorder=2)
+                    cax = ax.scatter(kpoints_dists,eig2,s=size,c='b',label=label_1,rasterized=True,zorder=2)
 
 #          if self.spin_components == 2:
 #             #get weights of second set of orbitals
@@ -325,14 +332,22 @@ class ProjwfcXML(object):
 
         # Spin polarized
         if self.spin_components == 2:
+           
+            if self.qe_version == '6.7':
+               eigen_prov =  [ list( map(float, word.text.split())) for word in self.datafile_xml.findall("EIGENSTATES/E") ] 
+               eigen_aux = np.array(eigen_prov)*RytoeV 
+               self.eigen1 = eigen_aux[            0:  self.nkpoints,:]
+               self.eigen2 = eigen_aux[self.nkpoints:2*self.nkpoints,:]
+               return self.eigen1, self.eigen2
 
-           for ik in range(self.nkpoints):
-               eigen1.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG.1"%(ik+1)).text.split() )))
-               eigen2.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG.2"%(ik+1)).text.split() )))
-           self.eigen1 = np.array(eigen1)*RytoeV
-           self.eigen2 = np.array(eigen2)*RytoeV
+            if self.qe_version == '6.1':
+               for ik in range(self.nkpoints):
+                   eigen1.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG.1"%(ik+1)).text.split() )))
+                   eigen2.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG.2"%(ik+1)).text.split() )))
+               self.eigen1 = np.array(eigen1)*RytoeV
+               self.eigen2 = np.array(eigen2)*RytoeV
 
-           return self.eigen1, self.eigen2
+               return self.eigen1, self.eigen2
 
     def write_proj(self,filename='proj'):
         """
@@ -374,25 +389,55 @@ class ProjwfcXML(object):
 
               self.proj = np.array(proj)
 
+           # Spin polarized
+           if self.spin_components == 2:
+
               return proj
 
         if self.spin_components == 2:
-           proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
-           proj2 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+           
+            if self.qe_version == '6.1':
+               proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+               proj2 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
 
-           for ik in range(self.nkpoints):
-               for ip in range(self.nproj):
-                   projlist1    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/SPIN.1/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
-                   projlist2    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/SPIN.2/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
-                   proj1[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist1 ]
-                   proj2[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist2 ]
+               for ik in range(self.nkpoints):
+                   for ip in range(self.nproj):
+                       projlist1    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/SPIN.1/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
+                       projlist2    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/SPIN.2/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
+                       proj1[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist1 ]
+                       proj2[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist2 ]
 
-           self.proj1 = np.array(proj1)
+               self.proj1 = np.array(proj1)
+               self.proj2 = np.array(proj2)
 
-           self.proj2 = np.array(proj2)
+               return proj1, proj2
 
-           return proj1, proj2
+            # Two independent spinors
+            elif self.qe_version == '6.7':
+               data_atomic_wfc = self.datafile_xml.findall("EIGENSTATES/PROJS/ATOMIC_WFC")
+               proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+               proj2 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
 
+               for ik in range(self.nkpoints):
+                   for ip in range(self.nproj):
+                      i_data1 = ik*self.nproj + ip
+                      i_data2 = (ik+self.nkpoints)*self.nproj + ip
+                      projlist1 = data_atomic_wfc[i_data1].text.splitlines()[1:-1]
+                      projlist2 = data_atomic_wfc[i_data2].text.splitlines()[1:-1]
+                      atom_aux1, atom_aux2 = [], []
+                      for c in projlist1:
+                          z = float(c.split()[0]) + 1.0j*float(c.split()[1])
+                          atom_aux1.append(z)
+                      for c in projlist2:
+                          z = float(c.split()[0]) + 1.0j*float(c.split()[1])
+                          atom_aux2.append(z)
+                      proj1[ik,ip] = atom_aux1
+                      proj2[ik,ip] = atom_aux2
+
+               self.proj1 = np.array(proj1)
+               self.proj2 = np.array(proj2)
+
+               return proj1, proj2
     
     #def get_overlaps(self):
 
