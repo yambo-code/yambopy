@@ -31,7 +31,7 @@ class ProjwfcXML(object):
         self.datafile_xml = ET.parse( "%s/%s.save/%s"%(path, prefix, self._proj_file)).getroot()
         print('Running projwfcxml for QE version %s' % qe_version)
 
-        if self.qe_version=='6.7':
+        if self.qe_version=='6.7' or self.qe_version=='7.0':
            self.nbands = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_BANDS'] )
            self.nkpoints = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_K-POINTS'] )
            self.spin_components = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_SPIN_COMPONENTS'] )
@@ -294,7 +294,7 @@ class ProjwfcXML(object):
            for ik in range(self.nkpoints):
                kpoints.append([float(k_aux[ik*3]),float(k_aux[ik*3+1]),float(k_aux[ik*3+2])])
 
-        elif self.qe_version == '6.7':
+        elif self.qe_version == '6.7' or self.qe_version=='7.0':
            kpoints = []
            datafile_xml = self.datafile_xml
            for word in self.datafile_xml.findall("EIGENSTATES/K-POINT"):
@@ -313,7 +313,7 @@ class ProjwfcXML(object):
         # No spin polarized
         if self.spin_components == 1 or self.spin_components == 4:
 
-           if self.qe_version == '6.7':
+           if self.qe_version == '6.7' or self.qe_version=='7.0':
               eigen =  [ list( map(float, word.text.split())) for word in self.datafile_xml.findall("EIGENSTATES/E") ] 
 
               self.eigen = np.array(eigen)*RytoeV
@@ -333,7 +333,7 @@ class ProjwfcXML(object):
         # Spin polarized
         if self.spin_components == 2:
            
-            if self.qe_version == '6.7':
+            if self.qe_version == '6.7' or self.qe_version=='7.0':
                eigen_prov =  [ list( map(float, word.text.split())) for word in self.datafile_xml.findall("EIGENSTATES/E") ] 
                eigen_aux = np.array(eigen_prov)*RytoeV 
                self.eigen1 = eigen_aux[            0:  self.nkpoints,:]
@@ -375,7 +375,7 @@ class ProjwfcXML(object):
               return proj
 
            # version 6.7
-           elif self.qe_version == '6.7':
+           elif self.qe_version == '6.7' or self.qe_version=='7.0':
               data_atomic_wfc = self.datafile_xml.findall("EIGENSTATES/PROJS/ATOMIC_WFC")
               for ik in range(self.nkpoints):
                   for ip in range(self.nproj):
@@ -413,7 +413,7 @@ class ProjwfcXML(object):
                return proj1, proj2
 
             # Two independent spinors
-            elif self.qe_version == '6.7':
+            elif self.qe_version == '6.7' or self.qe_version=='7.0':
                data_atomic_wfc = self.datafile_xml.findall("EIGENSTATES/PROJS/ATOMIC_WFC")
                proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
                proj2 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
