@@ -285,7 +285,8 @@ class YamboExcitonDB(YamboSaveDB):
                              "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         weights = self.get_exciton_weights(excitons)      
- 
+        #print(energies.shape)
+        #exit()
         energies = energies[band_indexes]
         weights  = weights[band_indexes]
 
@@ -293,7 +294,72 @@ class YamboExcitonDB(YamboSaveDB):
         energies -= max(energies[:,max(self.unique_vbands)])
         
         return np.array(band_kpoints), energies, weights 
+
+    def arpes_intensity(self,energies_db,path,excitons,ax):   #,size=1,space='bands',f=None,debug=False): later on
+        size=1 # luego lo ponemos como input variable 
+        #
+        kpath   = path
+        # kpoints IBZ
+        kpoints = self.lattice.red_kpoints
+        # array of high symmetry k-points
+        path    = np.array(path.kpoints)
+
+        # Expansion of IBZ kpoints to Path kpoints
+        rep = list(range(-1,2))
+
+        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=rep,repy=rep,repz=rep)
+        band_indexes = get_path(kpoints_rep,path)
+        band_kpoints = np.array(kpoints_rep[band_indexes])
+        band_indexes = kpoints_idx_rep[band_indexes]
+
+        # Eigenvalues Full BZ
+        # Dimension nk_fbz x nbands
+        energies = energies_db.eigenvalues[self.lattice.kpoints_indexes]
+        # Calculate omega
+        # omega_vk,lambda = e_(v,k-q) + omega_(lambda,q) only for q=0
+        n_excitons = len(excitons)
+        omega_vkl = np.zeros([self.nkpoints, self.nvbands,n_excitons])
+        for i_l,exciton in enumerate(excitons):
+            for i_k in range(self.nkpoints):
+                for i_v in range(self.nvbands):
+                    i_v2 = self.unique_vbands[i_v]
+                    # omega_vk,lambda      = e_(v,k-q) + omega_(lambda,q)
+                    omega_vkl[i_k,i_v,i_l] = energies[i_k,i_v2] + self.eigenvalues.real[exciton-1]
+
+        # Calculate rho's
+        # rho_vk = Sum_{c} |A_cvk|^2
+        rho = np.zeros([self.nkpoints, self.nvbands])
+        for exciton in excitons:
+            # get the eigenstate
+            eivec = self.eigenvectors[exciton-1]
+            sum_rho = 0.0
+            for t,kvc in enumerate(self.table):
+                k,v,c = kvc[0:3]-1    # This is bug's source between yambo 4.4 and 5.0 check all this part of the class
+                i_v = v - self.nvbands                    # index de VB bands (start at 0)
+                i_c = c - self.ncbands - self.nvbands     # index de CB bands (start at 0)
+                rho[k,i_v] += abs2(eivec[t])
+
+        # Eigenvalues Path contains in Full BZ
+        energies_path  = energies[band_indexes]
+        rho_path       = rho[band_indexes]
+        omega_vkl_path = omega_vkl[band_indexes]
+
+        #make top valence band to be zero
+        energies_path -= max(energies_path[:,max(self.unique_vbands)])
+
+        plot_energies = energies_path[:,self.start_band:self.mband]
+        plot_rho      = rho_path
+        plot_omega    = omega_vkl_path[:,:,0]
     
+        size *= 1.0/np.max(plot_rho)
+        ybs_bands = YambopyBandStructure(plot_energies, band_kpoints, kpath=kpath)
+        ybs_omega = YambopyBandStructure(plot_omega, band_kpoints, weights=plot_rho, kpath=kpath, size=size)
+
+        ybs_bands.plot_ax(ax)
+        ybs_omega.plot_ax(ax)
+
+
+
     def get_exciton_weights(self,excitons):
         """get weight of state in each band"""
         weights = np.zeros([self.nkpoints,self.mband])
