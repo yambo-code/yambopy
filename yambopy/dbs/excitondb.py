@@ -297,6 +297,7 @@ class YamboExcitonDB(YamboSaveDB):
 
     def arpes_intensity(self,energies_db,path,excitons,ax):   #,size=1,space='bands',f=None,debug=False): later on
         size=1 # luego lo ponemos como input variable 
+        n_excitons = len(excitons)
         #
         kpath   = path
         # kpoints IBZ
@@ -306,7 +307,6 @@ class YamboExcitonDB(YamboSaveDB):
 
         # Expansion of IBZ kpoints to Path kpoints
         rep = list(range(-1,2))
-
         kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=rep,repy=rep,repz=rep)
         band_indexes = get_path(kpoints_rep,path)
         band_kpoints = np.array(kpoints_rep[band_indexes])
@@ -315,9 +315,10 @@ class YamboExcitonDB(YamboSaveDB):
         # Eigenvalues Full BZ
         # Dimension nk_fbz x nbands
         energies = energies_db.eigenvalues[self.lattice.kpoints_indexes]
+
         # Calculate omega
         # omega_vk,lambda = e_(v,k-q) + omega_(lambda,q) only for q=0
-        n_excitons = len(excitons)
+        '''
         omega_vkl = np.zeros([self.nkpoints, self.nvbands,n_excitons])
         for i_l,exciton in enumerate(excitons):
             for i_k in range(self.nkpoints):
@@ -326,18 +327,22 @@ class YamboExcitonDB(YamboSaveDB):
                     # omega_vk,lambda      = e_(v,k-q) + omega_(lambda,q)
                     omega_vkl[i_k,i_v,i_l] = energies[i_k,i_v2] + self.eigenvalues.real[exciton-1]
 
+        '''
+        omega_vkl = self.calculate_omega(energies,excitons)
+        rho       = self.calculate_rho(excitons)
         # Calculate rho's
         # rho_vk = Sum_{c} |A_cvk|^2
-        rho = np.zeros([self.nkpoints, self.nvbands])
-        for exciton in excitons:
-            # get the eigenstate
-            eivec = self.eigenvectors[exciton-1]
-            sum_rho = 0.0
-            for t,kvc in enumerate(self.table):
-                k,v,c = kvc[0:3]-1    # This is bug's source between yambo 4.4 and 5.0 check all this part of the class
-                i_v = v - self.nvbands                    # index de VB bands (start at 0)
-                i_c = c - self.ncbands - self.nvbands     # index de CB bands (start at 0)
-                rho[k,i_v] += abs2(eivec[t])
+#        rho = np.zeros([self.nkpoints, self.nvbands, n_excitons])
+
+
+#        for i_exc, exciton in enumerate(excitons):
+#            # get the eigenstate
+#            eivec = self.eigenvectors[exciton-1]
+#            for t,kvc in enumerate(self.table):
+#                k,v,c = kvc[0:3]-1    # This is bug's source between yambo 4.4 and 5.0 check all this part of the class
+#                i_v = v - self.nvbands                    # index de VB bands (start at 0)
+#                i_c = c - self.ncbands - self.nvbands     # index de CB bands (start at 0)
+#                rho[k,i_v,i_exc] += abs2(eivec[t])
 
         # Eigenvalues Path contains in Full BZ
         energies_path  = energies[band_indexes]
@@ -348,15 +353,159 @@ class YamboExcitonDB(YamboSaveDB):
         energies_path -= max(energies_path[:,max(self.unique_vbands)])
 
         plot_energies = energies_path[:,self.start_band:self.mband]
-        plot_rho      = rho_path
-        plot_omega    = omega_vkl_path[:,:,0]
-    
-        size *= 1.0/np.max(plot_rho)
+  
+        # LDA or GW band structure
         ybs_bands = YambopyBandStructure(plot_energies, band_kpoints, kpath=kpath)
-        ybs_omega = YambopyBandStructure(plot_omega, band_kpoints, weights=plot_rho, kpath=kpath, size=size)
 
-        ybs_bands.plot_ax(ax)
-        ybs_omega.plot_ax(ax)
+        print('shape energies_path')
+        nkpoints_path=energies_path.shape[0]
+        #exit()
+        # Intensity histogram
+        # I(k,omega_band)
+        omega_band = np.arange(0.0,7.0,0.01)
+        n_omegas = len(omega_band)
+        Intensity = np.zeros([n_omegas,nkpoints_path]) 
+        Im = 1.0j
+           #for i_o in range(n_omegas):
+
+        for i_o in range(n_omegas):
+            for i_k in range(nkpoints_path):
+                for i_v in range(self.nvbands):
+                    for i_exc in range(n_excitons):
+                        delta = 1.0/( omega_band[i_o] - omega_vkl_path[i_k,i_v,i_exc] + Im*0.1 )
+                        Intensity[i_o,i_k] += rho_path[i_k,i_v,i_exc]*delta.imag
+
+
+        distances = [0]
+        distance = 0
+        for nk in range(1,nkpoints_path):
+            distance += np.linalg.norm(band_kpoints[nk]-band_kpoints[nk-1])
+            distances.append(distance)
+        distances = np.array(distances)
+        X, Y = np.meshgrid(distances, omega_band)
+        print(X.shape,Y.shape)
+        print(Intensity.shape)
+        #Z = Intensity.reshape(, 21)
+        import matplotlib.pyplot as plt
+        plt.imshow(Intensity, interpolation='bilinear',cmap='viridis_r')
+        #plt.pcolor(X, Y, Intensity,cmap='viridis_r',shading='auto')
+        plt.show()
+        exit()
+        # ARPES band structure
+        ybs_omega = []
+        for i_exc in range(n_excitons):
+            plot_omega    = omega_vkl_path[:,:,i_exc]
+            plot_rho      = rho_path[:,:,i_exc]
+            size *= 1.0/np.max(plot_rho)
+            ybs_omega.append( YambopyBandStructure(plot_omega, band_kpoints, weights=plot_rho, kpath=kpath, size=size) )
+
+        # Plot bands
+        ybs_bands.plot_ax(ax,color_bands='black',lw_label=2)
+
+        for ybs in ybs_omega:
+            ybs.plot_ax(ax,color_bands='black',lw_label=0.1)
+
+        return rho
+
+    def calculate_omega(self,energies,excitons):
+        """ Calculate:
+            omega_vk,lambda = e_(v,k-q) + omega_(lambda,q) only for q=0
+        """
+
+        n_excitons = len(excitons)
+        omega_vkl = np.zeros([self.nkpoints, self.nvbands,n_excitons])
+        for i_l,exciton in enumerate(excitons):
+            for i_k in range(self.nkpoints):
+                for i_v in range(self.nvbands):
+                    i_v2 = self.unique_vbands[i_v]
+                    # omega_vk,lambda      = e_(v,k-q) + omega_(lambda,q)
+                    omega_vkl[i_k,i_v,i_l] = energies[i_k,i_v2] + self.eigenvalues.real[exciton-1]
+         
+        return omega_vkl
+
+    def calculate_rho(self,excitons):
+        """ Calculate:
+            rho_vkl = Sum_{c} |A_cvk,l|^2
+        """
+        n_excitons = len(excitons)
+        rho = np.zeros([self.nkpoints, self.nvbands, n_excitons])
+        for i_exc, exciton in enumerate(excitons):
+            # get the eigenstate
+            eivec = self.eigenvectors[exciton-1]
+            for t,kvc in enumerate(self.table):
+                k,v,c = kvc[0:3]-1    # This is bug's source between yambo 4.4 and 5.0 check all this part of the class
+                i_v = v - self.nvbands                    # index de VB bands (start at 0)
+                i_c = c - self.ncbands - self.nvbands     # index de CB bands (start at 0)
+                rho[k,i_v,i_exc] += abs2(eivec[t])
+
+        return rho
+
+    #def arpes_interpolate(self,energies,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
+    def arpes_interpolate(self,energies,path,excitons,lpratio=5,size=1,verbose=True,**kwargs):
+        """ Interpolate arpes bandstructure using SKW interpolation from Abipy
+            Change to the Fourier Transform Interpolation
+            Energies
+        """
+        from abipy.core.skw import SkwInterpolator
+
+        lattice = self.lattice
+        cell = (lattice.lat, lattice.red_atomic_positions, lattice.atomic_numbers)
+        nelect = 0
+        # Here there is something strange...
+        fermie = kwargs.pop('fermie',0)
+        ##
+        symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
+        time_rev = True
+
+        n_excitons = len(excitons)
+        #weights = self.get_exciton_weights(excitons)
+        #weights = weights[:,self.start_band:self.mband]
+        rho   = self.calculate_rho(excitons)
+
+        #if f: weights = f(weights)
+        size *= 1.0/np.max(rho_w)
+        ibz_nkpoints = max(lattice.kpoints_indexes)+1
+        print('ibz_nkpoints')
+        print(ibz_nkpoints)
+        kpoints = lattice.red_kpoints
+        print(ibz_nkpoints)
+        print(kpoints)
+        #map from bz -> ibz:
+        ibz_rho     = np.zeros([ibz_nkpoints,self.nbands,n_excitons])
+        ibz_kpoints = np.zeros([ibz_nkpoints,3])
+        for idx_bz,idx_ibz in enumerate(lattice.kpoints_indexes):
+            ibz_rho[idx_ibz,:]   = weights[idx_bz,:,:] 
+            ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
+
+
+        #get eigenvalues along the path
+        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
+            ibz_energies = energies.eigenvalues[:,self.start_band:self.mband]
+        elif isinstance(energies,YamboQPDB):
+            ibz_energies = energies.eigenvalues_qp
+        else:
+            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
+                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+
+        #get omega along the path
+
+        #interpolate energies
+        na = np.newaxis
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        kpoints_path = path.get_klist()[:,:3]
+        energies = skw.interp_kpts(kpoints_path).eigens
+     
+        #interpolate weights
+        na = np.newaxis
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        kpoints_path = path.get_klist()[:,:3]
+        exc_weights = skw.interp_kpts(kpoints_path).eigens
+
+        #create band-structure object
+        exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
+        exc_bands.set_fermi(self.nvbands)
+
+        return exc_bands
 
 
 
@@ -512,6 +661,7 @@ class YamboExcitonDB(YamboSaveDB):
     
         if space == 'bands':
             bands_kpoints, energies, weights = self.exciton_bs(energies_db, path.kpoints, excitons, debug)
+            nkpoints = len(bands_kpoints)
             plot_energies = energies[:,self.start_band:self.mband]
             plot_weights  = weights[:,self.start_band:self.mband]
         else:
