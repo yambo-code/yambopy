@@ -511,7 +511,7 @@ class YamboExcitonDB(YamboSaveDB):
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_rho[na,:,:,0],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
         kpoints_path = path.get_klist()[:,:3]
         exc_rho = skw.interp_kpts(kpoints_path).eigens
-
+        print(exc_rho.shape)
         #interpolate omega
         print('interpolating omega')
         na = np.newaxis
@@ -526,7 +526,6 @@ class YamboExcitonDB(YamboSaveDB):
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
         kpoints_path = path.get_klist()[:,:3]
         exc_energies = skw.interp_kpts(kpoints_path).eigens
-    
         import matplotlib.pyplot as plt
         kpoints_path = path.get_klist()[:,:3]
         nkpoints_path = kpoints_path.shape[0]
@@ -536,10 +535,39 @@ class YamboExcitonDB(YamboSaveDB):
             distance += np.linalg.norm(kpoints_path[nk]-kpoints_path[nk-1])
             distances.append(distance)
         distances = np.array(distances)
-        plt.plot(distances,exc_omega[0,:,0])
-        plt.plot(distances,exc_omega[0,:,1])
-        plt.show()
+        #plt.show()
         #interpolate weights
+
+        # Intensity Plot
+        print('calculate intensity')
+        # Intensity histogram
+        # I(k,omega_band)
+        omega_band = np.arange(-5.0,10.0,0.01)
+        n_omegas = len(omega_band)
+        Intensity = np.zeros([n_omegas,nkpoints_path]) 
+        Im = 1.0j
+           #for i_o in range(n_omegas):
+        exc_rho = np.array(exc_rho)
+        for i_o in range(n_omegas):
+            for i_k in range(nkpoints_path):
+                for i_v in range(self.nvbands):
+                    #for i_exc in range(n_excitons):   missing in the interpolation
+                     delta = 1.0/( omega_band[i_o] - exc_omega[0,i_k,i_v] + Im*0.2 ) # check this
+                     Intensity[i_o,i_k] += exc_rho[0,i_k,i_v]*delta.imag
+
+        X, Y = np.meshgrid(distances, omega_band)
+        import matplotlib.pyplot as plt
+        plt.pcolor(X, Y, Intensity,cmap='viridis_r',shading='auto')
+
+        plt.plot(distances,exc_omega[0,:,0],color='white',lw=0.5)
+        plt.plot(distances,exc_omega[0,:,1],color='white',lw=0.5)
+
+        for i_b in range(exc_energies.shape[2]):
+            plt.plot(distances,exc_energies[0,:,i_b],lw=1.0,color='r')
+        plt.xlim((distances[0],distances[-1]))
+        plt.ylim((-5,10))
+
+        plt.show()
         #na = np.newaxis
         #skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
         #kpoints_path = path.get_klist()[:,:3]
