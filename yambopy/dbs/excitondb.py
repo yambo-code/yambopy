@@ -357,6 +357,8 @@ class YamboExcitonDB(YamboSaveDB):
         # LDA or GW band structure
         ybs_bands = YambopyBandStructure(plot_energies, band_kpoints, kpath=kpath)
 
+
+        # Intensity Plot
         print('shape energies_path')
         nkpoints_path=energies_path.shape[0]
         #exit()
@@ -372,9 +374,8 @@ class YamboExcitonDB(YamboSaveDB):
             for i_k in range(nkpoints_path):
                 for i_v in range(self.nvbands):
                     for i_exc in range(n_excitons):
-                        delta = 1.0/( omega_band[i_o] - omega_vkl_path[i_k,i_v,i_exc] + Im*0.1 )
+                        delta = 1.0/( omega_band[i_o] - omega_vkl_path[i_k,i_v,i_exc] + Im*0.2 )
                         Intensity[i_o,i_k] += rho_path[i_k,i_v,i_exc]*delta.imag
-
 
         distances = [0]
         distance = 0
@@ -383,14 +384,22 @@ class YamboExcitonDB(YamboSaveDB):
             distances.append(distance)
         distances = np.array(distances)
         X, Y = np.meshgrid(distances, omega_band)
-        print(X.shape,Y.shape)
-        print(Intensity.shape)
-        #Z = Intensity.reshape(, 21)
         import matplotlib.pyplot as plt
-        plt.imshow(Intensity, interpolation='bilinear',cmap='viridis_r')
-        #plt.pcolor(X, Y, Intensity,cmap='viridis_r',shading='auto')
+        #plt.imshow(Intensity, interpolation='bilinear',cmap='viridis_r')
+        plt.pcolor(X, Y, Intensity,cmap='viridis_r',shading='auto')
+        # Excitonic Band Structure
+        for i_v in range(self.nvbands):
+            for i_exc in range(n_excitons):
+                plt.plot(distances,omega_vkl_path[:,i_v,i_exc],color='w',lw=0.5) 
+        # Electronic Band Structure
+       
+        for i_b in range(energies_db.nbands):
+            plt.plot(distances,energies_path[:,i_b],lw=1.0,color='r')
+        plt.xlim((distances[0],distances[-1]))
+        plt.ylim((-5,10))
         plt.show()
         exit()
+
         # ARPES band structure
         ybs_omega = []
         for i_exc in range(n_excitons):
@@ -441,7 +450,7 @@ class YamboExcitonDB(YamboSaveDB):
         return rho
 
     #def arpes_interpolate(self,energies,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
-    def arpes_interpolate(self,energies,path,excitons,lpratio=5,size=1,verbose=True,**kwargs):
+    def arpes_interpolate(self,energies_db,path,excitons,lpratio=5,size=1,verbose=True,**kwargs):
         """ Interpolate arpes bandstructure using SKW interpolation from Abipy
             Change to the Fourier Transform Interpolation
             Energies
@@ -457,54 +466,89 @@ class YamboExcitonDB(YamboSaveDB):
         symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
         time_rev = True
 
+        # Electrons Eigenvalues FBZ
+        energies = energies_db.eigenvalues[self.lattice.kpoints_indexes]
         n_excitons = len(excitons)
+        rho      = self.calculate_rho(excitons)
+        omega    = self.calculate_omega(energies,excitons)
         #weights = self.get_exciton_weights(excitons)
         #weights = weights[:,self.start_band:self.mband]
-        rho   = self.calculate_rho(excitons)
+        print('shapes')
+        print(rho.shape)
+        print(omega.shape)
+        print('end shapes')
 
         #if f: weights = f(weights)
-        size *= 1.0/np.max(rho_w)
+        size *= 1.0/np.max(rho)
         ibz_nkpoints = max(lattice.kpoints_indexes)+1
         print('ibz_nkpoints')
         print(ibz_nkpoints)
         kpoints = lattice.red_kpoints
         print(ibz_nkpoints)
         print(kpoints)
+
         #map from bz -> ibz:
-        ibz_rho     = np.zeros([ibz_nkpoints,self.nbands,n_excitons])
+        ibz_rho     = np.zeros([ibz_nkpoints,self.nvbands,n_excitons])
         ibz_kpoints = np.zeros([ibz_nkpoints,3])
+        ibz_omega   = np.zeros([ibz_nkpoints,self.nvbands,n_excitons])
         for idx_bz,idx_ibz in enumerate(lattice.kpoints_indexes):
-            ibz_rho[idx_ibz,:]   = weights[idx_bz,:,:] 
-            ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
+            ibz_rho[idx_ibz,:,:]   = rho[idx_bz,:,:] 
+            ibz_kpoints[idx_ibz]   = lattice.red_kpoints[idx_bz]
+            ibz_omega[idx_ibz,:,:] = omega[idx_bz,:,:] 
 
-
-        #get eigenvalues along the path
-        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
-            ibz_energies = energies.eigenvalues[:,self.start_band:self.mband]
-        elif isinstance(energies,YamboQPDB):
-            ibz_energies = energies.eigenvalues_qp
+        #get electronic eigenvalues along the path
+        if isinstance(energies_db,(YamboSaveDB,YamboElectronsDB)):
+            ibz_energies = energies_db.eigenvalues[:,self.start_band:self.mband]
+        elif isinstance(energies_db,YamboQPDB):
+            ibz_energies = energies_db.eigenvalues_qp
         else:
             raise ValueError("Energies argument must be an instance of YamboSaveDB,"
                              "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
-        #get omega along the path
+        #interpolate rho
+        print('interpolating rho')
+        na = np.newaxis
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_rho[na,:,:,0],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        kpoints_path = path.get_klist()[:,:3]
+        exc_rho = skw.interp_kpts(kpoints_path).eigens
+
+        #interpolate omega
+        print('interpolating omega')
+        na = np.newaxis
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_omega[na,:,:,0],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        kpoints_path = path.get_klist()[:,:3]
+        exc_omega = skw.interp_kpts(kpoints_path).eigens
 
         #interpolate energies
+        print('interpolating energies')
         na = np.newaxis
+        print(na)
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
         kpoints_path = path.get_klist()[:,:3]
-        energies = skw.interp_kpts(kpoints_path).eigens
-     
-        #interpolate weights
-        na = np.newaxis
-        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        exc_energies = skw.interp_kpts(kpoints_path).eigens
+    
+        import matplotlib.pyplot as plt
         kpoints_path = path.get_klist()[:,:3]
-        exc_weights = skw.interp_kpts(kpoints_path).eigens
+        nkpoints_path = kpoints_path.shape[0]
+        distances = [0]
+        distance = 0
+        for nk in range(1,nkpoints_path):
+            distance += np.linalg.norm(kpoints_path[nk]-kpoints_path[nk-1])
+            distances.append(distance)
+        distances = np.array(distances)
+        plt.plot(distances,exc_omega[0,:,0])
+        plt.plot(distances,exc_omega[0,:,1])
+        plt.show()
+        #interpolate weights
+        #na = np.newaxis
+        #skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        #kpoints_path = path.get_klist()[:,:3]
+        #exc_weights = skw.interp_kpts(kpoints_path).eigens
 
         #create band-structure object
-        exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
-        exc_bands.set_fermi(self.nvbands)
-
+        #exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
+        #exc_bands.set_fermi(self.nvbands)
+        exit()
         return exc_bands
 
 
