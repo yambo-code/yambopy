@@ -450,42 +450,48 @@ class YamboExcitonDB(YamboSaveDB):
         return rho
 
     #def arpes_interpolate(self,energies,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
-    def arpes_interpolate(self,energies_db,path,excitons,lpratio=5,size=1,verbose=True,**kwargs):
-        """ Interpolate arpes bandstructure using SKW interpolation from Abipy
+    def arpes_intensity_interpolated(self,energies_db,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
+        """ 
+            Interpolate arpes bandstructure using SKW interpolation from Abipy (version 1)
             Change to the Fourier Transform Interpolation
-            Energies
+            DFT energies == energies_db
+            All is done internally. No use of the bandstructure class
+            (something to change)
         """
         from abipy.core.skw import SkwInterpolator
+        
+        # Number of exciton states
+        n_excitons = len(excitons)
 
+        # Options kwargs
+
+        # Here there is something strange... Alignment of the Bands Top Valence
+        fermie = kwargs.pop('fermie',0)
+        # Band set to zero
+        print('fermi energy is fermie?')
+        print(fermie)
+       
+        # Lattice and Symmetry Variables
         lattice = self.lattice
         cell = (lattice.lat, lattice.red_atomic_positions, lattice.atomic_numbers)
-        nelect = 0
-        # Here there is something strange...
-        fermie = kwargs.pop('fermie',0)
-        ##
+
         symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
         time_rev = True
 
-        # Electrons Eigenvalues FBZ
-        energies = energies_db.eigenvalues[self.lattice.kpoints_indexes]
-        n_excitons = len(excitons)
-        rho      = self.calculate_rho(excitons)
-        omega    = self.calculate_omega(energies,excitons)
-        #weights = self.get_exciton_weights(excitons)
-        #weights = weights[:,self.start_band:self.mband]
-        print('shapes')
-        print(rho.shape)
-        print(omega.shape)
-        print('end shapes')
+        nelect = 0  # Why?
 
-        #if f: weights = f(weights)
+        # DFT Eigenvalues FBZ
+        energies = energies_db.eigenvalues[self.lattice.kpoints_indexes]
+        # Rho FBZ
+        rho      = self.calculate_rho(excitons)
+        if f: rho = f(rho)
+        # Omega FBZ
+        omega    = self.calculate_omega(energies,excitons)
+
         size *= 1.0/np.max(rho)
+
         ibz_nkpoints = max(lattice.kpoints_indexes)+1
-        print('ibz_nkpoints')
-        print(ibz_nkpoints)
         kpoints = lattice.red_kpoints
-        print(ibz_nkpoints)
-        print(kpoints)
 
         #map from bz -> ibz:
         ibz_rho     = np.zeros([ibz_nkpoints,self.nvbands,n_excitons])
@@ -499,7 +505,7 @@ class YamboExcitonDB(YamboSaveDB):
         #get electronic eigenvalues along the path
         if isinstance(energies_db,(YamboSaveDB,YamboElectronsDB)):
             ibz_energies = energies_db.eigenvalues[:,self.start_band:self.mband]
-        elif isinstance(energies_db,YamboQPDB):
+        elif isinstance(energies_db,YamboQPDB):   # Check this works !!!!
             ibz_energies = energies_db.eigenvalues_qp
         else:
             raise ValueError("Energies argument must be an instance of YamboSaveDB,"
