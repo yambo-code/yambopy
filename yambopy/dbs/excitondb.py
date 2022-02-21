@@ -437,14 +437,20 @@ class YamboExcitonDB(YamboSaveDB):
             rho_vkl = Sum_{c} |A_cvk,l|^2
         """
         n_excitons = len(excitons)
+        print('self.nkpoints, self.nvbands, n_excitons')
+        print(self.nkpoints, self.nvbands, n_excitons)
+        print('self.unique_vbands')
+        print(self.unique_vbands)
+        print('self.unique_cbands')
+        print(self.unique_cbands)
         rho = np.zeros([self.nkpoints, self.nvbands, n_excitons])
         for i_exc, exciton in enumerate(excitons):
             # get the eigenstate
             eivec = self.eigenvectors[exciton-1]
             for t,kvc in enumerate(self.table):
                 k,v,c = kvc[0:3]-1    # This is bug's source between yambo 4.4 and 5.0 check all this part of the class
-                i_v = v - self.nvbands                    # index de VB bands (start at 0)
-                i_c = c - self.ncbands - self.nvbands     # index de CB bands (start at 0)
+                i_v = v - self.unique_vbands[0] # index de VB bands (start at 0)
+                #i_c = c - self.unique_cbands[0] # index de CB bands (start at 0)
                 rho[k,i_v,i_exc] += abs2(eivec[t])
 
         return rho
@@ -459,17 +465,23 @@ class YamboExcitonDB(YamboSaveDB):
             (something to change)
         """
         from abipy.core.skw import SkwInterpolator
+        Im = 1.0j # Imaginary
         
         # Number of exciton states
         n_excitons = len(excitons)
 
         # Options kwargs
 
-        # Here there is something strange... Alignment of the Bands Top Valence
-        fermie = kwargs.pop('fermie',0)
-        # Band set to zero
-        print('fermi energy is fermie?')
-        print(fermie)
+        # Alignment of the Bands Top Valence
+        fermie      = kwargs.pop('fermie',0)
+        # Parameters ARPES Intensity
+        omega_width = kwargs.pop('omega_width',0)
+        omega_1     = kwargs.pop('omega_1',0)
+        omega_2     = kwargs.pop('omega_2',0)
+        omega_step  = kwargs.pop('omega_step',0)
+        omega_band = np.arange(omega_1,omega_2,omega_step)
+        n_omegas = len(omega_band)
+
        
         # Lattice and Symmetry Variables
         lattice = self.lattice
@@ -502,7 +514,7 @@ class YamboExcitonDB(YamboSaveDB):
             ibz_kpoints[idx_ibz]   = lattice.red_kpoints[idx_bz]
             ibz_omega[idx_ibz,:,:] = omega[idx_bz,:,:] 
 
-        #get electronic eigenvalues along the path
+        #get DFT or GW eigenvalues
         if isinstance(energies_db,(YamboSaveDB,YamboElectronsDB)):
             ibz_energies = energies_db.eigenvalues[:,self.start_band:self.mband]
         elif isinstance(energies_db,YamboQPDB):   # Check this works !!!!
@@ -511,73 +523,59 @@ class YamboExcitonDB(YamboSaveDB):
             raise ValueError("Energies argument must be an instance of YamboSaveDB,"
                              "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
-        #interpolate rho
-        print('interpolating rho')
-        na = np.newaxis
-        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_rho[na,:,:,0],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        # set k-path
         kpoints_path = path.get_klist()[:,:3]
-        exc_rho = skw.interp_kpts(kpoints_path).eigens
-        print(exc_rho.shape)
-        #interpolate omega
-        print('interpolating omega')
-        na = np.newaxis
-        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_omega[na,:,:,0],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-        kpoints_path = path.get_klist()[:,:3]
-        exc_omega = skw.interp_kpts(kpoints_path).eigens
-
-        #interpolate energies
-        print('interpolating energies')
-        na = np.newaxis
-        print(na)
-        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-        kpoints_path = path.get_klist()[:,:3]
-        exc_energies = skw.interp_kpts(kpoints_path).eigens
-        import matplotlib.pyplot as plt
-        kpoints_path = path.get_klist()[:,:3]
+        distances = calculate_distances(kpoints_path)
         nkpoints_path = kpoints_path.shape[0]
-        distances = [0]
-        distance = 0
-        for nk in range(1,nkpoints_path):
-            distance += np.linalg.norm(kpoints_path[nk]-kpoints_path[nk-1])
-            distances.append(distance)
-        distances = np.array(distances)
-        #plt.show()
-        #interpolate weights
 
-        # Intensity Plot
-        print('calculate intensity')
-        # Intensity histogram
+        na = np.newaxis
+        rho_path   = np.zeros([1, nkpoints_path, self.nvbands, n_excitons])
+        omega_path = np.zeros([1, nkpoints_path, self.nvbands, n_excitons])
+
+        for i_exc in range(n_excitons):
+
+            # interpolate rho along the k-path
+            skw_rho   = SkwInterpolator(lpratio,ibz_kpoints,ibz_rho[na,:,:,i_exc],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+            rho_path[0,:,:,i_exc] = skw_rho.interp_kpts(kpoints_path).eigens
+
+            # interpolate omega along the k-path
+            skw_omega = SkwInterpolator(lpratio,ibz_kpoints,ibz_omega[na,:,:,i_exc],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+            omega_path[0,:,:,i_exc] = skw_omega.interp_kpts(kpoints_path).eigens
+
+        # interpolate energies
+        skw_energie = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        energies_path = skw_energie.interp_kpts(kpoints_path).eigens
+
+        import matplotlib.pyplot as plt
+
         # I(k,omega_band)
-        omega_band = np.arange(-5.0,10.0,0.01)
-        n_omegas = len(omega_band)
         Intensity = np.zeros([n_omegas,nkpoints_path]) 
-        Im = 1.0j
-           #for i_o in range(n_omegas):
-        exc_rho = np.array(exc_rho)
-        for i_o in range(n_omegas):
-            for i_k in range(nkpoints_path):
-                for i_v in range(self.nvbands):
-                    #for i_exc in range(n_excitons):   missing in the interpolation
-                     delta = 1.0/( omega_band[i_o] - exc_omega[0,i_k,i_v] + Im*0.2 ) # check this
-                     Intensity[i_o,i_k] += exc_rho[0,i_k,i_v]*delta.imag
+         
+        for i_exc in range(n_excitons):
+            for i_o in range(n_omegas):
+                for i_k in range(nkpoints_path):
+                    for i_v in range(self.nvbands):
+                        delta = 1.0/( omega_band[i_o] - omega_path[0, i_k, i_v, i_exc] + Im*omega_width ) # check this
+                        Intensity[i_o,i_k] += rho_path[0, i_k, i_v, i_exc]*delta.imag
 
         X, Y = np.meshgrid(distances, omega_band)
         import matplotlib.pyplot as plt
         plt.pcolor(X, Y, Intensity,cmap='viridis_r',shading='auto')
 
-        plt.plot(distances,exc_omega[0,:,0],color='white',lw=0.5)
-        plt.plot(distances,exc_omega[0,:,1],color='white',lw=0.5)
+        for i_exc in range(n_excitons):
+            for i_v in range(self.nvbands):
+                plt.plot(distances,omega_path[0,:,i_v,i_exc],color='white',lw=0.5)
 
-        for i_b in range(exc_energies.shape[2]):
-            plt.plot(distances,exc_energies[0,:,i_b],lw=1.0,color='r')
+        #for i_b in range(energies_path.shape[2]):
+        for i_b in range(9):
+            plt.plot(distances,energies_path[0,:,i_b],lw=0.5,color='r')
+            plt.plot(distances,energies_path[0,:,i_b+9]+0.55,lw=0.5,color='r')
+
         plt.xlim((distances[0],distances[-1]))
-        plt.ylim((-5,10))
+        plt.ylim((omega_1,omega_2))
+        #plt.
 
         plt.show()
-        #na = np.newaxis
-        #skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-        #kpoints_path = path.get_klist()[:,:3]
-        #exc_weights = skw.interp_kpts(kpoints_path).eigens
 
         #create band-structure object
         #exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
