@@ -479,9 +479,10 @@ class YamboExcitonDB(YamboSaveDB):
         omega_1     = kwargs.pop('omega_1',0)
         omega_2     = kwargs.pop('omega_2',0)
         omega_step  = kwargs.pop('omega_step',0)
-        omega_band = np.arange(omega_1,omega_2,omega_step)
+        omega_band  = np.arange(omega_1,omega_2,omega_step)
         n_omegas = len(omega_band)
-
+        cmap_name   = kwargs.pop('cmap_name',0)
+        scissor    = kwargs.pop('scissor',0)
        
         # Lattice and Symmetry Variables
         lattice = self.lattice
@@ -546,6 +547,10 @@ class YamboExcitonDB(YamboSaveDB):
         skw_energie = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
         energies_path = skw_energie.interp_kpts(kpoints_path).eigens
 
+        top_valence_band = np.max(energies_path[0,:,0:self.nvbands])
+        omega_path    = omega_path - top_valence_band
+        energies_path = energies_path - top_valence_band
+
         import matplotlib.pyplot as plt
 
         # I(k,omega_band)
@@ -560,28 +565,39 @@ class YamboExcitonDB(YamboSaveDB):
 
         X, Y = np.meshgrid(distances, omega_band)
         import matplotlib.pyplot as plt
-        plt.pcolor(X, Y, Intensity,cmap='viridis_r',shading='auto')
 
-        for i_exc in range(n_excitons):
-            for i_v in range(self.nvbands):
-                plt.plot(distances,omega_path[0,:,i_v,i_exc],color='white',lw=0.5)
+        # Plot I(k,w)
+        plt.pcolor(X, Y, Intensity,cmap=cmap_name,shading='auto')
 
+
+        # Plot Excitonic Energies
+        #for i_exc in range(n_excitons):
+        #    for i_v in range(self.nvbands):
+        #        plt.plot(distances,omega_path[0,:,i_v,i_exc],color='white',lw=0.5)
+
+        # Plot Valence Band Energies
         #for i_b in range(energies_path.shape[2]):
-        for i_b in range(9):
-            plt.plot(distances,energies_path[0,:,i_b],lw=0.5,color='r')
-            plt.plot(distances,energies_path[0,:,i_b+9]+0.55,lw=0.5,color='r')
+        for i_b in range(self.nvbands):
+            plt.plot(distances,energies_path[0,:,i_b],lw=1.0,color='white')
+        for i_b in range(self.ncbands):
+            plt.plot(distances,energies_path[0,:,i_b+self.nvbands]+scissor,lw=1.0,color='white')
+            #plt.plot(distances,energies_path[0,:,i_b+9],lw=0.5,color='r')
 
         plt.xlim((distances[0],distances[-1]))
-        plt.ylim((omega_1,omega_2))
-        #plt.
+        plt.ylim((omega_1,omega_2-omega_width))
 
+        #plt.axhline(np.max(energies_path[0,:,0:self.nvbands]),c='white')
+        for kpoint, klabel, distance in path:
+            plt.axvline(distance,c='w')
+        plt.xticks(path.distances,path.klabels)
         plt.show()
 
         #create band-structure object
         #exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
         #exc_bands.set_fermi(self.nvbands)
-        exit()
-        return exc_bands
+        #exit()
+        #return exc_bands
+        return 
 
 
 
