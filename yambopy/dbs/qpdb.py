@@ -179,17 +179,19 @@ class YamboQPDB():
         shift,cslope,vslope,cintercept,vintercept=self.get_scissor(valence,verbose=verbose)
         #plot qps
         ve0,vqp,_ = self.get_filtered_qps(self.min_band,valence)
-        ax.scatter(ve0,vqp)
+        #ax.scatter(ve0,vqp)
         ce0,cqp,_ = self.get_filtered_qps(valence+1,self.max_band)
-        ax.scatter(ce0,cqp)
+        #ax.scatter(ce0,cqp)
 
         #plot the fits
         vx = np.linspace(np.min(ve0),np.max(ve0),2)
         cx = np.linspace(np.min(ce0),np.max(ce0),2)
         vy = vslope*vx+vintercept
         cy = cslope*cx+cintercept
-        ax.plot(vx,vy)
-        ax.plot(cx,cy)
+        #ax.plot(vx,vy)
+        #ax.plot(cx,cy)
+
+        return ax.scatter(ve0,vqp), ax.scatter(ce0,cqp), ax.plot(vx,vy), ax.plot(cx,cy)
 
     @add_fig_kwargs
     def plot_scissor(self,valence,verbose=1):
