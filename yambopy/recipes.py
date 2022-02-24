@@ -227,7 +227,7 @@ def merge_qp(output,files,verbose=False):
     datasets  = [ Dataset(filename) for filename in filenames]
     QP_table, QP_kpts, QP_E_E0_Z = [], [], []
     for d,filename in zip(datasets,filenames):
-        _, nkpoints, nqps, _, nstrings = list(map(int,d['PARS'][:]))
+        _, nkpoints, nqps, _, nstrings, = list(map(int,d['PARS'][:]))
         print("filename:    ", filename)
         if verbose:
             print("description:")
