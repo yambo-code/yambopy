@@ -189,7 +189,7 @@ class YamboElectronPhononDB():
         for iq in range(self.nfrags):
             for inu in range(self.nmodes): 
                 if iq==0 and inu in [0,1,2]: 
-                    g[iq,:,inu,:,:] = 0.*g[iq,:,inu,:,:] # Remove acoustic branches
+                    g[iq,:,inu,:,:] = 0. # Remove acoustic branches
                 else:
                     ph_E = self.ph_energies[iq,inu]/ha2ev # Put back the energies in Hartree units
                     g[iq,:,inu,:,:] = dvscf[iq,:,inu,:,:]/np.sqrt(2.*ph_E)
@@ -211,9 +211,10 @@ class YamboElectronPhononDB():
     @add_fig_kwargs
     def plot_elph(self,data,plt_show=False,plt_cbar=False,**kwargs):
         """
-        2D scatterplot in the k-BZ of the quantity A_{k}(ib1,ib2,inu,iq).
-    
-        Band and q-kpoint indices are user-specified.
+        2D scatterplot in the k-BZ of the quantity A_{k}(iq,inu,ib1,ib2).
+        
+        Any real quantity which is a function of only the k-grid may be supplied.
+        The indices iq,inu,ib1,ib2 are user-specified.
         
         - if plt_show plot is shown
         - if plt_cbar colorbar is shown
@@ -247,10 +248,8 @@ class YamboElectronPhononDB():
         
         plt.gca().set_aspect('equal')
 
-        if plt_show: 
-            plt.show()
-        else:
-            print("Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
+        if plt_show: plt.show()
+        else: print("Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
         
     def __str__(self):
 
