@@ -177,6 +177,7 @@ class YambopyBandStructure():
         c_bands   = kwargs.pop('color_bands',None)
         c_weights = kwargs.pop('c_weights',None)
         c_label   = kwargs.pop('c_label',None)
+        lw_label  = kwargs.pop('lw_label',None)
 
         # Add option to plot lines or dots
         #linetype
@@ -188,7 +189,7 @@ class YambopyBandStructure():
         for ib,band in enumerate(self.bands.T):
             x = self.distances
             y = band-fermie
-            ax.plot(x,y,color=c_bands,**kwargs)
+            ax.plot(x,y,color=c_bands,lw=lw_label,**kwargs)
             # fill between 
             if self.weights is not None: # and self.spin_proj is not None:
                 dy = self.weights[:,ib]*size
@@ -201,7 +202,7 @@ class YambopyBandStructure():
 
             kwargs.pop('label',None)
 
-        self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=xlim)
+        self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=ylim)
         ax.set_ylabel(ylabel)
         self.add_kpath_labels(ax)
         if legend: ax.legend()
@@ -252,7 +253,7 @@ class YambopyBandStructure():
             kwargs.pop('label',None)
 
 
-        self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=xlim)
+        self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=ylim)
         ax.set_ylabel(ylabel)
         self.add_kpath_labels(ax)
         if legend: ax.legend()

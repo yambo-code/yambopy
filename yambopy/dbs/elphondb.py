@@ -42,7 +42,6 @@ class YamboElectronPhononDB():
         self.alat        = lattice.alat
         self.rlat        = lattice.rlat
         self.car_kpoints = lattice.car_kpoints
-        self.red_kpoints = lattice.red_kpoints
             
         # Check if databases exist. Exit only if header is missing.
         try: database = Dataset(filename)
@@ -66,8 +65,13 @@ class YamboElectronPhononDB():
         #read dimensions of electron phonon parameters
         self.nmodes, self.nqpoints, self.nkpoints, self.nbands = database.variables['PARS'][:4].astype(int)
         self.natoms = int(self.nmodes/3)
+        try: # Check if K-point list is provided (upon expansion), otherwise use the one from ns.db1
+            self.kpoints_elph = database.variables['PH_K'][:].T
+            self.car_kpoints = np.array([ k/self.alat for k in self.kpoints_elph ])
+            database.close()
+        except KeyError:
+            database.close()
         
-        database.close()
         
         #Check how many databases are present
         self.nfrags = self.nqpoints
