@@ -79,7 +79,7 @@ class YamboSaveDB():
 
             args = dict( atomic_numbers       = atomic_numbers,
                          car_atomic_positions = atomic_positions,
-                         eigenvalues          = database.variables['EIGENVALUES'][:,:]*ha2ev,
+                         eigenvalues          = database.variables['EIGENVALUES'][0,:]*ha2ev,
                          sym_car              = database.variables['SYMMETRY'][:],
                          kpts_iku             = database.variables['K-POINTS'][:].T,
                          lat                  = database.variables['LATTICE_VECTORS'][:].T,
