@@ -153,6 +153,11 @@ class YamboElectronPhononDB():
         - kind is 'dressed' or 'bare'
         - var_nm is 'ELPH_GKKP_Q' or 'ELPH_GKKP_BARE_Q'
         - If scale_g_with_ph_energies they are divided by sqrt(2*ph_E)
+
+        NB: ELPH_GKKP_Q is saved by yambo as (2,mode,bnd1,bnd2,k), but netCDF stores
+            the *transpose* (k,bnd2,bnd1,mode,2).
+            We want to change it to complex (k,mode,bnd1,bnd2), therefore we need to
+            *swap* bnd2<->mode.
         """    
         if kind!='dressed' and kind!='bare': 
             raise ValueError("Wrong kind %s (can be 'dressed' [Default] or 'bare')"%kind) 
@@ -166,7 +171,7 @@ class YamboElectronPhononDB():
             fil = self.frag_filename + "%d"%(iq+1)
             database = Dataset(fil)
             gkkp = database.variables['%s%d'%(var_nm,iq+1)][:]
-            gkkp_full[iq] = (gkkp[:,:,:,:,0] + I*gkkp[:,:,:,:,1]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
+            gkkp_full[iq] = np.swapaxes(gkkp[:,:,:,:,0] + I*gkkp[:,:,:,:,1],-1,1)
             database.close()
         
         # Check integrity of elph values
