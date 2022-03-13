@@ -270,8 +270,9 @@ class YamboExcitonDB(YamboSaveDB):
 
         #get eigenvalues along the path
         if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
-            #expand eigenvalues to the bull brillouin zone
-            energies = energies.eigenvalues[self.lattice.kpoints_indexes]
+            #expand eigenvalues to the full brillouin zone
+            # SPIN-UP CHANNEL ONLY. Check with BSE WFs
+            energies = energies.eigenvalues[0,self.lattice.kpoints_indexes]
 
         elif isinstance(energies,YamboQPDB):
             #expand the quasiparticle energies to the bull brillouin zone
@@ -494,7 +495,7 @@ class YamboExcitonDB(YamboSaveDB):
         nelect = 0  # Why?
 
         # DFT Eigenvalues FBZ
-        energies = energies_db.eigenvalues[self.lattice.kpoints_indexes]
+        energies = energies_db.eigenvalues[0,self.lattice.kpoints_indexes] #SPIN-UP
         # Rho FBZ
         rho      = self.calculate_rho(excitons)
         if f: rho = f(rho)
@@ -517,7 +518,7 @@ class YamboExcitonDB(YamboSaveDB):
 
         #get DFT or GW eigenvalues
         if isinstance(energies_db,(YamboSaveDB,YamboElectronsDB)):
-            ibz_energies = energies_db.eigenvalues[:,self.start_band:self.mband]
+            ibz_energies = energies_db.eigenvalues[0,:,self.start_band:self.mband] #spin-up
         elif isinstance(energies_db,YamboQPDB):   # Check this works !!!!
             ibz_energies = energies_db.eigenvalues_qp
         else:
@@ -802,14 +803,26 @@ class YamboExcitonDB(YamboSaveDB):
         time_rev = True
  
         weights = self.get_exciton_weights(excitons)
+        print('weights.shape')
+        print(weights.shape)
         weights = weights[:,self.start_band:self.mband]
+        print('self.start_band')
+        print(self.start_band)
+        print('self.mband')
+        print(self.mband)
         if f: weights = f(weights)
         size *= 1.0/np.max(weights)
         ibz_nkpoints = max(lattice.kpoints_indexes)+1
         kpoints = lattice.red_kpoints
 
         #map from bz -> ibz:
-        ibz_weights = np.zeros([ibz_nkpoints,self.nbands])
+        # bug here? it is self.mband, but why?
+        ibz_weights = np.zeros([ibz_nkpoints,self.mband-self.start_band]) 
+        print('ibz_weights.shape')
+        print(ibz_weights.shape)
+        print(self.nbands)
+        print(self.mband)
+        #exit()
         ibz_kpoints = np.zeros([ibz_nkpoints,3])
         for idx_bz,idx_ibz in enumerate(lattice.kpoints_indexes):
             ibz_weights[idx_ibz,:] = weights[idx_bz,:] 
@@ -817,9 +830,10 @@ class YamboExcitonDB(YamboSaveDB):
 
         #get eigenvalues along the path
         if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
-            ibz_energies = energies.eigenvalues[:,self.start_band:self.mband]
+            #ibz_energies = energies.eigenvalues[:,self.start_band:self.mband] Old version
+            ibz_energies = energies.eigenvalues[0,:,self.start_band:self.mband] # SPIN-UP channel
         elif isinstance(energies,YamboQPDB):
-            ibz_energies = energies.eigenvalues_qp
+            ibz_energies = energies.eigenvalues_qp # to be done for spin-UP channel
         else:
             raise ValueError("Energies argument must be an instance of YamboSaveDB,"
                              "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))

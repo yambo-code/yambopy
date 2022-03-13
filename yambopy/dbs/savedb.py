@@ -76,10 +76,12 @@ class YamboSaveDB():
             flatten = lambda l: [item for sublist in l for item in sublist]
             atomic_numbers = flatten([[tmp_an[n]]*na for n,na in enumerate(natoms_a)])
             atomic_positions = np.vstack([[tmp_apos[n,ia] for ia in range(na)] for n,na in enumerate(natoms_a) ])
-
+            # I change the shape of eigenvalues
+            # From now on is [spin_index, kpoint_index, band_index]
+            # This must be change all along the code
             args = dict( atomic_numbers       = atomic_numbers,
                          car_atomic_positions = atomic_positions,
-                         eigenvalues          = database.variables['EIGENVALUES'][0,:]*ha2ev,
+                         eigenvalues          = database.variables['EIGENVALUES'][:,:]*ha2ev,
                          sym_car              = database.variables['SYMMETRY'][:],
                          kpts_iku             = database.variables['K-POINTS'][:].T,
                          lat                  = database.variables['LATTICE_VECTORS'][:].T,
