@@ -62,6 +62,7 @@ class YamboExcitonDB(YamboSaveDB):
         #optional
         self.table = table
         self.eigenvectors = eigenvectors
+        #self.spin_pol     = spin_pol
 
     @classmethod
     def from_db_file(cls,lattice,filename='ndb.BS_diago_Q01',folder='.'):
@@ -295,6 +296,75 @@ class YamboExcitonDB(YamboSaveDB):
         energies -= max(energies[:,max(self.unique_vbands)])
         
         return np.array(band_kpoints), energies, weights 
+
+    def magnon_bs(self,energies,path,excitons=(0,),debug=False):
+        """
+        Calculate exciton band-structure
+            
+            Arguments:
+            energies -> can be an instance of YamboSaveDB or YamboQBDB
+            path     -> path in reduced coordinates in which to plot the band structure
+            exciton  -> exciton index to plot
+        """
+        if self.eigenvectors is None:
+            raise ValueError('This database does not contain Excitonic states,'
+                              'please re-run the yambo BSE calculation with the WRbsWF option in the input file.')
+        if isinstance(excitons, int):
+            excitons = (excitons,)
+        #get full kmesh
+        kpoints = self.lattice.red_kpoints
+        path = np.array(path)
+
+        rep = list(range(-1,2))
+        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=rep,repy=rep,repz=rep)
+        band_indexes = get_path(kpoints_rep,path)
+        band_kpoints = kpoints_rep[band_indexes] 
+        band_indexes = kpoints_idx_rep[band_indexes]
+
+        if debug:
+            for i,k in zip(band_indexes,band_kpoints):
+                x,y,z = k
+                plt.text(x,y,i) 
+            plt.scatter(kpoints_rep[:,0],kpoints_rep[:,1])
+            plt.plot(path[:,0],path[:,1],c='r')
+            plt.scatter(band_kpoints[:,0],band_kpoints[:,1])
+            plt.show()
+            exit()
+        print('self.nvbands')
+        print(self.nvbands)
+        print('self.ncbands')
+        print(self.ncbands)
+        exit()
+        #get eigenvalues along the path
+        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
+            #expand eigenvalues to the full brillouin zone
+            # SPIN-UP Valence
+            energies_v = energies.eigenvalues[0,self.lattice.kpoints_indexes,:self.nvbands]
+            energies_c = energies.eigenvalues[1,self.lattice.kpoints_indexes,self.nvbands:(self.nvbands+self.ncbands)]
+
+
+        elif isinstance(energies,YamboQPDB):
+            #expand the quasiparticle energies to the bull brillouin zone
+            pad_energies = energies.eigenvalues_qp[self.lattice.kpoints_indexes]
+            min_band = energies.min_band
+            nkpoints, nbands = pad_energies.shape
+            energies = np.zeros([nkpoints,energies.max_band])
+            energies[:,min_band-1:] = pad_energies 
+        else:
+            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
+                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+
+        weights = self.get_exciton_weights(excitons)      
+        #print(energies.shape)
+        #exit()
+        energies = energies[band_indexes]
+        weights  = weights[band_indexes]
+
+        #make top valence band to be zero
+        energies -= max(energies[:,max(self.unique_vbands)])
+        
+        return np.array(band_kpoints), energies, weights 
+
 
     def arpes_intensity(self,energies_db,path,excitons,ax):   #,size=1,space='bands',f=None,debug=False): later on
         size=1 # luego lo ponemos como input variable 
@@ -754,6 +824,40 @@ class YamboExcitonDB(YamboSaveDB):
     
         if space == 'bands':
             bands_kpoints, energies, weights = self.exciton_bs(energies_db, path.kpoints, excitons, debug)
+            nkpoints = len(bands_kpoints)
+            plot_energies = energies[:,self.start_band:self.mband]
+            plot_weights  = weights[:,self.start_band:self.mband]
+        else:
+            raise NotImplementedError('TODO')
+            eh_size = len(self.unique_vbands)*len(self.unique_cbands)
+            nkpoints = len(bands_kpoints)
+            plot_energies = np.zeros([nkpoints,eh_size])
+            plot_weights = np.zeros([nkpoints,eh_size])
+            for eh,(v,c) in enumerate(product(self.unique_vbands,self.unique_cbands)):
+                plot_energies[:,eh] = energies[:,c]-energies[:,v]
+                plot_weights[:,eh] = weights[:,c] 
+
+        if f: plot_weights = f(plot_weights)
+        size *= 1.0/np.max(plot_weights)
+        ybs = YambopyBandStructure(plot_energies, bands_kpoints, weights=plot_weights, kpath=path, size=size)
+        return ybs
+
+    def get_magnon_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False):
+        """
+        Get a YambopyBandstructure object with the exciton band-structure
+        
+            Arguments:
+            ax          -> axis extance of matplotlib to add the plot to
+            lattice     -> Lattice database
+            energies_db -> Energies database, can be either a SaveDB or QPDB
+            path        -> Path in the brillouin zone
+        """
+        from qepy.lattice import Path
+        if not isinstance(path,Path): 
+            raise ValueError('Path argument must be a instance of Path. Got %s instead'%type(path))
+    
+        if space == 'bands':
+            bands_kpoints, energies, weights = self.magnon_bs(energies_db, path.kpoints, excitons, debug)
             nkpoints = len(bands_kpoints)
             plot_energies = energies[:,self.start_band:self.mband]
             plot_weights  = weights[:,self.start_band:self.mband]
