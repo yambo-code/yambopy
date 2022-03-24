@@ -11,6 +11,7 @@ from .lattice import Path, calculate_distances
 from .auxiliary import *
 
 RytoeV = 13.605698066
+HatoeV = 2.0*RytoeV
 
 class ProjwfcXML(object):
     """
@@ -44,7 +45,7 @@ class ProjwfcXML(object):
            # Read the number of BANDS
            self.nbands   = int(self.datafile_xml.find("HEADER/NUMBER_OF_BANDS").text)
            #get fermi
-           self.fermi    = float(self.datafile_xml.find("HEADER/FERMI_ENERGY").text)*RytoeV
+           self.fermi = float(self.datafile_xml.find("HEADER/FERMI_ENERGY").text)*HatoeV # Is the conversion OK?? 
            #get number of projections
            self.nproj    = int(self.datafile_xml.find("HEADER/NUMBER_OF_ATOMIC_WFC").text)
            #get weights of kpoints projections
@@ -57,7 +58,7 @@ class ProjwfcXML(object):
         #kpoints_lines = self.datafile_xml.find("K-POINTS").text.strip().split('\n')
         #kpoints_float = [ list(map(float, kline.split())) for kline in kpoints_lines ]
         #self.kpoints  = np.array(kpoints_float)
-
+        print('FERMI ENERGY %lf' % self.fermi)
         self.kpoints = self.get_kpoints()
 
         # Read Eigenvalues
@@ -151,7 +152,6 @@ class ProjwfcXML(object):
 
         # Fix here
         #get kpoint_dists
-        print(self.kpoints)
         kpoints_dists = calculate_distances(self.kpoints[:self.nkpoints])
  
         #make labels
@@ -190,8 +190,6 @@ class ProjwfcXML(object):
                      cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
                   else:
                     #cax = ax.scatter(kpoints_dists,eig2,s=size,c=w_rel2[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
-                    print(len(kpoints_dists))
-                    print(len(eig1))
 
                     cax = ax.scatter(kpoints_dists,eig1,s=size,c='r',label=label_1,rasterized=True,zorder=2)
                     cax = ax.scatter(kpoints_dists,eig2,s=size,c='b',label=label_1,rasterized=True,zorder=2)
@@ -210,31 +208,29 @@ class ProjwfcXML(object):
 #                    cax = ax.scatter(kpoints_dists,eig1,s=size,c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
 #                    cax = ax.scatter(kpoints_dists,eig2,s=size,c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_2)
 
+
+        # Bands with changing size
         else:
-#          if self.spin_components == 1:
-          #plot bands for a varying size
-             print('spin non-polarized')
-             w_proj = self.get_weights(selected_orbitals=selected_orbitals)
-             for ib in range(bandmin,bandmax):
-                 eig = self.eigen[:,ib] - self.fermi + y_offset
-                 cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=label_1,rasterized=True,zorder=2)
-                 #cax = ax.scatter(kpoints_dists,eig,s=1.0,c=color,edgecolors='none',alpha=alpha,label=label_1,rasterized=True,zorder=2)
-#
-#          if self.spin_components == 2:
-#          #plot bands for a varying size
-#             w_proj1, w_proj2 = self.get_weights(selected_orbitals=selected_orbitals)
-#             for ib in range(bandmin,bandmax):
-#                 eig1 = self.eigen1[:,ib] - self.fermi
-#                 eig2 = self.eigen2[:,ib] - self.fermi
-#                 cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=label_1)
-#                 cax = ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=label_2)
+            if self.spin_components == 1 or self.spin_components == 4:
+               w_proj = self.get_weights(selected_orbitals=selected_orbitals)
+               for ib in range(bandmin,bandmax):
+                   eig = self.eigen[:,ib] + y_offset
+                   cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=label_1,rasterized=True,zorder=2)
+                  #cax = ax.scatter(kpoints_dists,eig,s=1.0,c=color,edgecolors='none',alpha=alpha,label=label_1,rasterized=True,zorder=2)
+
+            elif self.spin_components == 2:
+                 w_proj1, w_proj2 = self.get_weights(selected_orbitals=selected_orbitals)
+                 for ib in range(bandmin,bandmax):
+                     eig1, eig2 = self.eigen1[:,ib], self.eigen2[:,ib]
+                     cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=label_1)
+                     cax = ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=label_2)
 
         ax.set_xlim(0, max(kpoints_dists))
         return cax
 
     def get_weights(self,selected_orbitals=[],bandmin=0,bandmax=None):
         if bandmax is None:
-            bandmax = self.nbands
+           bandmax = self.nbands
 
         if self.spin_components == 1:
 
@@ -358,10 +354,11 @@ class ProjwfcXML(object):
     def get_proj(self):
         """ Return projections
         """
+        print('Return projections')
         datafile_xml = self.datafile_xml
-        proj  = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
 
         if self.spin_components == 1 or self.spin_components == 4:
+           proj  = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
 
            # version 6.1
            if self.qe_version == '6.1':
@@ -386,58 +383,57 @@ class ProjwfcXML(object):
                           z = float(c.split()[0]) + 1.0j*float(c.split()[1])
                           atom_aux.append(z)
                       proj[ik,ip] = atom_aux
-
+              
               self.proj = np.array(proj)
-
-           # Spin polarized
-           if self.spin_components == 2:
 
               return proj
 
-        if self.spin_components == 2:
+           # Spin polarized
+        elif self.spin_components == 2:
+             print('return spin polarized projections')
            
-            if self.qe_version == '6.1':
-               proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
-               proj2 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+             if self.qe_version == '6.1':
+                proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+                proj2 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
 
-               for ik in range(self.nkpoints):
-                   for ip in range(self.nproj):
-                       projlist1    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/SPIN.1/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
-                       projlist2    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/SPIN.2/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
-                       proj1[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist1 ]
-                       proj2[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist2 ]
+                for ik in range(self.nkpoints):
+                    for ip in range(self.nproj):
+                        projlist1    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/SPIN.1/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
+                        projlist2    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/SPIN.2/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
+                        proj1[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist1 ]
+                        proj2[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist2 ]
 
-               self.proj1 = np.array(proj1)
-               self.proj2 = np.array(proj2)
+                self.proj1 = np.array(proj1)
+                self.proj2 = np.array(proj2)
 
-               return proj1, proj2
+                return proj1, proj2
 
             # Two independent spinors
-            elif self.qe_version == '6.7' or self.qe_version=='7.0':
-               data_atomic_wfc = self.datafile_xml.findall("EIGENSTATES/PROJS/ATOMIC_WFC")
-               proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
-               proj2 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+             elif self.qe_version == '6.7' or self.qe_version=='7.0':
+                  data_atomic_wfc = self.datafile_xml.findall("EIGENSTATES/PROJS/ATOMIC_WFC")
+                  proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+                  proj2 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+                  
+                  for ik in range(self.nkpoints):
+                      for ip in range(self.nproj):
+                          i_data1 = ik*self.nproj + ip
+                          i_data2 = (ik+self.nkpoints)*self.nproj + ip
+                          projlist1 = data_atomic_wfc[i_data1].text.splitlines()[1:-1]
+                          projlist2 = data_atomic_wfc[i_data2].text.splitlines()[1:-1]
+                          atom_aux1, atom_aux2 = [], []
+                          for c in projlist1:
+                              z = float(c.split()[0]) + 1.0j*float(c.split()[1])
+                              atom_aux1.append(z)
+                          for c in projlist2:
+                              z = float(c.split()[0]) + 1.0j*float(c.split()[1])
+                              atom_aux2.append(z)
+                          proj1[ik,ip] = atom_aux1
+                          proj2[ik,ip] = atom_aux2
 
-               for ik in range(self.nkpoints):
-                   for ip in range(self.nproj):
-                      i_data1 = ik*self.nproj + ip
-                      i_data2 = (ik+self.nkpoints)*self.nproj + ip
-                      projlist1 = data_atomic_wfc[i_data1].text.splitlines()[1:-1]
-                      projlist2 = data_atomic_wfc[i_data2].text.splitlines()[1:-1]
-                      atom_aux1, atom_aux2 = [], []
-                      for c in projlist1:
-                          z = float(c.split()[0]) + 1.0j*float(c.split()[1])
-                          atom_aux1.append(z)
-                      for c in projlist2:
-                          z = float(c.split()[0]) + 1.0j*float(c.split()[1])
-                          atom_aux2.append(z)
-                      proj1[ik,ip] = atom_aux1
-                      proj2[ik,ip] = atom_aux2
+                  self.proj1 = np.array(proj1)
+                  self.proj2 = np.array(proj2)
 
-               self.proj1 = np.array(proj1)
-               self.proj2 = np.array(proj2)
-
-               return proj1, proj2
+                  return proj1, proj2
     
     #def get_overlaps(self):
 
