@@ -34,6 +34,27 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
     """
     Read gkkp from dfpt calculation
     """
+
+    def run_ypp_ph(UseQindxB=False):
+        """
+        Run ypp_ph and do checks
+        """
+        yph = YamboIn.from_runlevel('-gkkp',executable=ypp_ph,filename=filnm2,folder=database)
+        if expand:
+            if Nq!=Nk: yph.arguments.append('gkkp_db')
+            yph.arguments.append('GkkpExpand')
+            if UseQindxB: yph.arguments.append('UseQindxB')
+            print('    expanding gkkp in the full BZ')
+        yph['DBsPATH'] = "./elph_dir"
+        if os.path.isfile('%s/s.dbph_bare_000001'%elph_save):
+            print('    reading also bare gkkp')
+            yph.arguments.append('GkkpReadBare')
+        yph.write('%s/%s'%(database,filnm2)) 
+
+        yppph_run = scheduler()
+        yppph_run.add_command('cd %s ; %s -F %s; cd -'%(database,ypp_ph,filnm2))
+        yppph_run.run()
+                
     # Generate SAVE folder if nscf_path is given
     if qe_save != "": generate_save.generate_save(database,qe_save,y_dir,scheduler,noinit=True)
     
@@ -67,22 +88,15 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
             else: yamboph_run.add_command('cd %s ; %s -F %s ; cd -'%(database,yambo_ph,filnm1))
             yamboph_run.run()
 
-            yph = YamboIn.from_runlevel('-gkkp',executable=ypp_ph,filename=filnm2,folder=database)
-            if expand:
-                if Nq!=Nk: yph.arguments.append('gkkp_db')
-                yph.arguments.append('GkkpExpand')
-                print('    expanding gkkp in the full BZ')
-            yph['DBsPATH'] = "./elph_dir"
-            if os.path.isfile('%s/s.dbph_bare_000001'%elph_save):
-                print('    reading also bare gkkp')
-                yph.arguments.append('GkkpReadBare')
-            yph.write('%s/%s'%(database,filnm2))
-
-            yppph_run = scheduler()
-            yppph_run.add_command('cd %s ; %s -F %s; cd -'%(database,ypp_ph,filnm2))
-            yppph_run.run()
-            if ( not os.path.isfile('%s/SAVE/ndb.elph_gkkp'%database) ) and ( not os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'%database) ):
-                print('[ERROR] ndb.elph_gkkp databases not created. Check the logs.')
+            # Run ypp_ph
+            run_ypp_ph()
+            
+            dbs_are_not_there = ( not os.path.isfile('%s/SAVE/ndb.elph_gkkp'%database) ) and /
+                                ( not os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'%database) )
+            if dbs_are_not_there:
+                print("[WARNING] First attempt didn't work. Retrying with UseQindxB")
+                run_ypp_ph(UseQindxB=True)
+                if dbs_are_not_there: print('[ERROR] ndb.elph_gkkp databases not created. Check the logs.')
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate SAVE folder including gkkp databases')
