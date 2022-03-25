@@ -116,7 +116,6 @@ class PwXML():
         
         #get fermi
         self.fermi = float(self.datafile_xml.find("BAND_STRUCTURE_INFO/FERMI_ENERGY").text)*HatoeV
-        print('FERMI ENERGY %lf' % self.fermi)
  
         #get eigenvalues
 
@@ -248,14 +247,11 @@ class PwXML():
             kpoint = [float(x) for x in kstates[i].findall('k_point')[0].text.strip().split()]
             self.kpoints.append( kpoint )
 
-        #get fermi
-        # it depends on the occupations
+        #get fermi (it depends on the occupations)
         if self.occ_type == 'fixed':
            self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)*HatoeV
-           print('fermi %lf' % self.fermi)
         else:
            self.fermi = float(self.datafile_xml.find("output/band_structure/fermi_energy").text)*HatoeV
-           print('fermi %lf' % self.fermi)
 
         #get eigenvalues
         self.eigen1 = []
@@ -351,8 +347,6 @@ class PwXML():
            eigen1 = np.array(self.eigen1)
 
            for ib in range(self.nbands_up):
-               #ax.plot(kpoints_dists,eigen1[:,ib] - self.fermi, '%s-'%color, lw=2, zorder=1)
-               #ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up] - self.fermi + y_offset, 'b-', lw=2, zorder=1)
                ax.plot(kpoints_dists,eigen1[:,ib]                + y_offset, '%s-'%color, lw=2, zorder=1) # spin-up 
                ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up] + y_offset, 'b-', lw=2, zorder=1) # spin-down
 
