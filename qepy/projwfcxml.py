@@ -60,7 +60,6 @@ class ProjwfcXML(object):
         #kpoints_lines = self.datafile_xml.find("K-POINTS").text.strip().split('\n')
         #kpoints_float = [ list(map(float, kline.split())) for kline in kpoints_lines ]
         #self.kpoints  = np.array(kpoints_float)
-        print('FERMI ENERGY %lf' % self.fermi)
         self.kpoints = self.get_kpoints()
 
         # Read Eigenvalues
@@ -132,8 +131,6 @@ class ProjwfcXML(object):
         selection of the orbitals...
         """
         from numpy import arange
-        # Careful with the path variable! I am changing this variable to path_kpoints
-        # Check we are not breaking the code some where else
         import matplotlib.pyplot as plt
         import matplotlib as mpl
         if path_kpoints:
@@ -302,10 +299,6 @@ class ProjwfcXML(object):
                   eigen.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG"%(ik+1)).text.split())))  # version before 6.7
               self.eigen = np.array(eigen)*RytoeV - self.fermi
               return self.eigen
-               #exit()
-               #eigen.append( list(map(float, self.datafile_xml.find("EIGENSTATES/E"%(ik+1)).text.split())))  # version 6.7
-               #exit()
-           #exit()
 
         # Spin polarized
         if self.spin_components == 2:
@@ -389,7 +382,7 @@ class ProjwfcXML(object):
 
                 return proj1, proj2
 
-            # Two independent spinors
+           # Two independent spinors
              elif self.qe_version == '6.7' or self.qe_version=='7.0':
                   data_atomic_wfc = self.datafile_xml.findall("EIGENSTATES/PROJS/ATOMIC_WFC")
                   proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
@@ -416,9 +409,6 @@ class ProjwfcXML(object):
 
                   return proj1, proj2
     
-    #def get_overlaps(self):
-
-
     def __str__(self):
         s  = "nbands:   %d\n"%self.nbands
         s += "nkpoints: %d\n"%self.nkpoints
