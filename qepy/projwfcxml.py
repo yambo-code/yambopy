@@ -25,6 +25,8 @@ class ProjwfcXML(object):
     def __init__(self,prefix,output_filename='projwfc.log',path='.',qe_version='6.1'):
         """
         Initialize the structure with the path where the atomic_proj.xml is
+        The zero energy is fixed at the Fermi energy
+        Check conversion of Fermi energy (Ry to eV or Ha to eV)
         """
         self.qe_version   = qe_version
         self.prefix       = prefix
@@ -45,7 +47,7 @@ class ProjwfcXML(object):
            # Read the number of BANDS
            self.nbands   = int(self.datafile_xml.find("HEADER/NUMBER_OF_BANDS").text)
            #get fermi
-           self.fermi = float(self.datafile_xml.find("HEADER/FERMI_ENERGY").text)*HatoeV # Is the conversion OK?? 
+           self.fermi = float(self.datafile_xml.find("HEADER/FERMI_ENERGY").text)*RytoeV # Is the conversion OK?? 
            #get number of projections
            self.nproj    = int(self.datafile_xml.find("HEADER/NUMBER_OF_ATOMIC_WFC").text)
            #get weights of kpoints projections
@@ -131,7 +133,7 @@ class ProjwfcXML(object):
         """
         from numpy import arange
         # Careful with the path variable! I am changing this variable to path_kpoints
-        # Check we are not breaking the code some where
+        # Check we are not breaking the code some where else
         import matplotlib.pyplot as plt
         import matplotlib as mpl
         if path_kpoints:
@@ -165,58 +167,37 @@ class ProjwfcXML(object):
             ax.axvline(kpoints_dists[t],c='k',lw=2)
         ax.axhline(0,c='k')
      
+        # Plot bands for fixed size in a colormap
         if selected_orbitals_2:
            # No spin or full spinor
            if self.spin_components == 1 or self.spin_components == 4:
-              #get weights of second set of orbitals
               w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
-              #plot bands for fixed size
               for ib in range(bandmin,bandmax):
-                  eig = self.eigen[:,ib] - self.fermi + y_offset
+                  eig = self.eigen[:,ib] + y_offset
                   if size_projection==True:
                      cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
                   else:
                      cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
-                     #plt.plot(kpoints_dists,eig,'r-')#,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
 
-           # Spin polarized
+           # Spin polarized no SOC
            if self.spin_components == 2:
               w_rel1, w_rel2 = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
-              #plot bands for fixed size
               for ib in range(bandmin,bandmax):
-                  eig1 = self.eigen1[:,ib] - self.fermi + y_offset
-                  eig2 = self.eigen2[:,ib] - self.fermi + y_offset
+                  eig1 = self.eigen1[:,ib] + y_offset
+                  eig2 = self.eigen2[:,ib] + y_offset
                   if size_projection==True:
                      cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
                   else:
-                    #cax = ax.scatter(kpoints_dists,eig2,s=size,c=w_rel2[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
+                     cax = ax.scatter(kpoints_dists,eig1,s=size,c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
+                     cax2= ax.scatter(kpoints_dists,eig2,s=size,c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
 
-                    cax = ax.scatter(kpoints_dists,eig1,s=size,c='r',label=label_1,rasterized=True,zorder=2)
-                    cax = ax.scatter(kpoints_dists,eig2,s=size,c='b',label=label_1,rasterized=True,zorder=2)
-
-#          if self.spin_components == 2:
-#             #get weights of second set of orbitals
-#             w_rel1, w_rel2 = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
-#             #plot bands for fixed size
-#             for ib in range(bandmin,bandmax):
-#                 eig1 = self.eigen1[:,ib] - self.fermi
-#                 eig2 = self.eigen2[:,ib] - self.fermi
-#                 if size_projection==True:
-#                    cax = ax.scatter(kpoints_dists,eig1,s=size[:,ib],c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
-#                    cax = ax.scatter(kpoints_dists,eig2,s=size[:,ib],c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_2)
-#                 else:
-#                    cax = ax.scatter(kpoints_dists,eig1,s=size,c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1)
-#                    cax = ax.scatter(kpoints_dists,eig2,s=size,c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_2)
-
-
-        # Bands with changing size
+        # Plot bands with changing size and a fixed color
         else:
             if self.spin_components == 1 or self.spin_components == 4:
                w_proj = self.get_weights(selected_orbitals=selected_orbitals)
                for ib in range(bandmin,bandmax):
                    eig = self.eigen[:,ib] + y_offset
                    cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=label_1,rasterized=True,zorder=2)
-                  #cax = ax.scatter(kpoints_dists,eig,s=1.0,c=color,edgecolors='none',alpha=alpha,label=label_1,rasterized=True,zorder=2)
 
             elif self.spin_components == 2:
                  w_proj1, w_proj2 = self.get_weights(selected_orbitals=selected_orbitals)
@@ -312,14 +293,14 @@ class ProjwfcXML(object):
            if self.qe_version == '6.7' or self.qe_version=='7.0':
               eigen =  [ list( map(float, word.text.split())) for word in self.datafile_xml.findall("EIGENSTATES/E") ] 
 
-              self.eigen = np.array(eigen)*RytoeV
+              self.eigen = np.array(eigen)*RytoeV - self.fermi
               return self.eigen
 
            if self.qe_version == '6.1':
 
               for ik in range(self.nkpoints):
                   eigen.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG"%(ik+1)).text.split())))  # version before 6.7
-              self.eigen = np.array(eigen)*RytoeV
+              self.eigen = np.array(eigen)*RytoeV - self.fermi
               return self.eigen
                #exit()
                #eigen.append( list(map(float, self.datafile_xml.find("EIGENSTATES/E"%(ik+1)).text.split())))  # version 6.7
@@ -332,16 +313,16 @@ class ProjwfcXML(object):
             if self.qe_version == '6.7' or self.qe_version=='7.0':
                eigen_prov =  [ list( map(float, word.text.split())) for word in self.datafile_xml.findall("EIGENSTATES/E") ] 
                eigen_aux = np.array(eigen_prov)*RytoeV 
-               self.eigen1 = eigen_aux[            0:  self.nkpoints,:]
-               self.eigen2 = eigen_aux[self.nkpoints:2*self.nkpoints,:]
+               self.eigen1 = eigen_aux[            0:  self.nkpoints,:] - self.fermi
+               self.eigen2 = eigen_aux[self.nkpoints:2*self.nkpoints,:] - self.fermi
                return self.eigen1, self.eigen2
 
             if self.qe_version == '6.1':
                for ik in range(self.nkpoints):
                    eigen1.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG.1"%(ik+1)).text.split() )))
                    eigen2.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG.2"%(ik+1)).text.split() )))
-               self.eigen1 = np.array(eigen1)*RytoeV
-               self.eigen2 = np.array(eigen2)*RytoeV
+               self.eigen1 = np.array(eigen1)*RytoeV - self.fermi
+               self.eigen2 = np.array(eigen2)*RytoeV - self.fermi
 
                return self.eigen1, self.eigen2
 
