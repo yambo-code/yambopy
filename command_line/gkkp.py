@@ -54,7 +54,14 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
         yppph_run = scheduler()
         yppph_run.add_command('cd %s ; %s -F %s; cd -'%(database,ypp_ph,filnm2))
         yppph_run.run()
-                
+
+    def dbs_are_not_there():
+        """
+        Check if elph databases were produced succesfully
+        """
+        return ( not os.path.isfile('%s/SAVE/ndb.elph_gkkp'%database) ) and \
+               ( not os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'%database) )
+
     # Generate SAVE folder if nscf_path is given
     if qe_save != "": generate_save.generate_save(database,qe_save,y_dir,scheduler,noinit=True)
     
@@ -90,13 +97,11 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
 
             # Run ypp_ph
             run_ypp_ph()
-            
-            dbs_are_not_there = ( not os.path.isfile('%s/SAVE/ndb.elph_gkkp'%database) ) and /
-                                ( not os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'%database) )
-            if dbs_are_not_there:
+           
+            if dbs_are_not_there():
                 print("[WARNING] First attempt didn't work. Retrying with UseQindxB")
                 run_ypp_ph(UseQindxB=True)
-                if dbs_are_not_there: print('[ERROR] ndb.elph_gkkp databases not created. Check the logs.')
+                if dbs_are_not_there(): print('[ERROR] ndb.elph_gkkp databases not created. Check the logs.')
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate SAVE folder including gkkp databases')
