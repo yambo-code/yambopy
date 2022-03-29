@@ -91,7 +91,7 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
             # Run ypp_ph
             run_ypp_ph()
             
-            dbs_are_not_there = ( not os.path.isfile('%s/SAVE/ndb.elph_gkkp'%database) ) and /
+            dbs_are_not_there = ( not os.path.isfile('%s/SAVE/ndb.elph_gkkp'%database) ) and \
                                 ( not os.path.isfile('%s/SAVE/ndb.elph_gkkp_expanded'%database) )
             if dbs_are_not_there:
                 print("[WARNING] First attempt didn't work. Retrying with UseQindxB")
