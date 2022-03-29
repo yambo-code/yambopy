@@ -8,7 +8,7 @@ from math import sqrt
 from time import time
 import matplotlib.pyplot as plt
 from yambopy.tools.string import marquee
-from yambopy.tools.funcs import abs2, lorentzian, gaussian
+from yambopy.tools.funcs import abs2,lorentzian, gaussian
 from yambopy.plot.plotting import add_fig_kwargs,BZ_hexagon,shifted_grids_2D
 
 class YamboDipolesDB():
@@ -256,7 +256,7 @@ class YamboDipolesDB():
 
         electrons -> electrons YamboElectronsDB
         GWshift -> rigid GW shift in eV
-        broad -> broadening of peaks
+        broad -> broadening of peaks in eV
         broadtype -> 'l' is lorentzian, 'g' is gaussian
         nbnds -> number of [valence, conduction] bands included starting from Fermi level. Default means all are included
         emin,emax,esteps -> frequency range for the plot
@@ -264,11 +264,11 @@ class YamboDipolesDB():
 
         #get eigenvalues and weights of electrons
         eiv = electrons.eigenvalues
-        print(eiv.shape)
+        #print(eiv.shape)
         weights = electrons.weights
         nv = electrons.nbandsv
         nc = electrons.nbandsc   
- 
+
         #get dipoles
         dipoles = self.dipoles
 
@@ -298,25 +298,26 @@ class YamboDipolesDB():
 
         na = np.newaxis
         #calculate epsilon
-        for c,v in product(list(range(nv,lc)),list(range(iv,nv))):
-            #get electron-hole energy and dipoles
-            ecv  = eiv[:,c]-eiv[:,v]
-            dip2 = abs2(dipoles[:,pol,c-nv,v])
+        for c,v in product(range(nv,lc),range(iv,nv)):
 
-            #make dimensions match
-            dip2a = dip2[na,:]
-            ecva  = ecv[na,:]
-            freqa = freq[:,na]
-            wa    = weights[na,:]       
+                #get electron-hole energy and dipoles
+                ecv  = eiv[:,c]-eiv[:,v]
+                dip2 = np.abs(dipoles[:,pol,c,v])**2.
+
+                #make dimensions match
+                dip2a = dip2[na,:]
+                ecva  = ecv[na,:]
+                freqa = freq[:,na]
+                wa    = weights[na,:]       
  
-            #calculate the lorentzians 
-            broadw = broadening(freqa,ecva,broad)
+                #calculate the lorentzians 
+                broadw = broadening(freqa,ecva,broad)
    
-            #scale broadening with dipoles and weights
-            epsk =  wa*dip2a*broadw
+                #scale broadening with dipoles and weights
+                epsk =  wa*dip2a*broadw
 
-            #integrate over kpoints
-            eps2 += np.sum(epsk,axis=1)
+                #integrate over kpoints
+                eps2 += np.sum(epsk,axis=1)
 
         return freq, eps2
 
