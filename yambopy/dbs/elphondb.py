@@ -7,6 +7,7 @@ from yambopy import *
 from netCDF4 import Dataset
 from math import sqrt
 import numpy as np
+from yambopy.tools.string import marquee
 import os
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -265,22 +266,25 @@ class YamboElectronPhononDB():
 
         try: self.ph_eigenvectors
         except AttributeError: self.read_eigenmodes()
+
+        lines = []; app = lines.append
+        app(marquee(self.__class__.__name__))
             
-        s = 'nqpoints: %d\n'%self.nqpoints
-        s+= 'nkpoints: %d\n'%self.nkpoints
-        s+= 'nmodes: %d\n'%self.nmodes
-        s+= 'natoms: %d\n'%self.natoms
-        s+= 'nbands: %d\n'%self.nbands
-        if self.nfrags == self.nqpoints: s+= 'fragments: %d\n'%self.nfrags
-        else: s+= 'fragments: %d [WARNING] nfrags < nqpoints\n'%self.nfrags
-        if self.are_bare_there: s+= 'bare couplings are present\n'
+        app('nqpoints: %d'%self.nqpoints)
+        app('nkpoints: %d'%self.nkpoints)
+        app('nmodes: %d'%self.nmodes)
+        app('natoms: %d'%self.natoms)
+        app('nbands: %d'%self.nbands)
+        if self.nfrags == self.nqpoints: app('fragments: %d'%self.nfrags)
+        else: app('fragments: %d [WARNING] nfrags < nqpoints'%self.nfrags)
+        if self.are_bare_there: app('bare couplings are present')
         if verbose:
-            s+= '-----------------------------------\n'
+            app('-----------------------------------')
             for iq in range(self.nfrags):
-                s+= 'nqpoint %d\n'%iq
+                app('nqpoint %d'%iq)
                 for n,mode in enumerate(self.ph_eigenvectors[iq]):
-                    s+= 'mode %d freq: %lf meV\n'%(n,self.ph_energies[iq,n]*1000.)
+                    app('mode %d freq: %lf meV'%(n,self.ph_energies[iq,n]*1000.))
                     for a in range(self.natoms):
-                        s += ("%12.8lf "*3+'\n')%tuple(mode[a].real)
-            s+= '-----------------------------------\n'
-        return s
+                        app(("%12.8lf "*3)%tuple(mode[a].real))
+            app('-----------------------------------')
+        return "\n".join(lines)
