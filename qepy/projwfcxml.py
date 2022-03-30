@@ -202,7 +202,7 @@ class ProjwfcXML(object):
                  for ib in range(bandmin,bandmax):
                      eig1, eig2 = self.eigen1[:,ib], self.eigen2[:,ib]
                      cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=label_1)
-                     cax = ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=label_2)
+                     cax2= ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=label_2)
 
         ax.set_xlim(0, max(kpoints_dists))
         return cax
@@ -225,25 +225,11 @@ class ProjwfcXML(object):
            # Selection of the bands
            w_proj1 = zeros([self.nkpoints,self.nbands])
            w_proj2 = zeros([self.nkpoints,self.nbands])
-           #print(selected_orbitals)
-           #print(len(selected_orbitals))
-           #exit()
+
            for ik in range(self.nkpoints):
                for ib in range(bandmin,bandmax):
-                   if len(selected_orbitals) == 1:
-                      #print('if')
-                      #print(self.proj1[ik,selected_orbitals,ib])
-                      w_proj1[ik,ib] = abs(self.proj1[ik,selected_orbitals,ib])**2 
-                      w_proj2[ik,ib] = abs(self.proj2[ik,selected_orbitals,ib])**2 
-                      #exit()
-                   else:
-                      #print(self.proj1[ik,selected_orbitals,ib])
-                      w_proj1[ik,ib] = sum(abs(self.proj1[ik,selected_orbitals,ib])**2)
-                      w_proj2[ik,ib] = sum(abs(self.proj2[ik,selected_orbitals,ib])**2)
-                      #w_proj1[ik,ib] = sum( list(chain.from_iterable(abs(self.proj1[ik,selected_orbitals,ib])**2))) 
-                      #w_proj2[ik,ib] = sum( list(chain.from_iterable(abs(self.proj2[ik,selected_orbitals,ib])**2))) 
-                   #   print('else')
-                   #   print(self.proj1[ik,selected_orbitals,ib])
+                   w_proj1[ik,ib] = sum(abs(self.proj1[ik,selected_orbitals,ib])**2)
+                   w_proj2[ik,ib] = sum(abs(self.proj2[ik,selected_orbitals,ib])**2)
            return w_proj1, w_proj2
 
     def get_relative_weight(self,selected_orbitals=[],selected_orbitals_2=[],bandmin=0,bandmax=None):
@@ -256,10 +242,8 @@ class ProjwfcXML(object):
            w_rel = zeros([self.nkpoints,self.nbands])
            for ik in range(self.nkpoints):
                for ib in range(bandmin,bandmax):
-                   # Function chain is used to flat the list (potential bug if
-                   # we have a list inside another list
-                   a = sum(list(chain.from_iterable(abs(self.proj[ik,selected_orbitals  ,ib])**2)))
-                   b = sum(list(chain.from_iterable(abs(self.proj[ik,selected_orbitals_2,ib])**2)))
+                   a = sum(abs(self.proj[ik,selected_orbitals  ,ib])**2)
+                   b = sum(abs(self.proj[ik,selected_orbitals_2,ib])**2)
                    w_rel[ik,ib] = a/(a+b)
            return w_rel
 
@@ -270,13 +254,11 @@ class ProjwfcXML(object):
            w_rel2 = zeros([self.nkpoints,self.nbands])
            for ik in range(self.nkpoints):
                for ib in range(bandmin,bandmax):
-                   # Function chain is used to flat the list (potential bug if
-                   # we have a list inside another list
-                   a1 = sum(list(chain.from_iterable(abs(self.proj1[ik,selected_orbitals  ,ib])**2)))
-                   b1 = sum(list(chain.from_iterable(abs(self.proj1[ik,selected_orbitals_2,ib])**2)))
+                   a1 = sum(abs(self.proj1[ik,selected_orbitals  ,ib])**2)
+                   b1 = sum(abs(self.proj1[ik,selected_orbitals_2,ib])**2)
                    w_rel1[ik,ib] = a1/(a1+b1)
-                   a2 = sum(list(chain.from_iterable(abs(self.proj2[ik,selected_orbitals  ,ib])**2)))
-                   b2 = sum(list(chain.from_iterable(abs(self.proj2[ik,selected_orbitals_2,ib])**2)))
+                   a2 = sum(abs(self.proj2[ik,selected_orbitals  ,ib])**2)
+                   b2 = sum(abs(self.proj2[ik,selected_orbitals_2,ib])**2)
                    w_rel2[ik,ib] = a2/(a2+b2)
            return w_rel1, w_rel2
 
