@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from numpy import array, zeros
 from .lattice import Path, calculate_distances 
 from .auxiliary import *
+from itertools import chain
 
 RytoeV = 13.605698066
 HatoeV = 2.0*RytoeV
@@ -148,7 +149,7 @@ class ProjwfcXML(object):
           color_map2 = plt.get_cmap(cmap2)
         else:
           color_map2 = plt.get_cmap('rainbow')
-
+        print
         # Fix here
         #get kpoint_dists
         kpoints_dists = calculate_distances(self.kpoints[:self.nkpoints])
@@ -240,11 +241,10 @@ class ProjwfcXML(object):
            w_rel = zeros([self.nkpoints,self.nbands])
            for ik in range(self.nkpoints):
                for ib in range(bandmin,bandmax):
-                   #print(self.proj.shape)
-                   a = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
-                   b = sum(abs(self.proj[ik,selected_orbitals_2,ib])**2)
-                   #print(a,b)
-                   #exit()
+                   # Function chain is used to flat the list (potential bug if
+                   # we have a list inside another list
+                   a = sum(list(chain.from_iterable(abs(self.proj[ik,selected_orbitals  ,ib])**2)))
+                   b = sum(list(chain.from_iterable(abs(self.proj[ik,selected_orbitals_2,ib])**2)))
                    w_rel[ik,ib] = a/(a+b)
            return w_rel
 
@@ -255,11 +255,13 @@ class ProjwfcXML(object):
            w_rel2 = zeros([self.nkpoints,self.nbands])
            for ik in range(self.nkpoints):
                for ib in range(bandmin,bandmax):
-                   a1 = sum(abs(self.proj1[ik,selected_orbitals,ib])**2)
-                   b1 = sum(abs(self.proj1[ik,selected_orbitals_2,ib])**2)
+                   # Function chain is used to flat the list (potential bug if
+                   # we have a list inside another list
+                   a1 = sum(list(chain.from_iterable(abs(self.proj1[ik,selected_orbitals  ,ib])**2)))
+                   b1 = sum(list(chain.from_iterable(abs(self.proj1[ik,selected_orbitals_2,ib])**2)))
                    w_rel1[ik,ib] = a1/(a1+b1)
-                   a2 = sum(abs(self.proj2[ik,selected_orbitals,ib])**2)
-                   b2 = sum(abs(self.proj2[ik,selected_orbitals_2,ib])**2)
+                   a2 = sum(list(chain.from_iterable(abs(self.proj2[ik,selected_orbitals  ,ib])**2)))
+                   b2 = sum(list(chain.from_iterable(abs(self.proj2[ik,selected_orbitals_2,ib])**2)))
                    w_rel2[ik,ib] = a2/(a2+b2)
            return w_rel1, w_rel2
 
@@ -331,7 +333,6 @@ class ProjwfcXML(object):
     def get_proj(self):
         """ Return projections
         """
-        print('Return projections')
         datafile_xml = self.datafile_xml
 
         if self.spin_components == 1 or self.spin_components == 4:
