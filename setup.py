@@ -12,7 +12,6 @@ packages_yambopy = ['yambopy',
                     'yambopy.common',
                     'yambopy.gkkp',
                     'qepy',
-                    'materials',
                     'schedulerpy',
                     'yamboparser',
                     'command_line']

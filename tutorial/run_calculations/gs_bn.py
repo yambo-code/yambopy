@@ -13,7 +13,6 @@ kpoints      = [6,6,1]
 kpoints_nscf = [6,6,1]
 kpoints_double = [24,24,1]
 qpoints = [3,3,1]
-pw_dir = './work/fpaleari/my_compilations/q-e-qe-6.1.0/bin'
 layer_separation = 12
 pw = 'pw.x'
 ph = 'ph.x'
@@ -28,8 +27,7 @@ p = Path([ [[0.0, 0.0, 0.0],'$\Gamma$'],
            [[0.0, 0.0, 0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
 # scheduler
-#scheduler = Scheduler.factory(scheduler="bash")
-scheduler = Scheduler.factory()
+scheduler = Scheduler.factory
 
 # create the input files
 def get_inputfile():
@@ -158,11 +156,11 @@ def run_projection(show=True):
     projwfc.write(folder='bands')
     projwfc.run(folder='bands')
     #read xml file
-    projection = ProjwfcXML(prefix='bn',path='bands',qe_version='6.7')
+    projection = ProjwfcXML(prefix='bn',path='bands')
     n_atom = range(16)
     b_atom = range(16,32)
     ax = plt.subplot(1,1,1)
-    cax = projection.plot_eigen(ax,path_kpoints=p,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='seismic')
+    cax = projection.plot_eigen(ax,path=p,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='seismic')
     plt.colorbar(cax)
     if show: plt.show()
 
@@ -214,14 +212,14 @@ if __name__ == "__main__":
 
     if args.scf:
         print("running scf:")
-        qe_run = scheduler 
+        qe_run = scheduler() 
         qe_run.add_command("cd scf; mpirun -np %d %s -inp %s.scf > scf.log"%(nthreads,pw,prefix))  #scf
         qe_run.run()
         print("done!")
    
     if args.nscf: 
         print("running nscf:")
-        qe_run = scheduler 
+        qe_run = scheduler() 
         qe_run.add_command("cp -r scf/%s.save nscf/"%prefix) #nscf
         qe_run.add_command("cd nscf; mpirun -np %d %s -nk %d -inp %s.nscf > nscf.log"%(nthreads,pw,nthreads,prefix)) #nscf
         qe_run.run()
