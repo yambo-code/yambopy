@@ -65,7 +65,7 @@ def create_save():
         #initialize the double grid
         print("creating double grid")
 
-        yppin = YamboIn.from_runlevel('%s -m',filename='ypp.in',executable=ypp,folder='database')
+        yppin = YamboIn.from_runlevel('-m',filename='ypp.in',executable=ypp,folder='database')
 
         yppin['DbGd_DB1_paths'] = ["../database_double"]
         yppin.arguments.append('SkipCheck')
@@ -88,7 +88,7 @@ def run(nthreads=1,cut=False):
         shell.clean()
 
     #create the yambo input file
-    y = YamboIn.from_runlevel('%s -r -b -o b -k sex -y d -V all'%yambo,folder='bse')
+    y = YamboIn.from_runlevel('-r -d s -o b -k sex -y d -V all',executable=yambo,folder='bse')
 
     if cut:
         y['CUTGeo'] = 'box z'
@@ -96,7 +96,7 @@ def run(nthreads=1,cut=False):
 
     y['FFTGvecs'] = [30,'Ry']
     y['NGsBlkXs'] = [1,'Ry']
-    y['BndsRnXs'] = [1,80]
+    y['BndsRnXs'] = [1,70]
     y['BSEBands'] = [3,6]
     y['BEnSteps'] = 500
     y['BEnRange'] = [[0.0,10.0],'eV']
