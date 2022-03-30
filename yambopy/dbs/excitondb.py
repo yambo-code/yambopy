@@ -1,4 +1,4 @@
-# Copyright (c) 2018, Henrique Miranda
+# Copyrigh (c) 2018, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -274,7 +274,7 @@ class YamboExcitonDB(YamboSaveDB):
             #expand eigenvalues to the full brillouin zone
             # SPIN-UP CHANNEL ONLY. Check with BSE WFs
             energies = energies.eigenvalues[0,self.lattice.kpoints_indexes]
-
+            
         elif isinstance(energies,YamboQPDB):
             #expand the quasiparticle energies to the bull brillouin zone
             pad_energies = energies.eigenvalues_qp[self.lattice.kpoints_indexes]
@@ -287,8 +287,6 @@ class YamboExcitonDB(YamboSaveDB):
                              "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         weights = self.get_exciton_weights(excitons)      
-        #print(energies.shape)
-        #exit()
         energies = energies[band_indexes]
         weights  = weights[band_indexes]
 
