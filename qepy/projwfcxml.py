@@ -240,8 +240,11 @@ class ProjwfcXML(object):
            w_rel = zeros([self.nkpoints,self.nbands])
            for ik in range(self.nkpoints):
                for ib in range(bandmin,bandmax):
+                   #print(self.proj.shape)
                    a = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
                    b = sum(abs(self.proj[ik,selected_orbitals_2,ib])**2)
+                   #print(a,b)
+                   #exit()
                    w_rel[ik,ib] = a/(a+b)
            return w_rel
 
