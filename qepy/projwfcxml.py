@@ -225,10 +225,25 @@ class ProjwfcXML(object):
            # Selection of the bands
            w_proj1 = zeros([self.nkpoints,self.nbands])
            w_proj2 = zeros([self.nkpoints,self.nbands])
+           #print(selected_orbitals)
+           #print(len(selected_orbitals))
+           #exit()
            for ik in range(self.nkpoints):
                for ib in range(bandmin,bandmax):
-                   w_proj1[ik,ib] = sum(abs(self.proj1[ik,selected_orbitals,ib])**2)
-                   w_proj2[ik,ib] = sum(abs(self.proj2[ik,selected_orbitals,ib])**2)
+                   if len(selected_orbitals) == 1:
+                      #print('if')
+                      #print(self.proj1[ik,selected_orbitals,ib])
+                      w_proj1[ik,ib] = abs(self.proj1[ik,selected_orbitals,ib])**2 
+                      w_proj2[ik,ib] = abs(self.proj2[ik,selected_orbitals,ib])**2 
+                      #exit()
+                   else:
+                      #print(self.proj1[ik,selected_orbitals,ib])
+                      w_proj1[ik,ib] = sum(abs(self.proj1[ik,selected_orbitals,ib])**2)
+                      w_proj2[ik,ib] = sum(abs(self.proj2[ik,selected_orbitals,ib])**2)
+                      #w_proj1[ik,ib] = sum( list(chain.from_iterable(abs(self.proj1[ik,selected_orbitals,ib])**2))) 
+                      #w_proj2[ik,ib] = sum( list(chain.from_iterable(abs(self.proj2[ik,selected_orbitals,ib])**2))) 
+                   #   print('else')
+                   #   print(self.proj1[ik,selected_orbitals,ib])
            return w_proj1, w_proj2
 
     def get_relative_weight(self,selected_orbitals=[],selected_orbitals_2=[],bandmin=0,bandmax=None):
