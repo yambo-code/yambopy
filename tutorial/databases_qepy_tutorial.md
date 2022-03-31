@@ -12,4 +12,50 @@ Scripts and classes DESCRIPTION.
 
 INSTRUCTIONS for downloading.
 
+# Tutorial 1. BN (semiconductor). Band structure
+==============================================
+
+Folder 'bn-semiconductor'
+
+1. Plot band structure
+
+python plot-qe-bands.py
+
+2. Plot the atomic orbital projected band structure
+
+python plot-qe-orbitals.py
+
+# Tutorial 2. Iron (metal). Band structure
+==============================================
+
+Folder 'iron-metal'
+
+0. Calculate scf density and bands
+
+python flow-iron.py
+
+1. Plot band structure
+
+python plot-qe-bands.py
+
+2. Plot the atomic orbital projected band structure. The dot size is correlated
+with the weight of the atomic orbitals.
+
+python plot-qe-orbitals-size.py
+
+3. Plot the atomic orbital projected band structure. We can set a colormap
+   related with the partial weights of two sets of atomic orbitals.
+
+python plot-qe-orbitals-colormap.py
+
+# Tutorial 3. BN (semiconductor). GW Band structure
+==============================================
+
+1. Find stretching coefficients
+
+2. Plot DFT and GW band structures non-interpolated
+
+3. Plot DFT and GW band structures interpolated
+
+4. Compare non-interpolated and interpolated band structures
 
