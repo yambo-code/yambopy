@@ -1,7 +1,7 @@
-Database Tutorial
+Database Tutorial - Yambopy
 ========
 
-Here you find a basic postprocessing tutorial for quantum espresso and yambo databases.
+Here you find a basic postprocessing tutorial for yambo databases.
 
 Inside the directory there are several scripts showing some of the functionalities of these classes. The examples provided are not exhaustive and you can explore the code in yambopy/dbs (or write to the yambo forum) to investigate about all the features.
 
