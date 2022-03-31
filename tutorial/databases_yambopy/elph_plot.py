@@ -39,25 +39,25 @@ if __name__ == "__main__":
 
     # We select a specific Q-point to plot |g(K)| in kspace
     g_of_k = np.abs(yelph.gkkp[i_q,:,i_nu,i_n,i_m])
-    yelph.plot_elph(g_of_k,s=100,plt_cbar=False,marker='H',cmap='viridis')
 
     # We select a specific K-point to plot |g(Q)| in qspace
     g_of_q = np.abs(yelph.gkkp[:,i_k,i_nu,i_n,i_m])
-    yelph.plot_elph(g_of_q,s=100,plt_cbar=False,marker='H',cmap='viridis')
-
-    #                   #
-    # End Yambopy part. #
-    #                   # 
     
     # Plots are customisable as needed using matplotlib
     if Kspace_Plot:
+        yelph.plot_elph(g_of_k,s=100,plt_cbar=False,marker='H',cmap='viridis')
         yelph.ax.set_title('|g(k)| (Hartree)')
         yelph.ax.set_xlabel('k_x')
         yelph.ax.set_ylabel('k_y')
         plt.show()
 
     if Qspace_Plot:
+        yelph.plot_elph(g_of_q,s=100,plt_cbar=False,marker='H',cmap='viridis')
         yelph.ax.set_title('|g(q)| (Hartree)')
         yelph.ax.set_xlabel('q_x')
         yelph.ax.set_ylabel('q_y')
         plt.show()
+
+    #                   #
+    # End Yambopy part. #
+    #                   # 
