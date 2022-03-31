@@ -7,6 +7,7 @@ from yambopy import *
 from netCDF4 import Dataset
 from math import sqrt
 import numpy as np
+from yambopy.tools.string import marquee
 import os
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -29,8 +30,10 @@ class YamboElectronPhononDB():
       :: yph.ph_energies     #Phonon energies (eV)      
       :: yph.ph_eigenvectors #Phonon modes
       :: yph.gkkp            #El-ph matrix elements (by default normalised with ph. energies):
-      :: yph.gkkp_bare
       :: yph.gkkp_sq         #Couplings (square) 
+
+      Additional variables (Experimental stuff)
+      :: yph.gkkp_bare
       :: yph.gkkp_bare_sq
       :: yph.gkkp_mixed      #Coupling (mixed bare-dressed)
    
@@ -256,28 +259,32 @@ class YamboElectronPhononDB():
         if plt_show: plt.show()
         else: print("Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
         
-    def __str__(self):
+    def __str__(self,verbose=False):
 
         try: self.ph_energies
         except AttributeError: self.read_frequencies()
 
         try: self.ph_eigenvectors
         except AttributeError: self.read_eigenmodes()
+
+        lines = []; app = lines.append
+        app(marquee(self.__class__.__name__))
             
-        s = 'nqpoints: %d\n'%self.nqpoints
-        s+= 'nkpoints: %d\n'%self.nkpoints
-        s+= 'nmodes: %d\n'%self.nmodes
-        s+= 'natoms: %d\n'%self.natoms
-        s+= 'nbands: %d\n'%self.nbands
-        if self.nfrags == self.nqpoints: s+= 'fragments: %d\n'%self.nfrags
-        else: s+= 'fragments: %d [WARNING] nfrags < nqpoints\n'%self.nfrags
-        if self.are_bare_there: s+= 'bare couplings are present\n'
-        s+= '-----------------------------------\n'
-        for iq in range(self.nfrags):
-            s+= 'nqpoint %d\n'%iq
-            for n,mode in enumerate(self.ph_eigenvectors[iq]):
-                s+= 'mode %d freq: %lf meV\n'%(n,self.ph_energies[iq,n]*1000.)
-                for a in range(self.natoms):
-                    s += ("%12.8lf "*3+'\n')%tuple(mode[a].real)
-        s+= '-----------------------------------\n'
-        return s
+        app('nqpoints: %d'%self.nqpoints)
+        app('nkpoints: %d'%self.nkpoints)
+        app('nmodes: %d'%self.nmodes)
+        app('natoms: %d'%self.natoms)
+        app('nbands: %d'%self.nbands)
+        if self.nfrags == self.nqpoints: app('fragments: %d'%self.nfrags)
+        else: app('fragments: %d [WARNING] nfrags < nqpoints'%self.nfrags)
+        if self.are_bare_there: app('bare couplings are present')
+        if verbose:
+            app('-----------------------------------')
+            for iq in range(self.nfrags):
+                app('nqpoint %d'%iq)
+                for n,mode in enumerate(self.ph_eigenvectors[iq]):
+                    app('mode %d freq: %lf meV'%(n,self.ph_energies[iq,n]*1000.))
+                    for a in range(self.natoms):
+                        app(("%12.8lf "*3)%tuple(mode[a].real))
+            app('-----------------------------------')
+        return "\n".join(lines)

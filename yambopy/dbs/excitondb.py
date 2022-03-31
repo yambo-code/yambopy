@@ -8,7 +8,7 @@ from itertools import product
 from yambopy import *
 from cmath import polar 
 from yambopy.units import *
-from yambopy.plot.plotting import add_fig_kwargs
+from yambopy.plot.plotting import add_fig_kwargs,BZ_hexagon
 from yambopy.lattice import replicate_red_kmesh, calculate_distances, get_path
 from yambopy.tools.funcs import gaussian, lorentzian
 
@@ -50,27 +50,36 @@ class Exciton():
 
 class YamboExcitonDB(YamboSaveDB):
     """ Read the excitonic states database from yambo
+
+        Exciton eigenvectors are arranged as eigenvectors[i_exc, i_kvc]
+        Transitions are unpacked in table[ i_k, i_v, i_c, i_s_c, i_s_v ] (last two are spin indices)
     """
-    def __init__(self,lattice,eigenvalues,l_residual,r_residual,table=None,eigenvectors=None):
+    def __init__(self,lattice,Qpt,eigenvalues,l_residual,r_residual,car_qpoint=None,q_cutoff=None,table=None,eigenvectors=None):
         if not isinstance(lattice,YamboLatticeDB):
             raise ValueError('Invalid type for lattice argument. It must be YamboLatticeDB')
-        #print(lattice)
+
+        self.Qpt = Qpt
         self.lattice = lattice
         self.eigenvalues = eigenvalues
         self.l_residual = l_residual
         self.r_residual = r_residual
         #optional
+        self.car_qpoint = car_qpoint
+        self.q_cutoff = q_cutoff
         self.table = table
         self.eigenvectors = eigenvectors
         #self.spin_pol     = spin_pol
 
     @classmethod
-    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q01',folder='.'):
+    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.'):
         """ initialize this class from a file
         """
         path_filename = os.path.join(folder,filename)
         if not os.path.isfile(path_filename):
             raise FileNotFoundError("File %s not found in YamboExcitonDB"%path_filename)
+
+        # Qpoint
+        Qpt = filename.split("Q",1)[1]
 
         with Dataset(path_filename) as database:
             if 'BS_left_Residuals' in list(database.variables.keys()):
@@ -84,6 +93,11 @@ class YamboExcitonDB(YamboSaveDB):
                 rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
                 l_residual = rel+iml*I
                 r_residual = rer+imr*I
+
+            car_qpoint = None
+            if 'Q-point' in list(database.variables.keys()):
+                # Finite momentum
+                car_qpoint = database.variables['Q-point'][:]/lattice.alat
 
             #energies
             eig =  database.variables['BS_Energies'][:]*ha2ev
@@ -100,8 +114,17 @@ class YamboExcitonDB(YamboSaveDB):
 
             table = table
             eigenvectors = eigenvectors
+       
+        # Check if Coulomb cutoff is present
+        path_cutoff = os.path.join(path_filename.split('ndb',1)[0],'ndb.cutoff')  
+        q_cutoff = None
+        if os.path.isfile(path_cutoff):
+            with Dataset(path_cutoff) as database:
+                bare_qpg = database.variables['CUT_BARE_QPG'][:]
+                bare_qpg = bare_qpg[:,:,0]+bare_qpg[:,:,1]*I
+                q_cutoff = np.abs(bare_qpg[0,int(Qpt)-1])
 
-        return cls(lattice,eigenvalues,l_residual,r_residual,table=table,eigenvectors=eigenvectors)
+        return cls(lattice,Qpt,eigenvalues,l_residual,r_residual,q_cutoff=q_cutoff,car_qpoint=car_qpoint,table=table,eigenvectors=eigenvectors)
 
     @property
     def unique_vbands(self):
@@ -763,10 +786,12 @@ class YamboExcitonDB(YamboSaveDB):
             ax.imshow(weights_bz_sum,interpolation=interp_method)
 
         title = kwargs.pop('title',str(excitons))
+        
         ax.set_title(title)
         ax.set_aspect('equal')
         ax.set_xticks([])
         ax.set_yticks([])
+        ax.add_patch(BZ_hexagon(self.lattice.rlat))
         return ax
     
     @add_fig_kwargs
@@ -1134,8 +1159,7 @@ class YamboExcitonDB(YamboSaveDB):
 
         return car_kpoints, amplitudes[kindx], np.angle(phases)[kindx]
 
-    def get_chi(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5,
-            nexcitons='all',spin_degen=2,verbose=0,**kwargs):
+    def get_chi(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
         """
         Calculate the dielectric response function using excitonic states
         """
@@ -1194,14 +1218,18 @@ class YamboExcitonDB(YamboSaveDB):
             r = EL1[s]*EL2[s]
             chi += r*G1 + r*G2
 
-        #multiply facto
+        #dimensional factors
+        if not self.Qpt=='1': q0norm = 2*np.pi*np.linalg.norm(self.car_qpoint)
+        if self.q_cutoff is not None: q0norm = self.q_cutoff
+
         d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
-        cofactor = spin_degen/(2*np.pi)**3 * d3k_factor * (4*np.pi)
-        chi = chi*cofactor/q0norm**2
+        cofactor = ha2ev*spin_degen/(2*np.pi)**3 * d3k_factor * (4*np.pi)  / q0norm**2
+        
+        chi = 1. + chi*cofactor #We are actually computing the epsilon, not the chi.
 
         return w,chi
 
-    def plot_chi_ax(self,ax,reim='im',n_brightest=5,**kwargs):
+    def plot_chi_ax(self,ax,reim='im',n_brightest=-1,**kwargs):
         """Plot chi on a matplotlib axes"""
         w,chi = self.get_chi(**kwargs)
         #cleanup kwargs variables
@@ -1213,15 +1241,16 @@ class YamboExcitonDB(YamboSaveDB):
         ax.set_ylabel('$Im(\chi(\omega))$')
         ax.set_xlabel('Energy (eV)')
         #plot vertical bar on the brightest excitons
-        exc_e,exc_i = self.get_sorted()
-        for i,idx in exc_i[:n_brightest]:
-            exciton_energy,idx = exc_e[idx]
-            ax.axvline(exciton_energy,c='k')
-            ax.text(exciton_energy,0.1,idx,rotation=90)
+        if n_brightest>-1:
+            exc_e,exc_i = self.get_sorted()
+            for i,idx in exc_i[:n_brightest]:
+                exciton_energy,idx = exc_e[idx]
+                ax.axvline(exciton_energy,c='k')
+                ax.text(exciton_energy,0.1,idx,rotation=90)
         return w,chi
 
     @add_fig_kwargs
-    def plot_chi(self,n_brightest=5,**kwargs):
+    def plot_chi(self,n_brightest=-1,**kwargs):
         """Produce a figure with chi"""
         import matplotlib.pyplot as plt
         fig = plt.figure()
@@ -1237,6 +1266,7 @@ class YamboExcitonDB(YamboSaveDB):
     def get_string(self,mark="="):
         lines = []; app = lines.append
         app( marquee(self.__class__.__name__,mark=mark) )
+        app( "BSE solved at Q:            %s"%self.Qpt )
         app( "number of excitons:         %d"%self.nexcitons )
         if self.table is not None: 
             app( "number of transitions:      %d"%self.ntransitions )
