@@ -17,6 +17,8 @@ Here you can find some user contributed scripts for yambopy.
 4. plot_excitons.py
  Plot the BSE spectra including excitonic energies and the exciton weights in the Brillouin Zone of a BSE calculation.
 
+5. gkkp.py
+ Generate SAVE folder along with electron-phonon ndb.elph_gkkp databases
 
   Realtime Folder
   ===============
@@ -31,6 +33,7 @@ Here you can find some user contributed scripts for yambopy.
 
   0b. gkkp.py
     This one can be found in the tutorial on real-time calculations. It calculates the electron-phonon matrix elements.
+    FP: Didn't find this script. I made one to produce the *unexpanded* gkkp along with the SAVE folder.
 
   1. rt-pulse.py
     This is to be run first. Use the -c option to calculate the collisions, -p to simulate the effect of a laser pump

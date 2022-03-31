@@ -30,7 +30,6 @@ Modules:
 
     analyse:
         - YamboAnalyser: read .json files generated with yamboout and plot them together
-        - recipes: user contributed scripts
 """
 import numpy as np
 
@@ -40,6 +39,8 @@ class yambopyenv():
     E2Y = "e2y"
     YPP = "ypp"
     SCHEDULER = "bash"
+    YAMBO_RT = "yambo_rt"
+    YPP_RT = "ypp_rt"
 
 #tools and units
 from yambopy.tools.jsonencoder import *
@@ -64,6 +65,7 @@ from yambopy.dbs.bsekerneldb import *
 from yambopy.io.inputfile import *
 from yambopy.io.outputfile import *
 from yambopy.io.jsonfile import *
+from yambopy.io.iofile import *
 
 #bse/excitons files
 from yambopy.bse.excitonwf import *
@@ -72,13 +74,21 @@ from yambopy.bse.bse_absorption import *
 
 #analyse stuff
 from yambopy.analyse import *
-from yambopy.recipes import *
+
+#workflow files
+from yambopy.common.save_generation import *
+from yambopy.common.workflow import *
+from yambopy.common.calculation_manager import *
 
 #realtime files
 from yambopy.rt.rt_movie import *
+from yambopy.rt.rt_timestep_optimize import *
+
+#doublegrid files
+from yambopy.double_grid.dg_convergence import *
+
+#gkkp files
+from yambopy.gkkp.compute_gkkp import *
 
 #data
 from yambopy.data import *
-
-
-

@@ -99,6 +99,7 @@ class YamboIn(object):
         read the file and return an instance of this class
         """
         workdir = os.getcwd()
+        if executable[3:]=='ypp': filename='ypp.in'
 
         #check if there exists a SAVE folder
         save_path = os.path.join(folder,'SAVE')
@@ -108,6 +109,7 @@ class YamboIn(object):
         os.chdir(folder)
         if os.path.isfile(filename): os.remove(filename)
         if '-Q' not in runlevel: runlevel += ' -Q'
+        if filename is not ('yambo.in' or 'ypp.in'): runlevel += ' -F %s'%filename
         command = "%s %s"%(executable,runlevel)
         yambo = Popen(command, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True)
         yambo.wait()
