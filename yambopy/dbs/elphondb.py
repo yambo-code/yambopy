@@ -1,4 +1,4 @@
-# Copyright (c) 2018, Henrique Miranda
+# Copyright (c) 2018, Fulvio Paleari, Alejandro Molina-Sánchez, Henrique Miranda
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -7,219 +7,284 @@ from yambopy import *
 from netCDF4 import Dataset
 from math import sqrt
 import numpy as np
-from cmath import exp
+from yambopy.tools.string import marquee
+import os
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from yambopy.units import ha2ev, ev2cm1, I
+from yambopy.plot.plotting import add_fig_kwargs,BZ_hexagon,shifted_grids_2D
 
 class YamboElectronPhononDB():
     """
-    Python class to read the electron-phonon matrix elements from yambo
+    Python class to read the electron-phonon matrix elements from yambo.
+    
+    By default it reads the full databases including fragments.
+    
+    - Input: YamboLatticeDB object, paths of ndb.elph* and ns.db1
+    - Input: if not read_all, read only header
+    
+    - Usage and main variables: 
+    
+      :: yph = YamboElectronPhononDB(ylat,folder_gkkp=path1,save=path2)
+    
+      :: yph.ph_energies     #Phonon energies (eV)      
+      :: yph.ph_eigenvectors #Phonon modes
+      :: yph.gkkp            #El-ph matrix elements (by default normalised with ph. energies):
+      :: yph.gkkp_sq         #Couplings (square) 
+
+      Additional variables (Experimental stuff)
+      :: yph.gkkp_bare
+      :: yph.gkkp_bare_sq
+      :: yph.gkkp_mixed      #Coupling (mixed bare-dressed)
+   
+    Formats:
+    - modes[ix][iat][il]
+    - gkkp[iq][ik][il][ib1][ib2]
+
+    Plots provided:
+    - Call function plot for scatterplot in the k-BZ of any quantity A(k)_{iq,ib1,ib2,inu} 
+        -- if plt_show, show plot at runtime
+        -- if plt_cbar, add colorbar
+
+      Example, plot of |g(k)_{0,3,4,4}|:      
+           :: yph.plot_elph( np.abs(yph.gkkp[0,:,3,4,4]) )              
     """
-    def __init__(self,lattice,filename='ndb.elph_gkkp',folder_gkkp='SAVE',save='SAVE',only_freqs=False):
-        self.lattice = lattice
+    def __init__(self,lattice,filename='ndb.elph_gkkp',folder_gkkp='SAVE',save='SAVE',read_all=True):
         
-        self.save = save
-        self.filename = "%s/%s"%(folder_gkkp,filename)
-        self.ph_eigenvalues = None
+        # Find correct database names
+        if os.path.isfile("%s/ndb.elph_gkkp"%folder_gkkp): filename='%s/ndb.elph_gkkp'%folder_gkkp
+        elif os.path.isfile("%s/ndb.elph_gkkp_expanded"%folder_gkkp): filename='%s/ndb.elph_gkkp_expanded'%folder_gkkp
+        else: filename = "%s/%s"%(folder_gkkp,filename)
+        self.frag_filename = filename + "_fragment_"
+        self.are_bare_there = False
         
-        self.car_kpoints = lattice.car_kpoints
-        self.red_kpoints = lattice.red_kpoints
+        # necessary lattice information
+        self.alat        = lattice.alat
         self.rlat        = lattice.rlat
-        #read dimensions of electron phonon parameters
-        try:
-            database = Dataset(self.filename)
-        except:
-            raise FileNotFoundError("error opening %s in YamboElectronPhononDB"%self.filename)
+        self.car_kpoints = lattice.car_kpoints
             
+        # Check if databases exist. Exit only if header is missing.
+        try: database = Dataset(filename)
+        except: raise FileNotFoundError("error opening %s in YamboElectronPhononDB"%filename)
+        
+        try: database_frag = Dataset("%s1"%self.frag_filename)
+        except FileNotFoundError: print("[WARNING] Database fragment at q=0 not detected")
+        else: 
+            # Check if bare matrix elements are present
+            try: 
+                database_frag.variables['ELPH_GKKP_BARE_Q1']
+            except KeyError: 
+                database_frag.close()
+            else:
+                self.are_bare_there = True
+                database_frag.close()
+                 
+        #read qpoints    
         self.qpoints = database.variables['PH_Q'][:].T
-        self.car_qpoints = np.array([ q/self.lattice.alat for q in self.qpoints ])
-
+        self.car_qpoints = np.array([ q/self.alat for q in self.qpoints ])
+        #read dimensions of electron phonon parameters
         self.nmodes, self.nqpoints, self.nkpoints, self.nbands = database.variables['PARS'][:4].astype(int)
-        self.natoms = self.nmodes/3
-        database.close()
-
-        # I wouldn't open any DB GKKP file in the initizialiaction
-        #self.readDB_n_np(ib1=2,ib2=3,ik1=3)
-        #self.readDB()
-
-    def get_elphon(self,dir=0):
-        if self.gkkp is None:
-            self.get_elphon_databases()
-
-        kpts, nks, nss = self.expand_kpts()
-        gkkp = self.gkkp
-
-        return gkkp, kpts
-
-    def readDB(self,only_freqs=False):
-        """ 
-        Load all the gkkp databases to memory
-        """
-
-        self.ph_eigenvalues  = np.zeros([self.nqpoints,self.nmodes])
-        self.ph_eigenvectors = np.zeros([self.nqpoints,self.nmodes,self.nmodes/3,3],dtype=np.complex64)
-        if not only_freqs:
-            self.gkkp = np.zeros([self.nqpoints,self.nkpoints,self.nmodes,self.nbands,self.nbands],dtype=np.complex64)
-        
-        for nq in range(self.nqpoints):
-            filename = '%s_fragment_%d'%(self.filename,nq+1)
-
-            database = Dataset(filename)
-
-            self.ph_eigenvalues[nq] = np.sqrt(database.variables['PH_FREQS%d'%(nq+1)][:])
-
-            p_re = database.variables['POLARIZATION_VECTORS_REAL'][:].T
-            p_im = database.variables['POLARIZATION_VECTORS_IMAG'][:].T
-            self.ph_eigenvectors[nq] = p_re + p_im*I
-            
-            if not only_freqs:
-                gkkp = database.variables['ELPH_GKKP_Q%d'%(nq+1)][:]
-                self.gkkp[nq] = (gkkp[:,0,:,:] + I*gkkp[:,1,:,:]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
-            
+        self.natoms = int(self.nmodes/3)
+        try: # Check if K-point list is provided (upon expansion), otherwise use the one from ns.db1
+            self.kpoints_elph = database.variables['PH_K'][:].T
+            self.car_kpoints = np.array([ k/self.alat for k in self.kpoints_elph ])
             database.close()
-
-        if not only_freqs:
-            return self.gkkp
-
-    def readDB_n_np(self,ib1=1,ib2=1,ik1=1):
-        # Read gkkps for a given n,n' and k
-        # The structure of the gkkps in Yambo is
-        # GKKP(q)[k,complex,nmodes,nbands*nbands]
-
-        iband = (ib1-1)*self.nbands + (ib2-1)
-        if iband < 0: raise ValueError("error in iband. ib1 and ib2 cannot be zero") 
-
-        self.gkkp_n_np_kn = np.zeros([self.nqpoints,self.nmodes],dtype=np.complex64)
-
-        print('The transition from band n = %d to band n\'= %d has yambo index %d' % (ib1, ib2, iband) )
-
-        for nq in xrange(self.nqpoints):
-            filename = '%s_fragment_%d'%(self.filename,nq+1)
-
-            database = Dataset(filename)
-
-            #self.ph_eigenvalues[nq] = np.sqrt(database.variables['PH_FREQS%d'%(nq+1)][:])
-
-            #p_re = database.variables['POLARIZATION_VECTORS_REAL'][:].T
-            #p_im = database.variables['POLARIZATION_VECTORS_IMAG'][:].T
-            #self.ph_eigenvectors[nq] = p_re + p_im*I
-            
-            #if not only_freqs:
-            self.gkkp_n_np_kn[nq] = database.variables['ELPH_GKKP_Q%d'%(nq+1)][ik1-1,0,:,iband] + I* database.variables['ELPH_GKKP_Q%d'%(nq+1)][ik1-1,1,:,iband]
-            #self.gkkp_n_np_kn[nq] = (gkkp[:,0,:,:] + I*gkkp[:,1,:,:]).reshape([self.nkpoints,self.nmodes,self.nbands,self.nbands])
-            
+        except KeyError:
             database.close()
-
-        return self.gkkp_n_np_kn
-
-    def plot_map(self,fig,ib1=1,ib2=1,ik1=1,all_phonons=True,cmap='viridis',size=60,lim=0.15):
-        """
-        Alejandro Molina-Sanchez
-        Plot the gkkp in a scatter plot (1st version developed by A. Molina-Sanchez)
-        Options:
-        cmap : colormap. Default viridis 
-        log_scale : Logarithmic scale for the intensity (True or False) Do we put that?
-        set_maximum : All plots are normalized 
-        Further development: Option for the colorbar
- 
-        """
-        import matplotlib.pyplot as plt
-        import matplotlib.colors as colors
-        #size=20,marker='H',set_origin=0.0,lim=0.2,cmap='viridis',log_scale=False,set_maximum=1.0
-
-        # GKKP(k+q)[n,n',k]
-        data=self.readDB_n_np(ib1,ib2,ik1)
-
-
-        color_map = plt.get_cmap(cmap)
         
-        kx_aux, ky_aux = self.car_qpoints[:,0], self.car_qpoints[:,1]
-
-        kx = concatenate([kx_aux,kx_aux+self.rlat[0,0],kx_aux-self.rlat[0,0],kx_aux+self.rlat[1,0],kx_aux-self.rlat[1,0],kx_aux+self.rlat[0,0]-self.rlat[1,0],kx_aux-self.rlat[0,0]+self.rlat[1,0]])
-        ky = concatenate([ky_aux,ky_aux+self.rlat[0,1],ky_aux-self.rlat[0,1],ky_aux+self.rlat[1,1],ky_aux-self.rlat[1,1],ky_aux+self.rlat[0,1]-self.rlat[1,1],ky_aux-self.rlat[0,1]+self.rlat[1,1]])
-        
-        """ 
-        all_phonons options
-        True:  Sum over all phonon modes
-        False: Plot all gkkp from each phonon mode
-        """
-        if all_phonons:
-            gkkp_aux = zeros([self.nqpoints])
-            ax = fig.add_subplot(111)
-            ax.set_aspect('equal')
-            ax.axes.get_xaxis().set_visible(False)
-            ax.axes.get_yaxis().set_visible(False)
-            ax.set_xlim(-lim,lim)
-            ax.set_ylim(-lim,lim)
-            for ip in range(self.nmodes):
-              gkkp_aux += abs(data[:,ip])
-            max_gkkp = max(gkkp_aux)
-            gkkp = concatenate(7*[gkkp_aux/max_gkkp])   
-            ax.scatter( kx,ky,s=size,marker='H',c=gkkp,cmap=color_map)
-        else:
-            for ip in range(self.nmodes):
-                square_size = 0.25
-                x = 0.05 + (square_size+0.05)*(ip-ip/3*3)
-                y = 0.75 - (square_size+0.05)*(ip/3)
-                ax = fig.add_axes( [ x, y, square_size, square_size ])
-                ax.set_aspect('equal')
-                ax.axes.get_xaxis().set_visible(False)
-                ax.axes.get_yaxis().set_visible(False)
-                ax.set_xlim(-lim,lim)
-                ax.set_ylim(-lim,lim)
-                ax.set_facecolor(color_map(0.0))
-
-                gkkp_aux = abs(data[:,ip])
-                max_gkkp = max(gkkp_aux)
-                gkkp = concatenate(7*[gkkp_aux/max_gkkp])   
-                ax.scatter( kx,ky,s=size,marker='H',c=gkkp,cmap=color_map)
-
-    def plot_modulus(self,ib1=1,ib2=1,ik1=1,all_phonons=True):
-        # GKKP(k+q)[n,n',k]
-        data=self.readDB_n_np(ib1,ib2,ik1)
-
-        q_modulus = zeros(self.nqpoints)
-
-        # Modulus of q-point
+        #Check how many databases are present
+        self.nfrags = self.nqpoints
         for iq in range(self.nqpoints):
-            q_modulus[iq] = sqrt(np.dot(self.car_qpoints[iq],self.car_qpoints[iq]))
-
-        """ 
-        all_phonons options
-        True:  Sum over all phonon modes
-        False: Plot all gkkp from each phonon mode
+            if not os.path.isfile("%s%d"%(self.frag_filename,iq+1)): 
+                self.nfrags = iq
+                break
+        
+        # Keep reading
+        if read_all: self.read_full_DB()
+        
+    def read_full_DB(self):
         """
-        if all_phonons:
-            gkkp     = zeros([self.nqpoints])
-            gkkp_aux = zeros([self.nqpoints])
-            for ip in range(self.nmodes):
-                gkkp_aux[:] += abs(data[:,ip])
-            gkkp[:] = gkkp_aux[:]#/max(gkkp_aux)
-        else:
-            gkkp = zeros([self.nqpoints,self.nmodes])
-            for ip in range(self.nmodes):
-                gkkp[:,ip] = abs(data[:,ip])
-        # q_modulus : array dimension: nqpoints
-        # gkkp      : matrix dimension: (nqpoints x nphonons) or (nqpoints)
+        Read all variables in the ndb.elph_gkkp* dbs as attributes of this class
+        """
+        
+        # Frequencies
+        self.read_frequencies()
+        
+        # Eigenmodes
+        self.read_eigenmodes()
 
-        return q_modulus,gkkp
+        # <dVscf> matrix elements plus <dVbare> if they exist
+        self.read_elph()
+        if self.are_bare_there: self.read_elph(kind='bare')   
+   
+        # Get square matrix elements
+        self.get_gkkp_sq()
+        
+        # Get the symmetrised dressed-bare coupling
+        if self.are_bare_there: self.get_gkkp_mixed()
 
-    def __str__(self):
-        if self.ph_eigenvalues is None:
-            self.get_elphon_databases()
-        s = 'nqpoints: %d\n'%self.nqpoints
-        s+= 'nkpoints: %d\n'%self.nkpoints
-        s+= 'nmodes: %d\n'%self.nmodes
-        s+= 'natoms: %d\n'%self.natoms
-        s+= 'nbands: %d\n'%self.nbands
-        for nq in range(self.nqpoints):
-            s+= 'nqpoint %d\n'%nq
-            for n,mode in enumerate(self.ph_eigenvectors[nq]):
-                s+= 'mode %d freq: %lf cm-1\n'%(n,self.ph_eigenvalues[nq][n]*ha2ev*ev2cm1)
-                for a in range(self.natoms):
-                    s += ("%12.8lf "*3+'\n')%tuple(mode[a].real)
-        return s
+    def read_frequencies(self):
+        """
+        Read phonon frequencies in eV
+        """
+        self.ph_energies  = np.zeros([self.nfrags,self.nmodes])
+        
+        for iq in range(self.nfrags):
+            fil = self.frag_filename + "%d"%(iq+1)
+            database = Dataset(fil)
+            self.ph_energies[iq] = np.sqrt(database.variables['PH_FREQS%d'%(iq+1)][:])*ha2ev
+            database.close()
+        
+    def read_eigenmodes(self):
+        """
+        Read phonon eigenmodes
+        """
+        self.ph_eigenvectors = np.zeros([self.nfrags,self.nmodes,self.natoms,3],dtype=np.complex64)
+        
+        for iq in range(self.nfrags):
+            fil = self.frag_filename + "%d"%(iq+1)
+            database = Dataset(fil)
+            #eigs_q[cartesian][atom][mode][complex]
+            eigs_q = database.variables['POLARIZATION_VECTORS'][:].T
+            self.ph_eigenvectors[iq] = eigs_q[0,:,:,:] + eigs_q[1,:,:,:]*I
+            database.close()
+             
+    def read_elph(self,kind='dressed',scale_g_with_ph_energies=True):
+        """
+        Read electron-phonon matrix elements
+        
+        - kind is 'dressed' or 'bare'
+        - var_nm is 'ELPH_GKKP_Q' or 'ELPH_GKKP_BARE_Q'
+        - If scale_g_with_ph_energies they are divided by sqrt(2*ph_E)
 
-if __name__ == '__main__':
-    elph = ElectronPhononDB()
-    print(elph)
-    elph.get_databases()
+        NB: ELPH_GKKP_Q is saved by yambo as (2,mode,bnd1,bnd2,k), but netCDF stores
+            the *transpose* (k,bnd2,bnd1,mode,2).
+            We want to change it to complex (k,mode,bnd1,bnd2), therefore we need to
+            *swap* bnd2<->mode.
+        """    
+        if kind!='dressed' and kind!='bare': 
+            raise ValueError("Wrong kind %s (can be 'dressed' [Default] or 'bare')"%kind) 
+        if kind=='dressed': var_nm = 'ELPH_GKKP_Q'
+        if kind=='bare':    var_nm = 'ELPH_GKKP_BARE_Q'       
+        
+        # gkkp[q][k][mode][bnd1][bnd2]
+        gkkp_full = np.zeros([self.nfrags,self.nkpoints,self.nmodes,self.nbands,self.nbands],dtype=np.complex64)   
+        
+        for iq in range(self.nfrags):
+            fil = self.frag_filename + "%d"%(iq+1)
+            database = Dataset(fil)
+            gkkp = database.variables['%s%d'%(var_nm,iq+1)][:]
+            gkkp_full[iq] = np.swapaxes(gkkp[:,:,:,:,0] + I*gkkp[:,:,:,:,1],-1,1)
+            database.close()
+        
+        # Check integrity of elph values
+        if np.isnan(gkkp_full).any(): print('[WARNING] NaN values detected in elph database.')
+        
+        # Scaling with phonon energies
+        if scale_g_with_ph_energies: gkkp_full = self.scale_g(gkkp_full)    
+                
+        if kind=='dressed': self.gkkp = gkkp_full
+        if kind=='bare': self.gkkp_bare = gkkp_full          
+    
+    def scale_g(self,dvscf):
+        """
+        Normalise matrix elements by the phonon energy as: 
+       
+        g_qnu = dvscf_qnu/sqrt(2*w_qnu)
+        """
+        
+        g = np.zeros([self.nfrags,self.nkpoints,self.nmodes,self.nbands,self.nbands],dtype=np.complex64)
+        for iq in range(self.nfrags):
+            for inu in range(self.nmodes): 
+                if iq==0 and inu in [0,1,2]: 
+                    g[iq,:,inu,:,:] = 0. # Remove acoustic branches
+                else:
+                    ph_E = self.ph_energies[iq,inu]/ha2ev # Put back the energies in Hartree units
+                    g[iq,:,inu,:,:] = dvscf[iq,:,inu,:,:]/np.sqrt(2.*ph_E)
+        return g
+
+    def get_gkkp_sq(self,read_bare=False):
+        """
+        Return g^2
+        """
+        self.gkkp_sq = np.abs(self.gkkp)**2. 
+        if self.are_bare_there: self.gkkp_bare_sq = np.abs(self.gkkp_bare)**2. 
+
+    def get_gkkp_mixed(self):
+        """
+        Return the symmetrised dressed-bare coupling
+        """
+        self.gkkp_mixed = np.real(self.gkkp)*np.real(self.gkkp_bare)+np.imag(self.gkkp)*np.imag(self.gkkp_bare)
+        
+    @add_fig_kwargs
+    def plot_elph(self,data,plt_show=False,plt_cbar=False,**kwargs):
+        """
+        2D scatterplot in the k-BZ of the quantity A_{k}(iq,inu,ib1,ib2).
+        
+        Any real quantity which is a function of only the k-grid may be supplied.
+        The indices iq,inu,ib1,ib2 are user-specified.
+        
+        - if plt_show plot is shown
+        - if plt_cbar colorbar is shown
+        - kwargs example: marker='H', s=300, cmap='viridis', etc.
+        
+        NB: So far requires a 2D system. 
+            Can be improved to plot BZ planes at constant k_z for 3D systems.
+        """        
+        kpts = self.car_kpoints
+        
+        # Input check
+        if len(data)!=len(kpts): 
+            raise ValueError('Something wrong in data dimensions (%d data vs %d kpts)'%(len(data),len(kpts)))
+        
+        # Global plot stuff
+        self.fig, self.ax = plt.subplots(1, 1)
+        self.ax.add_patch(BZ_hexagon(self.rlat))
+        
+        if plt_cbar:
+            if 'cmap' in kwargs.keys(): color_map = plt.get_cmap(kwargs['cmap'])
+            else:                       color_map = plt.get_cmap('viridis') 
+        lim = 1.05*np.linalg.norm(self.rlat[0])
+        self.ax.set_xlim(-lim,lim)
+        self.ax.set_ylim(-lim,lim)
+
+        # Reproduce plot also in adjacent BZs
+        BZs = shifted_grids_2D(kpts,self.rlat)
+        for kpts_s in BZs: plot=self.ax.scatter(kpts_s[:,0],kpts_s[:,1],c=data,**kwargs)
+        
+        if plt_cbar: self.fig.colorbar(plot)
+        
+        plt.gca().set_aspect('equal')
+
+        if plt_show: plt.show()
+        else: print("Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
+        
+    def __str__(self,verbose=False):
+
+        try: self.ph_energies
+        except AttributeError: self.read_frequencies()
+
+        try: self.ph_eigenvectors
+        except AttributeError: self.read_eigenmodes()
+
+        lines = []; app = lines.append
+        app(marquee(self.__class__.__name__))
+            
+        app('nqpoints: %d'%self.nqpoints)
+        app('nkpoints: %d'%self.nkpoints)
+        app('nmodes: %d'%self.nmodes)
+        app('natoms: %d'%self.natoms)
+        app('nbands: %d'%self.nbands)
+        if self.nfrags == self.nqpoints: app('fragments: %d'%self.nfrags)
+        else: app('fragments: %d [WARNING] nfrags < nqpoints'%self.nfrags)
+        if self.are_bare_there: app('bare couplings are present')
+        if verbose:
+            app('-----------------------------------')
+            for iq in range(self.nfrags):
+                app('nqpoint %d'%iq)
+                for n,mode in enumerate(self.ph_eigenvectors[iq]):
+                    app('mode %d freq: %lf meV'%(n,self.ph_energies[iq,n]*1000.))
+                    for a in range(self.natoms):
+                        app(("%12.8lf "*3)%tuple(mode[a].real))
+            app('-----------------------------------')
+        return "\n".join(lines)

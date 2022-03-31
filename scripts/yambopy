@@ -1,5 +1,7 @@
 #!/usr/bin/env python3.7
+#TODO: delete/move any other scripts in this directory
 from yambopy import *
+from command_line import *
 import argparse
 import sys
 
@@ -19,7 +21,7 @@ class Cmd():
     def run(self,cmds,args):
         """
         generic run command
-        cmds is a dictionary that maps the command to the funciton to run
+        cmds is a dictionary that maps the command to the function to run
         """
         cmd = args[0]
         if cmd in list(cmds.keys()):
@@ -299,7 +301,7 @@ class MergeQPCmd(Cmd):
         files   = args.files
         
         #call merge_qp from recipes.py
-        merge_qp(output,files)
+        recipes.merge_qp(output,files)
 
     def info(self):
         """
@@ -355,6 +357,156 @@ class AddQPCmd(Cmd):
         """
         print(self.__doc__)
 
+class GkkpCmd(Cmd):
+    """
+    Produce a SAVE folder including elph_gkkp databases
+    
+    Arguments are:
+        -nscf, --nscf_dir  -> <Optional> Path to nscf save folder
+        -elph, --elph_dir  -> Path to elph_dir folder
+        -y, --yambo_dir    -> <Optional> Path to yambo executables
+        -e, --expand       -> <Optional> Expand gkkp databases
+    """
+    def __init__(self,args):
+        #check for args
+        if len(args) < 2:
+            print((self.__doc__))
+            exit(0)
+            
+        parser = argparse.ArgumentParser(description='Generate SAVE folder including gkkp databases')
+        parser.add_argument('-nscf','--nscf_dir', type=str, default="", help='<Optional> Path to nscf save folder')
+        parser.add_argument('-elph','--elph_dir', type=str,help='<Required> Path to elph_dir folder',required=True)
+        parser.add_argument('-y','--yambo_dir', default="", type=str,help='<Optional> Path to yambo executables')
+        parser.add_argument('-e','--expand', action="store_true", help="Expand GKKP")
+        args = parser.parse_args(args)
+        
+        nscf_dir  = args.nscf_dir
+        elph_dir  = args.elph_dir
+        yambo_dir = args.yambo_dir
+        expand    = args.expand
+        
+        database = './'
+        scheduler = Scheduler.factory
+
+        #call gkkp
+        gkkp.generate_gkkp(database,nscf_dir,elph_dir,yambo_dir,expand,scheduler)
+        
+class SaveCmd(Cmd):
+    """
+    Produce a SAVE folder
+    
+    Arguments are:
+        -nscf, --nscf_dir  -> Path to nscf save folder
+        -y, --yambo_dir    -> <Optional> Path to yambo executables
+    """
+    def __init__(self,args):
+        #check for args
+        if len(args) < 1:
+            print((self.__doc__))
+            exit(0)
+            
+        parser = argparse.ArgumentParser(description='Generate SAVE folder including gkkp databases')
+        parser.add_argument('-nscf','--nscf_dir', type=str,help='<Required> Path to nscf save folder', required=True)
+        parser.add_argument('-y','--yambo_dir', default="", type=str,help='<Optional> Path to yambo executables')
+        args = parser.parse_args(args)
+        
+        nscf_dir  = args.nscf_dir
+        yambo_dir = args.yambo_dir
+        
+        database = './'
+        scheduler = Scheduler.factory
+
+        #call generate_save
+        generate_save.generate_save(database,nscf_dir,yambo_dir,scheduler)
+
+class UpdtSrlNmbrCmd(Cmd):
+    """
+    Script to update serial numbers of yambo ndb.* databases in order to import them to new calculations.
+
+    Inputs:
+    1. -new, --new_serial='path/to/folder/with/new/dbs' [e.g., the new SAVE]
+    2. -old, --old_serial='path/to/folder/with/old/dbs' [e.g., an old ndb.em1s]
+
+    This script will prompt the user to go through with updating the dbs.
+    """
+    def __init__(self,args):
+        #check for args
+        if len(args) < 2:
+            print((self.__doc__))
+            exit(0)
+
+        parser = argparse.ArgumentParser(description='Updated serial numbers in yambo databases')
+        parser.add_argument('-new','--new_serial', type=str, default="./SAVE", help='<Optional> Path to folder with the newer databases (Default is ./SAVE)')
+        parser.add_argument('-old','--old_serial', type=str,help='<Required> Path to folder with the older databases',required=True)
+        args = parser.parse_args(args)
+
+        new_dir = args.new_serial
+        old_dir = args.old_serial
+
+        #check dbs
+        update_serial.prompt_user(new_dir,old_dir)
+
+class PlotBndStrCmd(Cmd):
+    """
+    Script to produce band structure data and visualization from QE.
+    
+    It reads data-file-schema.xml found in the save folders of newer pw versions.
+    
+    It requires a yaml input file (see below)
+
+    Arguments are:
+        -i, --band_input   -> Path to yaml input file
+        -o, --output_name  -> Name of output file <optional>
+        -e, --erange       -> Energy window for plot <optional>
+        -s, --show         -> Show plot at runtime <optional>
+
+    - YAML INPUT FILE 
+    This is a yaml file in the following format, to be copy-pasted and edited:
+    
+    :: yaml
+    
+        ---
+         save_dir: "PREFIX.save"
+         KPTs: [[0.,0.,0.],[0.,0.5,0.],[0.5,0.5,0.],[0.5,0.,0.]]
+         KPTs_labels: [G, Y, S, X]
+         shift_Delta_c_v: [0.,1.,1.]
+    
+    :: 
+    
+    The input parameters are:
+    - save_dir: path to folder containing 'data-file-schema.xml' (in principle the QE save folder)
+    - KPTs: band circuit in reduced coordinates
+    - KPTs_labels: labels for the band circuit points
+    - shift_Delta_c_v: k-dependent scissor shift as a list of three values (gap shift, cond. stretch, val. stretch)
+    """
+    def __init__(self,args):
+
+        #check for args
+        if len(args) < 2:
+            print((self.__doc__))
+            exit(0)
+
+        parser = argparse.ArgumentParser(description='Generate band plot')
+        parser.add_argument('-i','--band_input', type=str,  help='<Required> Path to input file',      required=True)
+        parser.add_argument('-o','--output_name', type=str,  help='<Optional> Name of output file',    required=False, default=None)
+        parser.add_argument('-e','--erange',      type=float,help='<Optional> Energy window for plot', required=False, default=4.)
+        parser.add_argument('-s','--show',        type=bool, help='<Optional> Show plot at runtime',   required=False, default=False)
+        args = parser.parse_args(args)
+
+        inp = args.band_input
+
+        # Read user input file
+        input_params = generate_bands.read_input(inp)
+
+        # Read data from .xml file
+        output_data = generate_bands.get_data_from_xml(input_params)
+
+        # Plot setup
+        data_to_plot = generate_bands.setup_BZ_points(input_params,output_data)
+
+        # Produce the plot
+        generate_bands.launch_plot(data_to_plot,plt_type='bands',out_name=args.output_name,erange=args.erange,show=args.show)
+        
 
 class YambopyCmd(Cmd):
     """
@@ -367,6 +519,10 @@ class YambopyCmd(Cmd):
                  'plotexcitons': PlotExcitons,
                  'addqp':        AddQPCmd,
                  'mergeqp':      MergeQPCmd,
+                 'save':         SaveCmd,
+                 'gkkp':         GkkpCmd,
+                 'bands':        PlotBndStrCmd,
+                 'serial':       UpdtSrlNmbrCmd,
                  'test':         TestCmd}
 
     def __init__(self,*args):
