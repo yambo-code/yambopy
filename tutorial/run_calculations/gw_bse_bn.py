@@ -40,7 +40,7 @@ def run(nthreads=1,cut=False):
     """
     run gw+bse calculation using yambo
     """
-    y = YamboIn.from_runlevel('%s -d -g n -V all'%yambo,folder=folder)
+    y = YamboIn.from_runlevel('%s -X f -g n -V all'%yambo,folder=folder)
 
     if cut:
         y['CUTGeo'] = 'box z'
@@ -64,7 +64,7 @@ def run(nthreads=1,cut=False):
 
     #
     #create the bse input file
-    y = YamboIn.from_runlevel('%s -b -o b -k sex -y d -V all'%yambo,folder=folder)
+    y = YamboIn.from_runlevel('%s -X s -o b -k sex -y d -V all'%yambo,folder=folder)
 
     if cut:
         y['CUTGeo'] = 'box z'

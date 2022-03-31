@@ -60,21 +60,9 @@ plt.show()
 
 # 3. Plot exciton weights in a 2D map of the BZ
 
-from matplotlib.patches import Polygon
-
 fig = plt.figure(figsize=(4,4))
 ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
-lattice = lat.rlat
 
-x1 = 1./3*lattice[0][:2]+1./3*lattice[1][:2]
-x2 =-1./3*lattice[0][:2]+2./3*lattice[1][:2]
-x3 =-2./3*lattice[0][:2]+1./3*lattice[1][:2]
-x4 = -x1
-x5 = -x2
-x6 = -x3
-hexagon = [x1,x2,x3,x4,x5,x6]
-
-yexc.plot_exciton_2D_ax(ax,states,mode='hexagon',limfactor=0.8,scale= 80)
-ax.add_patch(Polygon(hexagon,closed=True,fill=False,color='w',lw=1.0))
+yexc.plot_exciton_2D_ax(ax,states,mode='hexagon',limfactor=0.8,scale= 600)
 
 plt.show()
