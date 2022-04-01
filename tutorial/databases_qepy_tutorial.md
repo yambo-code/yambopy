@@ -9,7 +9,10 @@ In particular we treat the following classes:
 Scripts and classes DESCRIPTION.
 
 # Download databases
+You can download the relevant databases for this tutorial [here](www.yambo-code.org/educational/tutorials/files/databases\_qepy.tar) from the yambo website, or by simply typing:
+> wget www.yambo-code.org/educational/tutorials/files/databases\_qepy.tar
 
-INSTRUCTIONS for downloading.
+# Yambo wiki
+You can find an in-depth discussion of this tutorial on the yambo wiki [here](http://www.yambo-code.org/wiki/index.php?title=Yambopy_tutorial:_band_structures).
 
 
