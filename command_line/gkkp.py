@@ -103,7 +103,7 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
             if dbs_are_not_there:
                 print("[WARNING] First attempt didn't work. Retrying with UseQindxB")
                 run_ypp_ph(UseQindxB=True)
-                if dbs_are_not_there: print('[ERROR] ndb.elph_gkkp databases not created. Check the logs.')
+                if dbs_are_not_there(): print('[ERROR] ndb.elph_gkkp databases not created. Check the logs.')
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate SAVE folder including gkkp databases')
