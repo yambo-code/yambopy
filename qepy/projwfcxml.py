@@ -33,7 +33,6 @@ class ProjwfcXML(object):
         self.prefix       = prefix
         self.path         = path
         self.datafile_xml = ET.parse( "%s/%s.save/%s"%(path, prefix, self._proj_file)).getroot()
-
         print('Running projwfcxml for QE version %s' % qe_version)
 
         if self.qe_version=='6.7' or self.qe_version=='7.0':
@@ -125,9 +124,9 @@ class ProjwfcXML(object):
 
         Options:
 
-            (a) Relative weight between two compositions. Pass a second set of orbitals
+            (a) Relative weight between two compositions: selected_orbitals and selected_orbitas_2
+                Format >>> selected_orbitals = [0,2,4]
             (b) Colormap enters as a string
-            (c) spin = 1 (no spin) and 2 (collinear spin)
 
         Under development to include also colormap and a dictionary for the
         selection of the orbitals...
@@ -150,12 +149,11 @@ class ProjwfcXML(object):
           color_map2 = plt.get_cmap(cmap2)
         else:
           color_map2 = plt.get_cmap('rainbow')
-        print
-        # Fix here
+
         #get kpoint_dists
         kpoints_dists = calculate_distances(self.kpoints[:self.nkpoints])
  
-        #make labels
+        #make K-points labels
         ticks, labels = list(zip(*path_kpoints))
         ax.set_xticks([kpoints_dists[t] for t in ticks])
         ax.set_xticklabels(labels)
