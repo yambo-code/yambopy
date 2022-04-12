@@ -125,7 +125,3 @@ if __name__ == "__main__":
     files   = args.files
     verbose = args.verbose
     merge_qp(output,files,verbose)
-
-
-
-
