@@ -1,7 +1,7 @@
 # Copyrigh (c) 2018, Henrique Miranda
 # All rights reserved.
 #
-# This file is part of the yambopy project
+# Thi file is part of the yambopy project
 #
 import os
 from itertools import product
@@ -691,8 +691,6 @@ class YamboExcitonDB(YamboSaveDB):
         #return exc_bands
         return 
 
-
-
     def get_exciton_weights(self,excitons):
         """get weight of state in each band"""
         weights = np.zeros([self.nkpoints,self.mband])
@@ -711,7 +709,22 @@ class YamboExcitonDB(YamboSaveDB):
             if abs(sum_weights - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
  
         return weights
-  
+
+    def get_exciton_total_weights(self,excitons):
+        """get weight of state in each band"""
+        total_weights = np.zeros(self.nkpoints)
+        for exciton in excitons:
+            #get the eigenstate
+            eivec = self.eigenvectors[exciton-1]
+            #add weights
+            sum_weights = 0
+            for t,kcv in enumerate(self.table):
+                k,c,v = kcv[0:3]
+                total_weights[k-1] += abs2(eivec[t])
+            if abs(sum(total_weights) - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
+ 
+        return total_weights
+
     def get_exciton_transitions(self,excitons):
         """get weight of state in each band"""
         # Double check the part of the array w_k_v_to_c
