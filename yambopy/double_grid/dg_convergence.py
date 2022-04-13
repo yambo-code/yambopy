@@ -24,7 +24,8 @@ class YamboDG_Optimize():
         3. yambo FG [STEPS='3']
         4. if 'converge_DG' is on (therefore with yambo--> ip):
              -- TODO: Analyis, report, plot results and give ip-converged value [STEPS='4']
-        
+             -- TODO: Move the double grid generation functions to a different submodule       
+ 
     - Scheme of the workflow:
         -- If job submissions are used, the workflow is better submitted in subsequent steps
         -- If planning a parallel traversal (each independent branch simultaneously) of this tree 
@@ -373,7 +374,7 @@ class YamboDG_Optimize():
         """
         yppin = YamboIn()
         yppin.arguments.append('kpts_map')
-        yppin['FineGd_mode']='mixed'
+        yppin['FineGd_mode']='unexpanded'
         yppin['BZ_DbGd_Nk']=fg_num
         yppin.arguments.append('SkipCheck')
         yppin['FineGd_DB1_paths'] = ['./dg_SAVE']

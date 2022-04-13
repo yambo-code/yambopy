@@ -5,6 +5,7 @@
 #
 from netCDF4 import Dataset
 import numpy as np
+from yambopy.tools.string import marquee
 from itertools import product
 import collections
 ha2ev  = 27.211396132
@@ -307,9 +308,10 @@ class YamboElectronsDB():
         return self.efermi
 
     def __str__(self):
-        s = ""
-        s += "spin_degen: %d\n"%self.spin_degen
-        s += "nelectrons: %d\n"%self.nelectrons
-        s += "nbands:   %d\n"%self.nbands
-        s += "nkpoints: %d"%self.nkpoints
-        return s
+        lines = []; app = lines.append
+        app(marquee(self.__class__.__name__))
+        app("spin_degen: %d"%self.spin_degen)
+        app("nelectrons: %d"%self.nelectrons)
+        app("nbands:   %d"%self.nbands)
+        app("nkpoints: %d"%self.nkpoints)
+        return "\n".join(lines)

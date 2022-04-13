@@ -7,6 +7,7 @@
 import os
 import re
 import shutil
+import numpy as np
 from math import sqrt
 from qepy import qepyenv
 from .pseudo import get_pseudo_path
