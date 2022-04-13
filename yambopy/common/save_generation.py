@@ -1,3 +1,6 @@
+# This file is part of yambopy
+# Author: FP
+
 import os
 from yambopy import *
 from schedulerpy import *
