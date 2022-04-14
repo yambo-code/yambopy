@@ -58,6 +58,7 @@ from yambopy.dbs.excitondb import *
 from yambopy.dbs.wfdb import *
 from yambopy.dbs.elphondb import *
 from yambopy.dbs.excphondb import *
+from yambopy.dbs.kqgridsdb import *
 
 #input/output files
 from yambopy.io.inputfile import *
