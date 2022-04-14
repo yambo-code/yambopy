@@ -98,6 +98,7 @@ class YamboExcitonDB(YamboSaveDB):
             if 'Q-point' in list(database.variables.keys()):
                 # Finite momentum
                 car_qpoint = database.variables['Q-point'][:]/lattice.alat
+            if Qpt=="1": car_qpoint = np.zeros(3)
 
             #energies
             eig =  database.variables['BS_Energies'][:]*ha2ev
