@@ -262,12 +262,16 @@ class YamboElectronsDB():
 
     def energy_gaps(self,GWshift=0.):
         """
-        Calculate the enegy of the gap (by Fulvio Paleari)
+        Calculate the enegy of the gap and apply custom rigid shift
         """
         eiv = self.eigenvalues
         nv  = self.nbandsv
         nc  = self.nbandsc
 
+        # First apply shift if there is one
+        eiv[:,nv:]+=GWshift
+
+        # Then compute gaps
         homo = np.max(eiv[:,nv-1])
         lumo = np.min(eiv[:,nv])
         Egap = lumo-homo
@@ -275,7 +279,6 @@ class YamboElectronsDB():
             if k[nv-1]==homo:
                 lumo_dir=k[nv]
         Edir = lumo_dir-homo
-        eiv[:,nv:]+=GWshift
 
         print('DFT Energy gap: %s eV'%Egap)
         print('DFT Direct gap: %s eV'%Edir)
