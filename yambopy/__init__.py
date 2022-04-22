@@ -70,6 +70,7 @@ from yambopy.io.iofile import *
 from yambopy.bse.excitonwf import *
 from yambopy.bse.excitonweight import *
 from yambopy.bse.bse_absorption import *
+from yambopy.bse.bse_dispersion import *
 
 #analyse stuff
 from yambopy.analyse import *
