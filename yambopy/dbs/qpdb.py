@@ -173,6 +173,7 @@ class YamboQPDB():
         return shift,cslope,vslope,cintercept,vintercept
 
     def plot_scissor_ax(self,ax,valence,verbose=1):
+        # Create option to plot correction vs ks eigenvalues
         """
         Plot the scissor on a matplotlib axis
         """
