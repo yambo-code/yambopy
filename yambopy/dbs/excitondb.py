@@ -121,7 +121,7 @@ class YamboExcitonDB(YamboSaveDB):
         #add elements to dictionary
         kidx = set()
         for eh,kvc in enumerate(self.table-1):
-            k,v,c = kvc
+            k,v,c = kvc[0:3]
             kidx.add(k)
             transitions_v_to_c[(v,c)].append((k,eh))
         self.nkpoints = len(kidx)
@@ -304,7 +304,7 @@ class YamboExcitonDB(YamboSaveDB):
             #add weights
             sum_weights = 0
             for t,kcv in enumerate(self.table):
-                k,c,v = kcv-1
+                k,c,v = kcv[0:3]-1
                 this_weight = abs2(eivec[t])
                 weights[k,c] += this_weight
                 weights[k,v] += this_weight
