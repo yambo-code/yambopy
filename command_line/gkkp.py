@@ -84,6 +84,7 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
 
             y1 = YamboIn.from_runlevel('-i -V RL',executable=yambo_ph,filename=filnm1,folder=database)
             y1.arguments.append('BSEscatt')
+            y1['K_grids'] = "BSC"
             y1.write('%s/%s'%(database,filnm1))
             yamboph_run = scheduler()
             if not os.path.islink('%s/elph_dir'%database): yamboph_run.add_command('cd %s ; ln -s %s . ; cd -'%(database,elph_save))
