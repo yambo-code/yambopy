@@ -1232,8 +1232,14 @@ class YamboExcitonDB(YamboSaveDB):
             chi += r*G1 + r*G2
 
         #dimensional factors
-        if not self.Qpt=='1': q0norm = 2*np.pi*np.linalg.norm(self.car_qpoint)
-        if self.q_cutoff is not None: q0norm = self.q_cutoff
+        try:
+            if not self.Qpt=='1': q0norm = 2*np.pi*np.linalg.norm(self.car_qpoint)
+        except:
+            q0norm=1
+        try:
+            if self.q_cutoff is not None: q0norm = self.q_cutoff
+        except:
+            q0norm=1
 
         d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
         cofactor = ha2ev*spin_degen/(2*np.pi)**3 * d3k_factor * (4*np.pi)  / q0norm**2
