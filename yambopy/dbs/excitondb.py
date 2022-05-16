@@ -115,6 +115,8 @@ class YamboExcitonDB(YamboSaveDB):
             spin_vars = [int(database.variables['SPIN_VARS'][:][0]), int(database.variables['SPIN_VARS'][:][1])]
             if spin_vars[0] == 2 and spin_vars[1] == 1:
                spin_pol = 'pol'
+            else:
+               spin_pol = 'no'
         # Check if Coulomb cutoff is present
         path_cutoff = os.path.join(path_filename.split('ndb',1)[0],'ndb.cutoff')  
         q_cutoff = None
