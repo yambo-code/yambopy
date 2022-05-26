@@ -31,6 +31,10 @@ class YamboQPDB():
         self.e            = np.array(qps['E']).real*ha2ev
         self.linewidths   = np.array(qps['E']).imag*ha2ev
         self.qpz          = np.array(qps['Z']).real
+        self.spin         = False
+        if 'Spin_pol' in qps.keys():
+            self.spin_pol = qps['Spin_pol']
+            self.spin     = True
 
     @property
     def eigenvalues_qp(self):
@@ -77,29 +81,44 @@ class YamboQPDB():
 
         # AMS: I changed the way we define the arrays. Hope is not breaking other things
 
+        # I have shifted 
+
         ncalculatedkpoints = self.max_kpoint - self.min_kpoint + 1
+        if self.spin is True:
+           eigenvalues_dft = np.zeros([ncalculatedkpoints,self.nbands,2])
+           eigenvalues_qp  = np.zeros([ncalculatedkpoints,self.nbands,2])
+           linewidths      = np.zeros([ncalculatedkpoints,self.nbands,2])
+           z               = np.zeros([self.nkpoints,self.nbands,2])
 
-        eigenvalues_dft = np.zeros([ncalculatedkpoints,self.nbands])
-        eigenvalues_qp  = np.zeros([ncalculatedkpoints,self.nbands])
-        linewidths      = np.zeros([ncalculatedkpoints,self.nbands])
+           for ei,e0i,li,zi,ki,ni,s_pol in zip(self.e,self.e0,self.linewidths,self.qpz,self.kpoint_index,self.band_index,self.spin_pol):
+                # position in array
+                nkpoint = ki - self.min_kpoint 
+                nband   = ni - self.min_band
+                spol    = int(s_pol - 1)
 
-        #old
-        #eigenvalues_dft = np.zeros([self.nkpoints,self.nbands])
-        #eigenvalues_qp  = np.zeros([self.nkpoints,self.nbands])
-        #linewidths      = np.zeros([self.nkpoints,self.nbands])
-        z               = np.zeros([self.nkpoints,self.nbands])
-        for ei,e0i,li,zi,ki,ni in zip(self.e,self.e0,self.linewidths,self.qpz,self.kpoint_index,self.band_index):
+                eigenvalues_dft[nkpoint,nband,spol] = e0i
+                eigenvalues_qp[nkpoint,nband,spol]  = ei
+                linewidths[nkpoint,nband,spol]      = li
+                z[nkpoint,nband,spol]               = zi
 
-            # position in array
-            nkpoint = ki - self.min_kpoint 
-            nband   = ni - self.min_band
+        else:
+            eigenvalues_dft = np.zeros([ncalculatedkpoints,self.nbands])
+            eigenvalues_qp  = np.zeros([ncalculatedkpoints,self.nbands])
+            linewidths      = np.zeros([ncalculatedkpoints,self.nbands])
+            z               = np.zeros([self.nkpoints,self.nbands])
 
-            eigenvalues_dft[nkpoint,nband] = e0i
-            eigenvalues_qp[nkpoint,nband]  = ei
-            linewidths[nkpoint,nband]      = li
-            z[nkpoint,nband]               = zi
+            for ei,e0i,li,zi,ki,ni in zip(self.e,self.e0,self.linewidths,self.qpz,self.kpoint_index,self.band_index):
 
+                # position in array
+                nkpoint = ki - self.min_kpoint 
+                nband   = ni - self.min_band
+
+                eigenvalues_dft[nkpoint,nband] = e0i
+                eigenvalues_qp[nkpoint,nband]  = ei
+                linewidths[nkpoint,nband]      = li
+                z[nkpoint,nband]               = zi
         return eigenvalues_dft, eigenvalues_qp, linewidths, z
+
 
     def get_filtered_qps(self,min_band=None,max_band=None):
         """Return selected QP energies as a flat list"""
@@ -209,13 +228,23 @@ class YamboQPDB():
 
     def get_bs_path(self,lat,path,**kwargs):
         """Get a band-structure on a path"""
-        bands_kpoints, bands_indexes, path_car = lat.get_path(path.kpoints)
+        bands_kpoints, bands_indexes, path_car = lat.get_path(path.kpoints,debug=True)
 
         red_bands_kpoints = car_red(bands_kpoints,lat.rlat)
-        ks_bandstructure = YambopyBandStructure(self.eigenvalues_dft[bands_indexes],red_bands_kpoints,kpath=path,**kwargs)
-        qp_bandstructure = YambopyBandStructure(self.eigenvalues_qp[bands_indexes], red_bands_kpoints,kpath=path,**kwargs)
+        if self.spin == True:
+           print('Spin polarized bands')
+           ks_bandstructure_up = YambopyBandStructure(self.eigenvalues_dft[bands_indexes,:,0],red_bands_kpoints,kpath=path,**kwargs)
+           ks_bandstructure_dw = YambopyBandStructure(self.eigenvalues_dft[bands_indexes,:,1],red_bands_kpoints,kpath=path,**kwargs)
+           qp_bandstructure_up = YambopyBandStructure(self.eigenvalues_qp[bands_indexes,:,0], red_bands_kpoints,kpath=path,**kwargs)
+           qp_bandstructure_dw = YambopyBandStructure(self.eigenvalues_qp[bands_indexes,:,1], red_bands_kpoints,kpath=path,**kwargs)
 
-        return ks_bandstructure, qp_bandstructure
+           return ks_bandstructure_up, ks_bandstructure_dw, qp_bandstructure_up, qp_bandstructure_dw
+        else:
+           print('no polarized bands')
+           ks_bandstructure = YambopyBandStructure(self.eigenvalues_dft[bands_indexes],red_bands_kpoints,kpath=path,**kwargs)
+           qp_bandstructure = YambopyBandStructure(self.eigenvalues_qp[bands_indexes] ,red_bands_kpoints,kpath=path,**kwargs)
+
+           return ks_bandstructure, qp_bandstructure
         
     def get_bs(self,**kwargs):
         """
@@ -243,8 +272,6 @@ class YamboQPDB():
    
         #consistency check
         if not np.isclose(lattice.kpts_iku,self.kpoints_iku).all():
-            print(lattice.kpts_iku)
-            print(self.kpoints_iku)
             raise ValueError("The QP database is not consistent with the lattice")
 
         #interpolate the dft eigenvalues
@@ -256,12 +283,30 @@ class YamboQPDB():
         #interpolate KS
         ks_ebands, qp_ebands = None, None
         if 'KS' in what:
-            eigens  = self.eigenvalues_dft[np.newaxis,:]
-            skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-            kpoints_path = path.get_klist()[:,:3]
-            dft_eigens_kpath = skw.interp_kpts(kpoints_path).eigens[0]
-            if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
-            ks_ebands = YambopyBandStructure(dft_eigens_kpath,kpoints_path,kpath=path,**kwargs)
+           if self.spin == True:
+              print('Spin polarized bands')
+              eigens_up = self.eigenvalues_dft[np.newaxis,:,:,0]
+              eigens_dw = self.eigenvalues_dft[np.newaxis,:,:,1]
+              skw = SkwInterpolator(lpratio,kpoints,eigens_up,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+              kpoints_path = path.get_klist()[:,:3]
+              dft_eigens_up_kpath = skw.interp_kpts(kpoints_path).eigens[0]
+              skw = SkwInterpolator(lpratio,kpoints,eigens_dw,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+              dft_eigens_dw_kpath = skw.interp_kpts(kpoints_path).eigens[0]
+
+              if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
+              ks_ebands_up = YambopyBandStructure(dft_eigens_up_kpath,kpoints_path,kpath=path,**kwargs)
+              ks_ebands_dw = YambopyBandStructure(dft_eigens_dw_kpath,kpoints_path,kpath=path,**kwargs)
+
+           else:
+              print('no polarized bands')
+              print(self.eigenvalues_dft[np.newaxis,:].shape)
+              eigens  = self.eigenvalues_dft[np.newaxis,:]
+              print(eigens.shape)
+              skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+              kpoints_path = path.get_klist()[:,:3]
+              dft_eigens_kpath = skw.interp_kpts(kpoints_path).eigens[0]
+              if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
+              ks_ebands = YambopyBandStructure(dft_eigens_kpath,kpoints_path,kpath=path,**kwargs)
 
         #interpolate QP
         if 'QP' in what:
@@ -280,7 +325,10 @@ class YamboQPDB():
                 
             qp_ebands = YambopyBandStructure(qp_eigens_kpath,kpoints_path,kpath=path,weights=qp_z_kpath,size=0.1,**kwargs)
 
-        return ks_ebands, qp_ebands
+        if self.spin == True:
+           return ks_ebands_up, ks_ebands_dw #, qp_ebands
+        else: 
+           return ks_ebands, qp_ebands
 
     @add_fig_kwargs
     def plot_bs(self,**kwargs):
