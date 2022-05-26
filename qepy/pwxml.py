@@ -554,10 +554,8 @@ class PwXML():
         Expand also eigenvalues by default
         """
         alat      = np.array(self.acell)
-        kpts_ibz  = np.array([k/alat for k in self.kpoints])
         kpts_ibz  = np.array(self.kpoints)
         eigen_ibz = np.array(self.eigen1)
-        rlat      = np.array([RL/alat for RL in self.rcell])
         rlat      = np.array(self.rcell)
 
         self.read_symmetries()
