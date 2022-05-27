@@ -242,8 +242,8 @@ class YamboQPDB():
         fermie = kwargs.pop('fermie',0)
    
         #consistency check
-        if not np.isclose(lattice.kpts_iku,self.kpoints_iku).all():
-            print(lattice.kpts_iku)
+        if not np.isclose(lattice.iku_kpoints,self.kpoints_iku).all():
+            print(lattice.iku_kpoints)
             print(self.kpoints_iku)
             raise ValueError("The QP database is not consistent with the lattice")
 
