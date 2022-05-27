@@ -345,7 +345,8 @@ class YamboQPDB():
                qp_eigens_kpath = skw.interp_kpts(kpoints_path).eigens[0]
                if valence: kwargs['fermie'] = np.max(qp_eigens_kpath[:,:valence])
 
-               qp_ebands = YambopyBandStructure(qp_eigens_kpath,kpoints_path,kpath=path,weights=qp_z_kpath,size=0.1,**kwargs)
+               qp_ebands = YambopyBandStructure(qp_eigens_kpath,kpoints_path,kpath=path,**kwargs)
+               #qp_ebands = YambopyBandStructure(qp_eigens_kpath,kpoints_path,kpath=path,weights=qp_z_kpath,size=0.1,**kwargs)
 
             qp_z_kpath = None
             if 'Z' in what:
