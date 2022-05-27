@@ -921,6 +921,67 @@ class YamboExcitonDB(YamboSaveDB):
         ax.set_yticks([])
         ax.add_patch(BZ_hexagon(self.lattice.rlat))
         return ax
+
+    def get_exciton_3D(self,excitons,f=None):
+        """get data of the exciton in 2D"""
+        weights = self.get_exciton_weights(excitons)
+        #sum all the bands
+        weights_bz_sum = np.sum(weights,axis=1)
+        if f: weights_bz_sum = f(weights_bz_sum)
+
+        kmesh_full, kmesh_idx = replicate_red_kmesh(self.lattice.red_kpoints,repx=range(-1,2),repy=range(-1,2))
+        x,y,z = red_car(kmesh_full,self.lattice.rlat)[:,:3].T
+        weights_bz_sum = weights_bz_sum[kmesh_idx]
+        return x,y,z,weights_bz_sum
+ 
+    def plot_exciton_3D_ax(self,ax,excitons,f=None,mode='hexagon',limfactor=0.8,**kwargs):
+        """
+        Plot the exciton weights in a 3D Brillouin zone
+       
+           Arguments:
+            excitons -> list of exciton indexes to plot
+            f -> function to apply to the exciton weights. Ex. f=log will compute the 
+                 log of th weight to enhance the small contributions
+            mode -> possible values are 'hexagon' to use hexagons as markers for the 
+                    weights plot and 'rbf' to interpolate the weights using radial basis functions.
+            limfactor -> factor of the lattice parameter to choose the limits of the plot 
+            scale -> size of the markers
+        """
+        x,y,z,weights_bz_sum = self.get_exciton_3D(excitons,f=f)
+        print(x,y,z,weights_bz_sum)
+        exit()
+
+        #filter points outside of area
+        lim = np.max(self.lattice.rlat)*limfactor
+        dlim = lim*1.1
+        filtered_weights = [[xi,yi,di] for xi,yi,di in zip(x,y,weights_bz_sum) if -dlim<xi and xi<dlim and -dlim<yi and yi<dlim]
+        x,y,z,weights_bz_sum = np.array(filtered_weights).T
+
+        #plotting
+        if mode == 'hexagon': 
+            scale = kwargs.pop('scale',1)
+            ax.scatter(x,y,s=scale,marker='H',c=weights_bz_sum,rasterized=True,**kwargs)
+            ax.set_xlim(-lim,lim)
+            ax.set_ylim(-lim,lim)
+        elif mode == 'rbf':
+            from scipy.interpolate import Rbf
+            npts = kwargs.pop('npts',100)
+            interp_method = kwargs.pop('interp_method','bicubic')
+            rbfi = Rbf(x,y,weights_bz_sum,function='linear')
+            x = y = np.linspace(-lim,lim,npts)
+            weights_bz_sum = np.zeros([npts,npts])
+            for col in range(npts):
+                weights_bz_sum[:,col] = rbfi(x,np.ones_like(x)*y[col])
+            ax.imshow(weights_bz_sum,interpolation=interp_method)
+
+        title = kwargs.pop('title',str(excitons))
+        
+        ax.set_title(title)
+        ax.set_aspect('equal')
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.add_patch(BZ_hexagon(self.lattice.rlat))
+        return ax
     
     @add_fig_kwargs
     def plot_exciton_2D(self,excitons,f=None,**kwargs):
