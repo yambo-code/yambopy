@@ -1,7 +1,8 @@
-# Copyright (c) 2018, Henrique Miranda
+# Copyright (c) 2022. Yambopy team
 # All rights reserved.
 #
 # This file is part of the yambopy project
+# Authors: H. Miranda, A. Molina, F. Paleari
 #
 import os
 import numpy as np
@@ -230,6 +231,16 @@ class YamboQPDB():
         """Get a band-structure on a path"""
         bands_kpoints, bands_indexes, path_car = lat.get_path(path.kpoints,debug=True)
 
+        # set fermi energy
+        # NOT EVIDENT IN SPIN-POLARIZED SYSTEM
+        #print(lat.electrons)
+        #self.top_valence_band = int(lat.electrons/2)
+        #print(self.top_valence_band)
+        #print(self.top_valence_band-7)
+        #print(self.eigenvalues_dft[:,0:(self.top_valence_band-7+2),0])
+        #print(self.eigenvalues_dft[:,0:(self.top_valence_band-7+2),1])
+        #exit()
+
         red_bands_kpoints = car_red(bands_kpoints,lat.rlat)
         if self.spin == True:
            print('Spin polarized bands')
@@ -280,53 +291,72 @@ class YamboQPDB():
         symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
         time_rev = True
         
+        kpoints_path = path.get_klist()[:,:3]
+
         #interpolate KS
         ks_ebands, qp_ebands = None, None
         if 'KS' in what:
            if self.spin == True:
-              print('Spin polarized bands')
+              print('Spin-polarized bands DFT')
               eigens_up = self.eigenvalues_dft[np.newaxis,:,:,0]
               eigens_dw = self.eigenvalues_dft[np.newaxis,:,:,1]
-              skw = SkwInterpolator(lpratio,kpoints,eigens_up,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-              kpoints_path = path.get_klist()[:,:3]
-              dft_eigens_up_kpath = skw.interp_kpts(kpoints_path).eigens[0]
-              skw = SkwInterpolator(lpratio,kpoints,eigens_dw,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-              dft_eigens_dw_kpath = skw.interp_kpts(kpoints_path).eigens[0]
+              skw_up = SkwInterpolator(lpratio,kpoints,eigens_up,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+              skw_dw = SkwInterpolator(lpratio,kpoints,eigens_dw,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+              dft_eigens_up_kpath = skw_up.interp_kpts(kpoints_path).eigens[0]
+              dft_eigens_dw_kpath = skw_dw.interp_kpts(kpoints_path).eigens[0]
 
-              if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
+              #if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
+              # tricky 
               ks_ebands_up = YambopyBandStructure(dft_eigens_up_kpath,kpoints_path,kpath=path,**kwargs)
               ks_ebands_dw = YambopyBandStructure(dft_eigens_dw_kpath,kpoints_path,kpath=path,**kwargs)
 
            else:
-              print('no polarized bands')
+              print('No spin-polarized bands DFT')
               print(self.eigenvalues_dft[np.newaxis,:].shape)
               eigens  = self.eigenvalues_dft[np.newaxis,:]
               print(eigens.shape)
               skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-              kpoints_path = path.get_klist()[:,:3]
+              #kpoints_path = path.get_klist()[:,:3]
               dft_eigens_kpath = skw.interp_kpts(kpoints_path).eigens[0]
               if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
               ks_ebands = YambopyBandStructure(dft_eigens_kpath,kpoints_path,kpath=path,**kwargs)
 
         #interpolate QP
         if 'QP' in what:
-            eigens  = self.eigenvalues_qp[np.newaxis,:]
-            skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-            kpoints_path = path.get_klist()[:,:3]
-            qp_eigens_kpath = skw.interp_kpts(kpoints_path).eigens[0]
-            if valence: kwargs['fermie'] = np.max(qp_eigens_kpath[:,:valence])
+            if self.spin == True:
+               print('Spin-polarized bands QP')
+               eigens_up = self.eigenvalues_qp[np.newaxis,:,:,0]
+               eigens_dw = self.eigenvalues_qp[np.newaxis,:,:,1]
+               skw_up = SkwInterpolator(lpratio,kpoints,eigens_up,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+               skw_dw = SkwInterpolator(lpratio,kpoints,eigens_dw,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+               #kpoints_path = path.get_klist()[:,:3]
+               qp_eigens_up_kpath = skw_up.interp_kpts(kpoints_path).eigens[0]
+               qp_eigens_dw_kpath = skw_dw.interp_kpts(kpoints_path).eigens[0]
+               #if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
+               # tricky 
+               qp_ebands_up = YambopyBandStructure(qp_eigens_up_kpath,kpoints_path,kpath=path,**kwargs)
+               qp_ebands_dw = YambopyBandStructure(qp_eigens_dw_kpath,kpoints_path,kpath=path,**kwargs)
+
+            else:
+               print('No spin-polarized bands DFT')
+               eigens  = self.eigenvalues_qp[np.newaxis,:]
+               skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+               #kpoints_path = path.get_klist()[:,:3]
+               qp_eigens_kpath = skw.interp_kpts(kpoints_path).eigens[0]
+               if valence: kwargs['fermie'] = np.max(qp_eigens_kpath[:,:valence])
+
+               qp_ebands = YambopyBandStructure(qp_eigens_kpath,kpoints_path,kpath=path,weights=qp_z_kpath,size=0.1,**kwargs)
 
             qp_z_kpath = None
             if 'Z' in what:
                 eigens = self.z[np.newaxis,:]
                 skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-                kpoints_path = path.get_klist()[:,:3]
+                #kpoints_path = path.get_klist()[:,:3]
                 qp_z_kpath = skw.interp_kpts(kpoints_path).eigens[0]
                 
-            qp_ebands = YambopyBandStructure(qp_eigens_kpath,kpoints_path,kpath=path,weights=qp_z_kpath,size=0.1,**kwargs)
 
         if self.spin == True:
-           return ks_ebands_up, ks_ebands_dw #, qp_ebands
+           return ks_ebands_up, ks_ebands_dw , qp_ebands_up, qp_ebands_dw
         else: 
            return ks_ebands, qp_ebands
 
