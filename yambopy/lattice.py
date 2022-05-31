@@ -170,3 +170,28 @@ def point_matching(a,b,double_check=True,debug=False,eps=1e-8):
                 raise ValueError('point a %d: %s is far away from points b %d: %s  dist: %lf'%(ia,str(a[ia]),ib,str(b[ib]),dist))
 
     return map_b_to_a
+
+def bravais_types(lats,alat_0):
+    """
+    Determine Bravais lattice type of unit cell
+
+    :: lats -> lattice vectors from YamboLatticeDB corresponding to lat
+    :: alat_0 -> lattice parameter from YamboLatticeDB corresponding to alat[0]
+
+    More lattice types to be implemented
+    """
+    from math import sqrt,cos,sin
+
+    bravais_types = ['Hexagonal and Trigonal P','Orthorhombic P']
+
+    lats_ = lats/alat_0
+
+    if np.array_equal(lats_[0],[1.,0.,0.]):
+
+        if np.allclose(lats_[1],[-0.5,sqrt(3.)/2.,0.]):
+
+            if np.allclose(lats_[2],[0.,0.,lats_[2,2] ]): return bravais_types[0]
+
+        if np.array_equal(lats_[1],[0.,lats_[1,1],0.]):
+
+            if np.allclose(lats_[2],[0.,0.,lats_[2,2] ]): return bravais_types[1]
