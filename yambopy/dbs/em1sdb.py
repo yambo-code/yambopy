@@ -87,7 +87,7 @@ class YamboStaticScreeningDB(object):
         for nq in range(self.nqpoints):
 
             #open database for each k-point
-            filename = "%s/%s_fragment_%d"%(self.save,self.filename,nq+1)
+            filename = "%s/%s_fragment_%d"%(self.em1s,self.filename,nq+1)
             try:
                 database = Dataset(filename)
             except:
