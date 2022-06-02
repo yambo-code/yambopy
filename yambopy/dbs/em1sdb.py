@@ -220,6 +220,17 @@ class YamboStaticScreeningDB(object):
         ax.set_xlabel('$|q|$')
         ax.set_ylabel('$\epsilon^{-1}_{%d%d}(\omega=0)$'%(ng1,ng2))
 
+     
+    def plot_em1s(self,ax,ng1=0,ng2=0,volume=False,symm=True,**kwargs):
+        '''
+        Get epsilon_{0,0} = [1/(1+vX)]_{0,0} a function of |q|
+        '''
+        x,y = self._geteq(volume=volume)
+        ax.plot(x,y.real,**kwargs)
+        ax.set_xlabel('$|q|$')
+        ax.set_ylabel('$\epsilon^{-1}_{%d%d}(\omega=0)$'%(ng1,ng2))
+
+
     def __str__(self):
         s = ""
         s += "nqpoints: %d\n"%self.nqpoints
