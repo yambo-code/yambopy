@@ -171,12 +171,11 @@ class YambopyBandStructure():
             ax.axvline(distance,c='k')
         self.kpath.set_xticks(ax)
 
-    def plot_ax(self,ax,xlim=None,ylim=None,ylabel='$\epsilon_{n\mathbf{k}}$ [eV]', alpha_weights=0.5,legend=False,**kwargs):
+    def plot_ax(self,ax,xlim=None,ylim=None,size=1.,ylabel='$\epsilon_{n\mathbf{k}}$ [eV]', alpha_weights=0.5,legend=False,**kwargs):
         """Receive an intance of matplotlib axes and add the plot"""
         import matplotlib.pyplot as plt
         kwargs = self.get_kwargs(**kwargs)
         fermie = kwargs.pop('fermie',self.fermie)
-        size = kwargs.pop('size',1)
 
         # Set color bands and weights
         c_bands   = kwargs.pop('c_bands',None)
