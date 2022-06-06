@@ -147,6 +147,14 @@ class YamboSaveDB():
         return nbands
 
     @property
+    def nbandsv(self):
+        return int(self.electrons/self.spin_degen)
+
+    @property
+    def nbandsc(self):
+        return int(self.nbands - self.nbandsv)
+
+    @property
     def nkpoints(self):
         return len(self.kpts_iku)
 
@@ -322,7 +330,7 @@ class YamboSaveDB():
             for index, disp, kpt in kpoints_in_path:
                 bands_kpoints.append( kpt )
                 bands_indexes.append( index )
-                if debug: print ("%12.8lf "*3)%tuple(kpt), index
+                if debug: print(("%12.8lf "*3)%tuple(kpt), index)
 
         self.bands_kpoints = bands_kpoints
         self.bands_indexes = bands_indexes
