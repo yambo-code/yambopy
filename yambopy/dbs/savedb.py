@@ -147,6 +147,14 @@ class YamboSaveDB():
         return nbands
 
     @property
+    def nbandsv(self):
+        return int(self.electrons/self.spin_degen)
+
+    @property
+    def nbandsc(self):
+        return int(self.nbands - self.nbandsv)
+
+    @property
     def nkpoints(self):
         return len(self.kpts_iku)
 
