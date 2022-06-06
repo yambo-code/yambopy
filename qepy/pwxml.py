@@ -513,25 +513,28 @@ class PwXML():
         """
         Read symmetry operations from data-file-schema.xml
 
-        NB: Most likely not working with symmorphic symmetries
+        Works for ibrav>0
+
+        NB: data-file-schema.xml has nrot and nsym with nsym<nrot.
+            They are stored in order with nsym first.
+
+        NB2: Most likely not working with symmorphic symmetries
         """
-        #nsym 
+        #nsym
         nrot = int(self.datafile_xml.findall("output/symmetries/nrot")[0].text.strip())        
         self.nsym = int(self.datafile_xml.findall("output/symmetries/nsym")[0].text.strip())        
 
         # data
         sym_red = np.zeros((self.nsym,3,3))
         symmetries = self.datafile_xml.findall("output/symmetries/symmetry/rotation")
-        sym_info   = self.datafile_xml.findall("output/symmetries/symmetry/info")
+        symmetries = symmetries[:self.nsym]
+        #sym_info   = self.datafile_xml.findall("output/symmetries/symmetry/info")
+        #NB: sym_info[:].attrib['class'] contains irrep names if found
 
         #read (non-symmorphic) symmetris
-        i_s=0
-        for i in range(nrot):
-            if 'not found' in sym_info[i].attrib['class']: continue
+        for i in range(self.nsym):
             sym = np.array( [float(x) for x in symmetries[i].text.strip().split()] ).reshape(3,3)
             sym_red[i] = sym.T # symmetries are saved as the transposed in the .xml 
-            i_s+=1
-        if i_s!=self.nsym: raise ValueError("Expected {} symmetries, but {} found.".format(self.nsym,i_s))
         self.sym_red = sym_red.astype(int)
 
         self.sym_car = self.sym_red_car()
@@ -570,7 +573,7 @@ class PwXML():
 
         #expand using symmetries
         for nk,k in enumerate(kpts_ibz):
-            #if the index in not in the dicitonary add a list
+            #if the index in not in the dictionary add a list
             if nk not in kpoints_full_i:
                 kpoints_full_i[nk] = []
 
