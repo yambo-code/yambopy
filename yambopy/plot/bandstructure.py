@@ -29,6 +29,47 @@ def exagerate_differences(ks_ebandsc,ks_ebandsp,ks_ebandsm,d=0.01,exagerate=5):
 
     return ks_ebandsc,ks_ebandsp,ks_ebandsm
 
+def apply_scissor_shift(eigenvalues,scissor,n_val):
+    """
+    Apply scissor shift to band structure
+    
+    Input:
+      :: eigenvalues -> np array of dimensions (Nk,Nb) or (Ns,Nk,Nb)
+      :: scissor -> [shift, stretch_cond, stretch_val]
+      :: n_val -> number of valence bands 
+
+      NB: make sure eigenvalues and scissor have same units!        
+
+    Returns shifted eigenvalues
+    """
+    from copy import deepcopy
+
+    # Dimensionality including spin
+    # In this case reshape/concatenate to get (Nkponts,Nbands) array
+    if len(eigenvalues.shape)==3:
+        Nspin, Nkpoints, Nbands = eigenvalues.shape
+        if Nspin>1: raise NotImplementedError("Scissor for spin-polarised bands not yet implemented.")
+        else: eigen_to_shift = deepcopy(eigenvalues[0])
+     # If original dimensionality is (Nkpoints,Nbands) work with original array
+    else: 
+        Nkpoints, Nbands = eigenvalues.shape
+        eigen_to_shift = deepcopy(eigenvalues)
+
+    # Actual scissor operator code          
+    aux = np.zeros((Nkpoints,Nbands))
+    top_v, bottom_c = eigen_to_shift[:,n_val-1], eigen_to_shift[:,n_val]
+    ind_k_dir_gap = np.argmin(bottom_c-top_v)
+    ev_max, ec_min = top_v[ind_k_dir_gap], bottom_c[ind_k_dir_gap]
+
+    for ib in range( Nbands ):
+        if ib<n_val: aux[:,ib] = ev_max-(ev_max-eigen_to_shift[:,ib])*scissor[2]
+        else:        aux[:,ib] = ec_min+scissor[0]+(eigen_to_shift[:,ib]-ec_min)*scissor[1]
+
+    if len(eigenvalues.shape)==3: final_eigen = np.expand_dims(aux, axis=0)
+    else:                         final_eigen = aux
+
+    return final_eigen
+
 class YambopyBandStructure():
     """
     Class to plot bandstructures
