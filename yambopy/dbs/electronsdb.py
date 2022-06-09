@@ -252,7 +252,7 @@ class YamboElectronsDB():
         weights     = self.weights_ibz
         nkpoints    = self.nkpoints_ibz
 
-        nbands = self.nelectrons/self.spin_degen
+        nbands = int(self.nelectrons/self.spin_degen)
         #top of valence
         top = np.max(eigenvalues[:,nbands])
         #bottom of conduction
