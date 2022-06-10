@@ -29,6 +29,47 @@ def exagerate_differences(ks_ebandsc,ks_ebandsp,ks_ebandsm,d=0.01,exagerate=5):
 
     return ks_ebandsc,ks_ebandsp,ks_ebandsm
 
+def apply_scissor_shift(eigenvalues,scissor,n_val):
+    """
+    Apply scissor shift to band structure
+    
+    Input:
+      :: eigenvalues -> np array of dimensions (Nk,Nb) or (Ns,Nk,Nb)
+      :: scissor -> [shift, stretch_cond, stretch_val]
+      :: n_val -> number of valence bands 
+
+      NB: make sure eigenvalues and scissor have same units!        
+
+    Returns shifted eigenvalues
+    """
+    from copy import deepcopy
+
+    # Dimensionality including spin
+    # In this case reshape/concatenate to get (Nkponts,Nbands) array
+    if len(eigenvalues.shape)==3:
+        Nspin, Nkpoints, Nbands = eigenvalues.shape
+        if Nspin>1: raise NotImplementedError("Scissor for spin-polarised bands not yet implemented.")
+        else: eigen_to_shift = deepcopy(eigenvalues[0])
+     # If original dimensionality is (Nkpoints,Nbands) work with original array
+    else: 
+        Nkpoints, Nbands = eigenvalues.shape
+        eigen_to_shift = deepcopy(eigenvalues)
+
+    # Actual scissor operator code          
+    aux = np.zeros((Nkpoints,Nbands))
+    top_v, bottom_c = eigen_to_shift[:,n_val-1], eigen_to_shift[:,n_val]
+    ind_k_dir_gap = np.argmin(bottom_c-top_v)
+    ev_max, ec_min = top_v[ind_k_dir_gap], bottom_c[ind_k_dir_gap]
+
+    for ib in range( Nbands ):
+        if ib<n_val: aux[:,ib] = ev_max-(ev_max-eigen_to_shift[:,ib])*scissor[2]
+        else:        aux[:,ib] = ec_min+scissor[0]+(eigen_to_shift[:,ib]-ec_min)*scissor[1]
+
+    if len(eigenvalues.shape)==3: final_eigen = np.expand_dims(aux, axis=0)
+    else:                         final_eigen = aux
+
+    return final_eigen
+
 class YambopyBandStructure():
     """
     Class to plot bandstructures
@@ -108,6 +149,12 @@ class YambopyBandStructure():
         self.fermie = np.max(self.bands[:,valence-1])
         self.set_ylim(None)
 
+    def set_energy_offset(self,energy_offset):
+        """simple function to rigid-shift the bands
+        """
+        self.fermie = energy_offset
+        self.set_ylim(None)
+
     def set_xlim(self,xlim):
         self._xlim = xlim
 
@@ -165,16 +212,14 @@ class YambopyBandStructure():
             ax.axvline(distance,c='k')
         self.kpath.set_xticks(ax)
 
-    def plot_ax(self,ax,xlim=None,ylim=None,ylabel='$\epsilon_{n\mathbf{k}}$ [eV]',
-                alpha_weights=0.5,legend=False,**kwargs):
+    def plot_ax(self,ax,xlim=None,ylim=None,size=1.,ylabel='$\epsilon_{n\mathbf{k}}$ [eV]', alpha_weights=0.5,legend=False,**kwargs):
         """Receive an intance of matplotlib axes and add the plot"""
         import matplotlib.pyplot as plt
         kwargs = self.get_kwargs(**kwargs)
         fermie = kwargs.pop('fermie',self.fermie)
-        size = kwargs.pop('size',1)
 
         # Set color bands and weights
-        c_bands   = kwargs.pop('color_bands',None)
+        c_bands   = kwargs.pop('c_bands',None)
         c_weights = kwargs.pop('c_weights',None)
         c_label   = kwargs.pop('c_label',None)
         lw_label  = kwargs.pop('lw_label',None)
@@ -182,14 +227,12 @@ class YambopyBandStructure():
         # Add option to plot lines or dots
         #linetype
         #dot symbol
-
         # I choose a colormap for spin
         color_map  = plt.get_cmap('seismic')
-
         for ib,band in enumerate(self.bands.T):
             x = self.distances
             y = band-fermie
-            ax.plot(x,y,color=c_bands,lw=lw_label,**kwargs)
+            ax.plot(x,y,c=c_bands,lw=lw_label,label=c_label)
             # fill between 
             if self.weights is not None: # and self.spin_proj is not None:
                 dy = self.weights[:,ib]*size
@@ -198,14 +241,19 @@ class YambopyBandStructure():
                 #ax.scatter(x,y,s=100,c=color_spin,cmap=color_map,vmin=0.0,vmax=1.0,edgecolors='none')
             # dot
             #if self.weights is not None:
+            #    plt.plot(x,y)#,c=c_weights,size=dy,alpha=alpha_weights)
             #    ax.scatter(x,y,c=c_weights,size=dy,alpha=alpha_weights)
 
-            kwargs.pop('label',None)
+            #kwargs.pop('label',None)
 
         self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=ylim)
         ax.set_ylabel(ylabel)
         self.add_kpath_labels(ax)
-        if legend: ax.legend()
+        if legend: 
+            from collections import OrderedDict
+            handles, labels = plt.gca().get_legend_handles_labels()
+            by_label = OrderedDict(zip(labels, handles))
+            ax.legend(by_label.values(), by_label.keys())
 
     def plot_spin_ax(self,ax,xlim=None,ylim=None,ylabel='$\epsilon_{n\mathbf{k}}$[eV]',alpha_weights=0.5,spin_proj_bands=None,legend=False,**kwargs):
         """Receive an intance of matplotlib axes and add the plot"""

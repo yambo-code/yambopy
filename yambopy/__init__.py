@@ -20,6 +20,8 @@ Modules:
         - YamboElectronsDB: read the electronic states from ns.db1
         - YamboQPDB: read the quasiparticle energies db ndb.QP
         - YamboGreenDB: read the green's functions calculated using yambo
+        - YamboExcitonsDB: read excitonic properties from a BSE calculation
+        - YamboKernelDB: read excitonic kernel in transition space
 
     bse
         - YamboExcitonWaveFunctionXSF: read the excitonic
@@ -57,6 +59,7 @@ from yambopy.dbs.rtdb import *
 from yambopy.dbs.excitondb import *
 from yambopy.dbs.wfdb import *
 from yambopy.dbs.elphondb import *
+from yambopy.dbs.bsekerneldb import *
 
 #input/output files
 from yambopy.io.inputfile import *

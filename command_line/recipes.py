@@ -349,7 +349,7 @@ def add_qp(output,add=[],substract=[],addimg=[],verbose=False):
     addimgf=[f.name for f in addimg]
     filenames = addf+subf+addimgf
 
-    if len(filenames) is 0:
+    if len(filenames) == 0:
         raise ValueError('No files passed to function.')
 
 
