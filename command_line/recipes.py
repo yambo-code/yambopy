@@ -258,7 +258,8 @@ def merge_qp(output,files):
         for qp_file,kpts in zip(QP_table,QP_kpts):
             #iterate over the kpoints and save the coordinates on the list
             for qp in qp_file:
-                n1,n2,nk = list(map(int,qp))
+                try:               n1,n2,nk = list(map(int,qp))
+                except ValueError: n1,n2,nk,ns = list(map(int,qp))
                 QP_kpts_save[nk-1] = kpts[nk-1]
 
         # create the QPs energies table
