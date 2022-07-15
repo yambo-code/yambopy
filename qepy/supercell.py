@@ -10,7 +10,6 @@ from yambopy.lattice import *
 from itertools import product
 import copy
 from math import *
-import fractions as frc
 # Dimensional constants for reference (actually only b2a is really used in the code for now)
 cm1_2_Tera=0.0299793         # Conversion from cm-1 to THz with 2pi factor included
 Tera=1.e12                   
@@ -344,10 +343,10 @@ class Supercell():
         #Shift the q-point into the positive quadrant of the reciprocal unit cell
         Q[0,np.where(Q[0]<0)]+=Q[1,np.where(Q[0]<0)]
         #GCDs of Q[1] (in the logical order of the derivation)
-        g23  = frc.gcd(Q[1,1],Q[1,2])
-        g12  = frc.gcd(Q[1,0],Q[1,1])
-        g31  = frc.gcd(Q[1,2],Q[1,0])
-        g123 = frc.gcd(Q[1,0],frc.gcd(Q[1,1],Q[1,2]))
+        g23  = gcd(Q[1,1],Q[1,2])
+        g12  = gcd(Q[1,0],Q[1,1])
+        g31  = gcd(Q[1,2],Q[1,0])
+        g123 = gcd(Q[1,0],gcd(Q[1,1],Q[1,2]))
         #Integers needed to solve the supercell matrix equation    
         p,q,r = self.find_integers(Q[0],g23,g12,g31,g123)            
         #Matrix elements (in order of derivation) and supercell matrix
