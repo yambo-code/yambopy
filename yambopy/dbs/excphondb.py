@@ -66,7 +66,7 @@ class YamboExcitonPhononDB():
         #read dimensions of exciton phonon parameters
         self.nexc_i = database.variables['PARS'][2].astype(int)
         self.nexc_o = database.variables['PARS'][4].astype(int)
-        self.nmodes = database.variables['PARS'][5].astype(int)
+        self.nmodes = database.variables['PARS'][6].astype(int)
         self.nqpoints = database.variables['PARS'][0].astype(int)
         self.type_exc_i = database.variables['L_kind_in'][...].tostring().decode().strip()
         self.type_exc_o = database.variables['L_kind_out'][...].tostring().decode().strip()
