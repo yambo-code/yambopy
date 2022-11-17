@@ -242,8 +242,7 @@ class AnalyseBSECmd(Cmd):
         draw      = args.nodraw
 
         #all the other arguments are passed to the analyse bse function
-        recipes.analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, 
-                             text=text, draw=draw )
+        recipes.analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, text=text, draw=draw )
 
 class TestCmd(Cmd):
     """
@@ -506,7 +505,33 @@ class PlotBndStrCmd(Cmd):
 
         # Produce the plot
         generate_bands.launch_plot(data_to_plot,plt_type='bands',out_name=args.output_name,erange=args.erange,show=args.show)
-        
+
+class GetPHqInputCmd(Cmd):        
+    """
+    Script to update the explicit list of q-points in a ph input file (ldisp=.false., qplot=.true.).
+
+    - Reads the output of the scf calculation and the ph input.
+
+    Usage:
+    :: -pw,--pwout='path/to/pw/output/file
+    :: -ph,--phin='path/to/ph/input/file'
+    """
+    def __init__(self,args):
+
+        #check for args
+        if len(args) < 4:
+            print((self.__doc__))
+            exit(0)
+
+        parser = argparse.ArgumentParser(description='Append explicit qpoints to ph input')
+        parser.add_argument('-pw','--pwout', type=str, help='Path to pw (scf) output file',required=True)
+        parser.add_argument('-ph','--phin', type=str,help='Path to ph (dvscf or elph) input file',required=True)
+        args = parser.parse_args(args)
+
+        pwout = args.pwout
+        phin  = args.phin
+
+        get_phq_input.get_phq_input(pwout,phin)
 
 class YambopyCmd(Cmd):
     """
@@ -523,6 +548,7 @@ class YambopyCmd(Cmd):
                  'gkkp':         GkkpCmd,
                  'bands':        PlotBndStrCmd,
                  'serial':       UpdtSrlNmbrCmd,
+                 'phinp':        GetPHqInputCmd,
                  'test':         TestCmd}
 
     def __init__(self,*args):
