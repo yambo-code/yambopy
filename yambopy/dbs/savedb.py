@@ -147,6 +147,14 @@ class YamboSaveDB():
         return nbands
 
     @property
+    def nbandsv(self):
+        return int(self.electrons/self.spin_degen)
+
+    @property
+    def nbandsc(self):
+        return int(self.nbands - self.nbandsv)
+
+    @property
     def nkpoints(self):
         return len(self.kpts_iku)
 
@@ -233,12 +241,12 @@ class YamboSaveDB():
             """ The total occupation minus the total number of electrons
             """
             if self.spinor == 1:
-               return sum([sum(self.spin_degen*fermi_array(self.eigenvalues[nk],ef))*self.weights[nk] for nk in range(self.nkpoints)])-self.electrons
+               return sum([sum(self.spin_degen*fermi_array(self.eigenvalues[0,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)])-self.electrons
             elif self.spinor == 2:
                sum_up = sum([sum(self.spin_degen*fermi_array(self.eigenvalues[0,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)]) 
                sum_dw = sum([sum(self.spin_degen*fermi_array(self.eigenvalues[1,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)]) 
                return sum_up + sum_dw -self.electrons
-
+     
         efermi = bisect(occupation_minus_ne,self.min_eival,self.max_eival)
 
         if verbose: print("fermi: %lf eV"%efermi)
@@ -322,7 +330,7 @@ class YamboSaveDB():
             for index, disp, kpt in kpoints_in_path:
                 bands_kpoints.append( kpt )
                 bands_indexes.append( index )
-                #if debug: print ("%12.8lf "*3)%tuple(kpt), index
+                if debug: print(("%12.8lf "*3)%tuple(kpt), index)
 
         self.bands_kpoints = bands_kpoints
         self.bands_indexes = bands_indexes
