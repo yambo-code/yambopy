@@ -6,7 +6,7 @@
 from __future__ import print_function, division
 import re
 import xml.etree.ElementTree as ET
-from numpy import array, zeros
+from numpy import array, zeros, pi, conjugate, arange
 from .lattice import Path, calculate_distances 
 from .auxiliary import *
 from itertools import chain
@@ -230,6 +230,66 @@ class ProjwfcXML(object):
                    w_proj1[ik,ib] = sum(abs(self.proj1[ik,selected_orbitals,ib])**2)
                    w_proj2[ik,ib] = sum(abs(self.proj2[ik,selected_orbitals,ib])**2)
            return w_proj1, w_proj2
+
+    def get_dorbitals_projection(self,selected_orbitals=[],bandmin=0,bandmax=None):
+        """
+        This function return the weights for d-orbitals in the basis of a1g, e+
+        and e- 
+        selected_orbitals must the d-orbital list in the order of QE
+        """
+        if bandmax is None:
+           bandmax = self.nbands
+
+        #if self.spin_components == 1:
+
+           # Selection of the bands
+           #w_proj = zeros([self.nkpoints,self.nbands])
+           #for ik in range(self.nkpoints):
+           #    for ib in range(bandmin,bandmax):
+           #        w_proj[ik,ib] = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
+           #return w_proj
+
+        if self.spin_components == 2:
+
+           # Selection of the bands
+           w_proj1 = zeros([self.nkpoints,self.nbands])
+           w_proj2 = zeros([self.nkpoints,self.nbands])
+
+           for ik in range(self.nkpoints):
+               for ib in range(bandmin,bandmax):
+
+                   w_proj1[ik,ib] = sum(abs(self.proj1[ik,selected_orbitals,ib])**2)
+                   w_proj2[ik,ib] = sum(abs(self.proj2[ik,selected_orbitals,ib])**2)
+           return w_proj1, w_proj2
+
+    def get_pdos(self,selected_orbitals=None,bandmin=0,bandmax=None,energy_steps=100,e_min=-10.0,e_max=5.0,Gamma=0.1):
+
+        print(selected_orbitals)
+
+        energy_grid = arange(e_min,e_max,(e_max-e_min)/energy_steps)
+        if bandmax is None:
+           bandmax = self.nbands
+        if selected_orbitals is None: selected_orbitals = range(self.nproj)
+
+        if self.spin_components == 2:
+           pdos_up, pdos_dw = zeros([energy_steps,self.nproj]), zeros([energy_steps,self.nproj])
+           for ik in range(self.nkpoints):
+               for ib in range(bandmin,bandmax):
+                   for io in selected_orbitals:
+                       for ie,e in enumerate(energy_grid):
+                           pdos_up[ie,io] = pdos_up[ie,io] + abs(conjugate(self.proj1[ik,io,ib])*self.proj1[ik,io,ib])*self._lorentz(self.eigen1[ik,ib],e,Gamma)
+
+        return energy_grid, pdos_up, dos_up       
+
+           #self.eigen1[ik,ib]
+           #self.eigen2[ik,ib]
+           #self.proj1[ik,io,ib]
+
+    def _lorentz(self,x,x_0,Gamma):
+        
+        return (1.0/pi)*(0.5*Gamma)/((x-x_0)**2 + (0.5*Gamma)**2)
+
+
 
     def get_relative_weight(self,selected_orbitals=[],selected_orbitals_2=[],bandmin=0,bandmax=None):
         if bandmax is None:
