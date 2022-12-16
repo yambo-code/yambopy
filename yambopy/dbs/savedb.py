@@ -241,7 +241,7 @@ class YamboSaveDB():
             """ The total occupation minus the total number of electrons
             """
             if self.spinor == 1:
-               return sum([sum(self.spin_degen*fermi_array(self.eigenvalues[nk],ef))*self.weights[nk] for nk in range(self.nkpoints)])-self.electrons
+               return sum([sum(self.spin_degen*fermi_array(self.eigenvalues[0,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)])-self.electrons
             elif self.spinor == 2:
                sum_up = sum([sum(self.spin_degen*fermi_array(self.eigenvalues[0,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)]) 
                sum_dw = sum([sum(self.spin_degen*fermi_array(self.eigenvalues[1,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)]) 
