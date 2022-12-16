@@ -53,7 +53,7 @@ class PlotExcitons(Cmd):
 
         if os.path.isfile(args.filename):
             #create plot
-            plot_excitons(args.filename,size=args.size) 
+            recipes.plot_excitons(args.filename,size=args.size) 
         else:
             print('file %s is invalid'%filename)
 
@@ -184,7 +184,7 @@ class AnalyseGWCmd(Cmd):
         draw   = args.draw   ; verbose = args.verbose
         
         #call analyse_gw from recipes.py
-        analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose)
+        recipes.analyse_gw(folder,var,bandc,kpointc,bandv,kpointv,pack,text,draw,verbose)
 
     def info(self):
         """
@@ -242,8 +242,7 @@ class AnalyseBSECmd(Cmd):
         draw      = args.nodraw
 
         #all the other arguments are passed to the analyse bse function
-        analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, 
-                     text=text, draw=draw )
+        recipes.analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, text=text, draw=draw )
 
 class TestCmd(Cmd):
     """
@@ -349,7 +348,7 @@ class AddQPCmd(Cmd):
 
 
         #call add_qp from recipes.py
-        add_qp(output,add,substract,addimg,verbose)
+        recipes.add_qp(output,add,substract,addimg,verbose)
 
     def info(self):
         """
