@@ -2,7 +2,7 @@
 from yambopy.units import *
 from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz
 from yambopy.plot.bandstructure import *
-from yambopy.lattice import replicate_red_kmesh, calculate_distances, get_path
+from yambopy.lattice import replicate_red_kmesh, calculate_distances, get_path, car_red
 from yambopy.tools.funcs import gaussian, lorentzian
 from yambopy.dbs.savedb import *
 from yambopy.dbs.latticedb import *
@@ -1634,33 +1634,43 @@ class YamboExcitonDB(YamboSaveDB):
         for idx_bz,idx_ibz in enumerate(lattice.kpoints_indexes):
             ibz_weights_up[idx_ibz,:], ibz_weights_dw[idx_ibz,:]= weights_up[idx_bz,:], weights_dw[idx_bz,:] 
             ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
+        #print(ibz_kpoints)
 
         #get eigenvalues along the path
         # DFT values from SAVE
         if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
             ibz_energies_up = energies.eigenvalues[0,:,self.start_band:self.mband] # spin-up channel
             ibz_energies_dw = energies.eigenvalues[1,:,self.start_band:self.mband] # spin-dw channel
-            print('shape ibz')
-            print(ibz_energies_up.shape)
+            ibz_kpoints_qp  = ibz_kpoints
         # GW values from ndb.QP
         elif isinstance(energies,YamboQPDB):
+            ibz_nkpoints_gw=len(energies.kpoints_iku)
+            if not ibz_nkpoints == ibz_nkpoints_gw :
+               print('GW and BSE k-grid are differents!')
+               kpoints_gw_iku = energies.kpoints_iku
+               kpoints_gw_car = np.array([ k/lattice.alat for k in kpoints_gw_iku ])
+               kpoints_gw_red = car_red( kpoints_gw_car,lattice.rlat)
+               ibz_kpoints_qp = kpoints_gw_red
+            else:
+               ibz_kpoints_qp = ibz_kpoints
             pad_energies_up = energies.eigenvalues_qp[:,:,0]
             pad_energies_dw = energies.eigenvalues_qp[:,:,1]
-
+            #print('pad',pad_energies_up.shape)
             min_band = energies.min_band
             nkpoints, nbands = pad_energies_up.shape
 
             ibz_energies_up = pad_energies_up 
             ibz_energies_dw = pad_energies_dw
+            #print('ibz',ibz_energies_up.shape)
         else:
             raise ValueError("Energies argument must be an instance of YamboSaveDB,"
                              "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
-
         #interpolate energies
         na = np.newaxis
-        skw_up = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies_up[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-        skw_dw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies_dw[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+
+        skw_up = SkwInterpolator(lpratio,ibz_kpoints_qp,ibz_energies_up[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        skw_dw = SkwInterpolator(lpratio,ibz_kpoints_qp,ibz_energies_dw[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
         kpoints_path = path.get_klist()[:,:3]
         energies_up = skw_up.interp_kpts(kpoints_path).eigens
         energies_dw = skw_dw.interp_kpts(kpoints_path).eigens
