@@ -1634,7 +1634,6 @@ class YamboExcitonDB(YamboSaveDB):
         for idx_bz,idx_ibz in enumerate(lattice.kpoints_indexes):
             ibz_weights_up[idx_ibz,:], ibz_weights_dw[idx_ibz,:]= weights_up[idx_bz,:], weights_dw[idx_bz,:] 
             ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
-        #print(ibz_kpoints)
 
         #get eigenvalues along the path
         # DFT values from SAVE
@@ -1655,7 +1654,6 @@ class YamboExcitonDB(YamboSaveDB):
                ibz_kpoints_qp = ibz_kpoints
             pad_energies_up = energies.eigenvalues_qp[:,:,0]
             pad_energies_dw = energies.eigenvalues_qp[:,:,1]
-            #print('pad',pad_energies_up.shape)
             min_band = energies.min_band
             nkpoints, nbands = pad_energies_up.shape
 
@@ -1683,13 +1681,14 @@ class YamboExcitonDB(YamboSaveDB):
         exc_weights_up = skw_up.interp_kpts(kpoints_path).eigens
         exc_weights_dw = skw_dw.interp_kpts(kpoints_path).eigens
 
-        #create band-structure object
-        exc_bands_up = YambopyBandStructure(energies_up[0],kpoints_path,kpath=path,weights=exc_weights_up[0],size=size_up,**kwargs)
-        exc_bands_dw = YambopyBandStructure(energies_dw[0],kpoints_path,kpath=path,weights=exc_weights_dw[0],size=size_dw,**kwargs)
+        # Find and set the up-dw Fermi energy to zero
         self.nvbands_up = len(self.unique_vbands_up)
         self.nvbands_dw = len(self.unique_vbands_dw)
-        exc_bands_up.set_fermi(self.nvbands_up)
-        exc_bands_dw.set_fermi(self.nvbands_dw)
+        fermi_up_dw = max([max(energies_up[0][:,self.nvbands_up-1]), max(energies_dw[0][:,self.nvbands_dw-1])])
+
+        #create band-structure object
+        exc_bands_up = YambopyBandStructure(energies_up[0],kpoints_path,kpath=path,fermie=fermi_up_dw,weights=exc_weights_up[0],size=size_up,**kwargs)
+        exc_bands_dw = YambopyBandStructure(energies_dw[0],kpoints_path,kpath=path,fermie=fermi_up_dw,weights=exc_weights_dw[0],size=size_dw,**kwargs)
 
         return exc_bands_up, exc_bands_dw
 
