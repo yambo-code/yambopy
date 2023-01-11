@@ -282,7 +282,7 @@ class YamboQPDB():
         cell = (lattice.lat, lattice.red_atomic_positions, lattice.atomic_numbers)
         nelect = 0
         fermie = kwargs.pop('fermie',0)
-   
+
         #consistency check with lattice from YamboSaveDB
         if len(lattice.kpts_iku)!=len(self.kpoints_iku):
             print(len(lattice.kpts_iku),len(self.kpoints_iku))
@@ -319,9 +319,7 @@ class YamboQPDB():
 
            else:
               print('No spin-polarized bands DFT')
-              print(self.eigenvalues_dft[np.newaxis,:].shape)
               eigens  = self.eigenvalues_dft[np.newaxis,:]
-              print(eigens.shape)
               skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
               #kpoints_path = path.get_klist()[:,:3]
               dft_eigens_kpath = skw.interp_kpts(kpoints_path).eigens[0]
@@ -334,6 +332,13 @@ class YamboQPDB():
                print('Spin-polarized bands QP')
                eigens_up = self.eigenvalues_qp[np.newaxis,:,:,0]
                eigens_dw = self.eigenvalues_qp[np.newaxis,:,:,1]
+               print('GW eigenvalues are sorted in ascending energy')
+               #sorting
+               aux_up, aux_dw = eigens_up, eigens_dw
+               for ik in range(self.nkpoints):
+                   eigens_up[0,ik,:], eigens_dw[0,ik,:] = sorted(aux_up[0,ik,:]), sorted(aux_dw[0,ik,:])
+               #end sorting
+
                skw_up = SkwInterpolator(lpratio,kpoints,eigens_up,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
                skw_dw = SkwInterpolator(lpratio,kpoints,eigens_dw,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
                #kpoints_path = path.get_klist()[:,:3]
@@ -347,6 +352,11 @@ class YamboQPDB():
             else:
                print('No spin-polarized bands DFT')
                eigens  = self.eigenvalues_qp[np.newaxis,:]
+               #sorting
+               aux = eigens
+               for ik in range(self.nkpoints):
+                   eigens[0,ik,:] = sorted(aux[0,ik,:])
+               #end sorting
                skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
                #kpoints_path = path.get_klist()[:,:3]
                qp_eigens_kpath = skw.interp_kpts(kpoints_path).eigens[0]
