@@ -51,6 +51,7 @@ Current developers and maintainers:
 Collaborators include(d)
 - Alexandre Morlet
 - Davide Romanin
+- Riccardo Reho
 - You if you want to share your scripts!
 
 The code is at an ongoing stage of development, help us by sending bug reports, patches and suggestions!
