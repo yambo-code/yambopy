@@ -84,9 +84,6 @@ class YamboQPDB():
 
         # I have shifted 
         ncalculatedkpoints = self.max_kpoint - self.min_kpoint + 1
-        print('Calculated kpoints')
-        print(ncalculatedkpoints)
-        print()
         if self.spin is True:
            eigenvalues_dft = np.zeros([ncalculatedkpoints,self.nbands,2])
            eigenvalues_qp  = np.zeros([ncalculatedkpoints,self.nbands,2])
