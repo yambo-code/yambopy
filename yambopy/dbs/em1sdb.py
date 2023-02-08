@@ -87,7 +87,7 @@ class YamboStaticScreeningDB(object):
         for nq in range(self.nqpoints):
 
             #open database for each k-point
-            filename = "%s/%s_fragment_%d"%(self.save,self.filename,nq+1)
+            filename = "%s/%s_fragment_%d"%(self.em1s,self.filename,nq+1)
             try:
                 database = Dataset(filename)
             except:
@@ -219,6 +219,17 @@ class YamboStaticScreeningDB(object):
         ax.plot(x,(1+vX).real,**kwargs)
         ax.set_xlabel('$|q|$')
         ax.set_ylabel('$\epsilon^{-1}_{%d%d}(\omega=0)$'%(ng1,ng2))
+
+     
+    def plot_em1s(self,ax,ng1=0,ng2=0,volume=False,symm=True,**kwargs):
+        '''
+        Get epsilon_{0,0} = [1/(1+vX)]_{0,0} a function of |q|
+        '''
+        x,y = self._geteq(volume=volume)
+        ax.plot(x,y.real,**kwargs)
+        ax.set_xlabel('$|q|$')
+        ax.set_ylabel('$\epsilon^{-1}_{%d%d}(\omega=0)$'%(ng1,ng2))
+
 
     def __str__(self):
         s = ""

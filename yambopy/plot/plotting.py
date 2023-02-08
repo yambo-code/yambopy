@@ -1,5 +1,6 @@
-from matplotlib.patches import RegularPolygon
+from matplotlib.patches import RegularPolygon,Rectangle
 from matplotlib.colors import to_rgba
+from yambopy.lattice import bravais_types
 import numpy as np
 
 def add_fig_kwargs(func):
@@ -33,6 +34,14 @@ def add_fig_kwargs(func):
         return fig
     return wrapper
 
+def BZ_Wigner_Seitz(lattice,center=(0.,0.),orientation=np.radians(30),color='white',linewidth=2):
+    """
+    Wrapper function to decide which BZ shape to show
+    """
+    lat_type = bravais_types(lattice.lat,lattice.alat[0])[:3]
+    if lat_type=='Hex': return BZ_hexagon(lattice.rlat,center=center,orientation=orientation,color=color,linewidth=linewidth)
+    if lat_type=='Ort': return BZ_rectangle(lattice.rlat,color=color,linewidth=linewidth)
+
 def BZ_hexagon(rlat,center=(0.,0.),orientation=np.radians(30),color='white',linewidth=2):
     """
     Returns hexagonal borders of 2D Wigner-Seitz cells to aid in k/q-space plotting
@@ -54,6 +63,26 @@ def BZ_hexagon(rlat,center=(0.,0.),orientation=np.radians(30),color='white',line
                            edgecolor=to_rgba(color,1.),linewidth=linewidth)
 
     return hexagon
+
+def BZ_rectangle(rlat,color='white',linewidth=2):
+    """
+    Returns square borders of 2D Wigner-Seitz cells to aid in k/q-space plotting
+    to be added with ax.add_patch(BZ_rectangle)
+
+    - rlat: reciprocal lattice vectors from YamboLatticeDB
+    - color, linewidth are RegularPolygon parameters
+    """
+
+    # Reshape rlat
+    rlat = np.array([[rlat[0,0],rlat[0,1]],[rlat[1,0],rlat[1,1]]])
+
+    # Matplotlib patch
+    width, height  = rlat[0,0], rlat[1,1]
+    origin = [-width/2.,-height/2.]
+    rectangle = Rectangle(origin,width,height,facecolor=to_rgba('white',0.),\
+                          edgecolor=to_rgba(color,1.),linewidth=linewidth)
+
+    return rectangle
 
 def shifted_grids_2D(k,b):
     """

@@ -12,8 +12,8 @@ In particular we treat the following classes:
 4. exc\_read.py, exc\_kspace\_plot.py, exc\_abs\_plot.py: YamboExcitonDB (managing exciton data from ndb.BS\_diagoQ\*)
 
 # Download databases
-The scripts provided are self-explanatory. In order to run them on a simple system, you can download the relative databases for monolayer hBN (12x12x1 k-grid and q-grid) at the url URL on the yambo wiki.
+The scripts provided are self-explanatory. In order to run them on a simple system, you can download the relative databases for monolayer hBN (12x12x1 k-grid and q-grid for electron-phonon and exciton data) [here](www.yambo-code.org/educational/tutorials/files/databases\_yambopy.tar) from the yambo website, or by simply typing:
+> wget www.yambo-code.org/educational/tutorials/files/databases\_yambopy.tar
 
-INSTRUCTIONS for downloading.
-
-
+# Yambo wiki
+You can find an in-depth discussion of this tutorial on the yambo wiki [here](http://www.yambo-code.org/wiki/index.php?title=Yambopy_tutorial:_Yambo_databases).
