@@ -4,7 +4,7 @@ yambopy
 Create automatic workflows for yambo and quantum espresso using python.
 Do pre/post-processing, data analysis and plotting for yambo and quantum espresso.
 
-Yambo official website: http://www.yambo-code.org/ 
+Yambo official website: http://www.yambo-code.eu/ 
 
 Yambo Github page [download yambo & yambopy]: https://github.com/yambo-code/yambo
 
@@ -51,6 +51,7 @@ Current developers and maintainers:
 Collaborators include(d)
 - Alexandre Morlet
 - Davide Romanin
+- Riccardo Reho
 - You if you want to share your scripts!
 
 The code is at an ongoing stage of development, help us by sending bug reports, patches and suggestions!

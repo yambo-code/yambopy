@@ -16,3 +16,4 @@ import command_line.generate_bands
 import command_line.band_plots
 import command_line.gkkp
 import command_line.update_serial
+import command_line.get_phq_input

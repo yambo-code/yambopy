@@ -57,6 +57,8 @@ from yambopy.dbs.rtdb import *
 from yambopy.dbs.excitondb import *
 from yambopy.dbs.wfdb import *
 from yambopy.dbs.elphondb import *
+from yambopy.dbs.excphondb import *
+from yambopy.dbs.kqgridsdb import *
 
 #input/output files
 from yambopy.io.inputfile import *
@@ -68,6 +70,7 @@ from yambopy.io.iofile import *
 from yambopy.bse.excitonwf import *
 from yambopy.bse.excitonweight import *
 from yambopy.bse.bse_absorption import *
+from yambopy.bse.bse_dispersion import *
 
 #analyse stuff
 from yambopy.analyse import *
@@ -76,6 +79,7 @@ from yambopy.analyse import *
 from yambopy.common.save_generation import *
 from yambopy.common.workflow import *
 from yambopy.common.calculation_manager import *
+from yambopy.common.transform_matrix_element import *
 
 #realtime files
 from yambopy.rt.rt_movie import *

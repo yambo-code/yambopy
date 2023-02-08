@@ -347,15 +347,15 @@ class PwXML():
            eigen1 = np.array(self.eigen1)
 
            for ib in range(self.nbands_up):
-               ax.plot(kpoints_dists,eigen1[:,ib]                + y_offset, '%s-'%color, lw=2, zorder=1) # spin-up 
-               ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up] + y_offset, 'b-', lw=2, zorder=1) # spin-down
+               ax.plot(kpoints_dists,eigen1[:,ib]                + y_offset, '%s-'%color, lw=lw, zorder=1) # spin-up 
+               ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up] + y_offset, 'b-', lw=lw, zorder=1) # spin-down
 
         # Case: Non spin polarization
         else:
            eigen1 = np.array(self.eigen1)
 
            for ib in range(self.nbands):
-               ax.plot(kpoints_dists,eigen1[:,ib] + y_offset, color=color, linestyle=ls ,zorder =1)
+               ax.plot(kpoints_dists,eigen1[:,ib] + y_offset, color=color,linestyle=ls , lw=lw, zorder =1)
 
         #plot options
         if xlim: ax.set_xlim(xlim)
@@ -509,4 +509,121 @@ class PwXML():
                 ib1, ib2, ib3 = int(ib*10), int((ib+1)*10), int(ik*(nband/10+1)+2+ib)
                 self.spin_3[ik,ib1:ib2] = list( map(float,data_spin_3[ib3].split()))
 
+    def read_symmetries(self):
+        """
+        Read symmetry operations from data-file-schema.xml
 
+        Works for ibrav>0
+
+        NB: data-file-schema.xml has nrot and nsym with nsym<nrot.
+            They are stored in order with nsym first.
+
+        NB2: Most likely not working with symmorphic symmetries
+        """
+        #nsym
+        nrot = int(self.datafile_xml.findall("output/symmetries/nrot")[0].text.strip())        
+        self.nsym = int(self.datafile_xml.findall("output/symmetries/nsym")[0].text.strip())        
+        no_t_rev = ( self.datafile_xml.findall("input/symmetry_flags/no_t_rev")[0].text.strip() == "true" )
+        self.nsym_with_trev = 2*self.nsym 
+
+        # data
+        if not no_t_rev: sym_red = np.zeros((self.nsym_with_trev,3,3))
+        else:            sym_red = np.zeros((self.nsym,3,3))
+        symmetries = self.datafile_xml.findall("output/symmetries/symmetry/rotation") # All rotations
+        symmetries = symmetries[:self.nsym] # Retain only point group symmetries with no trev
+        #sym_info   = self.datafile_xml.findall("output/symmetries/symmetry/info")
+        #NB: sym_info[:].attrib['class'] contains irrep names if found
+
+        #read (non-symmorphic) symmetries
+        for i in range(self.nsym):
+            sym = np.array( [float(x) for x in symmetries[i].text.strip().split()] ).reshape(3,3)
+            sym_red[i] = sym.T # symmetries are saved as the transposed in the .xml 
+        self.sym_red = sym_red.astype(int)
+
+        #convert to c.c.
+        self.sym_car = self.sym_red_car()
+
+        #check for time reversal and apply it to sym_car
+        if not no_t_rev: self.apply_t_rev()
+
+    def apply_t_rev(self):
+        """
+        Add T*S rotation matrices
+        """
+        for n in range(self.nsym,self.nsym_with_trev): self.sym_car[n]=-1*self.sym_car[n-self.nsym]
+
+    def sym_red_car(self):
+        """
+        Transform symmetry ops. in Cartesian coordinates
+        """
+        lat = np.array(self.cell)
+        sym_car = np.zeros([len(self.sym_red),3,3],dtype=float)
+        for n,s in enumerate(self.sym_red):
+            sym_car[n] = np.dot( np.linalg.inv(lat), np.dot(s, lat ) ).T
+        return sym_car
+
+    def expand_kpoints_xml(self,atol=1e-6,expand_eigen=True,verbose=0):
+        """
+        Take a list of kpoints and symmetry operations and return the full brillouin zone
+        with the corresponding index in the irreducible brillouin zone
+
+        Expand also eigenvalues by default
+        """
+        alat      = np.array(self.acell)
+        kpts_ibz  = np.array(self.kpoints)
+        eigen_ibz = np.array(self.eigen1)
+        rlat      = np.array(self.rcell)
+
+        self.read_symmetries()
+
+        #check if the kpoints were already exapnded
+        kpoints_indices  = []
+        kpoints_full     = []
+        symmetry_indices = []
+
+        #kpoints in the full brillouin zone organized per index
+        kpoints_full_i = {}
+
+        #expand using symmetries
+        for nk,k in enumerate(kpts_ibz):
+            #if the index in not in the dictionary add a list
+            if nk not in kpoints_full_i:
+                kpoints_full_i[nk] = []
+
+            for ns,sym in enumerate(self.sym_car):
+
+                new_k = np.dot(sym,k)
+
+                #check if the point is inside the bounds
+                k_red = car_red([new_k],rlat)[0]
+                k_bz = (k_red+atol)%1
+
+                #if the vector is not in the list of this index add it
+                if not vec_in_list(k_bz,kpoints_full_i[nk]):
+                    kpoints_full_i[nk].append(k_bz)
+                    kpoints_full.append(new_k)
+                    kpoints_indices.append(nk)
+                    symmetry_indices.append(ns)
+                    continue
+
+        #calculate the weights of each of the kpoints in the irreducible brillouin zone
+        nkpoints_full = len(kpoints_full)
+        weights = np.zeros([nkpoints_full])
+        for nk in kpoints_full_i:
+            weights[nk] = float(len(kpoints_full_i[nk]))/nkpoints_full
+
+        if verbose: print("%d kpoints expanded to %d"%(self.nkpoints,len(kpoints_full)))
+
+        #set the variables
+        self.weights_ibz      = np.array(weights)
+        self.kpoints_indices  = np.array(kpoints_indices)
+        self.symmetry_indices = np.array(symmetry_indices)
+        self.nkbz             = nkpoints_full
+        #cartesian coordinates of QE
+        self.kpoints_bz       = np.array(kpoints_full)
+
+        if expand_eigen:
+
+            self.eigen_bz = np.zeros((self.nkbz,self.nbands))
+            for ik in range(self.nkbz): self.eigen_bz[ik,:] = eigen_ibz[self.kpoints_indices[ik],:]
+            if verbose: print("Eigenvalues also expanded.")
