@@ -461,7 +461,7 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
     #Spin
     spin = kwargs.pop("spin", None)
     if spin is "spinor": qe_input.set_spinorbit()
-    if spin is "polarized": qe_input_scf.set_spinpolarized() 
+    if spin is "polarized": qe_input.set_spinpolarized() 
 
     #Magnetization
     starting_magnetization = kwargs.pop("starting_magnetization", None)

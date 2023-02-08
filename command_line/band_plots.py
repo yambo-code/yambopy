@@ -15,9 +15,10 @@ Arguments are:
     - out_name: string to be attached to output file name
     - erange: energy window centered at Fermi level (single value in eV, None means all energies)
     - show: determine if plt.show() is called at the end
+    - print_data: if True, print plotted data in text format
 """
 
-def plot_driver(data,plt_type,out_name=None,erange=None,show=True):
+def plot_driver(data,plt_type,out_name=None,erange=None,show=True,print_data=True):
     """
     This function is like the __init__ function of a class.
     
@@ -33,6 +34,25 @@ def plot_driver(data,plt_type,out_name=None,erange=None,show=True):
     if plt_type=='bands': 
         data_to_plot = prefix,nkpoints,nbands,kstps,KPTs_labels,points,gaps,eigen
         electron_dispersion_plot(data_to_plot,out_name,erange,show)
+    if print_data: print_out_files(kstps,eigen,prefix,out_name)
+
+def print_out_files(kstps,eigen,prefix,out_nm):
+    """
+    Print data as *.dat file
+    """
+
+    # Output name
+    if out_nm is not None: out_file_dat = "%s_%s.dat"%(prefix,out_nm)
+    else:                  out_file_dat = "%s_bands.dat"%prefix
+
+    # Create array to print
+    Nk,Nb = eigen.shape
+    to_prnt = np.zeros((Nk,Nb+1))
+    to_prnt[:,0] =kstps
+    to_prnt[:,1:]=eigen
+
+    # Save array
+    np.savetxt(out_file_dat,to_prnt,fmt='%.6f')
 
 def electron_dispersion_plot(data,out_nm,erange,show):
     """
@@ -53,8 +73,10 @@ def electron_dispersion_plot(data,out_nm,erange,show):
     else:                  out_file_pdf = "%s_bands.pdf"%prefix
 
     # Initial preparations
+    if gaps[0]<1.e-6: yref=0.
+    else:             yref=min(gaps)
     Nk,Nb = eigen.shape
-    ylims = np.array([min(gaps)-erange,min(gaps)+erange])/2.
+    ylims = np.array([yref-erange,yref+erange])/2.
     xlims = [kstps[0],kstps[-1]]
     for il in range(len(KPTs_labels)):
         if KPTs_labels[il]=='G': KPTs_labels[il]=r'$\Gamma$'
@@ -89,7 +111,7 @@ def electron_dispersion_plot(data,out_nm,erange,show):
         while tick>ylims[0]:
             tick -=0.1
             yticks.insert(0,tick)
-    yticklabels = [str(ytick) for ytick in yticks]
+    if l_yticks: yticklabels = [str(ytick) for ytick in yticks]
     ## xticks
     xticks = [0.]+KPTs
     xticklabels = KPTs_labels
@@ -106,7 +128,7 @@ def electron_dispersion_plot(data,out_nm,erange,show):
     ax.set_xticklabels(xticklabels,size=20)
     ax.tick_params(direction='in',width=frame_linewidth,length=6,left=True,right=True)
     for point in KPTs[:-1]: ax.axvline(point,color='black',linewidth=frame_linewidth)
-    ax.axhline(min(gaps),color='gray',linestyle='--',linewidth=faint_linewidth)
+    if yref!=0.: ax.axhline(min(gaps),color='gray',linestyle='--',linewidth=faint_linewidth)
     ax.axhline(0,color='black',linewidth=faint_linewidth)
 
     # Draw plot

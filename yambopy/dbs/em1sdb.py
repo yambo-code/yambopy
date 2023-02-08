@@ -12,14 +12,15 @@ class YamboStaticScreeningDB(object):
     Class to handle static screening databases from Yambo
     
     This reads the databases ``ndb.em1s*``
-    There :math:`v\chi(\omega=0)` is stored.
+    There :math:`√v(q,g1) \chi_{g1,g2} (q,\omega=0) √v(q,g2)` is stored.
     
     To calculate epsilon (static dielectric function) we do:
 
     .. math::
 
-        \epsilon^{-1} = 1-v\chi
-
+        \epsilon^{-1}_{g1,g2}(q) = 1-v(q,g1)\chi_{g1,g2}
+        
+    The symmetric and asymmetric formulations coincide for the head g1=g2=0
     """
     def __init__(self,save='.',em1s='.',filename='ndb.em1s',db1='ns.db1'):
         self.save = save
@@ -65,11 +66,10 @@ class YamboStaticScreeningDB(object):
         self.red_qpoints = car_red(self.car_qpoints,self.rlat) 
         self.nqpoints = len(self.car_qpoints)
 
-        #are we usign coulomb cutoff?
-        #
-        # There is a bug here???
-        #
-        #self.cutoff = "".join(database.variables['CUTOFF'][:][0]).strip()
+        try:
+            database.variables['CUTOFF'][:]
+            self.cutoff = str(database.variables['CUTOFF'][:][0],'UTF-8').strip()
+        except: IndexError
         
         #read fragments
         read_fragments=True
@@ -135,7 +135,7 @@ class YamboStaticScreeningDB(object):
         Write vVepsilon_{g1=0,g2=0} (q) as a funciton of |q| on a text file
         volume -> multiply by the volume
         """
-        x,y = self._geteq(ng1=ng1,ng2=ng2,volume=volume)
+        x,y = self._geteq(volume=volume)
         np.savetxt(filename,np.array([x,y]).T)
     
     def get_g_index(self,g):
@@ -153,7 +153,7 @@ class YamboStaticScreeningDB(object):
         Get epsilon_{0,0} = [1/(1+vX)]_{0,0} a function of |q|
         vX is a matrix with size equal to the number of local fields components
  
-        In the database we find vX(\omega=0) where:
+        In the database we find √vX√v(\omega=0) where:
         v -> coulomb interaction (truncated or not)
         X -> electronic response function
 
@@ -173,21 +173,26 @@ class YamboStaticScreeningDB(object):
 
         return x,y
 
-    def _getvxq(self,ng1=0,ng2=0,volume=False): 
+    def _getvxq(self,ng1=0,ng2=0,volume=False,symm=True): 
         """
         Get vX_{ng1,ng2} a function of |q|
         vX is a matrix with size equal to the number of local fields components
  
-        In the database we find vX(\omega=0) where:
+        In the database we find √vX√v(\omega=0) where:
         v -> coulomb interaction (truncated or not)
         X -> electronic response function
 
         Arguments:
             ng1, ng2 -> Choose local field components
             volume   -> Normalize with the volume of the cell
+            symm     -> True:  √v(q,g1) X_{g1,g2}(q) √v(q,g2)
+                        False: v(q,g1) X_{g1,g2}(q) TO BE IMPLEMENTED
         """
         x = [np.linalg.norm(q) for q in self.car_qpoints]
-        y = [xq[ng2,ng1] for xq in self.X ]
+        if symm:
+            y = [xq[ng2,ng1] for xq in self.X ]
+        else: 
+            raise NotImplementedError("vXq with symm=False is not presently implemented.")
       
         #order according to the distance
         x, y = list(zip(*sorted(zip(x, y))))
@@ -198,7 +203,7 @@ class YamboStaticScreeningDB(object):
 
         return x,y
     
-    def plot(self,ax,volume=False,**kwargs):
+    def plot(self,ax,ng1=0,ng2=0,volume=False,symm=True,**kwargs):
         """
         Plot the static screening as a function of |q|
         
@@ -208,12 +213,12 @@ class YamboStaticScreeningDB(object):
         """
 
         #get vX_{00}
-        x,vX = self._getvxq(volume=volume)
+        x,vX = self._getvxq(ng1=ng1,ng2=ng2,volume=volume,symm=symm)
     
         #when plotting we apply a funciton to epsilon to represent it, by default the |x|
         ax.plot(x,(1+vX).real,**kwargs)
         ax.set_xlabel('$|q|$')
-        ax.set_ylabel('$\epsilon^{-1}_{00}(\omega=0)$')
+        ax.set_ylabel('$\epsilon^{-1}_{%d%d}(\omega=0)$'%(ng1,ng2))
 
     def __str__(self):
         s = ""

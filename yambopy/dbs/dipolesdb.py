@@ -6,15 +6,19 @@
 from yambopy import *
 from math import sqrt
 from time import time
+import matplotlib.pyplot as plt
 from yambopy.tools.string import marquee
-from yambopy.tools.funcs import abs2, lorentzian, gaussian
+from yambopy.tools.funcs import abs2,lorentzian, gaussian
+from yambopy.plot.plotting import add_fig_kwargs,BZ_hexagon,shifted_grids_2D
 
 class YamboDipolesDB():
     """
     Class to read the dipoles databases from the ``ndb.dip*`` files
     
-    Can be used to for exapmle plot the imaginary part of the dielectric
-    function which corresponds to the optical absorption
+    Can be used to plot, for example, the imaginary part of the dielectric
+    function which corresponds to the optical absorption, or directly the matrix elements in kspace.
+
+    Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v].
     """
     def __init__(self,lattice,save='SAVE',filename='ndb.dip_iR_and_P',dip_type='iR',field_dir=[1,0,0],field_dir3=[0,0,1]):
         self.lattice = lattice
@@ -69,11 +73,33 @@ class YamboDipolesDB():
     def readDB(self,dip_type):
         """
         The dipole matrix has the following indexes:
-        [nkpoints, 3, nspin, nbands conduction, nbands valence]
+        [nkpoints, cartesian directions, nspin, nbands conduction, nbands valence]
         """
+        #check if output is in the old format
+        fragmentname = "%s_fragment_1"%(self.filename)
+        if os.path.isfile(fragmentname): return self.readDB_oldformat(dip_type)
+
         self.dip_type = dip_type
         dipoles = np.zeros([self.nk_ibz,3,self.nbandsc,self.nbandsv],dtype=np.complex64)
         
+        database = Dataset(self.filename)
+        dip = np.squeeze(database.variables['DIP_%s'%(dip_type)])
+        dip = (dip[:,:,:,:,0]+1j*dip[:,:,:,:,1]) # Read as nk,nv,nc,ir
+        dipoles = np.swapaxes(dip,1,3) # Swap indices as mentioned in the docstring
+        database.close()
+
+        return dipoles
+
+    def readDB_oldformat(self,dip_type):
+        """
+        Legacy function for compatibility
+
+        The dipole matrix has the following indexes:
+        [nkpoints, cartesian directions, nspin, nbands conduction, nbands valence]
+        """
+        self.dip_type = dip_type
+        dipoles = np.zeros([self.nk_ibz,3,self.nbandsc,self.nbandsv],dtype=np.complex64)
+   
         #check dipole db format
         filename = "%s_fragment_1"%(self.filename)
         database = Dataset(filename)
@@ -137,6 +163,7 @@ class YamboDipolesDB():
         nbands = self.min_band+self.nbands-1
         
         #Note that P is Hermitian and iR anti-hermitian.
+        # [FP] Other possible dipole options (i.e., velocity gauge) to be checked. Treat them as not supported.
         if self.dip_type == 'P':
             factor =  1.0
         else:
@@ -177,14 +204,59 @@ class YamboDipolesDB():
        
     def plot(self,ax,kpoint=0,dir=0,func=abs2):
         return ax.matshow(func(self.dipoles[kpoint,dir]))
+
+    @add_fig_kwargs
+    def plot_dipoles(self,data,plt_show=False,plt_cbar=False,**kwargs):
+        """
+        2D scatterplot in the k-BZ of the quantity A_{k}(ik,idir,ic,iv).
+        TODO: this is the same function as plot_elph in elphondb. They should be merged.
+
+        Any real quantity which is a function of only the k-grid may be supplied.
+        The indices ik,idir,ic,iv are user-specified.
+
+        - if plt_show plot is shown
+        - if plt_cbar colorbar is shown
+        - kwargs example: marker='H', s=300, cmap='viridis', etc.
+
+        NB: So far requires a 2D system.
+            Can be improved to plot BZ planes at constant k_z for 3D systems.
+        """
+        kpts = self.lattice.car_kpoints
+        rlat = self.lattice.rlat
+
+        # Input check
+        if len(data)!=len(kpts):
+            raise ValueError('Something wrong in data dimensions (%d data vs %d kpts)'%(len(data),len(kpts)))
+
+        # Global plot stuff
+        self.fig, self.ax = plt.subplots(1, 1)
+        self.ax.add_patch(BZ_hexagon(rlat))
+
+        if plt_cbar:
+            if 'cmap' in kwargs.keys(): color_map = plt.get_cmap(kwargs['cmap'])
+            else:                       color_map = plt.get_cmap('viridis')
+        lim = 1.05*np.linalg.norm(rlat[0])
+        self.ax.set_xlim(-lim,lim)
+        self.ax.set_ylim(-lim,lim)
+
+        # Reproduce plot also in adjacent BZs
+        BZs = shifted_grids_2D(kpts,rlat)
+        for kpts_s in BZs: plot=self.ax.scatter(kpts_s[:,0],kpts_s[:,1],c=data,**kwargs)
+
+        if plt_cbar: self.fig.colorbar(plot)
+
+        plt.gca().set_aspect('equal')
+
+        if plt_show: plt.show()
+        else: print("Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
         
     def ip_eps2(self,electrons,pol=1,ntot_dip=-1,GWshift=0.,broad=0.1,broadtype='l',nbnds=[-1,-1],emin=0.,emax=10.,esteps=500):
         """
-        Compute independent-particle absorption (by Fulvio Paleari)
+        Compute independent-particle absorption
 
         electrons -> electrons YamboElectronsDB
         GWshift -> rigid GW shift in eV
-        broad -> broadening of peaks
+        broad -> broadening of peaks in eV
         broadtype -> 'l' is lorentzian, 'g' is gaussian
         nbnds -> number of [valence, conduction] bands included starting from Fermi level. Default means all are included
         emin,emax,esteps -> frequency range for the plot
@@ -192,11 +264,11 @@ class YamboDipolesDB():
 
         #get eigenvalues and weights of electrons
         eiv = electrons.eigenvalues
-        print(eiv.shape)
+        #print(eiv.shape)
         weights = electrons.weights
         nv = electrons.nbandsv
         nc = electrons.nbandsc   
- 
+
         #get dipoles
         dipoles = self.dipoles
 
@@ -226,25 +298,26 @@ class YamboDipolesDB():
 
         na = np.newaxis
         #calculate epsilon
-        for c,v in product(list(range(nv,lc)),list(range(iv,nv))):
-            #get electron-hole energy and dipoles
-            ecv  = eiv[:,c]-eiv[:,v]
-            dip2 = abs2(dipoles[:,pol,c-nv,v])
+        for c,v in product(range(nv,lc),range(iv,nv)):
 
-            #make dimensions match
-            dip2a = dip2[na,:]
-            ecva  = ecv[na,:]
-            freqa = freq[:,na]
-            wa    = weights[na,:]       
+                #get electron-hole energy and dipoles
+                ecv  = eiv[:,c]-eiv[:,v]
+                dip2 = np.abs(dipoles[:,pol,c,v])**2.
+
+                #make dimensions match
+                dip2a = dip2[na,:]
+                ecva  = ecv[na,:]
+                freqa = freq[:,na]
+                wa    = weights[na,:]       
  
-            #calculate the lorentzians 
-            broadw = broadening(freqa,ecva,broad)
+                #calculate the lorentzians 
+                broadw = broadening(freqa,ecva,broad)
    
-            #scale broadening with dipoles and weights
-            epsk =  wa*dip2a*broadw
+                #scale broadening with dipoles and weights
+                epsk =  wa*dip2a*broadw
 
-            #integrate over kpoints
-            eps2 += np.sum(epsk,axis=1)
+                #integrate over kpoints
+                eps2 += np.sum(epsk,axis=1)
 
         return freq, eps2
 

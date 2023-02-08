@@ -295,15 +295,13 @@ class MergeQPCmd(Cmd):
         parser = argparse.ArgumentParser(description='Join different NetCDF quasi-particle databases')
         parser.add_argument('files', nargs='+', type=argparse.FileType('r'))
         parser.add_argument('-o','--output',                       help='Output filename', default='ndb_out.QP')
-        parser.add_argument('-v','--verbose', action="store_true", help='Verbose mode')
         args = parser.parse_args(args)
 
         output  = args.output
         files   = args.files
-        verbose = args.verbose
         
         #call merge_qp from recipes.py
-        merge_qp(output,files,verbose)
+        recipes.merge_qp(output,files)
 
     def info(self):
         """
@@ -421,6 +419,33 @@ class SaveCmd(Cmd):
         #call generate_save
         generate_save.generate_save(database,nscf_dir,yambo_dir,scheduler)
 
+class UpdtSrlNmbrCmd(Cmd):
+    """
+    Script to update serial numbers of yambo ndb.* databases in order to import them to new calculations.
+
+    Inputs:
+    1. -new, --new_serial='path/to/folder/with/new/dbs' [e.g., the new SAVE]
+    2. -old, --old_serial='path/to/folder/with/old/dbs' [e.g., an old ndb.em1s]
+
+    This script will prompt the user to go through with updating the dbs.
+    """
+    def __init__(self,args):
+        #check for args
+        if len(args) < 2:
+            print((self.__doc__))
+            exit(0)
+
+        parser = argparse.ArgumentParser(description='Updated serial numbers in yambo databases')
+        parser.add_argument('-new','--new_serial', type=str, default="./SAVE", help='<Optional> Path to folder with the newer databases (Default is ./SAVE)')
+        parser.add_argument('-old','--old_serial', type=str,help='<Required> Path to folder with the older databases',required=True)
+        args = parser.parse_args(args)
+
+        new_dir = args.new_serial
+        old_dir = args.old_serial
+
+        #check dbs
+        update_serial.prompt_user(new_dir,old_dir)
+
 class PlotBndStrCmd(Cmd):
     """
     Script to produce band structure data and visualization from QE.
@@ -497,6 +522,7 @@ class YambopyCmd(Cmd):
                  'save':         SaveCmd,
                  'gkkp':         GkkpCmd,
                  'bands':        PlotBndStrCmd,
+                 'serial':       UpdtSrlNmbrCmd,
                  'test':         TestCmd}
 
     def __init__(self,*args):
