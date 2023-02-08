@@ -176,8 +176,12 @@ def setup_info(nKPTs,nkpt_per_direction,KPTs,KPT_lengths,nkpoints,nbands,points,
     print("nbands: %d"%nbands)  
     if scissor is None: print("scissor shift: No")
     else: print("scissor shift: Yes")
-    print("direct band gap:   %f eV"%gaps[0])
-    print("indirect band gap: %f eV"%gaps[1])
+    if gaps[0]>1.e-6:
+        print("direct band gap:   %f eV"%gaps[0])
+        print("indirect band gap: %f eV"%gaps[1])
+    else:
+        print("direct band gap:   %f eV"%gaps[0])
+        print("This is a metal.")
     
     # Symmetry points info
     print("=== PLOT ===")

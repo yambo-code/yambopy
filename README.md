@@ -6,12 +6,13 @@ Do pre/post-processing, data analysis and plotting for yambo and quantum espress
 
 Yambo official website: http://www.yambo-code.org/ 
 
-Yambo Github page: https://github.com/yambo-code/yambo
+Yambo Github page [download yambo & yambopy]: https://github.com/yambo-code/yambo
+
 
 Documentation
 -------------
-You can read the documentation in:
-http://yambopy.readthedocs.org/en/latest/
+You can find explained tutorials and a partial 
+documentation on the Yambo wiki page: http://www.yambo-code.org/wiki
 
 Features
 --------
@@ -19,14 +20,7 @@ Features
 - Collect and manipulate the output data for analysis
 - Automatic submissions of calculations (e.g., convergence workflows)
 - Plot the results using matplotlib
-- Test suite
-- Tutorial
-
-Tests
-------
-- Generate input files and compare to reference
-- Generate input files, run the calculations using Quantum Espresso and Yambo
-- Plot the results using matplotlib
+- Tutorials
 
 Requirements
 ------------
@@ -35,18 +29,28 @@ Requirements
 - scipy: https://www.scipy.org/
 - matplotlib: http://matplotlib.org/
 - netCDF4: http://unidata.github.io/netcdf4-python/
+- pyyaml: https://pyyaml.org/
 - Quantum Espresso (optional): http://www.quantum-espresso.org/
 - Abipy (optional): https://abinit.github.io/abipy/
 
 TODO
 ----
 - Enhance modularisation (task-oriented instead of goal-oriented) to support wider developments.
+- Full documentation & tutorials
+- Test suite
+- Keep developing new features
 
 Authors
 ------
-- [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/)
+Yambopy was started and mostly developed by [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/).
+
+Current developers and maintainers:
 - [Alejandro Molina Sanchez](http://alexmoratalla.github.io/)
-- Fulvio Paleari
+- [Fulvio Paleari](http://palful.github.io)
+
+Collaborators include(d)
 - Alexandre Morlet
+- Davide Romanin
+- You if you want to share your scripts!
 
 The code is at an ongoing stage of development, help us by sending bug reports, patches and suggestions!

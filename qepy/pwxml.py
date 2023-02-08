@@ -15,6 +15,7 @@ __all__ = ['PwXML']
 HatoeV = 27.2107
 
 class PwXML():
+    # This class reads up to version 6.7
     """ Class to read data from a Quantum espresso XML file
     """
     _eig_xml   = 'eigenval.xml'
@@ -112,6 +113,9 @@ class PwXML():
         for i in range(self.nkpoints):
           k_aux = self.datafile_xml.findall('BRILLOUIN_ZONE/K-POINT.%d'%(i+1))[0].get('XYZ')
           self.kpoints.append([float(x) for x in k_aux.strip().split()])
+        
+        #get fermi
+        self.fermi = float(self.datafile_xml.find("BAND_STRUCTURE_INFO/FERMI_ENERGY").text)*HatoeV
  
         #get eigenvalues
 
@@ -120,9 +124,9 @@ class PwXML():
            eigen = []
            for ik in range(self.nkpoints):
                for EIGENVALUES in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig_xml) ).getroot().findall("EIGENVALUES"):
-                   eigen.append(list(map(float, EIGENVALUES.text.split())))
-           self.eigen  = eigen
-           self.eigen1 = eigen
+                   eigen.append(list(map(float,EIGENVALUES.text.split())*HatoeV))
+           self.eigen  = eigen - self.fermi
+           self.eigen1 = eigen - self.fermi
 
         #get eigenvalues of spin up & down
 
@@ -130,13 +134,13 @@ class PwXML():
            eigen1, eigen2 = [], []
            for ik in range(self.nkpoints):
                for EIGENVALUES1 in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig1_xml) ).getroot().findall("EIGENVALUES"):
-                    eigen1.append(list(map(float, EIGENVALUES1.text.split())))
+                    eigen1.append(list(map(float, EIGENVALUES1.text.split())*HatoeV))
                for EIGENVALUES2 in ET.parse( "%s/%s.save/K%05d/%s" % (self.path,self.prefix,(ik + 1),self._eig2_xml) ).getroot().findall("EIGENVALUES"):
-                    eigen2.append(list(map(float, EIGENVALUES2.text.split())))
+                    eigen2.append(list(map(float, EIGENVALUES2.text.split())*HatoeV))
 
-           self.eigen   = eigen1
-           self.eigen1  = eigen1
-           self.eigen2  = eigen2
+           self.eigen   = eigen1 - self.fermi
+           self.eigen1  = eigen1 - self.fermi
+           self.eigen2  = eigen2 - self.fermi
 
         #get occupations of spin up & down
         if self.lsda:
@@ -149,9 +153,6 @@ class PwXML():
         
            self.occupation1 = occ1
            self.occupation2 = occ2
-        
-        #get fermi
-        self.fermi = float(self.datafile_xml.find("BAND_STRUCTURE_INFO/FERMI_ENERGY").text)
 
         #get Bravais Lattice
         self.bravais_lattice = str(self.datafile_xml.find("CELL/BRAVAIS_LATTICE").text)
@@ -178,6 +179,10 @@ class PwXML():
         Read the data from the xml file in the new format of quantum espresso
         """
         self.datafile_xml = ET.parse( filename ).getroot()
+
+        # occupation type
+
+        self.occ_type = self.datafile_xml.findall("input/bands/occupations")[0].text
 
         #get magnetization state
         # TO BE DONE!!!
@@ -242,18 +247,19 @@ class PwXML():
             kpoint = [float(x) for x in kstates[i].findall('k_point')[0].text.strip().split()]
             self.kpoints.append( kpoint )
 
+        #get fermi (it depends on the occupations)
+        if self.occ_type == 'fixed':
+           self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)*HatoeV
+        else:
+           self.fermi = float(self.datafile_xml.find("output/band_structure/fermi_energy").text)*HatoeV
+
         #get eigenvalues
         self.eigen1 = []
         for k in range(self.nkpoints):
             eigen = [float(x) for x in kstates[k].findall('eigenvalues')[0].text.strip().split()]
             self.eigen1.append( eigen )
-        self.eigen1 = np.array(self.eigen1)
+        self.eigen1 = np.array(self.eigen1)*HatoeV - self.fermi
  
-        #get fermi
-        # it depends on the occupations????
-        #self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)
-        self.fermi = float(self.datafile_xml.find("output/band_structure/fermi_energy").text)
-    
         #get Bravais lattice
         self.ibrav = self.datafile_xml.findall("output/atomic_structure")[0].get('bravais_index')
 
@@ -305,11 +311,13 @@ class PwXML():
         app("nbands:   %d"%self.nbands)
         return "\n".join(lines)
 
-    def plot_eigen_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),color='r'):
+    def plot_eigen_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),color='r',**kwargs):
         #
         # Careful with variable path. I am substituting vy path_kpoints
         # To be done in all the code (and in the tutorials)
         #
+        # argurments:
+        # ls: linestyle
         if path_kpoints:
             if isinstance(path_kpoints,Path):
                 path_kpoints = path_kpoints.get_indexes()
@@ -318,6 +326,9 @@ class PwXML():
             ax.set_xticklabels( path_labels )
         ax.set_ylabel('E (eV)')
 
+        ls = kwargs.pop('ls','solid')
+        lw = kwargs.pop('lw',1)
+        y_offset = kwargs.pop('y_offset',0.0)
         #get kpoint_dists 
         kpoints_dists = calculate_distances(self.kpoints)
         ticks, labels = list(zip(*path_kpoints))
@@ -336,14 +347,15 @@ class PwXML():
            eigen1 = np.array(self.eigen1)
 
            for ib in range(self.nbands_up):
-               ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2)
-               ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up]*HatoeV - self.fermi*HatoeV, 'b-', lw=2)
+               ax.plot(kpoints_dists,eigen1[:,ib]                + y_offset, '%s-'%color, lw=2, zorder=1) # spin-up 
+               ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up] + y_offset, 'b-', lw=2, zorder=1) # spin-down
 
+        # Case: Non spin polarization
         else:
            eigen1 = np.array(self.eigen1)
 
            for ib in range(self.nbands):
-               ax.plot(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, '%s-'%color, lw=2)
+               ax.plot(kpoints_dists,eigen1[:,ib] + y_offset, color=color, linestyle=ls ,zorder =1)
 
         #plot options
         if xlim: ax.set_xlim(xlim)
@@ -389,7 +401,7 @@ class PwXML():
         eigen1 = np.array(self.eigen1)
         for ib in range(self.nbands):
             x = kpoints_dists
-            y = eigen1[:,ib]*HatoeV - self.fermi*HatoeV
+            y = eigen1[:,ib] - self.fermi
             color_spin = self.spin_proj[:,ib] + 0.5 # I renormalize 0 => down; 1 => up
             ax.scatter(x,y,s=100,c=color_spin,cmap=color_map,vmin=0.0,vmax=1.0,edgecolors='none')
        
@@ -434,7 +446,7 @@ class PwXML():
         eigen1 = np.array(self.eigen1)
         occ1   = np.array(self.occupation1)
         for ib in range(self.nbands):
-            plt.scatter(kpoints_dists,eigen1[:,ib]*HatoeV - self.fermi*HatoeV, s=10*occ1[:,ib],c=color)
+            plt.scatter(kpoints_dists,eigen1[:,ib] - self.fermi, s=10*occ1[:,ib],c=color)
        
         #plot spin-polarized bands
         if self.lsda:
@@ -442,7 +454,7 @@ class PwXML():
            eigen2 = np.array(self.eigen2)
            occ2   = np.array(self.occupation1)
            for ib in range(self.nbands):
-               plt.scatter(kpoints_dists,eigen2[:,ib]*HatoeV - self.fermi*HatoeV, s=10*occ2[:,ib],c='b')
+               plt.scatter(kpoints_dists,eigen2[:,ib] - self.fermi, s=10*occ2[:,ib],c='b')
 
 
         #plot options
@@ -466,7 +478,7 @@ class PwXML():
             f = open('%s.dat'%self.prefix,'w')
             for ib in range(self.nbands):
                 for ik in range(self.nkpoints):
-                    f.write("%.1lf %.4lf \n " % (ik,self.eigen[ik][ib]*HatoeV) )
+                    f.write("%.1lf %.4lf \n " % (ik,self.eigen1[ik][ib]) )
                 f.write("\n")
             f.close()
         else:
