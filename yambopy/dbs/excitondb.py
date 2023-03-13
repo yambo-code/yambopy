@@ -7,6 +7,7 @@ from yambopy.tools.funcs import gaussian, lorentzian
 from yambopy.dbs.savedb import *
 from yambopy.dbs.latticedb import *
 from yambopy.dbs.electronsdb import *
+from yambopy.dbs.qpdb import *
 
 
 class ExcitonList():
