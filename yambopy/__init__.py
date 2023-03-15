@@ -90,6 +90,7 @@ from yambopy.double_grid.dg_convergence import *
 
 #gkkp files
 from yambopy.gkkp.compute_gkkp import *
+from yambopy.gkkp.refine_gkkp import *
 
 #data
 from yambopy.data import *

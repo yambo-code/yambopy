@@ -32,7 +32,7 @@ if __name__ == '__main__':
     setup(name='yambopy',
           version='1',
           description='Pre-Postprocessing and automatic workflows for Yambo (and Quantum Espresso).',
-          author='Henrique Miranda, Alejandro Molina Sanchez, Fulvio Paleari, Alexandre Morlet',
+          author='Fulvio Paleari, Alejandro Molina-Sánchez, Riccardo Reho, Davide Romanin, Alexandre Morlet and Henrique Miranda',
           author_email='fulvio.paleari90@gmail.com',
           requires=['numpy','scipy','matplotlib','netCDF4','pyyaml','lxml'],
           scripts=['scripts/yambopy'],
