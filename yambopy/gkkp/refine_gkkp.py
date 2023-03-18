@@ -120,7 +120,7 @@ class YamboRefineElphDB():
         # LO mode part
         if LO_ind is not None:
             self.find_nearest_qneighbor()
-            self.find_nearest_modes(mode='matdyn')
+            self.find_nearest_modes(mode='yambo')
             self.get_LO_modes()
 
         # Now that we have everything, we can edit the DBs
@@ -189,6 +189,9 @@ class YamboRefineElphDB():
     def expand_kpoints(self,atol=1e-6,verbose=1):
         """
         Expand matdyn qpoints
+
+        WARNING: In general, ths q-expansion will not follow the same 
+                 ordering of Yambo.
         """
         #check if the kpoints were already exapnded
         kpoints_indexes  = []
@@ -415,15 +418,29 @@ class YamboRefineElphDB():
         ax.scatter(points[:,0],points[:,1],marker='H',s=80,color='teal',linewidth=0.5,edgecolors='black',label='expanded')
         for i_k,kpt in enumerate(points):
             kx,ky = kpt[0],kpt[1]
-            ax.annotate(i_k, (kx,ky), color='teal', xytext=(kx+0.0005,ky+0.001), fontsize=12)
+            ax.annotate(i_k, (kx,ky), color='red', xytext=(kx+0.0005,ky+0.001), fontsize=5)
         if save: plt.savefig('%s.pdf'%title)
         plt.show()
 
-    def find_path(self,path='GMKG',mode='yambo'):
+    def find_path(self,indx_0,indx_1,band_indx,path='GMKG',mode='yambo'):
         """
         path: only GMKG
-        Give indices taken from plot_BZ
+
+        :: indx_0 = list of high-symmetry point indices (e.g. G,M,K)
+        :: indx_1 = list of high-symm. indx. in band path including end point
+        :: band_indices = indices of band path 
+
+        The above variables must be taken manually from plot_qBZ maps.
+
+        Example for 12x12x1 grid:
+
+        indx_0 = [0,31,142]
+        indx_1 = [0,6,8,12]
+        band_indx = [0,1,7,13,19,25,31,118,142,124,88,34,0] 
+       
         """
+        if path!='GMKG': raise ValueError("Only 'GMKG' path option is possible")
+
         if mode=='yambo': 
             pts=self.car_qpoints
             energies=self.ph_energies
@@ -431,9 +448,9 @@ class YamboRefineElphDB():
             pts=self.car_matdyn_qpoints
             energies=self.matdyn_ph_energies
 
-        iG, iM, iK= [0,31,142]
-        Sindx = [0,6,8,12]
-        band_indices = [0,1,7,13,19,25,31,118,142,124,88,34,0]
+        iG, iM, iK   = indx_0
+        Sindx        = indx_1
+        band_indices = band_indx
         pts[iM] = np.abs(pts[iM])
 
         Np = len(band_indices)
@@ -446,13 +463,15 @@ class YamboRefineElphDB():
 
         return Sindx, band_momenta, band_energies
 
-    def plot_bands(self,bnd_rng,plt_show=True):
+    def plot_bands(self,bnd_rng,indx_0,indx_1,band_indx,plt_show=True):
         """
         Phonon bands from gkkp (1) and matdyn (2)
         bnd_rng: [b_first, b_last]
+
+        See above function for meaning of indx arguments.
         """
-        Sindx, x1, y1 = self.find_path()
-        _,     x2, y2 = self.find_path(mode='matdyn') 
+        Sindx, x1, y1 = self.find_path(indx_0,indx_1,band_indx)
+        _,     x2, y2 = self.find_path(indx_0,indx_1,band_indx,mode='matdyn') 
         y1 = y1*1000.
         y2 = y2*1000.
 
@@ -460,8 +479,8 @@ class YamboRefineElphDB():
         clr1='teal'
         clr2='orange'
         flnm='Phon_Bands.pdf'
-        ms1=18
-        ms2=10
+        ms1=10
+        ms2=6
         lab1 = 'ndb.elph'
         lab2 = 'matdyn'
 
