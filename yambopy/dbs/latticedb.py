@@ -127,7 +127,7 @@ class YamboLatticeDB(object):
 
     @property
     def rlat(self):
-        """caclulate the reciprocal lattice"""
+        """calculate the reciprocal lattice"""
         if not hasattr(self,'_rlat'):
             self._rlat = rec_lat(self.lat)
         return self._rlat 

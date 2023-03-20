@@ -83,7 +83,13 @@ class YamboElectronPhononDB():
         self.qpoints = database.variables['PH_Q'][:].T
         self.car_qpoints = np.array([ q/self.alat for q in self.qpoints ])
         #read dimensions of electron phonon parameters
-        self.nmodes, self.nqpoints, self.nkpoints, self.nbands = database.variables['PARS'][:4].astype(int)
+        self.nmodes, self.nqpoints, self.nkpoints, b_1, b_2 = database.variables['PARS'][:5].astype(int)
+        if b_1>b_2: # Old database (no GkkpBands in PARS)
+            self.nbands = b_1
+            self.b_in, self.b_out = [0,self.nbands-1]
+        else: # New database (PARS with GkkpBands)
+            self.b_in, self.b_out = [b_1-1,b_2-1]
+            self.nbands = b_2-b_1+1
         self.natoms = int(self.nmodes/3)
         try: # Check if K-point list is provided (upon expansion), otherwise use the one from ns.db1
             self.kpoints_elph = database.variables['PH_K'][:].T
@@ -274,7 +280,7 @@ class YamboElectronPhononDB():
         app('nkpoints: %d'%self.nkpoints)
         app('nmodes: %d'%self.nmodes)
         app('natoms: %d'%self.natoms)
-        app('nbands: %d'%self.nbands)
+        app('nbands: %d (%d - %d)'%(self.nbands,self.b_in,self.b_out))
         if self.nfrags == self.nqpoints: app('fragments: %d'%self.nfrags)
         else: app('fragments: %d [WARNING] nfrags < nqpoints'%self.nfrags)
         if self.are_bare_there: app('bare couplings are present')
