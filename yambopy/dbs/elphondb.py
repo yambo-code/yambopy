@@ -223,12 +223,18 @@ class YamboElectronPhononDB():
         self.gkkp_mixed = np.real(self.gkkp)*np.real(self.gkkp_bare)+np.imag(self.gkkp)*np.imag(self.gkkp_bare)
         
     @add_fig_kwargs
-    def plot_elph(self,data,plt_show=False,plt_cbar=False,**kwargs):
+    def plot_elph(self,data,kcoords=None,plt_show=False,plt_cbar=False,**kwargs):
         """
-        2D scatterplot in the k-BZ of the quantity A_{k}(iq,inu,ib1,ib2).
-        
-        Any real quantity which is a function of only the k-grid may be supplied.
-        The indices iq,inu,ib1,ib2 are user-specified.
+        2D scatterplot in the BZ:
+
+         (i)  in k-space of the quantity A_{k}(iq,inu,ib1,ib2).
+         (ii) in q-space of the quantity A_{q}(ik,inu,ib1,ib2).       
+
+        Any real quantity which is a function of only the k-grid or q-grid may be supplied.
+        The indices iq/ik,inu,ib1,ib2 are user-specified.
+
+        - kcoords refers to the k/q-grid in Cartesian coordinates (i.e., yelph.car_qpoints and similar).
+          If None is specified, a k-space, fixed-q plot is assumed.
         
         - if plt_show plot is shown
         - if plt_cbar colorbar is shown
@@ -237,8 +243,9 @@ class YamboElectronPhononDB():
         NB: So far requires a 2D system. 
             Can be improved to plot BZ planes at constant k_z for 3D systems.
         """        
-        kpts = self.car_kpoints
-        
+        if kcoords is None: kpts = self.car_kpoints # Assume k-space plot
+        else:               kpts = kcoords # Plot on momentum map supplied by user       
+
         # Input check
         if len(data)!=len(kpts): 
             raise ValueError('Something wrong in data dimensions (%d data vs %d kpts)'%(len(data),len(kpts)))
