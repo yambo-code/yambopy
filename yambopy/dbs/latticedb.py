@@ -29,11 +29,11 @@ class YamboLatticeDB(object):
         self.ibz_nkpoints         = len(iku_kpoints)
 
     @classmethod
-    def from_db(cls,filename='ns.db1',Expand=True):
+    def from_db(cls,filename='ns.db1',Expand=True,expand_mode=0):
         return cls.from_db_file(filename,Expand)
     
     @classmethod
-    def from_db_file(cls,filename='ns.db1',Expand=True):
+    def from_db_file(cls,filename='ns.db1',Expand=True,expand_mode=0):
         """ Initialize YamboLattice from a local dbfile """
 
         if not os.path.isfile(filename):
@@ -60,7 +60,7 @@ class YamboLatticeDB(object):
                          time_rev             = dimensions[9] )
 
         y = cls(**args)
-        if Expand: y.expand_kpoints()
+        if Expand: y.expand_kpoints(expand_mode)
         return y
  
     @classmethod    
@@ -192,10 +192,13 @@ class YamboLatticeDB(object):
             time_rev_list[i] = ( i >= self.nsym/(self.time_rev+1) )
         return time_rev_list
 
-    def expand_kpoints(self,atol=1e-6,verbose=0):
+    def expand_kpoints(self,atol=1e-6,verbose=0,expand_mode=0):
         """
         Take a list of qpoints and symmetry operations and return the full brillouin zone
         with the corresponding index in the irreducible brillouin zone
+
+        :: expand_mode=0 : k' = S k    [default]
+        :: expand_mode=1:  k' = S.T k  [consistent with yambo]
         """
 
         #check if the kpoints were already exapnded
@@ -206,13 +209,19 @@ class YamboLatticeDB(object):
         #kpoints in the full brillouin zone organized per index
         kpoints_full_i = {}
 
+        if expand_mode==0: sym_car_to_apply = self.sym_car
+        if expand_mode==1:
+            sym_car_to_apply = np.copy(self.sym_car)
+            sym_car_to_apply = np.transpose(self.sym_car, (0, 2, 1))
+
+
         #expand using symmetries
         for nk,k in enumerate(self.car_kpoints):
             #if the index in not in the dicitonary add a list
             if nk not in kpoints_full_i:
                 kpoints_full_i[nk] = []
 
-            for ns,sym in enumerate(self.sym_car):
+            for ns,sym in enumerate(sym_car_to_apply):
 
                 new_k = np.dot(sym,k)
 
