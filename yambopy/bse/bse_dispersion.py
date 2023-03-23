@@ -53,7 +53,7 @@ class ExcitonDispersion():
         self.nqpoints     = nqpoints
         self.nexcitons    = nexcitons
         self.car_qpoints  = car_qpoints
-        self.red_qpoints  = car_red(car_qpoints,lattice.lat)
+        self.red_qpoints  = car_red(car_qpoints,lattice.rlat)
         self.lattice      = lattice
         self.exc_energies = exc_energies
         self.exc_tables   = exc_tables
