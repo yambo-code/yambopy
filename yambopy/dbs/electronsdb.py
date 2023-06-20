@@ -166,7 +166,7 @@ class YamboElectronsDB():
 
         transitions = np.zeros([nkpoints,nvalence*nconduction])
         for k,v,c in product(range(nkpoints),range(nvalence),range(nconduction)):
-            vc = v*nvalence+c
+            vc = v*nconduction+c
             transitions[k,vc] = eigenvalues[k,c+nvalence]-eigenvalues[k,v]
         self.transitions = transitions
 
