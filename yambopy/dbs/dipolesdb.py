@@ -3,6 +3,7 @@
 #
 # This file is part of the yambopy project
 #
+from yambopy.units import *
 from yambopy import *
 from math import sqrt
 from time import time
@@ -296,6 +297,10 @@ class YamboDipolesDB():
         else:
             broadening = gaussian
 
+        #dimensional factors
+        d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
+        cofactor =  ha2ev #* *np.pi**2. #*2/(2*np.pi)**3 * self.lattice.rlat_vol * (4*np.pi) # / (1.e-5)**2
+
         na = np.newaxis
         #calculate epsilon
         for c,v in product(range(nv,lc),range(iv,nv)):
@@ -319,7 +324,7 @@ class YamboDipolesDB():
                 #integrate over kpoints
                 eps2 += np.sum(epsk,axis=1)
 
-        return freq, eps2
+        return freq, eps2#*cofactor
 
     def __str__(self):
         lines = []; app = lines.append
@@ -333,6 +338,7 @@ class YamboDipolesDB():
         app("nbandsc: %d" % self.nbandsc)
         app("indexv : %d" % (self.min_band-1))
         app("indexc : %d" % (self.indexc-1))
+        app("gauge  : %s" % (self.dip_type))
         app("field_dirx: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirx))
         app("field_diry: %10.6lf %10.6lf %10.6lf"%tuple(self.field_diry))
         app("field_dirz: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirz))
