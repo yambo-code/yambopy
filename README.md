@@ -49,6 +49,7 @@ Current developers and maintainers:
 - [Fulvio Paleari](http://palful.github.io)
 
 Collaborators include(d)
+- Matteo Zanfrognini
 - Jorge Cervantes
 - Riccardo Reho
 - Alexandre Morlet
