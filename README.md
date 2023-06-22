@@ -1,7 +1,7 @@
 yambopy
 =======
 
-Create automatic workflows for yambo and quantum espresso using python.
+Create automatic workflows for yambo and quantum espresso using python. Work directly with netCDF databases.
 Do pre/post-processing, data analysis and plotting for yambo and quantum espresso.
 
 Yambo official website: http://www.yambo-code.eu/ 
