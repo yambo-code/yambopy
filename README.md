@@ -42,13 +42,14 @@ TODO
 
 Authors
 ------
-Yambopy was started and mostly developed by [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/).
+Yambopy was started and initially developed by [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/).
 
 Current developers and maintainers:
 - [Alejandro Molina Sanchez](http://alexmoratalla.github.io/)
 - [Fulvio Paleari](http://palful.github.io)
 
 Collaborators include(d)
+- Jorge Cervantes
 - Riccardo Reho
 - Alexandre Morlet
 - Davide Romanin
