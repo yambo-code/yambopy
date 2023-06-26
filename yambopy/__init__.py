@@ -26,6 +26,9 @@ Modules:
         - YamboExcitonWeight: read the excitonic weights from the ypp output file
         - YamboBSEAbsorptionSpectra: generate a .json file with the bse absorption calculation (including information about the excitons)
 
+    em1s
+        - YamboEm1sRotate: rotate em1s from IBZ to BZ
+        - YamboEm1sExpand: expand em1s from unit cell to supercell [IN DEVELOPMENT]
     analyse:
         - YamboAnalyser: read .json files generated with yamboout and plot them together
 """
@@ -71,6 +74,9 @@ from yambopy.bse.excitonwf import *
 from yambopy.bse.excitonweight import *
 from yambopy.bse.bse_absorption import *
 from yambopy.bse.bse_dispersion import *
+
+#em1s/static screening operations files
+from yambopy.em1s.em1s_rotate import *
 
 #analyse stuff
 from yambopy.analyse import *
