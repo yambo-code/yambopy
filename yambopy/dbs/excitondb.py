@@ -939,7 +939,7 @@ class YamboExcitonDB(YamboSaveDB):
         ax.set_aspect('equal')
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.add_patch(BZ_Wigner_Seitz(self.lattice.rlat))
+        ax.add_patch(BZ_Wigner_Seitz(self.lattice))
         return ax
     
     @add_fig_kwargs
