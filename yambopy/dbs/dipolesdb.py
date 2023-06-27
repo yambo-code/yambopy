@@ -324,8 +324,10 @@ class YamboDipolesDB():
             else:                broadening = gaussian
 
         #dimensional factors
-        d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
-        cofactor =  ha2ev #* *np.pi**2. #*2/(2*np.pi)**3 * self.lattice.rlat_vol * (4*np.pi) # / (1.e-5)**2
+        # [NB] This cofactor is not consistent with the yambo output:
+        #      - In 3D there is a factor missing
+        #      - In 2D there is a frequency dependence (!!!!!) missing (and a factor)
+        cofactor = 16*np.pi/self.lattice.rlat_vol
 
         na = np.newaxis
         epskres = np.zeros([esteps,nkpoints])
@@ -372,7 +374,7 @@ class YamboDipolesDB():
                     # +=: sum over (c,v) ; np.sum(axis=1): sum over k                    
                     eps += np.sum(osc*(G1+G2),axis=1)/np.pi
 
-        #eps = eps*cofactor
+        eps = eps*cofactor
 
         if res_k: return freq, eps, epskres
         else:     return freq, eps
