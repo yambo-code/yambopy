@@ -62,7 +62,7 @@ class YamboStaticScreeningDB(object):
         
         #read q-points
         self.iku_qpoints = database.variables['HEAD_QPT'][:].T
-        self.car_qpoints = np.array([ q/self.alat for q in self.iku_qpoints ])
+        self.car_qpoints = np.array([ q/self.alat for q in self.iku_qpoints ]) #atomic units
         self.red_qpoints = car_red(self.car_qpoints,self.rlat) 
         self.nqpoints = len(self.car_qpoints)
 
