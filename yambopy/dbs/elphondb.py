@@ -12,7 +12,7 @@ import os
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from yambopy.units import ha2ev, ev2cm1, I
-from yambopy.plot.plotting import add_fig_kwargs,BZ_hexagon,shifted_grids_2D
+from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz,shifted_grids_2D
 
 class YamboElectronPhononDB():
     """
@@ -51,6 +51,8 @@ class YamboElectronPhononDB():
     """
     def __init__(self,lattice,filename='ndb.elph_gkkp',folder_gkkp='SAVE',save='SAVE',read_all=True):
         
+        self.lattice = lattice
+
         # Find correct database names
         if os.path.isfile("%s/ndb.elph_gkkp"%folder_gkkp): filename='%s/ndb.elph_gkkp'%folder_gkkp
         elif os.path.isfile("%s/ndb.elph_gkkp_expanded"%folder_gkkp): filename='%s/ndb.elph_gkkp_expanded'%folder_gkkp
@@ -252,7 +254,7 @@ class YamboElectronPhononDB():
         
         # Global plot stuff
         self.fig, self.ax = plt.subplots(1, 1)
-        self.ax.add_patch(BZ_hexagon(self.rlat))
+        self.ax.add_patch(BZ_Wigner_Seitz(self.lattice))
         
         if plt_cbar:
             if 'cmap' in kwargs.keys(): color_map = plt.get_cmap(kwargs['cmap'])

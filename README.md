@@ -1,7 +1,7 @@
 yambopy
 =======
 
-Create automatic workflows for yambo and quantum espresso using python.
+Create automatic workflows for yambo and quantum espresso using python. Work directly with netCDF databases.
 Do pre/post-processing, data analysis and plotting for yambo and quantum espresso.
 
 Yambo official website: http://www.yambo-code.eu/ 
@@ -17,14 +17,17 @@ documentation on the Yambo wiki page: http://www.yambo-code.org/wiki
 Features
 --------
 - Create Yambo and Quantum Espresso input files from python
-- Collect and manipulate the output data for analysis
-- Automatic submissions of calculations (e.g., convergence workflows)
-- Plot the results using matplotlib
+- Collect and manipulate the human-readable output data for analysis
+- Automatic submissions of calculations (e.g., custom workflows for convergence or multi-executable runs)
+- Access Yambo netCDF databases and Quantum Espresso xml files
+- Analyse, interpolate and plot the results in various ways using matplotlib
+- Visualize advanced quantities such as:
+  -  dielectric function, exciton weights in k and q-space, electron-phonon matrix elements...
 - Tutorials
 
 Requirements
 ------------
-- yambo (>4.0.0): http://www.yambo-code.org/
+- yambo (>5.0.0): http://www.yambo-code.org/
 - numpy: http://www.numpy.org/
 - scipy: https://www.scipy.org/
 - matplotlib: http://matplotlib.org/
@@ -35,20 +38,22 @@ Requirements
 
 TODO
 ----
-- Enhance modularisation (task-oriented instead of goal-oriented) to support wider developments.
+- Review and update of all features
 - Full documentation & tutorials
 - Test suite
-- Keep developing new features
+- Make it easier to add new features
 
 Authors
 ------
-Yambopy was started and mostly developed by [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/).
+Yambopy was started and initially developed by [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/).
 
 Current developers and maintainers:
 - [Alejandro Molina Sanchez](http://alexmoratalla.github.io/)
 - [Fulvio Paleari](http://palful.github.io)
 
 Collaborators include(d)
+- Matteo Zanfrognini
+- Jorge Cervantes
 - Riccardo Reho
 - Alexandre Morlet
 - Davide Romanin

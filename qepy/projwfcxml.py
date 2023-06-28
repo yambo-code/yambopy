@@ -385,7 +385,7 @@ class ProjwfcXML(object):
         Write the projection array in a numpy file
         """
         np.savez(filename,proj=self.proj,weights=self.weights)
-        
+            
     def get_proj(self):
         """ Return projections
         """
@@ -468,7 +468,22 @@ class ProjwfcXML(object):
                   self.proj2 = np.array(proj2)
 
                   return proj1, proj2
-    
+       
+    def shift_bands(self,qpcorrection,vb,cb):
+        """
+        Shift band structure, e.g. to account for a G0W0 run.
+
+        The idea is to shift the bands by the qp corrections in order to use 
+        the weights from a projwfc calculation.
+
+        Note that the path used in QE must be the same as the one used in Yambo
+
+        - vb and cb allow for tuning the bands that are to be corrected
+        """
+
+        for ib in  range(self.nbands-vb,self.bands,self.nbands+cb): 
+            self.eigen[:,ib] = self.eigen[:,ib]+qpcorrection[:,ib]
+ 
     def __str__(self):
         s  = "nbands:   %d\n"%self.nbands
         s += "nkpoints: %d\n"%self.nkpoints
