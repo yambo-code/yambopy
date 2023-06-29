@@ -139,9 +139,10 @@ class YamboEm1sRotate():
         self.qpoints_ibz  = yem1s.car_qpoints
         self.nqpoints_ibz = yem1s.nqpoints
         self.gvectors     = yem1s.gvectors
-        self.red_gvectors = car_red(yem1s.gvectors,rlat)
+        self.red_gvectors = yem1s.red_gvectors
         self.ngvectors    = yem1s.ngvectors
         self.X_ibz        = yem1s.X
+        self.em1s_path    = yem1s.em1s
 
         # Get symmetries in CC and real-space atomic positions
         if not os.path.isfile('%s/%s'%(save_path,db1)): raise FileNotFoundError("File %s not found."%db1)
@@ -153,13 +154,19 @@ class YamboEm1sRotate():
         database.close()
         self.nsyms = len(self.syms)
 
+        print("=== Rotating em1s... ===")
+        print(" * Getting q-map...  ")
+
         # Obtain transformed qpoints q'=Sq in the full BZ
         self.qpoints, self.qpoints_indices, self.syms_indices, _ = \
         expand_kpoints(self.qpoints_ibz,self.syms,rlat)
         self.nqpoints = len(self.qpoints)
 
+        print(" * Getting G-map ...  ")
         # Obtain transformed gvectors G'=S^{-1}G
-        self.Sm1G_table = self.inverse_Gvector_table(rlat)
+        self.Sm1G_table = self.inverse_Gvector_table()
+
+        print(" * Getting new em1s... ")
 
         # Spatial inversion or T-rev?
         # [WARNING] We assume one of the two is used!
@@ -167,45 +174,37 @@ class YamboEm1sRotate():
         find_inversion_type(n_atoms,atom_pos,self.syms)
 
         # Rotate em1s from IBZ to BZ
-        print("=== Rotating em1s... ===")
-        self.rotate_em1s()
-        print("===      Done.       ===")
+        #self.rotate_em1s()
 
         if path_output_DBs is not None:
-            print("=== Saving database... ==="
+            print(" * Saving databases... ")
             self.outpath = path_output_DBs
             self.saveDBS()
-            print("===        Done.       ==="
-        else: print("(Enter value for path_output_DBs to print expanded ndb.em1s)")
+        else: print(" [!] Enter value for path_output_DBs to print expanded ndb.em1s")
 
-    def inverse_Gvector_table(self,rlat):
+        print("===      Done.       ===")
+
+    def inverse_Gvector_table(self,tol=1e-5):
         """
         Build table Sm1G_table such as:
 
         if ig_S = Sm1G_table[ig,iS], then S^{-1}G[ig]=G[ig_S]
-        """ 
+
+        - kwargs are atol and rtol for np.isclose
+        """
         inv_syms = np.linalg.inv(self.syms)
         Sm1G_table = np.zeros((self.ngvectors,len(inv_syms)),dtype=np.int)
-        
+
+        self.rotated_gvectors = np.zeros([len(self.syms),len(self.gvectors),3])
         for iG,G in enumerate(self.gvectors):
             for i_S,sym in enumerate(inv_syms):
-                G_S = np.dot(sym,G) 
-                iG_S = self.get_g_index(G_S)
-                if iG_S is None: raise ValueError("[ERROR] Problem in mapping inverse G-vectors. Try reducing isclose() tolerance in get_g_index")
-                else: Sm1G_table[iG,i_S]=iG_S
+                check = np.sum( (self.gvectors - np.dot(sym,G))**2., axis=1) < tol
+                if np.sum(check) == 1.0: # One G-vector G' has been found to correspond to sym^{-1}G
+                    Sm1G_table[iG,i_S]=np.int(np.where(check==1.0)[0])
+                elif np.sum(check)!= 1.0: #None or multiple G-vectors have been found
+                    raise ValueError("\n[ERROR] Problem in mapping inverse G-vectors. Try:\n - (i) reducing isclose() tolerance in get_g_index (easy case) \n - (ii) check that yambo packs G-shells correctly for your lattice type and G-cutoff (difficult case)")
 
         return Sm1G_table
-
-    def get_g_index(self,g):
-        """
-        get the index of the gvectors.
-        If the gvector is not present return None
-        """
-
-        for ng,gvec in enumerate(self.gvectors):
-            if np.isclose(g,gvec).all():
-                return ng
-        return None
 
     def rotate_em1s(self):
         """
@@ -244,14 +243,27 @@ class YamboEm1sRotate():
 
         self.X = X                   
 
-    def saveDBS(self,path):
+    def saveDBS(self):
         """
-        Save the database
+        Write yambo-compatible ndb.em1s and ndb.em1s_fragment* 
+        databases containing the expanded static screening.
+
+        TODO: 
+        - enable restarts
+        - automatically change serial number to new SAVE
         """
+        path = self.outpath
+
+        # If it exists, always remove outdir for safety
         if os.path.isdir(path): shutil.rmtree(path)
         os.mkdir(path)
 
+        self.write_em1s_header(path)
+
+        #self.write_em1s_fragments(path)
+
         #copy all the files
+        """
         oldpath = self.save
         filename = self.filename
         shutil.copyfile("%s/%s"%(oldpath,filename),"%s/%s"%(path,filename))
@@ -267,6 +279,60 @@ class YamboEm1sRotate():
             database.variables['X_Q_%d'%(nq+1)][0,0,:] = X[nq].real
             database.variables['X_Q_%d'%(nq+1)][0,1,:] = X[nq].imag
             database.close()
+        """
+
+    def write_em1s_header(self,path):
+        """ Write ndb.em1s
+
+            :: Dimensions ([F]ixed or [V]ariable):
+                - D_0000000003 = 3  [F]-> HEAD_VERSION, HEAD_QPT, X_RL_vecs
+                - D_0000000001 = 1  [F]-> HEAD_REVISION, SERIAL_NUMBER, HEAD_WF, CUTOFF, FRAGMENTED,
+                                          Xs_energies_xc_KIND, Xs_wavefunctions_xc_KIND, GAUGE, 
+                                          X_Time_ordering, X_TDDFT_KERNEL, X_OPTICAL_AVERAGE
+                - D_0000000002 = 2   [F]-> SPIN_VARS, TEMPERATURES, X_DRUDE
+                - D_0000000004 = 4   [F]-> HEAD_R_LATT
+                - D_00000000Nk = Nk  [V]-> HEAD_QPT
+                - D_0000000100 = 100 [F]-> CUTOFF, Xs_energies_xc_KIND, Xs_wavefunctions_xc_KIND,
+                                           GAUGE, X_Time_ordering, X_TDDFT_KERNEL, X_OPTICAL_AVERAGE
+                - D_0000000005 = 5   [V]-> X_PARS_1
+                - D_0000000010 = 10  [V]-> X_PARS_3
+                - D_00000000NG = NG  [V]-> X_RL_vecs
+
+            :: Contents of X_PARS_1:
+                - [V]NG X matrix size, X%ng 
+                - [F]X band range, tmp_ib (start, end)
+                - [F]X e/h energy range, X%ehe (start, end)  
+
+            :: Contents of X_PARS_3:
+                - [F]X poles, X%cg_percentual,
+                - [V]RL vectors in the sum, X%ngostnts [This is connected to Dip%ng and wf_ng but it is unclear how to extract it]
+                - [F][r,Vnl] included, X%Vnl_included
+                - [F]Longitudinal Gauge, local_long_gauge [normally absent]
+                - [F]Field direction, X%q0 (x,y,z)
+                - [F]BZ energy Double Grid, use_X_DbGd
+                - [F]BZ energy DbGd points, X_DbGd_nkpts
+                - [F]BZ Q point size factor, X_DbGd_percentual
+
+        """
+        # New database
+        dbs = Dataset(path+'/ndb.em1s',mode='w',format='NETCDF4')    
+
+        # Old database
+        dbs_ibz = Dataset(self.em1s_path+'/ndb.em1s')
+        ibz_dims = dbs_ibz.dimensions.values()
+        ibz_vars = dbs_ibz.variables.values() 
+
+        
+        # New dimensions
+        for dim in ibz_dims:
+            #if dim.size==
+            dbs.createDimension(dim.name,dim.size)
+            print(dim.name,'D_%010d'%dim.size)
+            print(dim.size)
+
+        dbs.close()
+        dbs_ibz.close()
+
 
     def __str__(self):
 

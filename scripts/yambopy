@@ -558,6 +558,34 @@ class GetPHqInputCmd(Cmd):
 
         get_phq_input.get_phq_input(pwout,phin)
 
+class ConvertRLtoRyCmd(Cmd):
+    """
+    Script to convert RL number in Ry energy units using ndb.gops.
+
+    Inputs:
+    1. -gops,--ndb_gops='path/to/folder/with/ndb.gops' [i.e., SAVE]
+    2. -v,--value='value to convert with units' [e.g., 11 RL or 5 Ry]
+
+    The script will read ndb.gops and find the nearest completed G-shell, then give the
+    converted value in Ry (RL) to the one supplied in input.
+    """
+    def __init__(self,args):
+
+        #check for args
+        if len(args) < 4:
+            print((self.__doc__))
+            exit(0)
+
+        parser = argparse.ArgumentParser(description='Convert RL number in energy units (Ry)')
+        parser.add_argument('-gops','--ndb_gops', type=str, default="./SAVE", help='<Optional> Path to folder with ndb.gops (default: ./SAVE)')
+        parser.add_argument('-v','--value', type=str,help="<Required> Value to be converted along with units, e.g.: '11 RL' or '5 Ry'",nargs=2,required=True)
+        args = parser.parse_args(args)
+
+        ndb_gops = args.ndb_gops
+        value    = args.value
+
+        convert_RL_to_Ry.convert(value,ndb_gops)
+
 class YambopyCmd(Cmd):
     """
     class to implement commands for yambopy.
@@ -575,6 +603,7 @@ class YambopyCmd(Cmd):
                  'serial':       UpdtSrlNmbrCmd,
                  'gwsubspace':   GwSubspace,
                  'phinp':        GetPHqInputCmd,
+                 'convert':      ConvertRLtoRyCmd,
                  'test':         TestCmd}
 
     def __init__(self,*args):
