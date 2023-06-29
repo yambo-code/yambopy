@@ -5,7 +5,7 @@
 #
 from yambopy import *
 from netCDF4 import Dataset
-from yambopy.lattice import rec_lat, car_red
+from yambopy.lattice import rec_lat, car_red, red_car
 
 class YamboStaticScreeningDB(object):
     """
@@ -33,6 +33,8 @@ class YamboStaticScreeningDB(object):
                 database = Dataset("%s/%s"%(self.save,db1), 'r')
                 self.alat = database.variables['LATTICE_PARAMETER'][:]
                 self.lat  = database.variables['LATTICE_VECTORS'][:].T
+                gvectors_full = database.variables['G-VECTORS'][:].T
+                self.gvectors_full = np.array([ g/self.alat for g in gvectors_full ])
                 self.volume = np.linalg.det(self.lat)
                 self.rlat = rec_lat(self.lat)
             except:
@@ -55,10 +57,11 @@ class YamboStaticScreeningDB(object):
         self.nbands = int(nbands)
         self.eh = eh
 
-        #read gvectors
-        gvectors = np.rint(database.variables['X_RL_vecs'][:].T)
-        self.gvectors = np.array([g/self.alat  for g in gvectors])
-        self.ngvectors = len(self.gvectors)
+        #read gvectors used for em1s
+        gvectors          = np.array(database.variables['X_RL_vecs'][:].T)
+        self.gvectors     = np.array([g/self.alat for g in gvectors])
+        self.red_gvectors = car_red(self.gvectors,self.rlat)
+        self.ngvectors    = len(self.gvectors)
         
         #read q-points
         self.iku_qpoints = database.variables['HEAD_QPT'][:].T
