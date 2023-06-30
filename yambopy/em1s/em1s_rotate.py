@@ -112,21 +112,20 @@ class YamboEm1sRotate():
           to the DFT codes for the no-symmetry calculation replacing the automatic grid
 
     :: Input 
-    - YamboStaticScreeningDB object (IBZ calculation)
-    - Location of ns.db1 database (default is inside SAVE)
-    - [OPTIONAL] Location of output databases
+    - yem1s           -> YamboStaticScreeningDB object (IBZ calculation)
+    - save_path       -> [OPTIONAL] Location of ns.db1 database (default is inside SAVE)
+    - path_output_DBs -> [OPTIONAL] Print expanded databases at location (default: do not print)
+    - verbose         -> [OPTIONAL] If True, prints a list of kpoints for QE calculation of nosym system
 
     :: Output
     - numpy array with expanded static screening 
     - [OPTIONAL] ndb.em1s and ndb.em1s_fragment_* databases corresponding to the 
     full BZ.
+    - [OPTIONAL] data file 'kpoints_ws_bz.dat' containing expanded rlu kpoint coordinates in PW format
 
-    TODO:
-    - table of S^-1 G [Not working in 3D as G-shell is not symmetric!?]
-    - write new netCDF4 database  
     """
 
-    def __init__(self,yem1s,save_path="SAVE",db1='ns.db1',path_output_DBs=None):
+    def __init__(self,yem1s,save_path="SAVE",db1='ns.db1',path_output_DBs=None,verbose=0):
 
         supported_cutoffs = ['none','slab z']
         self.cutoff       = yem1s.cutoff
@@ -134,8 +133,8 @@ class YamboEm1sRotate():
         if yem1s.cutoff not in supported_cutoffs: raise NotImplementedError("[ERROR] The em1s rotation is not currently implemented for cutoff %s."%yem1s.cutoff)
 
         # Attributes imported from StaticScreeningDB    
-        alat              = yem1s.alat
-        rlat              = yem1s.rlat
+        self.rlat         = yem1s.rlat
+        self.alat         = yem1s.alat
         self.qpoints_ibz  = yem1s.car_qpoints
         self.nqpoints_ibz = yem1s.nqpoints
         self.gvectors     = yem1s.gvectors
@@ -151,6 +150,7 @@ class YamboEm1sRotate():
         self.syms = np.transpose(sym_car, (0, 2, 1))
         n_atoms =  database.variables['N_ATOMS'][:].astype(int)
         atom_pos = database.variables['ATOM_POS'][:]
+        if verbose: iku_kpoints_ibz = database.variables['K-POINTS'][:].T
         database.close()
         self.nsyms = len(self.syms)
 
@@ -159,7 +159,7 @@ class YamboEm1sRotate():
 
         # Obtain transformed qpoints q'=Sq in the full BZ
         self.qpoints, self.qpoints_indices, self.syms_indices, _ = \
-        expand_kpoints(self.qpoints_ibz,self.syms,rlat)
+        expand_kpoints(self.qpoints_ibz,self.syms,self.rlat)
         self.nqpoints = len(self.qpoints)
 
         print(" * Getting G-map ...  ")
@@ -174,13 +174,16 @@ class YamboEm1sRotate():
         find_inversion_type(n_atoms,atom_pos,self.syms)
 
         # Rotate em1s from IBZ to BZ
-        #self.rotate_em1s()
+        self.rotate_em1s()
 
         if path_output_DBs is not None:
-            print(" * Saving databases... ")
+            print(" * Saving databases... [Remember that you might have to change the serial number!]")
             self.outpath = path_output_DBs
             self.saveDBS()
         else: print(" [!] Enter value for path_output_DBs to print expanded ndb.em1s")
+
+        # Print kpts for PW nosym run
+        if verbose: self.print_kpts_PW_format(iku_kpoints_ibz,units='rlu')
 
         print("===      Done.       ===")
 
@@ -251,6 +254,18 @@ class YamboEm1sRotate():
         TODO: 
         - enable restarts
         - automatically change serial number to new SAVE
+
+        WARNING:
+            There are many quirks and special rules and version-dependent ifs in the yambo IO of ndb.em1s 
+            and its fragments.
+
+            The implementation here has to overcome the difficulty of indulging these quirks so that
+            the yambopy-created database is not rejected by yambo.
+            
+            The present implementation tries to be as general as reasonably possible, and it has been tested,
+            but instances may still arise with the appearance of errors and incompatibilities while trying to 
+            get yambo to read these dbs. Also, in the event of an update in the yambo IO of ndb.em1s, these 
+            writing functions will almost certainly be broken. 
         """
         path = self.outpath
 
@@ -260,52 +275,35 @@ class YamboEm1sRotate():
 
         self.write_em1s_header(path)
 
-        #self.write_em1s_fragments(path)
-
-        #copy all the files
-        """
-        oldpath = self.save
-        filename = self.filename
-        shutil.copyfile("%s/%s"%(oldpath,filename),"%s/%s"%(path,filename))
-        for nq in range(self.nqpoints):
-            fname = "%s_fragment_%d"%(filename,nq+1)
-            shutil.copyfile("%s/%s"%(oldpath,fname),"%s/%s"%(path,fname))
-
-        #edit with the new wfs
-        X = self.X
-        for nq in range(self.nqpoints):
-            fname = "%s_fragment_%d"%(filename,nq+1)
-            database = Dataset("%s/%s"%(path,fname),'r+')
-            database.variables['X_Q_%d'%(nq+1)][0,0,:] = X[nq].real
-            database.variables['X_Q_%d'%(nq+1)][0,1,:] = X[nq].imag
-            database.close()
-        """
+        self.write_em1s_fragments(path)
 
     def write_em1s_header(self,path):
         """ Write ndb.em1s
 
             :: Dimensions ([F]ixed or [V]ariable):
-                - D_0000000003 = 3  [F]-> HEAD_VERSION, HEAD_QPT, X_RL_vecs
-                - D_0000000001 = 1  [F]-> HEAD_REVISION, SERIAL_NUMBER, HEAD_WF, CUTOFF, FRAGMENTED,
-                                          Xs_energies_xc_KIND, Xs_wavefunctions_xc_KIND, GAUGE, 
-                                          X_Time_ordering, X_TDDFT_KERNEL, X_OPTICAL_AVERAGE
-                - D_0000000002 = 2   [F]-> SPIN_VARS, TEMPERATURES, X_DRUDE
-                - D_0000000004 = 4   [F]-> HEAD_R_LATT
-                - D_00000000Nk = Nk  [V]-> HEAD_QPT
-                - D_0000000100 = 100 [F]-> CUTOFF, Xs_energies_xc_KIND, Xs_wavefunctions_xc_KIND,
-                                           GAUGE, X_Time_ordering, X_TDDFT_KERNEL, X_OPTICAL_AVERAGE
-                - D_0000000005 = 5   [V]-> X_PARS_1
-                - D_0000000010 = 10  [V]-> X_PARS_3
-                - D_00000000NG = NG  [V]-> X_RL_vecs
+               0 - D_0000000003 = 3   [F]-> HEAD_VERSION, HEAD_QPT, X_RL_vecs
+               1 - D_0000000001 = 1   [F]-> HEAD_REVISION, SERIAL_NUMBER, HEAD_WF, CUTOFF, FRAGMENTED,
+                                            Xs_energies_xc_KIND, Xs_wavefunctions_xc_KIND, GAUGE, 
+                                            X_Time_ordering, X_TDDFT_KERNEL, X_OPTICAL_AVERAGE
+               2 - D_0000000002 = 2   [F]-> SPIN_VARS, TEMPERATURES, X_DRUDE
+               3 - D_0000000004 = 4   [F]-> HEAD_R_LATT
+               4 - D_00000000Nk = Nk  [V]-> HEAD_QPT
+               5 - D_0000000100 = 100 [F]-> CUTOFF, Xs_energies_xc_KIND, Xs_wavefunctions_xc_KIND,
+                                            GAUGE, X_Time_ordering, X_TDDFT_KERNEL, X_OPTICAL_AVERAGE
+               6 - D_0000000005 = 5   [F]-> X_PARS_1
+               7 - D_0000000010 = 10  [F]-> X_PARS_3
+               8 - D_00000000NG = NG  [V]-> X_RL_vecs
 
             :: Contents of X_PARS_1:
-                - [V]NG X matrix size, X%ng 
+                - [V]X matrix size, X%ng 
                 - [F]X band range, tmp_ib (start, end)
                 - [F]X e/h energy range, X%ehe (start, end)  
 
+            :: Contents of X_PARS_2: [Not usually written, we assume it's not present]
+
             :: Contents of X_PARS_3:
                 - [F]X poles, X%cg_percentual,
-                - [V]RL vectors in the sum, X%ngostnts [This is connected to Dip%ng and wf_ng but it is unclear how to extract it]
+                - [V]RL vectors in the sum, X%ngostnts
                 - [F][r,Vnl] included, X%Vnl_included
                 - [F]Longitudinal Gauge, local_long_gauge [normally absent]
                 - [F]Field direction, X%q0 (x,y,z)
@@ -315,24 +313,136 @@ class YamboEm1sRotate():
 
         """
         # New database
-        dbs = Dataset(path+'/ndb.em1s',mode='w',format='NETCDF4')    
+        dbs = Dataset(path+'/ndb.em1s',mode='w',format='NETCDF4')
 
         # Old database
         dbs_ibz = Dataset(self.em1s_path+'/ndb.em1s')
         ibz_dims = dbs_ibz.dimensions.values()
         ibz_vars = dbs_ibz.variables.values() 
 
-        
         # New dimensions
+
+        # check if we are in an unfortunate cases due to how yambo writes the databases
+        hard_dims = [3,1,2,4,100,5,10]  # fixed dimension sizes
+        ibz_ = self.nqpoints_ibz in hard_dims #q_ibz number coincides with one of the fixed dimensions
+        bz_  = self.nqpoints     in hard_dims #q_bz number coincides with one of the fixed dimensions
+        gv_  = self.ngvectors    in hard_dims #g-vecs number coincides with one of the fixed dimensions
+
+        sizes     = [dim.size for dim in ibz_dims]
+        n_dims    = len(sizes)        
+        ind_q_ibz_dim = sizes.index(self.nqpoints_ibz) 
+        # Nq-related dimension is in fifth place, Gv-related one in last place       
+        error_conditions= np.array([n_dims==9 and ind_q_ibz_dim!=4, n_dims<9 and ibz_==False and gv_==False]) 
+        if error_conditions.any(): raise ValueError("[ERROR] something wrong with em1s dbs dimensions.")
+        
+        # Create dimensions
+        iaux=0
         for dim in ibz_dims:
-            #if dim.size==
-            dbs.createDimension(dim.name,dim.size)
-            print(dim.name,'D_%010d'%dim.size)
-            print(dim.size)
+            # new q_bz dimension
+            if iaux==4 and bz_==False: dbs.createDimension('D_%010d'%self.nqpoints,self.nqpoints)
+            elif iaux==4 and bz_==True: continue
+            # fixed dimensions including G-size
+            else: dbs.createDimension(dim.name,dim.size)
+            iaux+=1
+
+        # New variables
+
+        # Create variables  
+        for var in ibz_vars:
+            if var.name!='HEAD_QPT': dbs.createVariable(var.name, var.dtype, var.dimensions)
+            else:                    dbs.createVariable('HEAD_QPT','f4', ('D_%.10d'%3, 'D_%.10d'%self.nqpoints))
+            
+        # Store values in new DB, including new qpt coords in iku
+        for var in ibz_vars: 
+            if var.name!='HEAD_QPT': dbs[var.name][:] = dbs_ibz[var.name][:]
+            else:                    dbs[var.name][:] = np.array([q*self.alat for q in self.qpoints]).T 
 
         dbs.close()
         dbs_ibz.close()
 
+    def write_em1s_fragments(self,path):
+        """ Write ndb.em1s_fragment*
+
+            :: Dimensions ([F]ixed or [V]ariable):
+               0 - D_0000000006 = 6   [F]-> FREQ_PARS_sec_iqN
+               1 - D_0000000001 = 2   [F]-> FREQ_sec_iqN, X_Q_N
+               2 - D_0000000002 = 1   [F]-> FREQ_sec_iqN, X_Q_N
+               8 - D_00000000NG = NG  [V]-> X_Q_N
+
+            :: Contents of FREQ_PARS_sec_iqN:
+                - [V]Current Q-pt index, iq
+                - [F]X energy range, Xw%er (start, end)
+                - [F]X damping range, Xw%dr (start, end)
+                - [F]Number of frequencies, Xw%n_freqs
+        """
+
+        # Old database (reference for q=1)
+        dbs_ibz = Dataset(self.em1s_path+'/ndb.em1s_fragment_1')
+        ibz_dims = dbs_ibz.dimensions.values()
+        ibz_vars = dbs_ibz.variables.values()
+        pars = dbs_ibz.variables['FREQ_PARS_sec_iq1'][:]
+        freq = dbs_ibz.variables['FREQ_sec_iq1'][:]
+
+        # Create each fragment
+        for iq_bz in range(self.nqpoints):
+
+            iq_aux = iq_bz+1
+            pars[0] = iq_aux 
+
+            dbs_qbz = Dataset(path+'/ndb.em1s_fragment_%d'%iq_aux,mode='w',format='NETCDF4') 
+
+            # Dimensions
+            for dim in ibz_dims: dbs_qbz.createDimension(dim.name,dim.size)
+
+            # Variables
+            for var in ibz_vars: 
+                if 'PARS' in var.name: dbs_qbz.createVariable('FREQ_PARS_sec_iq%d'%iq_aux, var.dtype, var.dimensions)
+                if 'Q_se' in var.name: dbs_qbz.createVariable('FREQ_sec_iq%d'%iq_aux, var.dtype, var.dimensions)
+                if 'X' in var.name:    dbs_qbz.createVariable('X_Q_%d'%iq_aux, var.dtype, var.dimensions)
+
+            # Values
+            dbs_qbz['FREQ_PARS_sec_iq%d'%iq_aux][:] = pars   
+            dbs_qbz['FREQ_sec_iq%d'%iq_aux][:]      = freq
+
+            # Finally, store expanded screening
+            re, im = [self.X[iq_bz].real, self.X[iq_bz].imag]
+            dbs_qbz['X_Q_%d'%iq_aux][:] = np.stack((re,im),axis=2)
+
+            dbs_qbz.close()
+
+        dbs_ibz.close()
+
+    def print_kpts_PW_format(self,kpoints_iku,units='rlu'):
+        """
+        Print expanded kpoints in the Wigner-Seitz cell for PW
+        nosym=.true., noinv=.true. calculation
+
+        - kpoints_iku: iku kpoints in the IBZ read from ns.db1
+        - units: either rlu or cc
+        """
+        def format_array(value):
+            if value >= 0: return ' '+format(value,'.9f')
+            else:          return format(value,'.9f')
+
+        print(" * Printing PW-format kpoints file.")
+
+        kpoints_ibz = np.array([ k/self.alat for k in kpoints_iku ])
+        kpoints     = expand_kpoints(kpoints_ibz,self.syms,self.rlat)[0]
+        if units=='rlu': points = car_red(kpoints,self.rlat)
+        if units=='cc':  points = kpoints*self.alat[0]
+
+        kpts2prnt = np.empty((len(points),4),dtype=object)
+        for i in range(len(points)):
+            for j in range(4):
+                if j<3: 
+                    val = points[i,j]
+                    print(val)
+                    if val>=0: kpts2prnt[i,j]=' '+"{:0.9f}".format(val)
+                    else:      kpts2prnt[i,j]="{:0.9f}".format(val)   
+                if j==3:       kpts2prnt[i,j]='1'
+
+        print(kpts2prnt)
+        np.savetxt('kpoints_ws_bz.dat', kpts2prnt, fmt='%s %s %s %s')
 
     def __str__(self):
 
