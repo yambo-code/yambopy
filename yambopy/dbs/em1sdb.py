@@ -5,7 +5,7 @@
 #
 from yambopy import *
 from netCDF4 import Dataset
-from yambopy.lattice import rec_lat, car_red
+from yambopy.lattice import rec_lat, car_red, red_car
 
 class YamboStaticScreeningDB(object):
     """
@@ -20,12 +20,12 @@ class YamboStaticScreeningDB(object):
 
         \epsilon^{-1}_{g1,g2}(q) = 1-v(q,g1)\chi_{g1,g2}
         
-    The symmetric and asymmetric formulations coincide for the head g1=g2=0
     """
-    def __init__(self,save='.',em1s='.',filename='ndb.em1s',db1='ns.db1'):
+    def __init__(self,save='.',em1s='.',filename='ndb.em1s',db1='ns.db1',do_not_read_cutoff=False):
         self.save = save
         self.em1s = em1s
         self.filename = filename
+        self.no_cutoff = do_not_read_cutoff
 
         #read lattice parameters
         if os.path.isfile('%s/%s'%(self.save,db1)):
@@ -33,6 +33,8 @@ class YamboStaticScreeningDB(object):
                 database = Dataset("%s/%s"%(self.save,db1), 'r')
                 self.alat = database.variables['LATTICE_PARAMETER'][:]
                 self.lat  = database.variables['LATTICE_VECTORS'][:].T
+                gvectors_full = database.variables['G-VECTORS'][:].T
+                self.gvectors_full = np.array([ g/self.alat for g in gvectors_full ])
                 self.volume = np.linalg.det(self.lat)
                 self.rlat = rec_lat(self.lat)
             except:
@@ -55,14 +57,15 @@ class YamboStaticScreeningDB(object):
         self.nbands = int(nbands)
         self.eh = eh
 
-        #read gvectors
-        gvectors = np.rint(database.variables['X_RL_vecs'][:].T)
-        self.gvectors = np.array([g/self.alat  for g in gvectors])
-        self.ngvectors = len(self.gvectors)
+        #read gvectors used for em1s
+        gvectors          = np.array(database.variables['X_RL_vecs'][:].T)
+        self.gvectors     = np.array([g/self.alat for g in gvectors])
+        self.red_gvectors = car_red(self.gvectors,self.rlat)
+        self.ngvectors    = len(self.gvectors)
         
         #read q-points
         self.iku_qpoints = database.variables['HEAD_QPT'][:].T
-        self.car_qpoints = np.array([ q/self.alat for q in self.iku_qpoints ])
+        self.car_qpoints = np.array([ q/self.alat for q in self.iku_qpoints ]) #atomic units
         self.red_qpoints = car_red(self.car_qpoints,self.rlat) 
         self.nqpoints = len(self.car_qpoints)
 
@@ -75,7 +78,10 @@ class YamboStaticScreeningDB(object):
         read_fragments=True
         for iQ in range(self.nqpoints):
             if not os.path.isfile("%s/%s_fragment_%d"%(self.em1s,self.filename,iQ+1)): read_fragments=False
-        if read_fragments: self.readDBs()
+        if read_fragments: self.readDBs() # get sqrt(v)*X*sqrt(v)
+
+        #get square root of Coulomb potential v(q,G) 
+        self.get_Coulomb()
 
     def readDBs(self):
         """
@@ -94,8 +100,8 @@ class YamboStaticScreeningDB(object):
                 print("warning: failed to read %s"%filename)
 
 
-            #static screening means we have only one frequency
-            # this try except is because the way this is sotored has changed in yambo
+            # static screening means we have only one frequency
+            # this try except is because the way this is stored has changed in yambo
             try:
                 re, im = database.variables['X_Q_%d'%(nq+1)][0,:]
             except:
@@ -130,12 +136,12 @@ class YamboStaticScreeningDB(object):
             database.variables['X_Q_%d'%(nq+1)][0,1,:] = X[nq].imag
             database.close()
 
-    def writetxt(self,filename='em1s.dat',ng1=0,ng2=0,volume=False):
+    def writeeps(self,filename='em1s.dat',ng1=0,ng2=0,volume=False):
         """
-        Write vVepsilon_{g1=0,g2=0} (q) as a funciton of |q| on a text file
+        Write epsilon_{g1=0,g2=0} (q) as a function of |q| on a text file
         volume -> multiply by the volume
         """
-        x,y = self._geteq(volume=volume)
+        x,y = self._getepsq(volume=volume)
         np.savetxt(filename,np.array([x,y]).T)
     
     def get_g_index(self,g):
@@ -148,9 +154,47 @@ class YamboStaticScreeningDB(object):
                 return ng
         return None
 
-    def _geteq(self,volume=False): 
+    def get_Coulomb(self):
         """
-        Get epsilon_{0,0} = [1/(1+vX)]_{0,0} a function of |q|
+        By Matteo Zanfrognini
+
+        If cutoff is present, look for ndb.cutoff and parse it.
+        Otherwise, construct bare 3D potential.
+
+        Returns sqrt_V[Nq,Ng]
+        """  
+  
+        if self.cutoff!='none' and not self.no_cutoff:
+
+            if os.path.isfile('%s/ndb.cutoff'%self.em1s):
+                try:
+                    database = Dataset("%s/ndb.cutoff"%self.em1s, 'r')
+                    q_p_G_RE = np.array(database.variables["CUT_BARE_QPG"][:,:,0].T)
+                    q_p_G_IM = np.array(database.variables["CUT_BARE_QPG"][:,:,1].T)
+                    q_p_G = q_p_G_RE + 1j*q_p_G_IM
+                    self.sqrt_V = np.sqrt(4.0*np.pi)/q_p_G
+                    database.close()
+                except:
+                    raise IOError("Error opening ndb.cutoff.")
+            else:
+                print("[WARNING] Cutoff %s was used but ndb.cutoff not found in %s. Make sure this is fine for what you want!"%(self.cutoff,self.em1s))
+
+        else:
+
+            sqrt_V = np.zeros([self.nqpoints,self.ngvectors])
+            nrm = np.linalg.norm
+            for iq in range(self.nqpoints):
+                for ig in range(self.ngvectors):
+                        Q = 2.*np.pi*self.car_qpoints[iq]
+                        G = 2.*np.pi*self.gvectors[ig]
+                        QPG = nrm(Q+G)
+                        if QPG==0.: QPG=1.e-5
+                        sqrt_V[iq,ig] = np.sqrt(4.0*np.pi)/QPG        
+            self.sqrt_V = sqrt_V
+
+    def _getepsq(self,volume=False,use_trueX=False): 
+        """
+        Get epsilon_{0,0} = [1/(1+vX)]_{0,0} as a function of |q|
         vX is a matrix with size equal to the number of local fields components
  
         In the database we find √vX√v(\omega=0) where:
@@ -158,11 +202,18 @@ class YamboStaticScreeningDB(object):
         X -> electronic response function
 
         Arguments:
-            ng1, ng2 -> Choose local field components
-            volume   -> Normalize with the volume of the cell
+            ng1, ng2  -> Choose local field components
+            volume    -> Normalize with the volume of the cell
+            use_trueX -> Use desymmetrised vX [testing]
         """
+        if not use_trueX: 
+            X = self.X
+        if use_trueX:  
+            _,_ = self.getem1s()
+            X = self.trueX
+
         x = [np.linalg.norm(q) for q in self.car_qpoints]
-        y = [np.linalg.inv(np.eye(self.ngvectors)+xq)[0,0] for xq in self.X ]
+        y = [np.linalg.inv(np.eye(self.ngvectors)+xq)[0,0] for xq in X ]
       
         #order according to the distance
         x, y = list(zip(*sorted(zip(x, y))))
@@ -172,15 +223,70 @@ class YamboStaticScreeningDB(object):
         if volume: y *= self.volume 
 
         return x,y
-
-    def _getvxq(self,ng1=0,ng2=0,volume=False,symm=True): 
+    
+    def _getvq(self,ng1=0):
         """
-        Get vX_{ng1,ng2} a function of |q|
+        Get Coulomb potential v_ng1 as a function of |q|
+
+        v -> coulomb interaction (truncated or not)
+
+        The quantity obtained is : v(q,g1)
+
+        Arguments:
+            ng1 -> Choose local field component
+        """
+        x = [np.linalg.norm(q) for q in self.car_qpoints]
+        y = [vq[ng1]**2. for vq in self.sqrt_V]
+
+        #order according to the distance
+        x, y = list(zip(*sorted(zip(x, y))))
+        y = np.array(y)
+
+        return x,y
+
+    def _getvxq(self,ng1=0,ng2=0,volume=False): 
+        """
+        Get vX_{ng1,ng2} as a function of |q|
         vX is a matrix with size equal to the number of local fields components
  
         In the database we find √vX√v(\omega=0) where:
         v -> coulomb interaction (truncated or not)
         X -> electronic response function
+
+        The quantity obtained is: √v(q,g1) X_{g1,g2}(q) √v(q,g2)
+
+        Arguments:
+            ng1, ng2 -> Choose local field components
+            volume   -> Normalize with the volume of the cell
+        """
+        x = [np.linalg.norm(q) for q in self.car_qpoints]
+        y = [xq[ng2,ng1] for xq in self.X ]
+      
+        #order according to the distance
+        x, y = list(zip(*sorted(zip(x, y))))
+        y = np.array(y)
+
+        #scale by volume?
+        if volume: y *= self.volume 
+
+        return x,y
+ 
+    def _getem1s(self,ng1=0,ng2=0,volume=False):
+        """
+        Get eps^-1_{ng1,ng2} a function of |q|
+
+        In the database we find √vX√v(\omega=0) where:
+        v -> coulomb interaction (truncated or not)
+        X -> electronic response function
+
+        We need to explicitly use √v in order to obtain:
+
+              eps^-1+{g1,g2} = 1+v(q,g1) X_{g1,g2}(q)
+                             = 1 + √v_g1 √v_g1 X_g1g2 √v_g2/√v_g2
+
+        This works for 
+            - 3D bare √v
+            - 2D cutoff √v positive definite (i.e., like slab z)
 
         Arguments:
             ng1, ng2 -> Choose local field components
@@ -188,55 +294,74 @@ class YamboStaticScreeningDB(object):
             symm     -> True:  √v(q,g1) X_{g1,g2}(q) √v(q,g2)
                         False: v(q,g1) X_{g1,g2}(q) TO BE IMPLEMENTED
         """
+        true.X = np.zeros([self.nqpoints,self.size,self.size],dtype=np.complex64)
+
+        for ig1 in range(self.ngvectors):
+            for ig2 in range(self.ngvectors):
+                trueX[:,ig1,ig2] = self.sqrt_V[:,ig1]*self.X[:,ig1,ig2]/self.sqrt_V[:,ig2]
+
+        self.trueX = trueX # Store trueX as attribute
+
         x = [np.linalg.norm(q) for q in self.car_qpoints]
-        if symm:
-            y = [xq[ng2,ng1] for xq in self.X ]
-        else: 
-            raise NotImplementedError("vXq with symm=False is not presently implemented.")
-      
+        y = [xq[ng2,ng1] for xq in self.trueX ]
+
         #order according to the distance
         x, y = list(zip(*sorted(zip(x, y))))
         y = np.array(y)
 
         #scale by volume?
-        if volume: y *= self.volume 
+        if volume: y *= self.volume
 
         return x,y
-    
-    def plot(self,ax,ng1=0,ng2=0,volume=False,symm=True,**kwargs):
+   
+    def plot_epsm1(self,ax,ng1=0,ng2=0,volume=False,symm=False,**kwargs):
         """
-        Plot the static screening as a function of |q|
+        Plot epsilon^-1_{ng1,ng2} as a function of |q|
         
         Arguments
         ax   -> Instance of the matplotlib axes or some other object with the plot method
-        func -> Function to apply to the dielectric function
+        symm -> True:  plot symmetrized version 1 + √vX√v
+        symm -> False: plot true em1s as 1+vX [Default]
         """
 
-        #get vX_{00}
-        x,vX = self._getvxq(ng1=ng1,ng2=ng2,volume=volume,symm=symm)
-    
-        #when plotting we apply a funciton to epsilon to represent it, by default the |x|
+        #get √vX√v_{ng1,ng2}
+        if symm==True:  x,vX = self._getvxq(ng1=ng1,ng2=ng2,volume=volume)
+        #get vX_{ng1,ng2}
+        if symm==False: x,vX = self._getem1s(ng1=ng1,ng2=ng2,volume=volume)   
+
         ax.plot(x,(1+vX).real,**kwargs)
         ax.set_xlabel('$|q|$')
         ax.set_ylabel('$\epsilon^{-1}_{%d%d}(\omega=0)$'%(ng1,ng2))
 
      
-    def plot_em1s(self,ax,ng1=0,ng2=0,volume=False,symm=True,**kwargs):
-        '''
-        Get epsilon_{0,0} = [1/(1+vX)]_{0,0} a function of |q|
-        '''
-        x,y = self._geteq(volume=volume)
+    def plot_eps(self,ax,ng1=0,ng2=0,volume=False,use_trueX=False,**kwargs):
+        """
+        Get epsilon_{0,0} = [1/(1+vX)]_{0,0} as a function of |q|
+        """
+        x,y = self._getepsq(volume=volume)
         ax.plot(x,y.real,**kwargs)
         ax.set_xlabel('$|q|$')
-        ax.set_ylabel('$\epsilon^{-1}_{%d%d}(\omega=0)$'%(ng1,ng2))
+        ax.set_ylabel('$\epsilon_{%d%d}(\omega=0)$'%(ng1,ng2))
 
+    def plot_v(self,ax,ng1=0,**kwargs):
+        """
+        Get v_{ng1} (truncated or not) as a function of |q|
+        """
+        x,y = self._getvq(ng1=ng1)
+        ax.plot(x,y.real,**kwargs)
+        ax.set_xlabel('$|q|$')
+        ax.set_ylabel('$v_{%d}$'%ng1)
 
     def __str__(self):
-        s = ""
-        s += "nqpoints: %d\n"%self.nqpoints
-        s += "X size:   %d\n"%self.size
-        s += "cutoff: %s\n"%self.cutoff
-        return s
+
+        lines = []; app=lines.append
+        app(marquee(self.__class__.__name__))
+
+        app('nqpoints (ibz):   %d'%self.nqpoints)
+        app('X size (G-space): %d'%self.size) 
+        app('cutoff:           %s'%self.cutoff) 
+
+        return "\n".join(lines)
 
 
 if __name__ == "__main__":
@@ -246,5 +371,5 @@ if __name__ == "__main__":
   
     #plot static screening 
     ax = plt.gca()
-    ys.plot(ax)
+    ys.plot_epsm1(ax)
     plt.show()

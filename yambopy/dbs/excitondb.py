@@ -804,6 +804,8 @@ class YamboExcitonDB(YamboSaveDB):
         else:
            x,y,weights_bz_sum = self.get_exciton_2D(excitons,f=f)
 
+        weights_bz_sum=weights_bz_sum/np.max(weights_bz_sum)
+        
         #filter points outside of area
         lim = np.max(self.lattice.rlat)*limfactor
         dlim = lim*1.1
@@ -822,21 +824,21 @@ class YamboExcitonDB(YamboSaveDB):
         if mode == 'hexagon': 
             scale = kwargs.pop('scale',1)
             if spin_pol is 'up':
-               ax.scatter(x,y,s=scale,marker='H',c=weights_bz_sum_up,rasterized=True,**kwargs)
+               s=ax.scatter(x,y,s=scale,marker='H',c=weights_bz_sum_up,rasterized=True,**kwargs)
             elif spin_pol is 'dw':
-               ax.scatter(x,y,s=scale,marker='H',c=weights_bz_sum_dw,rasterized=True,**kwargs)
+               s=ax.scatter(x,y,s=scale,marker='H',c=weights_bz_sum_dw,rasterized=True,**kwargs)
             else:
-               ax.scatter(x,y,s=scale,marker='H',c=weights_bz_sum,rasterized=True,**kwargs)
+               s=ax.scatter(x,y,s=scale,marker='H',c=weights_bz_sum,rasterized=True,**kwargs)
             ax.set_xlim(-lim,lim)
             ax.set_ylim(-lim,lim)
         elif mode == 'square': 
             scale = kwargs.pop('scale',1)
             if spin_pol is 'up':
-               ax.scatter(x,y,s=scale,marker='s',c=weights_bz_sum_up,rasterized=True,**kwargs)
+               s=ax.scatter(x,y,s=scale,marker='s',c=weights_bz_sum_up,rasterized=True,**kwargs)
             elif spin_pol is 'dw':
-               ax.scatter(x,y,s=scale,marker='s',c=weights_bz_sum_dw,rasterized=True,**kwargs)
+               s=ax.scatter(x,y,s=scale,marker='s',c=weights_bz_sum_dw,rasterized=True,**kwargs)
             else:
-               ax.scatter(x,y,s=scale,marker='s',c=weights_bz_sum,rasterized=True,**kwargs)
+               s=ax.scatter(x,y,s=scale,marker='s',c=weights_bz_sum,rasterized=True,**kwargs)
             ax.set_xlim(-lim,lim)
             ax.set_ylim(-lim,lim)
         elif mode == 'rbf':
@@ -865,19 +867,19 @@ class YamboExcitonDB(YamboSaveDB):
                    weights_bz_sum[:,col] = rbfi(x,np.ones_like(x)*y[col])
             # NB we have to take the transpose of the imshow data to get the correct plot
             if spin_pol is 'up':
-               ax.imshow(weights_bz_sum_up.T,interpolation=interp_method,extent=[-lim,lim,-lim,lim])
+               s=ax.imshow(weights_bz_sum_up.T,interpolation=interp_method,extent=[-lim,lim,-lim,lim])
             elif spin_pol is 'dw':
-               ax.imshow(weights_bz_sum_dw.T,interpolation=interp_method,extent=[-lim,lim,-lim,lim])
+               s=ax.imshow(weights_bz_sum_dw.T,interpolation=interp_method,extent=[-lim,lim,-lim,lim])
             else:
-               ax.imshow(weights_bz_sum.T,interpolation=interp_method,extent=[-lim,lim,-lim,lim])
+               s=ax.imshow(weights_bz_sum.T,interpolation=interp_method,extent=[-lim,lim,-lim,lim])
         title = kwargs.pop('title',str(excitons))
-        
+
         ax.set_title(title)
         ax.set_aspect('equal')
         ax.set_xticks([])
         ax.set_yticks([])
        
-        return ax
+        return ax,s
 
     def get_exciton_3D(self,excitons,f=None):
         """get data of the exciton in 2D"""
@@ -937,7 +939,7 @@ class YamboExcitonDB(YamboSaveDB):
         ax.set_aspect('equal')
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.add_patch(BZ_Wigner_Seitz(self.lattice.rlat))
+        ax.add_patch(BZ_Wigner_Seitz(self.lattice))
         return ax
     
     @add_fig_kwargs
@@ -1062,11 +1064,18 @@ class YamboExcitonDB(YamboSaveDB):
 
     def interpolate(self,energies,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
         """ Interpolate exciton bandstructure using SKW interpolation from Abipy
+            This function is still with some bugs...
+            for instance, kpoints_indexes should be read from savedb
+
         """
         from abipy.core.skw import SkwInterpolator
 
         if verbose:
             print("This interpolation is provided by the SKW interpolator implemented in Abipy")
+
+        #print(energies)
+        #print(k2)
+        #print(len(k2))
 
         lattice = self.lattice
         cell = (lattice.lat, lattice.red_atomic_positions, lattice.atomic_numbers)
@@ -1079,34 +1088,51 @@ class YamboExcitonDB(YamboSaveDB):
         time_rev = True
  
         weights = self.get_exciton_weights(excitons)
-        print('weights.shape')
-        print(weights.shape)
+        #print('weights.shape')
+        #print(weights.shape)
         weights = weights[:,self.start_band:self.mband]
-        print('self.start_band')
-        print(self.start_band)
-        print('self.mband')
-        print(self.mband)
+        #print('self.start_band')
+        #print(self.start_band)
+        #print('self.mband')
+        #print(self.mband)
         if f: weights = f(weights)
         size *= 1.0/np.max(weights)
         ibz_nkpoints = max(lattice.kpoints_indexes)+1
+        #k1,k2,k3=self.lattice.expand_kpts()
+        #print(len(k2))
+        #print(len(lattice.kpoints_indexes))
+        #print(ibz_nkpoints)
+        #print('error')
         kpoints = lattice.red_kpoints
 
         #map from bz -> ibz:
         # bug here? it is self.mband, but why?
         ibz_weights = np.zeros([ibz_nkpoints,self.mband-self.start_band]) 
-        print('ibz_weights.shape')
-        print(ibz_weights.shape)
-        print(self.nbands)
-        print(self.mband)
+        #print('ibz_weights.shape')
+        #print(ibz_weights.shape)
+        #print(self.nbands)
+        #print(self.mband)
+        #print(self.start_band)
         #exit()
         ibz_kpoints = np.zeros([ibz_nkpoints,3])
-        for idx_bz,idx_ibz in enumerate(lattice.kpoints_indexes):
+        #print(ibz_weights.shape)
+        #print(weights.shape)
+        #print(lattice.kpoints_indexes)
+        #print('just before error')
+        #print(len(lattice.kpoints_indexes))
+
+        # Kpoints indexes must be read from a SAVEDB Class
+        k1,k2,k3 = energies.expand_kpts()
+        kpoints_indexes = k2
+
+        # Fijar este error
+        for idx_bz,idx_ibz in enumerate(kpoints_indexes):
             ibz_weights[idx_ibz,:] = weights[idx_bz,:] 
             ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
+
         #get eigenvalues along the path
         if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
-            #ibz_energies = energies.eigenvalues[:,self.start_band:self.mband] Old version
-            ibz_energies = energies.eigenvalues[0,:,self.start_band:self.mband] # SPIN-UP channel
+            ibz_energies = energies.eigenvalues[0,:,self.start_band:self.mband]
         elif isinstance(energies,YamboQPDB):
             ibz_energies = energies.eigenvalues_qp # to be done for spin-UP channel
         else:
@@ -1126,7 +1152,7 @@ class YamboExcitonDB(YamboSaveDB):
 
         #create band-structure object
         exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
-        exc_bands.set_fermi(self.nvbands)
+        #exc_bands.set_fermi(self.nvbands)
 
         return exc_bands
 
@@ -1551,16 +1577,18 @@ class YamboExcitonDB(YamboSaveDB):
     def get_exciton_weights_spin_pol(self,excitons):
     
         """get weight of state in each band for spin-polarized case"""
-        table_up, table_dw = [] , []
+        table_up, table_dw, table_updw = [] , [], []
         for t,kcv in enumerate(self.table):
             k,c,v,c_s,v_s = kcv-1   # We substract 1 to be consistent with python numbering of arrays
             if c_s == 0 and v_s == 0:
                table_up.append(np.array(kcv[0:3]))
             if c_s == 1 and v_s == 1:
                table_dw.append(np.array(kcv[0:3]))
-
+            if c_s == 1 and v_s == 0:
+               table_updw.append(np.array(kcv[0:3]))
         table_up=np.array(table_up)
         table_dw=np.array(table_dw)
+        table_updw=np.array(table_updw)
 
         self.unique_vbands_up = np.unique(table_up[:,1]-1)
         self.unique_cbands_up = np.unique(table_up[:,2]-1)
@@ -1629,9 +1657,15 @@ class YamboExcitonDB(YamboSaveDB):
         # bug here? it is self.mband, but why?
         ibz_weights_up = np.zeros([ibz_nkpoints,self.mband_up-self.start_band_up]) 
         ibz_weights_dw = np.zeros([ibz_nkpoints,self.mband_dw-self.start_band_dw]) 
-
+        
         ibz_kpoints = np.zeros([ibz_nkpoints,3])
+        print(self.mband_up,self.start_band_up)
+        print(ibz_weights_up.shape)
+        print(weights_up.shape)
+        print(lattice.kpoints_indexes)
+        print('just before error')
         for idx_bz,idx_ibz in enumerate(lattice.kpoints_indexes):
+            print(weights_up[idx_bz,:])
             ibz_weights_up[idx_ibz,:], ibz_weights_dw[idx_ibz,:]= weights_up[idx_bz,:], weights_dw[idx_bz,:] 
             ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
 

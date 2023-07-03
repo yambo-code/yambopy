@@ -506,6 +506,31 @@ class PlotBndStrCmd(Cmd):
         # Produce the plot
         generate_bands.launch_plot(data_to_plot,plt_type='bands',out_name=args.output_name,erange=args.erange,show=args.show)
 
+class GwSubspace(Cmd):
+    """
+    Script to calculate off-diago corrections of yambo ndb.QP databases in order to plot band structure.
+
+    Inputs:
+    1. -d,--fld_diag='path/to/folder/with/diago/dbs' [e.g., the ./diag]
+    2. -o,--fld_offdiag='path/to/folder/with/offdiagoold/dbs' [e.g., the ./offdiago]
+
+    This script will prompt the user to go through with updating the dbs.
+    """
+    def __init__(self,args):
+        #check for args
+        if len(args) < 2:
+            print((self.__doc__))
+            exit(0)
+
+        parser = argparse.ArgumentParser(description='Create a new diago dbs after a GW subspace calculation numbers in yambo databases')
+        parser.add_argument('-d','--fld_diag', type=str, default="./diago", help='<Required> Path to folder with the ndb.QP diago-database   (Default is ./diago)',required=True)
+        parser.add_argument('-o','--fld_offdiag', type=str,default ="./offdiago",help='<Required> Path to folder with the ndb.QP offdiagodiago-database   (Default is ./diago)',required=True)
+        args = parser.parse_args(args)
+
+        fld_diag = args.fld_diag
+        fld_offdiag = args.fld_offdiag
+        command_line.gw_subspace.create_newdb(fld_diag,fld_offdiag)
+
 class GetPHqInputCmd(Cmd):        
     """
     Script to update the explicit list of q-points in a ph input file (ldisp=.false., qplot=.true.).
@@ -533,6 +558,34 @@ class GetPHqInputCmd(Cmd):
 
         get_phq_input.get_phq_input(pwout,phin)
 
+class ConvertRLtoRyCmd(Cmd):
+    """
+    Script to convert RL number in Ry energy units using ndb.gops.
+
+    Inputs:
+    1. -gops,--ndb_gops='path/to/folder/with/ndb.gops' [i.e., SAVE]
+    2. -v,--value='value to convert with units' [e.g., 11 RL or 5 Ry]
+
+    The script will read ndb.gops and find the nearest completed G-shell, then give the
+    converted value in Ry (RL) to the one supplied in input.
+    """
+    def __init__(self,args):
+
+        #check for args
+        if len(args) < 4:
+            print((self.__doc__))
+            exit(0)
+
+        parser = argparse.ArgumentParser(description='Convert RL number in energy units (Ry)')
+        parser.add_argument('-gops','--ndb_gops', type=str, default="./SAVE", help='<Optional> Path to folder with ndb.gops (default: ./SAVE)')
+        parser.add_argument('-v','--value', type=str,help="<Required> Value to be converted along with units, e.g.: '11 RL' or '5 Ry'",nargs=2,required=True)
+        args = parser.parse_args(args)
+
+        ndb_gops = args.ndb_gops
+        value    = args.value
+
+        convert_RL_to_Ry.convert(value,ndb_gops)
+
 class YambopyCmd(Cmd):
     """
     class to implement commands for yambopy.
@@ -548,7 +601,9 @@ class YambopyCmd(Cmd):
                  'gkkp':         GkkpCmd,
                  'bands':        PlotBndStrCmd,
                  'serial':       UpdtSrlNmbrCmd,
+                 'gwsubspace':   GwSubspace,
                  'phinp':        GetPHqInputCmd,
+                 'convert':      ConvertRLtoRyCmd,
                  'test':         TestCmd}
 
     def __init__(self,*args):
