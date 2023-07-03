@@ -139,6 +139,11 @@ class YamboElectronsDB():
         """
         Calculate the density of states.
         Should work for metals as well but untested for that case
+
+        It can be used with QP values:
+           - Instance yamboQPDB
+           - set self.eigenvalues_ibz = yqp.eigenvalues_qp
+           - TODO: provide QP broadening QP_broad=yqp.lifetimes
         """
         eigenvalues = self.eigenvalues_ibz
         weights = self.weights_ibz
@@ -252,7 +257,7 @@ class YamboElectronsDB():
         weights     = self.weights_ibz
         nkpoints    = self.nkpoints_ibz
 
-        nbands = self.nelectrons/self.spin_degen
+        nbands = int(self.nelectrons/self.spin_degen)
         #top of valence
         top = np.max(eigenvalues[:,nbands])
         #bottom of conduction

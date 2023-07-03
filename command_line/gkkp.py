@@ -40,8 +40,10 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
         Run ypp_ph and do checks
         """
         yph = YamboIn.from_runlevel('-gkkp',executable=ypp_ph,filename=filnm2,folder=database)
+        # Apparently, now gkkp_db must be always specified
+        yph.arguments.append('gkkp_db')
         if expand:
-            if Nq!=Nk: yph.arguments.append('gkkp_db')
+            #if Nq!=Nk: yph.arguments.append('gkkp_db')
             yph.arguments.append('GkkpExpand')
             if UseQindxB: yph.arguments.append('UseQindxB')
             print('    expanding gkkp in the full BZ')
@@ -84,6 +86,7 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
 
             y1 = YamboIn.from_runlevel('-i -V RL',executable=yambo_ph,filename=filnm1,folder=database)
             y1.arguments.append('BSEscatt')
+            y1['K_grids'] = "BSC"
             y1.write('%s/%s'%(database,filnm1))
             yamboph_run = scheduler()
             if not os.path.islink('%s/elph_dir'%database): yamboph_run.add_command('cd %s ; ln -s %s . ; cd -'%(database,elph_save))
@@ -103,7 +106,7 @@ def generate_gkkp(database,qe_save,elph_save,y_dir,expand,scheduler):
             if dbs_are_not_there:
                 print("[WARNING] First attempt didn't work. Retrying with UseQindxB")
                 run_ypp_ph(UseQindxB=True)
-                if dbs_are_not_there(): print('[ERROR] ndb.elph_gkkp databases not created. Check the logs.')
+                #if dbs_are_not_there(): print('[ERROR] ndb.elph_gkkp databases not created. Check the logs.')
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate SAVE folder including gkkp databases')
