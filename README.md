@@ -43,7 +43,7 @@ Requirements
 
 Troubleshooting, bugs and questions
 -----------------------------------
-Please write a post in the yambopy subsection of the yambo forum: https://www.yambo-code.eu/forum/viewforum.php?f=35&sid=77b7f6076dea7cdf40432efbc035feb6
+Please write a post in the yambopy subsection of the [yambo forum](https://www.yambo-code.eu/forum/viewforum.php?f=35&sid=77b7f6076dea7cdf40432efbc035feb6)
 
 Current development goals
 -------------------------
