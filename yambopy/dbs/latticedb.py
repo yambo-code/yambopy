@@ -29,11 +29,11 @@ class YamboLatticeDB(object):
         self.ibz_nkpoints         = len(iku_kpoints)
 
     @classmethod
-    def from_db(cls,filename='ns.db1',Expand=True,expand_mode=0):
+    def from_db(cls,filename='ns.db1',Expand=True,expand_mode=1):
         return cls.from_db_file(filename,Expand)
     
     @classmethod
-    def from_db_file(cls,filename='ns.db1',Expand=True,expand_mode=0):
+    def from_db_file(cls,filename='ns.db1',Expand=True,expand_mode=1):
         """ Initialize YamboLattice from a local dbfile """
 
         if not os.path.isfile(filename):
@@ -192,13 +192,13 @@ class YamboLatticeDB(object):
             time_rev_list[i] = ( i >= self.nsym/(self.time_rev+1) )
         return time_rev_list
 
-    def expand_kpoints(self,atol=1e-6,verbose=0,expand_mode=0):
+    def expand_kpoints(self,atol=1e-6,verbose=0,expand_mode=1):
         """
         Take a list of qpoints and symmetry operations and return the full brillouin zone
         with the corresponding index in the irreducible brillouin zone
 
-        :: expand_mode=0 : k' = S k    [default]
-        :: expand_mode=1:  k' = S.T k  [consistent with yambo]
+        :: expand_mode=0 : k' = S k
+        :: expand_mode=1:  k' = S.T k  [default, consistent with yambo]
         """
 
         #check if the kpoints were already exapnded
