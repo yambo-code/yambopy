@@ -312,6 +312,13 @@ class YamboEm1sRotate():
                 - [F]BZ Q point size factor, X_DbGd_percentual
 
         """
+        def netcdftype(var_type):
+            """ Distinguish between double and float
+            """
+            if var.dtype=='float32': return 'f4'
+            elif var.dtype=='float64': return 'f8'
+            else: raise TypeError('\n[ERROR] Variable type not recognized. It should be either float (float32) or double (float64).\n')
+        
         # New database
         dbs = Dataset(path+'/ndb.em1s',mode='w',format='NETCDF4')
 
@@ -349,13 +356,15 @@ class YamboEm1sRotate():
 
         # Create variables  
         for var in ibz_vars:
-            if var.name!='HEAD_QPT': dbs.createVariable(var.name, var.dtype, var.dimensions)
-            else:                    dbs.createVariable('HEAD_QPT','f4', ('D_%.10d'%3, 'D_%.10d'%self.nqpoints))
+            if var.name=='HEAD_QPT': dbs.createVariable('HEAD_QPT',netcdftype(var.dtype), ('D_%.10d'%3, 'D_%.10d'%self.nqpoints))
+            elif var.name=='HEAD_R_LATT': dbs.createVariable('HEAD_R_LATT',netcdftype(var.dtype), ('D_%.10d'%4))
+            else: dbs.createVariable(var.name, var.dtype, var.dimensions)
             
         # Store values in new DB, including new qpt coords in iku
         for var in ibz_vars: 
-            if var.name!='HEAD_QPT': dbs[var.name][:] = dbs_ibz[var.name][:]
-            else:                    dbs[var.name][:] = np.array([q*self.alat for q in self.qpoints]).T 
+            if var.name=='HEAD_QPT':      dbs[var.name][:] = np.array([q*self.alat for q in self.qpoints]).T
+            elif var.name=='HEAD_R_LATT': dbs[var.name][:] = [ self.nqpoints for i in range(4) ]
+            else:                         dbs[var.name][:] = dbs_ibz[var.name][:]
 
         dbs.close()
         dbs_ibz.close()
@@ -436,12 +445,10 @@ class YamboEm1sRotate():
             for j in range(4):
                 if j<3: 
                     val = points[i,j]
-                    print(val)
                     if val>=0: kpts2prnt[i,j]=' '+"{:0.9f}".format(val)
                     else:      kpts2prnt[i,j]="{:0.9f}".format(val)   
                 if j==3:       kpts2prnt[i,j]='1'
 
-        print(kpts2prnt)
         np.savetxt('kpoints_ws_bz.dat', kpts2prnt, fmt='%s %s %s %s')
 
     def __str__(self):
