@@ -13,6 +13,7 @@ Documentation
 -------------
 You can find explained tutorials and a partial 
 documentation on the Yambo wiki page: http://www.yambo-code.org/wiki
+Additional information about capabilities and usage are available inside the tutorial folder and by reading the docstrings of the various classes.
 
 Features
 --------
@@ -25,6 +26,10 @@ Features
   -  dielectric function, exciton weights in k and q-space, electron-phonon matrix elements...
 - Tutorials
 
+Installation
+------------
+Follow the steps on the Yambo wiki: https://www.yambo-code.eu/wiki/index.php/Tutorials#Setting_up_Yambopy
+
 Requirements
 ------------
 - yambo (>5.0.0): http://www.yambo-code.org/
@@ -36,9 +41,13 @@ Requirements
 - Quantum Espresso (optional): http://www.quantum-espresso.org/
 - Abipy (optional): https://abinit.github.io/abipy/
 
-TODO
-----
-- Review and update of all features
+Troubleshooting, bugs and questions
+-----------------------------------
+Please write a post in the yambopy subsection of the yambo forum: https://www.yambo-code.eu/forum/viewforum.php?f=35&sid=77b7f6076dea7cdf40432efbc035feb6
+
+Current development goals
+-------------------------
+- General review and update of all features
 - Full documentation & tutorials
 - Test suite
 - Make it easier to add new features
@@ -61,3 +70,10 @@ Collaborators include(d)
 - You if you want to share your scripts!
 
 The code is at an ongoing stage of development, help us by sending bug reports, patches and suggestions!
+
+How to contribute
+-----------------
+If you want to contribute, we suggest the following steps:
+1. Fork this repository
+2. Implement and test your new feature(s) in the forked repo
+3. Create a pull request in order to include your development in the official code
