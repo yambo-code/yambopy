@@ -3,13 +3,14 @@
 #
 # This file is part of the yambopy project
 #
+from yambopy.units import *
 from yambopy import *
 from math import sqrt
 from time import time
 import matplotlib.pyplot as plt
 from yambopy.tools.string import marquee
 from yambopy.tools.funcs import abs2,lorentzian, gaussian
-from yambopy.plot.plotting import add_fig_kwargs,BZ_hexagon,shifted_grids_2D
+from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz,shifted_grids_2D
 
 class YamboDipolesDB():
     """
@@ -206,7 +207,7 @@ class YamboDipolesDB():
         return ax.matshow(func(self.dipoles[kpoint,dir]))
 
     @add_fig_kwargs
-    def plot_dipoles(self,data,plt_show=False,plt_cbar=False,**kwargs):
+    def plot_dipoles(self,data,plt_show=False,plt_cbar=False,shift_BZ=True,**kwargs):
         """
         2D scatterplot in the k-BZ of the quantity A_{k}(ik,idir,ic,iv).
         TODO: this is the same function as plot_elph in elphondb. They should be merged.
@@ -216,12 +217,14 @@ class YamboDipolesDB():
 
         - if plt_show plot is shown
         - if plt_cbar colorbar is shown
+        - if shift_BZ adjacent BZs are also plotted (default)
         - kwargs example: marker='H', s=300, cmap='viridis', etc.
 
         NB: So far requires a 2D system.
             Can be improved to plot BZ planes at constant k_z for 3D systems.
         """
         kpts = self.lattice.car_kpoints
+        lattice = self.lattice
         rlat = self.lattice.rlat
 
         # Input check
@@ -230,7 +233,7 @@ class YamboDipolesDB():
 
         # Global plot stuff
         self.fig, self.ax = plt.subplots(1, 1)
-        self.ax.add_patch(BZ_hexagon(rlat))
+        self.ax.add_patch(BZ_Wigner_Seitz(lattice))
 
         if plt_cbar:
             if 'cmap' in kwargs.keys(): color_map = plt.get_cmap(kwargs['cmap'])
@@ -240,8 +243,11 @@ class YamboDipolesDB():
         self.ax.set_ylim(-lim,lim)
 
         # Reproduce plot also in adjacent BZs
-        BZs = shifted_grids_2D(kpts,rlat)
-        for kpts_s in BZs: plot=self.ax.scatter(kpts_s[:,0],kpts_s[:,1],c=data,**kwargs)
+        if shift_BZ:
+            BZs = shifted_grids_2D(kpts,rlat)
+            for kpts_s in BZs: plot=self.ax.scatter(kpts_s[:,0],kpts_s[:,1],c=data,**kwargs)
+        else:
+            plot=self.ax.scatter(kpts[:,0],kpts[:,1],c=data,**kwargs)
 
         if plt_cbar: self.fig.colorbar(plot)
 
@@ -250,16 +256,36 @@ class YamboDipolesDB():
         if plt_show: plt.show()
         else: print("Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
         
-    def ip_eps2(self,electrons,pol=1,ntot_dip=-1,GWshift=0.,broad=0.1,broadtype='l',nbnds=[-1,-1],emin=0.,emax=10.,esteps=500):
+    def ip_eps2(self,electrons,mode='imag',pol=1,ntot_dip=-1,GWshift=0.,broad=0.1,broadtype='l',nbnds=[-1,-1],emin=0.,emax=10.,esteps=500,res_k=False):
         """
-        Compute independent-particle absorption
+        Compute independent-particle absorption [interband transitions]
 
         electrons -> electrons YamboElectronsDB
+        pol -> polarization direction(s). Can be integer or list of dirs to be summed over.
+        ntot_dip -> if nbands_dip in ndb.dipoles < nbands_el in ns.db1, set ntot_dip=nbands_dip 
         GWshift -> rigid GW shift in eV
         broad -> broadening of peaks in eV
         broadtype -> 'l' is lorentzian, 'g' is gaussian
         nbnds -> number of [valence, conduction] bands included starting from Fermi level. Default means all are included
         emin,emax,esteps -> frequency range for the plot
+
+        mode -> 'imag': Im[eps(w)] resonant case [DEFAULT] i.e. absorption spectrum / Fermi's golden rule
+                'full': complex eps(w) including antiresonant case i.e. dielectric function / additional optical functions
+
+        By R. Reho
+        res_k -> if True, it returns an additional array epskres with IPA absorption for each k-point. 
+                 In this way, we can plot it on the 2D-BZ (e.g. integrating over an energy range).
+
+                This feature can be used like in the following example:
+
+                :: code block ::
+                    emin=0.
+                    emax=3.5
+                    step = int((emax-emin)/0.0025)
+                    _, _, datakres = ydip.ip_eps2(yel,pol[0,1],ntot_dip=-1,broad=0.12,broadtype='l',emin=emin,emax=emax,nbnds=[2,2],esteps=step,res_k=True)
+                    kres_int = np.sum(datakres,axis=0) #suitable integral over a frequency range
+                    ydip.plot_dipoles(dataplot,marker='H',s=300,cmap='viridis')
+               ::  end block ::
         """
 
         #get eigenvalues and weights of electrons
@@ -271,10 +297,12 @@ class YamboDipolesDB():
 
         #get dipoles
         dipoles = self.dipoles
+        nkpoints = len(dipoles)
 
         #get frequencies and im
         freq = np.linspace(emin,emax,esteps)
-        eps2 = np.zeros([len(freq)])
+        if mode=='imag': eps = np.zeros([len(freq)])
+        if mode=='full': eps = np.zeros([len(freq)],dtype=np.complex64)
 
         #Cut bands to the maximum number used for the dipoles
         if ntot_dip>0: 
@@ -291,35 +319,98 @@ class YamboDipolesDB():
         lc = nv+nbnds[1] #last conduction
 
         #choose broadening
-        if "l" in broadtype:
-            broadening = lorentzian
-        else:
-            broadening = gaussian
+        if mode=='imag' or res_k:
+            if "l" in broadtype: broadening = lorentzian
+            else:                broadening = gaussian
+
+        #dimensional factors
+        # [NB] This cofactor is not consistent with the yambo output:
+        #      - In 3D there is a factor missing
+        #      - In 2D there is a frequency dependence (!!!!!) missing (and a factor)
+        cofactor = 16*np.pi/self.lattice.rlat_vol
 
         na = np.newaxis
+        epskres = np.zeros([esteps,nkpoints])
         #calculate epsilon
         for c,v in product(range(nv,lc),range(iv,nv)):
 
                 #get electron-hole energy and dipoles
+                #(sum over pol directions if needed)
                 ecv  = eiv[:,c]-eiv[:,v]
-                dip2 = np.abs(dipoles[:,pol,c,v])**2.
+                dip2=0.
+                try:
+                    for p in pol: dip2 = dip2 + np.abs(dipoles[:,p,c,v])**2
+                except TypeError: 
+                    dip2 = np.abs(dipoles[:,pol,c,v])**2.
 
                 #make dimensions match
                 dip2a = dip2[na,:]
                 ecva  = ecv[na,:]
                 freqa = freq[:,na]
                 wa    = weights[na,:]       
- 
-                #calculate the lorentzians 
-                broadw = broadening(freqa,ecva,broad)
+
+                if mode=='imag' or res_k: 
+                    #calculate the lorentzians 
+                    broadw = broadening(freqa,ecva,broad)
    
-                #scale broadening with dipoles and weights
-                epsk =  wa*dip2a*broadw
+                    #scale broadening with dipoles and weights
+                    epsk =  wa*dip2a*broadw
 
-                #integrate over kpoints
-                eps2 += np.sum(epsk,axis=1)
+                    #k-resolved absorption
+                    if res_k: epskres+=epsk
 
-        return freq, eps2
+                    #integrate over kpoints
+                    if mode=='imag': eps += np.sum(epsk,axis=1)
+
+                if mode=='full':
+                    #construct complex-valued response function
+                    #including resonant and antiresonant components
+                    G1 = -1./(freqa-ecva+broad*I)
+                    G2 = -1./(-freqa-ecva-broad*I)
+
+                    # oscillators
+                    osc = wa*dip2a
+
+                    # +=: sum over (c,v) ; np.sum(axis=1): sum over k                    
+                    eps += np.sum(osc*(G1+G2),axis=1)/np.pi
+
+        eps = eps*cofactor
+
+        if res_k: return freq, eps, epskres
+        else:     return freq, eps
+
+    def add_drude(self,freq,eps,omegap,gammap):
+        """
+        Add 3D Drude term from semiclassical electron gas, i.e.,
+        INTRABAND transitions to the dielectric function
+
+        - freq, eps -> outputs of ip_eps2
+                       - freq: energy window previously defined in ip_eps2
+                       - eps: dielectric function previously computed with ip_eps2
+                              * if float: assume it is Im[eps(w)] and add imaginary part of Drude term
+                              * if cmplx: add real and imaginary parts of Drude term
+        - omegap: plasma frequency
+        - gammap:  Drude broadening
+
+        Output: modified freq (removed E<=0 part) and eps with Drude added.
+        """
+        # Cut energy window
+        zero_ind = np.where(freq==0.)[0]
+        if zero_ind.size!=0:
+            print('[WARNING] Values for energies <=0 are removed when adding the Drude term')
+            freq = freq[zero_ind[0]+1:]
+            eps  = eps[zero_ind[0]+1:]            
+
+        # Drude correction, real and imaginary parts
+        Drude_term  = omegap/(freq**2.+gammap**2.)
+        Drude_real  = 1.-Drude_term
+        Drude_imag  = Drude_term*gammap/freq
+        Drude_cmplx = Drude_real+I*Drude_imag
+
+        if np.issubdtype(eps.dtype, np.complexfloating): eps+=Drude_cmplx
+        if np.issubdtype(eps.dtype, np.floating):        eps+=Drude_imag
+
+        return freq,eps
 
     def __str__(self):
         lines = []; app = lines.append
@@ -333,6 +424,7 @@ class YamboDipolesDB():
         app("nbandsc: %d" % self.nbandsc)
         app("indexv : %d" % (self.min_band-1))
         app("indexc : %d" % (self.indexc-1))
+        app("gauge  : %s" % (self.dip_type))
         app("field_dirx: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirx))
         app("field_diry: %10.6lf %10.6lf %10.6lf"%tuple(self.field_diry))
         app("field_dirz: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirz))

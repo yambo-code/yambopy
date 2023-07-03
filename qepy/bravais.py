@@ -29,6 +29,7 @@ def lattice_dictionary(ibrav):
     1 : 'cubic P (sc)',
     2 : 'cubic F (fcc)',
     3 : 'cubic I (bcc)',
+    4 : 'Hexagonal and Trigonal P',
     5 : 'Trigonal R, 3fold axis c',
     6 : 'Tetragonal P (st)',
     7 : 'Tet ragonal I (bct)',
@@ -51,6 +52,7 @@ def lattice_type(ibrav,cell):
     """
     ibrav = int(ibrav)
     lattice = lattice_dictionary(ibrav)
+    sqrt = np.sqrt
     
     if lattice=='Hexagonal and Trigonal P':
         a    = cell[0]

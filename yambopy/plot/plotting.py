@@ -1,4 +1,4 @@
-from matplotlib.patches import RegularPolygon,Rectangle
+from matplotlib.patches import RegularPolygon,Rectangle,Circle
 from matplotlib.colors import to_rgba
 from yambopy.lattice import bravais_types
 import numpy as np
@@ -36,11 +36,25 @@ def add_fig_kwargs(func):
 
 def BZ_Wigner_Seitz(lattice,center=(0.,0.),orientation=np.radians(30),color='white',linewidth=2):
     """
-    Wrapper function to decide which BZ shape to show
+    Wrapper function to decide which BZ shape to show 
+    (will be a 2D slice if the lattice is 3D)
+
+    Lattice types supported
+    - hexagonal
+    - square, rectangular, centered rectangular
+    Lattice types unsupported
+    - oblique
+
     """
-    lat_type = bravais_types(lattice.lat,lattice.alat[0])[:3]
-    if lat_type=='Hex': return BZ_hexagon(lattice.rlat,center=center,orientation=orientation,color=color,linewidth=linewidth)
-    if lat_type=='Ort': return BZ_rectangle(lattice.rlat,color=color,linewidth=linewidth)
+    NoPatch = Circle((0,0),radius=0,visible=False)
+
+    lat_type = bravais_types(lattice.lat,lattice.alat[0])
+    if lat_type[:3]=='Hex': return BZ_hexagon(lattice.rlat,center=center,orientation=orientation,color=color,linewidth=linewidth)
+    if lat_type[:3]=='Ort': return BZ_rectangle(lattice.rlat,color=color,linewidth=linewidth)
+
+    if lat_type[:3]!='Hex' or lat_type[:3]!='Ort':
+        print("[WARNING] Lattice type %s currently not supported for drawing BZ borders")
+        return NoPatch
 
 def BZ_hexagon(rlat,center=(0.,0.),orientation=np.radians(30),color='white',linewidth=2):
     """
