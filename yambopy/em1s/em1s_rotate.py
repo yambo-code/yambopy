@@ -105,11 +105,12 @@ def find_inversion_type(n_atoms,atom_pos,syms):
 class YamboEm1sRotate():
     """
     This class expands the em1s computed by yambo in the IBZ to the
-    full BZ. 
+    full BZ (i.e., Wigner-Seitz cell). 
 
-    NOTE: the full BZ q-grid must be the one used by yambo, i.e., in the full Wigner-Seitz          cell of the crystal. 
-          This grid can be generated in many ways (e.g. ypp -k in yambo) and has to be fed
-          to the DFT codes for the no-symmetry calculation replacing the automatic grid
+    === Usage and variables ===
+
+    >> yem1s   = YamboStaticScreeningDB(save=db_path,em1s=db_path)
+    >> yexpand = YamboEm1sRotate(yem1s,save_path=db_path,path_output_DBs=db_path.split('/')[0]+'/Expanded',verbose=1)
 
     :: Input 
     - yem1s           -> YamboStaticScreeningDB object (IBZ calculation)
@@ -121,18 +122,18 @@ class YamboEm1sRotate():
     - numpy array with expanded static screening 
     - [OPTIONAL] ndb.em1s and ndb.em1s_fragment_* databases corresponding to the 
     full BZ.
-    - [OPTIONAL] data file 'kpoints_ws_bz.dat' containing expanded rlu kpoint coordinates in PW format
+    - [OPTIONAL] data file 'kpoints_bz.dat' containing expanded rlu kpoint coordinates in PW format
 
     """
 
     def __init__(self,yem1s,save_path="SAVE",db1='ns.db1',path_output_DBs=None,verbose=0):
 
+        # Attributes imported from StaticScreeningDB    
         supported_cutoffs = ['none','slab z']
         self.cutoff       = yem1s.cutoff
 
         if yem1s.cutoff not in supported_cutoffs: raise NotImplementedError("[ERROR] The em1s rotation is not currently implemented for cutoff %s."%yem1s.cutoff)
 
-        # Attributes imported from StaticScreeningDB    
         self.rlat         = yem1s.rlat
         self.alat         = yem1s.alat
         self.qpoints_ibz  = yem1s.car_qpoints
@@ -142,6 +143,8 @@ class YamboEm1sRotate():
         self.ngvectors    = yem1s.ngvectors
         self.X_ibz        = yem1s.X
         self.em1s_path    = yem1s.em1s
+
+        self.k_output     = 'kpoints_bz.dat'
 
         # Get symmetries in CC and real-space atomic positions
         if not os.path.isfile('%s/%s'%(save_path,db1)): raise FileNotFoundError("File %s not found."%db1)
@@ -449,7 +452,7 @@ class YamboEm1sRotate():
                     else:      kpts2prnt[i,j]="{:0.9f}".format(val)   
                 if j==3:       kpts2prnt[i,j]='1'
 
-        np.savetxt('kpoints_ws_bz.dat', kpts2prnt, fmt='%s %s %s %s')
+        np.savetxt(self.k_output, kpts2prnt, fmt='%s %s %s %s')
 
     def __str__(self):
 
