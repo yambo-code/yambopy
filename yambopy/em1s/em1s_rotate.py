@@ -199,14 +199,14 @@ class YamboEm1sRotate():
         - kwargs are atol and rtol for np.isclose
         """
         inv_syms = np.linalg.inv(self.syms)
-        Sm1G_table = np.zeros((self.ngvectors,len(inv_syms)),dtype=np.int)
+        Sm1G_table = np.zeros((self.ngvectors,len(inv_syms)),dtype=int)
 
         self.rotated_gvectors = np.zeros([len(self.syms),len(self.gvectors),3])
         for iG,G in enumerate(self.gvectors):
             for i_S,sym in enumerate(inv_syms):
                 check = np.sum( (self.gvectors - np.dot(sym,G))**2., axis=1) < tol
                 if np.sum(check) == 1.0: # One G-vector G' has been found to correspond to sym^{-1}G
-                    Sm1G_table[iG,i_S]=np.int(np.where(check==1.0)[0])
+                    Sm1G_table[iG,i_S]=int(np.where(check==1.0)[0])
                 elif np.sum(check)!= 1.0: #None or multiple G-vectors have been found
                     raise ValueError("\n[ERROR] Problem in mapping inverse G-vectors. Try:\n - (i) reducing isclose() tolerance in get_g_index (easy case) \n - (ii) check that yambo packs G-shells correctly for your lattice type and G-cutoff (difficult case)")
 

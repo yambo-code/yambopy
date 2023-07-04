@@ -744,8 +744,8 @@ class YamboExcitonDB(YamboSaveDB):
             #add weights
             #sum_weights = 0
             for t,kcv in enumerate(self.table):
-                k,c,v = kcv-1
-                #k,v,c = kcv-1                                 # bug?? Double-check
+                k,c,v = kcv-1                             
+                #k,v,c = kcv-1                 # bug?? Double-check
                 this_weight = abs2(eivec[t])
                 w_k_v_to_c[k,v-v_min,c-c_min] = this_weight   # new
             #if abs(sum_weights - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
@@ -823,9 +823,9 @@ class YamboExcitonDB(YamboSaveDB):
         #plotting
         if mode == 'hexagon': 
             scale = kwargs.pop('scale',1)
-            if spin_pol is 'up':
+            if spin_pol=='up':
                s=ax.scatter(x,y,s=scale,marker='H',c=weights_bz_sum_up,rasterized=True,**kwargs)
-            elif spin_pol is 'dw':
+            elif spin_pol=='dw':
                s=ax.scatter(x,y,s=scale,marker='H',c=weights_bz_sum_dw,rasterized=True,**kwargs)
             else:
                s=ax.scatter(x,y,s=scale,marker='H',c=weights_bz_sum,rasterized=True,**kwargs)
@@ -833,9 +833,9 @@ class YamboExcitonDB(YamboSaveDB):
             ax.set_ylim(-lim,lim)
         elif mode == 'square': 
             scale = kwargs.pop('scale',1)
-            if spin_pol is 'up':
+            if spin_pol=='up':
                s=ax.scatter(x,y,s=scale,marker='s',c=weights_bz_sum_up,rasterized=True,**kwargs)
-            elif spin_pol is 'dw':
+            elif spin_pol=='dw':
                s=ax.scatter(x,y,s=scale,marker='s',c=weights_bz_sum_dw,rasterized=True,**kwargs)
             else:
                s=ax.scatter(x,y,s=scale,marker='s',c=weights_bz_sum,rasterized=True,**kwargs)
@@ -845,11 +845,11 @@ class YamboExcitonDB(YamboSaveDB):
             from scipy.interpolate import Rbf
             npts = kwargs.pop('npts',100)
             interp_method = kwargs.pop('interp_method','bicubic')
-            if spin_pol is 'up':
+            if spin_pol=='up':
                rbfi = Rbf(x,y,weights_bz_sum_up,function='linear')
                x = y = np.linspace(-lim,lim,npts)
                weights_bz_sum_up = np.zeros([npts,npts])
-            elif spin_pol is 'dw':
+            elif spin_pol=='dw':
                rbfi = Rbf(x,y,weights_bz_sum_dw,function='linear')
                x = y = np.linspace(-lim,lim,npts)
                weights_bz_sum_dw = np.zeros([npts,npts])
@@ -859,16 +859,16 @@ class YamboExcitonDB(YamboSaveDB):
                weights_bz_sum = np.zeros([npts,npts])
 
             for col in range(npts):
-                if spin_pol is 'up':
+                if spin_pol=='up':
                    weights_bz_sum_up[:,col] = rbfi(x,np.ones_like(x)*y[col])
-                elif spin_pol is 'dw':
+                elif spin_pol=='dw':
                    weights_bz_sum_dw[:,col] = rbfi(x,np.ones_like(x)*y[col])
                 else:
                    weights_bz_sum[:,col] = rbfi(x,np.ones_like(x)*y[col])
             # NB we have to take the transpose of the imshow data to get the correct plot
-            if spin_pol is 'up':
+            if spin_pol=='up':
                s=ax.imshow(weights_bz_sum_up.T,interpolation=interp_method,extent=[-lim,lim,-lim,lim])
-            elif spin_pol is 'dw':
+            elif spin_pol=='dw':
                s=ax.imshow(weights_bz_sum_dw.T,interpolation=interp_method,extent=[-lim,lim,-lim,lim])
             else:
                s=ax.imshow(weights_bz_sum.T,interpolation=interp_method,extent=[-lim,lim,-lim,lim])
