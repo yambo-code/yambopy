@@ -326,8 +326,10 @@ class YamboDipolesDB():
         #dimensional factors
         # [NB] This cofactor is not consistent with the yambo output:
         #      - In 3D there is a factor missing
-        #      - In 2D there is a frequency dependence (!!!!!) missing (and a factor)
+        #      - In 2D there is a frequency dependence eps(w)->eps(w)/w missing (and a factor)
+        #setting to 1. for now
         cofactor = 16*np.pi/self.lattice.rlat_vol
+        cofactor = 1.
 
         na = np.newaxis
         epskres = np.zeros([esteps,nkpoints])
