@@ -29,11 +29,11 @@ class YamboLatticeDB(object):
         self.ibz_nkpoints         = len(iku_kpoints)
 
     @classmethod
-    def from_db(cls,filename='ns.db1',Expand=True,expand_mode=1):
-        return cls.from_db_file(filename,Expand)
+    def from_db(cls,filename='ns.db1',Expand=True,expand_mode=1,atol=1e-6):
+        return cls.from_db_file(filename,Expand,expand_mode,atol)
     
     @classmethod
-    def from_db_file(cls,filename='ns.db1',Expand=True,expand_mode=1):
+    def from_db_file(cls,filename='ns.db1',Expand=True,expand_mode=1,atol=1e-6):
         """ Initialize YamboLattice from a local dbfile """
 
         if not os.path.isfile(filename):
@@ -60,7 +60,7 @@ class YamboLatticeDB(object):
                          time_rev             = dimensions[9] )
 
         y = cls(**args)
-        if Expand: y.expand_kpoints(expand_mode)
+        if Expand: y.expand_kpoints(expand_mode,atol=atol)
         return y
  
     @classmethod    
@@ -192,7 +192,7 @@ class YamboLatticeDB(object):
             time_rev_list[i] = ( i >= self.nsym/(self.time_rev+1) )
         return time_rev_list
 
-    def expand_kpoints(self,atol=1e-6,verbose=0,expand_mode=1):
+    def expand_kpoints(self,verbose=0,expand_mode=1,atol=1.e-6):
         """
         Take a list of qpoints and symmetry operations and return the full brillouin zone
         with the corresponding index in the irreducible brillouin zone
@@ -224,13 +224,13 @@ class YamboLatticeDB(object):
             for ns,sym in enumerate(sym_car_to_apply):
 
                 new_k = np.dot(sym,k)
-
                 #check if the point is inside the bounds
                 k_red = car_red([new_k],self.rlat)[0]
+                k_red[np.abs(k_red) < atol] = 0. # Set to zero values < atol to avoid mistakes
                 k_bz = (k_red+atol)%1
 
                 #if the vector is not in the list of this index add it
-                if not vec_in_list(k_bz,kpoints_full_i[nk]):
+                if not vec_in_list(k_bz,kpoints_full_i[nk],atol=atol):
                     kpoints_full_i[nk].append(k_bz)
                     kpoints_full.append(new_k)
                     kpoints_indexes.append(nk)
