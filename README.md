@@ -49,6 +49,8 @@ Current development goals
 -------------------------
 - General review and update of all features
 - Full documentation & tutorials
+- Remove unneeded dependencies and switch to pip-based distribution
+- Increase efficiency of I/O for large database sizes and numbers
 - Test suite
 - Make it easier to add new features
 
