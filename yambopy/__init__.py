@@ -71,6 +71,7 @@ from yambopy.io.inputfile import *
 from yambopy.io.outputfile import *
 from yambopy.io.jsonfile import *
 from yambopy.io.iofile import *
+from yambopy.io.xsffile import *
 
 #bse/excitons files
 from yambopy.bse.excitonwf import *

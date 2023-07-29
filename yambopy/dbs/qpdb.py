@@ -201,11 +201,11 @@ class YamboQPDB():
         ve0,vqp,_ = self.get_filtered_qps(self.min_band,valence)
         ve0 = np.array(ve0)
         vqp = np.array(vqp)
-        ax.scatter(ve0,vqp-ve0)
+        ax.scatter(ve0,vqp)
         ce0,cqp,_ = self.get_filtered_qps(valence+1,self.max_band)
         ce0 = np.array(ce0)
         cqp = np.array(cqp)
-        ax.scatter(ce0,cqp-ce0)
+        ax.scatter(ce0,cqp)
 
         #plot the fits
         #vx = np.linspace(np.min(ve0),np.max(ve0),2)
