@@ -20,7 +20,9 @@ class YamboXsf():
         self.natoms = None
         self.atom_positions = []
         self.grid_data = []
+        self.data_array = np.array([])
         self.lattice = None
+        self.grid_dim = np.array([])
 
     def set_cell_parameters(cls, cell_parameters):
         cls.cell_parameters = cell_parameters
@@ -43,7 +45,13 @@ class YamboXsf():
     def add_grid_data(cls, grid_name, block_dim, sub_grid_name, sub_grid_size, sub_grid_dim, sub_grid_origin,\
         sub_grid_vectors, data_array):
         cls.grid_data.append((grid_name, block_dim, sub_grid_name, sub_grid_size, sub_grid_dim, sub_grid_origin, \
-            sub_grid_vectors, data_array))      
+            sub_grid_vectors, data_array))     
+
+    def get_data_array(cls, data_array):
+        cls.data_array = np.transpose(data_array,axes=(2,0,1)) # I want it in python order, to be checked if it's ok  
+
+    def get_grid_dim(cls, grid_dim):
+        cls.grid_dim = grid_dim
 
     def set_lattice(cls,lattice):
         cls.lattice = lattice
@@ -175,6 +183,8 @@ class YamboXsf():
                 if(block_dim[istart_idx]==2): 
                     na = np.newaxis
                     sub_data_array = sub_data_array[:,:,na]
+                xsf_file.get_data_array(data_array=sub_data_array)
+                xsf_file.get_grid_dim(sub_data_size)
                 xsf_file.add_grid_data(grid_name,block_dim=block_dim[istart_idx],sub_grid_name=sub_block_name, sub_grid_size=sub_data_size, \
                     sub_grid_dim=block_dim[istart_idx], sub_grid_origin=sub_data_origin, \
                     sub_grid_vectors=np.array(sub_data_vectors), data_array=sub_data_array)
