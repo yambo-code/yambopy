@@ -237,7 +237,8 @@ def merge_qp(output,files):
         print("=========input=========")
         QP_table, QP_kpts, QP_E, QP_E0, QP_Z = [], [], [], [], []
         for d,filename in zip(datasets,filenames):
-            PARS = list(map(int,d['PARS'][:]))
+            pars_valid = [ par for par in d['PARS'][:] if not  np.ma.is_masked(par) ] # Fix to exclude empty elements in database list (masked by default by python)
+            PARS = list(map(int,pars_valid))
             nkpoints, nqps, nstrings = PARS[1],PARS[2],PARS[-1]
             #_, nkpoints, nqps, _, nstrings = list(map(int,d['PARS'][:]))
             print("filename:    ", filename)
