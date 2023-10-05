@@ -32,7 +32,7 @@ def convert(value,ndb_gops):
 
     # Read shells from ndb.gops
     db = Dataset(ndb_gops,'r')
-    ng_in_shell = np.array(db['ng_in_shell'][:]).astype(np.int)
+    ng_in_shell = np.array(db['ng_in_shell'][:]).astype(int)
     E_of_shell  = db['E_of_shell'][:]
     db.close()
 
