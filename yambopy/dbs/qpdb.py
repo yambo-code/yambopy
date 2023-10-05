@@ -377,6 +377,18 @@ class YamboQPDB():
         else: 
            return ks_ebands, qp_ebands
 
+    def expand_eigenvalues(self,lattice):
+        """ Expand QP values in full BZ
+            - Input: YamboLatticeDB object with expanded kpts
+        """
+        nkbz   = lattice.nkpoints
+        bz2ibz = lattice.kpoints_indexes
+
+        eigenvalues_qp_expanded = np.zeros((nkbz,self.nbands))
+        for ikbz in range(nkbz): eigenvalues_qp_expanded[ikbz,:] = self.eigenvalues_qp[bz2ibz[ikbz],:] 
+        return eigenvalues_qp_expanded
+
+
     @add_fig_kwargs
     def plot_bs(self,**kwargs):
         """
