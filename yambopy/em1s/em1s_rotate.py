@@ -1,5 +1,5 @@
-# First version by Matteo Zanfrognini
-# Revised and expanded by FP
+# First version by Matteo Zanfrognini (2022)
+# Revised and expanded by FP (2023)
 
 from yambopy import *
 from netCDF4 import Dataset
