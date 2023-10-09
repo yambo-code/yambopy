@@ -206,6 +206,9 @@ class YamboLatticeDB(object):
         kpoints_full     = []
         symmetry_indexes = []
 
+        # Store original kpoints in iku coordinates
+        self.ibz_kpoints = self.iku_kpoints
+
         #kpoints in the full brillouin zone organized per index
         kpoints_full_i = {}
 

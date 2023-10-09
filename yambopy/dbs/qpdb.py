@@ -66,6 +66,7 @@ class YamboQPDB():
         """
         Create instance of this class from a ndb.QP file
         """
+        cls.qp_path = folder
         db_path = os.path.join(folder,filename)
         if os.path.isfile(db_path):
             yfile = YamboFile(filename,folder)
