@@ -6,7 +6,7 @@
 #
 import numpy as np
 from yambopy.nl.fft_interp import *
-from yambopy.nl.generate_efield import *
+from yambopy.nl.external_efield import *
 from yambopy.units import ha2ev,fs2aut
 
 from matplotlib.ticker import FuncFormatter
@@ -89,7 +89,8 @@ def Linear_Response(time, pol, efield, pol_ref=None, e_range=[0.0, 20.0], n_freq
     eps=1.0+4.0*np.pi*pol_w_along_E/efield_w
 
     header="E [eV]      Im/eps      Re/eps"
-    np.savetxt(output_file,np.c_[freqs*ha2ev,eps.imag,eps.real],header=header,delimiter=' ')
+    footer='Linear response analysis performed using YamboPy'
+    np.savetxt(output_file,np.c_[freqs*ha2ev,eps.imag,eps.real],header=header,delimiter=' ',footer=footer)
 
     fig, axs = plt.subplots(2)
     fig.suptitle('Dielectric constant along the field direction')

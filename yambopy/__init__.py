@@ -45,6 +45,8 @@ class yambopyenv():
     SCHEDULER = "bash"
     YAMBO_RT = "yambo_rt"
     YPP_RT = "ypp_rt"
+    YAMBO_NL = "yambo_nl"
+    YPP_NL = "ypp_nl"
 
 #tools and units
 from yambopy.tools.jsonencoder import *
@@ -102,7 +104,7 @@ from yambopy.rt.rt_timestep_optimize import *
 #non-linear files
 from yambopy.nl.linear_optics import *
 from yambopy.nl.fft_interp import *
-from yambopy.nl.generate_efield import *
+from yambopy.nl.external_efield import *
 from yambopy.nl.damp_it import *
 from yambopy.nl.harmonic_analysis import *
 
