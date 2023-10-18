@@ -18,9 +18,9 @@ def Divide_by_the_Field(efield,order):
     
     if efield['name']=='SIN' or efield['name']=='SOFTSIN':
         if order !=0:
-            divide_by_field=-2.*1j/efield['amplitude']**order
+            divide_by_field=np.power(-2.0*1.0j/efield['amplitude'],order,dtype=np.cdouble)
         elif order==0:
-            divide_by_field=4/efield['amplitude']**2
+            divide_by_field=4.0/np.power(efield['amplitude'],2.0,dtype=np.cdouble)
 
     elif efield['name'] == 'QSSIN':
         # Approximate relations/does not work yet
@@ -31,9 +31,9 @@ def Divide_by_the_Field(efield,order):
         E_w= math.sqrt(np.pi/2)*sigma*np.exp(-1j*W_0*T_0)*(special.erf((T-T_0)/math.sqrt(2.0)/sigma)+special.erf(T_0/sqrt(2.0)/sigma))
         
         if order!=0:
-            divide_by_field = (2*1j/(E_w*efield['amplitude']))**order
+            divide_by_field = (-2.0*1.0j/(E_w*efield['amplitude']))**order
         elif order==0:
-            divide_by_field = 4*1j/(E_w*efield['amplitude']*np.conj(E_w))
+            divide_by_field = 4.0/(E_w*efield['amplitude']*np.conj(E_w))
     else:
         print('Electric field not implemented in Divide_by_the_Field!')
         sys.exit(0)
