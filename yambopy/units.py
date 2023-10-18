@@ -1,7 +1,17 @@
 I = complex(0,1)
-ha2ev  = 27.211396132
+ha2ev  = 27.2113834 
 ev2cm1 = 8065.5440044136285
 bohr2ang = 0.52917720859
+core_cnst =2.418884326505
+fs2aut    =100.0/core_cnst 
+as2aut    =0.1/core_cnst
+ps2aut    =100000.0/core_cnst
+speed_of_light=137.03599911
+
+SVCMm12VMm1 =29.98*10**3 #  from [statV/cm] to [V/m]
+VMm12SVCMm1 =1./SVCMm12VMm1
+AU2VMm1     =5.14220632*10**11
+
 
 atomic_mass = [   None,      1.00794,    4.002602,     6.941,   9.012182,
                 10.811,      12.0107,     14.0067,   15.9994, 18.9984032,
