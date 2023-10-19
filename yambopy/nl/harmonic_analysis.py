@@ -108,6 +108,8 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
         T_range[0]=time[-1]-T_period
     if T_range[1] <= 0.0:
         T_range[1]=time[-1]
+    
+    T_range_initial=np.copy(T_range)
 
     print("Time range : ",str(T_range[0]/fs2aut),'-',str(T_range[1]/fs2aut),'[fs]')
         
@@ -119,12 +121,17 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
     for i_order in range(X_order+1):
         Harmonic_Frequency[i_order,:]=i_order*freqs[:]
     
+
     # Find the Fourier coefficients by inversion
     for i_f in range(n_frequencies):
         #
         # T_period change with the laser frequency 
         #
         T_period=2.0*np.pi/Harmonic_Frequency[1,i_f]
+        T_range,T_range_out_of_bounds=update_T_range(T_period,T_range_initial,time)
+        #
+        if T_range_out_of_bounds:
+            print("WARNING! Time range out of bounds for frequency :",Harmonic_Frequency[1,i_f]*ha2ev,"[eV]")
         #
         for i_d in range(3):
             X_effective[:,i_f,i_d]=Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],Harmonic_Frequency[:,i_f],T_period,T_range,T_step,efield)
@@ -171,5 +178,24 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
         footer='Non-linear response analysis performed using YamboPy'
         np.savetxt(output_file,values,header=header,delimiter=' ',footer=footer)
 
+def update_T_range(T_period,T_range_initial,time):
+        #
+        # Define the time range where analysis is performed
+        #
+        T_range=T_range_initial
+        T_range[1]=T_range[0]+T_period
+        #
+        # If the range where I perform the analysis it out of bounds
+        # I redefine it
+        #
+        T_range_out_of_bounds=False
+        #
+        if T_range[1] > time[-1]:
+            T_range[1]= time[-1]
+            T_range[0]= T_range[1]-T_period
+            T_range_out_of_bounds=True
 
+        return T_range,T_range_out_of_bounds
+
+    
 
