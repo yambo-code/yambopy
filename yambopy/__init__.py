@@ -22,6 +22,7 @@ Modules:
         - YamboGreenDB: read the green's functions calculated using yambo
         - YamboExcitonsDB: read excitonic properties from a BSE calculation
         - YamboKernelDB: read excitonic kernel in transition space
+        - YamboNLDB: read nonlinear response calculated with yambo_nl
 
     bse
         - YamboExcitonWaveFunctionXSF: read the excitonic
@@ -44,6 +45,8 @@ class yambopyenv():
     SCHEDULER = "bash"
     YAMBO_RT = "yambo_rt"
     YPP_RT = "ypp_rt"
+    YAMBO_NL = "yambo_nl"
+    YPP_NL = "ypp_nl"
 
 #tools and units
 from yambopy.tools.jsonencoder import *
@@ -59,6 +62,7 @@ from yambopy.dbs.greendb import *
 from yambopy.dbs.latticedb import *
 from yambopy.dbs.electronsdb import *
 from yambopy.dbs.rtdb import *
+from yambopy.dbs.nldb import *
 from yambopy.dbs.excitondb import *
 from yambopy.dbs.wfdb import *
 from yambopy.dbs.elphondb import *
@@ -81,6 +85,9 @@ from yambopy.bse.bse_dispersion import *
 #em1s/static screening operations files
 from yambopy.em1s.em1s_rotate import *
 
+#ndb.QP operations
+from yambopy.quasiparticles.QP_rotate import *
+
 #analyse stuff
 from yambopy.analyse import *
 
@@ -93,6 +100,13 @@ from yambopy.common.transform_matrix_element import *
 #realtime files
 from yambopy.rt.rt_movie import *
 from yambopy.rt.rt_timestep_optimize import *
+
+#non-linear files
+from yambopy.nl.linear_optics import *
+from yambopy.nl.fft_interp import *
+from yambopy.nl.external_efield import *
+from yambopy.nl.damp_it import *
+from yambopy.nl.harmonic_analysis import *
 
 #doublegrid files
 from yambopy.double_grid.dg_convergence import *

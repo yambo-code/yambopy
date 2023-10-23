@@ -1,5 +1,5 @@
-# First version by Matteo Zanfrognini
-# Revised and expanded by FP
+# First version by Matteo Zanfrognini (2022)
+# Revised and expanded by FP (2023)
 
 from yambopy import *
 from netCDF4 import Dataset
@@ -45,6 +45,7 @@ def expand_kpoints(kpoints,syms,rlat,atol=1e-6,verbose=0):
 
             #check if the point is inside the bounds
             k_red = car_red([new_k],rlat)[0]
+            k_red[np.abs(k_red) < atol] = 0. # Set to zero values < atol to avoid mistakes
             k_bz = (k_red+atol)%1
 
             #if the vector is not in the list of this index add it
