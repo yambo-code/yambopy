@@ -48,7 +48,7 @@ class YamboXsf():
             sub_grid_vectors, data_array))     
 
     def get_data_array(cls, data_array):
-        cls.data_array = np.transpose(data_array,axes=(2,0,1)) # I want it in python order, to be checked if it's ok  
+        cls.data_array = np.transpose(data_array,axes=(2,1,0)) # I want it in python order, to be checked if it's ok  
 
     def get_grid_dim(cls, grid_dim):
         cls.grid_dim = grid_dim
@@ -200,3 +200,21 @@ class YamboXsf():
         for iatom in range(0,len(xsf_file.lattice.car_atomic_positions)):
             xsf_file.add_atom(xsf_file.lattice.atomic_numbers[iatom],xsf_file.lattice.car_atomic_positions[iatom]*Bohr2Ang)
         return xsf_file
+    
+    def contribution_twolayers(self, zthreshold, c , fractional = True):
+        data = self.data_array
+        nGx, nGy, nGz = data.shape # G-vectors in real space
+        # Now I need to know the range of G-vector in z that are < zthreshold or above
+        # assume zthreshold is in fractionalcoordinates
+        if (fractional):
+            nGz_bottom = int(np.floor(nGz*(zthreshold)))
+            bottom_layer = np.sum(data[:,:,:nGz_bottom])
+            top_layer = np.sum(data[:,:,nGz_bottom:-1])
+            return bottom_layer, top_layer
+        else:
+            zthreshold = zthreshold/c
+            nGz_bottom = int(np.floor(nGz*(zthreshold)))
+            print('ngz', nGz_bottom)
+            bottom_layer = np.sum(data[:,:,:nGz_bottom])
+            top_layer = np.sum(data[:,:,nGz_bottom:-1])
+            return bottom_layer, top_layer

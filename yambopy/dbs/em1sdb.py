@@ -294,7 +294,7 @@ class YamboStaticScreeningDB(object):
             symm     -> True:  √v(q,g1) X_{g1,g2}(q) √v(q,g2)
                         False: v(q,g1) X_{g1,g2}(q) TO BE IMPLEMENTED
         """
-        true.X = np.zeros([self.nqpoints,self.size,self.size],dtype=np.complex64)
+        trueX = np.zeros([self.nqpoints,self.size,self.size],dtype=np.complex64)
 
         for ig1 in range(self.ngvectors):
             for ig2 in range(self.ngvectors):
