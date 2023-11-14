@@ -39,7 +39,7 @@ def Plot_Pol_or_Curr(time=None, pol=None, curr=None, xlim=None,save_file=None):
         pj='P'
         arr=pot
         fig.suptitle(' Real-time polarization in the three cartesian directions ', fontsize=char_size)
-    else
+    else:
         pj='J'
         arr=curr
         fig.suptitle(' Real-time current in the three cartesian directions ', fontsize=char_size)
