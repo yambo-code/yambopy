@@ -17,11 +17,12 @@ def zeropadding_signal(f,a,Nval):
     return pf,pa
 
 
-def plot_signal(fname=None,array=None,idir=1,padded=False,Npad=600,tstring='Signal',singlefig = True):
+def plot_signal(fname=None,array=None,time=None,idir=1,padded=False,Npad=600,tstring='Signal',singlefig = True):
     #
-    if fname != None:
+    if fname is not None:
+        print('Ciao ciao')
         data=np.genfromtxt(fname,comments="#")
-    elif array != None:
+    elif array is not None and time is not None:
         data=array
     else: 
         print('Error you should provide a file or an array with the data')
