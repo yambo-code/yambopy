@@ -1,5 +1,6 @@
 # Code from Myrta Gruning (2023)
 
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
@@ -16,9 +17,16 @@ def zeropadding_signal(f,a,Nval):
     return pf,pa
 
 
-def plot_signal(fname,idir=1,padded=False,Npad=600,tstring='Signal',singlefig = True):
+def plot_signal(fname=None,array=None,idir=1,padded=False,Npad=600,tstring='Signal',singlefig = True):
     #
-    data=np.genfromtxt(fname,comments="#")
+    if fname != None:
+        data=np.genfromtxt(fname,comments="#")
+    elif array != None:
+        data=array
+    else: 
+        print('Error you should provide a file or an array with the data')
+        sys.exit(0)
+
     if (singlefig):
         plt.show()
     plt.title(tstring)
