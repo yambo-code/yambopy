@@ -64,7 +64,6 @@ def plot_psd(f,psd,lfreq,tstring='',singlefig = True, lmax=41,ymin=10e-7, gap=No
         tlabel = tstring
         ttitle = ''
     print(f)
-    plt.figure(figsize=(10,5))
     plt.semilogy(f/lfreq, psd,label=tlabel)
     plt.title(ttitle)
     plt.ylim([ymin,1])
