@@ -28,7 +28,9 @@ Features
 
 Installation
 ------------
-Follow the steps on the Yambo wiki: https://www.yambo-code.eu/wiki/index.php/Tutorials#Setting_up_Yambopy
+Follow the steps on the [Yambo wiki](https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy). 
+Here you can find several tutorials as well, featuring example scripts that you can modify for your own ideas and needs. 
+Keep in mind that a basic knowledge of python (`numpy` and `matplotlib` packages) will help. 
 
 Requirements
 ------------
@@ -37,6 +39,7 @@ Requirements
 - scipy: https://www.scipy.org/
 - matplotlib: http://matplotlib.org/
 - netCDF4: http://unidata.github.io/netcdf4-python/
+- lxml: https://lxml.de/
 - pyyaml: https://pyyaml.org/
 - Quantum Espresso (optional): http://www.quantum-espresso.org/
 - Abipy (optional): https://abinit.github.io/abipy/
@@ -59,10 +62,11 @@ Authors
 Yambopy was started and initially developed by [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/).
 
 Current developers and maintainers:
-- [Alejandro Molina Sanchez](http://alexmoratalla.github.io/)
-- [Fulvio Paleari](http://palful.github.io)
+- [Fulvio Paleari](http://palful.github.io) (CNR - Nanoscience institute, Modena)
+- [Alejandro Molina Sanchez](http://alexmoratalla.github.io/) (University of Valencia)
+- José Castelo (University of Valencia) 
 
-Collaborators include(d)
+Contributors include(d)
 - Matteo Zanfrognini
 - Jorge Cervantes
 - Riccardo Reho
