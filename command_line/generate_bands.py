@@ -94,22 +94,32 @@ def get_data_from_xml(input_params):
     # Get kpoints cartesian coordinates
     kpts_cart, eigen, occs,= xml.get_xml_nk_bands(datafile_xml)
     
+    # Check if the system is magnetic
+    try:
+        spin     = eval( xml.get_xml_data(datafile_xml,'lsda',as_type=str).capitalize() )
+        noncolin = eval( xml.get_xml_data(datafile_xml,'noncolin',as_type=str).capitalize() )
+        if spin and not noncolin: l_magnetic = True
+        else: l_magnetic = False
+    except ValueError: l_magnetic = False
+
     # Get Fermi energy
-    fermi_e = xml.get_xml_data(datafile_xml,'fermi_energy',as_type=float)
-    
+    try: fermi_e = xml.get_xml_data(datafile_xml,'fermi_energy',as_type=float)
+    except ValueError: fermi_e = xml.get_xml_data(datafile_xml,'two_fermi_energies',as_type=float)[0] # majority spin Fermi energy
+
     # Scissor operator check
     if shift_Delta_c_v is not None:
         occ_kind = xml.get_xml_data(datafile_xml,'occupations_kind',as_type=str)
         if occ_kind!='fixed': 
             print('[WARNING]: if your system is a metal, the scissor shift will NOT work!')
     
-    # Get topmost valence band (only valid for gapped systems)
-    n_VBM = int( np.sum(occs[0]) )
-    
+    # Get topmost valence band (only valid for gapped systems)    
+    if not l_magnetic: n_VBM = int( np.sum(occs[0]) )
+    else:              n_VBM = int( np.sum(occs[0,:nbands]) ) # majority spins top valence  
+
     # Get eigenvalues
     eigen, s_eigen = process_bands(eigen,kpts_cart,fermi_e,shift_Delta_c_v,n_VBM)
-    
-    return lat_vecs, nkpoints, nbands, kpts_cart, eigen, s_eigen, n_VBM
+
+    return lat_vecs, nkpoints, nbands, kpts_cart, eigen, s_eigen, n_VBM, l_magnetic
     
 def setup_BZ_points(input_params,output_data):
     """
@@ -119,7 +129,7 @@ def setup_BZ_points(input_params,output_data):
     ***ASSUMING SAME NUMBER OF POINTS FOR EACH SEGMENT***)
     """
     save_dir, prefix, KPTs, KPTs_labels, shift_Delta_c_v  = input_params
-    lat_vecs, nkpoints, nbands, kpts_cart, eigen, s_eigen, n_VBM = output_data
+    lat_vecs, nkpoints, nbands, kpts_cart, eigen, s_eigen, n_VBM, l_magnetic = output_data
 
     # Describe BZ symmetry lines
     nKPTs = len(KPTs)
@@ -151,13 +161,13 @@ def setup_BZ_points(input_params,output_data):
     gaps = find_gaps(s_eigen,n_VBM)
 
     # Print info
-    setup_info(nKPTs,nkpt_per_direction,KPTs,KPT_lengths,nkpoints,nbands,points,gaps,shift_Delta_c_v)
+    setup_info(nKPTs,nkpt_per_direction,KPTs,KPT_lengths,nkpoints,nbands,points,gaps,shift_Delta_c_v,l_magnetic)
     
     if shift_Delta_c_v is not None: return prefix,nkpoints,nbands,kstps,KPTs_labels,points,gaps,eigen,s_eigen    
     else: return prefix,nkpoints,nbands,kstps,KPTs_labels,points,gaps,eigen
         
     
-def setup_info(nKPTs,nkpt_per_direction,KPTs,KPT_lengths,nkpoints,nbands,points,gaps,scissor):
+def setup_info(nKPTs,nkpt_per_direction,KPTs,KPT_lengths,nkpoints,nbands,points,gaps,scissor,l_magnetic):
     """
     Print information about the system
     """
@@ -176,13 +186,16 @@ def setup_info(nKPTs,nkpt_per_direction,KPTs,KPT_lengths,nkpoints,nbands,points,
     print("nbands: %d"%nbands)  
     if scissor is None: print("scissor shift: No")
     else: print("scissor shift: Yes")
-    if gaps[0]>1.e-6:
+    if gaps[0] > 1e-6 or gaps[1] >1.e-6:
         print("direct band gap:   %f eV"%gaps[0])
         print("indirect band gap: %f eV"%gaps[1])
     else:
         print("direct band gap:   %f eV"%gaps[0])
+        print("indirect band gap: %f eV"%gaps[1])
         print("This is a metal.")
     
+    if l_magnetic: print("The system is collinear magnetic.")
+
     # Symmetry points info
     print("=== PLOT ===")
     print("Internal high-symmetry points at: ")
@@ -213,8 +226,8 @@ def process_bands(eigen,kpts_cart,fermi_e,shift_Delta_c_v,n_val):
     """
     # Rescale in eV and shift Fermi level to zero
     ha2ev  = 27.211396132
-    processed_eigen  = ha2ev*(eigen-fermi_e)
-    
+    processed_eigen  = ha2ev*(eigen-fermi_e)              
+
     # Apply scissor shift
     shifted_eigen = deepcopy(processed_eigen)
     if shift_Delta_c_v is not None:
