@@ -79,8 +79,8 @@ class ProjwfcXML(object):
         try:
             f = open("%s/%s"%(path,output_filename),'r')
         except:
-            print("The output file of projwfc.x: %s was not found"%output_filename)
-            exit(1)
+            raise FileNotFoundError("The output file of projwfc.x: %s was not found. Either run calculation or specify \
+                                    different name with argument 'output_filename'"%output_filename)
 
         states = []
         #                                                                                        wfc                  j                 l                 m                    m_j
@@ -127,6 +127,10 @@ class ProjwfcXML(object):
             (a) Relative weight between two compositions: selected_orbitals and selected_orbitas_2
                 Format >>> selected_orbitals = [0,2,4]
             (b) Colormap enters as a string
+
+        Arguments for plot layout:
+        - size:     size of markers in scatterplot for option (b) [default 20]
+        - alpha:    alpha value of markers in scatterplot for option (a) [default 1]
 
         Under development to include also colormap and a dictionary for the
         selection of the orbitals...
