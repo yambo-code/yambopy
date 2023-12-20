@@ -67,13 +67,14 @@ Current developers and maintainers:
 - José Castelo (University of Valencia) 
 
 Contributors include(d)
+- Miki Bonacci
+- Claudio Attaccalite
 - Matteo Zanfrognini
 - Jorge Cervantes
 - Riccardo Reho
 - Alexandre Morlet
 - Davide Romanin
 - Michele Re Fiorentin
-- Claudio Attaccalite
 - You if you want to share your scripts!
 
 The code is at an ongoing stage of development, help us by sending bug reports, patches and suggestions!
