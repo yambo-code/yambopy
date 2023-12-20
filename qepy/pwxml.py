@@ -347,22 +347,28 @@ class PwXML():
            eigen1 = np.array(self.eigen1)
 
            for ib in range(self.nbands_up):
-               ax.plot(kpoints_dists,eigen1[:,ib]                + y_offset, '%s-'%color, lw=2, zorder=1) # spin-up 
-               ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up] + y_offset, 'b-', lw=2, zorder=1) # spin-down
+               ax.plot(kpoints_dists,eigen1[:,ib]                + y_offset, '%s-'%color, lw=lw, zorder=1,label='spin-up') # spin-up 
+               ax.plot(kpoints_dists,eigen1[:,ib+self.nbands_up] + y_offset, 'b-', lw=lw, zorder=1,label='spin-down') # spin-down
+
+           import matplotlib.pyplot as plt
+           handles, labels = plt.gca().get_legend_handles_labels()
+           by_label = dict(zip(labels, handles))
+           plt.legend(by_label.values(), by_label.keys())
 
         # Case: Non spin polarization
         else:
            eigen1 = np.array(self.eigen1)
 
            for ib in range(self.nbands):
-               ax.plot(kpoints_dists,eigen1[:,ib] + y_offset, color=color, linestyle=ls ,zorder =1)
+               ax.plot(kpoints_dists,eigen1[:,ib] + y_offset, color=color,linestyle=ls , lw=lw, zorder =1)
 
         #plot options
         if xlim: ax.set_xlim(xlim)
         if ylim: ax.set_ylim(ylim)
 
      
-    def plot_eigen_spin_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),spin_proj=None):
+    #def plot_eigen_spin_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),spin_proj=None):
+    def plot_eigen_spin_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),spin_proj=False,spin_folder='.'):
         #
         # Careful with variable path. I am substituting vy path_kpoints
         # To be done in all the code (and in the tutorials)
@@ -372,6 +378,11 @@ class PwXML():
         
         import matplotlib.pyplot as plt
         self.spin_proj = np.array(spin_proj) if spin_proj is not None else None 
+
+        if spin_proj == True:
+           self.spin_projection(spin_dir=3,folder=spin_folder,prefix='bands')
+           print(self.spin_3)
+        exit()
 
         if path_kpoints:
             if isinstance(path_kpoints,Path):

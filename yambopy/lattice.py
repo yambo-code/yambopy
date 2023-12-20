@@ -110,7 +110,7 @@ def get_path(kmesh,path,debug=False):
         #for all the kpoints in the path
         for index, disp, kpt in kpoints_in_path:
             bands_indexes.append( index )
-            if debug: print ("%12.8lf "*3)%tuple(kpt), index
+            if debug: print(("%12.8lf "*3)%tuple(kpt), index)
 
     return np.array(bands_indexes)
 
@@ -185,13 +185,14 @@ def bravais_types(lats,alat_0):
     bravais_types = ['Hexagonal and Trigonal P','Orthorhombic P']
 
     lats_ = lats/alat_0
-
+ 
     if np.array_equal(lats_[0],[1.,0.,0.]):
-
+        
         if np.allclose(lats_[1],[-0.5,sqrt(3.)/2.,0.]):
-
+        
             if np.allclose(lats_[2],[0.,0.,lats_[2,2] ]): return bravais_types[0]
 
         if np.array_equal(lats_[1],[0.,lats_[1,1],0.]):
-
+         
             if np.allclose(lats_[2],[0.,0.,lats_[2,2] ]): return bravais_types[1]
+

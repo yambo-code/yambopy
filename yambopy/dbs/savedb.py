@@ -246,7 +246,7 @@ class YamboSaveDB():
                sum_up = sum([sum(self.spin_degen*fermi_array(self.eigenvalues[0,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)]) 
                sum_dw = sum([sum(self.spin_degen*fermi_array(self.eigenvalues[1,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)]) 
                return sum_up + sum_dw -self.electrons
-
+     
         efermi = bisect(occupation_minus_ne,self.min_eival,self.max_eival)
 
         if verbose: print("fermi: %lf eV"%efermi)

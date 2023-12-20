@@ -228,6 +228,48 @@ class PwIn(object):
                 red_atoms.append( [atype,car_red([apos],self.cell_parameters)[0]] )
             self._atoms = red_atoms 
 
+
+    def get_atoms(self, units=None):
+        from .units     import ang2au,au2ang
+        from .lattice   import red_car,car_red
+
+        atoms_arr= np.array([atom[1] for atom in self.atoms])   #atom[0] is the atomic symbol; atom[1] is the 3 coord list
+        units = units if units is not None else self.atomic_pos_type   #self.atomic_pos_type = crystal in my case
+
+        if units == self.atomic_pos_type:
+            return self.atoms
+
+        scale_in =1.0
+        if self.atomic_pos_type == "angstrom":
+            scale_in = ang2au
+        elif self.atomic_pos_type == "alat":
+            if self.system['celldm(1)'] == None:
+                scale_in=np.linalg.norm(self.cell_parameters[0])
+            else:
+                scale_in = float(self.system['celldm(1)'])
+        elif self.atomic_pos_type == "crystal":
+            atoms_arr = red_car(atoms_arr, np.array(self.cell_parameters))
+
+        atoms_arr*=scale_in # transform in bohr
+
+        scale_out=1.0
+        if units == "alat":
+            if self.system['celldm(1)'] == None:
+                scale_out=1.0/np.linalg.norm(self.cell_parameters[0])
+            else:
+                scale_out=1.0/float(self.system['celldm(1)'])
+        elif units == "angstrom":
+            scale_out=au2ang
+        elif units == "crystal":
+            atoms_arr = car_red(atoms, np.array(self.cell_parameters))
+
+        atoms_arr*=scale_out # transform in bohr
+        atoms_string=""
+        for atom,arr in zip(self.atoms,atoms_arr):
+            atoms_string+="%3s %14.10lf %14.10lf %14.10lf \n" % (atom[0], arr[0], arr[1], arr[2])
+        return atoms_string
+
+
     def set_atypes(self,atypes):
         """"
         Set the atom types.
