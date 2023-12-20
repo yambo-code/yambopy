@@ -627,4 +627,5 @@ class YambopyCmd(Cmd):
             print("Command %s is not known to yambopy"%args[1])
  
 #parse options
+#def run_script(): return YambopyCmd(*sys.argv)
 ycmd = YambopyCmd(*sys.argv)

@@ -1,9 +1,9 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["flit_core"]
+build-backend = "flit_core.buildapi"
 [project]
 name = "yambopy"
-version = "0.2.2"
+version = "0.2.3"
 authors = [
   { name="Fulvio Paleari", email="fulvio.paleari@nano.cnr.it" },
   { name="Alejandro Molina-Sanchez", email="alejandro.molina@uv.es" },
@@ -21,6 +21,8 @@ dependencies = [ "numpy", "scipy", "netCDF4", "matplotlib", "pyyaml", "lxml",]
 [project.urls]
 "Homepage" = "https://github.com/yambo-code/yambopy"
 "Documentation" = "https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy"
+[project.scripts]
+yambopy="scripts.yambopy:YambopyCmd"
 [tool.setuptools]
 packages = ['yambopy',
             'yambopy.io',
