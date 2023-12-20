@@ -22,12 +22,16 @@ Modules:
         - YamboGreenDB: read the green's functions calculated using yambo
         - YamboExcitonsDB: read excitonic properties from a BSE calculation
         - YamboKernelDB: read excitonic kernel in transition space
+        - YamboNLDB: read nonlinear response calculated with yambo_nl
 
     bse
         - YamboExcitonWaveFunctionXSF: read the excitonic
         - YamboExcitonWeight: read the excitonic weights from the ypp output file
         - YamboBSEAbsorptionSpectra: generate a .json file with the bse absorption calculation (including information about the excitons)
 
+    em1s
+        - YamboEm1sRotate: rotate em1s from IBZ to BZ
+        - YamboEm1sExpand: expand em1s from unit cell to supercell [IN DEVELOPMENT]
     analyse:
         - YamboAnalyser: read .json files generated with yamboout and plot them together
 """
@@ -41,6 +45,8 @@ class yambopyenv():
     SCHEDULER = "bash"
     YAMBO_RT = "yambo_rt"
     YPP_RT = "ypp_rt"
+    YAMBO_NL = "yambo_nl"
+    YPP_NL = "ypp_nl"
 
 #tools and units
 from yambopy.tools.jsonencoder import *
@@ -56,10 +62,13 @@ from yambopy.dbs.greendb import *
 from yambopy.dbs.latticedb import *
 from yambopy.dbs.electronsdb import *
 from yambopy.dbs.rtdb import *
+from yambopy.dbs.nldb import *
 from yambopy.dbs.excitondb import *
 from yambopy.dbs.wfdb import *
 from yambopy.dbs.elphondb import *
 from yambopy.dbs.bsekerneldb import *
+from yambopy.dbs.excphondb import *
+from yambopy.dbs.kqgridsdb import *
 
 #input/output files
 from yambopy.io.inputfile import *
@@ -71,6 +80,13 @@ from yambopy.io.iofile import *
 from yambopy.bse.excitonwf import *
 from yambopy.bse.excitonweight import *
 from yambopy.bse.bse_absorption import *
+from yambopy.bse.bse_dispersion import *
+
+#em1s/static screening operations files
+from yambopy.em1s.em1s_rotate import *
+
+#ndb.QP operations
+from yambopy.quasiparticles.QP_rotate import *
 
 #analyse stuff
 from yambopy.analyse import *
@@ -79,16 +95,26 @@ from yambopy.analyse import *
 from yambopy.common.save_generation import *
 from yambopy.common.workflow import *
 from yambopy.common.calculation_manager import *
+from yambopy.common.transform_matrix_element import *
 
 #realtime files
 from yambopy.rt.rt_movie import *
 from yambopy.rt.rt_timestep_optimize import *
+
+#non-linear files
+from yambopy.nl.linear_optics import *
+from yambopy.nl.fft_interp import *
+from yambopy.nl.external_efield import *
+from yambopy.nl.damp_it import *
+from yambopy.nl.harmonic_analysis import *
+from yambopy.nl.hhg_tools import *
 
 #doublegrid files
 from yambopy.double_grid.dg_convergence import *
 
 #gkkp files
 from yambopy.gkkp.compute_gkkp import *
+from yambopy.gkkp.refine_gkkp import *
 
 #data
 from yambopy.data import *

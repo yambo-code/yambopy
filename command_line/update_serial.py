@@ -18,9 +18,12 @@ def get_serials(fldr):
     Identify the databases involved in the change and read their serial numbers
     """
     ndbs_tmp = glob('%s/ndb.*'%fldr)
+    ns_tmp   = glob('%s/ns.*'%fldr)
     ndbs = []
     for ndb in ndbs_tmp:
         if "fragment" not in ndb: ndbs.append(ndb)
+    for ns in ns_tmp:
+        if "fragment" not in ns: ndbs.append(ns)
 
     ndbs_target = []
     ndbs_values = []

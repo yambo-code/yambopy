@@ -6,7 +6,7 @@
 from __future__ import print_function, division
 import re
 import xml.etree.ElementTree as ET
-from numpy import array, zeros
+from numpy import array, zeros, pi, conjugate, arange
 from .lattice import Path, calculate_distances 
 from .auxiliary import *
 from itertools import chain
@@ -79,8 +79,8 @@ class ProjwfcXML(object):
         try:
             f = open("%s/%s"%(path,output_filename),'r')
         except:
-            print("The output file of projwfc.x: %s was not found"%output_filename)
-            exit(1)
+            raise FileNotFoundError("The output file of projwfc.x: %s was not found. Either run calculation or specify \
+                                    different name with argument 'output_filename'"%output_filename)
 
         states = []
         #                                                                                        wfc                  j                 l                 m                    m_j
@@ -128,6 +128,11 @@ class ProjwfcXML(object):
                 Format >>> selected_orbitals = [0,2,4]
             (b) Colormap enters as a string
 
+        Arguments for plot layout:
+        - size:     size of markers in scatterplot        [default 20]
+        - alpha:    alpha value of markers in scatterplot [default 1]
+        - label_1, label_2: plot labels [default None]
+
         Under development to include also colormap and a dictionary for the
         selection of the orbitals...
         """
@@ -161,7 +166,7 @@ class ProjwfcXML(object):
 
         #plot vertical lines
         for t in ticks:
-            ax.axvline(kpoints_dists[t],c='k',lw=2)
+            ax.axvline(kpoints_dists[t],c='k',lw=1)
         ax.axhline(0,c='k')
      
         # Plot bands for fixed size in a colormap
@@ -192,16 +197,23 @@ class ProjwfcXML(object):
         else:
             if self.spin_components == 1 or self.spin_components == 4:
                w_proj = self.get_weights(selected_orbitals=selected_orbitals)
+               ib_max = np.where(w_proj==np.max(w_proj))[1][0] # needed for label
                for ib in range(bandmin,bandmax):
+                   if ib==ib_max: lab = label_1
+                   else:          lab = '_'+label_1
                    eig = self.eigen[:,ib] + y_offset
-                   cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=label_1,rasterized=True,zorder=2)
+                   cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=lab,rasterized=True,zorder=2)
 
             elif self.spin_components == 2:
                  w_proj1, w_proj2 = self.get_weights(selected_orbitals=selected_orbitals)
+                 ib_max1, ib_max2 = np.where(w_proj1==np.max(w_proj1))[1][0], np.where(w_proj2==np.max(w_proj2))[1][0]
                  for ib in range(bandmin,bandmax):
+                     lab1, lab2 = ['_'+label_1,'_'+label_2]
+                     if ib==ib_max1: lab1 = label_1
+                     if ib==ib_max2: lab2 = label_2
                      eig1, eig2 = self.eigen1[:,ib], self.eigen2[:,ib]
-                     cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=label_1)
-                     cax2= ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=label_2)
+                     cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=lab1)
+                     cax2= ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=lab2)
 
         ax.set_xlim(0, max(kpoints_dists))
         return cax
@@ -230,6 +242,66 @@ class ProjwfcXML(object):
                    w_proj1[ik,ib] = sum(abs(self.proj1[ik,selected_orbitals,ib])**2)
                    w_proj2[ik,ib] = sum(abs(self.proj2[ik,selected_orbitals,ib])**2)
            return w_proj1, w_proj2
+
+    def get_dorbitals_projection(self,selected_orbitals=[],bandmin=0,bandmax=None):
+        """
+        This function return the weights for d-orbitals in the basis of a1g, e+
+        and e- 
+        selected_orbitals must the d-orbital list in the order of QE
+        """
+        if bandmax is None:
+           bandmax = self.nbands
+
+        #if self.spin_components == 1:
+
+           # Selection of the bands
+           #w_proj = zeros([self.nkpoints,self.nbands])
+           #for ik in range(self.nkpoints):
+           #    for ib in range(bandmin,bandmax):
+           #        w_proj[ik,ib] = sum(abs(self.proj[ik,selected_orbitals,ib])**2)
+           #return w_proj
+
+        if self.spin_components == 2:
+
+           # Selection of the bands
+           w_proj1 = zeros([self.nkpoints,self.nbands])
+           w_proj2 = zeros([self.nkpoints,self.nbands])
+
+           for ik in range(self.nkpoints):
+               for ib in range(bandmin,bandmax):
+
+                   w_proj1[ik,ib] = sum(abs(self.proj1[ik,selected_orbitals,ib])**2)
+                   w_proj2[ik,ib] = sum(abs(self.proj2[ik,selected_orbitals,ib])**2)
+           return w_proj1, w_proj2
+
+    def get_pdos(self,selected_orbitals=None,bandmin=0,bandmax=None,energy_steps=100,e_min=-10.0,e_max=5.0,Gamma=0.1):
+
+        print(selected_orbitals)
+
+        energy_grid = arange(e_min,e_max,(e_max-e_min)/energy_steps)
+        if bandmax is None:
+           bandmax = self.nbands
+        if selected_orbitals is None: selected_orbitals = range(self.nproj)
+
+        if self.spin_components == 2:
+           pdos_up, pdos_dw = zeros([energy_steps,self.nproj]), zeros([energy_steps,self.nproj])
+           for ik in range(self.nkpoints):
+               for ib in range(bandmin,bandmax):
+                   for io in selected_orbitals:
+                       for ie,e in enumerate(energy_grid):
+                           pdos_up[ie,io] = pdos_up[ie,io] + abs(conjugate(self.proj1[ik,io,ib])*self.proj1[ik,io,ib])*self._lorentz(self.eigen1[ik,ib],e,Gamma)
+
+        return energy_grid, pdos_up, dos_up       
+
+           #self.eigen1[ik,ib]
+           #self.eigen2[ik,ib]
+           #self.proj1[ik,io,ib]
+
+    def _lorentz(self,x,x_0,Gamma):
+        
+        return (1.0/pi)*(0.5*Gamma)/((x-x_0)**2 + (0.5*Gamma)**2)
+
+
 
     def get_relative_weight(self,selected_orbitals=[],selected_orbitals_2=[],bandmin=0,bandmax=None):
         if bandmax is None:
@@ -325,7 +397,7 @@ class ProjwfcXML(object):
         Write the projection array in a numpy file
         """
         np.savez(filename,proj=self.proj,weights=self.weights)
-        
+            
     def get_proj(self):
         """ Return projections
         """
@@ -408,7 +480,22 @@ class ProjwfcXML(object):
                   self.proj2 = np.array(proj2)
 
                   return proj1, proj2
-    
+       
+    def shift_bands(self,qpcorrection,vb,cb):
+        """
+        Shift band structure, e.g. to account for a G0W0 run.
+
+        The idea is to shift the bands by the qp corrections in order to use 
+        the weights from a projwfc calculation.
+
+        Note that the path used in QE must be the same as the one used in Yambo
+
+        - vb and cb allow for tuning the bands that are to be corrected
+        """
+
+        for ib in  range(self.nbands-vb,self.bands,self.nbands+cb): 
+            self.eigen[:,ib] = self.eigen[:,ib]+qpcorrection[:,ib]
+ 
     def __str__(self):
         s  = "nbands:   %d\n"%self.nbands
         s += "nkpoints: %d\n"%self.nkpoints

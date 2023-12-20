@@ -204,12 +204,15 @@ class YambopyBandStructure():
     def add_kpath_labels(self,ax):
         """
         Add vertical lines at the positions of the high-symmetry k-points
+        I did a modification that I don't like much. To be corrected
         """
         if self.kpath is None:
             ax.xaxis.set_ticks([])
             return 
         for kpoint, klabel, distance in self.kpath:
-            ax.axvline(distance,c='k')
+            ax.axvline(distance,c='k',ls='--',lw=0.5)
+        ax.axvline(0.0,c='k',ls='-',lw=0.0)
+        ax.axvline(distance,c='k',ls='-',lw=0.0)
         self.kpath.set_xticks(ax)
 
     def plot_ax(self,ax,xlim=None,ylim=None,size=1.,ylabel='$\epsilon_{n\mathbf{k}}$ [eV]', alpha_weights=0.5,legend=False,**kwargs):

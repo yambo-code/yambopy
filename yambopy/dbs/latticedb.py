@@ -29,11 +29,11 @@ class YamboLatticeDB(object):
         self.ibz_nkpoints         = len(iku_kpoints)
 
     @classmethod
-    def from_db(cls,filename='ns.db1',Expand=True):
-        return cls.from_db_file(filename,Expand)
+    def from_db(cls,filename='ns.db1',Expand=True,expand_mode=1,atol=1e-6):
+        return cls.from_db_file(filename,Expand,expand_mode,atol)
     
     @classmethod
-    def from_db_file(cls,filename='ns.db1',Expand=True):
+    def from_db_file(cls,filename='ns.db1',Expand=True,expand_mode=1,atol=1e-6):
         """ Initialize YamboLattice from a local dbfile """
 
         if not os.path.isfile(filename):
@@ -60,7 +60,7 @@ class YamboLatticeDB(object):
                          time_rev             = dimensions[9] )
 
         y = cls(**args)
-        if Expand: y.expand_kpoints()
+        if Expand: y.expand_kpoints(expand_mode,atol=atol)
         return y
  
     @classmethod    
@@ -127,7 +127,7 @@ class YamboLatticeDB(object):
 
     @property
     def rlat(self):
-        """caclulate the reciprocal lattice"""
+        """calculate the reciprocal lattice"""
         if not hasattr(self,'_rlat'):
             self._rlat = rec_lat(self.lat)
         return self._rlat 
@@ -192,10 +192,13 @@ class YamboLatticeDB(object):
             time_rev_list[i] = ( i >= self.nsym/(self.time_rev+1) )
         return time_rev_list
 
-    def expand_kpoints(self,atol=1e-6,verbose=0):
+    def expand_kpoints(self,verbose=0,expand_mode=1,atol=1.e-6):
         """
         Take a list of qpoints and symmetry operations and return the full brillouin zone
         with the corresponding index in the irreducible brillouin zone
+
+        :: expand_mode=0 : k' = S k
+        :: expand_mode=1:  k' = S.T k  [default, consistent with yambo]
         """
 
         #check if the kpoints were already exapnded
@@ -203,8 +206,17 @@ class YamboLatticeDB(object):
         kpoints_full     = []
         symmetry_indexes = []
 
+        # Store original kpoints in iku coordinates
+        self.ibz_kpoints = self.iku_kpoints
+
         #kpoints in the full brillouin zone organized per index
         kpoints_full_i = {}
+
+        if expand_mode==0: sym_car_to_apply = self.sym_car
+        if expand_mode==1:
+            sym_car_to_apply = np.copy(self.sym_car)
+            sym_car_to_apply = np.transpose(self.sym_car, (0, 2, 1))
+
 
         #expand using symmetries
         for nk,k in enumerate(self.car_kpoints):
@@ -212,16 +224,16 @@ class YamboLatticeDB(object):
             if nk not in kpoints_full_i:
                 kpoints_full_i[nk] = []
 
-            for ns,sym in enumerate(self.sym_car):
+            for ns,sym in enumerate(sym_car_to_apply):
 
                 new_k = np.dot(sym,k)
-
                 #check if the point is inside the bounds
                 k_red = car_red([new_k],self.rlat)[0]
+                k_red[np.abs(k_red) < atol] = 0. # Set to zero values < atol to avoid mistakes
                 k_bz = (k_red+atol)%1
 
                 #if the vector is not in the list of this index add it
-                if not vec_in_list(k_bz,kpoints_full_i[nk]):
+                if not vec_in_list(k_bz,kpoints_full_i[nk],atol=atol):
                     kpoints_full_i[nk].append(k_bz)
                     kpoints_full.append(new_k)
                     kpoints_indexes.append(nk)
