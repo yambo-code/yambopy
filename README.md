@@ -54,6 +54,7 @@ Current development goals
 - Full documentation & tutorials
 - Remove unneeded dependencies and switch to pip-based distribution
 - Increase efficiency of I/O for large database sizes and numbers
+- Integrate Aiida parser in master branch
 - Test suite
 - Make it easier to add new features
 
