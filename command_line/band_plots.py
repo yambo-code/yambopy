@@ -30,7 +30,11 @@ def plot_driver(data,plt_type,out_name=None,erange=None,show=True,print_data=Tru
     elif len(data)==8: prefix,nkpoints,nbands,kstps,KPTs_labels,points,gaps,eigen = data
     # Data missing
     else: raise IndexError('Incorrect number of elements in plot data.')
-    
+
+    if eigen.shape[1] != nbands:
+        if eigen.shape[1] == 2*nbands: eigen = np.array( [ eigen[:,:nbands],  eigen[:,nbands:] ]  ) 
+        else: raise ValueError("Mismatch between nbands and eigenvalue array shape")
+
     if plt_type=='bands': 
         data_to_plot = prefix,nkpoints,nbands,kstps,KPTs_labels,points,gaps,eigen
         electron_dispersion_plot(data_to_plot,out_name,erange,show)
@@ -45,14 +49,30 @@ def print_out_files(kstps,eigen,prefix,out_nm):
     if out_nm is not None: out_file_dat = "%s_%s.dat"%(prefix,out_nm)
     else:                  out_file_dat = "%s_bands.dat"%prefix
 
-    # Create array to print
-    Nk,Nb = eigen.shape
-    to_prnt = np.zeros((Nk,Nb+1))
-    to_prnt[:,0] =kstps
-    to_prnt[:,1:]=eigen
+    l_magnetic = (len(eigen.shape)==3)
 
-    # Save array
-    np.savetxt(out_file_dat,to_prnt,fmt='%.6f')
+    # Create array to print
+    if not l_magnetic:
+        Nk,Nb = eigen.shape
+        to_prnt = np.zeros((Nk,Nb+1))
+        to_prnt[:,0] =kstps
+        to_prnt[:,1:]=eigen
+
+        # Save array
+        np.savetxt(out_file_dat,to_prnt,fmt='%.6f')
+
+    if l_magnetic:
+        Nspin,Nk,Nb = eigen.shape
+        to_prnt_up = np.zeros((Nk,Nb+1))
+        to_prnt_up[:,0] =kstps
+        to_prnt_up[:,1:]=eigen[0]
+        to_prnt_dn = np.zeros((Nk,Nb+1))
+        to_prnt_dn[:,0] =kstps
+        to_prnt_dn[:,1:]=eigen[1]
+
+        # Save arrays
+        np.savetxt('SPIN1_'+out_file_dat,to_prnt_up,fmt='%.6f')
+        np.savetxt('SPIN2_'+out_file_dat,to_prnt_dn,fmt='%.6f')
 
 def electron_dispersion_plot(data,out_nm,erange,show):
     """
@@ -72,10 +92,13 @@ def electron_dispersion_plot(data,out_nm,erange,show):
     if out_nm is not None: out_file_pdf = "%s_%s.pdf"%(prefix,out_nm)
     else:                  out_file_pdf = "%s_bands.pdf"%prefix
 
+    l_magnetic = (len(eigen.shape)==3)
+
     # Initial preparations
     if gaps[0]<1.e-6: yref=0.
     else:             yref=min(gaps)
-    Nk,Nb = eigen.shape
+    if not l_magnetic: Nk,Nb = eigen.shape
+    if l_magnetic:  Ns,Nk,Nb = eigen.shape
     ylims = np.array([yref-erange,yref+erange])/2.
     xlims = [kstps[0],kstps[-1]]
     for il in range(len(KPTs_labels)):
@@ -132,8 +155,12 @@ def electron_dispersion_plot(data,out_nm,erange,show):
     ax.axhline(0,color='black',linewidth=faint_linewidth)
 
     # Draw plot
-    for ib in range(Nb):
-        ax.plot(kstps,eigen[:,ib],ls='-',lw=band_linewidth,c='red')
+    if not l_magnetic:
+        for ib in range(Nb): ax.plot(kstps,eigen[:,ib],ls='-',lw=band_linewidth,c='red')
+    if l_magnetic:
+        clrs = ['red','blue']
+        for i_s in range(Ns):
+            for ib in range(Nb): ax.plot(kstps,eigen[i_s][:,ib],ls='-',lw=band_linewidth,c=clrs[i_s])
 
     plt.savefig(out_file_pdf)
     if show: plt.show()

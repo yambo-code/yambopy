@@ -16,8 +16,12 @@ import os
 def sci_format(x,lim):
     return '{:.1e}'.format(x)
 
-def Plot_Pol(time=None, pol=None,xlim=None,save_file=None):
-    if not isinstance(pol, np.ndarray) and not isinstance(time, np.ndarray):
+def Plot_Pol_or_Curr(time=None, pol=None, curr=None, xlim=None,save_file=None):
+    if not isinstance(pol, np.ndarray) and isinstance(pol, np.ndarray):
+        print("Polarzation or Current not present")
+        return
+    if not isinstance(time, np.ndarray):
+        print("Time series not present")
         return
 
     char_size=14
@@ -25,16 +29,24 @@ def Plot_Pol(time=None, pol=None,xlim=None,save_file=None):
 
     fig=plt.figure(figsize=(10,10))
     fig.subplots_adjust(hspace=.05)
-    fig.suptitle(' Real-time polarization in the three cartesian directions ', fontsize=char_size)
 
     major_formatter = FuncFormatter(sci_format)
 
     if xlim == None:
         xlim=[0.0,time[-1]/fs2aut]
 
+    if isinstance(pol, np.ndarray):
+        pj='P'
+        arr=pot
+        fig.suptitle(' Real-time polarization in the three cartesian directions ', fontsize=char_size)
+    else:
+        pj='J'
+        arr=curr
+        fig.suptitle(' Real-time current in the three cartesian directions ', fontsize=char_size)
+
     ax=plt.subplot(3,1,1)
     plt.tick_params(axis='both', which='major', labelsize=char_size)
-    plt.plot(time[:]/fs2aut,pol[0,:],color="blue", linewidth=1.5, linestyle="-",label="P$_x$(t)")
+    plt.plot(time[:]/fs2aut,arr[0,:],color="blue", linewidth=1.5, linestyle="-",label=pj+"$_x$(t)")
     ax.yaxis.set_major_formatter(major_formatter)
     ax.set_xticks([])
     ax.set_xlim(xlim)
@@ -43,7 +55,7 @@ def Plot_Pol(time=None, pol=None,xlim=None,save_file=None):
     ###########6
     ax=plt.subplot(3,1,2)
     plt.tick_params(axis='both', which='major', labelsize=char_size)
-    plt.plot(time[:]/fs2aut,pol[1,:],color="blue", linewidth=1.5, linestyle="-",label="P$_y$(t)")
+    plt.plot(time[:]/fs2aut,arr[1,:],color="blue", linewidth=1.5, linestyle="-",label=pj+"$_y$(t)")
     ax.yaxis.set_major_formatter(major_formatter)
     ax.set_xticks([])
     ax.set_xlim(xlim)
@@ -51,7 +63,7 @@ def Plot_Pol(time=None, pol=None,xlim=None,save_file=None):
     
     ax=plt.subplot(3,1,3)
     plt.tick_params(axis='both', which='major', labelsize=char_size)
-    plt.plot(time[:]/fs2aut,pol[2,:],color="blue", linewidth=1.5, linestyle="-",label="P$_z$(t)")
+    plt.plot(time[:]/fs2aut,arr[2,:],color="blue", linewidth=1.5, linestyle="-",label=pj+"$_z$(t)")
     ax.set_xlabel('[fs]',size=14)
     ax.set_xlim(xlim)
     ax.legend(fontsize=char_size)

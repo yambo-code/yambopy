@@ -79,8 +79,8 @@ class ProjwfcXML(object):
         try:
             f = open("%s/%s"%(path,output_filename),'r')
         except:
-            print("The output file of projwfc.x: %s was not found"%output_filename)
-            exit(1)
+            raise FileNotFoundError("The output file of projwfc.x: %s was not found. Either run calculation or specify \
+                                    different name with argument 'output_filename'"%output_filename)
 
         states = []
         #                                                                                        wfc                  j                 l                 m                    m_j
@@ -128,6 +128,11 @@ class ProjwfcXML(object):
                 Format >>> selected_orbitals = [0,2,4]
             (b) Colormap enters as a string
 
+        Arguments for plot layout:
+        - size:     size of markers in scatterplot        [default 20]
+        - alpha:    alpha value of markers in scatterplot [default 1]
+        - label_1, label_2: plot labels [default None]
+
         Under development to include also colormap and a dictionary for the
         selection of the orbitals...
         """
@@ -161,7 +166,7 @@ class ProjwfcXML(object):
 
         #plot vertical lines
         for t in ticks:
-            ax.axvline(kpoints_dists[t],c='k',lw=2)
+            ax.axvline(kpoints_dists[t],c='k',lw=1)
         ax.axhline(0,c='k')
      
         # Plot bands for fixed size in a colormap
@@ -192,16 +197,23 @@ class ProjwfcXML(object):
         else:
             if self.spin_components == 1 or self.spin_components == 4:
                w_proj = self.get_weights(selected_orbitals=selected_orbitals)
+               ib_max = np.where(w_proj==np.max(w_proj))[1][0] # needed for label
                for ib in range(bandmin,bandmax):
+                   if ib==ib_max: lab = label_1
+                   else:          lab = '_'+label_1
                    eig = self.eigen[:,ib] + y_offset
-                   cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=label_1,rasterized=True,zorder=2)
+                   cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=lab,rasterized=True,zorder=2)
 
             elif self.spin_components == 2:
                  w_proj1, w_proj2 = self.get_weights(selected_orbitals=selected_orbitals)
+                 ib_max1, ib_max2 = np.where(w_proj1==np.max(w_proj1))[1][0], np.where(w_proj2==np.max(w_proj2))[1][0]
                  for ib in range(bandmin,bandmax):
+                     lab1, lab2 = ['_'+label_1,'_'+label_2]
+                     if ib==ib_max1: lab1 = label_1
+                     if ib==ib_max2: lab2 = label_2
                      eig1, eig2 = self.eigen1[:,ib], self.eigen2[:,ib]
-                     cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=label_1)
-                     cax2= ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=label_2)
+                     cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=lab1)
+                     cax2= ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=lab2)
 
         ax.set_xlim(0, max(kpoints_dists))
         return cax
