@@ -60,23 +60,27 @@ Current development goals
 
 Authors
 ------
-Yambopy was started and initially developed by [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/).
+Original author:
+- [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/).
 
 Current developers and maintainers:
 - [Fulvio Paleari](http://palful.github.io) (CNR - Nanoscience institute, Modena)
 - [Alejandro Molina Sanchez](http://alexmoratalla.github.io/) (University of Valencia)
 - José Castelo (University of Valencia) 
 
-Contributors include(d)
-- Miki Bonacci
+Active contributors:
 - Claudio Attaccalite
-- Matteo Zanfrognini
-- Jorge Cervantes
+- Miki Bonacci
+- Jorge Cervantes-Villanueva
 - Riccardo Reho
-- Alexandre Morlet
-- Davide Romanin
 - Michele Re Fiorentin
 - You if you want to share your scripts!
+
+Past contributors:
+- Matteo Zanfrognini
+- Alexandre Morlet
+- Davide Romanin
+- Daniel Murphy
 
 The code is at an ongoing stage of development, help us by sending bug reports, patches and suggestions!
 
