@@ -1,3 +1,6 @@
+
+![yambopy_text](docs/logos/yambopy_text.png)
+
 yambopy
 =======
 
@@ -93,6 +96,7 @@ If you want to contribute, we suggest the following steps:
 Acknoledgments
 ----------------
 - The [Abipy](https://abinit.github.io/abipy/) library developed for the Abinit code was the original inspiration for Yambopy. In particular, abipy's `SkwInterpolator` module for band structure interpolations has been directly imported into yambopy. 
+- Yambopy logos by Claudia Cardoso
 - University of Luxembourg
 - University of Valencia
 - Nanoscience Institute of the Italian National Research Council
