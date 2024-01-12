@@ -8,6 +8,7 @@ from yambopy.dbs.savedb import *
 from yambopy.dbs.latticedb import *
 from yambopy.dbs.electronsdb import *
 from yambopy.dbs.qpdb import *
+from imported_modules.skw import SkwInterpolator
 
 
 class ExcitonList():
@@ -561,7 +562,7 @@ class YamboExcitonDB(YamboSaveDB):
             All is done internally. No use of the bandstructure class
             (something to change)
         """
-        from abipy.core.skw import SkwInterpolator
+
         Im = 1.0j # Imaginary
         
         # Number of exciton states
@@ -1065,7 +1066,6 @@ class YamboExcitonDB(YamboSaveDB):
             for instance, kpoints_indexes should be read from savedb
 
         """
-        from abipy.core.skw import SkwInterpolator
 
         if verbose:
             print("This interpolation is provided by the SKW interpolator implemented in Abipy")
@@ -1140,6 +1140,7 @@ class YamboExcitonDB(YamboSaveDB):
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
         kpoints_path = path.get_klist()[:,:3]
         energies = skw.interp_kpts(kpoints_path).eigens
+
         #interpolate weights
         na = np.newaxis
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
@@ -1148,14 +1149,14 @@ class YamboExcitonDB(YamboSaveDB):
 
         #create band-structure object
         exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
-        #exc_bands.set_fermi(self.nvbands)
+        #shift top valence band to zero
+        exc_bands.set_fermi(self.nvbands)
 
         return exc_bands
 
     def interpolate_transitions(self,energies,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
         """ Interpolate exciton bandstructure using SKW interpolation from Abipy
         """
-        from abipy.core.skw import SkwInterpolator
 
         if verbose:
             print("This interpolation is provided by the SKW interpolator implemented in Abipy")
@@ -1218,7 +1219,6 @@ class YamboExcitonDB(YamboSaveDB):
     def interpolate_spin(self,energies,spin_proj,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
         """ Interpolate exciton bandstructure using SKW interpolation from Abipy
         """
-        from abipy.core.skw import SkwInterpolator
 
         if verbose:
             print("This interpolation is provided by the SKW interpolator implemented in Abipy")
@@ -1620,7 +1620,6 @@ class YamboExcitonDB(YamboSaveDB):
         """ Interpolate exciton bandstructure using SKW interpolation from
         Abipy and SPIN-POLARIZED CALCULATIONS
         """
-        from abipy.core.skw import SkwInterpolator
 
         if verbose:
             print("This interpolation is provided by the SKW interpolator implemented in Abipy")
