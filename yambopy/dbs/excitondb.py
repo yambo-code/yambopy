@@ -1148,7 +1148,8 @@ class YamboExcitonDB(YamboSaveDB):
 
         #create band-structure object
         exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
-        #exc_bands.set_fermi(self.nvbands)
+        #shift top v_band to zero
+        exc_bands.set_fermi(self.nvbands)
 
         return exc_bands
 
