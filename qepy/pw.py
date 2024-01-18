@@ -78,6 +78,7 @@ class PwIn(object):
         self.atypes = dict()
         self.cell_units = 'bohr'
         self.atomic_pos_type = 'crystal'
+        self.Utype = None
 
     @classmethod
     def from_file(cls,filename):
@@ -99,6 +100,8 @@ class PwIn(object):
             new.read_kpoints()
             #read CELL_PARAMETERS
             new.read_cell_parameters()
+            #read HUBBARD
+            new.read_hubbard()
 
         return new
 
@@ -269,6 +272,19 @@ class PwIn(object):
             atoms_string+="%3s %14.10lf %14.10lf %14.10lf \n" % (atom[0], arr[0], arr[1], arr[2])
         return atoms_string
 
+    def set_hubbard(self,Uvalues,Utype="ortho-atomic"):
+        """
+        Set the Hubbard corrections: [ ion-orbital, U(eV) ]
+
+        Example:
+            .. code-block :: python
+
+                pwi = PwIn()
+                pwi.set_hubbard( [['Ce-4f', 5.0 ],
+                                  ['O-2p, 1e-4 ]])
+        """
+        self.Uvalues = Uvalues
+        self.Utype   = Utype
 
     def set_atypes(self,atypes):
         """"
@@ -523,6 +539,18 @@ class PwIn(object):
         self._atoms = atoms
         self.atomic_pos_type = atomic_pos_type.replace('{','').replace('}','').strip().split()[1]
 
+    def read_hubbard(self):
+        lines = iter(self.file_lines)
+        #find HUBBARD keyword in file and read next lines
+        for line in lines:
+            if "HUBBARD" in line:
+                self.Utype = line.replace('{','').replace('}','').strip().split()[1]
+                self.Uvalues = []
+            if self.Utype is not None and line.startswith('U'):
+                orbital = line.strip().split()[1]
+                UeV = float(line.strip().split()[2])
+                self.Uvalues.append([ orbital, UeV  ])
+
     @property
     def alat(self):
         if self.ibrav == 0:
@@ -720,7 +748,15 @@ class PwIn(object):
             app( ("%14.10lf "*3)%tuple(self.cell_parameters[0]) )
             app( ("%14.10lf "*3)%tuple(self.cell_parameters[1]) )
             app( ("%14.10lf "*3)%tuple(self.cell_parameters[2]) )
+
+        #print hubbard
+        if self.Utype is not None:
+            app( "HUBBARD { %s }" % self.Utype )
+            for U in self.Uvalues:
+                app( "U %s %lf" % (U[0], U[1]) )
+
         return "\n".join(lines)
+
 
     def __str__(self):
         return self.get_string()
