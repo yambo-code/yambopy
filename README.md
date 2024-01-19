@@ -1,3 +1,6 @@
+
+![yambopy_text](docs/logos/yambopy_text.png)
+
 yambopy
 =======
 
@@ -42,7 +45,6 @@ Requirements
 - lxml: https://lxml.de/
 - pyyaml: https://pyyaml.org/
 - Quantum Espresso (optional): http://www.quantum-espresso.org/
-- Abipy (optional): https://abinit.github.io/abipy/
 
 Troubleshooting, bugs and questions
 -----------------------------------
@@ -54,27 +56,33 @@ Current development goals
 - Full documentation & tutorials
 - Remove unneeded dependencies and switch to pip-based distribution
 - Increase efficiency of I/O for large database sizes and numbers
+- Integrate Aiida parser in master branch
 - Test suite
 - Make it easier to add new features
 
 Authors
 ------
-Yambopy was started and initially developed by [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/).
+Original author:
+- [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/).
 
 Current developers and maintainers:
 - [Fulvio Paleari](http://palful.github.io) (CNR - Nanoscience institute, Modena)
 - [Alejandro Molina Sanchez](http://alexmoratalla.github.io/) (University of Valencia)
 - José Castelo (University of Valencia) 
 
-Contributors include(d)
-- Matteo Zanfrognini
-- Jorge Cervantes
+Active contributors:
+- Claudio Attaccalite
+- Miki Bonacci
+- Jorge Cervantes-Villanueva
 - Riccardo Reho
+- Michele Re Fiorentin
+- You if you want to share your scripts!
+
+Past contributors:
+- Matteo Zanfrognini
 - Alexandre Morlet
 - Davide Romanin
-- Michele Re Fiorentin
-- Claudio Attaccalite
-- You if you want to share your scripts!
+- Daniel Murphy
 
 The code is at an ongoing stage of development, help us by sending bug reports, patches and suggestions!
 
@@ -84,3 +92,14 @@ If you want to contribute, we suggest the following steps:
 1. Fork this repository
 2. Implement and test your new feature(s) in the forked repo
 3. Create a pull request in order to include your development in the official code
+
+Acknoledgements
+----------------
+- The [Abipy](https://abinit.github.io/abipy/) library developed for the Abinit code was the original inspiration for Yambopy. In particular, abipy's `SkwInterpolator` module for band structure interpolations has been directly imported into yambopy. 
+- Yambopy logos by Claudia Cardoso
+- University of Luxembourg
+- University of Valencia
+- Nanoscience Institute of the Italian National Research Council
+- [MaX](https://www.max-centre.eu/): Materials at the eXascale EU center of excellence
+
+![yambopy_logo](docs/logos/yambopy_square.png)

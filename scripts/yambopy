@@ -318,7 +318,7 @@ class AddQPCmd(Cmd):
     Optional arguments are:
 
         -a,  --add       -> Add the real-part of a QP correction
-        -s,  --substract -> Substract the real-part of a QP correction
+        -s,  --subtract -> Substract the real-part of a QP correction
         -ai, --addimg    -> Add the imaginary-part of a QP correction
         -o,  --output    -> Output filename
         -v,  --verbose   -> Increased verbosity
@@ -331,10 +331,10 @@ class AddQPCmd(Cmd):
             print((self.__doc__))
             exit(0)
 
-        parser = argparse.ArgumentParser(description='Join different NetCDF quasi-particle databases')
-        parser.add_argument('-a', '--add',       nargs='+', type=argparse.FileType('r'), help="Add the real part to the final db",default=[])
-        parser.add_argument('-s', '--substract', nargs='+', type=argparse.FileType('r'), help="Substract the real part to the final db", default=[])
-        parser.add_argument('-ai','--addimg',    nargs='+', type=argparse.FileType('r'), help="Add the imaginary part to the final db",default=[])
+        parser = argparse.ArgumentParser(description='Join different NetCDF quasi-particle databases.')
+        parser.add_argument('-a', '--add',       nargs='+', type=argparse.FileType('r'), help="Add the real part correction E-Eo to the final db",default=[])
+        parser.add_argument('-s', '--subtract', nargs='+', type=argparse.FileType('r'), help="Subtract the real part correction E-Eo part to the final db", default=[])
+        parser.add_argument('-ai','--addimg',    nargs='+', type=argparse.FileType('r'), help="Add the imaginary part Im(E) to the final db",default=[])
         parser.add_argument('-o', '--output',  default='ndb_out.QP', help='Output filename')
         parser.add_argument('-v', '--verbose', action="store_true",  help='Verbose mode')
         args = parser.parse_args(args)
@@ -342,13 +342,13 @@ class AddQPCmd(Cmd):
 
         output  = args.output
         add     = args.add
-        substract = args.substract
+        subtract = args.subtract
         addimg  = args.addimg
         verbose = args.verbose
 
 
         #call add_qp from recipes.py
-        recipes.add_qp(output,add,substract,addimg,verbose)
+        recipes.add_qp(output,add,subtract,addimg,verbose)
 
     def info(self):
         """
