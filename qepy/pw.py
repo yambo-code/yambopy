@@ -667,15 +667,17 @@ class PwIn(object):
                     #read number of kpoints
                     nkpoints = int(next(lines).split()[0])
                     self.klist = []
-                    self.ktype = ""
+                    try: self.ktype = line.replace('{','').replace('}','').strip().split()[1]
+                    except IndexError: self.ktype = ""
                     try:
                         lines_list = list(lines)
                         for n in range(nkpoints):
-                            vals = lines_list[n].split()[:4]
-                            self.klist.append( list(map(float,vals)) )
+                            vals   = lines_list[n].split()[:4]
+                            self.klist.append( list(map(float,vals)) )    
                     except IndexError:
                         print("wrong k-points list format")
                         exit()
+                    self.klist = [ [a,b,c,int(d)] for a,b,c,d in self.klist ]
 
     def slicefile(self, keyword):
         file_slice_regexp = '&%s(?:.?)+\n((?:.+\n)+?)(?:\s+)?[\/&]'%keyword
@@ -737,10 +739,13 @@ class PwIn(object):
             app( "K_POINTS { %s }" % self.ktype )
             app( ("%3d"*6)%(tuple(self.kpoints) + tuple(self.shiftk)) )
         else:
+            fmt_string = ""
+            for element in self.klist[0]: 
+                if isinstance(element,int): fmt_string+="%3d"
+                else: fmt_string+="%12.8lf"
             app( "K_POINTS { %s }" % self.ktype )
             app( "%d" % len(self.klist) )
-            for kpt in self.klist:
-                app( ("%12.8lf "*4)%tuple(kpt) )
+            for kpt in self.klist: app( fmt_string%tuple(kpt) )
 
         #print cell parameters
         if self.ibrav == 0:
