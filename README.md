@@ -27,6 +27,7 @@ Features
 - Analyse, interpolate and plot the results in various ways using matplotlib
 - Visualize advanced quantities such as:
   -  dielectric function, exciton weights in k and q-space, electron-phonon matrix elements...
+- [Aiida](https://github.com/aiidateam) plugin  
 - Tutorials
 
 Installation
@@ -44,6 +45,7 @@ Requirements
 - netCDF4: http://unidata.github.io/netcdf4-python/
 - lxml: https://lxml.de/
 - pyyaml: https://pyyaml.org/
+- monty: https://pypi.org/project/monty/
 - Quantum Espresso (optional): http://www.quantum-espresso.org/
 
 Troubleshooting, bugs and questions
@@ -53,10 +55,11 @@ Please write a post in the yambopy subsection of the [yambo forum](https://www.y
 Current development goals
 -------------------------
 - General review and update of all features
+- Brillouin zone paths patch
+- Full support for finite-momentum BSE postprocessing
 - Full documentation & tutorials
 - Remove unneeded dependencies and switch to pip-based distribution
 - Increase efficiency of I/O for large database sizes and numbers
-- Integrate Aiida parser in master branch
 - Test suite
 - Make it easier to add new features
 
