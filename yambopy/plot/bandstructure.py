@@ -226,7 +226,6 @@ class YambopyBandStructure():
         c_weights = kwargs.pop('c_weights',None)
         label   = kwargs.pop('label',None)
         lw_label  = kwargs.pop('lw_label',None)
-
         # Add option to plot lines or dots
         #linetype
         #dot symbol
