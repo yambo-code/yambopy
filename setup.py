@@ -30,6 +30,7 @@ install_requires = [
 "matplotlib",
 "pyyaml",
 "lxml",
+"monty",
 ]
 
 if __name__ == '__main__':

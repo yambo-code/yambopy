@@ -1390,10 +1390,12 @@ class YamboExcitonDB(YamboSaveDB):
         try:
             if not self.Qpt=='1': q0norm = 2*np.pi*np.linalg.norm(self.car_qpoint)
         except:
+            print("[WARNING] 1/q^2 set to 1 in eps2")
             q0norm=1
         try:
             if self.q_cutoff is not None: q0norm = self.q_cutoff
         except:
+            print("[WARNING] 1/q^2 set to 1 in eps2")
             q0norm=1
 
         d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
