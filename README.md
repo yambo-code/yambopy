@@ -27,7 +27,7 @@ Features
 - Analyse, interpolate and plot the results in various ways using matplotlib
 - Visualize advanced quantities such as:
   -  dielectric function, exciton weights in k and q-space, electron-phonon matrix elements...
-- [Aiida](https://github.com/aiidateam) plugin  
+- [Aiida](https://github.com/aiidateam) plugin for Yambo-Aiida workflows 
 - Tutorials
 
 Installation
