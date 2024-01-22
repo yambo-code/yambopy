@@ -138,8 +138,12 @@ class YamboIn(object):
     def set_fromdict(self,yamboin_dict):
         """Write a python script to generate this input"""
         #monkey patch the input file
-        for var,value in yamboin_dict.items():
-            self[var] = value
+        if 'arguments' in yamboin_dict.keys() and 'variables' in yamboin_dict.keys():
+            for var,value in yamboin_dict.items():
+                setattr(self,var,value)
+        else:
+            for var,value in yamboin_dict.items():
+                self[var] = value
 
     def set_fromargs(self,yamboin_args):
         """Write a python script to generate this input"""
@@ -335,11 +339,12 @@ class YamboIn(object):
         import copy
         return copy.deepcopy(self)
 
-    def write(self,filename='yambo.in'):
+    def write(self,filename='yambo.in', prefix=''):
         """
         Write a yambo input file
         """
         with open(filename,"w") as f:
+           f.write(prefix)
            f.write(str(self))
 
     def set_q(self,q):
@@ -369,6 +374,9 @@ class YamboIn(object):
         s += "\n".join(self.arguments)+'\n'
 
         for key,value in list(self.variables.items()):
+            if key == 'DrudeWXd':
+                s+= 'DrudeWXd= '+value+"\n"
+                continue
             if isstring(value):
                 s+= "%s = %10s\n"%(key,"'%s'"%value)
                 continue

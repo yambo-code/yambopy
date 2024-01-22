@@ -86,8 +86,14 @@ class YamboOut():
         Get information about the unit cell (lattice vectors, atom types, positions,
         kpoints and symmetry operations) from the SAVE folder.
         """
-        path = os.path.join(self.save_folder,'SAVE/ns.db1')
-        self.lattice = YamboLatticeDB.from_db_file(path)
+        try:
+            path = os.path.join(self.save_folder,'SAVE/ns.db1')
+            self.lattice = YamboLatticeDB.from_db_file(path)
+        except: #AiiDA
+            path = self.save_folder+'/ns.db1'
+            self.lattice = YamboLatticeDB.from_db_file(path)
+
+        
 
     def get_outputfile(self):
         """ 
