@@ -66,7 +66,7 @@ if __name__ == "__main__":
         ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
 
         exc_on_bands = yexc.get_exciton_bs(yel,path,states,size=1.0)
-        exc_on_bands.plot_ax(ax,color_bands='grey',c_weights='red')
+        exc_on_bands.plot_ax(ax,c_bands='grey',c_weights='red')
 
         ax.set_ylim(-7.5,12.)
         plt.show()
@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
         # In case of problems with the interpolation, try to increase lpratio
         exc_on_bands = yexc.interpolate(yel,path,states,lpratio=10,f=None,size=0.5,verbose=True)
-        exc_on_bands.plot_ax(ax,color_bands='grey',c_weights='red',alpha_weights=0.5)
+        exc_on_bands.plot_ax(ax,c_bands='grey',c_weights='red',alpha_weights=0.5)
 
         ax.set_ylim(-7.5,12.)
         plt.show()

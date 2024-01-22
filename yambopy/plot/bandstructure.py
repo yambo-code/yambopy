@@ -224,9 +224,8 @@ class YambopyBandStructure():
         # Set color bands and weights
         c_bands   = kwargs.pop('c_bands',None)
         c_weights = kwargs.pop('c_weights',None)
-        c_label   = kwargs.pop('c_label',None)
+        label   = kwargs.pop('label',None)
         lw_label  = kwargs.pop('lw_label',None)
-
         # Add option to plot lines or dots
         #linetype
         #dot symbol
@@ -235,12 +234,12 @@ class YambopyBandStructure():
         for ib,band in enumerate(self.bands.T):
             x = self.distances
             y = band-fermie
-            ax.plot(x,y,c=c_bands,lw=lw_label,label=c_label)
+            ax.plot(x,y,c=c_bands,lw=lw_label,label=label)
             # fill between 
             if self.weights is not None: # and self.spin_proj is not None:
                 dy = self.weights[:,ib]*size
                 #color_spin = self.spin_proj[:,ib] + 0.5 # I renormalize 0 => down; 1 => up
-                ax.fill_between(x,y+dy,y-dy,alpha=alpha_weights,color=c_weights,linewidth=0,label=c_label)
+                ax.fill_between(x,y+dy,y-dy,alpha=alpha_weights,color=c_weights,linewidth=0,label=label)
                 #ax.scatter(x,y,s=100,c=color_spin,cmap=color_map,vmin=0.0,vmax=1.0,edgecolors='none')
             # dot
             #if self.weights is not None:
