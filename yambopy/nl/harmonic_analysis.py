@@ -147,7 +147,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
             
             Susceptibility[i_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[i_f],i_order)
 
-    loop_on_angle=False
+    loop_on_angles=False
     loop_on_frequencies=False
 
     if nldb.n_angles!=0:
