@@ -68,6 +68,8 @@ class YamboNLDB(object):
         self.NE_steps       = database.variables['NE_steps'][0].astype('int')
         self.RT_step        = database.variables['RT_step'][0].astype(np.double)
         self.n_frequencies  = database.variables['n_frequencies'][0].astype('int')
+        self.n_angles       = database.variables['n_angles'][0].astype('int')
+        self.NL_initial_versor = database.variables['NL_initial_versor'][:].astype(np.double)
         self.NL_damping     = database.variables['NL_damping'][0].astype(np.double)
         self.RT_bands       = database.variables['RT_bands'][:].astype('int')
         self.NL_er          = database.variables['NL_er'][:].astype(np.double)
@@ -102,7 +104,16 @@ class YamboNLDB(object):
         self.E_ks        =[]
         self.Efield      =[] # Store the first external field for each run at different frequencies
         #
-        for f in range(self.n_frequencies):
+        if self.n_angles!=0:
+            self.n_runs=self.n_angles
+        if self.n_frequencies!=0:
+            self.n_runs=self.n_frequencies
+        if (self.n_angles!=0 and self.n_frequencies!=0):
+            print("Error both n_angles and n_frequencies !=0 ")
+            sys.exit(0)
+            
+        #
+        for f in range(self.n_runs):
             try:
                 data_p_and_j= Dataset(self.nl_path+"_fragment_"+str(f+1))
             except:
@@ -137,6 +148,8 @@ class YamboNLDB(object):
         s+="NE_steps      : "+str(self.NE_steps)+"\n"
         s+="RT_step       : "+str(self.RT_step/fs2aut)+" [fs] \n"
         s+="n_frequencies : "+str(self.n_frequencies)+"\n"   
+        s+="n_angles      : "+str(self.n_angles)+"\n"   
+        s+="NL_initial_versor   : "+str(self.NL_initial_versor)+"\n"   
         s+="NL_damping    : "+str(self.NL_damping*ha2ev)+"\n"
         s+="RT_bands      : "+str(self.RT_bands)+"\n"
         s+="NL_er         : "+str(self.NL_er*ha2ev)+" [eV] \n"
