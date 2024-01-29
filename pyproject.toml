@@ -17,7 +17,7 @@ classifiers = [
     "License :: GNU General Public Licence",
     "Operating System :: OS Independent",
 ]
-dependencies = [ "numpy", "scipy", "netCDF4", "matplotlib", "pyyaml", "lxml",]
+dependencies = [ "numpy", "scipy", "netCDF4", "matplotlib", "pyyaml", "lxml", "monty"]
 [project.urls]
 "Homepage" = "https://github.com/yambo-code/yambopy"
 "Documentation" = "https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy"
