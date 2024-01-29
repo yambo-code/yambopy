@@ -68,7 +68,10 @@ class YamboNLDB(object):
         self.NE_steps       = database.variables['NE_steps'][0].astype('int')
         self.RT_step        = database.variables['RT_step'][0].astype(np.double)
         self.n_frequencies  = database.variables['n_frequencies'][0].astype('int')
-        self.n_angles       = database.variables['n_angles'][0].astype('int')
+        try:
+            self.n_angles       = database.variables['n_angles'][0].astype('int')
+        except:
+            self.n_angles   = 0
         self.NL_initial_versor = database.variables['NL_initial_versor'][:].astype(np.double)
         self.NL_damping     = database.variables['NL_damping'][0].astype(np.double)
         self.RT_bands       = database.variables['RT_bands'][:].astype('int')
