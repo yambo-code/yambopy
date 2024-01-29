@@ -275,7 +275,7 @@ class YamboQPDB():
         """
         Interpolate the QP corrections on a k-point path, requires the lattice structure
         """
-        from imported_modules.skw import SkwInterpolator
+        from yambopy.tools.skw import SkwInterpolator
 
         if verbose:
             print("This interpolation is provided by the SKW interpolator implemented in Abipy")
