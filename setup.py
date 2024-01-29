@@ -20,8 +20,7 @@ packages_yambopy = ['yambopy',
                     'qepy.data.pseudos',
                     'schedulerpy',
                     'yamboparser',
-                    'command_line',
-                    'imported_modules']
+                    'yambocommandline']
 
 install_requires = [
 "numpy",
@@ -40,7 +39,7 @@ if __name__ == '__main__':
           author='Fulvio Paleari, Alejandro Molina-Sánchez, Riccardo Reho, Davide Romanin, Alexandre Morlet and Henrique Miranda',
           author_email='fulvio.paleari90@gmail.com',
           requires=['numpy','scipy','matplotlib','netCDF4','pyyaml','lxml'],
-          scripts=['scripts/yambopy'],
+          scripts=['yambocommandline/scripts/yambopy'],
           packages=packages_yambopy,
           install_requires=install_requires,
           )
