@@ -22,7 +22,7 @@ dependencies = [ "numpy", "scipy", "netCDF4", "matplotlib", "pyyaml", "lxml", "m
 "Homepage" = "https://github.com/yambo-code/yambopy"
 "Documentation" = "https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy"
 [project.scripts]
-yambopy="scripts.yambopy:YambopyCmd"
+yambopy="yambocommandline.scripts.yambopy:YambopyCmd"
 [tool.setuptools]
 packages = ['yambopy',
             'yambopy.io',
