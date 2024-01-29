@@ -73,11 +73,11 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
     # External field of the first run
     efield=nldb.Efield[0]
     # Numer of exteanl laser frequencies
-    n_frequencies=len(nldb.Polarization)
+    n_runs=len(nldb.Polarization)
     # Array of polarizations for each laser frequency
     polarization=nldb.Polarization
 
-    freqs=np.zeros(n_frequencies,dtype=np.double)
+    freqs=np.zeros(n_runs,dtype=np.double)
 
     if efield["name"] != "SIN" and efield["name"] != "SOFTSIN" and efield["name"] != "ANTIRES":
         print("Harmonic analysis works only with SIN or SOFTSIN fields")
@@ -85,7 +85,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
 
     print("\n* * * Harmonic analysis * * *\n")
 
-    print("Number of frequencies : %d " % n_frequencies)
+    print("Number of runs : %d " % n_runs)
     # Smaller frequency
     W_step=sys.float_info.max
     max_W =sys.float_info.min
@@ -113,9 +113,9 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
 
     print("Time range : ",str(T_range[0]/fs2aut),'-',str(T_range[1]/fs2aut),'[fs]')
         
-    X_effective       =np.zeros((X_order+1,n_frequencies,3),dtype=np.cdouble)
-    Susceptibility    =np.zeros((X_order+1,n_frequencies,3),dtype=np.cdouble)
-    Harmonic_Frequency=np.zeros((X_order+1,n_frequencies),dtype=np.double)
+    X_effective       =np.zeros((X_order+1,n_runs,3),dtype=np.cdouble)
+    Susceptibility    =np.zeros((X_order+1,n_runs,3),dtype=np.cdouble)
+    Harmonic_Frequency=np.zeros((X_order+1,n_runs),dtype=np.double)
 
     # Generate multiples of each frequency
     for i_order in range(X_order+1):
@@ -123,7 +123,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
     
 
     # Find the Fourier coefficients by inversion
-    for i_f in range(n_frequencies):
+    for i_f in range(n_runs):
         #
         # T_period change with the laser frequency 
         #
@@ -138,7 +138,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
 
     # Calculate Susceptibilities from X_effective
     for i_order in range(X_order+1):
-        for i_f in range(n_frequencies):
+        for i_f in range(n_runs):
             if i_order==1:
                 Susceptibility[i_order,i_f,0]   =4.0*np.pi*np.dot(efield['versor'][:],X_effective[i_order,i_f,:])
                 Susceptibility[i_order,i_f,1:2] =0.0
@@ -147,6 +147,19 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
             
             Susceptibility[i_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[i_f],i_order)
 
+    loop_on_angles=False
+    loop_on_frequencies=False
+
+    if nldb.n_angles!=0:
+        loop_on_angles=True
+        angles=np.zeros(n_runs)
+        for ia in range(n_runs):
+            angles[ia]=360.0/(n_runs)*ia
+        print("Loop on angles ...")
+
+    if nldb.n_frequencies!=0:
+        loop_on_frequencies=True
+        print("Loop on frequencies ...")
 
     # Print the result
     for i_order in range(X_order+1):
@@ -159,15 +172,26 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
         Susceptibility[i_order,:,:]=Susceptibility[i_order,:,:]*Unit_of_Measure
 
         output_file='o.YamboPy-X_probe_order_'+str(i_order)
+
+        if loop_on_angles:
+
+            header0="Ang[degree]    "
+        if loop_on_frequencies:
+            header0="[eV]           "
+
         if i_order == 0 or i_order ==1:
-            header="E [eV]            X/Im(x)            X/Re(x)            X/Im(y)            X/Re(y)            X/Im(z)            X/Re(z)"
+            header =header0
+            header+="X/Im(x)            X/Re(x)            X/Im(y)            X/Re(y)            X/Im(z)            X/Re(z)"
         else:
-            header="[eV]            "
+            header=header0
             header+="X/Im[cm/stV]^%d     X/Re[cm/stV]^%d     " % (i_order-1,i_order-1)
             header+="X/Im[cm/stV]^%d     X/Re[cm/stV]^%d     " % (i_order-1,i_order-1)
             header+="X/Im[cm/stV]^%d     X/Re[cm/stV]^%d     " % (i_order-1,i_order-1)
 
-        values=np.c_[freqs*ha2ev]
+        if loop_on_frequencies:
+            values=np.c_[freqs*ha2ev]
+        elif loop_on_angles:
+            values=np.c_[angles]
         values=np.append(values,np.c_[Susceptibility[i_order,:,0].imag],axis=1)
         values=np.append(values,np.c_[Susceptibility[i_order,:,0].real],axis=1)
         values=np.append(values,np.c_[Susceptibility[i_order,:,1].imag],axis=1)
@@ -175,7 +199,10 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
         values=np.append(values,np.c_[Susceptibility[i_order,:,2].imag],axis=1)
         values=np.append(values,np.c_[Susceptibility[i_order,:,2].real],axis=1)
 
-        footer='Non-linear response analysis performed using YamboPy'
+        footer=" \n"
+        if loop_on_angles:
+            footer+="Laser frequency : "+str(freqs[0]*ha2ev)+" [eV] \n"
+        footer+='Non-linear response analysis performed using YamboPy\n '
         np.savetxt(output_file,values,header=header,delimiter=' ',footer=footer)
 
 def update_T_range(T_period,T_range_initial,time):
