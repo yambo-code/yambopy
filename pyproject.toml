@@ -3,7 +3,7 @@ requires = ["flit_core"]
 build-backend = "flit_core.buildapi"
 [project]
 name = "yambopy"
-version = "0.2.3"
+version = "0.2.4"
 authors = [
   { name="Fulvio Paleari", email="fulvio.paleari@nano.cnr.it" },
   { name="Alejandro Molina-Sanchez", email="alejandro.molina@uv.es" },
@@ -14,7 +14,7 @@ readme = "README.md"
 requires-python = ">=3.6"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: GNU General Public Licence",
+    "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
     "Operating System :: OS Independent",
 ]
 dependencies = [ "numpy", "scipy", "netCDF4", "matplotlib", "pyyaml", "lxml", "monty"]
