@@ -52,6 +52,9 @@ class yambopyenv():
 from yambopy.tools.jsonencoder import *
 from yambopy.units import *
 
+#skw interpolator (adapted from abipy version)
+from yambopy.tools.skw import *
+
 #yambo databases
 from yambopy.dbs.savedb import *
 from yambopy.dbs.dipolesdb import *

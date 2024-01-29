@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python
 #TODO: delete/move any other scripts in this directory
 from yambopy import *
 from command_line import *
