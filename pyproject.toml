@@ -43,5 +43,6 @@ packages = ['yambopy',
             'qepy.data.pseudos',
             'schedulerpy',
             'yamboparser',
-            'command_line',]
+            'yambocommandline',
+            'yambocommandline.commands',]
 
