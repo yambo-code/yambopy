@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from qepy import xml
 from qepy import bravais
 from copy import deepcopy
-from command_line import band_plots
+from yambocommandline.commands import band_plots
 
 """
 Script to produce band structure data and visualization from QE.

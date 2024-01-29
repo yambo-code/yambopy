@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #TODO: delete/move any other scripts in this directory
 from yambopy import *
-from command_line import *
+from yambocommandline.commands import *
 import argparse
 import sys
 
@@ -529,7 +529,7 @@ class GwSubspace(Cmd):
 
         fld_diag = args.fld_diag
         fld_offdiag = args.fld_offdiag
-        command_line.gw_subspace.create_newdb(fld_diag,fld_offdiag)
+        gw_subspace.create_newdb(fld_diag,fld_offdiag)
 
 class GetPHqInputCmd(Cmd):        
     """

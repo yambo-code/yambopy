@@ -8,7 +8,7 @@ from yambopy.dbs.savedb import *
 from yambopy.dbs.latticedb import *
 from yambopy.dbs.electronsdb import *
 from yambopy.dbs.qpdb import *
-from imported_modules.skw import SkwInterpolator
+from yambopy.tools.skw import SkwInterpolator
 
 
 class ExcitonList():

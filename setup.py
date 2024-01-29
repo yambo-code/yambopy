@@ -20,7 +20,7 @@ packages_yambopy = ['yambopy',
                     'qepy.data.pseudos',
                     'schedulerpy',
                     'yamboparser',
-                    'yambocommandline']
+                    'yambocommandline.commands']
 
 install_requires = [
 "numpy",
