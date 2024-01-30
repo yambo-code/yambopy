@@ -88,14 +88,30 @@ def SF_Harmonic_Analysis(nldb, tol, X_order=4, T_range=[-1, -1]):
     # Array of polarizations for each laser frequency
     polarization=nldb.Polarization
 
+    print("\n* * * Sum/difference frequency generation: harmonic analysis * * *\n")
+
     freqs=np.zeros(n_frequencies,dtype=np.double)
-    pump_probe=1.2/ha2ev #w2 and w3 (frequency of the second and third laser, respectively)
 
     if efield["name"] != "SIN" and efield["name"] != "SOFTSIN" and efield["name"] != "ANTIRES":
         print("Harmonic analysis works only with SIN or SOFTSIN fields")
         sys.exit(0)
 
-    print("\n* * * Harmonic analysis * * *\n")
+    if(nldb.Efield_general[1]["name"] == "none" and nldb.Efield_general[2]["name"] != "none"):
+        print("Only one field present, please use standard harmonic_analysis.py !")
+        sys.exit(0)
+
+    if(nldb.Efield_general[1]["name"] == "SIN" or nldb.Efield_general[1]["name"] != "SOFTSIN"):
+        # frequency of the second and third laser, respectively)
+        pump_probe=ndb.Efield_general[1]["freq_range"][0] 
+        print("Frequency of the second field : "+str(pump_probe*ha2ev)+" [eV] \b")
+    else
+        print("Fields different from SIN/SOFTSIN are not supported ! ")
+        sys.exit(0)
+    
+    if(nldb.Efield_general[2]["name"] != "none")
+        print("Three fields not supported yet ! ")
+        sys.exit(0)
+
 
     print("Number of frequencies : %d " % n_frequencies)
     # Smaller frequency
