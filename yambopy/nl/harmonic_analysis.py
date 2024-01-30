@@ -76,14 +76,15 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
     n_runs=len(nldb.Polarization)
     # Array of polarizations for each laser frequency
     polarization=nldb.Polarization
-
     freqs=np.zeros(n_runs,dtype=np.double)
+
+    print("\n* * * Harmonic analysis * * *\n")
 
     if efield["name"] != "SIN" and efield["name"] != "SOFTSIN" and efield["name"] != "ANTIRES":
         print("Harmonic analysis works only with SIN or SOFTSIN fields")
-        sys.exit(0)
 
-    print("\n* * * Harmonic analysis * * *\n")
+    if nldb.Efield_general[1]["name"] != "none" or nldb.Efield_general[2]["name"] != "none":
+        print("Harmonic analysis works only with a single field, please use sum_frequency.py functions")
 
     print("Number of runs : %d " % n_runs)
     # Smaller frequency
