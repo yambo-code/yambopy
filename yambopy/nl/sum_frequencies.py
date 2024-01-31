@@ -7,7 +7,7 @@
 import numpy as np
 from yambopy.units import ha2ev,fs2aut, SVCMm12VMm1,AU2VMm1
 from yambopy.nl.external_efield import Divide_by_the_Field
-from yambopy.nl.harmonic_analysys import update_T_range
+from yambopy.nl.harmonic_analysis import update_T_range
 import scipy.linalg
 import sys
 import os
@@ -76,7 +76,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol):
 
 
 
-def SF_Harmonic_Analysis(nldb, tol, X_order=4, T_range=[-1, -1]):
+def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1]):
     # Time series 
     time  =nldb.IO_TIME_points
     # Time step of the simulation
@@ -100,15 +100,15 @@ def SF_Harmonic_Analysis(nldb, tol, X_order=4, T_range=[-1, -1]):
         print("Only one field present, please use standard harmonic_analysis.py !")
         sys.exit(0)
 
-    if(nldb.Efield_general[1]["name"] == "SIN" or nldb.Efield_general[1]["name"] != "SOFTSIN"):
+    if(nldb.Efield_general[1]["name"] == "SIN" or nldb.Efield_general[1]["name"] == "SOFTSIN"):
         # frequency of the second and third laser, respectively)
-        pump_probe=ndb.Efield_general[1]["freq_range"][0] 
+        pump_probe=nldb.Efield_general[1]["freq_range"][0] 
         print("Frequency of the second field : "+str(pump_probe*ha2ev)+" [eV] \b")
     else:
         print("Fields different from SIN/SOFTSIN are not supported ! ")
         sys.exit(0)
     
-    if(nldb.Efield_general[2]["name"] != "none")
+    if(nldb.Efield_general[2]["name"] != "none"):
         print("Three fields not supported yet ! ")
         sys.exit(0)
 
@@ -157,7 +157,7 @@ def SF_Harmonic_Analysis(nldb, tol, X_order=4, T_range=[-1, -1]):
             print("WARNING! Time range out of bounds for frequency :",Harmonic_Frequency[1,i_f]*ha2ev,"[eV]")
         #
         for i_d in range(3):
-            X_effective[:,:,i_f,i_d]=Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_probe,T_period,T_range,T_step,efield,tol)
+            X_effective[:,:,i_f,i_d]=SF_Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_probe,T_period,T_range,T_step,efield,tol)
 
     # Calculate Susceptibilities from X_effective
     for i_order in range(-X_order,X_order+1):
