@@ -779,7 +779,7 @@ class YamboExcitonDB(YamboSaveDB):
         weights_bz_sum = weights_bz_sum[kmesh_idx]
         return x,y,weights_bz_sum
 
-    def get_exciton_lifetimes(self, statelist = None, degen_step = 0.001, gauge = 'length', verbosity = 'False'):
+    def get_exciton_lifetimes(self, statelist = None, degen_step = 0.001, gauge = 'length', verbosity = 'False', pl_res = False):
         """get exciton lifetimes in 2D assuming the plane is on x,y
             TODO: T different than 0
         """
@@ -792,7 +792,11 @@ class YamboExcitonDB(YamboSaveDB):
         muS2 = 0 
         gamma0 = 0
         tmpE = np.ma.asarray(self.eigenvalues.real)
-        tmpI = np.ma.asarray((self.l_residual * self.r_residual))
+        if (pl_res):
+            gauge = 'velocity' # force velocity gauge for PL
+            tmpI = np.ma.asarray((self.pl_r_residual*self.pl_l_residual))
+        else:
+            tmpI = np.ma.asarray(self.l_residual * self.r_residual)
         excE = sorted(tmpE)
         excI = tmpI
 
@@ -816,7 +820,6 @@ class YamboExcitonDB(YamboSaveDB):
                     muS2 = excI[st]/(ES**2)
                 gg = 4.*np.pi*ES*(muS2/self.nkpoints)/(A*speed_of_light)
                 gamma0 += gg
-            print(muS2, gg, gamma0,A , ES)
             #compute tau
             tau0_tot[l] = AU2S/(gamma0.real)
             merged_states[l] = '{}<->{}'.format(min(states_idx)+1,max(states_idx)+1)
