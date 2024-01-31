@@ -76,7 +76,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol):
 
 
 
-def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1]):
+def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=False):
     # Time series 
     time  =nldb.IO_TIME_points
     # Time step of the simulation
@@ -167,26 +167,26 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1]):
             
                 Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[i_f],abs(i_order)+abs(i_order2))
 
-
-    # Print time dependent polarization
-    P=np.zeros((n_frequencies,3,len(time)),dtype=np.cdouble)
-    for i_f in range(n_frequencies):
-        for i_d in range(3):
-            for i_order in range(-X_order,X_order+1):
-                for i_order2 in range(-X_order,X_order+1):
-                    P[i_f,i_d,:]=P[i_f,i_d,:]+X_effective[i_order+X_order,i_order2+X_order,i_f,i_d]*np.exp(-1j * (i_order*freqs[i_f]+i_order2*pump_probe) * time[:],dtype=np.cdouble)
-    for i_f in range(n_frequencies):
-        values2=np.c_[time.real/fs2aut]
-        values2=values2=np.append(values2,np.c_[P[i_f,0,:].real],axis=1)
-        values2=values2=np.append(values2,np.c_[P[i_f,1,:].real],axis=1)
-        values2=values2=np.append(values2,np.c_[P[i_f,2,:].real],axis=1)
-        output_file2='o.Pol_'+str(i_f+1)
+    if(prn_Peff):
+        # Print time dependent polarization
+        P=np.zeros((n_frequencies,3,len(time)),dtype=np.cdouble)
+        for i_f in range(n_frequencies):
+            for i_d in range(3):
+                for i_order in range(-X_order,X_order+1):
+                    for i_order2 in range(-X_order,X_order+1):
+                        P[i_f,i_d,:]+=X_effective[i_order+X_order,i_order2+X_order,i_f,i_d]*np.exp(-1j * (i_order*freqs[i_f]+i_order2*pump_probe) * time[:])
         header2="[fs]            "
         header2+="Px     "
         header2+="Py     "
         header2+="Pz     "
         footer2='Time dependent polarization reproduced from Fourier coefficients'
-        np.savetxt(output_file2,values2,header=header2,delimiter=' ',footer=footer2)
+        for i_f in range(n_frequencies):
+            values2=np.c_[time.real/fs2aut]
+            values2=values2=np.append(values2,np.c_[P[i_f,0,:].real],axis=1)
+            values2=values2=np.append(values2,np.c_[P[i_f,1,:].real],axis=1)
+            values2=values2=np.append(values2,np.c_[P[i_f,2,:].real],axis=1)
+            output_file2='o.YamboPy-pol_reconstructed_F'+str(i_f+1)
+            np.savetxt(output_file2,values2,header=header2,delimiter=' ',footer=footer2)
 
     # Print the result
     for i_order in range(-X_order,X_order+1):
