@@ -183,7 +183,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False):
             values2=np.append(values2,np.c_[Peff[i_f,0,:].real],axis=1)
             values2=np.append(values2,np.c_[Peff[i_f,1,:].real],axis=1)
             values2=np.append(values2,np.c_[Peff[i_f,2,:].real],axis=1)
-            output_file2='o.pol_reconstructed_F'+str(i_f+1)
+            output_file2='o.YamboPy-pol_reconstructed_F'+str(i_f+1)
             np.savetxt(output_file2,values2,header=header2,delimiter=' ',footer=footer2)
 
 
