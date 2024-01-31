@@ -786,8 +786,8 @@ class YamboExcitonDB(YamboSaveDB):
         if (statelist is None ):
             statelist = np.zeros(len(self.nkpoints))
         Omega = self.lattice.lat_vol
-        a1 = self.lattice.lat[1]
-        a2 = self.lattice.lat[2]
+        a1 = self.lattice.lat[0]
+        a2 = self.lattice.lat[1]
         A = np.linalg.norm(np.cross(a1,a2))
         muS2 = 0 
         gamma0 = 0
@@ -816,6 +816,7 @@ class YamboExcitonDB(YamboSaveDB):
                     muS2 = excI[st]/(ES**2)
                 gg = 4.*np.pi*ES*(muS2/self.nkpoints)/(A*speed_of_light)
                 gamma0 += gg
+            print(muS2, gg, gamma0,A , ES)
             #compute tau
             tau0_tot[l] = AU2S/(gamma0.real)
             merged_states[l] = '{}<->{}'.format(min(states_idx)+1,max(states_idx)+1)
