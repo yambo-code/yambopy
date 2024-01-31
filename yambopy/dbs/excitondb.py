@@ -53,7 +53,10 @@ class YamboExcitonDB(YamboSaveDB):
         Exciton eigenvectors are arranged as eigenvectors[i_exc, i_kvc]
         Transitions are unpacked in table[ i_k, i_v, i_c, i_s_c, i_s_v ] (last two are spin indices)
     """
-    def __init__(self,lattice,Qpt,eigenvalues,l_residual,r_residual,spin_pol='no',car_qpoint=None,q_cutoff=None,table=None,eigenvectors=None):
+    def __init__(
+            self,lattice,Qpt,eigenvalues,l_residual,r_residual,spin_pol='no',car_qpoint=None,q_cutoff=None,table=None,eigenvectors=None, \
+            pl_l_residual=None, pl_r_residual = None
+            ):
         if not isinstance(lattice,YamboLatticeDB):
             raise ValueError('Invalid type for lattice argument. It must be YamboLatticeDB')
 
@@ -68,6 +71,8 @@ class YamboExcitonDB(YamboSaveDB):
         self.table = table
         self.eigenvectors = eigenvectors
         self.spin_pol = spin_pol
+        self.pl_l_residual = pl_l_residual
+        self.pl_r_residual = pl_r_residual
 
     @classmethod
     def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.'):
@@ -79,7 +84,8 @@ class YamboExcitonDB(YamboSaveDB):
 
         # Qpoint
         Qpt = filename.split("Q",1)[1]
-
+        pl_l_residual = None
+        pl_r_residual = None
         with Dataset(path_filename) as database:
             if 'BS_left_Residuals' in list(database.variables.keys()):
                 #residuals
@@ -92,6 +98,12 @@ class YamboExcitonDB(YamboSaveDB):
                 rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
                 l_residual = rel+iml*I
                 r_residual = rer+imr*I
+
+            if 'BS_PL_Residuals' in list(database.variables.keys()):
+                #residuals
+                replr,implr = database.variables['BS_PL_Residuals'][:].T
+                pl_r_residual = replr+implr*I
+                pl_l_residual = np.conjugate(pl_r_residual)
 
             car_qpoint = None
             if 'Q-point' in list(database.variables.keys()):
@@ -128,7 +140,8 @@ class YamboExcitonDB(YamboSaveDB):
                 bare_qpg = bare_qpg[:,:,0]+bare_qpg[:,:,1]*I
                 q_cutoff = np.abs(bare_qpg[0,int(Qpt)-1])
 
-        return cls(lattice,Qpt,eigenvalues,l_residual,r_residual,spin_pol,q_cutoff=q_cutoff,car_qpoint=car_qpoint,table=table,eigenvectors=eigenvectors)
+        return cls(lattice,Qpt,eigenvalues,l_residual,r_residual,spin_pol,q_cutoff=q_cutoff,car_qpoint=car_qpoint,table=table,eigenvectors=eigenvectors, 
+                   pl_l_residual=pl_l_residual, pl_r_residual=pl_r_residual)
 
     @property
     def unique_vbands(self):
@@ -766,6 +779,59 @@ class YamboExcitonDB(YamboSaveDB):
         weights_bz_sum = weights_bz_sum[kmesh_idx]
         return x,y,weights_bz_sum
 
+    def get_exciton_lifetimes(self, statelist = None, degen_step = 0.001, gauge = 'length', verbosity = 'False'):
+        """get exciton lifetimes in 2D assuming the plane is on x,y
+            TODO: T different than 0
+        """
+        if (statelist is None ):
+            statelist = np.zeros(len(self.nkpoints))
+        Omega = self.lattice.lat_vol
+        a1 = self.lattice.lat[1]
+        a2 = self.lattice.lat[2]
+        A = np.linalg.norm(np.cross(a1,a2))
+        muS2 = 0 
+        gamma0 = 0
+        tmpE = np.ma.asarray(self.eigenvalues.real)
+        tmpI = np.ma.asarray((self.l_residual * self.r_residual))
+        excE = sorted(tmpE)
+        excI = tmpI
+
+        tau0_tot = np.zeros(len(statelist))
+        merged_states = np.empty(len(statelist), dtype='object')
+        # q0 norm factor 
+        q0_norm = 1e-5
+
+        for l, state in enumerate(statelist):
+            state_internal = state 
+
+            # find states within degen_step window from state
+            mesk = np.logical_and(excE>=excE[state_internal]-degen_step,excE<=excE[state_internal]+degen_step)
+            states_idx = np.where(mesk==True)[0]
+            #comptue gamme
+            for i, st in enumerate(states_idx):
+                ES = excE[st]/ha2ev
+                if (gauge=='length'):
+                    muS2 = excI[st]/(q0_norm**2) # if you inspect the Yambo code you might expect another 1/((2*np.pi)**3) but I think that d3k_factor/((2np.pi)**3) is actually 1/Omega
+                elif (gauge == 'velocity'):
+                    muS2 = excI[st]/(ES**2)
+                gg = 4.*np.pi*ES*(muS2/self.nkpoints)/(A*speed_of_light)
+                gamma0 += gg
+            #compute tau
+            tau0_tot[l] = AU2S/(gamma0.real)
+            merged_states[l] = '{}<->{}'.format(min(states_idx)+1,max(states_idx)+1)
+        
+        if (verbosity):
+            for l,state in enumerate(statelist):
+                print(' Exciton radiative lifetime')
+                print('#')
+                #print(f'# Effective mass = {m_e}\n')
+                print(f"# Global Gauge = {gauge}")
+                print(f'Energy degeneration step = {degen_step} eV')
+                print('#')
+                print(f"# {'State':>5} {'Energy (eV)':>15} {'$tau_0$ (s)':>20} {'Merged states':>20}")
+                print(f"{state:>5} {excE[state]:>15} {tau0_tot[l]:>20} {merged_states[l]:>20}")
+        return excE, tau0_tot, merged_states
+    
     def get_exciton_2D_spin_pol(self,excitons,f=None):
         """get data of the exciton in 2D for spin polarized calculations"""
         weights_up, weights_dw = self.get_exciton_weights_spin_pol(excitons)
