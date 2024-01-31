@@ -58,7 +58,6 @@ Current development goals
 - Brillouin zone paths patch
 - Full support for finite-momentum BSE postprocessing
 - Full documentation & tutorials
-- Remove unneeded dependencies and switch to pip-based distribution
 - Increase efficiency of I/O for large database sizes and numbers
 - Test suite
 - Make it easier to add new features
