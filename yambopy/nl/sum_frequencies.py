@@ -104,7 +104,7 @@ def SF_Harmonic_Analysis(nldb, tol, X_order=4, T_range=[-1, -1]):
         # frequency of the second and third laser, respectively)
         pump_probe=ndb.Efield_general[1]["freq_range"][0] 
         print("Frequency of the second field : "+str(pump_probe*ha2ev)+" [eV] \b")
-    else
+    else:
         print("Fields different from SIN/SOFTSIN are not supported ! ")
         sys.exit(0)
     
