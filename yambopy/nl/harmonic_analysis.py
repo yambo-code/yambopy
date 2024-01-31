@@ -65,7 +65,7 @@ def Coefficents_Inversion(NW,NX,P,W,T_period,T_range,T_step,efield):
 
 
 
-def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_P_fitted=False):
+def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False):
     # Time series 
     time  =nldb.IO_TIME_points
     # Time step of the simulation
@@ -165,13 +165,14 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_P_fitted=False):
         print("Loop on frequencies ...")
 
     #Rectronstruct Polarization from the X_effective
-    if(prn_P_fitted):
-        P_fitted=np.zeros((n_runs,3,len(time)),dtype=np.cdouble)
+    if(prn_Peff):
+        Peff=np.zeros((n_runs,3,len(time)),dtype=np.cdouble)
         for i_f in range(n_runs):
             for i_d in range(3):
-                for i_order1 in range(-X_order,X_order+1):
-                    P_fitted[i_f,i_d,:]+=X_effective[i_order+X_order,i_f,i_d]*np.exp(-1j*i_order*freqs[i_f]* time[:],dtype=np.cdouble)
-        # Write on disk
+                for i_order in range(X_order+1):
+                    Peff[i_f,i_d,:]+=X_effective[i_order,i_f,i_d]*np.exp(-1j*i_order*freqs[i_f]*time[:])
+                    Peff[i_f,i_d,:]+=np.conj(X_effective[i_order,i_f,i_d])*np.exp(+1j*i_order*freqs[i_f]*time[:])
+        # Print reconstructed polarization
         header2="[fs]            "
         header2+="Px     "
         header2+="Py     "
@@ -179,10 +180,10 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_P_fitted=False):
         footer2='Time dependent polarization reconstructed from Fourier coefficients'
         for i_f in range(n_runs):
             values2=np.c_[time.real/fs2aut]
-            values2=np.append(values2,np.c_[P_fitted[i_f,0,:].real],axis=1)
-            values2=np.append(values2,np.c_[P_fitted[i_f,1,:].real],axis=1)
-            values2=np.append(values2,np.c_[P_fitted[i_f,2,:].real],axis=1)
-            output_file2='o.Pol_fitted_'+str(i_f+1)
+            values2=np.append(values2,np.c_[Peff[i_f,0,:].real],axis=1)
+            values2=np.append(values2,np.c_[Peff[i_f,1,:].real],axis=1)
+            values2=np.append(values2,np.c_[Peff[i_f,2,:].real],axis=1)
+            output_file2='o.pol_reconstructed_F'+str(i_f+1)
             np.savetxt(output_file2,values2,header=header2,delimiter=' ',footer=footer2)
 
 
