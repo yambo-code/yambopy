@@ -81,6 +81,8 @@ class YamboElectronsDB():
 
         ``filename``: netcdf database to read from (default:ns.db1)
 
+    NB: - spin polarized calculations not yet supported
+        - spin-polarized eigenvalues are read and expanded for compatibility with DipolesDB
     """
     def __init__(self,lattice,save='SAVE',filename='ns.db1'):
         self.lattice = lattice
@@ -99,6 +101,7 @@ class YamboElectronsDB():
             raise IOError("Error opening file %s in YamboElectronsDB"%self.filename)
 
         self.eigenvalues_ibz  = database.variables['EIGENVALUES'][0,:]*ha2ev
+        self.eigenvalues_ibz_sp_pol  = database.variables['EIGENVALUES'][:,:]*ha2ev
         self.iku_kpoints      = database.variables['K-POINTS'][:].T
         dimensions = database.variables['DIMENSIONS'][:]
         self.nbands      = dimensions[5]
@@ -106,16 +109,23 @@ class YamboElectronsDB():
         self.nelectrons  = int(dimensions[14])
         self.nkpoints    = int(dimensions[6])
         self.nbands      = int(dimensions[5])
-        self.spin = int(dimensions[11])
+        self.spin = int(dimensions[12])
         self.time_rev = dimensions[9]
         database.close()
 
         #spin degeneracy if 2 components degen 1 else degen 2
         self.spin_degen = [0,2,1][int(self.spin)]
-
         #number of occupied bands
-        self.nbandsv = int(self.nelectrons/self.spin_degen)
+        # NB: in the spin-polarised case, nbands contains the total number
+        #     of bands PER spin polarisation, i.e. half of the total number.
+        #     Therefore, nbandsv and nbandsc are also given per
+        #     per spin polarisation: this fact is used by DipolesDB
+        self.nbandsv = int(self.nelectrons/2)
         self.nbandsc = int(self.nbands-self.nbandsv)
+        if self.spin==2:
+            self.nbands_tot  = self.nbands*self.spin
+            self.nbandsv_tot = int(self.nelectrons/self.spin_degen)
+            self.nbandsc_tot = int(self.nbands_tot-self.nbandsv_tot)
 
     def expandEigenvalues(self):
         """
@@ -123,6 +133,7 @@ class YamboElectronsDB():
         """
 
         self.eigenvalues = self.eigenvalues_ibz[self.lattice.kpoints_indexes]
+        self.eigenvalues_sp_pol = self.eigenvalues_ibz_sp_pol[:,self.lattice.kpoints_indexes]
 
         self.nkpoints_ibz = len(self.eigenvalues_ibz)
         self.weights_ibz = np.zeros([self.nkpoints_ibz],dtype=np.float32)
