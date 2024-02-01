@@ -120,7 +120,7 @@ If you want to contribute, we suggest the following steps:
 2. Implement and test your new feature(s) in the forked repo
 3. Create a pull request in order to include your development in the official code
 
-Acknoledgements
+Acknowledgements
 ----------------
 - The [Abipy](https://abinit.github.io/abipy/) library developed for the Abinit code was the original inspiration for Yambopy. In particular, abipy's `SkwInterpolator` module for band structure interpolations has been directly imported into yambopy. 
 - Yambopy logos by Claudia Cardoso
