@@ -48,7 +48,7 @@ Features
 Installation
 ------------
 
-Make sure that you have a suitable python environment (crated for example with [conda](https://docs.conda.io/projects/miniconda/en/latest/) or [venv](https://docs.python.org/3/library/venv.html)).
+Make sure that you have a suitable python environment (created for example with [conda](https://docs.conda.io/projects/miniconda/en/latest/) or [venv](https://docs.python.org/3/library/venv.html)).
 
 #### Regular installation of released version
 Type `pip install yambopy`
@@ -61,7 +61,6 @@ Follow the installation steps on the [Yambo wiki](https://www.yambo-code.eu/wiki
 
 Requirements
 ------------
-- yambo (>5.0.0): http://www.yambo-code.org/
 - numpy: http://www.numpy.org/
 - scipy: https://www.scipy.org/
 - matplotlib: http://matplotlib.org/
@@ -69,11 +68,14 @@ Requirements
 - lxml: https://lxml.de/
 - pyyaml: https://pyyaml.org/
 - monty: https://pypi.org/project/monty/
+
+Yambopy works for the following DFT/MBPT codes:
+- yambo (>5.0.0): https://www.yambo-code.eu/
 - Quantum Espresso (optional): http://www.quantum-espresso.org/
 
 Troubleshooting, bugs and questions
 -----------------------------------
-Please write a post in the yambopy subsection of the [yambo forum](https://www.yambo-code.eu/forum/viewforum.php?f=35&sid=77b7f6076dea7cdf40432efbc035feb6)
+Please write a post in the yambopy subsection of the [yambo forum](https://www.yambo-code.eu/forum/viewforum.php?f=35&sid=77b7f6076dea7cdf40432efbc035feb6).
 
 Current development goals
 -------------------------
