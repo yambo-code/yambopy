@@ -7,16 +7,22 @@ yambopy
 Create automatic workflows for yambo and quantum espresso using python. Work directly with netCDF databases.
 Do pre/post-processing, data analysis and plotting for yambo and quantum espresso.
 
-Yambo official website: http://www.yambo-code.eu/ 
-
-Yambo Github page [download yambo & yambopy]: https://github.com/yambo-code/yambo
+- Yambo official website: http://www.yambo-code.eu/ 
+- Yambo wiki: http://www.yambo-code.org/wiki
+- Yambo Github page [download yambo & yambopy]: https://github.com/yambo-code/yambo
 
 
 Documentation
 -------------
+
+The main usage of yambopy is by importing its modules in the user's own scripts, such as `from yambopy import \*` or `from qepy import \ *`. There is also a command line interface feature: just type `yambopy` on terminal to see the options).
+
 You can find explained tutorials and a partial 
-documentation on the Yambo wiki page: http://www.yambo-code.org/wiki
-Additional information about capabilities and usage are available inside the tutorial folder and by reading the docstrings of the various classes.
+documentation on the Yambo wiki page: https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy
+
+The tutorials contain examples scripts illustrating how to use some of the features: they are intended to be copied, modified and adapted to other use cases and to your ideas and needs. 
+
+Additional information about capabilities and usage are available inside the tutorial folder and by reading the docstrings of the various classes. Keep in mind that a basic knowledge of python (`numpy` and `matplotlib` packages) will greatly help while using yambopy. 
 
 Features
 --------
@@ -30,8 +36,6 @@ Features
 - [Aiida](https://github.com/aiidateam) plugin for Yambo-Aiida workflows 
 - Tutorials
 
-The main usage of yambopy is by importing it as a library in the user's own scripts (e.g. `from yambopy import \*` or `from qepy import \ *). There is also a command line interface feature (just type `yambopy` on terminal to see the options).
-
 Installation
 ------------
 
@@ -44,9 +48,7 @@ Type `pip install yambopy`
 Clone this repository in your local machine or cluster, enter the directory and type `pip install .`
  
 #### More information
-Follow the installation steps on the [Yambo wiki](https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy). 
-Here you can find several tutorials as well, featuring example scripts that you can modify for your own ideas and needs. 
-Keep in mind that a basic knowledge of python (`numpy` and `matplotlib` packages) will greatly help while using yambopy. 
+Follow the installation steps on the [Yambo wiki](https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy).
 
 Requirements
 ------------
