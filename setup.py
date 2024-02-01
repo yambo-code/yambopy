@@ -35,7 +35,7 @@ install_requires = [
 
 if __name__ == '__main__':
     setup(name='yambopy',
-          version='0.2.0',
+          version='0.2.7',
           description='Pre-Postprocessing and automatic workflows for Yambo (and Quantum Espresso).',
           author='Fulvio Paleari, Alejandro Molina-Sánchez, Riccardo Reho, Davide Romanin, Alexandre Morlet and Henrique Miranda',
           author_email='fulvio.paleari90@gmail.com',
