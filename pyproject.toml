@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 #build-backend = "flit_core.buildapi"
 [project]
 name = "yambopy"
-version = "0.2.7"
+version = "0.3.0"
 authors = [
   { name="Fulvio Paleari", email="fulvio.paleari@nano.cnr.it" },
   { name="Alejandro Molina-Sanchez", email="alejandro.molina@uv.es" },
