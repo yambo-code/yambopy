@@ -15,7 +15,16 @@ Do pre/post-processing, data analysis and plotting for yambo and quantum espress
 Documentation
 -------------
 
-The main usage of yambopy is by importing its modules in the user's own scripts, such as `from yambopy import \*` or `from qepy import \ *`. There is also a command line interface feature: just type `yambopy` on terminal to see the options).
+The main usage of yambopy is by importing its modules in the user's own scripts, such as:
+```
+from yambopy import *
+from qepy import *
+
+There is also a command line interface feature. Just type
+```
+yambopy 
+```
+on terminal to see the options. Typing `yambopy [option]` will show the related help message.
 
 You can find explained tutorials and a partial 
 documentation on the Yambo wiki page: https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy
@@ -39,7 +48,7 @@ Features
 Installation
 ------------
 
-Make sure that you have a suitable python environment (crated for example with [conda](https://docs.conda.io/projects/miniconda/en/latest/) or [venv](https://docs.python.org/3/library/venv.html).
+Make sure that you have a suitable python environment (crated for example with [conda](https://docs.conda.io/projects/miniconda/en/latest/) or [venv](https://docs.python.org/3/library/venv.html)).
 
 #### Regular installation of released version
 Type `pip install yambopy`
