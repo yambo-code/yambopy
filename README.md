@@ -30,11 +30,23 @@ Features
 - [Aiida](https://github.com/aiidateam) plugin for Yambo-Aiida workflows 
 - Tutorials
 
+The main usage of yambopy is by importing it as a library in the user's own scripts (e.g. `from yambopy import \*` or `from qepy import \ *). There is also a command line interface feature (just type `yambopy` on terminal to see the options).
+
 Installation
 ------------
-Follow the steps on the [Yambo wiki](https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy). 
+
+Make sure that you have a suitable python environment (crated for example with [conda](https://docs.conda.io/projects/miniconda/en/latest/) or [venv](https://docs.python.org/3/library/venv.html).
+
+#### Regular installation of released version
+Type `pip install yambopy`
+
+#### Local installation from this repository (for latest patches)
+Clone this repository in your local machine or cluster, enter the directory and type `pip install .`
+ 
+#### More information
+Follow the installation steps on the [Yambo wiki](https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy). 
 Here you can find several tutorials as well, featuring example scripts that you can modify for your own ideas and needs. 
-Keep in mind that a basic knowledge of python (`numpy` and `matplotlib` packages) will help. 
+Keep in mind that a basic knowledge of python (`numpy` and `matplotlib` packages) will greatly help while using yambopy. 
 
 Requirements
 ------------
