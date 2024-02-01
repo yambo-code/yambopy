@@ -19,7 +19,7 @@ The main usage of yambopy is by importing its modules in the user's own scripts,
 ```
 from yambopy import *
 from qepy import *
-
+```
 There is also a command line interface feature. Just type
 ```
 yambopy 
