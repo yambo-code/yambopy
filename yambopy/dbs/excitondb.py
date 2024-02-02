@@ -794,7 +794,7 @@ class YamboExcitonDB(YamboSaveDB):
         tmpE = np.ma.asarray(self.eigenvalues.real)
         if (pl_res):
             gauge = 'velocity' # force velocity gauge for PL
-            tmpI = np.ma.asarray((self.pl_r_residual*self.pl_l_residual))
+            tmpI = np.ma.asarray((self.pl_l_residual*self.pl_r_residual))
         else:
             tmpI = np.ma.asarray(self.l_residual * self.r_residual)
         excE = sorted(tmpE)
