@@ -12,7 +12,7 @@ speed_of_light=137.03599911
 AU2S = 2.418884326505e-17 
 m_e = 0.510998950e+06 # electron mass in eV
 KB = 8.617330337217213e-05/ha2ev # Ha/K
-
+hbar = 6.582119569e-16 #eVs
 SVCMm12VMm1 =29.98*np.power(10,3,dtype=np.double) #  from [statV/cm] to [V/m]
 VMm12SVCMm1 =1.0/SVCMm12VMm1
 AU2VMm1     =5.14220632*np.power(10,11,dtype=np.double)

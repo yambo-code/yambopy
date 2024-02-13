@@ -784,7 +784,7 @@ class YamboExcitonDB(YamboSaveDB):
             TODO: T different than 0
         """
         if (statelist is None ):
-            statelist = np.zeros(len(self.nkpoints))
+            statelist = np.arange(1,self.nexcitons+1)
         Omega = self.lattice.lat_vol
         a1 = self.lattice.lat[0]
         a2 = self.lattice.lat[1]
@@ -811,7 +811,7 @@ class YamboExcitonDB(YamboSaveDB):
             # find states within degen_step window from state
             mesk = np.logical_and(excE>=excE[state_internal]-degen_step,excE<=excE[state_internal]+degen_step)
             states_idx = np.where(mesk==True)[0]
-            #comptue gamme
+            #compute gamma
             for i, st in enumerate(states_idx):
                 ES = excE[st]/ha2ev
                 if (gauge=='length'):
@@ -1403,6 +1403,11 @@ class YamboExcitonDB(YamboSaveDB):
         """
         if nexcitons == 'all': nexcitons = self.nexcitons
 
+        if 'gauge' in kwargs:
+            gauge = kwargs['gauge']
+        else:
+            gauge = 'length'
+
         #energy range
         w = np.arange(emin,emax,estep,dtype=np.float32)
         nenergies = len(w)
@@ -1470,10 +1475,105 @@ class YamboExcitonDB(YamboSaveDB):
 
         d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
         cofactor = ha2ev*spin_degen/(2*np.pi)**3 * d3k_factor * (4*np.pi)  / q0norm**2
-        
+        if (gauge == 'velocity') : cofactor = cofactor*q0norm**2
         chi = 1. + chi*cofactor #We are actually computing the epsilon, not the chi.
 
         return w,chi
+
+    def get_abs_lifetimes(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
+        """
+        Calculate the dielectric response function using excitonic states
+        """
+        if 'gauge' in kwargs:
+            gauge = kwargs['gauge']
+        else:
+            gauge = 'length'
+        if 'pl_res' in kwargs: 
+            pl_res = kwargs['pl_res']
+        else:
+            pl_res = False
+        if 'degen_step' in kwargs: 
+            degen_step = kwargs['degen_step']
+        else:
+            degen_step = 0.001
+        if nexcitons == 'all': nexcitons = self.nexcitons
+        
+        #energy range
+        w = np.arange(emin,emax,estep,dtype=np.float32)
+        nenergies = len(w)
+        
+        if verbose:
+            print("energy range: %lf -> +%lf -> %lf "%(emin,estep,emax))
+            print("energy steps: %lf"%nenergies)
+
+        #initialize the susceptibility intensity
+        abs = np.zeros([len(w)],dtype=np.complex64)
+
+        if dipoles is None:
+            #get dipole
+            EL1 = self.l_residual
+            EL2 = self.r_residual
+        else:
+            #calculate exciton-light coupling
+            if verbose: print("calculate exciton-light coupling")
+            EL1,EL2 = self.project1(dipoles.dipoles[:,dir],nexcitons) 
+
+        a1 = self.lattice.lat[0]
+        a2 = self.lattice.lat[1]
+        A = np.linalg.norm(np.cross(a1,a2))
+        # q0 norm factor 
+        q0_norm = 1e-5
+        tmp_factor = 4*np.pi/ha2ev/(q0_norm**2*self.nkpoints*A*speed_of_light)
+        #iterate over the excitonic states
+        for s in range(nexcitons):
+            #get exciton energy
+            es = self.eigenvalues[s]
+ 
+            # calculate absorption
+            r = EL1[s]*EL2[s]
+#            if (gauge=='length'):
+            gg = tmp_factor*es*r
+            broad_s = hbar*gg.real/AU2S
+            # elif (gauge =='velocity'):
+            #     gg = 4.*np.pi*es/ha2ev*(r/(es/ha2ev)**2*self.nkpoints)/(A*speed_of_light)
+            #     broad_s = hbar*gg.real/AU2S                
+            abs += 1j/(np.pi*self.nexcitons*self.nkpoints)*(broad_s*r)/((w-es)**2-broad_s**2)
+        #dimensional factors
+        # try:
+        #     if not self.Qpt=='1': q0norm = 2*np.pi*np.linalg.norm(self.car_qpoint)
+        # except:
+        #     print("[WARNING] 1/q^2 set to 1 in eps2")
+        #     q0norm=1
+        # try:
+        #     if self.q_cutoff is not None: q0norm = self.q_cutoff
+        # except:
+        #     print("[WARNING] 1/q^2 set to 1 in eps2")
+        #     q0norm=1
+
+        # d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
+        # cofactor = ha2ev*spin_degen/(2*np.pi)**3 * d3k_factor * (4*np.pi)  / q0norm**2
+        
+        # abs = 1. + abs*cofactor #We are actually computing the epsilon, not the chi.
+
+        return w,abs    
+
+    def get_absorbance(self,deltat,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
+        """
+        Calculate absorbance from polarizability 2D
+            Arguments:
+            deltat ->  thickness of 2D material in Bohr
+        """        
+        if 'gauge' in kwargs:
+            gauge = kwargs['gauge']
+        else:
+            gauge = 'length'
+
+        w, chi = self.get_chi(dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,gauge)        
+        absorbance = np.zeros_like(chi)
+
+        absorbance = w/speed_of_light*deltat + w/speed_of_light*4*np.pi*chi
+    
+        return absorbance
 
     def plot_chi_ax(self,ax,reim='im',n_brightest=-1,**kwargs):
         """Plot chi on a matplotlib axes"""
