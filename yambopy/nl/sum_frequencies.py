@@ -199,7 +199,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
         
             Susceptibility[i_order+X_order,i_order2+X_order,:,:]=Susceptibility[i_order+X_order,i_order2+X_order,:,:]*Unit_of_Measure
 
-            output_file='o.YamboPy-X_probe_order_'+str(i_order)+'_'+str(i_order2)
+            output_file='o.YamboPy-SF_X_probe_order_'+str(i_order)+'_'+str(i_order2)
             if i_order == 0 or (i_order == 1 and i_order2 == 0) or (i_order == 0 and i_order2 == 1):
                 header="E [eV]            X/Im(x)            X/Re(x)            X/Im(y)            X/Re(y)            X/Im(z)            X/Re(z)"
             else:
