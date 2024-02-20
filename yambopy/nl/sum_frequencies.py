@@ -22,7 +22,7 @@ import os
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,INVMODE="full"):
+def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,INVMODE="svd"):
     #
     # Here we use always NW=NX
     #
@@ -81,11 +81,11 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,IN
     X_here=np.zeros((M_size, M_size),dtype=np.cdouble)
     for i_n in range(-NX+1, NX):
         for i_n2 in range(-NX+1, NX):
+            i_c=C[i_n+NX-1,i_n2+NX-1]
             for i_t in range(M_size):
-                X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+INV[C[i_n+NX-1,i_n2+NX-1],i_t]*P_i[i_t]
+                X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+INV[i_c,i_t]*P_i[i_t]
 
     return X_here
-
 
 
 def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=False):
