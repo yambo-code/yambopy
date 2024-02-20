@@ -22,7 +22,7 @@ import os
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,INVMODE="fulls"):
+def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,INVMODE="full"):
     #
     # Here we use always NW=NX
     #
@@ -72,7 +72,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,IN
         I = np.eye(M_size,M_size)
         INV = np.linalg.lstsq(M, I, rcond=tol)[0]
 
-    if INVMODE=='svd'
+    if INVMODE=='svd':
 # Truncated SVD
         INV = np.zeros((M_size, M_size), dtype=np.cdouble)
         INV = np.linalg.pinv(M,rcond=tol)
@@ -114,8 +114,9 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
         print("Frequency of the second field : "+str(pump_probe*ha2ev)+" [eV] \b")
     elif(nldb.Efield_general[1]["name"] == "none"):
         print("Only one field present, please use standard harmonic_analysis.py for SHG,THG, etc..!")
-        print(" * * * Test mode with a single field * * * ")
+        print("* * * Test mode with a single field * * * ")
         print(" * * * Frequency of the second field assumed to be zero * * *")
+        print(" * * * Only results for SHG,THG,... are correct * * * ")
         l_test_one_field=True
         pump_probe=0.0
     else:
@@ -175,8 +176,10 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
         for i_order2 in range(-X_order,X_order+1):
             for i_f in range(n_frequencies):
                 Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]=X_effective[i_order+X_order,i_order2+X_order,i_f,:]
-            
-                Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[i_f],abs(i_order)+abs(i_order2))
+                if l_test_one_field:
+                    Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
+                else:
+                    Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))*Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
 
     if(prn_Peff):
         # Print time dependent polarization
