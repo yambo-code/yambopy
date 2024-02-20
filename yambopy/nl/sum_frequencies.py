@@ -22,7 +22,7 @@ import os
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol):
+def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,INVMODE="full"):
     #
     # Here we use always NW=NX
     #
@@ -53,24 +53,36 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol):
                 i_c+=1
 
 # Multiple possibilities to calculate the inversion
-# Least-squares
-    I = np.eye(M_size,M_size)
-    INV5 = np.linalg.lstsq(M, I, rcond=tol)[0]
+    INV_MODES = ['full', 'lstsq', 'svd']
+        if INVMODE not in INV_MODES:
+            raise ValueError("Invalid inversion mode. Expected one of: %s" % INV_MODES)
 
-# Truncated SVD
-    INV4 = np.zeros((M_size, M_size), dtype=np.cdouble)
-    INV4 = np.linalg.pinv(M,rcond=tol)
-
+    if INVMODE=="full":
+        try:
 # Invert M matrix
-    INV = np.zeros((M_size, M_size), dtype=np.cdouble)
-    INV = np.linalg.inv(M)
+            INV = np.zeros((M_size, M_size), dtype=np.cdouble)
+            INV = np.linalg.inv(M)
+    except:
+            print("Singular matrix!!! standard inversion failed ")
+            print("set inversion mode to LSTSQ")
+            INVMODE="lstsq"
+
+    if INVMODE=='lstsq':
+# Least-squares
+        I = np.eye(M_size,M_size)
+        INV = np.linalg.lstsq(M, I, rcond=tol)[0]
+
+    if INVMODE=='svd'
+# Truncated SVD
+        INV = np.zeros((M_size, M_size), dtype=np.cdouble)
+        INV = np.linalg.pinv(M,rcond=tol)
 
 # Calculate X_here
     X_here=np.zeros((M_size, M_size),dtype=np.cdouble)
     for i_n in range(-NX+1, NX):
         for i_n2 in range(-NX+1, NX):
             for i_t in range(M_size):
-                X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+INV5[C[i_n+NX-1,i_n2+NX-1],i_t]*P_i[i_t]
+                X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+INV[C[i_n+NX-1,i_n2+NX-1],i_t]*P_i[i_t]
 
     return X_here
 
