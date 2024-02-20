@@ -22,7 +22,7 @@ import os
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,INVMODE="full"):
+def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,INVMODE="fulls"):
     #
     # Here we use always NW=NX
     #
@@ -54,15 +54,15 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,IN
 
 # Multiple possibilities to calculate the inversion
     INV_MODES = ['full', 'lstsq', 'svd']
-        if INVMODE not in INV_MODES:
-            raise ValueError("Invalid inversion mode. Expected one of: %s" % INV_MODES)
+    if INVMODE not in INV_MODES:
+        raise ValueError("Invalid inversion mode. Expected one of: %s" % INV_MODES)
 
     if INVMODE=="full":
         try:
 # Invert M matrix
             INV = np.zeros((M_size, M_size), dtype=np.cdouble)
             INV = np.linalg.inv(M)
-    except:
+        except:
             print("Singular matrix!!! standard inversion failed ")
             print("set inversion mode to LSTSQ")
             INVMODE="lstsq"
@@ -105,8 +105,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
     freqs=np.zeros(n_frequencies,dtype=np.double)
 
     if efield["name"] != "SIN" and efield["name"] != "SOFTSIN" and efield["name"] != "ANTIRES":
-        print("Harmonic analysis works only with SIN or SOFTSIN fields")
-        sys.exit(0)
+        raise ValueError("Harmonic analysis works only with SIN or SOFTSIN fields")
 
     l_test_one_field=False
     if(nldb.Efield_general[1]["name"] == "SIN" or nldb.Efield_general[1]["name"] == "SOFTSIN"):
@@ -120,13 +119,10 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
         l_test_one_field=True
         pump_probe=0.0
     else:
-        print("Fields different from SIN/SOFTSIN are not supported ! ")
-        sys.exit(0)
+        raise ValueError("Fields different from SIN/SOFTSIN are not supported ! ")
     
     if(nldb.Efield_general[2]["name"] != "none"):
-        print("Three fields not supported yet ! ")
-        sys.exit(0)
-
+        raise ValueError("Three fields not supported yet ! ")
 
     print("Number of frequencies : %d " % n_frequencies)
     # Smaller frequency
