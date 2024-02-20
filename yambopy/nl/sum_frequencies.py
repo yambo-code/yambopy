@@ -96,14 +96,17 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
         print("Harmonic analysis works only with SIN or SOFTSIN fields")
         sys.exit(0)
 
-    if(nldb.Efield_general[1]["name"] == "none" and nldb.Efield_general[2]["name"] != "none"):
-        print("Only one field present, please use standard harmonic_analysis.py !")
-        sys.exit(0)
-
+    l_test_one_field=False
     if(nldb.Efield_general[1]["name"] == "SIN" or nldb.Efield_general[1]["name"] == "SOFTSIN"):
         # frequency of the second and third laser, respectively)
         pump_probe=nldb.Efield_general[1]["freq_range"][0] 
         print("Frequency of the second field : "+str(pump_probe*ha2ev)+" [eV] \b")
+    elif(nldb.Efield_general[1]["name"] == "none"):
+        print("Only one field present, please use standard harmonic_analysis.py for SHG,THG, etc..!")
+        print(" * * * Test mode with a single field * * * ")
+        print(" * * * Frequency of the second field assumed to be zero * * *")
+        l_test_one_field=True
+        pump_probe=0.0
     else:
         print("Fields different from SIN/SOFTSIN are not supported ! ")
         sys.exit(0)
@@ -199,7 +202,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
         
             Susceptibility[i_order+X_order,i_order2+X_order,:,:]=Susceptibility[i_order+X_order,i_order2+X_order,:,:]*Unit_of_Measure
 
-            output_file='o.YamboPy-SF_X_probe_order_'+str(i_order)+'_'+str(i_order2)
+            output_file='o.YamboPy-SF_probe_order_'+str(i_order)+'_'+str(i_order2)
             if i_order == 0 or (i_order == 1 and i_order2 == 0) or (i_order == 0 and i_order2 == 1):
                 header="E [eV]            X/Im(x)            X/Re(x)            X/Im(y)            X/Re(y)            X/Im(z)            X/Re(z)"
             else:
