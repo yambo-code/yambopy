@@ -1568,7 +1568,7 @@ class YamboExcitonDB(YamboSaveDB):
         else:
             gauge = 'length'
 
-        w, chi = self.get_chi(dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,gauge)        
+        w, chi = self.get_chi(dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,gauge='length')        
         absorbance = np.zeros_like(chi)
 
         absorbance = w/speed_of_light*deltat + w/speed_of_light*4*np.pi*chi
