@@ -64,7 +64,7 @@ def Coefficents_Inversion(NW,NX,P,W,T_period,T_range,T_step,efield,INV_MODE):
         except:
             print("Singular matrix!!! standard inversion failed ")
             print("set inversion mode to LSTSQ")
-            INVMODE="lstsq"
+            INV_MODE="lstsq"
 
     if INV_MODE=='lstsq':
 # Least-squares

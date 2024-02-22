@@ -22,7 +22,7 @@ import os
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,INVMODE="svd"):
+def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,INV_MODE):
     #
     # Here we use always NW=NX
     #
@@ -54,10 +54,10 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,IN
 
 # Multiple possibilities to calculate the inversion
     INV_MODES = ['full', 'lstsq', 'svd']
-    if INVMODE not in INV_MODES:
+    if INV_MODE not in INV_MODES:
         raise ValueError("Invalid inversion mode. Expected one of: %s" % INV_MODES)
 
-    if INVMODE=="full":
+    if INV_MODE=="full":
         try:
 # Invert M matrix
             INV = np.zeros((M_size, M_size), dtype=np.cdouble)
@@ -65,14 +65,14 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,IN
         except:
             print("Singular matrix!!! standard inversion failed ")
             print("set inversion mode to LSTSQ")
-            INVMODE="lstsq"
+            INV_MODE="lstsq"
 
-    if INVMODE=='lstsq':
+    if INV_MODE=='lstsq':
 # Least-squares
         I = np.eye(M_size,M_size)
         INV = np.linalg.lstsq(M, I, rcond=tol)[0]
 
-    if INVMODE=='svd':
+    if INV_MODE=='svd':
 # Truncated SVD
         INV = np.zeros((M_size, M_size), dtype=np.cdouble)
         INV = np.linalg.pinv(M,rcond=tol)
@@ -88,7 +88,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,IN
     return X_here
 
 
-def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=False):
+def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE='full'):
     # Time series 
     time  =nldb.IO_TIME_points
     # Time step of the simulation
@@ -169,7 +169,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
             print("WARNING! Time range out of bounds for frequency :",Harmonic_Frequency[1,i_f]*ha2ev,"[eV]")
         #
         for i_d in range(3):
-            X_effective[:,:,i_f,i_d]=SF_Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_probe,T_period,T_range,T_step,efield,tol)
+            X_effective[:,:,i_f,i_d]=SF_Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_probe,T_period,T_range,T_step,efield,tol,INV_MODE)
 
     # Calculate Susceptibilities from X_effective
     for i_order in range(-X_order,X_order+1):
