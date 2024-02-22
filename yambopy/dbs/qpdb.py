@@ -230,9 +230,9 @@ class YamboQPDB():
         self.plot_scissor_ax(ax,valence,verbose=verbose)
         return fig
 
-    def get_bs_path(self,lat,path,**kwargs):
+    def get_bs_path(self,lat,path,debug=False,**kwargs):
         """Get a band-structure on a path"""
-        bands_kpoints, bands_indexes, path_car = lat.get_path(path.kpoints,debug=True)
+        bands_kpoints, bands_indexes, path_car = lat.get_path(path.kpoints,debug=debug)
 
         # set fermi energy
         # NOT EVIDENT IN SPIN-POLARIZED SYSTEM
