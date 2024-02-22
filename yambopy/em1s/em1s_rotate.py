@@ -351,12 +351,13 @@ class YamboEm1sRotate():
         for dim in ibz_dims:
             # new q_bz dimension
             if iaux==4 and bz_==False: dbs.createDimension('D_%010d'%self.nqpoints,self.nqpoints)
-            elif iaux==4 and bz_==True: continue
-            # fixed dimensions including G-size
-            else: dbs.createDimension(dim.name,dim.size)
-            iaux+=1
 
-        # New variables
+            #if iaux==4 and bz_==False: dbs.createDimension('D_%010d'%self.nqpoints,self.nqpoints)
+            #elif iaux==4 and bz_==True: continue
+            # fixed dimensions including G-size
+            #else: dbs.createDimension(dim.name,dim.size)
+            dbs.createDimension(dim.name,dim.size)
+            iaux+=1
 
         # Create variables  
         for var in ibz_vars:
