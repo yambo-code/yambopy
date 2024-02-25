@@ -1898,6 +1898,215 @@ class YamboExcitonDB(YamboSaveDB):
 
         return exc_bands_up, exc_bands_dw
 
+    # Riccardo Reho methods
+    def eigenvectors_transitions(self):
+        '''
+        Get the BSE eigenvectors in lambda,v,c,k space as [t, nk, nv, nc, i_s_v, i_s_v]
+        For now, this utility is not used and not tested.
+        '''
+        if (self.spin_vars == "no"):
+            Alambdavck = np.zeros((self.ntransitions, self.nkpoints, self.nbandsv, self.nbandsc,1,1), dtype = complex)
+        elif(self.spin_vars == "yes"):
+            # Not sure this is the case for spin
+            Alambdavck = np.zeros((self.ntransitions, self.nbandsv, self.nbandsc,2,2), dtype = complex)
+        # Loop to create the array over indices
+        for t in range(0, self.nexcitons):
+            for tp in range(0,self.nexcitons):
+                ik = self.table[tp][0]
+                iv = self.table[tp][1]
+                ic = self.table[tp][2]
+                isc = self.table[tp][3]
+                isv = self.table[tp][4]
+
+                Alambdavck[t, ik,iv, ic, isv, isc] = self.eigenvectors[t][tp]
+        return Alambdavck
+    
+    def get_exc_dipoles(self, folder, filename, trange):
+        import netCDF4 as ns
+        '''
+        get exciton dipole according to \sum_{cvk} A^\lambda_cvk *d_cvk
+        The dipole matrix in ndb.dipoles has the following indexes (to be checked with Yambo version):
+        [nspin, nkpoints, nbands valence, nbands conduction, cartesian direction, 2]
+        2 is for complex.        
+        '''
+        exc_dipoles = np.zeros((len(trange), 3),dtype = complex)
+        A_ttp = np.ma.asarray(self.eigenvectors) # A^lambda_cvk in transiton space
+        # Get dipoles from ndb.dipoles
+        
+        path_filename = os.path.join(folder,filename)
+        if not os.path.isfile(path_filename):
+            raise FileNotFoundError("File %s not found in YamboExcitonDB"%path_filename)        
+        dip_db = ns.Dataset(f'{path_filename}')
+        dipoles = (dip_db['DIP_iR'][0]).filled()
+        dkvc = dipoles[:,:,:,:,0] + 1j*dipoles[:,:,:,:,1]
+        for it, t in enumerate(trange):
+            for tp in range(0,self.ntransitions):
+                # I need to to -1 for Python counting
+                ik = self.table[tp][0]-1
+                iv = self.table[tp][1]-1
+                ic = self.table[tp][2]-1
+                isc = self.table[tp][3]-1
+                isv = self.table[tp][4]-1
+                ikibz = self.lattice.kpoints_indexes[ik]-1
+
+                exc_dipoles[it,:] += A_ttp[t,tp]*dkvc[ikibz,iv,ic,:]
+        return exc_dipoles
+    
+    def write_exc_dipoles(self, folder, filename = 'ndb.dipoles', prefix = 'exc_dipole', trange=None):
+        """
+        Write exc dipole to a file
+        """
+        if (trange is None ):
+            trange = np.arange(0,self.nexcitons)
+        #get exc_dipole
+        eig = self.eigenvalues.real
+        exc_dipoles = self.get_exc_dipoles(folder,filename, trange)
+        print(exc_dipoles.shape)
+        #write excitons sorted by energy
+        with open('%s.dat'%prefix, 'w') as f:
+            f.write("# transition index exc dipole[Bohr]  Re(x) Im(x) Re(y) Im(y) Re(z) Im(z)\n")
+            for t,dip in enumerate(exc_dipoles):
+                f.write(f"{t+1:d} {dip[0]:.12f} {dip[1]:.12f} {dip[2]:.12f}\n") 
+
+    def get_gamma0(self, statelist = None, degen_step = 0.001, gauge = 'length', 
+                   pl_res = False):
+        """get gamma0  
+        """
+        if (statelist is None ):
+            statelist = np.arange(1,self.nexcitons+1)
+        Omega = self.lattice.lat_vol
+        a1 = self.lattice.lat[0]
+        a2 = self.lattice.lat[1]
+        A = np.linalg.norm(np.cross(a1,a2))
+        muS2 = 0 
+        gamma0 = 0
+        tmpE = np.ma.asarray(self.eigenvalues.real)
+        if (pl_res):
+            gauge = 'velocity' # force velocity gauge for PL
+            tmpI = np.ma.asarray((self.pl_l_residual*self.pl_r_residual))
+        else:
+            tmpI = np.ma.asarray(self.l_residual * self.r_residual)
+        excE = sorted(tmpE)
+        excI = tmpI
+
+        gamma0_merged = np.empty(len(statelist), dtype='object')
+        # q0 norm factor 
+        q0_norm = 1e-5
+
+        for l, state in enumerate(statelist):
+            state_internal = state 
+
+            # find states within degen_step window from state
+            mesk = np.logical_and(excE>=excE[state_internal]-degen_step,excE<=excE[state_internal]+degen_step)
+            states_idx = np.where(mesk==True)[0]
+            #compute gamma
+            for i, st in enumerate(states_idx):
+                ES = excE[st]/ha2ev
+                if (gauge=='length'):
+                    muS2 = excI[st]/(q0_norm**2) # if you inspect the Yambo code you might expect another 1/((2*np.pi)**3) but I think that d3k_factor/((2np.pi)**3) is actually 1/Omega
+                elif (gauge == 'velocity'):
+                    muS2 = excI[st]/(ES**2)
+                gg = 4.*np.pi*ES*(muS2/self.nkpoints)/(A*speed_of_light)
+                gamma0 += gg
+            #compute tau
+            gamma0_merged[l] = gamma0.real
+        return gamma0_merged
+
+    # Function to calculate γS^IP(θ, φ) for a range of φ values
+    def gamma_S_IP(self,phi, gamma_S_0,p_S, p_Sx, p_Sy):
+        return gamma_S_0 * (-(p_Sx/p_S) * np.sin(phi) + (p_Sy/p_S) * np.cos(phi))**2
+    
+    # Function to calculate γS^OOP(θ, φ) for a range of φ values
+    def gamma_S_OOP(self,phi, gamma_S_0,p_S, p_Sx, p_Sy):
+        return gamma_S_0 * ((p_Sx/p_S) * np.cos(phi) + (p_Sy/p_S) * np.sin(phi))**2   
+     
+    def gamma_S_OOP_fixed_phi(self,theta, phi, gamma_S_0,p_S, p_Sx, p_Sy):
+        return gamma_S_0 * np.cos(theta)**2*((p_Sx/p_S) * np.cos(phi) + (p_Sy/p_S) * np.sin(phi))**2   
+
+    def plot_polar_pl_IP(self, theta_deg, phi_range_deg=np.linspace(0, 360, 1000), 
+                               statelist = None, degen_step = 0.001, gauge = 'length', 
+                               pl_res = False, folder='./', filename = './ndb.dipoles'):
+        import matplotlib.pyplot as plt
+
+        # Convert degrees to radians
+        if (statelist is None ):
+            statelist = np.arange(1,self.nexcitons+1)
+        theta = np.radians(theta_deg)
+        phi = np.radians(phi_range_deg)
+        
+        # Assuming some function of theta and phi for demonstration
+        # Here we simply use r = 1 for demonstration, as the primary interest is in phi
+        gamma0 = self.get_gamma0(statelist, degen_step, gauge, pl_res)
+        p_S_array = self.get_exc_dipoles(folder, filename, trange=statelist)
+
+        for i_s, s in enumerate(statelist):
+            print(f'Polar plot for exciton-state {s+1}')
+            p_S_x = p_S_array[i_s][0]
+            p_S_y = p_S_array[i_s][1]
+            p_S = np.linalg.norm(p_S_array[i_s])
+            gamma_values = self.gamma_S_IP(phi, gamma0[i_s], p_S, p_S_x, p_S)
+            # Plotting
+            # Plotting using fig, ax
+            fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 6))
+            ax.plot(phi, gamma_values)  # Plotting on polar axes
+            ax.set_title(f'Polar plot IP exciton-state {s+1}')
+
+
+    def plot_polar_pl_OOP(self, theta_deg, phi_range_deg=np.linspace(0, 360, 1000), 
+                               statelist = None, degen_step = 0.001, gauge = 'length', 
+                               pl_res = False, folder='./', filename = './ndb.dipoles'):
+        import matplotlib.pyplot as plt
+        
+        # Convert degrees to radians
+        if (statelist is None ):
+            statelist = np.arange(1,self.nexcitons+1)
+        theta = np.radians(theta_deg)
+        phi = np.radians(phi_range_deg)
+        
+        # Assuming some function of theta and phi for demonstration
+        # Here we simply use r = 1 for demonstration, as the primary interest is in phi
+        gamma0 = self.get_gamma0(statelist, degen_step, gauge, pl_res)*np.cos(theta_deg)**2
+        p_S_array = self.get_exc_dipoles(folder, filename, trange=statelist)
+
+        for i_s, s in enumerate(statelist):
+            print(f'Polar plot  OOP for exciton-state {s+1}')
+            p_S_x = p_S_array[i_s][0]
+            p_S_y = p_S_array[i_s][1]
+            p_S = np.linalg.norm(p_S_array[i_s])
+            gamma_values = self.gamma_S_OOP(phi, gamma0[i_s], p_S, p_S_x, p_S)
+            # Plotting
+            # Plotting using fig, ax
+            fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 6))
+            ax.plot(phi, gamma_values)  # Plotting on polar axes
+            ax.set_title(f'Polar plot OOP exciton-state {s+1}')
+
+    def plot_polar_fixed_phi(self, phi_deg=0.0, theta_range_deg=np.linspace(0, 360, 1000), 
+                               statelist = None, degen_step = 0.001, gauge = 'length', 
+                               pl_res = False, folder='./', filename = './ndb.dipoles'):
+        import matplotlib.pyplot as plt
+        # Convert degrees to radians
+        if (statelist is None ):
+            statelist = np.arange(1,self.nexcitons+1)
+        theta = np.radians(theta_range_deg)
+        phi = np.radians(phi_deg)
+        
+        # Assuming some function of theta and phi for demonstration
+        # Here we simply use r = 1 for demonstration, as the primary interest is in phi
+        gamma0 = self.get_gamma0(statelist, degen_step, gauge, pl_res)
+        p_S_array = self.get_exc_dipoles(folder, filename, trange=statelist)
+
+        for i_s, s in enumerate(statelist):
+            print(f'Polar plot  OOP fixed phi for exciton-state {s+1}')
+            p_S_x = p_S_array[i_s][0]
+            p_S_y = p_S_array[i_s][1]
+            p_S = np.linalg.norm(p_S_array[i_s])
+            gamma_values = self.gamma_S_OOP_fixed_phi(theta, phi, gamma0[i_s], p_S, p_S_x, p_S)
+            # Plotting
+            # Plotting using fig, ax
+            fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 6))
+            ax.plot(phi, gamma_values)  # Plotting on polar axes
+            ax.set_title(f'Polar plot OOP fixed phi exciton-state {s+1}')
+
     ##############################################
     #  END SPIN DEPENDENT PART UNDER DEVELOPMENT #
     ##############################################
