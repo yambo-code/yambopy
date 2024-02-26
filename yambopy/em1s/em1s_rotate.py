@@ -349,15 +349,28 @@ class YamboEm1sRotate():
         # Create dimensions
         iaux=0
         for dim in ibz_dims:
-            # new q_bz dimension
-            if iaux==4 and bz_==False: dbs.createDimension('D_%010d'%self.nqpoints,self.nqpoints)
-
-            #if iaux==4 and bz_==False: dbs.createDimension('D_%010d'%self.nqpoints,self.nqpoints)
-            #elif iaux==4 and bz_==True: continue
-            # fixed dimensions including G-size
-            #else: dbs.createDimension(dim.name,dim.size)
-            dbs.createDimension(dim.name,dim.size)
-            iaux+=1
+            # manage new q_bz dimension
+            if iaux==4: 
+                if ibz_==False and bz_==False:
+                    # Replace old Nq_ibz dimension with new Nq_bz one
+                    dbs.createDimension('D_%010d'%self.nqpoints,self.nqpoints)
+                    iaux+=1
+                if ibz_==True and bz_==False: 
+                    # Add new Nq_bz dimension in between existing ones
+                    dbs.createDimension('D_%010d'%self.nqpoints,self.nqpoints) # Create Nq_bz
+                    dbs.createDimension(dim.name,dim.size)
+                    iaux+=1
+                if ibz_==False and bz_==True: 
+                    # Do not copy the old unneeded Nq_ibz dimension
+                    iaux+=1
+                if ibz_==True and bz_==True:
+                    # Copy existing dimensions as normal
+                    dbs.createDimension(dim.name,dim.size)
+                    iaux+=1
+            # just copy existing dimensions including G-size
+            else:
+                dbs.createDimension(dim.name,dim.size)
+                iaux+=1
 
         # Create variables  
         for var in ibz_vars:
