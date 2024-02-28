@@ -2009,8 +2009,8 @@ class YamboExcitonDB(YamboSaveDB):
                 gg = 4.*np.pi*ES*(muS2/self.nkpoints)/(A*speed_of_light)
                 gamma0 += gg
             #compute tau
-            gamma0_merged[l] = gamma0.real
-        return gamma0_merged
+            gamma0_merged[l]  = gamma0.real
+        return gamma0_merged/(AU2S*1e12) # convert in 1/ps
 
     # Function to calculate γS^IP(θ, φ) for a range of φ values
     def gamma_S_IP(self,phi, gamma_S_0,p_S, p_Sx, p_Sy):
@@ -2104,7 +2104,7 @@ class YamboExcitonDB(YamboSaveDB):
             # Plotting
             # Plotting using fig, ax
             fig, ax = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(8, 6))
-            ax.plot(phi, gamma_values)  # Plotting on polar axes
+            ax.plot(theta, gamma_values)  # Plotting on polar axes
             ax.set_title(f'Polar plot OOP fixed phi exciton-state {s+1}')
 
     ##############################################
