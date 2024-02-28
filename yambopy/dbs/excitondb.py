@@ -2014,14 +2014,14 @@ class YamboExcitonDB(YamboSaveDB):
 
     # Function to calculate γS^IP(θ, φ) for a range of φ values
     def gamma_S_IP(self,phi, gamma_S_0,p_S, p_Sx, p_Sy):
-        return gamma_S_0 * (-(p_Sx/p_S) * np.sin(phi) + (p_Sy/p_S) * np.cos(phi))**2
+        return gamma_S_0 * np.linalg.norm(-(p_Sx/p_S) * np.sin(phi) + (p_Sy/p_S) * np.cos(phi))
     
     # Function to calculate γS^OOP(θ, φ) for a range of φ values
     def gamma_S_OOP(self,phi, gamma_S_0,p_S, p_Sx, p_Sy):
-        return gamma_S_0 * ((p_Sx/p_S) * np.cos(phi) + (p_Sy/p_S) * np.sin(phi))**2   
+        return gamma_S_0 * np.linalg.norm((p_Sx/p_S) * np.cos(phi) + (p_Sy/p_S) * np.sin(phi))
      
     def gamma_S_OOP_fixed_phi(self,theta, phi, gamma_S_0,p_S, p_Sx, p_Sy):
-        return gamma_S_0 * np.cos(theta)**2*((p_Sx/p_S) * np.cos(phi) + (p_Sy/p_S) * np.sin(phi))**2   
+        return gamma_S_0 * np.cos(theta)**2*np.linalg.norm((p_Sx/p_S) * np.cos(phi) + (p_Sy/p_S) * np.sin(phi))   
 
     def plot_polar_pl_IP(self, theta_deg, phi_range_deg=np.linspace(0, 360, 1000), 
                                statelist = None, degen_step = 0.001, gauge = 'length', 
@@ -2038,7 +2038,7 @@ class YamboExcitonDB(YamboSaveDB):
         # Here we simply use r = 1 for demonstration, as the primary interest is in phi
         gamma0 = self.get_gamma0(statelist, degen_step, gauge, pl_res)
         p_S_array = self.get_exc_dipoles(folder, filename, trange=statelist)
-
+        print(gamma0)
         for i_s, s in enumerate(statelist):
             print(f'Polar plot for exciton-state {s+1}')
             p_S_x = p_S_array[i_s][0]
@@ -2067,7 +2067,7 @@ class YamboExcitonDB(YamboSaveDB):
         # Here we simply use r = 1 for demonstration, as the primary interest is in phi
         gamma0 = self.get_gamma0(statelist, degen_step, gauge, pl_res)*np.cos(theta_deg)**2
         p_S_array = self.get_exc_dipoles(folder, filename, trange=statelist)
-
+        print(gamma0)
         for i_s, s in enumerate(statelist):
             print(f'Polar plot  OOP for exciton-state {s+1}')
             p_S_x = p_S_array[i_s][0]
@@ -2094,7 +2094,7 @@ class YamboExcitonDB(YamboSaveDB):
         # Here we simply use r = 1 for demonstration, as the primary interest is in phi
         gamma0 = self.get_gamma0(statelist, degen_step, gauge, pl_res)
         p_S_array = self.get_exc_dipoles(folder, filename, trange=statelist)
-
+        print(gamma0)
         for i_s, s in enumerate(statelist):
             print(f'Polar plot  OOP fixed phi for exciton-state {s+1}')
             p_S_x = p_S_array[i_s][0]
