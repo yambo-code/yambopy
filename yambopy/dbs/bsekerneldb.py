@@ -73,6 +73,8 @@ class YamboBSEKernelDB(YamboSaveDB):
 
         # Basis transformation
         kernel_exc_basis = np.zeros(Nstates,dtype=np.complex_)
+        # improve efficiency RR:
+        #kernel_exc_basis  = np.einsum('ij,kj,ki->k', kernel, eivs, np.conj(eivs), optimize=True)
         for il in range(Nstates):
             kernel_exc_basis[il] = np.dot( np.conj(eivs[il]), np.dot(kernel,eivs[il]) )
 
@@ -104,8 +106,8 @@ class YamboBSEKernelDB(YamboSaveDB):
 
         # Iterate only on the subset
         for it1_subset, it2_subset in product(t_vc,repeat=2):
-            ik = table[it1_subset][0]
-            ip = table[it2_subset][0]
+            ik = table[t_v[it1_subset]][0]
+            ip = table[t_v[it2_subset]][0]
             Wcv[ik-1,ip-1] = kernel[it1_subset,it2_subset]
 
         return Wcv
