@@ -8,6 +8,7 @@ from yambopy.tools.skw import SkwInterpolator
 from yambopy.dbs.savedb import *
 from yambopy.dbs.latticedb import *
 from yambopy.dbs.electronsdb import *
+from yambopy.dbs.dipolesdb import *
 from yambopy.dbs.qpdb import *
 from yambopy.tools.skw import SkwInterpolator
 
@@ -1397,7 +1398,7 @@ class YamboExcitonDB(YamboSaveDB):
 
         return car_kpoints, amplitudes[kindx], np.angle(phases)[kindx]
 
-    def get_chi(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
+    def get_chi(self,dipoles=False,dir=[1,1,0],emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
         """
         Calculate the dielectric response function using excitonic states
         """
@@ -1419,14 +1420,23 @@ class YamboExcitonDB(YamboSaveDB):
         #initialize the susceptibility intensity
         chi = np.zeros([len(w)],dtype=np.complex64)
 
-        if dipoles is None:
+        if not dipoles:
             #get dipole
             EL1 = self.l_residual
             EL2 = self.r_residual
         else:
             #calculate exciton-light coupling
             if verbose: print("calculate exciton-light coupling")
-            EL1,EL2 = self.project1(dipoles.dipoles[:,dir],nexcitons) 
+            if 'folder' in kwargs:
+                folder = kwargs['folder']
+            if 'filename' in kwargs:
+                filename = kwargs['filename']
+            if 'statelist' in kwargs:
+                statelist = kwargs['statelist']  
+                nexcitons = len(statelist)  
+            EL2_vec = self.get_exc_dipoles_from_file(folder,filename, statelist, gauge)
+            EL2 = np.dot(EL2_vec,dir)
+            EL1 = np.conj(EL2) 
 
         if isinstance(broad,float): broad = [broad]*nexcitons
 
@@ -1921,7 +1931,7 @@ class YamboExcitonDB(YamboSaveDB):
                 Alambdavck[t, ik,iv, ic, isv, isc] = self.eigenvectors[t][tp]
         return Alambdavck
     
-    def get_exc_dipoles(self, folder, filename, trange):
+    def get_exc_dipoles(self, folder, filename, trange, gauge = 'length'):
         import netCDF4 as ns
         '''
         get exciton dipole according to \sum_{cvk} A^\lambda_cvk *d_cvk
@@ -1929,7 +1939,7 @@ class YamboExcitonDB(YamboSaveDB):
         [nspin, nkpoints, nbands valence, nbands conduction, cartesian direction, 2]
         2 is for complex.        
         '''
-        exc_dipoles = np.zeros((len(trange), 3),dtype = complex)
+        exc_dipoles = np.zeros((self.ntransitions, 3),dtype = complex)
         A_ttp = np.ma.asarray(self.eigenvectors) # A^lambda_cvk in transiton space
         # Get dipoles from ndb.dipoles
         
@@ -1937,20 +1947,56 @@ class YamboExcitonDB(YamboSaveDB):
         if not os.path.isfile(path_filename):
             raise FileNotFoundError("File %s not found in YamboExcitonDB"%path_filename)        
         dip_db = ns.Dataset(f'{path_filename}')
-        dipoles = (dip_db['DIP_iR'][0]).filled()
-        dkvc = dipoles[:,:,:,:,0] + 1j*dipoles[:,:,:,:,1]
+        if (gauge == 'length'):
+            dip_db = YamboDipolesDB(self.lattice, folder, filename=filename, dip_type='iR',expand=True )
+        if (gauge == 'velocity'):
+            dip_db = YamboDipolesDB(self.lattice, folder, filename=filename, dip_type='P', expand=True )
+        dkcv = dip_db.dipoles
+        nbandsv = dkcv.shape[3]
+        #dkvc = dipoles[:,:,:,:,0] + 1j*dipoles[:,:,:,:,1]
         for it, t in enumerate(trange):
-            for tp in range(0,self.ntransitions):
+            for tp in np.arange(0,self.nexcitons):
                 # I need to to -1 for Python counting
                 ik = self.table[tp][0]-1
                 iv = self.table[tp][1]-1
                 ic = self.table[tp][2]-1
                 isc = self.table[tp][3]-1
                 isv = self.table[tp][4]-1
-                ikibz = self.lattice.kpoints_indexes[ik]-1
+                #ikibz = self.lattice.kpoints_indexes[ik]
+                exc_dipoles[t,:] += A_ttp[t,tp]*dkcv[ik,:, ic,iv]
+        return exc_dipoles  
 
-                exc_dipoles[it,:] += A_ttp[t,tp]*dkvc[ikibz,iv,ic,:]
-        return exc_dipoles
+    def get_exc_dipoles_from_file(self, folder, filename, trange, gauge = 'length'):
+        import netCDF4 as ns
+        '''
+        get exciton dipole according to \sum_{cvk} A^\lambda_cvk *d_cvk
+        The dipole matrix in ndb.dipoles has the following indexes (to be checked with Yambo version):
+        [nspin, nkpoints, nbands valence, nbands conduction, cartesian direction, 2]
+        2 is for complex.        
+        '''
+        exc_dipoles = np.zeros((self.ntransitions, 3),dtype = complex)
+        A_ttp = np.ma.asarray(self.eigenvectors) # A^lambda_cvk in transiton space
+        # Get dipoles from ndb.dipoles
+        
+        path_filename = os.path.join(folder,filename)
+        if not os.path.isfile(path_filename):
+            raise FileNotFoundError("File %s not found in YamboExcitonDB"%path_filename)        
+        if (gauge == 'length'):
+            dkcv = np.load(f'{path_filename}')
+        if (gauge == 'velocity'):
+            dkcv = np.load(f'{path_filename}')
+        #dkvc = dipoles[:,:,:,:,0] + 1j*dipoles[:,:,:,:,1]
+        for it, t in enumerate(trange):
+            for tp in np.arange(0,self.nexcitons):
+                # I need to to -1 for Python counting
+                ik = self.table[tp][0]-1
+                iv = self.table[tp][1]-1
+                ic = self.table[tp][2]-1
+                isc = self.table[tp][3]-1
+                isv = self.table[tp][4]-1
+                #ikibz = self.lattice.kpoints_indexes[ik]
+                exc_dipoles[t,:] += A_ttp[t,tp]*dkcv[ik,:, ic,iv]
+        return exc_dipoles       
     
     def write_exc_dipoles(self, folder, filename = 'ndb.dipoles', prefix = 'exc_dipole', trange=None):
         """
@@ -2024,7 +2070,7 @@ class YamboExcitonDB(YamboSaveDB):
      
     def gamma_S_OOP_fixed_phi(self,theta, phi, gamma_S_0,p_S, p_Sx, p_Sy):
         tmp_array = (p_Sx/p_S) * np.cos(phi) + (p_Sy/p_S) * np.sin(phi)
-        return gamma_S_0 * np.cos(theta)**2*np.conjg(tmp_array)*tmp_array  
+        return gamma_S_0 * np.cos(theta)**2*np.conj(tmp_array)*tmp_array  
 
     def plot_polar_pl_IP(self, theta_deg, phi_range_deg=np.linspace(0, 360, 1000), 
                                statelist = None, degen_step = 0.001, gauge = 'length', 
