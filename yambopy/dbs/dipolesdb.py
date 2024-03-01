@@ -20,7 +20,7 @@ class YamboDipolesDB():
 
     Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v]. If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,r_i,c,v]
     """
-    def __init__(self,lattice,save='SAVE',filename='ndb.dip_iR_and_P',dip_type='iR',field_dir=[1,0,0],field_dir3=[0,0,1]):
+    def __init__(self,lattice,save='SAVE',filename='ndb.dip_iR_and_P',dip_type='iR',field_dir=[1,0,0],field_dir3=[0,0,1],expand=True):
         self.lattice = lattice
         self.filename = "%s/%s"%(save,filename)
         
@@ -47,11 +47,15 @@ class YamboDipolesDB():
         self.dipoles = self.readDB(dip_type)
 
         #expand the dipoles to the full brillouin zone
-        if self.spin==1: self.expandDipoles(self.dipoles)
-        if self.spin==2:
-            dip_up, dip_dn = self.dipoles[0], self.dipoles[1]
-            exp_dip      = self.expandDipoles
-            self.dipoles = np.stack((exp_dip(dip_up)[0], exp_dip(dip_dn)[0]),axis=0) 
+        if (expand):
+            if self.spin==1: self.expandDipoles(self.dipoles)
+            if self.spin==2:
+                dip_up, dip_dn = self.dipoles[0], self.dipoles[1]
+                exp_dip      = self.expandDipoles
+                self.dipoles = np.stack((exp_dip(dip_up)[0], exp_dip(dip_dn)[0]),axis=0) 
+        else:
+            if self.spin==2:
+                dip_up, dip_dn = self.dipoles[0], self.dipoles[1]            
 
     def normalize(self,electrons):
         """ 
