@@ -1434,7 +1434,10 @@ class YamboExcitonDB(YamboSaveDB):
             if 'statelist' in kwargs:
                 statelist = kwargs['statelist']  
                 nexcitons = len(statelist)  
-            EL2_vec = self.get_exc_dipoles_from_file(folder,filename, statelist, gauge)
+            try:    
+                EL2_vec = self.get_exc_dipoles_from_file(folder,filename, statelist, gauge)
+            except:
+                EL2_vec = self.get_exc_dipoles(folder,filename, statelist, gauge)
             EL2 = np.dot(EL2_vec,dir)
             EL1 = np.conj(EL2) 
 
