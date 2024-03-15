@@ -103,6 +103,7 @@ class ConvertElectronPhononDB():
         self.natoms      = OBJ.nat
         self.nbands1     = OBJ.nb1
         self.nbands2     = OBJ.nb2
+        self.bands       = OBJ.bands
         self.nspin       = OBJ.ns
         self.prec        = OBJ.ncfloat_type
 
@@ -119,8 +120,9 @@ class ConvertElectronPhononDB():
 
     def write_header(self,OUT_path):
            
-        # PARS: modes, qpts, kpts, bnds, using_q_grid=T, hosting_bare_gkkp=F, hosting_DW=F
-        self.pars = [self.nmodes,self.nqpoints_bz,self.nkpoints_bz,self.nbands1,True,False,False]
+        # PARS: modes, qpts, kpts, [bnds / bnds_0 bnds_1], using_q_grid=T, hosting_bare_gkkp=F, hosting_DW=F
+        if self.bands[0] == 1: self.pars = [self.nmodes,self.nqpoints_bz,self.nkpoints_bz,self.nbands1,True,False,False]
+        else:   self.pars = [self.nmodes,self.nqpoints_bz,self.nkpoints_bz,self.bands[0],self.bands[1],True,False,False]
         len_pars = len(self.pars)
         self.spin_vars = [1,1]
         self.head_r_latt = [self.nkpoints_ibz,self.nkpoints_bz,self.nqpoints_ibz,self.nqpoints_bz]

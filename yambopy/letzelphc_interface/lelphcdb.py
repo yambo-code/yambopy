@@ -52,6 +52,7 @@ class LetzElphElectronPhononDB():
         # Read DB
         self.kpoints = database.variables['kpoints'][:]
         self.qpoints = database.variables['qpoints'][:]
+        self.bands   = database.variables['bands'][:]
         
         self.ph_energies = database.variables['FREQ'][:]*(ha2ev/2.) # Energy units are in Rydberg
         self.check_energies()
