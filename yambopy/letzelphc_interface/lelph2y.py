@@ -182,7 +182,9 @@ class ConvertElectronPhononDB():
             dbs.createDimension('D_%010d'%1,1)
             dbs.createDimension('D_%010d'%2,2)
             for value in [self.nmodes,self.natoms,self.nbands2,self.nkpoints_bz]:
-                if value not in [1,2,3]: dbs.createDimension('D_%010d'%value,value)
+                if value not in [1,2,3]: 
+                    try: dbs.createDimension('D_%010d'%value,value)
+                    except RuntimeError: pass # This is when one of the dimensions already exists
 
             # Create variables
             p=self.prec
