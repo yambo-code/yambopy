@@ -115,7 +115,7 @@ class PlotEm1sCmd(Cmd):
         if args.write:
             #write a text file with the data
             f=open(args.write,'w')
-            f.write('# Real and imaginary part of \epsilon^{-1}_{00}(\omega=0,q) = [1+vX]_{00} as a funciton of |q|')
+            f.write('# Real and imaginary part of \\epsilon^{-1}_{00}(\\omega=0,q) = [1+vX]_{00} as a funciton of |q|')
             for folder,x,y in epsilons:
                 f.write('#%s\n'%folder)
                 for xi,yi in zip(x,y):
