@@ -629,3 +629,4 @@ class YambopyCmd(Cmd):
 #parse options
 #def run_script(): return YambopyCmd(*sys.argv)
 ycmd = YambopyCmd(*sys.argv)
+exit()
