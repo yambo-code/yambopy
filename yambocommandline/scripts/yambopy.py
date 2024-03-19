@@ -115,7 +115,7 @@ class PlotEm1sCmd(Cmd):
         if args.write:
             #write a text file with the data
             f=open(args.write,'w')
-            f.write('# Real and imaginary part of \epsilon^{-1}_{00}(\omega=0,q) = [1+vX]_{00} as a funciton of |q|')
+            f.write('# Real and imaginary part of \\epsilon^{-1}_{00}(\\omega=0,q) = [1+vX]_{00} as a funciton of |q|')
             for folder,x,y in epsilons:
                 f.write('#%s\n'%folder)
                 for xi,yi in zip(x,y):
@@ -590,64 +590,65 @@ class ConvertLELPHCtoYAMBO(Cmd):
 	"""
 	Calculate gauge-invariant electron-phonon matrix elements with LetzElPhC and convert them into Yambo format
 
-	- Usage:
+	:: Usage:
 
 	>> yambopy l2y -ph phinp -b b1 b2 -par nq nk [--lelphc lelphc] [--debug]
 
-	- Input parameters:
-    	-ph           : path to ph.x input file, e.g. dvscf/ph.in
-    	-b            : initial and final band indices (starting from 1)
-    	-par [OPT]    : MPI pools for q and k (needs mpirun)
-    	--lelphc [OPT]: path to lelphc executable, default 'lelphc', code will prompt
-    	--debug [OPT] : won't remove LetzElPhC input and outputs
+	:: Input parameters:
+		-ph,--ph_inp_path     : path to ph.x input file, e.g. dvscf/ph.in
+		-b,--bands            : initial and final band indices (counting from 1)
+		-par,--pools [OPT]    : MPI pools for q and k (needs mpirun)
+		-lelphc,--lelphc [OPT]: path to lelphc executable (code will prompt)
+		-D,--debug [OPT]      : won't remove LetzElPhC input and outputs
 
-	- Prerequisites:
+	:: Prerequisites:
 
 	* ph.x phonon calculation must be complete, e.g. the phinp folder should contain:
-    	- ph.x input file
-    	- pw.x (scf) save directory
-    	- [prefix].dyn files
-    	- _ph* directories
+		- ph.x input file
+		- pw.x (scf) save directory
+		- [prefix].dyn files
+		- _ph* directories
 	* Yambo SAVE directory must be present. We run in the directory where the SAVE is.
 	* LetzElPhC must be installed
 	* mpirun must be linked for parallel runs
 	"""
 	def __init__(self,args):
 
-        #check for args
-        if len(args) < 5:
-            print((self.__doc__))
-            exit(0)
+		#check for args
+		if len(args) < 5:
+			print((self.__doc__))
+			exit(0)
 
-    	parser = argparse.ArgumentParser(description='Generate electron-phonon coupling databases via LetzElPhC')
-    	parser.add_argument('-ph','--ph_inp_path', type=str, help='<Required> Path to ph.x (dvscf) input file',required=True)
-    	parser.add_argument('-b','--bands',nargs='2',type=str,help="<Required> First and last band (counting from 1), e.g. 'b_i b_f'",required=True)
-    	parser.add_argument('-par','--pools',nargs='2' type=str, default="1 1", help="<Optional> MPI tasks as 'nqpools nkpools' (default serial)")
-    	parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)"
-    	parser.add_argument('-D','--debug', action="store_true", help="Debug mode")
-    	args = parser.parse_args()
+		parser = argparse.ArgumentParser(description='Generate electron-phonon coupling databases via LetzElPhC')
+		parser.add_argument('-ph','--ph_inp_path', type=str, help='<Required> Path to ph.x (dvscf) input file',required=True)
+		parser.add_argument('-b','--bands',nargs=2,type=str,help="<Required> First and last band (counting from 1), e.g. 'b_i b_f'",required=True)
+		parser.add_argument('-par','--pools',nargs=2,type=str, default=[1,1], help="<Optional> MPI tasks as 'nqpools nkpools' (default serial)")
+		parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)")
+		parser.add_argument('-D','--debug', action="store_true", help="Debug mode")
 
-    	args = parser.parse_args(args)
-    	phinp  = args.ph_inp_path
-    	bands  = args.bands
-    	pools  = args.pools
-    	lelphc = args.lelphc
-    	debug  = args.debug
+		args = parser.parse_args(args)
 
-    	# Check inputs
-    	ph_path,inp_ph,inp_lelphc,inp_name = checks(phinp,lelphc,bands,pools)
+		phinp  = args.ph_inp_path
+		bands  = args.bands
+		pools  = args.pools
+		lelphc = args.lelphc
+		debug  = args.debug
 
-  	  	# run preprocessing
-    	run_preprocessing(lelphc,ph_path,inp_ph)
+		# Check inputs
+		lelphc,ph_path,inp_ph,inp_lelphc,inp_name = \
+		lelph_interface.checks(phinp,lelphc,bands,pools)
 
-    	# run el-ph calculation and rotation
-    	run_elph(lelphc,inp_lelphc,inp_name)
+		# run preprocessing
+		lelph_interface.run_preprocessing(lelphc,ph_path,inp_ph)
 
-    	# load database and convert to yambo format
-    	letzelph_to_yambo()
+		# run el-ph calculation and rotation
+		lelph_interface.run_elph(lelphc,inp_lelphc,inp_name)
 
-    	# clean
-    	clean_lelphc(debug,inp_name,ph_path)
+		# load database and convert to yambo format
+		lelph_interface.letzelph_to_yambo()
+
+		# clean
+		lelph_interface.clean_lelphc(debug,inp_name,ph_path)
 
 class YambopyCmd(Cmd):
     """
@@ -693,3 +694,4 @@ class YambopyCmd(Cmd):
 #parse options
 #def run_script(): return YambopyCmd(*sys.argv)
 ycmd = YambopyCmd(*sys.argv)
+exit()
