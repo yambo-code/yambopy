@@ -79,7 +79,7 @@ def checks(phinp,lelphc,bands,pools):
 def run_preprocessing(lelphc,path_ph,inp_ph):
 
 	print(":: LetzElPhC pre-processing ::")
-	pp_run_str = f"{lelphc} -pp -F {inp_ph}"
+	pp_run_str = f"{lelphc} -pp --code=qe -F {inp_ph}"
 	try:
 		pp=subprocess.run(f'cd {path_ph} ; {pp_run_str} ; cd -',shell=True,check=True,capture_output=True,text=True)
 	except subprocess.CalledProcessError as e:
@@ -94,7 +94,6 @@ def run_preprocessing(lelphc,path_ph,inp_ph):
 def run_elph(lelphc,inp_lelphc,inp_name):
 
 	def get_ntasks(inp):
-
 		ntasks=1
 		for line in inp.split('\n'):
 			if 'pool' in line: ntasks *= int(line.split()[-1])
@@ -111,7 +110,7 @@ def run_elph(lelphc,inp_lelphc,inp_name):
 	ntasks = get_ntasks(inp_lelphc)
 	if ntasks > 1 : elph_run_str = f"mpirun -np {ntasks} {lelphc} -F {inp_name}"
 	elif ntasks==1: elph_run_str = f"{lelphc} -F {inp_name}"
-	else: raise ValueError('Wrong MPI task selection: {ntasks} tasks?')
+	else: raise ValueError(f'Wrong MPI task selection: {ntasks} tasks?')
 
 	# run lelphc
 	try:
