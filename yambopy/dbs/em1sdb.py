@@ -8,6 +8,7 @@
 # This file is part of the yambopy project
 #
 import os
+import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 from netCDF4 import Dataset
