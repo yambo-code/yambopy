@@ -1,7 +1,7 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python
 #TODO: delete/move any other scripts in this directory
 from yambopy import *
-from command_line import *
+from yambocommandline.commands import *
 import argparse
 import sys
 
@@ -115,7 +115,7 @@ class PlotEm1sCmd(Cmd):
         if args.write:
             #write a text file with the data
             f=open(args.write,'w')
-            f.write('# Real and imaginary part of \epsilon^{-1}_{00}(\omega=0,q) = [1+vX]_{00} as a funciton of |q|')
+            f.write('# Real and imaginary part of \\epsilon^{-1}_{00}(\\omega=0,q) = [1+vX]_{00} as a funciton of |q|')
             for folder,x,y in epsilons:
                 f.write('#%s\n'%folder)
                 for xi,yi in zip(x,y):
@@ -529,7 +529,7 @@ class GwSubspace(Cmd):
 
         fld_diag = args.fld_diag
         fld_offdiag = args.fld_offdiag
-        command_line.gw_subspace.create_newdb(fld_diag,fld_offdiag)
+        gw_subspace.create_newdb(fld_diag,fld_offdiag)
 
 class GetPHqInputCmd(Cmd):        
     """
@@ -627,4 +627,6 @@ class YambopyCmd(Cmd):
             print("Command %s is not known to yambopy"%args[1])
  
 #parse options
+#def run_script(): return YambopyCmd(*sys.argv)
 ycmd = YambopyCmd(*sys.argv)
+exit()

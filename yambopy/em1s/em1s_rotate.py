@@ -1,6 +1,13 @@
-# First version by Matteo Zanfrognini (2022)
-# Revised and expanded by FP (2023)
-
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: MZ, FP
+# First version by MZ (2022), revised and expanded by FP (2023)
+#
+# This file is part of the yambopy project
+#
 from yambopy import *
 from netCDF4 import Dataset
 
@@ -133,6 +140,7 @@ class YamboEm1sRotate():
         supported_cutoffs = ['none','slab z']
         self.cutoff       = yem1s.cutoff
 
+        if yem1s.filename != 'ndb.em1s': raise NotImplementedError("[ERROR] The screening rotation is only implemented for ndb.em1s.")
         if yem1s.cutoff not in supported_cutoffs: raise NotImplementedError("[ERROR] The em1s rotation is not currently implemented for cutoff %s."%yem1s.cutoff)
 
         self.rlat         = yem1s.rlat
@@ -349,14 +357,28 @@ class YamboEm1sRotate():
         # Create dimensions
         iaux=0
         for dim in ibz_dims:
-            # new q_bz dimension
-            if iaux==4 and bz_==False: dbs.createDimension('D_%010d'%self.nqpoints,self.nqpoints)
-            elif iaux==4 and bz_==True: continue
-            # fixed dimensions including G-size
-            else: dbs.createDimension(dim.name,dim.size)
-            iaux+=1
-
-        # New variables
+            # manage new q_bz dimension
+            if iaux==4: 
+                if ibz_==False and bz_==False:
+                    # Replace old Nq_ibz dimension with new Nq_bz one
+                    dbs.createDimension('D_%010d'%self.nqpoints,self.nqpoints)
+                    iaux+=1
+                if ibz_==True and bz_==False: 
+                    # Add new Nq_bz dimension in between existing ones
+                    dbs.createDimension('D_%010d'%self.nqpoints,self.nqpoints) # Create Nq_bz
+                    dbs.createDimension(dim.name,dim.size)
+                    iaux+=1
+                if ibz_==False and bz_==True: 
+                    # Do not copy the old unneeded Nq_ibz dimension
+                    iaux+=1
+                if ibz_==True and bz_==True:
+                    # Copy existing dimensions as normal
+                    dbs.createDimension(dim.name,dim.size)
+                    iaux+=1
+            # just copy existing dimensions including G-size
+            else:
+                dbs.createDimension(dim.name,dim.size)
+                iaux+=1
 
         # Create variables  
         for var in ibz_vars:

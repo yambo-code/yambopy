@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+#requires = ["flit_core"]
+#build-backend = "flit_core.buildapi"
+[project]
+name = "yambopy"
+version = "0.3.0"
+authors = [
+  { name="Fulvio Paleari", email="fulvio.paleari@nano.cnr.it" },
+  { name="Alejandro Molina-Sanchez", email="alejandro.molina@uv.es" },
+  { name="Henrique Miranda" },
+]
+description = "Yambopy: a pre/post-processing tool for Yambo"
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+    "Operating System :: OS Independent",
+    "Development Status :: 3 - Alpha",
+]
+dependencies = [ "numpy", "scipy", "netCDF4", "matplotlib", "pyyaml", "lxml", "monty"]
+[project.urls]
+"Homepage" = "https://github.com/yambo-code/yambopy"
+"Documentation" = "https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy"
+[project.scripts]
+yambopy="yambocommandline.scripts.yambopy:YambopyCmd"
+[tool.setuptools]
+packages = ['yambopy',
+            'yambopy.io',
+            'yambopy.dbs',
+            'yambopy.bse',
+            'yambopy.rt',
+            'yambopy.double_grid',
+            'yambopy.data',
+            'yambopy.plot',
+            'yambopy.em1s',
+            'yambopy.tools',
+            'yambopy.common',
+            'yambopy.gkkp',
+            'yambopy.flow',
+            'yambopy.nl',
+            'qepy',
+            'qepy.upf_interface',
+            'qepy.data.pseudos',
+            'schedulerpy',
+            'yamboparser',
+            'yambocommandline',
+            'yambocommandline.commands',]
+

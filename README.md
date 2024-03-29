@@ -7,16 +7,31 @@ yambopy
 Create automatic workflows for yambo and quantum espresso using python. Work directly with netCDF databases.
 Do pre/post-processing, data analysis and plotting for yambo and quantum espresso.
 
-Yambo official website: http://www.yambo-code.eu/ 
-
-Yambo Github page [download yambo & yambopy]: https://github.com/yambo-code/yambo
+- Yambo official website: http://www.yambo-code.eu/ 
+- Yambo wiki: http://www.yambo-code.org/wiki
+- Yambo Github page [download yambo & yambopy]: https://github.com/yambo-code/yambo
 
 
 Documentation
 -------------
+
+The main usage of yambopy is by importing its modules in the user's own scripts, such as:
+```
+from yambopy import *
+from qepy import *
+```
+There is also a command line interface feature. Just type
+```
+yambopy 
+```
+on terminal to see the options. Typing `yambopy [option]` will show the related help message.
+
 You can find explained tutorials and a partial 
-documentation on the Yambo wiki page: http://www.yambo-code.org/wiki
-Additional information about capabilities and usage are available inside the tutorial folder and by reading the docstrings of the various classes.
+documentation on the Yambo wiki page: https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy
+
+The tutorials contain examples scripts illustrating how to use some of the features: they are intended to be copied, modified and adapted to other use cases and to your ideas and needs. 
+
+Additional information about capabilities and usage are available inside the tutorial folder and by reading the docstrings of the various classes. Keep in mind that a basic knowledge of python (`numpy` and `matplotlib` packages) will greatly help while using yambopy. 
 
 Features
 --------
@@ -33,13 +48,20 @@ Features
 
 Installation
 ------------
-Follow the steps on the [Yambo wiki](https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy). 
-Here you can find several tutorials as well, featuring example scripts that you can modify for your own ideas and needs. 
-Keep in mind that a basic knowledge of python (`numpy` and `matplotlib` packages) will help. 
+
+Make sure that you have a suitable python environment (created for example with [conda](https://docs.conda.io/projects/miniconda/en/latest/) or [venv](https://docs.python.org/3/library/venv.html)).
+
+#### Regular installation of released version
+Type `pip install yambopy`
+
+#### Local installation from this repository (for latest patches)
+Clone this repository in your local machine or cluster, enter the directory and type `pip install .`
+ 
+#### More information
+Follow the installation steps on the [Yambo wiki](https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy).
 
 Requirements
 ------------
-- yambo (>5.0.0): http://www.yambo-code.org/
 - numpy: http://www.numpy.org/
 - scipy: https://www.scipy.org/
 - matplotlib: http://matplotlib.org/
@@ -47,11 +69,14 @@ Requirements
 - lxml: https://lxml.de/
 - pyyaml: https://pyyaml.org/
 - monty: https://pypi.org/project/monty/
+
+Yambopy works for the following DFT/MBPT codes:
+- yambo (>5.0.0): https://www.yambo-code.eu/
 - Quantum Espresso (optional): http://www.quantum-espresso.org/
 
 Troubleshooting, bugs and questions
 -----------------------------------
-Please write a post in the yambopy subsection of the [yambo forum](https://www.yambo-code.eu/forum/viewforum.php?f=35&sid=77b7f6076dea7cdf40432efbc035feb6)
+Please write a post in the yambopy subsection of the [yambo forum](https://www.yambo-code.eu/forum/viewforum.php?f=35&sid=77b7f6076dea7cdf40432efbc035feb6).
 
 Current development goals
 -------------------------
@@ -59,7 +84,6 @@ Current development goals
 - Brillouin zone paths patch
 - Full support for finite-momentum BSE postprocessing
 - Full documentation & tutorials
-- Remove unneeded dependencies and switch to pip-based distribution
 - Increase efficiency of I/O for large database sizes and numbers
 - Test suite
 - Make it easier to add new features
@@ -97,7 +121,7 @@ If you want to contribute, we suggest the following steps:
 2. Implement and test your new feature(s) in the forked repo
 3. Create a pull request in order to include your development in the official code
 
-Acknoledgements
+Acknowledgements
 ----------------
 - The [Abipy](https://abinit.github.io/abipy/) library developed for the Abinit code was the original inspiration for Yambopy. In particular, abipy's `SkwInterpolator` module for band structure interpolations has been directly imported into yambopy. 
 - Yambopy logos by Claudia Cardoso

@@ -15,7 +15,7 @@ commands on different environments (clusters, local computers, etc..)
  * pbs : Use the PBS scheduler
 
 """
-from .scheduler import *
-from .oar import *
-from .pbs import *
-from .bash import *
+from schedulerpy.scheduler import *
+from schedulerpy.oar import *
+from schedulerpy.pbs import *
+from schedulerpy.bash import *
