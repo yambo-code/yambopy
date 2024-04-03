@@ -46,6 +46,12 @@ class YamboLatticeDB(object):
             natoms_a = database.variables['N_ATOMS'][:].astype(int).T
             tmp_an = database.variables['atomic_numbers'][:].astype(int)
             tmp_apos = database.variables['ATOM_POS'][:,:]
+            # Prevent case where n. of atomic species > n. of species in ATOM_POS
+            i_at_unused_types = [i_at for i_at, at_type_n in enumerate(natoms_a) if at_type_n == 0]
+            if len(i_at_unused_types)>0:
+                print('[WARNING] Found unused atomic type(s): ',i_at_unused_types)
+                natoms_a = [at_type_n for at_type_n in natoms_a if at_type_n!=0]
+                tmp_an = [tmp_an[i] for i in range(len(tmp_an)) if tmp_an[i] not in i_at_unused_types ]
 
             flatten = lambda l: [item for sublist in l for item in sublist]
             atomic_numbers = flatten([[tmp_an[n]]*na for n,na in enumerate(natoms_a)])
