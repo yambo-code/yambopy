@@ -1,13 +1,6 @@
-#
-# License-Identifier: GPL
-#
-# Copyright (C) 2024 The Yambo Team
-#
-# Authors: MZ, FP
-# First version by MZ (2022), revised and expanded by FP (2023)
-#
-# This file is part of the yambopy project
-#
+# First version by Matteo Zanfrognini (2022)
+# Revised and expanded by FP (2023)
+
 from yambopy import *
 from netCDF4 import Dataset
 
@@ -140,7 +133,6 @@ class YamboEm1sRotate():
         supported_cutoffs = ['none','slab z']
         self.cutoff       = yem1s.cutoff
 
-        if yem1s.filename != 'ndb.em1s': raise NotImplementedError("[ERROR] The screening rotation is only implemented for ndb.em1s.")
         if yem1s.cutoff not in supported_cutoffs: raise NotImplementedError("[ERROR] The em1s rotation is not currently implemented for cutoff %s."%yem1s.cutoff)
 
         self.rlat         = yem1s.rlat

@@ -90,6 +90,7 @@ from yambopy.bse.bse_dispersion import *
 
 #em1s/static screening operations files
 from yambopy.em1s.em1s_rotate import *
+from yambopy.em1s.fold_static_screen import *
 
 #ndb.QP operations
 from yambopy.quasiparticles.QP_rotate import *
