@@ -28,7 +28,7 @@ class YamboStaticScreeningDB(object):
 
     .. math::
 
-        \epsilon^{-1}_{g1,g2}(q) = 1-v(q,g1)\chi_{g1,g2}
+        \epsilon^{-1}_{g1,g2}(q) = 1+v(q,g1)\chi_{g1,g2}
         \epsilon_{0,0}(q)={\epsilon^{-1}(q)}^{-1}_{0,0}
         
     """
