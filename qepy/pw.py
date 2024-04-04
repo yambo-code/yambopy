@@ -680,15 +680,15 @@ class PwIn(object):
                     self.klist = [ [a,b,c,int(d)] for a,b,c,d in self.klist ]
 
     def slicefile(self, keyword):
-        file_slice_regexp = '&%s(?:.?)+\n((?:.+\n)+?)(?:\s+)?[\/&]'%keyword
-        lines = re.findall(file_slice_regexp,"".join(self.file_lines),re.MULTILINE)
+        file_slice_regexp = f'&{keyword}(?:.?)+\n((?:.+\n)+?)(?:\s+)?[\/&]'
+        lines = re.findall(file_slice_regexp,"".join(self.file_lines),re.MULTILINE | re.IGNORECASE)
         return lines
 
     def store(self,group,name):
         """
         Save the variables specified in each of the groups on the structure
         """
-        group_regexp = '([a-zA-Z_0-9_\(\)]+)(?:\s+)?=(?:\s+)?([a-zA-Z/\'"0-9_.-]+)'
+        group_regexp = '([a-zA-Z_0-9_\(\)]+)(?:\s+)?=(?:\s+)?([a-zA-Z\'"0-9_.+-]+)' 
         for file_slice in self.slicefile(name):
             for keyword, value in re.findall(group_regexp,file_slice):
                 group[keyword.strip()]=value.strip()
@@ -698,7 +698,7 @@ class PwIn(object):
             string='&%s\n' % keyword
             for keyword in sorted(group): # Py2/3 discrepancy in keyword order
                 string += "%20s = %s\n" % (keyword, group[keyword])
-            string += "/&end"
+            string += "/"    ### /%&end does not work for all qe versions
             return string
         else:
             return ''
