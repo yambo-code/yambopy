@@ -791,7 +791,6 @@ class YamboExcitonDB(YamboSaveDB):
         a2 = self.lattice.lat[1]
         A = np.linalg.norm(np.cross(a1,a2))
         muS2 = 0 
-        gamma0 = 0
         tmpE = np.ma.asarray(self.eigenvalues.real)
         if (pl_res):
             gauge = 'velocity' # force velocity gauge for PL
@@ -813,6 +812,7 @@ class YamboExcitonDB(YamboSaveDB):
             mesk = np.logical_and(excE>=excE[state_internal]-degen_step,excE<=excE[state_internal]+degen_step)
             states_idx = np.where(mesk==True)[0]
             #compute gamma
+            gamma0 = 0
             for i, st in enumerate(states_idx):
                 ES = excE[st]/ha2ev
                 if (gauge=='length'):
