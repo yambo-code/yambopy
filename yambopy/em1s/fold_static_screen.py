@@ -168,8 +168,8 @@ class fold_vX():
       g_vs_G = np.zeros((2,self.Ngvectors),dtype=np.int64) # shape: (number of g)
       g_vs_G.fill(-1)
       for triplet in g_QMap:
-          g_vs_G[0,triplet[1]] = triplet[2]
-          g_vs_G[1,triplet[1]] = triplet[0]
+          g_vs_G[0,triplet[1]] = triplet[2]  # \deltaQ =Q-q
+          g_vs_G[1,triplet[1]] = triplet[0]  # iG 
 
       max_ig=0
       for ig in range(g_vs_G.shape[1]):
@@ -296,11 +296,11 @@ class fold_vX():
 #              IndexG1, IndexG2 = G_and_g[j1,0], G_and_g[j2,0]
 #              Indexg1, Indexg2 = G_and_g[j1,1], G_and_g[j2,1]
 #              ExpandedX[Indexq,Indexg1,Indexg2] = UcX[IndexQ,IndexG1,IndexG2]
-      Indexq=0
-      indexQ=0
       for j1 in range(max_ig):
         for j2 in range(max_ig):
             print("Indexes "+str(g_vs_G[0,j1]) + "  "+str(g_vs_G[1,j1]) + "   "+str(g_vs_G[1,j2]))
+            if g_vs_G[0,j1] != g_vs_G[0,j2]:
+                continue
             ExpandedX[0,j1,j2] = UcX[g_vs_G[0,j1],g_vs_G[1,j1],g_vs_G[1,j2]]
 
       return ExpandedX   
