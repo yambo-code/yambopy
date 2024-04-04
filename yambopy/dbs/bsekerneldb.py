@@ -1,4 +1,4 @@
-# Author: Davide Romanin
+# Author: Davide Romanin (revised: FP, RR)
 #
 # This file is part of the yambopy project
 #
@@ -96,7 +96,7 @@ class YamboBSEKernelDB(YamboSaveDB):
             raise ValueError('Band indices not matching available transitions')
              
         # Wcv defined on the full BZ (only a subset will be filled)
-        Wcv = np.zeros((nk,nk),dtype=np.complex)
+        Wcv = np.zeros((nk,nk),dtype=complex)
         # Find indices where selected valence band appears
         t_v = np.where(table[:,1]==bands[0])[0]
         # Among those, find subset of indices where conduction band also appears
