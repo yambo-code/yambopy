@@ -164,6 +164,20 @@ class fold_vX():
       for triplet in g_QMap:
            print( triplet , self.Gvectors[triplet[0]],self.gvectors[triplet[1]],self.gvectors[triplet[2]], self.Gvectors[triplet[0]]+self.gvectors[triplet[2]]-self.gvectors[triplet[1]])
       print()          
+
+      g_vs_G = np.zeros((2,self.Ngvectors),dtype=np.int64) # shape: (number of g)
+      g_vs_G.fill(-1)
+      for triplet in g_QMap:
+          g_vs_G[0,triplet[1]] = triplet[2]
+          g_vs_G[1,triplet[1]] = triplet[0]
+
+      max_ig=0
+      for ig in range(g_vs_G.shape[1]):
+            if g_vs_G[1,ig] == -1:
+                max_ig=ig
+                break
+      print("Max g-vectors remmaped : "+str(max_ig))
+
      
      
       
@@ -177,7 +191,7 @@ class fold_vX():
       
       
       # 3) remap X_{g,g'}(q) = X_{G,G'}(Q) 
-      self.X = self.RemapX(g_QIndexMap,g_QMap,self.UcX)
+      self.X = self.RemapX(g_QIndexMap,g_QMap,self.UcX,g_vs_G,max_ig)
       print("Remapped X shape: ")
       print(self.X.shape) # (8,35,35)
 
@@ -256,28 +270,39 @@ class fold_vX():
 #            database.variables['X_Q_%d'%(nq+1)][0,1,:] = X[nq].imag
 #            database.close()
 
-  def RemapX(self, IndexMap, g_QMap, UcX):
+  def RemapX(self, IndexMap, g_QMap, UcX, g_vs_G,max_ig):
       
       # allocate complex X 
+      #
+      #  self.Nqpts = number of q-points in the supercell
+      #  self.Ngvectors = numeber of g-vectors in the supercell
+      #
       ExpandedX = np.zeros([self.Nqpts,self.Ngvectors,self.Ngvectors],dtype=np.complex64) # shape: (number of q, number of g, number of g)
+      ExpandedX.fill(10e10)
  
-      # for each Q,q in the clean list associate the g_Q with the corresponding G,g pairs from Getg_QScEm1sDB
-      for IndexQ in range(self.NQpts):
-          g_Q = IndexMap[IndexQ,2] # g_Q from first list (calculated as Q-q)
-          Indexq = IndexMap[IndexQ,1]   # 
-          G_and_g = g_QMap[g_QMap[:,2] == g_Q]   # select the G,g pairs such that g-G are equal to the g_Q computed as Q-q
-          print("Q #" , IndexQ ,self.Qpts[IndexQ], IndexMap[IndexQ])
-          print("Indices of G, g and g_Q such that g_Q = current Q-q")
-          print(G_and_g)
-#          print("remapped indices Q, G1, G2, q, g1, g2")
-          for j1,j2 in product(range(len(G_and_g)),repeat=2):
-          #for j1 in range(len(G_and_g)):
-                #j2=j1
-              IndexG1, IndexG2 = G_and_g[j1,0], G_and_g[j2,0]
-              Indexg1, Indexg2 = G_and_g[j1,1], G_and_g[j2,1]
-#              print(IndexQ,IndexG1,IndexG2, Indexq,Indexg1,Indexg2)
-              ExpandedX[Indexq,Indexg1,Indexg2] = UcX[IndexQ,IndexG1,IndexG2]
-      print()      
+      # for each Q,q in the clean list associate the q_Q with the corresponding G,g pairs from Getg_QScEm1sDB
+      print(" Shape g_QMap : "+str(g_QMap.shape[0]) + "   " +str(g_QMap.shape[1]))
+
+
+#      for IndexQ in range(self.NQpts):
+#          q_Q = IndexMap[IndexQ,2] # g_Q from first list (calculated as Q-q)
+#          Indexq = IndexMap[IndexQ,1]   # 
+#          G_and_g = g_QMap[g_QMap[:,2] == q_Q]   # select the G,g pairs such that g-G are equal as Q-q
+#
+#          print("Q #" , IndexQ ,self.Qpts[IndexQ], IndexMap[IndexQ])
+#          print("Indices of G, g and g_Q such that g_Q = current Q-q")
+#          print(G_and_g)
+#          for j1,j2 in product(range(len(G_and_g)),repeat=2):
+#              IndexG1, IndexG2 = G_and_g[j1,0], G_and_g[j2,0]
+#              Indexg1, Indexg2 = G_and_g[j1,1], G_and_g[j2,1]
+#              ExpandedX[Indexq,Indexg1,Indexg2] = UcX[IndexQ,IndexG1,IndexG2]
+      Indexq=0
+      indexQ=0
+      for j1 in range(max_ig):
+        for j2 in range(max_ig):
+            print("Indexes "+str(g_vs_G[0,j1]) + "  "+str(g_vs_G[1,j1]) + "   "+str(g_vs_G[1,j2]))
+            ExpandedX[0,j1,j2] = UcX[g_vs_G[0,j1],g_vs_G[1,j1],g_vs_G[1,j2]]
+
       return ExpandedX   
 #   Q in common with q : 0  2  5  6 7 12 13 62
 
