@@ -15,7 +15,6 @@ def get_Efield_w(freqs,efield):
     
 def Divide_by_the_Field(efield,order):
     
-    
     if efield['name']=='SIN' or efield['name']=='SOFTSIN':
         if order !=0:
             divide_by_field=np.power(-2.0*1.0j/efield['amplitude'],order,dtype=np.cdouble)
@@ -35,8 +34,7 @@ def Divide_by_the_Field(efield,order):
         elif order==0:
             divide_by_field = 4.0/(E_w*efield['amplitude']*np.conj(E_w))
     else:
-        print('Electric field not implemented in Divide_by_the_Field!')
-        sys.exit(0)
+        raise ValueError("Electric field not implemented in Divide_by_the_Field!")
 
     return divide_by_field
 
