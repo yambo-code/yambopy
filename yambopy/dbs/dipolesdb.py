@@ -18,7 +18,7 @@ class YamboDipolesDB():
     Can be used to plot, for example, the imaginary part of the dielectric
     function which corresponds to the optical absorption, or directly the matrix elements in kspace.
 
-    Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v]. If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,r_i,c,v]
+    Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v]. If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
     """
     def __init__(self,lattice,save='SAVE',filename='ndb.dip_iR_and_P',dip_type='iR',field_dir=[1,0,0],field_dir3=[0,0,1]):
         self.lattice = lattice
@@ -42,7 +42,22 @@ class YamboDipolesDB():
         self.nbands  = self.max_band-self.min_band+1
         self.nbandsv = self.indexv-self.min_band+1
         self.nbandsc = self.max_band-self.indexc+1
-        
+        self.indexv = self.indexv-1
+        self.indexc = self.indexc-1
+        self.index_firstv = self.min_band-1
+        self.open_shell = False
+        d_n_el = self.nbandsv + self.nbandsc - self.nbands
+        if d_n_el != 0:
+            # We assume the excess electron(s)/hole(s) are in the spin=0 channel
+            print("[WARNING] You may be considering an open-shell system. Careful: optical absorption UNTESTED.")
+            self.open_shell = True
+            self.n_exc_el = d_n_el # this can be negative for excess holes
+            # Spin-dependent band indices: these are taken from PARS so be careful
+            self.indexv_os  = [self.indexv, self.indexv-d_n_el]
+            self.indexc_os  = [self.indexc+d_n_el, self.indexc]
+            self.nbandsv_os = [self.nbandsv, self.nbandsv-d_n_el ] 
+            self.nbandsc_os = [self.nbandsc-d_n_el, self.nbandsc ]
+
         #read the database
         self.dipoles = self.readDB(dip_type)
 
@@ -51,7 +66,7 @@ class YamboDipolesDB():
         if self.spin==2:
             dip_up, dip_dn = self.dipoles[0], self.dipoles[1]
             exp_dip      = self.expandDipoles
-            self.dipoles = np.stack((exp_dip(dip_up)[0], exp_dip(dip_dn)[0]),axis=0) 
+            self.dipoles = np.stack((exp_dip(dip_up,spin=0)[0], exp_dip(dip_dn,spin=1)[0]),axis=0) 
 
     def normalize(self,electrons):
         """ 
@@ -150,7 +165,7 @@ class YamboDipolesDB():
 
         return dipoles
         
-    def expandDipoles(self,dipoles=None,field_dir=[1,0,0],field_dir3=[0,0,1]):
+    def expandDipoles(self,dipoles=None,field_dir=[1,0,0],field_dir3=[0,0,1],spin=None):
         """
         Expand diples from the IBZ to the FBZ
         """
@@ -176,10 +191,15 @@ class YamboDipolesDB():
 
         #get band indexes
         nkpoints = len(nks)
-        indexv = self.min_band-1
-        indexc = self.indexc-1
+        indexv = self.index_firstv #self.min_band-1
+        indexc = self.indexc       #self.indexc-1 
+        nbandsv = self.nbandsv
+        nbandsc = self.nbandsc
         nbands = self.min_band+self.nbands-1
-        
+        if self.open_shell: indexc  = self.indexc_os[spin]
+        if self.open_shell: nbandsv = self.nbandsv_os[spin]
+        if self.open_shell: nbandsc = self.nbandsc_os[spin]
+
         #Note that P is Hermitian and iR anti-hermitian.
         # [FP] Other possible dipole options (i.e., velocity gauge) to be checked. Treat them as not supported.
         if self.dip_type == 'P':
@@ -189,7 +209,7 @@ class YamboDipolesDB():
            
         #save dipoles in the ibz
         self.dipoles_ibz = dipoles 
-        #get dipoles in the full Brilouin zone
+        #get dipoles in the full Brillouin zone
         self.dipoles = np.zeros([nkpoints,3,nbands,nbands],dtype=np.complex64)
         for nk_fbz,nk_ibz,ns in zip(list(range(nkpoints)),nks,nss):
             
@@ -206,12 +226,12 @@ class YamboDipolesDB():
             #transformation
             tra = np.dot(pro,sym)
             
-            for c,v in product(list(range(self.nbandsc)),list(range(self.nbandsv))):
-                #rotate dipoles
+            #rotate dipoles
+            for c,v in product(list(range(nbandsc)),list(range(nbandsv))):
                 self.dipoles[nk_fbz,:,indexc+c,indexv+v] = np.dot(tra,dip[:,c,v])
         
             #make hermitian
-            for c,v in product(list(range(self.nbandsc)),list(range(self.nbandsv))):
+            for c,v in product(list(range(nbandsc)),list(range(nbandsv))):
                 self.dipoles[nk_fbz,:,indexv+v,indexc+c] = factor*np.conjugate(self.dipoles[nk_fbz,:,indexc+c,indexv+v])
                         
         self.field_dirx = field_dirx
@@ -457,8 +477,13 @@ class YamboDipolesDB():
         app("nbandsv: %d" % self.nbandsv)
         app("nbandsc: %d" % self.nbandsc)
         app("indexv : %d" % (self.min_band-1))
-        app("indexc : %d" % (self.indexc-1))
+        app("indexc : %d" % self.indexc)
         app("gauge  : %s" % (self.dip_type))
+        app("spin:")
+        app("spin pol         : %d" % (self.spin))
+        if self.spin==2:
+            app("open shell       : %s" % (self.open_shell))
+            if self.open_shell: app("excess electrons : %d" % (self.n_exc_el))
         app("field_dirx: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirx))
         app("field_diry: %10.6lf %10.6lf %10.6lf"%tuple(self.field_diry))
         app("field_dirz: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirz))

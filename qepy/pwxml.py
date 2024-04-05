@@ -277,7 +277,7 @@ class PwXML():
         return self.atypes
 
     def get_lattice_dict(self):
-        return dict(ibrav=0,cell_parameters=self.cell)
+        return dict(ibrav=self.ibrav,cell_parameters=self.cell)
 
     def get_structure_dict(self):
         """

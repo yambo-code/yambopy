@@ -231,10 +231,12 @@ class YambopyBandStructure():
         #dot symbol
         # I choose a colormap for spin
         color_map  = plt.get_cmap('seismic')
+        x = self.distances
+        y = self.bands.T-fermie
         for ib,band in enumerate(self.bands.T):
             x = self.distances
             y = band-fermie
-            ax.plot(x,y,c=c_bands,lw=lw_label,label=label)
+            ax.plot(x,y,c=c_bands,lw=lw_label,label=label if ib == 0 else "_nolegend_")
             # fill between 
             if self.weights is not None: # and self.spin_proj is not None:
                 dy = self.weights[:,ib]*size
@@ -251,11 +253,7 @@ class YambopyBandStructure():
         self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=ylim)
         ax.set_ylabel(ylabel)
         self.add_kpath_labels(ax)
-        if legend: 
-            from collections import OrderedDict
-            handles, labels = plt.gca().get_legend_handles_labels()
-            by_label = OrderedDict(zip(labels, handles))
-            ax.legend(by_label.values(), by_label.keys())
+        if legend: ax.legend()
 
     def plot_spin_ax(self,ax,xlim=None,ylim=None,ylabel='$\epsilon_{n\mathbf{k}}$[eV]',alpha_weights=0.5,spin_proj_bands=None,legend=False,**kwargs):
         """Receive an intance of matplotlib axes and add the plot"""

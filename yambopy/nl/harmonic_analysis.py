@@ -21,7 +21,7 @@ import os
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def Coefficents_Inversion(NW,NX,P,W,T_period,T_range,T_step,efield):
+def Coefficents_Inversion(NW,NX,P,W,T_period,T_range,T_step,efield,INV_MODE):
     #
     # Here we use always NW=NX
     #
@@ -53,7 +53,27 @@ def Coefficents_Inversion(NW,NX,P,W,T_period,T_range,T_step,efield):
             M[i_t, i_n - 1 + NX] = np.exp( 1j * W[i_n] * T_i[i_t],dtype=np.cdouble)
 
 # Invert M matrix
-    INV = scipy.linalg.inv(M)
+    INV_MODES = ['full', 'lstsq', 'svd']
+    if INV_MODE not in INV_MODES:
+        raise ValueError("Invalid inversion mode. Expected one of: %s" % INV_MODES)
+  
+    if INV_MODE=="full":
+        try:
+# Invert M matrix
+            INV = np.linalg.inv(M)
+        except:
+            print("Singular matrix!!! standard inversion failed ")
+            print("set inversion mode to LSTSQ")
+            INV_MODE="lstsq"
+
+    if INV_MODE=='lstsq':
+# Least-squares
+        I = np.eye(M_size,M_size)
+        INV = np.linalg.lstsq(M, I, rcond=tol)[0]
+
+    if INV_MODE=='svd':
+# Truncated SVD
+        INV = np.linalg.pinv(M,rcond=tol)
 
 # Calculate X_here
     X_here=np.zeros(nP_components,dtype=np.cdouble)
@@ -65,7 +85,7 @@ def Coefficents_Inversion(NW,NX,P,W,T_period,T_range,T_step,efield):
 
 
 
-def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
+def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE="full"):
     # Time series 
     time  =nldb.IO_TIME_points
     # Time step of the simulation
@@ -76,14 +96,17 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
     n_runs=len(nldb.Polarization)
     # Array of polarizations for each laser frequency
     polarization=nldb.Polarization
-
     freqs=np.zeros(n_runs,dtype=np.double)
+
+    print("\n* * * Harmonic analysis * * *\n")
 
     if efield["name"] != "SIN" and efield["name"] != "SOFTSIN" and efield["name"] != "ANTIRES":
         print("Harmonic analysis works only with SIN or SOFTSIN fields")
         sys.exit(0)
 
-    print("\n* * * Harmonic analysis * * *\n")
+    if nldb.Efield_general[1]["name"] != "none" or nldb.Efield_general[2]["name"] != "none":
+        print("Harmonic analysis works only with a single field, please use sum_frequency.py functions")
+        sys.exit(0)
 
     print("Number of runs : %d " % n_runs)
     # Smaller frequency
@@ -134,7 +157,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
             print("WARNING! Time range out of bounds for frequency :",Harmonic_Frequency[1,i_f]*ha2ev,"[eV]")
         #
         for i_d in range(3):
-            X_effective[:,i_f,i_d]=Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],Harmonic_Frequency[:,i_f],T_period,T_range,T_step,efield)
+            X_effective[:,i_f,i_d]=Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],Harmonic_Frequency[:,i_f],T_period,T_range,T_step,efield,INV_MODE)
 
     # Calculate Susceptibilities from X_effective
     for i_order in range(X_order+1):
@@ -160,6 +183,29 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1]):
     if nldb.n_frequencies!=0:
         loop_on_frequencies=True
         print("Loop on frequencies ...")
+
+    #Rectronstruct Polarization from the X_effective
+    if(prn_Peff):
+        Peff=np.zeros((n_runs,3,len(time)),dtype=np.cdouble)
+        for i_f in range(n_runs):
+            for i_d in range(3):
+                for i_order in range(X_order+1):
+                    Peff[i_f,i_d,:]+=X_effective[i_order,i_f,i_d]*np.exp(-1j*i_order*freqs[i_f]*time[:])
+                    Peff[i_f,i_d,:]+=np.conj(X_effective[i_order,i_f,i_d])*np.exp(+1j*i_order*freqs[i_f]*time[:])
+        # Print reconstructed polarization
+        header2="[fs]            "
+        header2+="Px     "
+        header2+="Py     "
+        header2+="Pz     "
+        footer2='Time dependent polarization reconstructed from Fourier coefficients'
+        for i_f in range(n_runs):
+            values2=np.c_[time.real/fs2aut]
+            values2=np.append(values2,np.c_[Peff[i_f,0,:].real],axis=1)
+            values2=np.append(values2,np.c_[Peff[i_f,1,:].real],axis=1)
+            values2=np.append(values2,np.c_[Peff[i_f,2,:].real],axis=1)
+            output_file2='o.YamboPy-pol_reconstructed_F'+str(i_f+1)
+            np.savetxt(output_file2,values2,header=header2,delimiter=' ',footer=footer2)
+
 
     # Print the result
     for i_order in range(X_order+1):
