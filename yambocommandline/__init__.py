@@ -17,3 +17,4 @@ from yambocommandline.commands.update_serial import *
 from yambocommandline.commands.get_phq_input import *
 from yambocommandline.commands.gw_subspace import *
 from yambocommandline.commands.convert_RL_to_Ry import *
+from yambocommandline.commands.lelph_interface import *
