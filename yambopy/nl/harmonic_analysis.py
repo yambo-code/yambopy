@@ -7,6 +7,7 @@
 import numpy as np
 from yambopy.units import ha2ev,fs2aut, SVCMm12VMm1,AU2VMm1
 from yambopy.nl.external_efield import Divide_by_the_Field
+from tqdm import tqdm
 import scipy.linalg
 import sys
 import os
@@ -146,7 +147,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
     
 
     # Find the Fourier coefficients by inversion
-    for i_f in range(n_runs):
+    for i_f in tqdm(range(n_runs)):
         #
         # T_period change with the laser frequency 
         #
@@ -186,8 +187,9 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
 
     #Rectronstruct Polarization from the X_effective
     if(prn_Peff):
+        print("Reconstruct effective polarizations ...")
         Peff=np.zeros((n_runs,3,len(time)),dtype=np.cdouble)
-        for i_f in range(n_runs):
+        for i_f in tqdm(range(n_runs)):
             for i_d in range(3):
                 for i_order in range(X_order+1):
                     Peff[i_f,i_d,:]+=X_effective[i_order,i_f,i_d]*np.exp(-1j*i_order*freqs[i_f]*time[:])

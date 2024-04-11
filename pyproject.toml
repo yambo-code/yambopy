@@ -20,7 +20,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Development Status :: 3 - Alpha",
 ]
-dependencies = [ "numpy", "scipy", "netCDF4", "matplotlib", "pyyaml", "lxml", "monty"]
+dependencies = [ "numpy", "scipy", "netCDF4", "matplotlib", "pyyaml", "lxml", "monty","tqdm"]
 [project.urls]
 "Homepage" = "https://github.com/yambo-code/yambopy"
 "Documentation" = "https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy"
