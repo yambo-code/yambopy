@@ -8,6 +8,7 @@ import numpy as np
 from yambopy.units import ha2ev,fs2aut, SVCMm12VMm1,AU2VMm1
 from yambopy.nl.external_efield import Divide_by_the_Field
 from yambopy.nl.harmonic_analysis import update_T_range
+from tqdm import tqdm
 import scipy.linalg
 import sys
 import os
@@ -156,9 +157,9 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
     X_effective       =np.zeros((M_size,M_size,n_frequencies,3),dtype=np.cdouble)
     Susceptibility    =np.zeros((M_size,M_size,n_frequencies,3),dtype=np.cdouble)
     
-
+    print("Loop in frequecies...")
     # Find the Fourier coefficients by inversion
-    for i_f in range(n_frequencies):
+    for i_f in tqdm(range(n_frequencies)):
         #
         # T_period change with the laser frequency 
         #
@@ -182,9 +183,10 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
                     Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))*Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
 
     if(prn_Peff):
+        print("Reconstruct effective polarizations ...")        
         # Print time dependent polarization
         P=np.zeros((n_frequencies,3,len(time)),dtype=np.cdouble)
-        for i_f in range(n_frequencies):
+        for i_f in tqdm(range(n_frequencies)):
             for i_d in range(3):
                 for i_order in range(-X_order,X_order+1):
                     for i_order2 in range(-X_order,X_order+1):
