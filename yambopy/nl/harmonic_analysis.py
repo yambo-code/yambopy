@@ -145,6 +145,19 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
     for i_order in range(X_order+1):
         Harmonic_Frequency[i_order,:]=i_order*freqs[:]
     
+    loop_on_angles=False
+    loop_on_frequencies=False
+
+    if nldb.n_angles!=0:
+        loop_on_angles=True
+        angles=np.zeros(n_runs)
+        for ia in range(n_runs):
+            angles[ia]=360.0/(n_runs)*ia
+        print("Loop on angles ...")
+
+    if nldb.n_frequencies!=0:
+        loop_on_frequencies=True
+        print("Loop on frequencies ...")
 
     # Find the Fourier coefficients by inversion
     for i_f in tqdm(range(n_runs)):
@@ -171,19 +184,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             
             Susceptibility[i_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[i_f],i_order)
 
-    loop_on_angles=False
-    loop_on_frequencies=False
 
-    if nldb.n_angles!=0:
-        loop_on_angles=True
-        angles=np.zeros(n_runs)
-        for ia in range(n_runs):
-            angles[ia]=360.0/(n_runs)*ia
-        print("Loop on angles ...")
-
-    if nldb.n_frequencies!=0:
-        loop_on_frequencies=True
-        print("Loop on frequencies ...")
 
     #Rectronstruct Polarization from the X_effective
     if(prn_Peff):
