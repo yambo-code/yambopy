@@ -23,7 +23,7 @@ import os
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,INV_MODE):
+def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,INV_MODE,i_f,i_d):
     #
     # Here we use always NW=NX
     #
@@ -31,7 +31,6 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,IN
     # 
     i_t_start = int(np.round(T_range[0]/T_step)) 
     i_deltaT  = int(np.round(T_period/T_step)/M_size)
-
 
 # Memory alloction 
     M      = np.zeros((M_size, M_size), dtype=np.cdouble)
@@ -42,6 +41,11 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,IN
     for i_t in range(M_size):
         T_i[i_t] = (i_t_start + i_deltaT * i_t)*T_step - efield["initial_time"]
         P_i[i_t] = P[i_t_start + i_deltaT * i_t]
+
+    footer='Sampling points'
+    values=np.c_[T_i/fs2aut]
+    values=np.append(values,np.c_[P_i[:]],axis=1)
+    np.savetxt("sampling_points_F"+str(i_f+1)+"_ID"+str(i_d+1),values,delimiter=' ',footer=footer)
 
 # Build the M matrix
     C = np.zeros((M_size, M_size), dtype=np.int8)
@@ -170,7 +174,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
             print("WARNING! Time range out of bounds for frequency :",Harmonic_Frequency[1,i_f]*ha2ev,"[eV]")
         #
         for i_d in range(3):
-            X_effective[:,:,i_f,i_d]=SF_Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_probe,T_period,T_range,T_step,efield,tol,INV_MODE)
+            X_effective[:,:,i_f,i_d]=SF_Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_probe,T_period,T_range,T_step,efield,tol,INV_MODE,i_f,i_d)
 
     # Calculate Susceptibilities from X_effective
     for i_order in range(-X_order,X_order+1):
@@ -187,7 +191,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
                         D2*=Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
                     if i_order==0 and i_order2==0: #  This case is not clear to me how we should define the optical rectification
                         D2=Divide_by_the_Field(nldb.Efield[0],abs(i_order))*Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
-                    print("Order "+str(i_order)+" and "+str(i_order2)+" = "+str(D2))
+#                    print("Order "+str(i_order)+" and "+str(i_order2)+" = "+str(D2))
                     Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=D2
 
     if(prn_Peff):
@@ -206,9 +210,9 @@ def SF_Harmonic_Analysis(nldb, tol=1e-7, X_order=4, T_range=[-1, -1],prn_Peff=Fa
         footer2='Time dependent polarization reproduced from Fourier coefficients'
         for i_f in range(n_frequencies):
             values2=np.c_[time.real/fs2aut]
-            values2=values2=np.append(values2,np.c_[P[i_f,0,:].real],axis=1)
-            values2=values2=np.append(values2,np.c_[P[i_f,1,:].real],axis=1)
-            values2=values2=np.append(values2,np.c_[P[i_f,2,:].real],axis=1)
+            values2=np.append(values2,np.c_[P[i_f,0,:].real],axis=1)
+            values2=np.append(values2,np.c_[P[i_f,1,:].real],axis=1)
+            values2=np.append(values2,np.c_[P[i_f,2,:].real],axis=1)
             output_file2='o.YamboPy-pol_reconstructed_F'+str(i_f+1)
             np.savetxt(output_file2,values2,header=header2,delimiter=' ',footer=footer2)
 
