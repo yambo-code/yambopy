@@ -84,7 +84,7 @@ class ProjwfcXML(object):
 
         if(qe_version=='7.0'):
             states = []
-            #                                                                                        wfc                  l                 j                 m_j                 
+            #                                                                                         wfc                  l                 j                 m_j                 
             for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z]+)\s+\),\s+wfc\s+([0-9])\s+\((?:l=([0-9.]+))? ?(?:j=([0-9.]+))? ?(?:m_j=\s+([0-9.]+))?',f.read()):
                 # examples of the lines we have to read
                 #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin case
@@ -105,13 +105,12 @@ class ProjwfcXML(object):
                 # examples of the lines we have to read
                 #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin case
                 #  5: atom   1 (C  ), wfc  3 (j=1.5 l=1 m_j=-1.5)     #non collinear spin case
-                _, iatom, atype, wfc, j, l, m, m_j = line
-                state = {'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc)}
+                istate, iatom, atype, wfc, j, l, m, m_j = line
                 if j: j = float(j)
                 if l: l = int(l)
                 if m: m = int(m)
                 if m_j: m_j = float(m_j)
-                states.append({'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc), 'j':j, 'l':l, 'm':m, 'm_j':m_j})
+                states.append({'istate':int(istate),'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc), 'j':j, 'l':l, 'm':m, 'm_j':m_j})
             self.states = states
 
             f.close()
@@ -134,6 +133,27 @@ class ProjwfcXML(object):
 
         return proj
 
+    def get_states_helper(self, atom_query=['all'], orbital_query=['s','p','d','f']):
+        """
+        Get the sates that you want based on dictionary query by providing array of atoms and orbitals, default all orbitals
+        """
+        states =  self.states
+        queried_states = []
+
+        for state in states:
+            if (atom_query == ['all']) or (state['atype'] in atom_query):
+                if (state['l']==0) and 's' in orbital_query:         #s orbital
+                    queried_states.append(state)
+                if (state['l']==1) and 'p' in orbital_query:         #p orbital
+                    queried_states.append(state)
+                if (state['l']==2) and 'd' in orbital_query:         #d orbital
+                    queried_states.append(state)
+                if (state['l']==3) and 'f' in orbital_query:         #f orbital
+                    queried_states.append(state)
+                
+        return queried_states
+
+
     def plot_eigen(self, ax, size=20, cmap=None, cmap2=None,color='r', color_2='b',path_kpoints=[], label_1=None, label_2=None,
                    selected_orbitals=[], selected_orbitals_2=[],bandmin=0,bandmax=None,alpha=1,size_projection=False,y_offset=0.0):
         """ 
@@ -148,7 +168,7 @@ class ProjwfcXML(object):
         Under development to include also colormap and a dictionary for the
         selection of the orbitals...
         """
-        from numpy import arange
+        #from numpy import arange # redundent
         import matplotlib.pyplot as plt
         import matplotlib as mpl
         if path_kpoints:
