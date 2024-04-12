@@ -80,8 +80,9 @@ class YamboExcitonPhononDB():
                 break
         
         # Necessary lattice information
-        self.alat = lattice.alat
-        self.rlat = lattice.rlat
+        self.lattice = lattice
+        self.alat    = lattice.alat
+        self.rlat    = lattice.rlat
         
         # Keep reading
         if read_all: self.read_full_DB()
@@ -169,7 +170,7 @@ class YamboExcitonPhononDB():
         
         # Global plot stuff
         self.fig, self.ax = plt.subplots(1, 1)
-        self.ax.add_patch(BZ_hexagon(self.rlat))
+        self.ax.add_patch(BZ_Wigner_Seitz(self.lattice))
         
         if plt_cbar:
             if 'cmap' in kwargs.keys(): color_map = plt.get_cmap(kwargs['cmap'])
@@ -182,7 +183,7 @@ class YamboExcitonPhononDB():
         BZs = shifted_grids_2D(qpts,self.rlat)
         for qpts_s in BZs: plot=self.ax.scatter(qpts_s[:,0],qpts_s[:,1],c=data,**kwargs)
         
-        if plt_cbar: self.fig.colorbar(plot)
+        if plt_cbar: self.cbar = self.fig.colorbar(plot)
         
         plt.gca().set_aspect('equal')
 

@@ -74,7 +74,7 @@ def BZ_hexagon(rlat,center=(0.,0.),orientation=np.radians(30),color='white',line
     # Matplotlib patch
     hexagon=RegularPolygon(center,numVertices=6,radius=radius,\
                            orientation=orientation,facecolor=to_rgba('white',0.),\
-                           edgecolor=to_rgba(color,1.),linewidth=linewidth)
+                           edgecolor=to_rgba(color,1.),linewidth=linewidth,zorder=10)
 
     return hexagon
 
@@ -94,7 +94,7 @@ def BZ_rectangle(rlat,color='white',linewidth=2):
     width, height  = rlat[0,0], rlat[1,1]
     origin = [-width/2.,-height/2.]
     rectangle = Rectangle(origin,width,height,facecolor=to_rgba('white',0.),\
-                          edgecolor=to_rgba(color,1.),linewidth=linewidth)
+                          edgecolor=to_rgba(color,1.),linewidth=linewidth,zorder=10)
 
     return rectangle
 

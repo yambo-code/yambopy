@@ -35,8 +35,9 @@ if __name__ == "__main__":
     yel = YamboElectronsDB(ylat,save=save_path+'/SAVE')
     print(yel)
     
-    # Plot dipoles in k-space
-    dip_of_k = np.abs(ydip.dipoles[:,i_x,i_c,i_v])+np.abs(ydip.dipoles[:,i_y,i_c,i_v])
+    # Plot dipoles in k-space (modulus, summed over x,y,z)
+    dip_of_k = np.sqrt( np.sum( np.abs(ydip.dipoles[:,:,i_c,i_v])**2., axis=1) )
+    #dip_of_k = np.sqrt( np.abs(ydip.dipoles[:,i_x,i_c,i_v])**2.+np.abs(ydip.dipoles[:,i_y,i_c,i_v])**2. ) # sum over x,y plane only
     ydip.plot_dipoles(dip_of_k,s=100,plt_cbar=False,marker='H',cmap='viridis')
 
     # Get independent-particles absorption spectrum
