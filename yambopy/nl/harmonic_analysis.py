@@ -38,11 +38,16 @@ def Coefficents_Inversion(NW,NX,P,W,T_period,T_range,T_step,efield,INV_MODE):
     P_i    = np.zeros(M_size, dtype=np.double)
     T_i    = np.zeros(M_size, dtype=np.double)
     X_here = np.zeros(nP_components, dtype=np.cdouble)
+    Sampling = np.zeros((M_size,2), dtype=np.double)
+
 
 # Calculation of  T_i and P_i
     for i_t in range(M_size):
         T_i[i_t] = (i_t_start + i_deltaT * i_t)*T_step - efield["initial_time"]
         P_i[i_t] = P[i_t_start + i_deltaT * i_t]
+
+    Sampling[:,0]=T_i/fs2aut
+    Sampling[:,1]=P_i
 
 # Build the M matrix
     for i_t in range(M_size):
@@ -82,7 +87,7 @@ def Coefficents_Inversion(NW,NX,P,W,T_period,T_range,T_step,efield,INV_MODE):
         for i_t in range(M_size):
            X_here[i_n]=X_here[i_n]+INV[i_n,i_t]*P_i[i_t] 
 
-    return X_here
+    return X_here,Sampling
 
 
 
@@ -137,8 +142,10 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
 
     print("Time range : ",str(T_range[0]/fs2aut),'-',str(T_range[1]/fs2aut),'[fs]')
         
+    M_size = 2*X_order + 1  # Positive and negative components plut the zero
     X_effective       =np.zeros((X_order+1,n_runs,3),dtype=np.cdouble)
     Susceptibility    =np.zeros((X_order+1,n_runs,3),dtype=np.cdouble)
+    Sampling          =np.zeros((M_size, 2,n_runs,3),dtype=np.double)    
     Harmonic_Frequency=np.zeros((X_order+1,n_runs),dtype=np.double)
 
     # Generate multiples of each frequency
@@ -171,7 +178,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             print("WARNING! Time range out of bounds for frequency :",Harmonic_Frequency[1,i_f]*ha2ev,"[eV]")
         #
         for i_d in range(3):
-            X_effective[:,i_f,i_d]=Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],Harmonic_Frequency[:,i_f],T_period,T_range,T_step,efield,INV_MODE)
+            X_effective[:,i_f,i_d],Sampling[:,:,i_f,i_d]=Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],Harmonic_Frequency[:,i_f],T_period,T_range,T_step,efield,INV_MODE)
 
     # Calculate Susceptibilities from X_effective
     for i_order in range(X_order+1):
@@ -209,6 +216,15 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             output_file2='o.YamboPy-pol_reconstructed_F'+str(i_f+1)
             np.savetxt(output_file2,values2,header=header2,delimiter=' ',footer=footer2)
 
+        # Print Sampling point
+        footer2='Sampled polarization'
+        for i_f in range(n_runs):
+            values=np.c_[Sampling[:,0,i_f,0]]
+            values=np.append(values,np.c_[Sampling[:,1,i_f,0]],axis=1)
+            values=np.append(values,np.c_[Sampling[:,1,i_f,1]],axis=1)
+            values=np.append(values,np.c_[Sampling[:,1,i_f,2]],axis=1)
+            output_file3='o.YamboPy-sampling_F'+str(i_f+1)
+            np.savetxt(output_file3,values,header=header2,delimiter=' ',footer=footer2)
 
     # Print the result
     for i_order in range(X_order+1):
