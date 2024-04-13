@@ -90,11 +90,10 @@ class ProjwfcXML(object):
                 #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin case
                 #  5: atom   1 (C  ), wfc  3 (j=1.5 l=1 m_j=-1.5)     #non collinear spin case
                 _, iatom, atype, wfc, l, j, m_j = line
-                state = {'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc)}
                 if j: j = float(j)
                 if l: l = int(l)
                 if m_j: m_j = float(m_j)
-                states.append({'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc), 'l':l, 'j':j, 'm_j':m_j})
+                states.append({'istate':int(istate), 'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc), 'l':l, 'j':j, 'm_j':m_j})
             self.states = states
 
             f.close()            
@@ -136,6 +135,8 @@ class ProjwfcXML(object):
     def get_states_helper(self, atom_query=['all'], orbital_query=['s','p','d','f']):
         """
         Get the sates that you want based on dictionary query by providing array of atoms and orbitals, default all orbitals
+        
+        Returns an array with the indices of the requested states in the qe array
         """
         states =  self.states
         queried_states = []
@@ -143,13 +144,13 @@ class ProjwfcXML(object):
         for state in states:
             if (atom_query == ['all']) or (state['atype'] in atom_query):
                 if (state['l']==0) and 's' in orbital_query:         #s orbital
-                    queried_states.append(state)
+                    queried_states.append(state['istate'] - 1)
                 if (state['l']==1) and 'p' in orbital_query:         #p orbital
-                    queried_states.append(state)
+                    queried_states.append(state['istate'] - 1)
                 if (state['l']==2) and 'd' in orbital_query:         #d orbital
-                    queried_states.append(state)
+                    queried_states.append(state['istate'] - 1)
                 if (state['l']==3) and 'f' in orbital_query:         #f orbital
-                    queried_states.append(state)
+                    queried_states.append(state['istate'] - 1)
                 
         return queried_states
 
@@ -167,6 +168,12 @@ class ProjwfcXML(object):
 
         Under development to include also colormap and a dictionary for the
         selection of the orbitals...
+        example usage to get: 
+             state #   2: atom   1 (Li ), wfc  2 (l=1 m= 1)
+        
+        plot_eigen(ax, path_kpoints=path_kpoints, selected_orbitals=[1], color=color, size=dotsize) 
+
+            notice python counting; state# - 1 = selected_orbital index
         """
         #from numpy import arange # redundent
         import matplotlib.pyplot as plt
@@ -279,7 +286,7 @@ class ProjwfcXML(object):
         """
         This function return the weights for d-orbitals in the basis of a1g, e+
         and e- 
-        selected_orbitals must the d-orbital list in the order of QE
+        selected_orbitals must the indices of the d-orbital in the array in the order of QE
         """
         if bandmax is None:
            bandmax = self.nbands
