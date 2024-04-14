@@ -89,7 +89,7 @@ class ProjwfcXML(object):
                 # examples of the lines we have to read
                 #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin case
                 #  5: atom   1 (C  ), wfc  3 (j=1.5 l=1 m_j=-1.5)     #non collinear spin case
-                _, iatom, atype, wfc, l, j, m_j = line
+                istate, iatom, atype, wfc, l, j, m_j = line
                 if j: j = float(j)
                 if l: l = int(l)
                 if m_j: m_j = float(m_j)
@@ -155,7 +155,7 @@ class ProjwfcXML(object):
         return queried_states
 
 
-    def plot_eigen(self, ax, size=20, cmap=None, cmap2=None,color='r', color_2='b',path_kpoints=[], label_1=None, label_2=None,
+    def plot_eigen(self, ax, size=20, cmap=None, cmap2=None,color='r', color_2='b',path_kpoints=[], label_1='', label_2='',
                    selected_orbitals=[], selected_orbitals_2=[],bandmin=0,bandmax=None,alpha=1,size_projection=False,y_offset=0.0):
         """ 
         Plot the band structure. The size of the points is the weigth of the selected orbitals.
@@ -169,7 +169,7 @@ class ProjwfcXML(object):
         Arguments for plot layout:
         - size:     size of markers in scatterplot        [default 20]
         - alpha:    alpha value of markers in scatterplot [default 1]
-        - label_1, label_2: plot labels [default None]
+        - label_1, label_2: plot labels [default empty string]
 
         Under development to include also colormap and a dictionary for the
         selection of the orbitals...
