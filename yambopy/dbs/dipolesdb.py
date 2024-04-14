@@ -1,5 +1,4 @@
-# Copyright (c) 2018, Henrique Miranda
-# All rights reserved.
+# Authors: HPCM, FP
 #
 # This file is part of the yambopy project
 #
@@ -14,12 +13,12 @@ from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz,shifted_grids_2
 
 class YamboDipolesDB():
     """
-    Class to read the dipoles databases from the ``ndb.dip*`` files
+    Class to read the dipoles databases from the ``ndb.dipoles`` files
     
     Can be used to plot, for example, the imaginary part of the dielectric
     function which corresponds to the optical absorption, or directly the matrix elements in kspace.
 
-    Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v].
+    Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v]. If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
     """
     def __init__(self,lattice,save='SAVE',filename='ndb.dip_iR_and_P',dip_type='iR',field_dir=[1,0,0],field_dir3=[0,0,1]):
         self.lattice = lattice
@@ -32,7 +31,7 @@ class YamboDipolesDB():
             raise IOError("Error opening %s in YamboDipolesDB"%self.filename)
             
         self.nq_ibz, self.nq_bz, self.nk_ibz, self.nk_bz = database.variables['HEAD_R_LATT'][:].astype(int)
-        self.spin = database.variables['SPIN_VARS'][1].astype(int)
+        self.spin = database.variables['SPIN_VARS'][0].astype(int)
 
         # indexv is the maximum partially occupied band
         # indexc is the minimum partially empty band
@@ -43,50 +42,83 @@ class YamboDipolesDB():
         self.nbands  = self.max_band-self.min_band+1
         self.nbandsv = self.indexv-self.min_band+1
         self.nbandsc = self.max_band-self.indexc+1
-        
+        self.indexv = self.indexv-1
+        self.indexc = self.indexc-1
+        self.index_firstv = self.min_band-1
+        self.open_shell = False
+        d_n_el = self.nbandsv + self.nbandsc - self.nbands
+        if d_n_el != 0:
+            # We assume the excess electron(s)/hole(s) are in the spin=0 channel
+            print("[WARNING] You may be considering an open-shell system. Careful: optical absorption UNTESTED.")
+            self.open_shell = True
+            self.n_exc_el = d_n_el # this can be negative for excess holes
+            # Spin-dependent band indices: these are taken from PARS so be careful
+            self.indexv_os  = [self.indexv, self.indexv-d_n_el]
+            self.indexc_os  = [self.indexc+d_n_el, self.indexc]
+            self.nbandsv_os = [self.nbandsv, self.nbandsv-d_n_el ] 
+            self.nbandsc_os = [self.nbandsc-d_n_el, self.nbandsc ]
+
         #read the database
         self.dipoles = self.readDB(dip_type)
 
         #expand the dipoles to the full brillouin zone
-        self.expandDipoles(self.dipoles)
+        if self.spin==1: self.expandDipoles(self.dipoles)
+        if self.spin==2:
+            dip_up, dip_dn = self.dipoles[0], self.dipoles[1]
+            exp_dip      = self.expandDipoles
+            self.dipoles = np.stack((exp_dip(dip_up,spin=0)[0], exp_dip(dip_dn,spin=1)[0]),axis=0) 
 
     def normalize(self,electrons):
         """ 
         Use the electrons to normalize the dipole matrix elements
         """
-        eiv = electrons.eigenvalues
-        nkpoints, nbands = eiv.shape
-        for nk in range(nkpoints):
-            
-            eivk = eiv[nk]
-            
-            #create eigenvalues differences arrays
-            norm = np.array([ [ec-ev for ev in eivk] for ec in eivk  ])
-            
-            #normalize
-            for i,j in product(list(range(nbands)),repeat=2):
-                if norm[i,j] == 0: 
-                    self.dipoles[nk,:,i,j] = 0
-                else:
-                    self.dipoles[nk,:,i,j] = self.dipoles[nk,:,i,j]/norm[i,j]
+        # We take the eivs with the added spin dimensions even in non-spin pol case
+        eiv = electrons.eigenvalues_sp_pol
+        nkpoints, nbands = eiv[0].shape
+
         dipoles = self.dipoles
+        if self.spin==1: dipoles = np.expand_dims(dipoles,axis=0)
+        print(dipoles.shape)
+        for nk in range(nkpoints):
+            for ns in range(self.spin):
+
+                eiv_sk = eiv[ns,nk]
+            
+                #create eigenvalues differences arrays
+                norm = np.array([ [ec-ev for ev in eiv_sk] for ec in eiv_sk ])
+            
+                #normalize
+                for i,j in product(list(range(nbands)),repeat=2):
+
+                    if norm[i,j] == 0: dipoles[ns,nk,:,i,j] = 0.
+                    else: dipoles[ns,nk,:,i,j] = dipoles[ns,nk,:,i,j]/norm[i,j]
+
+        if self.spin==1: dipoles=np.squeeze(dipoles)
+        self.dipoles = dipoles
 
     def readDB(self,dip_type):
         """
         The dipole matrix has the following indexes:
-        [nkpoints, cartesian directions, nspin, nbands conduction, nbands valence]
+        [nspin, nkpoints, cartesian directions, nbands conduction, nbands valence]
         """
         #check if output is in the old format
         fragmentname = "%s_fragment_1"%(self.filename)
         if os.path.isfile(fragmentname): return self.readDB_oldformat(dip_type)
 
         self.dip_type = dip_type
-        dipoles = np.zeros([self.nk_ibz,3,self.nbandsc,self.nbandsv],dtype=np.complex64)
+        if self.spin==1: 
+            dipoles = np.zeros([self.nk_ibz,3,self.nbandsc,self.nbandsv],dtype=np.complex64)
+        if self.spin==2:
+            dipoles = np.zeros([self.spin,self.nk_ibz,3,self.nbandsc,self.nbandsv],dtype=np.complex64)
         
         database = Dataset(self.filename)
-        dip = np.squeeze(database.variables['DIP_%s'%(dip_type)])
-        dip = (dip[:,:,:,:,0]+1j*dip[:,:,:,:,1]) # Read as nk,nv,nc,ir
-        dipoles = np.swapaxes(dip,1,3) # Swap indices as mentioned in the docstring
+        dip = database.variables['DIP_%s'%(dip_type)]
+        if self.spin==1:
+            dip = np.squeeze(dip)
+            dip = (dip[:,:,:,:,0]+1j*dip[:,:,:,:,1]) # Read as nk,nv,nc,ir
+        if self.spin==2:
+            dip = (dip[:,:,:,:,:,0]+1j*dip[:,:,:,:,:,1]) # Read as ns,nk,nv,nc,ir
+        dipoles = np.swapaxes(dip,self.spin,self.spin+2) # Swap indices as mentioned in the docstring
         database.close()
 
         return dipoles
@@ -133,7 +165,7 @@ class YamboDipolesDB():
 
         return dipoles
         
-    def expandDipoles(self,dipoles=None,field_dir=[1,0,0],field_dir3=[0,0,1]):
+    def expandDipoles(self,dipoles=None,field_dir=[1,0,0],field_dir3=[0,0,1],spin=None):
         """
         Expand diples from the IBZ to the FBZ
         """
@@ -159,10 +191,15 @@ class YamboDipolesDB():
 
         #get band indexes
         nkpoints = len(nks)
-        indexv = self.min_band-1
-        indexc = self.indexc-1
+        indexv = self.index_firstv #self.min_band-1
+        indexc = self.indexc       #self.indexc-1 
+        nbandsv = self.nbandsv
+        nbandsc = self.nbandsc
         nbands = self.min_band+self.nbands-1
-        
+        if self.open_shell: indexc  = self.indexc_os[spin]
+        if self.open_shell: nbandsv = self.nbandsv_os[spin]
+        if self.open_shell: nbandsc = self.nbandsc_os[spin]
+
         #Note that P is Hermitian and iR anti-hermitian.
         # [FP] Other possible dipole options (i.e., velocity gauge) to be checked. Treat them as not supported.
         if self.dip_type == 'P':
@@ -172,7 +209,7 @@ class YamboDipolesDB():
            
         #save dipoles in the ibz
         self.dipoles_ibz = dipoles 
-        #get dipoles in the full Brilouin zone
+        #get dipoles in the full Brillouin zone
         self.dipoles = np.zeros([nkpoints,3,nbands,nbands],dtype=np.complex64)
         for nk_fbz,nk_ibz,ns in zip(list(range(nkpoints)),nks,nss):
             
@@ -189,31 +226,31 @@ class YamboDipolesDB():
             #transformation
             tra = np.dot(pro,sym)
             
-            for c,v in product(list(range(self.nbandsc)),list(range(self.nbandsv))):
-                #rotate dipoles
+            #rotate dipoles
+            for c,v in product(list(range(nbandsc)),list(range(nbandsv))):
                 self.dipoles[nk_fbz,:,indexc+c,indexv+v] = np.dot(tra,dip[:,c,v])
         
             #make hermitian
-            for c,v in product(list(range(self.nbandsc)),list(range(self.nbandsv))):
+            for c,v in product(list(range(nbandsc)),list(range(nbandsv))):
                 self.dipoles[nk_fbz,:,indexv+v,indexc+c] = factor*np.conjugate(self.dipoles[nk_fbz,:,indexc+c,indexv+v])
                         
         self.field_dirx = field_dirx
         self.field_diry = field_diry
         self.field_dirz = field_dirz
         
-        return dipoles, kpts
+        return self.dipoles, kpts
        
     def plot(self,ax,kpoint=0,dir=0,func=abs2):
         return ax.matshow(func(self.dipoles[kpoint,dir]))
 
     @add_fig_kwargs
-    def plot_dipoles(self,data,plt_show=False,plt_cbar=False,shift_BZ=True,**kwargs):
+    def plot_dipoles(self,data,nspin=-1,plt_show=False,plt_cbar=False,shift_BZ=True,**kwargs):
         """
-        2D scatterplot in the k-BZ of the quantity A_{k}(ik,idir,ic,iv).
+        2D scatterplot in the k-BZ of the quantity A_{k}(is,ik,idir,ic,iv).
         TODO: this is the same function as plot_elph in elphondb. They should be merged.
 
         Any real quantity which is a function of only the k-grid may be supplied.
-        The indices ik,idir,ic,iv are user-specified.
+        The indices is,ik,idir,ic,iv are user-specified. 
 
         - if plt_show plot is shown
         - if plt_cbar colorbar is shown
@@ -256,13 +293,16 @@ class YamboDipolesDB():
         if plt_show: plt.show()
         else: print("Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
         
-    def ip_eps2(self,electrons,mode='imag',pol=1,ntot_dip=-1,GWshift=0.,broad=0.1,broadtype='l',nbnds=[-1,-1],emin=0.,emax=10.,esteps=500,res_k=False):
+    def ip_eps2(self,electrons,mode='imag',pol=1,ntot_dip=-1,nspin=-1,GWshift=0.,broad=0.1,broadtype='l',nbnds=[-1,-1],emin=0.,emax=10.,esteps=500,res_k=False):
         """
         Compute independent-particle absorption [interband transitions]
 
         electrons -> electrons YamboElectronsDB
         pol -> polarization direction(s). Can be integer or list of dirs to be summed over.
         ntot_dip -> if nbands_dip in ndb.dipoles < nbands_el in ns.db1, set ntot_dip=nbands_dip 
+        nspin -> if -1 spin polarisations are summed (default)
+                 if  0 only majority spin channel is considered
+                 if  1 only minority spin channel is considered 
         GWshift -> rigid GW shift in eV
         broad -> broadening of peaks in eV
         broadtype -> 'l' is lorentzian, 'g' is gaussian
@@ -289,15 +329,22 @@ class YamboDipolesDB():
         """
 
         #get eigenvalues and weights of electrons
-        eiv = electrons.eigenvalues
-        #print(eiv.shape)
+        eiv = electrons.eigenvalues_sp_pol
         weights = electrons.weights
         nv = electrons.nbandsv
         nc = electrons.nbandsc   
+        nkpoints = len(eiv[0]) 
 
         #get dipoles
         dipoles = self.dipoles
-        nkpoints = len(dipoles)
+        # (shape them according to spin polarization)
+        sp_pol = self.spin # sum over all spin channels
+        if self.spin==1: 
+            dipoles = np.expand_dims(dipoles,axis=0)
+        if self.spin==2 and (nspin==0 or nspin==1) : 
+                dipoles = np.expand_dims(self.dipoles[nspin],axis=0)
+                eiv = np.expand_dims(eiv[nspin],axis=0)
+                sp_pol = self.spin-1 # sum over one spin channel only
 
         #get frequencies and im
         freq = np.linspace(emin,emax,esteps)
@@ -306,7 +353,7 @@ class YamboDipolesDB():
 
         #Cut bands to the maximum number used for the dipoles
         if ntot_dip>0: 
-            eiv = eiv[:,:ntot_dip]
+            eiv = eiv[:,:,:ntot_dip]
             nc=ntot_dip-nv
 
         #Print band gap values and apply GW_shift
@@ -328,22 +375,27 @@ class YamboDipolesDB():
         #      - In 3D there is a factor missing
         #      - In 2D there is a frequency dependence eps(w)->eps(w)/w missing (and a factor)
         #setting to 1. for now
-        cofactor = 16*np.pi/self.lattice.rlat_vol
-        cofactor = 1.
+        if self.spin == 1 : spin_deg=2
+        if self.spin == 2 : spin_deg=1
+        cofactor = spin_deg*8.*np.pi/self.lattice.rlat_vol
+        cofactor = spin_deg*1.
 
         na = np.newaxis
         epskres = np.zeros([esteps,nkpoints])
         #calculate epsilon
-        for c,v in product(range(nv,lc),range(iv,nv)):
+        for c,v,s in product(range(nv,lc),range(iv,nv),range(sp_pol)):
 
                 #get electron-hole energy and dipoles
                 #(sum over pol directions if needed)
-                ecv  = eiv[:,c]-eiv[:,v]
+                eivs = eiv[s]
+                ecv  = eivs[:,c]-eivs[:,v]
+
+                dips = dipoles[s]
                 dip2=0.
                 try:
-                    for p in pol: dip2 = dip2 + np.abs(dipoles[:,p,c,v])**2
+                    for p in pol: dip2 = dip2 + np.abs(dips[:,p,c,v])**2
                 except TypeError: 
-                    dip2 = np.abs(dipoles[:,pol,c,v])**2.
+                    dip2 = np.abs(dips[:,pol,c,v])**2.
 
                 #make dimensions match
                 dip2a = dip2[na,:]
@@ -373,7 +425,7 @@ class YamboDipolesDB():
                     # oscillators
                     osc = wa*dip2a
 
-                    # +=: sum over (c,v) ; np.sum(axis=1): sum over k                    
+                    # +=: sum over (c,v,s) ; np.sum(axis=1): sum over k                    
                     eps += np.sum(osc*(G1+G2),axis=1)/np.pi
 
         eps = eps*cofactor
@@ -425,8 +477,13 @@ class YamboDipolesDB():
         app("nbandsv: %d" % self.nbandsv)
         app("nbandsc: %d" % self.nbandsc)
         app("indexv : %d" % (self.min_band-1))
-        app("indexc : %d" % (self.indexc-1))
+        app("indexc : %d" % self.indexc)
         app("gauge  : %s" % (self.dip_type))
+        app("spin:")
+        app("spin pol         : %d" % (self.spin))
+        if self.spin==2:
+            app("open shell       : %s" % (self.open_shell))
+            if self.open_shell: app("excess electrons : %d" % (self.n_exc_el))
         app("field_dirx: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirx))
         app("field_diry: %10.6lf %10.6lf %10.6lf"%tuple(self.field_diry))
         app("field_dirz: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirz))

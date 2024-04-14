@@ -66,6 +66,7 @@ class YamboQPDB():
         """
         Create instance of this class from a ndb.QP file
         """
+        cls.qp_path = folder
         db_path = os.path.join(folder,filename)
         if os.path.isfile(db_path):
             yfile = YamboFile(filename,folder)
@@ -197,23 +198,26 @@ class YamboQPDB():
         Plot the scissor on a matplotlib axis
         """
         shift,cslope,vslope,cintercept,vintercept=self.get_scissor(valence,verbose=verbose)
+
         #plot qps
-        ve0,vqp,_ = self.get_filtered_qps(self.min_band,valence)
+        ve0,vqp,_=self.get_filtered_qps(self.min_band,valence)
         ve0 = np.array(ve0)
         vqp = np.array(vqp)
-        ax.scatter(ve0,vqp)
-        ce0,cqp,_ = self.get_filtered_qps(valence+1,self.max_band)
+        #ax.scatter(ve0,vqp)
+        ce0,cqp,_=self.get_filtered_qps(valence+1,self.max_band)
         ce0 = np.array(ce0)
         cqp = np.array(cqp)
-        ax.scatter(ce0,cqp)
+        #ax.scatter(ce0,cqp)
 
         #plot the fits
-        #vx = np.linspace(np.min(ve0),np.max(ve0),2)
-        #cx = np.linspace(np.min(ce0),np.max(ce0),2)
-        #vy = vslope*vx+vintercept
-        #cy = cslope*cx+cintercept
+        vx = np.linspace(np.min(ve0),np.max(ve0),2)
+        cx = np.linspace(np.min(ce0),np.max(ce0),2)
+        vy = vslope*vx+vintercept
+        cy = cslope*cx+cintercept
         #ax.plot(vx,vy)
         #ax.plot(cx,cy)
+
+        return ax.scatter(ve0,vqp), ax.scatter(ce0,cqp), ax.plot(vx,vy), ax.plot(cx,cy)
 
     @add_fig_kwargs
     def plot_scissor(self,valence,verbose=1):
@@ -226,9 +230,9 @@ class YamboQPDB():
         self.plot_scissor_ax(ax,valence,verbose=verbose)
         return fig
 
-    def get_bs_path(self,lat,path,**kwargs):
+    def get_bs_path(self,lat,path,debug=False,**kwargs):
         """Get a band-structure on a path"""
-        bands_kpoints, bands_indexes, path_car = lat.get_path(path.kpoints,debug=True)
+        bands_kpoints, bands_indexes, path_car = lat.get_path(path.kpoints,debug=debug)
 
         # set fermi energy
         # NOT EVIDENT IN SPIN-POLARIZED SYSTEM
@@ -271,7 +275,7 @@ class YamboQPDB():
         """
         Interpolate the QP corrections on a k-point path, requires the lattice structure
         """
-        from abipy.core.skw import SkwInterpolator
+        from yambopy.tools.skw import SkwInterpolator
 
         if verbose:
             print("This interpolation is provided by the SKW interpolator implemented in Abipy")
@@ -375,6 +379,18 @@ class YamboQPDB():
            return ks_ebands_up, ks_ebands_dw , qp_ebands_up, qp_ebands_dw
         else: 
            return ks_ebands, qp_ebands
+
+    def expand_eigenvalues(self,lattice):
+        """ Expand QP values in full BZ
+            - Input: YamboLatticeDB object with expanded kpts
+        """
+        nkbz   = lattice.nkpoints
+        bz2ibz = lattice.kpoints_indexes
+
+        eigenvalues_qp_expanded = np.zeros((nkbz,self.nbands))
+        for ikbz in range(nkbz): eigenvalues_qp_expanded[ikbz,:] = self.eigenvalues_qp[bz2ibz[ikbz],:] 
+        return eigenvalues_qp_expanded
+
 
     @add_fig_kwargs
     def plot_bs(self,**kwargs):

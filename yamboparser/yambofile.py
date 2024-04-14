@@ -34,9 +34,10 @@ class YamboFile(object):
     """
     _output_prefixes = ['o-']
     _report_prefixes = ['r-','r.']
-    _log_prefixes    = ['l-','l.']
+    _log_prefixes    = ['l-','l.','l_']
     _netcdf_prefixes = ['ns','ndb']
     _netcdf_sufixes  = {'QP':'gw','HF_and_locXC':'hf'}
+    _outputs_type = {'output_abs':'eps','output_loss':'eel','output_alpha':'alpha', 'output_jdos':'jdos'}
 
     def __init__(self,filename,folder='.'):
         self.filename = filename
@@ -52,7 +53,7 @@ class YamboFile(object):
         self.type = YamboFile.get_filetype(filename,folder)
 
         #if needed read the lines
-        if self.type in ['output_gw','log','report']:
+        if self.type in ['output_gw', 'log', 'report', 'output_abs', 'output_loss', 'output_alpha', 'output_jdos',]:
             #read lines from file
             with open(os.path.join(folder,filename),'r') as f:
                 self.lines = f.readlines()
@@ -75,8 +76,12 @@ class YamboFile(object):
             #get the line with the title
             title = lines[14]
 
-            if 'GW' in title:
+            if 'GW' in title or '.qp' in filename:
                  type = 'output_gw'
+            
+            else:
+                for key, val in list(zip(YamboFile._outputs_type.keys(),YamboFile._outputs_type.values())):
+                    if val in filename: type = key
 
         elif any(basename.startswith(prefix) for prefix in YamboFile._report_prefixes):
             type = 'report'
@@ -96,7 +101,7 @@ class YamboFile(object):
         """
         if   self.type == 'netcdf_gw': self.parse_netcdf_gw()
         elif self.type == 'netcdf_hf': self.parse_netcdf_hf()
-        elif self.type == 'output_gw': self.parse_output()
+        elif self.type in ['output_gw', 'output_abs', 'output_loss', 'output_alpha', 'output_jdos']: self.parse_output()
         elif self.type == 'log': self.parse_log()
         elif self.type == 'report'  : self.parse_report()
 
@@ -104,7 +109,7 @@ class YamboFile(object):
         """ Parse an output file from yambo,
         """
         #get the tags of the columns
-        if self.type == "output_absorption":
+        if self.type in YamboFile._outputs_type.keys():  #== "output_absorption":
             tags = [tag.strip() for tag in re.findall('([ `0-9a-zA-Z\-\/]+)\[[0-9]\]',''.join(self.lines))]
         if self.type == "output_gw":
             tags = [line.replace('(meV)','').replace('Sc(Eo)','Sc|Eo') for line in self.lines if all(tag in line for tag in ['K-point','Band','Eo'])][0]
@@ -117,7 +122,7 @@ class YamboFile(object):
                  if k_index[ind] not in list(_kdata.keys()):
                      _kdata[k_index[ind]] = {}
                  try:
-                     _kdata[k_index[ind]][tags[itag]].append(table[ind,itag])
+                     _kdata[k_index[ind]][tags[itag]].append(table[ind,itag]) #errors when you have multiple qp? IndexError: index 5 is out of bounds for axis 1 with size 5
                  except KeyError:
                      _kdata[k_index[ind]][tags[itag]]  = [ table[ind,itag] ]
 

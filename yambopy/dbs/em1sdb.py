@@ -1,24 +1,35 @@
-# Copyright (c) 2018, Henrique Miranda
-# All rights reserved.
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC, FP
 #
 # This file is part of the yambopy project
 #
-from yambopy import *
+import os
+import shutil
+import numpy as np
+import matplotlib.pyplot as plt
 from netCDF4 import Dataset
-from yambopy.lattice import rec_lat, car_red, red_car
+from yambopy.lattice import rec_lat, car_red
+from yambopy.tools.string import marquee
 
 class YamboStaticScreeningDB(object):
     """
     Class to handle static screening databases from Yambo
     
-    This reads the databases ``ndb.em1s*``
+    This reads the databases ``ndb.em1s*`` or equivalently the static part of the ``ndb.pp*``.
     There :math:`√v(q,g1) \chi_{g1,g2} (q,\omega=0) √v(q,g2)` is stored.
     
-    To calculate epsilon (static dielectric function) we do:
+    If a Coulomb truncation is used for :math:`v(q,g)`, then the database ``ndb.cutoff`` is also read.
+
+    We obtain the microscopic inverse dielectric function and the macroscopic dielectric function as:
 
     .. math::
 
-        \epsilon^{-1}_{g1,g2}(q) = 1-v(q,g1)\chi_{g1,g2}
+        \epsilon^{-1}_{g1,g2}(q) = 1+v(q,g1)\chi_{g1,g2}
+        \epsilon_{0,0}(q)={\epsilon^{-1}(q)}^{-1}_{0,0}
         
     """
     def __init__(self,save='.',em1s='.',filename='ndb.em1s',db1='ns.db1',do_not_read_cutoff=False):
@@ -43,19 +54,20 @@ class YamboStaticScreeningDB(object):
             raise FileNotFoundError("File %s not found."%db1)
 
         #read em1s database
-        if os.path.isfile("%s/%s"%(self.em1s,self.filename)): 
-            try:
-                database = Dataset("%s/%s"%(self.em1s,self.filename), 'r')
-            except:
-                raise IOError("Error opening %s/%s in YamboStaticScreeningDB"%(self.save,self.filename))
-        else:
-            raise FileNotFoundError("File %s not found."%self.filename)
+        if not os.path.isfile("%s/%s"%(self.em1s,self.filename)): 
+            if os.path.isfile("%s/%s"%(self.em1s,'ndb.pp')): self.filename = 'ndb.pp' # check for ppa instead of static screening
+            else: raise FileNotFoundError("File %s not found."%self.filename)
 
+        try:
+            database = Dataset("%s/%s"%(self.em1s,self.filename), 'r')
+        except:
+            raise IOError("Error opening %s/%s in YamboStaticScreeningDB"%(self.save,self.filename))
+        
         #read some parameters
-        size,nbands,eh = database.variables['X_PARS_1'][:3]
+        size,band_0,band_1 = database.variables['X_PARS_1'][:3]
         self.size = int(size)
-        self.nbands = int(nbands)
-        self.eh = eh
+        self.nbands = int(band_1-band_0+1)
+        self.first_band, self.last_band = int(band_0), int(band_1)
 
         #read gvectors used for em1s
         gvectors          = np.array(database.variables['X_RL_vecs'][:].T)
@@ -102,6 +114,7 @@ class YamboStaticScreeningDB(object):
 
             # static screening means we have only one frequency
             # this try except is because the way this is stored has changed in yambo
+            # Reading like this is not the best way to do it, but it works for now 
             try:
                 re, im = database.variables['X_Q_%d'%(nq+1)][0,:]
             except:
@@ -156,7 +169,7 @@ class YamboStaticScreeningDB(object):
 
     def get_Coulomb(self):
         """
-        By Matteo Zanfrognini
+        By MZ
 
         If cutoff is present, look for ndb.cutoff and parse it.
         Otherwise, construct bare 3D potential.
@@ -192,7 +205,7 @@ class YamboStaticScreeningDB(object):
                         sqrt_V[iq,ig] = np.sqrt(4.0*np.pi)/QPG        
             self.sqrt_V = sqrt_V
 
-    def _getepsq(self,volume=False,use_trueX=False): 
+    def _getepsq(self,volume=False,use_trueX=False,indices=None): 
         """
         Get epsilon_{0,0} = [1/(1+vX)]_{0,0} as a function of |q|
         vX is a matrix with size equal to the number of local fields components
@@ -205,6 +218,7 @@ class YamboStaticScreeningDB(object):
             ng1, ng2  -> Choose local field components
             volume    -> Normalize with the volume of the cell
             use_trueX -> Use desymmetrised vX [testing]
+            indices   -> Use a subset of the total q-points (e.g. along a certain direction)
         """
         if not use_trueX: 
             X = self.X
@@ -212,11 +226,15 @@ class YamboStaticScreeningDB(object):
             _,_ = self.getem1s()
             X = self.trueX
 
-        x = [np.linalg.norm(q) for q in self.car_qpoints]
+        if indices is None: indices = [ iq for iq in range(self.nqpoints) ] # Use all q-points
+
+        x = [np.linalg.norm(q) for q in self.car_qpoints[indices]]
         y = [np.linalg.inv(np.eye(self.ngvectors)+xq)[0,0] for xq in X ]
-      
+        y = np.array(y)[indices]
+
         #order according to the distance
         x, y = list(zip(*sorted(zip(x, y))))
+        x = np.array(x)
         y = np.array(y)
 
         #scale by volume?
@@ -271,7 +289,7 @@ class YamboStaticScreeningDB(object):
 
         return x,y
  
-    def _getem1s(self,ng1=0,ng2=0,volume=False):
+    def _getem1s(self,ng1=0,ng2=0,volume=False,indices=None):
         """
         Get eps^-1_{ng1,ng2} a function of |q|
 
@@ -291,22 +309,29 @@ class YamboStaticScreeningDB(object):
         Arguments:
             ng1, ng2 -> Choose local field components
             volume   -> Normalize with the volume of the cell
+            indices   -> Use a subset of the total q-points (e.g. along a certain direction)
             symm     -> True:  √v(q,g1) X_{g1,g2}(q) √v(q,g2)
                         False: v(q,g1) X_{g1,g2}(q) TO BE IMPLEMENTED
         """
+        # First of all store trueX (the desymmetrized form) as attribute
         trueX = np.zeros([self.nqpoints,self.size,self.size],dtype=np.complex64)
 
         for ig1 in range(self.ngvectors):
             for ig2 in range(self.ngvectors):
                 trueX[:,ig1,ig2] = self.sqrt_V[:,ig1]*self.X[:,ig1,ig2]/self.sqrt_V[:,ig2]
 
-        self.trueX = trueX # Store trueX as attribute
+        self.trueX = trueX 
 
-        x = [np.linalg.norm(q) for q in self.car_qpoints]
-        y = [xq[ng2,ng1] for xq in self.trueX ]
+        # Now compute quantities for plotting like in _getepsq (but without inversion and for the input g-indices)
+        if indices is None: indices = [ iq for iq in range(self.nqpoints) ] # Use all q-points
+
+        x = [np.linalg.norm(q) for q in self.car_qpoints[indices]]
+        y = [xq[ng1,ng2] for xq in self.trueX ]
+        y = np.array(y)[indices]
 
         #order according to the distance
         x, y = list(zip(*sorted(zip(x, y))))
+        x = np.array(x)
         y = np.array(y)
 
         #scale by volume?
@@ -357,9 +382,11 @@ class YamboStaticScreeningDB(object):
         lines = []; app=lines.append
         app(marquee(self.__class__.__name__))
 
+        app('filename:         %s'%self.filename)
         app('nqpoints (ibz):   %d'%self.nqpoints)
         app('X size (G-space): %d'%self.size) 
         app('cutoff:           %s'%self.cutoff) 
+        app('bands:            %d (%d-%d)'%(self.nbands,self.first_band,self.last_band))
 
         return "\n".join(lines)
 

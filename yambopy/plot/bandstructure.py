@@ -224,23 +224,24 @@ class YambopyBandStructure():
         # Set color bands and weights
         c_bands   = kwargs.pop('c_bands',None)
         c_weights = kwargs.pop('c_weights',None)
-        c_label   = kwargs.pop('c_label',None)
+        label   = kwargs.pop('label',None)
         lw_label  = kwargs.pop('lw_label',None)
-
         # Add option to plot lines or dots
         #linetype
         #dot symbol
         # I choose a colormap for spin
         color_map  = plt.get_cmap('seismic')
+        x = self.distances
+        y = self.bands.T-fermie
         for ib,band in enumerate(self.bands.T):
             x = self.distances
             y = band-fermie
-            ax.plot(x,y,c=c_bands,lw=lw_label,label=c_label)
+            ax.plot(x,y,c=c_bands,lw=lw_label,label=label if ib == 0 else "_nolegend_")
             # fill between 
             if self.weights is not None: # and self.spin_proj is not None:
                 dy = self.weights[:,ib]*size
                 #color_spin = self.spin_proj[:,ib] + 0.5 # I renormalize 0 => down; 1 => up
-                ax.fill_between(x,y+dy,y-dy,alpha=alpha_weights,color=c_weights,linewidth=0,label=c_label)
+                ax.fill_between(x,y+dy,y-dy,alpha=alpha_weights,color=c_weights,linewidth=0,label=label)
                 #ax.scatter(x,y,s=100,c=color_spin,cmap=color_map,vmin=0.0,vmax=1.0,edgecolors='none')
             # dot
             #if self.weights is not None:
@@ -252,11 +253,7 @@ class YambopyBandStructure():
         self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=ylim)
         ax.set_ylabel(ylabel)
         self.add_kpath_labels(ax)
-        if legend: 
-            from collections import OrderedDict
-            handles, labels = plt.gca().get_legend_handles_labels()
-            by_label = OrderedDict(zip(labels, handles))
-            ax.legend(by_label.values(), by_label.keys())
+        if legend: ax.legend()
 
     def plot_spin_ax(self,ax,xlim=None,ylim=None,ylabel='$\epsilon_{n\mathbf{k}}$[eV]',alpha_weights=0.5,spin_proj_bands=None,legend=False,**kwargs):
         """Receive an intance of matplotlib axes and add the plot"""
