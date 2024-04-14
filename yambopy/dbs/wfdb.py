@@ -34,7 +34,7 @@ class YamboWFDB():
         if path is None:
             self.path = save
         else:
-            self.path = path+'/SAVE'
+            self.path = path+f'{save}' # Fix Bug here which made it impossible to read from save with different folder name
         self.filename = filename
         
         #read wf 
