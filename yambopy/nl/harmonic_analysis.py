@@ -208,7 +208,8 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
         header2+="Py     "
         header2+="Pz     "
         footer2='Time dependent polarization reconstructed from Fourier coefficients'
-        for i_f in range(n_runs):
+        print("Print effective polarizations ...")
+        for i_f in tqdm(range(n_runs)):
             values2=np.c_[time.real/fs2aut]
             values2=np.append(values2,np.c_[Peff[i_f,0,:].real],axis=1)
             values2=np.append(values2,np.c_[Peff[i_f,1,:].real],axis=1)
@@ -218,7 +219,8 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
 
         # Print Sampling point
         footer2='Sampled polarization'
-        for i_f in range(n_runs):
+        print("Print sampled polarization ...")
+        for i_f in tqdm(range(n_runs)):
             values=np.c_[Sampling[:,0,i_f,0]]
             values=np.append(values,np.c_[Sampling[:,1,i_f,0]],axis=1)
             values=np.append(values,np.c_[Sampling[:,1,i_f,1]],axis=1)
@@ -227,6 +229,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             np.savetxt(output_file3,values,header=header2,delimiter=' ',footer=footer2)
 
     # Print the result
+    print("Write final results: xhi^1,xhi^2,xhi^3, etc...")
     for i_order in range(X_order+1):
 
         if i_order==0: 
