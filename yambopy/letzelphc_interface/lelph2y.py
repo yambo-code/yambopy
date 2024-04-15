@@ -73,6 +73,7 @@ class ConvertElectronPhononDB():
         self.alat         = ns_db1.variables['LATTICE_PARAMETER'][:].T
         lat               = ns_db1.variables['LATTICE_VECTORS'][:].T
         self.rlat         = rec_lat(lat)
+        self.noncollinear = ns_db1.variables["DIMENSIONS"][:][11]
         
         ns_db1.close()
 
@@ -124,7 +125,7 @@ class ConvertElectronPhononDB():
         if self.bands[0] == 1: self.pars = [self.nmodes,self.nqpoints_bz,self.nkpoints_bz,self.nbands1,True,False,False]
         else:   self.pars = [self.nmodes,self.nqpoints_bz,self.nkpoints_bz,self.bands[0],self.bands[1],True,False,False]
         len_pars = len(self.pars)
-        self.spin_vars = [1,1]
+        self.spin_vars = [self.nspin,self.noncollinear] #YAMBO: SPIN_vec_disk=(/n_sp_pol,n_spinor/)
         self.head_r_latt = [self.nkpoints_ibz,self.nkpoints_bz,self.nqpoints_ibz,self.nqpoints_bz]
         self.fragmented = True
 
