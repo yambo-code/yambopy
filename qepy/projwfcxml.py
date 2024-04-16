@@ -78,11 +78,9 @@ class ProjwfcXML(object):
         #here we open the ouput file of projwfc and get the quantum numbers of the orbitals
         try:
             f = open("%s/%s"%(path,output_filename),'r')
-        except:
-            import sys
-            print("The output file of projwfc.x: %s was not found"%output_filename)
-            sys.exit(1)
-
+            pass
+        except FileNotFoundError:
+            raise Exception(f"The output file of projwfc.x: {output_filename} was not found")
         if(qe_version=='7.0'):
             states = []
             #                                                                                         wfc                  l                 j                 m_j                 
