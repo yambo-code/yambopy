@@ -1,4 +1,12 @@
-
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC, AMS, FP, RR
+#
+# This file is part of the yambopy project
+#
 from yambopy.units import *
 from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz
 from yambopy.plot.bandstructure import *
