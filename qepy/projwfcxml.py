@@ -79,8 +79,9 @@ class ProjwfcXML(object):
         try:
             f = open("%s/%s"%(path,output_filename),'r')
         except:
-            raise FileNotFoundError("The output file of projwfc.x: %s was not found. Either run calculation or specify \
-                                    different name with argument 'output_filename'"%output_filename)
+            import sys
+            print("The output file of projwfc.x: %s was not found"%output_filename)
+            sys.exit(1)
 
         if(qe_version=='7.0'):
             states = []
