@@ -6,6 +6,7 @@ from __future__ import print_function
 from builtins import range
 import sys
 from yambopy import *
+from yambocommandline import*
 from qepy import *
 from schedulerpy import *
 import argparse
@@ -135,6 +136,7 @@ def plot(what):
         ax = plt.subplot(3,1,3)
         y.plot_bse(['eps','BndsRnXs'],ax=ax)
         plt.tight_layout()
+        #plt.savefig('screening_conv_plot.png')
         plt.show()
     else:
         ax = plt.subplot(3,1,1)
@@ -144,6 +146,7 @@ def plot(what):
         ax = plt.subplot(3,1,3)
         y.plot_bse(['eps','BSENGexx'],ax=ax)
         plt.tight_layout()
+        #plt.savefig('absorption_conv_plot.png')
         plt.show()
     print('done!')
 

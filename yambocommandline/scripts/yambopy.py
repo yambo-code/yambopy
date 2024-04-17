@@ -73,6 +73,7 @@ class PlotEm1sCmd(Cmd):
     def __init__(self,args):
         import matplotlib
         import matplotlib.pyplot as plt        
+        from glob import glob
 
         #check for args
         if len(args) < 1:
@@ -88,7 +89,9 @@ class PlotEm1sCmd(Cmd):
         pa('--fontsize',     help='Choose the font size of the plot', default=10, type=int)
         args = parser.parse_args(args)
         folders = args.folders
-       
+        #print(glob('bse_cutoff/*/*'))
+        #print(folders)
+        #exit() 
         #create plot
         fig = plt.figure(figsize=(6,5))
         matplotlib.rcParams.update({'font.size': args.fontsize})
@@ -102,9 +105,10 @@ class PlotEm1sCmd(Cmd):
                         if args.verbose: print("SAVE folder not found")
                     else:
                         os.system('cp %s/../SAVE/ns.db1 %s/'%(folder,folder))
-                ys = YamboStaticScreeningDB(save=folder)
-                #plot epsilon_{00} = [1/(1+vX)]_{00}
-                ys.plot(ax,marker='o',markersize=2,label=folder)
+                print(folder)
+                ys = YamboStaticScreeningDB(save=folder,em1s=folder)
+                #plot epsilon^-1_{00} = [(1+vX)]_{00}
+                ys.plot_epsm1(ax,marker='o',markersize=2,label=folder)
                 #get epsilon^{-1}_{00} = [1+vX]_{00}
                 x,vX = ys._getvxq()
                 epsilons.append([folder,x,1+vX])
