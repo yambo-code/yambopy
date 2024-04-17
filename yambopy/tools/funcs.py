@@ -20,4 +20,8 @@ def gaussian(x,x0,s,max_exp=50.,min_exp=-100.):
     np.place(argument,argument<min_exp,min_exp)
     return height*np.exp(argument)
 
+def boltzman_f(Eb, Bose_Temp):
+    kb = 8.61733326*10**-5
+    return np.exp(-Eb/(kb*Bose_Temp))
+
 

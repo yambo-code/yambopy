@@ -77,27 +77,47 @@ class ProjwfcXML(object):
 
         #here we open the ouput file of projwfc and get the quantum numbers of the orbitals
         try:
-            f = open("%s/%s"%(path,output_filename),'r')
-        except:
-            raise FileNotFoundError("The output file of projwfc.x: %s was not found. Either run calculation or specify \
-                                    different name with argument 'output_filename'"%output_filename)
+            # Try to open the file in the specified path
+            f = open(os.path.join(path, output_filename), 'r')
+        except FileNotFoundError:
+            try:
+                # Try to open the file in the './out' subdirectory of the specified path
+                f = open(os.path.join(path, './out', output_filename), 'r')
+            except FileNotFoundError:
+                # Raise an exception if the file is not found in both locations
+                raise Exception(f"The output file of projwfc.x: {output_filename} was not found in the directory or its ./out subdirectory.")        
+            
+        if(qe_version=='7.0'):
+            states = []
+            #                                                                                         wfc                  l                 j                 m_j                 
+            for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z]+)\s+\),\s+wfc\s+([0-9])\s+\((?:l=([0-9.]+))? ?(?:j=([0-9.]+))? ?(?:m_j=\s+([0-9.]+))?',f.read()):
+                # examples of the lines we have to read
+                #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin case
+                #  5: atom   1 (C  ), wfc  3 (j=1.5 l=1 m_j=-1.5)     #non collinear spin case
+                istate, iatom, atype, wfc, l, j, m_j = line
+                if j: j = float(j)
+                if l: l = int(l)
+                if m_j: m_j = float(m_j)
+                states.append({'istate':int(istate), 'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc), 'l':l, 'j':j, 'm_j':m_j})
+            self.states = states
 
-        states = []
-        #                                                                                        wfc                  j                 l                 m                    m_j
-        for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z]+)\s+\),\s+wfc\s+([0-9])\s+\((?:j=([0-9.]+))? ?(?:l=([0-9.]+))? ?(?:m=\s+([0-9.]+))? ?(?:m_j=([ \-0-9.]+))?',f.read()):
-            # examples of the lines we have to read
-            #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin case
-            #  5: atom   1 (C  ), wfc  3 (j=1.5 l=1 m_j=-1.5)     #non collinear spin case
-            _, iatom, atype, wfc, j, l, m, m_j = line
-            state = {'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc)}
-            if j: j = float(j)
-            if l: l = int(l)
-            if m: m = int(m)
-            if m_j: m_j = float(m_j)
-            states.append({'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc), 'j':j, 'l':l, 'm':m, 'm_j':m_j})
-        self.states = states
+            f.close()            
+        else:
+            states = []
+            #                                                                                        wfc                  j                 l                 m                    m_j
+            for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z]+)\s+\),\s+wfc\s+([0-9])\s+\((?:j=([0-9.]+))? ?(?:l=([0-9.]+))? ?(?:m=\s+([0-9.]+))? ?(?:m_j=([ \-0-9.]+))?',f.read()):
+                # examples of the lines we have to read
+                #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin case
+                #  5: atom   1 (C  ), wfc  3 (j=1.5 l=1 m_j=-1.5)     #non collinear spin case
+                istate, iatom, atype, wfc, j, l, m, m_j = line
+                if j: j = float(j)
+                if l: l = int(l)
+                if m: m = int(m)
+                if m_j: m_j = float(m_j)
+                states.append({'istate':int(istate),'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc), 'j':j, 'l':l, 'm':m, 'm_j':m_j})
+            self.states = states
 
-        f.close()
+            f.close()
 
     def __str__(self):
         s = ""
@@ -117,8 +137,31 @@ class ProjwfcXML(object):
 
         return proj
 
-    def plot_eigen(self, ax, size=20, cmap=None, cmap2=None,color='r', color_2='b',path_kpoints=[], label_1=None, label_2=None,
-                   selected_orbitals=[], selected_orbitals_2=[],bandmin=0,bandmax=None,alpha=1,size_projection=False,y_offset=0.0,marker='.'):
+    def get_states_helper(self, atom_query=['all'], orbital_query=['s','p','d','f']):
+        """
+        Get the sates that you want based on dictionary query by providing array of atoms and orbitals, default all orbitals
+        
+        Returns an array with the indices of the requested states in the qe array
+        """
+        states =  self.states
+        queried_states = []
+
+        for state in states:
+            if (atom_query == ['all']) or (state['atype'] in atom_query):
+                if (state['l']==0) and 's' in orbital_query:         #s orbital
+                    queried_states.append(state['istate'] - 1)
+                if (state['l']==1) and 'p' in orbital_query:         #p orbital
+                    queried_states.append(state['istate'] - 1)
+                if (state['l']==2) and 'd' in orbital_query:         #d orbital
+                    queried_states.append(state['istate'] - 1)
+                if (state['l']==3) and 'f' in orbital_query:         #f orbital
+                    queried_states.append(state['istate'] - 1)
+                
+        return queried_states
+
+
+    def plot_eigen(self, ax, size=20, cmap=None, cmap2=None,color='r', color_2='b',path_kpoints=[], label_1='', label_2='',
+                   selected_orbitals=[], selected_orbitals_2=[],bandmin=0,bandmax=None,alpha=1,size_projection=False,y_offset=0.0):
         """ 
         Plot the band structure. The size of the points is the weigth of the selected orbitals.
 
@@ -131,12 +174,18 @@ class ProjwfcXML(object):
         Arguments for plot layout:
         - size:     size of markers in scatterplot        [default 20]
         - alpha:    alpha value of markers in scatterplot [default 1]
-        - label_1, label_2: plot labels [default None]
+        - label_1, label_2: plot labels [default empty string]
 
         Under development to include also colormap and a dictionary for the
         selection of the orbitals...
+        example usage to get: 
+             state #   2: atom   1 (Li ), wfc  2 (l=1 m= 1)
+        
+        plot_eigen(ax, path_kpoints=path_kpoints, selected_orbitals=[1], color=color, size=dotsize) 
+
+            notice python counting; state# - 1 = selected_orbital index
         """
-        from numpy import arange
+        #from numpy import arange # redundent
         import matplotlib.pyplot as plt
         import matplotlib as mpl
         if path_kpoints:
@@ -176,10 +225,18 @@ class ProjwfcXML(object):
               w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
               for ib in range(bandmin,bandmax):
                   eig = self.eigen[:,ib] + y_offset
+                  eig_last = self.eigen[:,-1] + y_offset
+                  state = self.states
+                  j = state[ib]['j']
+                  l = state[ib]['l']
                   if size_projection==True:
                      cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2,marker=marker)
                   else:
-                     cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2,marker=marker)
+                     cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
+                     #print(f'b:{ib} J={j} L={l}')
+                     #ax.textye(f'b:{ib} J={j} L={l}', ((kpoints_dists[-1]-kpoints_dists[0])/2,ib*(eig_last-eig)/(bandmax-bandmin)), textcoords='offset points', xytext=(0,10), ha='center', va='bottom',color='teal')
+                     #ax.annotate(f'b:{ib} J={j} L={l}', ((kpoints_dists[-1]-kpoints_dists[0])/2,ib*(eig_last-eig)/(bandmax-bandmin)), textcoords='offset points', xytext=(0,10), ha='center', va='bottom',color='teal')
+
 
            # Spin polarized no SOC
            if self.spin_components == 2:
@@ -217,7 +274,7 @@ class ProjwfcXML(object):
 
         ax.set_xlim(0, max(kpoints_dists))
         return cax
-
+    
     def get_weights(self,selected_orbitals=[],bandmin=0,bandmax=None):
         if bandmax is None:
            bandmax = self.nbands
@@ -247,7 +304,7 @@ class ProjwfcXML(object):
         """
         This function return the weights for d-orbitals in the basis of a1g, e+
         and e- 
-        selected_orbitals must the d-orbital list in the order of QE
+        selected_orbitals must the indices of the d-orbital in the array in the order of QE
         """
         if bandmax is None:
            bandmax = self.nbands
@@ -499,6 +556,12 @@ class ProjwfcXML(object):
     def __str__(self):
         s  = "nbands:   %d\n"%self.nbands
         s += "nkpoints: %d\n"%self.nkpoints
-        for n,state in enumerate(self.states):
-            s += "n: %3d -> iatom:%3d atype:%2s wfc:%d j:%s l:%s m:%s m_j:%s\n"%(n,state['iatom'],state['atype'],state['wfc'],str(state['j']),str(state['l']),str(state['m']),str(state['m_j']))
-        return s
+        if(self.qe_version=='7.0'):
+            for n,state in enumerate(self.states):
+                s += "n: %3d -> iatom:%3d atype:%2s wfc:%d l:%s j:%s m_j:%s\n"%(n,state['iatom'],state['atype'],state['wfc'],str(state['l']),str(state['j']),str(state['m_j']))
+            return s
+
+        else:
+            for n,state in enumerate(self.states):
+                s += "n: %3d -> iatom:%3d atype:%2s wfc:%d j:%s l:%s m:%s m_j:%s\n"%(n,state['iatom'],state['atype'],state['wfc'],str(state['j']),str(state['l']),str(state['m']),str(state['m_j']))
+            return s
