@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 #build-backend = "flit_core.buildapi"
 [project]
 name = "yambopy"
-version = "0.3.0"
+version = "0.3.1"
 authors = [
   { name="Fulvio Paleari", email="fulvio.paleari@nano.cnr.it" },
   { name="Alejandro Molina-Sanchez", email="alejandro.molina@uv.es" },
@@ -41,6 +41,8 @@ packages = ['yambopy',
             'yambopy.gkkp',
             'yambopy.flow',
             'yambopy.nl',
+            'yambopy.quasiparticles',
+            'yambopy.letzelphc_interface',
             'qepy',
             'qepy.upf_interface',
             'qepy.data.pseudos',

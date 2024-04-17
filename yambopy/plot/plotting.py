@@ -74,7 +74,7 @@ def BZ_hexagon(rlat,center=(0.,0.),orientation=np.radians(30),color='white',line
     # Matplotlib patch
     hexagon=RegularPolygon(center,numVertices=6,radius=radius,\
                            orientation=orientation,facecolor=to_rgba('white',0.),\
-                           edgecolor=to_rgba(color,1.),linewidth=linewidth)
+                           edgecolor=to_rgba(color,1.),linewidth=linewidth,zorder=10)
 
     return hexagon
 
@@ -94,7 +94,7 @@ def BZ_rectangle(rlat,color='white',linewidth=2):
     width, height  = rlat[0,0], rlat[1,1]
     origin = [-width/2.,-height/2.]
     rectangle = Rectangle(origin,width,height,facecolor=to_rgba('white',0.),\
-                          edgecolor=to_rgba(color,1.),linewidth=linewidth)
+                          edgecolor=to_rgba(color,1.),linewidth=linewidth,zorder=10)
 
     return rectangle
 
@@ -125,4 +125,56 @@ def shifted_grids_2D(k,b):
 
     return shifted_grids
 
+def plot_mesh_2D_BZ(lattice,car_pts,car_pts2=None):
+    """
+    Fast plot of a k- or q-mesh in the 2D BZ with
+    annotated indices and in CARTESIAN coordinates. 
+    Supports also a second mesh for comparisons.
+    
+    This function is intended to help with debug, tests,
+    developments, therefore at the moment plot layout 
+    options are hardcoded.
+    """
+    import matplotlib.pyplot as plt
+    marker ='H'
+    size   = 200
+    color  = 'teal'
+    lwidth = 0.5
+    ecolor = 'black'
+    label  = 'grid 1'
+    offset_xy = [0.003,0.005]
+    marker2 ='h'
+    size2   = 100
+    color2  = 'orange'
+    lwidth2 = 0.5
+    ecolor2 = 'black'
+    label2  = 'grid 2'
+    offset_xy2 = [-0.005,0.005]
 
+    # Do a 2D scatterplot of the kpoints in Cartesian coordinates
+    fig = plt.figure(figsize=(9,9))
+    ax = plt.gca()
+
+    ## Add BZ borders
+    ax.add_patch(BZ_Wigner_Seitz(lattice,color='black',linewidth=1.))
+
+    ## Plot with "nice" layout
+    ax.set_aspect('equal')
+    ax.scatter(car_pts[:,0],car_pts[:,1],marker=marker,s=size,color=color,\
+                linewidth=lwidth,edgecolors=ecolor,label=label)
+
+    ## Explicitly show kpt indices
+    for i_k,kpt in enumerate(car_pts):
+        kx,ky = kpt[0],kpt[1]
+        ax.annotate(i_k, (kx,ky), color=color, xytext=(kx+offset_xy[0],ky+offset_xy[1]))
+
+    ## Plot second mesh for comparison if needed
+    if car_pts2 is not None:
+        ax.scatter(car_pts2[:,0],car_pts2[:,1],marker=marker2,s=size2,color=color2,\
+                    linewidth=lwidth2,edgecolors=ecolor2,label=label2)
+        for i_k,kpt in enumerate(car_pts2):
+            kx,ky = kpt[0],kpt[1]
+            ax.annotate(i_k, (kx,ky), color=color2, xytext=(kx+offset_xy2[0],ky+offset_xy2[1]))
+
+    plt.legend()
+    plt.show()

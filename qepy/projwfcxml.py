@@ -230,12 +230,13 @@ class ProjwfcXML(object):
                   j = state[ib]['j']
                   l = state[ib]['l']
                   if size_projection==True:
-                     cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
+                     cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2,marker=marker)
                   else:
                      cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
                      #print(f'b:{ib} J={j} L={l}')
                      #ax.textye(f'b:{ib} J={j} L={l}', ((kpoints_dists[-1]-kpoints_dists[0])/2,ib*(eig_last-eig)/(bandmax-bandmin)), textcoords='offset points', xytext=(0,10), ha='center', va='bottom',color='teal')
                      #ax.annotate(f'b:{ib} J={j} L={l}', ((kpoints_dists[-1]-kpoints_dists[0])/2,ib*(eig_last-eig)/(bandmax-bandmin)), textcoords='offset points', xytext=(0,10), ha='center', va='bottom',color='teal')
+
 
            # Spin polarized no SOC
            if self.spin_components == 2:
@@ -244,10 +245,10 @@ class ProjwfcXML(object):
                   eig1 = self.eigen1[:,ib] + y_offset
                   eig2 = self.eigen2[:,ib] + y_offset
                   if size_projection==True:
-                     cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
+                     cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2,marker=marker)
                   else:
-                     cax = ax.scatter(kpoints_dists,eig1,s=size,c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
-                     cax2= ax.scatter(kpoints_dists,eig2,s=size,c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
+                     cax = ax.scatter(kpoints_dists,eig1,s=size,c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2,marker=marker)
+                     cax2= ax.scatter(kpoints_dists,eig2,s=size,c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2,marker=marker)
 
         # Plot bands with changing size and a fixed color
         else:
@@ -256,9 +257,9 @@ class ProjwfcXML(object):
                ib_max = np.where(w_proj==np.max(w_proj))[1][0] # needed for label
                for ib in range(bandmin,bandmax):
                    if ib==ib_max: lab = label_1
-                   else:          lab = '_'+label_1
+                   else:          lab = '_'+str(label_1)
                    eig = self.eigen[:,ib] + y_offset
-                   cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=lab,rasterized=True,zorder=2)
+                   cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=lab,rasterized=True,zorder=2,marker=marker)
 
             elif self.spin_components == 2:
                  w_proj1, w_proj2 = self.get_weights(selected_orbitals=selected_orbitals)
@@ -268,8 +269,8 @@ class ProjwfcXML(object):
                      if ib==ib_max1: lab1 = label_1
                      if ib==ib_max2: lab2 = label_2
                      eig1, eig2 = self.eigen1[:,ib], self.eigen2[:,ib]
-                     cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=lab1)
-                     cax2= ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=lab2)
+                     cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=lab1,marker=marker)
+                     cax2= ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=lab2,marker=marker)
 
         ax.set_xlim(0, max(kpoints_dists))
         return cax

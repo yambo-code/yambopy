@@ -73,6 +73,7 @@ class PlotEm1sCmd(Cmd):
     def __init__(self,args):
         import matplotlib
         import matplotlib.pyplot as plt        
+        from glob import glob
 
         #check for args
         if len(args) < 1:
@@ -88,7 +89,9 @@ class PlotEm1sCmd(Cmd):
         pa('--fontsize',     help='Choose the font size of the plot', default=10, type=int)
         args = parser.parse_args(args)
         folders = args.folders
-       
+        #print(glob('bse_cutoff/*/*'))
+        #print(folders)
+        #exit() 
         #create plot
         fig = plt.figure(figsize=(6,5))
         matplotlib.rcParams.update({'font.size': args.fontsize})
@@ -102,9 +105,10 @@ class PlotEm1sCmd(Cmd):
                         if args.verbose: print("SAVE folder not found")
                     else:
                         os.system('cp %s/../SAVE/ns.db1 %s/'%(folder,folder))
-                ys = YamboStaticScreeningDB(save=folder)
-                #plot epsilon_{00} = [1/(1+vX)]_{00}
-                ys.plot(ax,marker='o',markersize=2,label=folder)
+                print(folder)
+                ys = YamboStaticScreeningDB(save=folder,em1s=folder)
+                #plot epsilon^-1_{00} = [(1+vX)]_{00}
+                ys.plot_epsm1(ax,marker='o',markersize=2,label=folder)
                 #get epsilon^{-1}_{00} = [1+vX]_{00}
                 x,vX = ys._getvxq()
                 epsilons.append([folder,x,1+vX])
@@ -586,6 +590,70 @@ class ConvertRLtoRyCmd(Cmd):
 
         convert_RL_to_Ry.convert(value,ndb_gops)
 
+class ConvertLELPHCtoYAMBO(Cmd):
+	"""
+	Calculate gauge-invariant electron-phonon matrix elements with LetzElPhC and convert them into Yambo format
+
+	:: Usage:
+
+	>> yambopy l2y -ph phinp -b b1 b2 -par nq nk [--lelphc lelphc] [--debug]
+
+	:: Input parameters:
+		-ph,--ph_inp_path     : path to ph.x input file, e.g. dvscf/ph.in
+		-b,--bands            : initial and final band indices (counting from 1)
+		-par,--pools [OPT]    : MPI pools for q and k (needs mpirun)
+		-lelphc,--lelphc [OPT]: path to lelphc executable (code will prompt)
+		-D,--debug [OPT]      : won't remove LetzElPhC input and outputs
+
+	:: Prerequisites:
+
+	* ph.x phonon calculation must be complete, e.g. the phinp folder should contain:
+		- ph.x input file
+		- pw.x (scf) save directory
+		- [prefix].dyn files
+		- _ph* directories
+	* Yambo SAVE directory must be present. We run in the directory where the SAVE is.
+	* LetzElPhC must be installed
+	* mpirun must be linked for parallel runs
+	"""
+	def __init__(self,args):
+
+		#check for args
+		if len(args) < 5:
+			print((self.__doc__))
+			exit(0)
+
+		parser = argparse.ArgumentParser(description='Generate electron-phonon coupling databases via LetzElPhC')
+		parser.add_argument('-ph','--ph_inp_path', type=str, help='<Required> Path to ph.x (dvscf) input file',required=True)
+		parser.add_argument('-b','--bands',nargs=2,type=str,help="<Required> First and last band (counting from 1), e.g. 'b_i b_f'",required=True)
+		parser.add_argument('-par','--pools',nargs=2,type=str, default=[1,1], help="<Optional> MPI tasks as 'nqpools nkpools' (default serial)")
+		parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)")
+		parser.add_argument('-D','--debug', action="store_true", help="Debug mode")
+
+		args = parser.parse_args(args)
+
+		phinp  = args.ph_inp_path
+		bands  = args.bands
+		pools  = args.pools
+		lelphc = args.lelphc
+		debug  = args.debug
+
+		# Check inputs
+		lelphc,ph_path,inp_ph,inp_lelphc,inp_name = \
+		lelph_interface.checks(phinp,lelphc,bands,pools)
+
+		# run preprocessing
+		lelph_interface.run_preprocessing(lelphc,ph_path,inp_ph)
+
+		# run el-ph calculation and rotation
+		lelph_interface.run_elph(lelphc,inp_lelphc,inp_name)
+
+		# load database and convert to yambo format
+		lelph_interface.letzelph_to_yambo()
+
+		# clean
+		lelph_interface.clean_lelphc(debug,inp_name,ph_path)
+
 class YambopyCmd(Cmd):
     """
     class to implement commands for yambopy.
@@ -604,6 +672,7 @@ class YambopyCmd(Cmd):
                  'gwsubspace':   GwSubspace,
                  'phinp':        GetPHqInputCmd,
                  'convert':      ConvertRLtoRyCmd,
+				 'l2y':          ConvertLELPHCtoYAMBO,
                  'test':         TestCmd}
 
     def __init__(self,*args):

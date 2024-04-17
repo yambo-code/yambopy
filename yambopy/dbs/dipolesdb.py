@@ -286,7 +286,7 @@ class YamboDipolesDB():
         else:
             plot=self.ax.scatter(kpts[:,0],kpts[:,1],c=data,**kwargs)
 
-        if plt_cbar: self.fig.colorbar(plot)
+        if plt_cbar: self.cbar = self.fig.colorbar(plot)
 
         plt.gca().set_aspect('equal')
 
