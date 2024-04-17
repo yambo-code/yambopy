@@ -195,4 +195,4 @@ def bravais_types(lats,alat_0):
         if np.array_equal(lats_[1],[0.,lats_[1,1],0.]):
          
             if np.allclose(lats_[2],[0.,0.,lats_[2,2] ]): return bravais_types[1]
-
+    else: return 'No type'
