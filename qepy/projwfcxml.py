@@ -23,7 +23,7 @@ class ProjwfcXML(object):
     """
     _proj_file = 'atomic_proj.xml'
 
-    def __init__(self,prefix,output_filename='projwfc.log',path='.',qe_version='6.1'):
+    def __init__(self,prefix,output_filename='projwfc.log',path='.',qe_version='7.0'):
         """
         Initialize the structure with the path where the atomic_proj.xml is
         The zero energy is fixed at the Fermi energy
@@ -554,7 +554,8 @@ class ProjwfcXML(object):
             self.eigen[:,ib] = self.eigen[:,ib]+qpcorrection[:,ib]
  
     def __str__(self):
-        s  = "nbands:   %d\n"%self.nbands
+        s  = f"Running projwfcxml for QE version {self.qe_version}\n"
+        s += "nbands:   %d\n"%self.nbands
         s += "nkpoints: %d\n"%self.nkpoints
         if(self.qe_version=='7.0'):
             for n,state in enumerate(self.states):

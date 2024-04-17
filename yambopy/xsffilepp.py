@@ -1,9 +1,12 @@
-# Copyright (C) 2018 Henrique Pereira Coutada Miranda
-# All rights reserved.
 #
-# This file is part of yambopy
-# Author : Riccardo Reho   
-
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: RR
+#
+# This file is part of the yambopy project
+#
 import re
 import numpy as np
 from yambopy.lattice import replicate_red_kmesh, calculate_distances, get_path, car_red
