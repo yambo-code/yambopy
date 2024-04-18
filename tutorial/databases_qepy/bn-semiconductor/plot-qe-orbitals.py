@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 import sys
 import argparse
 from qepy import *
@@ -17,9 +16,6 @@ path_kpoints = Path([ [[0.0, 0.0, 0.0],'$\Gamma$'],
                       [[1./3,1./3,0.0],'K'],
                       [[0.0, 0.0, 0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
-atom_1 = list(range(16))
-atom_2 = list(range(16,32))
-
 # Class Projwfc
 # Class to run projwfc.x and create 
 # atomic_proj.xml (comment if already done)
@@ -30,7 +26,23 @@ proj.run(folder='bands')
 
 # Class ProjwfcXML
 # Atom-projected band structure
-band = ProjwfcXML(prefix='bn',path='bands',qe_version='7.0')
+band = ProjwfcXML(prefix='bn',path='bands')
+# print info
+print(band)
+
+# Manual selection of the lists of states by inspecting projwfc output
+#atom_1 = list(range(16))
+#atom_2 = list(range(16,32))
+
+# Automatic selection of the states
+atom_1 = band.get_states_helper(atom_query=['N'])
+atom_2 = band.get_states_helper(atom_query=['B'])
+
+# Add scissor operator to the bands from a G0W0 calculation
+#scissor= [1.8985195950522469, 1.0265240811345133, 1.051588659878575]
+#n_val = 4
+#band.add_scissor(n_val,scissor)
+
 band.plot_eigen(ax,path_kpoints=path_kpoints,cmap='viridis',selected_orbitals=atom_1,selected_orbitals_2=atom_2)
 
 # Plot colormap

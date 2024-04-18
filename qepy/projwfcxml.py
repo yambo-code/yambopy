@@ -1,13 +1,17 @@
-# Copyright (C) 2018 Alejandro Molina-Sanchez, Henrique Pereira Coutada Miranda
-# All rights reserved.
 #
-# This file is part of yambopy
+# License-Identifier: GPL
 #
-from __future__ import print_function, division
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC, AMS, FP, RR
+#
+# This file is part of the yambopy project
+#
 import re
 import xml.etree.ElementTree as ET
 from numpy import array, zeros, pi, conjugate, arange
 from .lattice import Path, calculate_distances 
+from yambopy.tools.string import marquee
 from .auxiliary import *
 from itertools import chain
 
@@ -32,35 +36,26 @@ class ProjwfcXML(object):
         self.qe_version   = qe_version
         self.prefix       = prefix
         self.path         = path
+        self.get_qe_version(path,output_filename)
+        version_number = float(re.findall(r"([0-9.]+)",self.qe_version)[0])
+        if version_number<6.7: raise NotImplementedError(f"Warning: QE version {self.qe_version} not supported by this script (needs to be>=6.7).")
+        if version_number>=7.0: self.order_is_l_j_mj   = True
+        else:                   self.order_is_j_l_m_mj = True
         self.datafile_xml = ET.parse( "%s/%s.save/%s"%(path, prefix, self._proj_file)).getroot()
-        print('Running projwfcxml for QE version %s' % qe_version)
 
-        if self.qe_version=='6.7' or self.qe_version=='7.0':
-           self.nbands = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_BANDS'] )
-           self.nkpoints = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_K-POINTS'] )
-           self.spin_components = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_SPIN_COMPONENTS'] )
-           self.nproj = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_ATOMIC_WFC'] )
-           self.fermi = float( self.datafile_xml.findall("HEADER")[0].attrib['FERMI_ENERGY'] )*RytoeV
-           #self.number_electrons = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_ELECTRONS'])
-        else :
-           #get nkpoints
-           self.nkpoints = int(self.datafile_xml.findall("HEADER/NUMBER_OF_K-POINTS")[0].text.strip())
-           # Read the number of BANDS
-           self.nbands   = int(self.datafile_xml.find("HEADER/NUMBER_OF_BANDS").text)
-           #get fermi
-           self.fermi = float(self.datafile_xml.find("HEADER/FERMI_ENERGY").text)*RytoeV # Is the conversion OK?? 
-           #get number of projections
-           self.nproj    = int(self.datafile_xml.find("HEADER/NUMBER_OF_ATOMIC_WFC").text)
-           #get weights of kpoints projections
-           self.weights  = list(map(float,self.datafile_xml.find("WEIGHT_OF_K-POINTS").text.split()))
-           #get number of spin components
-           self.spin_components = int(self.datafile_xml.find("HEADER/NUMBER_OF_SPIN_COMPONENTS").text)
-           #get kpoints
-
-        # What is the utility of all this?
-        #kpoints_lines = self.datafile_xml.find("K-POINTS").text.strip().split('\n')
-        #kpoints_float = [ list(map(float, kline.split())) for kline in kpoints_lines ]
-        #self.kpoints  = np.array(kpoints_float)
+        # Read the number of BANDS
+        self.nbands = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_BANDS'] )
+        #get nkpoints
+        self.nkpoints = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_K-POINTS'] )
+        #get number of spin components
+        self.spin_components = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_SPIN_COMPONENTS'] )
+        #get number of projections
+        self.nproj = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_ATOMIC_WFC'] )
+        #get fermi
+        self.fermi = float( self.datafile_xml.findall("HEADER")[0].attrib['FERMI_ENERGY'] )*RytoeV
+        #self.number_electrons = int( self.datafile_xml.findall("HEADER")[0].attrib['NUMBER_OF_ELECTRONS'])
+           
+        #get kpoints
         self.kpoints = self.get_kpoints()
 
         # Read Eigenvalues
@@ -69,7 +64,7 @@ class ProjwfcXML(object):
         if self.spin_components == 2: self.eigen1,self.eigen2  = self.get_eigen()
         if self.spin_components == 4: self.eigen = self.get_eigen()
 
-        # Read Atomic Oribtals Projections
+        # Read Atomic Orbitals Projections
           
         if self.spin_components == 1: self.proj  = self.get_proj()
         if self.spin_components == 2: self.proj1,self.proj2 = self.get_proj()
@@ -87,7 +82,7 @@ class ProjwfcXML(object):
                 # Raise an exception if the file is not found in both locations
                 raise Exception(f"The output file of projwfc.x: {output_filename} was not found in the directory or its ./out subdirectory.")        
             
-        if(qe_version=='7.0'):
+        if hasattr(self, 'order_is_l_j_mj') and self.order_is_l_j_mj:
             states = []
             #                                                                                         wfc                  l                 j                 m_j                 
             for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z]+)\s+\),\s+wfc\s+([0-9])\s+\((?:l=([0-9.]+))? ?(?:j=([0-9.]+))? ?(?:m_j=\s+([0-9.]+))?',f.read()):
@@ -101,8 +96,9 @@ class ProjwfcXML(object):
                 states.append({'istate':int(istate), 'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc), 'l':l, 'j':j, 'm_j':m_j})
             self.states = states
 
-            f.close()            
-        else:
+            f.close() 
+
+        if hasattr(self, 'order_is_j_l_m_mj') and self.order_is_j_l_m_mj:      
             states = []
             #                                                                                        wfc                  j                 l                 m                    m_j
             for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z]+)\s+\),\s+wfc\s+([0-9])\s+\((?:j=([0-9.]+))? ?(?:l=([0-9.]+))? ?(?:m=\s+([0-9.]+))? ?(?:m_j=([ \-0-9.]+))?',f.read()):
@@ -118,12 +114,26 @@ class ProjwfcXML(object):
             self.states = states
 
             f.close()
+    
+    def get_qe_version(self,path,output_filename):
+        """
+        Get the version of Quantum Espresso. v<6.7 is not supported.
 
-    def __str__(self):
-        s = ""
-        s += "nkpoints: %d\n"%self.nkpoints
-        s += "nbands: %d\n"%self.nbands
-        return s
+        Try both data-file-schema and projwfc output
+        """
+        try:
+            datafile_schema_xml = ET.parse( f"{path}/{self.prefix}.save/data-file-schema.xml").getroot()
+            qe_version_xml = datafile_schema_xml.findall("general_info/creator")[0].attrib["VERSION"].strip()
+        except FileNotFoundError: qe_version_xml = None
+        try:
+            with open(f"{path}/{output_filename}") as f: qe_version_output = re.findall(r"Program PROJWFC v.([0-9.]+[a-zA-Z]*)", f.read())[0]
+        except FileNotFoundError: qe_version_output = None
+        if qe_version_xml and qe_version_output: 
+            if qe_version_xml != qe_version_output: print(f"Warning: QE version mismatch between data-file-schema.xml ({qe_version_xml}) and projwfc output ({qe_version_output}). Using the output version for compatibility.")
+            self.qe_version = qe_version_output
+        elif qe_version_xml:    self.qe_version = qe_version_xml
+        elif qe_version_output: self.qe_version = qe_version_output
+        else: print(f"Warning: QE version not found in data-file-schema.xml or projwfc output. Using default version {self.qe_version}.")
 
     def get_indexes(self):
         """
@@ -161,7 +171,7 @@ class ProjwfcXML(object):
 
 
     def plot_eigen(self, ax, size=20, cmap=None, cmap2=None,color='r', color_2='b',path_kpoints=[], label_1='', label_2='',
-                   selected_orbitals=[], selected_orbitals_2=[],bandmin=0,bandmax=None,alpha=1,size_projection=False,y_offset=0.0):
+                   selected_orbitals=[], selected_orbitals_2=[],bandmin=0,bandmax=None,alpha=1,size_projection=False,y_offset=0.0,marker='o'):
         """ 
         Plot the band structure. The size of the points is the weigth of the selected orbitals.
 
@@ -195,14 +205,10 @@ class ProjwfcXML(object):
             bandmax = self.nbands
 
         #Colormap
-        if cmap:
-          color_map = plt.get_cmap(cmap)
-        else:
-          color_map = plt.get_cmap('rainbow')
-        if cmap2:
-          color_map2 = plt.get_cmap(cmap2)
-        else:
-          color_map2 = plt.get_cmap('rainbow')
+        if cmap:  color_map = plt.get_cmap(cmap)
+        else:     color_map = plt.get_cmap('rainbow')
+        if cmap2: color_map2 = plt.get_cmap(cmap2)
+        else:     color_map2 = plt.get_cmap('rainbow')
 
         #get kpoint_dists
         kpoints_dists = calculate_distances(self.kpoints[:self.nkpoints])
@@ -214,8 +220,7 @@ class ProjwfcXML(object):
         ax.set_ylabel('E (eV)')
 
         #plot vertical lines
-        for t in ticks:
-            ax.axvline(kpoints_dists[t],c='k',lw=1)
+        for t in ticks: ax.axvline(kpoints_dists[t],c='k',lw=1)
         ax.axhline(0,c='k')
      
         # Plot bands for fixed size in a colormap
@@ -236,7 +241,6 @@ class ProjwfcXML(object):
                      #print(f'b:{ib} J={j} L={l}')
                      #ax.textye(f'b:{ib} J={j} L={l}', ((kpoints_dists[-1]-kpoints_dists[0])/2,ib*(eig_last-eig)/(bandmax-bandmin)), textcoords='offset points', xytext=(0,10), ha='center', va='bottom',color='teal')
                      #ax.annotate(f'b:{ib} J={j} L={l}', ((kpoints_dists[-1]-kpoints_dists[0])/2,ib*(eig_last-eig)/(bandmax-bandmin)), textcoords='offset points', xytext=(0,10), ha='center', va='bottom',color='teal')
-
 
            # Spin polarized no SOC
            if self.spin_components == 2:
@@ -348,18 +352,12 @@ class ProjwfcXML(object):
                        for ie,e in enumerate(energy_grid):
                            pdos_up[ie,io] = pdos_up[ie,io] + abs(conjugate(self.proj1[ik,io,ib])*self.proj1[ik,io,ib])*self._lorentz(self.eigen1[ik,ib],e,Gamma)
 
-        return energy_grid, pdos_up, dos_up       
-
-           #self.eigen1[ik,ib]
-           #self.eigen2[ik,ib]
-           #self.proj1[ik,io,ib]
+        return energy_grid, pdos_up #, dos_up       
 
     def _lorentz(self,x,x_0,Gamma):
         
         return (1.0/pi)*(0.5*Gamma)/((x-x_0)**2 + (0.5*Gamma)**2)
-
-
-
+    
     def get_relative_weight(self,selected_orbitals=[],selected_orbitals_2=[],bandmin=0,bandmax=None):
         if bandmax is None:
             bandmax = self.nbands
@@ -391,18 +389,12 @@ class ProjwfcXML(object):
            return w_rel1, w_rel2
 
     def get_kpoints(self):
-
-        if self.qe_version == '6.1':
-           kpoints = []
-           k_aux =  list( self.datafile_xml.find("K-POINTS").text.split() )
-           for ik in range(self.nkpoints):
-               kpoints.append([float(k_aux[ik*3]),float(k_aux[ik*3+1]),float(k_aux[ik*3+2])])
-
-        elif self.qe_version == '6.7' or self.qe_version=='7.0':
-           kpoints = []
-           datafile_xml = self.datafile_xml
-           for word in self.datafile_xml.findall("EIGENSTATES/K-POINT"):
-               kpoints.append( list( map(float, word.text.split()) )  )
+        """ Return kpoints
+        """
+        kpoints = []
+        datafile_xml = self.datafile_xml
+        for word in self.datafile_xml.findall("EIGENSTATES/K-POINT"):
+            kpoints.append( list( map(float, word.text.split()) )  )
         
         return kpoints
 
@@ -417,37 +409,20 @@ class ProjwfcXML(object):
         # No spin polarized
         if self.spin_components == 1 or self.spin_components == 4:
 
-           if self.qe_version == '6.7' or self.qe_version=='7.0':
-              eigen =  [ list( map(float, word.text.split())) for word in self.datafile_xml.findall("EIGENSTATES/E") ] 
+            eigen =  [ list( map(float, word.text.split())) for word in self.datafile_xml.findall("EIGENSTATES/E") ] 
 
-              self.eigen = np.array(eigen)*RytoeV - self.fermi
-              return self.eigen
-
-           if self.qe_version == '6.1':
-
-              for ik in range(self.nkpoints):
-                  eigen.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG"%(ik+1)).text.split())))  # version before 6.7
-              self.eigen = np.array(eigen)*RytoeV - self.fermi
-              return self.eigen
+            self.eigen = np.array(eigen)*RytoeV - self.fermi
+            return self.eigen
 
         # Spin polarized
         if self.spin_components == 2:
            
-            if self.qe_version == '6.7' or self.qe_version=='7.0':
-               eigen_prov =  [ list( map(float, word.text.split())) for word in self.datafile_xml.findall("EIGENSTATES/E") ] 
-               eigen_aux = np.array(eigen_prov)*RytoeV 
-               self.eigen1 = eigen_aux[            0:  self.nkpoints,:] - self.fermi
-               self.eigen2 = eigen_aux[self.nkpoints:2*self.nkpoints,:] - self.fermi
-               return self.eigen1, self.eigen2
+            eigen_prov =  [ list( map(float, word.text.split())) for word in self.datafile_xml.findall("EIGENSTATES/E") ] 
+            eigen_aux = np.array(eigen_prov)*RytoeV 
+            self.eigen1 = eigen_aux[            0:  self.nkpoints,:] - self.fermi
+            self.eigen2 = eigen_aux[self.nkpoints:2*self.nkpoints,:] - self.fermi
 
-            if self.qe_version == '6.1':
-               for ik in range(self.nkpoints):
-                   eigen1.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG.1"%(ik+1)).text.split() )))
-                   eigen2.append( list(map(float, self.datafile_xml.find("EIGENVALUES/K-POINT.%d/EIG.2"%(ik+1)).text.split() )))
-               self.eigen1 = np.array(eigen1)*RytoeV - self.fermi
-               self.eigen2 = np.array(eigen2)*RytoeV - self.fermi
-
-               return self.eigen1, self.eigen2
+            return self.eigen1, self.eigen2
 
     def write_proj(self,filename='proj'):
         """
@@ -461,82 +436,52 @@ class ProjwfcXML(object):
         datafile_xml = self.datafile_xml
 
         if self.spin_components == 1 or self.spin_components == 4:
-           proj  = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+            proj  = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
 
-           # version 6.1
-           if self.qe_version == '6.1':
-              for ik in range(self.nkpoints):
-                  for ip in range(self.nproj):
-                      projlist    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
-                      proj[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist ]
+            data_atomic_wfc = self.datafile_xml.findall("EIGENSTATES/PROJS/ATOMIC_WFC")
+            for ik in range(self.nkpoints):
+                for ip in range(self.nproj):
+                    i_data = ik*self.nproj + ip
+                    projlist = data_atomic_wfc[i_data].text.splitlines()[1:-1]
+                    atom_aux = []
+                    for c in projlist:
+                        z = float(c.split()[0]) + 1.0j*float(c.split()[1])
+                        atom_aux.append(z)
+                    proj[ik,ip] = atom_aux
+            
+            self.proj = np.array(proj)
 
-              self.proj = np.array(proj)
+            return proj
 
-              return proj
-
-           # version 6.7
-           elif self.qe_version == '6.7' or self.qe_version=='7.0':
-              data_atomic_wfc = self.datafile_xml.findall("EIGENSTATES/PROJS/ATOMIC_WFC")
-              for ik in range(self.nkpoints):
-                  for ip in range(self.nproj):
-                      i_data = ik*self.nproj + ip
-                      projlist = data_atomic_wfc[i_data].text.splitlines()[1:-1]
-                      atom_aux = []
-                      for c in projlist:
-                          z = float(c.split()[0]) + 1.0j*float(c.split()[1])
-                          atom_aux.append(z)
-                      proj[ik,ip] = atom_aux
-              
-              self.proj = np.array(proj)
-
-              return proj
-
-           # Spin polarized
+        # Spin polarized
         elif self.spin_components == 2:
-             print('return spin polarized projections')
+            print('return spin polarized projections')
            
-             if self.qe_version == '6.1':
-                proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
-                proj2 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+            # Two independent spinors
+            data_atomic_wfc = self.datafile_xml.findall("EIGENSTATES/PROJS/ATOMIC_WFC")
+            proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+            proj2 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
+            
+            for ik in range(self.nkpoints):
+                for ip in range(self.nproj):
+                    i_data1 = ik*self.nproj + ip
+                    i_data2 = (ik+self.nkpoints)*self.nproj + ip
+                    projlist1 = data_atomic_wfc[i_data1].text.splitlines()[1:-1]
+                    projlist2 = data_atomic_wfc[i_data2].text.splitlines()[1:-1]
+                    atom_aux1, atom_aux2 = [], []
+                    for c in projlist1:
+                        z = float(c.split()[0]) + 1.0j*float(c.split()[1])
+                        atom_aux1.append(z)
+                    for c in projlist2:
+                        z = float(c.split()[0]) + 1.0j*float(c.split()[1])
+                        atom_aux2.append(z)
+                    proj1[ik,ip] = atom_aux1
+                    proj2[ik,ip] = atom_aux2
 
-                for ik in range(self.nkpoints):
-                    for ip in range(self.nproj):
-                        projlist1    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/SPIN.1/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
-                        projlist2    = self.datafile_xml.find("PROJECTIONS/K-POINT.%d/SPIN.2/ATMWFC.%d" % (ik+1,ip+1) ).text.splitlines()[1:-1]
-                        proj1[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist1 ]
-                        proj2[ik,ip] = [ (lambda x,y: complex(float(x),float(y)))(*c.split(',')) for c in projlist2 ]
+            self.proj1 = np.array(proj1)
+            self.proj2 = np.array(proj2)
 
-                self.proj1 = np.array(proj1)
-                self.proj2 = np.array(proj2)
-
-                return proj1, proj2
-
-           # Two independent spinors
-             elif self.qe_version == '6.7' or self.qe_version=='7.0':
-                  data_atomic_wfc = self.datafile_xml.findall("EIGENSTATES/PROJS/ATOMIC_WFC")
-                  proj1 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
-                  proj2 = zeros([self.nkpoints,self.nproj,self.nbands],dtype=complex)
-                  
-                  for ik in range(self.nkpoints):
-                      for ip in range(self.nproj):
-                          i_data1 = ik*self.nproj + ip
-                          i_data2 = (ik+self.nkpoints)*self.nproj + ip
-                          projlist1 = data_atomic_wfc[i_data1].text.splitlines()[1:-1]
-                          projlist2 = data_atomic_wfc[i_data2].text.splitlines()[1:-1]
-                          atom_aux1, atom_aux2 = [], []
-                          for c in projlist1:
-                              z = float(c.split()[0]) + 1.0j*float(c.split()[1])
-                              atom_aux1.append(z)
-                          for c in projlist2:
-                              z = float(c.split()[0]) + 1.0j*float(c.split()[1])
-                              atom_aux2.append(z)
-                          proj1[ik,ip] = atom_aux1
-                          proj2[ik,ip] = atom_aux2
-
-                  self.proj1 = np.array(proj1)
-                  self.proj2 = np.array(proj2)
-
-                  return proj1, proj2
+            return proj1, proj2
        
     def shift_bands(self,qpcorrection,vb,cb):
         """
@@ -553,16 +498,47 @@ class ProjwfcXML(object):
         for ib in  range(self.nbands-vb,self.bands,self.nbands+cb): 
             self.eigen[:,ib] = self.eigen[:,ib]+qpcorrection[:,ib]
  
-    def __str__(self):
-        s  = f"Running projwfcxml for QE version {self.qe_version}\n"
-        s += "nbands:   %d\n"%self.nbands
-        s += "nkpoints: %d\n"%self.nkpoints
-        if(self.qe_version=='7.0'):
-            for n,state in enumerate(self.states):
-                s += "n: %3d -> iatom:%3d atype:%2s wfc:%d l:%s j:%s m_j:%s\n"%(n,state['iatom'],state['atype'],state['wfc'],str(state['l']),str(state['j']),str(state['m_j']))
-            return s
+    def add_scissor(self,n_val,scissor):
+        """
+        Apply a scissor operator to the bands, e.g. to account for a G0W0 run.
+            - n_val: number of valence bands
+            - scissor: list of three numbers [shift, cond_stretch, val_stretch]
+            - bands: array of eigenvalues
+        """
+        def band_formats(bands):
+            """ Yambo format has leading spin axis
+            """
+            if len(bands.shape)>2: return bands[0] #Yambo spin-polarized case not supported
+            else:                  return bands
 
+        scissored_bands = np.zeros(self.eigen.shape)
+
+        tmp_bands    = band_formats(self.eigen)
+        tmp_sc_bands = band_formats(scissored_bands)
+
+        top_v, bottom_c = tmp_bands[:,n_val-1], tmp_bands[:,n_val]
+        ind_k_dir_gap = np.argmin(bottom_c-top_v)
+        ev_max, ec_min = top_v[ind_k_dir_gap], bottom_c[ind_k_dir_gap]
+
+        for ik in range( self.nkpoints ):
+            for ib in range( self.nbands ):
+                if ib<n_val: tmp_sc_bands[ik][ib] = ev_max-(ev_max-tmp_bands[ik][ib])*scissor[2]
+                else: tmp_sc_bands[ik][ib] = ec_min+scissor[0]+(tmp_bands[ik][ib]-ec_min)*scissor[1]
+        self.eigen0 = self.eigen # save original bands
+        self.eigen  = scissored_bands
+
+    def __str__(self):
+        lines = []; app = lines.append
+        app(marquee(self.__class__.__name__))
+
+        app(f"Running projwfcxml for QE version {self.qe_version}")
+        app(f"nkpoints: {self.nkpoints}")
+        app(f"nbands:   {self.nbands}")
+        if (self.qe_version=='7.0'): #replace with order_l-j-m-mj and order_j-l-m-mj 
+            for n,state in enumerate(self.states):
+                app(f"n: {n} -> iatom:{state['iatom']} atype:{state['atype']} wfc:{state['wfc']} l:{state['l']} j:{state['j']} m_j:{state['m_j']}")
+            return "\n".join(lines)
         else:
             for n,state in enumerate(self.states):
-                s += "n: %3d -> iatom:%3d atype:%2s wfc:%d j:%s l:%s m:%s m_j:%s\n"%(n,state['iatom'],state['atype'],state['wfc'],str(state['j']),str(state['l']),str(state['m']),str(state['m_j']))
-            return s
+                app(f"n: {n} -> iatom:{state['iatom']} atype:{state['atype']} wfc:{state['wfc']} j:{state['j']} l:{state['l']} m:{state['m']} m_j:{state['m_j']}")
+            return "\n".join(lines)
