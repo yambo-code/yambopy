@@ -110,7 +110,8 @@ class YamboElectronsDB():
         self.nkpoints    = int(dimensions[6])
         self.nbands      = int(dimensions[5])
         self.spin = int(dimensions[12])
-        self.time_rev = dimensions[9]
+        self.spinor_components = int(dimensions[11]) 
+        self.time_rev = dimensions[9] 
         database.close()
 
         #spin degeneracy if 2 components degen 1 else degen 2
@@ -122,11 +123,13 @@ class YamboElectronsDB():
         #     per spin polarisation: this fact is used by DipolesDB
         self.nbandsv = int(self.nelectrons/2)
         self.nbandsc = int(self.nbands-self.nbandsv)
+        if (self.spinor_components==2): self.nbandsv = int(self.nelectrons) 
+        else:                           self.nbandsv = int(self.nelectrons/2) 
         if self.spin==2:
             self.nbands_tot  = self.nbands*self.spin
             self.nbandsv_tot = int(self.nelectrons/self.spin_degen)
             self.nbandsc_tot = int(self.nbands_tot-self.nbandsv_tot)
-
+        
     def expandEigenvalues(self):
         """
         Expand eigenvalues to the full brillouin zone
@@ -329,8 +332,9 @@ class YamboElectronsDB():
     def __str__(self):
         lines = []; app = lines.append
         app(marquee(self.__class__.__name__))
-        app("spin_degen: %d"%self.spin_degen)
-        app("nelectrons: %d"%self.nelectrons)
-        app("nbands:   %d"%self.nbands)
-        app("nkpoints: %d"%self.nkpoints)
+        app(f"spin polarizations: {self.spin}")
+        app(f"spinor components:  {self.spinor_components}")
+        app(f"nelectrons: {self.nelectrons}")
+        app(f"nbands:     {self.nbands}")
+        app(f"nkpoints:   {self.nkpoints}")
         return "\n".join(lines)
