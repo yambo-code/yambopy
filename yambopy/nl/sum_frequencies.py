@@ -148,7 +148,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
     print("Effective max time period ",str(T_period/fs2aut)+" [fs] ")
 
     if T_range[0] <= 0.0:
-        T_range[0]=time[-1]-T_period
+        T_range[0]=2.0/nldb.NL_damping*6.0
     if T_range[1] <= 0.0:
         T_range[1]=time[-1]
     
