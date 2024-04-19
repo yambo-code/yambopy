@@ -248,4 +248,4 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
             if prn_Xhi:
                 np.savetxt(output_file,values,header=header,delimiter=' ',footer=footer)
 
-    return Susceptibility
+    return Susceptibility,freqs
