@@ -110,23 +110,21 @@ class YamboElectronsDB():
         self.nkpoints    = int(dimensions[6])
         self.nbands      = int(dimensions[5])
         self.spin = int(dimensions[12])
-        self.time_rev = dimensions[9]
+        self.spinor_components = int(dimensions[11]) 
+        self.time_rev = dimensions[9] 
         database.close()
-
-        #spin degeneracy if 2 components degen 1 else degen 2
-        self.spin_degen = [0,2,1][int(self.spin)]
-        #number of occupied bands
-        # NB: in the spin-polarised case, nbands contains the total number
-        #     of bands PER spin polarisation, i.e. half of the total number.
-        #     Therefore, nbandsv and nbandsc are also given per
-        #     per spin polarisation: this fact is used by DipolesDB
-        self.nbandsv = int(self.nelectrons/2)
-        self.nbandsc = int(self.nbands-self.nbandsv)
-        if self.spin==2:
-            self.nbands_tot  = self.nbands*self.spin
-            self.nbandsv_tot = int(self.nelectrons/self.spin_degen)
-            self.nbandsc_tot = int(self.nbands_tot-self.nbandsv_tot)
-
+        #spin degeneracy if 2 components degen 1 else degen 2 
+        self.spin_degen = [0,2,1][int(self.spin)] 
+        #number of occupied bands # NB: in the spin-polarised case, nbands contains the total number 
+        # of bands PER spin polarisation, i.e. half of the total number. 
+        # Therefore, nbandsv and nbandsc are also given per 
+        # per spin polarisation: this fact is used by DipolesDB 
+        if (self.spinor_components==2): 
+            self.nbandsv = int(self.nelectrons) 
+        else: 
+            self.nbandsv = int(self.nelectrons/2) 
+        self.nbandsc = int(self.nbands-self.nbandsv)        
+        
     def expandEigenvalues(self):
         """
         Expand eigenvalues to the full brillouin zone
