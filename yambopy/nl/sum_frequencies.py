@@ -1,4 +1,4 @@
-# Copyright (c) 2023, Claudio Attaccalite
+# Copyright (c) 2023, Mike Nico Pionteck and Claudio Attaccalite
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -248,4 +248,4 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
             if prn_Xhi:
                 np.savetxt(output_file,values,header=header,delimiter=' ',footer=footer)
 
-    return Susceptibility
+    return Susceptibility,freqs
