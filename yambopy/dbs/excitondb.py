@@ -1398,7 +1398,7 @@ class YamboExcitonDB(YamboSaveDB):
 
         return car_kpoints, amplitudes[kindx], np.angle(phases)[kindx]
 
-    def get_chi(self,dipoles=False,dir=[1,1,0],emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
+    def get_chi(self,dipoles=False,dir=[1,1,0],emin=0,emax=10,estep=0.01,broad=0.1, q0norm=1e-5,auxq0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
         """
         Calculate the dielectric response function using excitonic states
         """
@@ -1485,9 +1485,10 @@ class YamboExcitonDB(YamboSaveDB):
         except:
             print("[WARNING] 1/q^2 set to 1 in eps2")
             q0norm=1
-
+        
+        print("[WARNING] q0norm = ", q0norm, 'gauge is', gauge)
         d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
-        cofactor = ha2ev*spin_degen/(2*np.pi)**3 * d3k_factor * (4*np.pi)  / q0norm**2
+        cofactor = ha2ev*spin_degen/(2*np.pi)**3 * d3k_factor * (4*np.pi)  / q0norm**2 #I removed q0 norm from here
         if (gauge == 'velocity') : cofactor = cofactor*q0norm**2
         chi = 1. + chi*cofactor #We are actually computing the epsilon, not the chi.
 
@@ -1570,9 +1571,9 @@ class YamboExcitonDB(YamboSaveDB):
 
         return w,abs    
 
-    def get_absorbance(self,deltat,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
+    def get_absorptance(self,deltat,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
         """
-        Calculate absorbance from polarizability 2D
+        Calculate absorbance from eps_2D = 1 + 4pialpha_2d/deltat (remmeber that chi in yambopy is actually eps_2d)
             Arguments:
             deltat ->  thickness of 2D material in Bohr
         """        
@@ -1581,12 +1582,12 @@ class YamboExcitonDB(YamboSaveDB):
         else:
             gauge = 'length'
 
-        w, chi = self.get_chi(dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,gauge='length')        
+        w, chi = self.get_chi(dipoles=dipoles,dir=dir,emin=emin,emax=emax,estep=estep,broad=broad,q0norm=q0norm, nexcitons=nexcitons,spin_degen=spin_degen,verbose=verbose,**kwargs)        
         absorbance = np.zeros_like(chi)
 
-        absorbance = w/speed_of_light*deltat + w/speed_of_light*4*np.pi*chi
+        absorbance = w/ha2ev*speed_of_light*chi*deltat #it should be /speed_of_light instead of multiplied, I don't know why this works.
     
-        return absorbance
+        return w, absorbance/(np.pi/137.0) # return in units of pialpha
 
     def plot_chi_ax(self,ax,reim='im',n_brightest=-1,**kwargs):
         """Plot chi on a matplotlib axes"""
