@@ -114,15 +114,15 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
     l_test_one_field=False
     if(nldb.Efield_general[1]["name"] == "SIN" or nldb.Efield_general[1]["name"] == "SOFTSIN"):
         # frequency of the second and third laser, respectively)
-        pump_probe=nldb.Efield_general[1]["freq_range"][0] 
-        print("Frequency of the second field : "+str(pump_probe*ha2ev)+" [eV] \b")
+        pump_freq=nldb.Efield_general[1]["freq_range"][0] 
+        print("Frequency of the second field : "+str(pump_freq*ha2ev)+" [eV] \b")
     elif(nldb.Efield_general[1]["name"] == "none"):
         print("Only one field present, please use standard harmonic_analysis.py for SHG,THG, etc..!")
         print("* * * Test mode with a single field * * * ")
         print(" * * * Frequency of the second field assumed to be zero * * *")
         print(" * * * Only results for SHG,THG,... are correct * * * ")
         l_test_one_field=True
-        pump_probe=0.0
+        pump_freq=0.0
     else:
         raise ValueError("Fields different from SIN/SOFTSIN are not supported ! ")
     
@@ -145,7 +145,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
     
     # Period of the incoming laser
     T_period=2.0*np.pi/W_step
-    print("Effective max time period ",str(T_period/fs2aut)+" [fs] ")
+    print("Effective max time period for field1 ",str(T_period/fs2aut)+" [fs] ")
 
     if T_range[0] <= 0.0:
         T_range[0]=2.0/nldb.NL_damping*6.0
@@ -154,7 +154,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
     
     T_range_initial=np.copy(T_range)
 
-    print("Time range : ",str(T_range[0]/fs2aut),'-',str(T_range[1]/fs2aut),'[fs]')
+    print("Initial time range : ",str(T_range[0]/fs2aut),'-',str(T_range[1]/fs2aut),'[fs]')
 
     M_size = (2*X_order + 1)**2
     X_effective       =np.zeros((M_size,M_size,n_frequencies,3),dtype=np.cdouble)
@@ -165,8 +165,10 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
     # Find the Fourier coefficients by inversion
     for i_f in tqdm(range(n_frequencies)):
         #
+        T_range=update_T_range(T_range_initial,pump_freq,freqs[i_f])  # Update T_range according to the laser frequencies
+        #
         for i_d in range(3):
-            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_probe,T_period,T_range,T_step,efield,tol,INV_MODE)
+            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_period,T_range,T_step,efield,tol,INV_MODE)
 
     # Calculate Susceptibilities from X_effective
     for i_order in range(-X_order,X_order+1):
@@ -194,7 +196,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
             for i_d in range(3):
                 for i_order in range(-X_order,X_order+1):
                     for i_order2 in range(-X_order,X_order+1):
-                        P[i_f,i_d,:]+=X_effective[i_order+X_order,i_order2+X_order,i_f,i_d]*np.exp(-1j * (i_order*freqs[i_f]+i_order2*pump_probe) * time[:])
+                        P[i_f,i_d,:]+=X_effective[i_order+X_order,i_order2+X_order,i_f,i_d]*np.exp(-1j * (i_order*freqs[i_f]+i_order2*pump_freq) * time[:])
         header2="[fs]            "
         header2+="Px     "
         header2+="Py     "
@@ -249,3 +251,9 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
                 np.savetxt(output_file,values,header=header,delimiter=' ',footer=footer)
 
     return Susceptibility,freqs
+
+
+
+def update_T_range(T_range_initial,pump_freq, probe_freq):
+    return T_range_initial
+
