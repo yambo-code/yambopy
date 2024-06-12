@@ -23,7 +23,7 @@ import os
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_period,T_range,T_step,efield,tol,INV_MODE):
+def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE):
     #
     # Here we use always NW=NX
     #
@@ -154,7 +154,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
     
     T_range_initial=np.copy(T_range)
 
-    print("Initial time range : ",str(T_range[0]/fs2aut),'-',str(T_range[1]/fs2aut),'[fs]')
+    print("Initial time range : ",str(T_range[0]/fs2aut),'-',str(T_range[1]/fs2aut),'[fs] -- Laseer Freq ',str(pump_freq*ha2ev),' [eV] ')
 
     M_size = (2*X_order + 1)**2
     X_effective       =np.zeros((M_size,M_size,n_frequencies,3),dtype=np.cdouble)
@@ -163,12 +163,14 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
     
     print("Loop in frequecies...")
     # Find the Fourier coefficients by inversion
-    for i_f in tqdm(range(n_frequencies)):
+#    for i_f in tqdm(range(n_frequencies)):
+    for i_f in range(n_frequencies):
         #
         T_range=update_T_range(T_range_initial,pump_freq,freqs[i_f])  # Update T_range according to the laser frequencies
+        print("New time range for freq "+str(i_f)+" : ",str(T_range[0]/fs2aut),'-',str(T_range[1]/fs2aut),'[fs] -- Laser Freq ',str(freqs[i_f]*ha2ev),' [eV] ')
         #
         for i_d in range(3):
-            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_period,T_range,T_step,efield,tol,INV_MODE)
+            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE)
 
     # Calculate Susceptibilities from X_effective
     for i_order in range(-X_order,X_order+1):
@@ -255,5 +257,27 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
 
 
 def update_T_range(T_range_initial,pump_freq, probe_freq):
-    return T_range_initial
+    dec=1  # use only the first decimal in eV
+    #
+    a = int(pump_freq*ha2ev*10**dec)
+    b = int(probe_freq*ha2ev*10**dec)
+    r = a*b
+    c = a*10**dec
+    d = b*10**dec
+    T_range=T_range_initial
+    T_range[1]=lcm(c,d)/r*ha2ev*2.0*np.pi+T_range[0]
+    return T_range
 
+def lcm(a,b):
+  n = a
+  m = b
+  if (n < m):
+    i = m
+    m = n
+    n = i
+  p = n
+  while p != 0:
+    p = m%n
+    m = n
+    n = p
+  return a*b/m
