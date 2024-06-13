@@ -28,31 +28,31 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
     # Here we use always NW=NX
     #
     M_size = (2*(NW-1) + 1)**2  # Positive and negative components plus the zero
-    N_sampling = M_size
+    M_size = M_size
     # 
     i_t_start = int(np.round(T_range[0]/T_step)) 
-    i_deltaT  = int(np.round((T_range[1]-T_range[0])/T_step)/N_sampling)
+    i_deltaT  = int(np.round((T_range[1]-T_range[0])/T_step)/M_size)
 
 # Memory alloction 
     M        = np.zeros((M_size, M_size), dtype=np.cdouble)
-    P_i      = np.zeros(N_sampling, dtype=np.double)
-    T_i      = np.zeros(N_sampling, dtype=np.double)
-    Sampling = np.zeros((N_sampling,2), dtype=np.double)
+    P_i      = np.zeros(M_size, dtype=np.double)
+    T_i      = np.zeros(M_size, dtype=np.double)
+    Sampling = np.zeros((M_size,2), dtype=np.double)
 
 # Calculation of  T_i and P_i
     if SAMP_MOD=='linear':
-        for i_t in range(N_sampling):
+        for i_t in range(M_size):
             T_i[i_t] = (i_t_start + i_deltaT * i_t)*T_step - efield["initial_time"]
             P_i[i_t] = P[i_t_start + i_deltaT * i_t]
     elif SAMP_MOD=='log':
-        T_i=np.geomspace(i_t_start*T_step, T_range[1], N_sampling, endpoint=False)
-        for i1 in range(N_sampling):
+        T_i=np.geomspace(i_t_start*T_step, T_range[1], M_size, endpoint=False)
+        for i1 in range(M_size):
             i_t=int(np.round(T_i[i1]/T_step))
             T_i[i1]=i_t*T_step
             P_i[i1]=P[i_t]
     elif SAMP_MOD=='random':
-        T_i=np.random.uniform(i_t_start*T_step, T_range[1], N_sampling)
-        for i1 in range(N_sampling):
+        T_i=np.random.uniform(i_t_start*T_step, T_range[1], M_size)
+        for i1 in range(M_size):
             i_t=int(np.round(T_i[i1]/T_step))
             T_i[i1]=i_t*T_step
             P_i[i1]=P[i_t]
@@ -61,8 +61,8 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
     Sampling[:,1]=P_i
 
 # Build the M matrix
-    C = np.zeros((N_sampling, M_size), dtype=np.int8)
-    for i_t in range(N_sampling):
+    C = np.zeros((M_size, M_size), dtype=np.int8)
+    for i_t in range(M_size):
         i_c = 0
         for i_n in range(-NX+1, NX):
             for i_n2 in range(-NX+1, NX):
@@ -79,7 +79,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
 
         try:
 # Invert M matrix
-            if N_sampling != M_size:
+            if M_size != M_size:
                 raise TypeError("Only square matrix can be used with full inversion")
             INV = np.zeros((M_size, M_size), dtype=np.cdouble)
             INV = np.linalg.inv(M)
@@ -90,12 +90,12 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
 
     if INV_MODE=='lstsq':
 # Least-squares
-        I = np.eye(N_sampling,M_size)
+        I = np.eye(M_size,M_size)
         INV = np.linalg.lstsq(M, I, rcond=tol)[0]
 
     if INV_MODE=='svd':
 # Truncated SVD
-        INV = np.zeros((N_sampling, M_size), dtype=np.cdouble)
+        INV = np.zeros((M_size, M_size), dtype=np.cdouble)
         INV = np.linalg.pinv(M,rcond=tol)
 
 # Calculate X_here
@@ -103,7 +103,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
     for i_n in range(-NX+1, NX):
         for i_n2 in range(-NX+1, NX):
             i_c=C[i_n+NX-1,i_n2+NX-1]
-            for i_t in range(N_sampling):
+            for i_t in range(M_size):
                 X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+INV[i_c,i_t]*P_i[i_t]
 
     return X_here,Sampling
