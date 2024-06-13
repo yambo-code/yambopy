@@ -179,12 +179,11 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
     # Find the Fourier coefficients by inversion
     for i_f in tqdm(range(n_frequencies)):
         #
+        #T_range=update_T_range(T_range_initial,pump_freq,freqs[i_f])  # Update T_range according to the laser frequencies
+
         for i_d in range(3):
             X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
         
-#        if i_f==53:
-#            print("Time sampling ",Sampling[0,0,i_f,1],' -- ',Sampling[-1,0,i_f,1])
-
     # Calculate Susceptibilities from X_effective
     for i_order in range(-X_order,X_order+1):
         for i_order2 in range(-X_order,X_order+1):
@@ -228,8 +227,6 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
         # Print Sampling point
         footer2='Sampled polarization'
         for i_f in range(n_frequencies):
-#            if i_f==53:
-#                print("Time sampling ",Sampling[0,0,i_f,1],' -- ',Sampling[-1,0,i_f,1])
             values=np.c_[Sampling[:,0,i_f,0]]
             values=np.append(values,np.c_[Sampling[:,1,i_f,0]],axis=1)
             values=np.append(values,np.c_[Sampling[:,1,i_f,1]],axis=1)
@@ -237,6 +234,22 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
             output_file3='o.YamboPy-sampling_F'+str(i_f+1)
             np.savetxt(output_file3,values,header=header2,delimiter=' ',footer=footer2)
 
+        print("Print general error in P(t) reconstruction ")
+        footer2='Error in reconstructed polarization'
+        header2="[eV]            "
+        header2+="err[Px]     "
+        header2+="err[Py]     "
+        header2+="err[Pz]     "
+        i_t_start = int(np.round(T_range[0]/T_step)) 
+        values=np.zeros((n_frequencies,4),dtype=np.double)
+        N=len(P[i_f,i_d,:])-i_t_start
+        for i_f in range(n_frequencies):
+            values[i_f,0]=freqs[i_f]*ha2ev
+            for i_d in range(3):
+                values[i_f,i_d+1]=np.sqrt(np.sum((P[i_f,i_d,i_t_start:].real-polarization[i_f][i_d,i_t_start:]))**2)/N
+        output_file4='o.YamboPy-errP'
+        np.savetxt(output_file4,values,header=header2,delimiter=' ',footer=footer2)
+                
 
     # Print the result
     for i_order in range(-X_order,X_order+1):
