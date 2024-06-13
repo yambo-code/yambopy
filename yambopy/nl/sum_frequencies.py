@@ -28,30 +28,31 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
     # Here we use always NW=NX
     #
     M_size = (2*(NW-1) + 1)**2  # Positive and negative components plus the zero
+    N_sampling = M_size
     # 
     i_t_start = int(np.round(T_range[0]/T_step)) 
-    i_deltaT  = int(np.round((T_range[1]-T_range[0])/T_step)/M_size)
+    i_deltaT  = int(np.round((T_range[1]-T_range[0])/T_step)/N_sampling)
 
 # Memory alloction 
     M        = np.zeros((M_size, M_size), dtype=np.cdouble)
-    P_i      = np.zeros(M_size, dtype=np.double)
-    T_i      = np.zeros(M_size, dtype=np.double)
-    Sampling = np.zeros((M_size,2), dtype=np.double)
+    P_i      = np.zeros(N_sampling, dtype=np.double)
+    T_i      = np.zeros(N_sampling, dtype=np.double)
+    Sampling = np.zeros((N_sampling,2), dtype=np.double)
 
 # Calculation of  T_i and P_i
     if SAMP_MOD=='linear':
-        for i_t in range(M_size):
+        for i_t in range(N_sampling):
             T_i[i_t] = (i_t_start + i_deltaT * i_t)*T_step - efield["initial_time"]
             P_i[i_t] = P[i_t_start + i_deltaT * i_t]
     elif SAMP_MOD=='log':
-        T_i=np.geomspace(i_t_start*T_step, T_range[1], M_size, endpoint=False)
-        for i1 in range(M_size):
+        T_i=np.geomspace(i_t_start*T_step, T_range[1], N_sampling, endpoint=False)
+        for i1 in range(N_sampling):
             i_t=int(np.round(T_i[i1]/T_step))
             T_i[i1]=i_t*T_step
             P_i[i1]=P[i_t]
     elif SAMP_MOD=='random':
-        T_i=np.random.uniform(i_t_start*T_step, T_range[1], M_size)
-        for i1 in range(M_size):
+        T_i=np.random.uniform(i_t_start*T_step, T_range[1], N_sampling)
+        for i1 in range(N_sampling):
             i_t=int(np.round(T_i[i1]/T_step))
             T_i[i1]=i_t*T_step
             P_i[i1]=P[i_t]
@@ -60,8 +61,8 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
     Sampling[:,1]=P_i
 
 # Build the M matrix
-    C = np.zeros((M_size, M_size), dtype=np.int8)
-    for i_t in range(M_size):
+    C = np.zeros((N_sampling, M_size), dtype=np.int8)
+    for i_t in range(N_sampling):
         i_c = 0
         for i_n in range(-NX+1, NX):
             for i_n2 in range(-NX+1, NX):
@@ -75,8 +76,11 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
         raise ValueError("Invalid inversion mode. Expected one of: %s" % INV_MODES)
 
     if INV_MODE=="full":
+
         try:
 # Invert M matrix
+            if N_sampling != M_size:
+                raise TypeError("Only square matrix can be used with full inversion")
             INV = np.zeros((M_size, M_size), dtype=np.cdouble)
             INV = np.linalg.inv(M)
         except:
@@ -86,12 +90,12 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
 
     if INV_MODE=='lstsq':
 # Least-squares
-        I = np.eye(M_size,M_size)
+        I = np.eye(N_sampling,M_size)
         INV = np.linalg.lstsq(M, I, rcond=tol)[0]
 
     if INV_MODE=='svd':
 # Truncated SVD
-        INV = np.zeros((M_size, M_size), dtype=np.cdouble)
+        INV = np.zeros((N_sampling, M_size), dtype=np.cdouble)
         INV = np.linalg.pinv(M,rcond=tol)
 
 # Calculate X_here
@@ -99,7 +103,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
     for i_n in range(-NX+1, NX):
         for i_n2 in range(-NX+1, NX):
             i_c=C[i_n+NX-1,i_n2+NX-1]
-            for i_t in range(M_size):
+            for i_t in range(N_sampling):
                 X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+INV[i_c,i_t]*P_i[i_t]
 
     return X_here,Sampling
@@ -179,7 +183,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
     # Find the Fourier coefficients by inversion
     for i_f in tqdm(range(n_frequencies)):
         #
-        #T_range=update_T_range(T_range_initial,pump_freq,freqs[i_f])  # Update T_range according to the laser frequencies
+#        T_range=update_T_range(T_range_initial,pump_freq,freqs[i_f])  # Update T_range according to the laser frequencies
 
         for i_d in range(3):
             X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
@@ -199,7 +203,6 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
                         D2*=Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
                     if i_order==0 and i_order2==0: #  This case is not clear to me how we should define the optical rectification
                         D2=Divide_by_the_Field(nldb.Efield[0],abs(i_order))*Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
-#                    print("Order "+str(i_order)+" and "+str(i_order2)+" = "+str(D2))
                     Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=D2
 
     if(prn_Peff):
@@ -292,8 +295,14 @@ def update_T_range(T_range_initial,pump_freq, probe_freq):
     r = a*b
     c = a*10**dec
     d = b*10**dec
-    T_range=T_range_initial
-    T_range[1]=lcm(c,d)/r*ha2ev*2.0*np.pi+T_range[0]
+    T_range=np.copy(T_range_initial)
+    T_test=lcm(c,d)/r*ha2ev*2.0*np.pi+T_range[0]
+    if T_test<T_range[1]:
+        if round(a/b,3)==round(pump_freq/probe_freq,3):
+             T_range[1]=T_test
+        else:
+            print("False multiple ",str(probe_freq*ha2ev))
+# check for false multiply
     return T_range
 
 def lcm(a,b):
