@@ -1441,6 +1441,11 @@ class YamboExcitonDB(YamboSaveDB):
             EL2 = np.dot(EL2_vec,dir)
             EL1 = np.conj(EL2) 
 
+        #store the intensities values for this direction
+        tmp_intensities = EL1*EL2
+        tmp_intensities /= np.max(tmp_intensities)
+        self.dir_intensities = tmp_intensities
+        
         if isinstance(broad,float): broad = [broad]*nexcitons
 
         if isinstance(broad,tuple): 
