@@ -247,11 +247,16 @@ class PwXML():
             kpoint = [float(x) for x in kstates[i].findall('k_point')[0].text.strip().split()]
             self.kpoints.append( kpoint )
 
-        #get fermi (it depends on the occupations)
+        #get fermi (it depends on the occupations and spin pol)
         if self.occ_type == 'fixed':
            self.fermi = float(self.datafile_xml.find("output/band_structure/highestOccupiedLevel").text)*HatoeV
         else:
-           self.fermi = float(self.datafile_xml.find("output/band_structure/fermi_energy").text)*HatoeV
+            try: 
+                self.fermi = float(self.datafile_xml.find("output/band_structure/fermi_energy").text)*HatoeV
+            except AttributeError: 
+                fermis = self.datafile_xml.find("output/band_structure/two_fermi_energies").text.split()
+                self.fermis = [float(fermis[0])*HatoeV,float(fermis[1])*HatoeV]
+                self.fermi = self.fermis[1] # set to spin minority energy
 
         #get eigenvalues
         self.eigen1 = []

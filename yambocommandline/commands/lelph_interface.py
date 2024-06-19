@@ -70,6 +70,10 @@ def checks(phinp,lelphc,bands,pools):
 			print("[WARNING] mpirun not found, running in serial") 
 			pools = [1,1]
 
+    ## check band indices
+    try: assert(int(bands[0])<int(bands[1]))
+    except: raise ValueError("[ERROR] band indices must be integers with b1<b2")
+
 	## lelphc input file
 	inp_lelphc = get_input(bands,pools,path_ph)
 	inp_name = 'lelphc.in'
