@@ -20,10 +20,13 @@ class YamboDipolesDB():
 
     Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v]. If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
     """
-    def __init__(self,lattice,save='SAVE',filename='ndb.dip_iR_and_P',dip_type='iR',field_dir=[1,0,0],field_dir3=[0,0,1]):
+    def __init__(self,lattice,save='SAVE',filename='ndb.dip_iR_and_P',dip_type='iR',field_dir=[1,1,1],field_dir3=[0,0,1]):
+
         self.lattice = lattice
         self.filename = "%s/%s"%(save,filename)
-        
+        self.field_dir  =field_dir
+        self.field_dir3 =field_dir3
+
         #read dipoles
         try:
             database = Dataset(self.filename, 'r')
@@ -165,7 +168,7 @@ class YamboDipolesDB():
 
         return dipoles
         
-    def expandDipoles(self,dipoles=None,field_dir=[1,0,0],field_dir3=[0,0,1],spin=None):
+    def expandDipoles(self,dipoles=None,spin=None):
         """
         Expand diples from the IBZ to the FBZ
         """
@@ -179,15 +182,18 @@ class YamboDipolesDB():
         nss  = lattice.symmetry_indexes
         
         #normalize the fields
-        field_dir  = np.array(field_dir)
-        field_dir  = field_dir/np.linalg.norm(field_dir)
-        field_dir3 = np.array(field_dir3)
-        field_dir3 = field_dir3/np.linalg.norm(field_dir3)
+        self.field_dir  = np.array(self.field_dir)
+        self.field_dir  = self.field_dir/np.linalg.norm(self.field_dir)
+        #self.field_dir3 = np.array(self.field_dir3)
+        #self.field_dir3 = self.field_dir3/np.linalg.norm(self.field_dir3)
         
         #calculate polarization directions
-        field_dirx = field_dir
-        field_diry = np.cross(field_dir3,field_dirx)
-        field_dirz = field_dir3
+        #field_dirx = self.field_dir
+        #field_diry = np.cross(self.field_dir3,field_dirx)
+        #field_dirz = self.field_dir3
+        field_dirx = np.array([self.field_dir[0],0.,0.])
+        field_diry = np.array([0.,self.field_dir[1],0.])
+        field_dirz = np.array([0.,0.,self.field_dir[2]])
 
         #get band indexes
         nkpoints = len(nks)
@@ -229,6 +235,7 @@ class YamboDipolesDB():
             #rotate dipoles
             for c,v in product(list(range(nbandsc)),list(range(nbandsv))):
                 self.dipoles[nk_fbz,:,indexc+c,indexv+v] = np.dot(tra,dip[:,c,v])
+
         
             #make hermitian
             for c,v in product(list(range(nbandsc)),list(range(nbandsv))):
@@ -371,14 +378,11 @@ class YamboDipolesDB():
             else:                broadening = gaussian
 
         #dimensional factors
-        # [NB] This cofactor is not consistent with the yambo output:
-        #      - In 3D there is a factor missing
-        #      - In 2D there is a frequency dependence eps(w)->eps(w)/w missing (and a factor)
-        #setting to 1. for now
+        # [NB] This cofactor is not consistent with the yambo output: there is a factor missing
         if self.spin == 1 : spin_deg=2
         if self.spin == 2 : spin_deg=1
         cofactor = spin_deg*8.*np.pi/self.lattice.rlat_vol
-        cofactor = spin_deg*1.
+        #cofactor = spin_deg*1.
 
         na = np.newaxis
         epskres = np.zeros([esteps,nkpoints])
@@ -390,12 +394,19 @@ class YamboDipolesDB():
                 eivs = eiv[s]
                 ecv  = eivs[:,c]-eivs[:,v]
 
+                # the expanded dipoles already include normalised  field direction
                 dips = dipoles[s]
                 dip2=0.
-                try:
-                    for p in pol: dip2 = dip2 + np.abs(dips[:,p,c,v])**2
-                except TypeError: 
-                    dip2 = np.abs(dips[:,pol,c,v])**2.
+                
+                #dip2= np.sum( np.abs(dips[:,:,c,v])**2., axis=1)
+                dip2= np.abs( np.sum( dips[:,:,c,v], axis=1) )**2.
+
+                #try:
+                #    for p in pol: dip2 = dip2 + np.abs(dips[:,p,c,v])**2
+                #except TypeError: 
+                #    dip2 = np.abs(dips[:,pol,c,v])**2.
+
+                #dip2 = np.abs( np.einsum('j,ij->i', self.field_dir , dips[:,:,c,v]) )**2
 
                 #make dimensions match
                 dip2a = dip2[na,:]
@@ -484,9 +495,10 @@ class YamboDipolesDB():
         if self.spin==2:
             app("open shell       : %s" % (self.open_shell))
             if self.open_shell: app("excess electrons : %d" % (self.n_exc_el))
-        app("field_dirx: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirx))
-        app("field_diry: %10.6lf %10.6lf %10.6lf"%tuple(self.field_diry))
-        app("field_dirz: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirz))
+        app("field_dir: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dir))
+        #app("field_dirx: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirx))
+        #app("field_diry: %10.6lf %10.6lf %10.6lf"%tuple(self.field_diry))
+        #app("field_dirz: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirz))
         return "\n".join(lines)
 
 if __name__ == "__main__":
