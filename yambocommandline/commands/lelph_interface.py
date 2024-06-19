@@ -71,8 +71,8 @@ def checks(phinp,lelphc,bands,pools):
 			pools = [1,1]
 
     ## check band indices
-    try: assert(int(bands[0])<int(bands[1]))
-    except: raise ValueError("[ERROR] band indices must be integers with b1<b2")
+	try: assert(int(bands[0])<int(bands[1]))
+	except: raise ValueError("[ERROR] band indices must be integers with b1<b2")
 
 	## lelphc input file
 	inp_lelphc = get_input(bands,pools,path_ph)
@@ -103,7 +103,7 @@ def run_elph(lelphc,inp_lelphc,inp_name):
 			if 'pool' in line: ntasks *= int(line.split()[-1])
 		return ntasks			
 
-	print(":: LetzElPhC el-ph calculation ::")
+	print(":: LetzElPhC el-ph calculation ($> tail -f lelphc.log) ::")
 
 	# write input file
 	f = open(inp_name, "w")
@@ -118,11 +118,11 @@ def run_elph(lelphc,inp_lelphc,inp_name):
 
 	# run lelphc
 	try:
-		elph_run=subprocess.run(elph_run_str,shell=True,check=True,capture_output=True,text=True)
+		with open('lelphc.log','w') as log_file:
+			elph_run=subprocess.run(elph_run_str,shell=True,check=True,capture_output=False,text=True,stdout=log_file)
 	except subprocess.CalledProcessError as e:
 		print("Error:", e)
 		print("Description:", e.stderr)
-
 
 def letzelph_to_yambo():
 
@@ -136,9 +136,10 @@ def clean_lelphc(debug,inp_name,ph_path):
 	if debug:
 		print(":: Debug flag ::")
 		print("     - lelphc.in input written")
+		print("     - lelphc.log output written")
 		print("     - ph_save | ndb.elph | ndb.Dmats not removed")
 	else:
-		[os.remove(C) for C in [inp_name,'ndb.elph','ndb.Dmats'] if os.path.isfile(C)]
+		[os.remove(C) for C in [inp_name,'ndb.elph','ndb.Dmats', 'lelphc.log'] if os.path.isfile(C)]
 		if os.path.isdir(f"{ph_path}/ph_save"): shutil.rmtree(f"{ph_path}/ph_save")
 
 if __name__=="__main__":
