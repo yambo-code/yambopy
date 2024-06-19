@@ -125,7 +125,7 @@ def shifted_grids_2D(k,b):
 
     return shifted_grids
 
-def plot_mesh_2D_BZ(lattice,car_pts,car_pts2=None):
+def plot_mesh_2D_BZ(lattice,car_pts,car_pts2=None,save=False):
     """
     Fast plot of a k- or q-mesh in the 2D BZ with
     annotated indices and in CARTESIAN coordinates. 
@@ -177,4 +177,5 @@ def plot_mesh_2D_BZ(lattice,car_pts,car_pts2=None):
             ax.annotate(i_k, (kx,ky), color=color2, xytext=(kx+offset_xy2[0],ky+offset_xy2[1]))
 
     plt.legend()
-    plt.show()
+    if not save: plt.show()
+    else: plt.savefig('grids.png')
