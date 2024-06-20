@@ -114,6 +114,7 @@ from yambopy.nl.external_efield import *
 from yambopy.nl.damp_it import *
 from yambopy.nl.harmonic_analysis import *
 from yambopy.nl.sum_frequencies import *
+from yambopy.nl.least_square import *
 from yambopy.nl.hhg_tools import *
 
 #doublegrid files
