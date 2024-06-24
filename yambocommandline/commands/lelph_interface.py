@@ -59,7 +59,6 @@ def checks(phinp,lelphc,bands,pools):
 		raise FileNotFoundError("SAVE directory not found. Make sure to run in the directory where the SAVE is.")
 
 	## check for lelphc executable
-	lelphc = "lelphc"
 	is_lelphc = shutil.which(lelphc)
 	if is_lelphc is None: lelphc=input("lelphc executable not found. Please provide absolute path here: \n")
 
