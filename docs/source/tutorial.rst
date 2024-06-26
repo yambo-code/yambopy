@@ -700,3 +700,31 @@ This will execute the following code:
 You should obtain a plot like this:
 
 .. image:: figures/bse_bn.png
+
+5. Computing exciton lifetimes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In this tutorial you will learn how to compute the exciton radiative lifetimes.
+Note, that you need to perform a BSE calculation first and have access to the residuals of the BSE run.
+The exciton lifetimes at 0 K can be computed according to the formula given Equation 2 `chen2018`_. 
+Note that here we compute the :math:`q\rightarrow 0` limit.
+
+First initialize the `YamboExcitonDB` database:
+
+.. code-block:: python
+
+	yexc = YamboExcitonDB.from_db_file(ylat,folder = bse_path, filename='ndb.BS_diago_Q1')
+
+where `bse_path` is the path to the `ndb.BS_diago_Q1` database.
+
+Then create an instance of the `ExcitonLifetimes` class and call its method.
+
+.. code-block:: python
+
+	lifetime_obj = ExcLifetimes(yexc) 
+	excE, tau0_tot, merged_states = lifetime_obj.get_exciton_lifetimes(statelist=np.array([0,1,2,3,6,7]),verbosity=False,gauge='velocity')
+
+`get_exciton_lifetimes` accept a list of states for which you would like to compute the exciton lifetimes. This list correspond to the poles of the BSE Hamiltonian and they are sorted by the exciton energy (increasing order). `tau0_tot` contains the lifetimes in `seconds`. The inverse of `tau0_tot` correspond to the radiative decay :math:`\gamma(0)`
+
+.. _chen2018:
+	https://pubs-acs-org.proxy.library.uu.nl/doi/full/10.1021/acs.nanolett.8b01114
+
