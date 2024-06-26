@@ -75,6 +75,7 @@ from yambopy.dbs.elphondb import *
 from yambopy.dbs.bsekerneldb import *
 from yambopy.dbs.excphondb import *
 from yambopy.dbs.kqgridsdb import *
+from yambopy.dbs.exclifetimes import *
 
 #input/output files
 from yambopy.io.inputfile import *
