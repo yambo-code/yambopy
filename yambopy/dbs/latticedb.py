@@ -1,5 +1,9 @@
-# Copyright (c) 2018, Henrique Miranda
-# All rights reserved.
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC, FP
 #
 # This file is part of the yambopy project
 #
@@ -198,7 +202,7 @@ class YamboLatticeDB(object):
             time_rev_list[i] = ( i >= self.nsym/(self.time_rev+1) )
         return time_rev_list
 
-    def expand_kpoints(self,verbose=0,expand_mode=1,atol=1.e-6):
+    def expand_kpoints(self,verbose=1,expand_mode=1,atol=1.e-6):
         """
         Take a list of qpoints and symmetry operations and return the full brillouin zone
         with the corresponding index in the irreducible brillouin zone
@@ -344,4 +348,7 @@ class YamboLatticeDB(object):
         app("atom positions:")
         for an, pos in zip(self.atomic_numbers, self.red_atomic_positions):
             app( "%3d " % an + ("%12.8lf " * 3) % tuple(pos) )
+        if self.ibz_nkpoints!=self.nkpoints: app(f"{self.ibz_nkpoints} kpoints expanded to {self.nkpoints}")
+        else: app(f"{self.nkpoints} kpoints in the IBZ")
+        app(f"Time-reversal symmetry: {bool(self.time_rev)}")
         return "\n".join(lines)

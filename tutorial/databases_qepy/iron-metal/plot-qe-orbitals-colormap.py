@@ -1,14 +1,10 @@
-from __future__ import print_function, division
 import sys
 import argparse
 from qepy import *
 from schedulerpy import *
-from math import sqrt
 
 # Matplotlib options
 import matplotlib.pyplot as plt
-fig = plt.figure(figsize=(5,7))
-ax  = fig.add_axes( [ 0.12, 0.10, 0.70, 0.80 ])
 
 # k-points map
 npoints = 50
@@ -26,13 +22,29 @@ atom_d = [3,4,5,6,7]
 # Class Projwfc
 # Class to run projwfc.x and create 
 # atomic_proj.xml (comment if already done)
-#proj = ProjwfcIn(prefix='pw')
-#proj.run(folder='bands/t0')
+'''
+proj = ProjwfcIn(prefix='pw')
+proj.run(folder='bands/t0')
+'''
 
 # Class ProjwfcXML
 # Atom-projected band structure. Colormap
-band = ProjwfcXML(prefix='pw',path='bands/t0',qe_version='7.0')
-band.plot_eigen(ax,path_kpoints=path_kpoints,cmap='viridis',cmap2='rainbow',selected_orbitals=atom_p,selected_orbitals_2=atom_d)
+band = ProjwfcXML(prefix='pw',path='bands/t0')
+
+# Manual selection of the lists of states by inspecting projwfc output
+#s = [8]
+#p = [0,1,2]
+#d = [3,4,5,6,7]
+
+# Automatic selection of the states
+s = band.get_states_helper(orbital_query=['s'])
+p = band.get_states_helper(orbital_query=['p'])
+d = band.get_states_helper(orbital_query=['d'])
+
+fig = plt.figure(figsize=(5,7))
+ax  = fig.add_axes( [ 0.12, 0.10, 0.70, 0.80 ])
+
+band.plot_eigen(ax,path_kpoints=path_kpoints,cmap='viridis',cmap2='rainbow',selected_orbitals=p,selected_orbitals_2=d)
 
 # Plot colormap
 #

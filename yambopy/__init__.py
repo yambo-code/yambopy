@@ -81,6 +81,7 @@ from yambopy.io.inputfile import *
 from yambopy.io.outputfile import *
 from yambopy.io.jsonfile import *
 from yambopy.io.iofile import *
+from yambopy.io.xsffile import *
 
 #bse/excitons files
 from yambopy.bse.excitonwf import *
@@ -93,6 +94,10 @@ from yambopy.em1s.em1s_rotate import *
 
 #ndb.QP operations
 from yambopy.quasiparticles.QP_rotate import *
+
+#LetzElPhC interface
+from yambopy.letzelphc_interface.lelphcdb import *
+from yambopy.letzelphc_interface.lelph2y import *
 
 #analyse stuff
 from yambopy.analyse import *

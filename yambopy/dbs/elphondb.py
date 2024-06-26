@@ -38,7 +38,7 @@ class YamboElectronPhononDB():
       :: yph.gkkp_mixed      #Coupling (mixed bare-dressed)
    
     Formats:
-    - modes[ix][iat][il]
+    - modes[il][iat][ix]
     - gkkp[iq][ik][il][ib1][ib2]
 
     Plots provided:

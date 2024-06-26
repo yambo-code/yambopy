@@ -50,6 +50,8 @@ Installation
 
 Make sure that you have a suitable python environment (created for example with [conda](https://docs.conda.io/projects/miniconda/en/latest/) or [venv](https://docs.python.org/3/library/venv.html)).
 
+Use python version >=3.10. 
+
 #### Regular installation of released version
 Type `pip install yambopy`
 
