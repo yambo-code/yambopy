@@ -75,7 +75,6 @@ from yambopy.dbs.elphondb import *
 from yambopy.dbs.bsekerneldb import *
 from yambopy.dbs.excphondb import *
 from yambopy.dbs.kqgridsdb import *
-from yambopy.dbs.exclifetimes import *
 
 #input/output files
 from yambopy.io.inputfile import *
@@ -89,6 +88,7 @@ from yambopy.bse.excitonwf import *
 from yambopy.bse.excitonweight import *
 from yambopy.bse.bse_absorption import *
 from yambopy.bse.bse_dispersion import *
+from yambopy.bse.excitonradiativelifetimes import *
 
 #em1s/static screening operations files
 from yambopy.em1s.em1s_rotate import *
