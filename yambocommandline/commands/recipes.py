@@ -339,7 +339,7 @@ def merge_qp(output,files):
 
 
 #
-# Old version by Alexandre Morlet, Fulvio Paleari & Henrique Miranda
+# Authors: AM, FP & HM
 # Updated by Daniel Murphy
 #
 def add_qp(output,add=[],subtract=[],addimg=[],verbose=False):
@@ -369,6 +369,7 @@ def add_qp(output,add=[],subtract=[],addimg=[],verbose=False):
 
         # Init empty lists and dics
         sizes=[] # contains the various 'PARS'
+        spins=[] # contains the various SPIN_VARS
         QP_table, QP_kpts, QP_E, QP_E0, QP_Z = {},{},{},{},{} # read value for each file
         qpdic = {} # used to calculate the final E (real part)
         qpdici = {} # used to calculate the final E (img part)
@@ -380,11 +381,16 @@ def add_qp(output,add=[],subtract=[],addimg=[],verbose=False):
             PARS = list(map(int, d["PARS"][:]))
             nkpoints, nqps, nstrings = PARS[1], PARS[2], PARS[-1]
             sizes.append((f,(nkpoints,nqps,nstrings)))
+            SPIN_VARS =list(map(int, d["SPIN_VARS"][:]))
+            nspin, nspinor = SPIN_VARS[0], SPIN_VARS[1]
+            spins.append((f,(nspin,nspinor)))
 
             # Check if the number of kpoints is consistent
             # (Don't forget to break symmetries on every file for RT)
             if nkpoints!=sizes[0][1][0]:
                 raise ValueError('File %s does not have the same number of kpoints'%f)
+            if nspin!=spins[0][1][0]:
+                raise ValueError('File %s does not have the same spin structure'%f)
 
             # So far, no verbose option
             #if verbose:
@@ -398,18 +404,24 @@ def add_qp(output,add=[],subtract=[],addimg=[],verbose=False):
 
             # Init qpdic & qpdici (going through each file in case the number of bands is different)
             # We assume Im(E0)=0
-            for (n1,n2,k),(E0) in zip(QP_table[f],QP_E0[f]):
-                qpdic[(n1,n2,k)]=E0
-                qpdici[(n1,n2,k)]=0.
+            if nspin==1:
+                for (n1,n2,k),(E0) in zip(QP_table[f],QP_E0[f]):
+                    qpdic[(n1,n2,k)]=E0
+                    qpdici[(n1,n2,k)]=0.
+            else: 
+                for (n1,n2,k,sp),(E0) in zip(QP_table[f],QP_E0[f]):
+                    qpdic[(n1,n2,k,sp)]=E0
+                    qpdici[(n1,n2,k,sp)]=0.
 
-        print("Number of k points: %s\n"%nkpoints)
+        print("Number of k points: %s"%nkpoints)
+        print("Number of spin polarizations: %s\n"%nspin)
 
         # keys are sorted in the order yambo usually writes DBs
         # This is: [ (i_b1,i_b2=i_b1,i_k) ... ] looping first on i_b1
         qpkeys = sorted(list(qpdic.keys()),key=itemgetter(2,1))
 
         # For E, [:,0] is real part and [:,1] is img part
-        QP_table_save = np.zeros((len(qpkeys), 3))
+        QP_table_save = np.zeros((len(qpkeys), 2+nspin)) 
         QP_E_save = np.zeros((len(qpkeys), 2))
         QP_E0_save = np.zeros((len(qpkeys), 1))
         QP_Z_save = np.ones((len(qpkeys), 1))
@@ -417,30 +429,48 @@ def add_qp(output,add=[],subtract=[],addimg=[],verbose=False):
         # Add corrections in real part (-a files)
         for f in addf:
             print('Add E corr for real part :  %s'%f)
-            for (n1,n2,k),(E),(Eo) in zip(QP_table[f],QP_E[f][:,0],QP_E0[f][:]):
-                qpdic[(n1,n2,k)]+=E-Eo
+            if nspin==1:
+                for (n1,n2,k),(E),(Eo) in zip(QP_table[f],QP_E[f][:,0],QP_E0[f][:]):
+                    qpdic[(n1,n2,k)]+=E-Eo
+            else:
+                for (n1,n2,k,sp),(E),(Eo) in zip(QP_table[f],QP_E[f][:,0],QP_E0[f][:]):
+                    qpdic[(n1,n2,k,sp)]+=E-Eo
 
         # Sub corrections in real part (-s files)
         for f in subf:
             print('Sub E corr for real part :  %s'%f)
-            for (n1,n2,k),(E),(Eo) in zip(QP_table[f],QP_E[f][:,0],QP_E0[f][:]):
-                qpdic[(n1,n2,k)]-=E-Eo
+            if nspin==1:
+                for (n1,n2,k),(E),(Eo) in zip(QP_table[f],QP_E[f][:,0],QP_E0[f][:]):
+                    qpdic[(n1,n2,k)]-=E-Eo
+            else:
+                for (n1,n2,k,sp),(E),(Eo) in zip(QP_table[f],QP_E[f][:,0],QP_E0[f][:]):
+                    qpdic[(n1,n2,k,sp)]-=E-Eo
 
         # Add corrections in img part (-ai files)
         for f in addimgf:
             print('Add E corr for img part :  %s'%f)
-            for (n1,n2,k),(E) in zip(QP_table[f],QP_E[f][:,1]):
-                qpdici[(n1,n2,k)]+=E
+            if nspin==1:
+                for (n1,n2,k),(E) in zip(QP_table[f],QP_E[f][:,1]):
+                    qpdici[(n1,n2,k)]+=E
+            else:
+                for (n1,n2,k,sp),(E) in zip(QP_table[f],QP_E[f][:,1]):
+                    qpdici[(n1,n2,k,sp)]+=E
 
         # create the kpoints table
         # We put the restriction to have the same number of k points (same grid), so any file fits
         QP_kpts_save = QP_kpts[filenames[0]]
 
         # Filling the E column
-        for i,(n1,n2,k) in enumerate(qpkeys):
-            QP_table_save[i]=[n1,n2,k]
-            QP_E_save[i, 0] += qpdic[(n1, n2, k)]
-            QP_E_save[i, 1] += qpdici[(n1, n2, k)]
+        if nspin==1:
+            for i,(n1,n2,k) in enumerate(qpkeys):
+                QP_table_save[i]=[n1,n2,k]
+                QP_E_save[i, 0] += qpdic[(n1, n2, k)]
+                QP_E_save[i, 1] += qpdici[(n1, n2, k)]
+        else:
+            for i,(n1,n2,k,sp) in enumerate(qpkeys):
+                QP_table_save[i]=[n1,n2,k,sp]
+                QP_E_save[i, 0] += qpdic[(n1, n2, k, sp)]
+                QP_E_save[i, 1] += qpdici[(n1, n2, k, sp)]
         QP_E0_save = array(QP_E0)
 
         ## Output file
