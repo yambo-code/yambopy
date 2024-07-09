@@ -471,7 +471,7 @@ def add_qp(output,add=[],subtract=[],addimg=[],verbose=False):
                 QP_table_save[i]=[n1,n2,k,sp]
                 QP_E_save[i, 0] += qpdic[(n1, n2, k, sp)]
                 QP_E_save[i, 1] += qpdici[(n1, n2, k, sp)]
-        QP_E0_save = array(QP_E0)
+        QP_E0_save = np.array(QP_E0)
 
         ## Output file
 
