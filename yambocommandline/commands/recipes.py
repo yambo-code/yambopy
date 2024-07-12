@@ -378,8 +378,9 @@ def add_qp(output,add=[],subtract=[],addimg=[],verbose=False):
         for d,f in zip(datasets,filenames):
             print("filename: %s"%f)
             # read sizes
-            PARS = list(map(int, d["PARS"][:]))
-            nkpoints, nqps, nstrings = PARS[1], PARS[2], PARS[-1]
+            pars_valid = [ par for par in d['PARS'][:] if not  np.ma.is_masked(par) ] # Fix to exclude empty elements in database list (masked by default by python)
+            PARS = list(map(int,pars_valid))
+            nkpoints, nqps, nstrings = PARS[1],PARS[2],PARS[-1]
             sizes.append((f,(nkpoints,nqps,nstrings)))
             SPIN_VARS =list(map(int, d["SPIN_VARS"][:]))
             nspin, nspinor = SPIN_VARS[0], SPIN_VARS[1]
@@ -416,9 +417,21 @@ def add_qp(output,add=[],subtract=[],addimg=[],verbose=False):
         print("Number of k points: %s"%nkpoints)
         print("Number of spin polarizations: %s\n"%nspin)
 
-        # keys are sorted in the order yambo usually writes DBs
-        # This is: [ (i_b1,i_b2=i_b1,i_k) ... ] looping first on i_b1
-        qpkeys = sorted(list(qpdic.keys()),key=itemgetter(2,1))
+        # keys are sorted in the order yambo usually writes DBs, that is:
+        #   for ik in range(nk)
+        #       for i_b1 in range(nb1)
+        #           for i_b2 in range(nb2)  [ i_b2=i_b1 for standard G0W0 calc ]
+        #               [ for i_sp in range(sp_pol) ]
+        #
+        # The INDEX order of the stored tuple is: [ (i_b1,i_b2=i_b1,i_k,[i_sp]) ... ]
+        # The VALUES are oredered as: for each k (ind. 2) all bands (b1 ind. 1, b2 ind. 0) 
+        # and for each band all spin pols (ind. 3). Last index is not specified in
+        # itemgetter
+        #
+        # NB: This sorting procedure is useless if band number / indices is the same for
+        #     all databases
+        if nspin==1: qpkeys = sorted(list(qpdic.keys()),key=itemgetter(2,1))
+        else:        qpkeys = sorted(list(qpdic.keys()),key=itemgetter(2,1,0)) 
 
         # For E, [:,0] is real part and [:,1] is img part
         QP_table_save = np.zeros((len(qpkeys), 2+nspin)) 
@@ -721,6 +734,8 @@ def merge_qp_compatibility(output,files,verbose=False):
 def add_qp_compatibility(output,add=[],subtract=[],addimg=[],verbose=False):
     """
     Add quasiparticle lifetimes from multiple files in the old format
+
+    SPIN-POLARIZED CALCULATION NOT SUPPORTED IN COMPATIBILITY MODE
     """
     # Define filenames
     addf=[f.name for f in add]
