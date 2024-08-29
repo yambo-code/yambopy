@@ -339,6 +339,9 @@ class YamboDipolesDB():
         nv = electrons.nbandsv
         nc = electrons.nbandsc   
         nkpoints = len(eiv[0]) 
+        
+        #Print band gap values and apply GW_shift
+        eiv[0]=electrons.energy_gaps(eiv[0],GWshift)
 
         #get dipoles
         dipoles = self.dipoles
@@ -360,9 +363,6 @@ class YamboDipolesDB():
         if ntot_dip>0: 
             eiv = eiv[:,:,:ntot_dip]
             nc=ntot_dip-nv
-
-        #Print band gap values and apply GW_shift
-        electrons.energy_gaps(GWshift)
 
         #Check bands to include in the calculation
         if nbnds[0]<0: nbnds[0]=nv
