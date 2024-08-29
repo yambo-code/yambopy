@@ -144,7 +144,7 @@ class YamboFile(object):
             qp_table  = f.variables['QP_table'][:]
             data['Kpoint_index'] = qp_table[2]
             data['Band'] = qp_table[0]
-            print(qp_table.shape)
+            #print(qp_table.shape)
             if qp_table.shape[0] == 4: # spin polarized
                 data['Spin_pol'] = qp_table[3]
             data['qp_table'] = qp_table[:]  # ib, ik, ,(isp if spin polarized)
