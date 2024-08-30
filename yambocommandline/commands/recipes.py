@@ -148,7 +148,7 @@ def analyse_bse(folder,var,numbexc,intexc,degenexc,maxexc,text,draw,verbose=Fals
     """
 
     #find the save folder
-    lat = YamboSaveDB.from_db_file(os.path.join(folder,'SAVE'))
+    lat = YamboLatticeDB.from_db_file(os.path.join(folder,'SAVE'))
 
     #find all ndb.BS_diago_Q01 files in the folder
     io = OrderedDict()

@@ -55,7 +55,7 @@ class Exciton():
     def __str__(self):
         return self.get_string()
 
-class YamboExcitonDB(YamboSaveDB):
+class YamboExcitonDB(object):
     """ Read the excitonic states database from yambo
 
         Exciton eigenvectors are arranged as eigenvectors[i_exc, i_kvc]
@@ -275,7 +275,7 @@ class YamboExcitonDB(YamboSaveDB):
         Calculate exciton band-structure
             
             Arguments:
-            energies -> can be an instance of YamboSaveDB or YamboQBDB
+            energies -> can be an instance of YamboElectronsDB or YamboQPDB
             path     -> path in reduced coordinates in which to plot the band structure
             exciton  -> exciton index to plot
             spin     -> ??
@@ -307,21 +307,20 @@ class YamboExcitonDB(YamboSaveDB):
             exit()
 
         #get eigenvalues along the path
-        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
+        if isinstance(energies,YamboElectronsDB):
             #expand eigenvalues to the full brillouin zone
             # SPIN-UP CHANNEL ONLY. Check with BSE WFs
             energies = energies.eigenvalues[0,self.lattice.kpoints_indexes]
             
         elif isinstance(energies,YamboQPDB):
-            #expand the quasiparticle energies to the bull brillouin zone
+            #expand the quasiparticle energies to the full brillouin zone
             pad_energies = energies.eigenvalues_qp[self.lattice.kpoints_indexes]
             min_band = energies.min_band
             nkpoints, nbands = pad_energies.shape
             energies = np.zeros([nkpoints,energies.max_band])
             energies[:,min_band-1:] = pad_energies 
         else:
-            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
-                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+            raise ValueError("Energies argument must be an instance of YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         weights = self.get_exciton_weights(excitons)      
         energies = energies[band_indexes]
@@ -337,7 +336,7 @@ class YamboExcitonDB(YamboSaveDB):
         Calculate exciton band-structure
             
             Arguments:
-            energies -> can be an instance of YamboSaveDB or YamboQBDB
+            energies -> can be an instance of YamboElectronsDB or YamboQPDB
             path     -> path in reduced coordinates in which to plot the band structure
             exciton  -> exciton index to plot
         """
@@ -371,7 +370,7 @@ class YamboExcitonDB(YamboSaveDB):
         print(self.ncbands)
         exit()
         #get eigenvalues along the path
-        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
+        if isinstance(energies,YamboElectronsDB):
             #expand eigenvalues to the full brillouin zone
             # SPIN-UP Valence
             energies_v = energies.eigenvalues[0,self.lattice.kpoints_indexes,:self.nvbands]
@@ -379,15 +378,14 @@ class YamboExcitonDB(YamboSaveDB):
 
 
         elif isinstance(energies,YamboQPDB):
-            #expand the quasiparticle energies to the bull brillouin zone
+            #expand the quasiparticle energies to the full brillouin zone
             pad_energies = energies.eigenvalues_qp[self.lattice.kpoints_indexes]
             min_band = energies.min_band
             nkpoints, nbands = pad_energies.shape
             energies = np.zeros([nkpoints,energies.max_band])
             energies[:,min_band-1:] = pad_energies 
         else:
-            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
-                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+            raise ValueError("Energies argument must be an instance of YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         weights = self.get_exciton_weights(excitons)      
         #print(energies.shape)
@@ -622,13 +620,12 @@ class YamboExcitonDB(YamboSaveDB):
             ibz_omega[idx_ibz,:,:] = omega[idx_bz,:,:] 
 
         #get DFT or GW eigenvalues
-        if isinstance(energies_db,(YamboSaveDB,YamboElectronsDB)):
+        if isinstance(energies_db,YamboElectronsDB):
             ibz_energies = energies_db.eigenvalues[0,:,self.start_band:self.mband] #spin-up
         elif isinstance(energies_db,YamboQPDB):   # Check this works !!!!
             ibz_energies = energies_db.eigenvalues_qp
         else:
-            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
-                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+            raise ValueError("Energies argument must be an instance of YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         # set k-path
         kpoints_path = path.get_klist()[:,:3]
@@ -992,7 +989,7 @@ class YamboExcitonDB(YamboSaveDB):
             Arguments:
             ax          -> axis extance of matplotlib to add the plot to
             lattice     -> Lattice database
-            energies_db -> Energies database, can be either a SaveDB or QPDB
+            energies_db -> Energies database, can be either ElectronsDB or QPDB
             path        -> Path in the brillouin zone
         """
         from qepy.lattice import Path
@@ -1135,13 +1132,12 @@ class YamboExcitonDB(YamboSaveDB):
             ibz_weights[idx_ibz,:] = weights[idx_bz,:] 
             ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
         #get eigenvalues along the path
-        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
+        if isinstance(energies,YamboElectronsDB):
             ibz_energies = energies.eigenvalues[0,:,self.start_band:self.mband]
         elif isinstance(energies,YamboQPDB):
             ibz_energies = energies.eigenvalues_qp # to be done for spin-UP channel
         else:
-            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
-                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+            raise ValueError("Energies argument must be an instance of YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         #interpolate energies
         na = np.newaxis
@@ -1195,13 +1191,12 @@ class YamboExcitonDB(YamboSaveDB):
             ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
 
         #get eigenvalues along the path
-        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
+        if isinstance(energies,YamboElectronsDB):
             ibz_energies = energies.eigenvalues[:,self.start_band:self.mband]
         elif isinstance(energies,YamboQPDB):
             ibz_energies = energies.eigenvalues_qp
         else:
-            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
-                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+            raise ValueError("Energies argument must be an instance of YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         #interpolate energies
         na = np.newaxis
@@ -1266,13 +1261,12 @@ class YamboExcitonDB(YamboSaveDB):
             ibz_kpoints[idx_ibz]   = lattice.red_kpoints[idx_bz]
             ibz_spin[idx_ibz,:]    = spin_proj[idx_bz,v_1:v_2]
         #get eigenvalues along the path
-        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
+        if isinstance(energies,YamboElectronsDB):
             ibz_energies = energies.eigenvalues[:,self.start_band:self.mband]
         elif isinstance(energies,YamboQPDB):
             ibz_energies = energies.eigenvalues_qp
         else:
-            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
-                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+            raise ValueError("Energies argument must be an instance of YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         #interpolate energies
         na = np.newaxis
@@ -1535,7 +1529,7 @@ class YamboExcitonDB(YamboSaveDB):
         Now is a first version
             
             Arguments:
-            energies -> can be an instance of YamboSaveDB or YamboQBDB
+            energies -> can be an instance of YamboElectronsDB or YamboQBDB
             path     -> path in reduced coordinates in which to plot the band structure
             exciton  -> exciton index to plot
             spin     -> ??
@@ -1566,7 +1560,7 @@ class YamboExcitonDB(YamboSaveDB):
             exit()
 
         #get eigenvalues along the path
-        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
+        if isinstance(energies,YamboElectronsDB):
             #expand eigenvalues to the full brillouin zone
             energies_up = energies.eigenvalues[0,self.lattice.kpoints_indexes]
             energies_dw = energies.eigenvalues[1,self.lattice.kpoints_indexes]
@@ -1593,8 +1587,7 @@ class YamboExcitonDB(YamboSaveDB):
             energies_up[:,min_band-1:] = pad_energies_up 
             energies_dw[:,min_band-1:] = pad_energies_dw
         else:
-            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
-                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+            raise ValueError("Energies argument must be an instance of YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         energies_up, energies_dw = energies_up[band_indexes],energies_dw[band_indexes]
 
@@ -1758,7 +1751,7 @@ class YamboExcitonDB(YamboSaveDB):
 
         #get eigenvalues along the path
         # DFT values from SAVE
-        if isinstance(energies,(YamboSaveDB,YamboElectronsDB)):
+        if isinstance(energies,YamboElectronsDB):
             ibz_energies_up = energies.eigenvalues[0,:,self.start_band:self.mband] # spin-up channel
             ibz_energies_dw = energies.eigenvalues[1,:,self.start_band:self.mband] # spin-dw channel
             ibz_kpoints_qp  = ibz_kpoints
@@ -1782,8 +1775,7 @@ class YamboExcitonDB(YamboSaveDB):
             ibz_energies_dw = pad_energies_dw
             #print('ibz',ibz_energies_up.shape)
         else:
-            raise ValueError("Energies argument must be an instance of YamboSaveDB,"
-                             "YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
+            raise ValueError("Energies argument must be an instance of YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
         #interpolate energies
         na = np.newaxis

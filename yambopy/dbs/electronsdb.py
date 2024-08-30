@@ -81,7 +81,7 @@ class YamboElectronsDB():
 
     Arguments:
 
-        ``lattice``: instance of YamboLatticeDB or YamboSaveDB
+        ``lattice``: instance of YamboLatticeDB
 
         ``filename``: netcdf database to read from (default:ns.db1)
 

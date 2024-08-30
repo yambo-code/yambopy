@@ -8,7 +8,7 @@ from yambopy import *
 from itertools import product
 from netCDF4 import Dataset
 
-class YamboExcitonWeight(YamboSaveDB):
+class YamboExcitonWeight(object):
     """
     Class to read the excitonic weight writen by ypp
     """
@@ -18,12 +18,12 @@ class YamboExcitonWeight(YamboSaveDB):
 
         # ! I have commented line 20 because is was broken. Pls check
 
-        ysave = YamboSaveDB.from_db_file(folder=save,filename='ns.db1')
+        ysave = YamboLatticeDB.from_db_file(folder=save,filename='ns.db1')
         self.sym_car  = ysave.sym_car
         self.kpts_car = ysave.car_kpoints #kpts_car
         self.lat = ysave.lat
 
-        #super(YamboSaveDB,self).from_db_file(folder=save,filename='ns.db1')
+        #super(YamboLatticeDB,self).from_db_file(folder=save,filename='ns.db1')
 
         #read excitons file
         self.excitons = np.loadtxt(filename)

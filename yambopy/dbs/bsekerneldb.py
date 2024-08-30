@@ -7,7 +7,7 @@ from yambopy import *
 from yambopy.units import *
 from itertools import product
 
-class YamboBSEKernelDB(YamboSaveDB):
+class YamboBSEKernelDB(object):
     """ Read the BSE Kernel database from yambo.
         It reads <t1| K |t2> where K is the kernel and t_i transition indices.
         
