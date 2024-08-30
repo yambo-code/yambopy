@@ -63,7 +63,7 @@ class YamboLatticeDB(object):
 
             args = dict( atomic_numbers       = atomic_numbers,
                          car_atomic_positions = atomic_positions,
-                         sym_car              = database.variables['SYMMETRY'][:],
+                         sym_car              = np.transpose( database.variables['SYMMETRY'][:], (0,2,1) ), # transpose leaving first axis as symm index
                          iku_kpoints          = database.variables['K-POINTS'][:].T,
                          lat                  = database.variables['LATTICE_VECTORS'][:].T,
                          alat                 = database.variables['LATTICE_PARAMETER'][:].T,
@@ -202,13 +202,10 @@ class YamboLatticeDB(object):
             time_rev_list[i] = ( i >= self.nsym/(self.time_rev+1) )
         return time_rev_list
 
-    def expand_kpoints(self,verbose=1,expand_mode=1,atol=1.e-6):
+    def expand_kpoints(self,verbose=1,atol=1.e-6):
         """
         Take a list of qpoints and symmetry operations and return the full brillouin zone
         with the corresponding index in the irreducible brillouin zone
-
-        :: expand_mode=0 : k' = S k
-        :: expand_mode=1:  k' = S.T k  [default, consistent with yambo]
         """
 
         #check if the kpoints were already exapnded
@@ -222,19 +219,13 @@ class YamboLatticeDB(object):
         #kpoints in the full brillouin zone organized per index
         kpoints_full_i = {}
 
-        if expand_mode==0: sym_car_to_apply = self.sym_car
-        if expand_mode==1:
-            sym_car_to_apply = np.copy(self.sym_car)
-            sym_car_to_apply = np.transpose(self.sym_car, (0, 2, 1))
-
-
         #expand using symmetries
         for nk,k in enumerate(self.car_kpoints):
             #if the index in not in the dicitonary add a list
             if nk not in kpoints_full_i:
                 kpoints_full_i[nk] = []
 
-            for ns,sym in enumerate(sym_car_to_apply):
+            for ns,sym in enumerate(self.sym_car):
 
                 new_k = np.dot(sym,k)
                 #check if the point is inside the bounds
@@ -268,8 +259,9 @@ class YamboLatticeDB(object):
         """
         Obtain a list of indexes and kpoints that belong to the regular mesh
         """
-        if isinstance(path,Path):
-            path = path.get_klist()
+        #if isinstance(path,Path):
+        #    path = path.get_klist()
+        nks = list(range(self.nkpoints))
 
         #points in cartesian coordinates
         path_car = red_car(path, self.rlat)
@@ -299,7 +291,7 @@ class YamboLatticeDB(object):
                 shift = red_car([np.array([x,y,z])],self.rlat)[0]
 
                 #iterate over all the kpoints
-                for index, kpt in enumerate(self.car_kpoints):
+                for index, kpt in zip(nks,self.car_kpoints):#enumerate(self.car_kpoints):
 
                     kpt_shift = kpt+shift #shift the kpoint
 
@@ -330,7 +322,7 @@ class YamboLatticeDB(object):
         "          Yambo cartesian units [cc in yambo]: \n\
                 ::   self.car_kpoints*2.*pi\n\
          \n\
-          QE cartesian unists [cart. coord. in units 2pi/alat in QE: \n\
+          QE cartesian unists [cart. coord. in units 2pi/alat] in QE: \n\
                 ::   self.car_kpoints*self.alat[0]\n\
          \n\
           Internal yambo units [iku]: \n\

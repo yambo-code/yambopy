@@ -10,17 +10,11 @@ from netCDF4 import Dataset
 from yambopy.plot.plotting import add_fig_kwargs
 from yambopy.plot import *
 from yambopy.tools.string import marquee
-from yambopy.lattice import isbetween, car_red, red_car, rec_lat, vol_lat
+from yambopy.lattice import isbetween, car_red, red_car, rec_lat, vol_lat, vec_in_list
 from yambopy.units import ha2ev
 
 max_exp = 50
 atol = 1e-3
-
-def vec_in_list(veca,vec_list):
-    """
-    Check if a vector exists in a list of vectors
-    """
-    return np.array([ np.allclose(veca,vecb,rtol=atol,atol=atol) for vecb in vec_list ]).any()
 
 class YamboSaveDB():
     """
@@ -43,7 +37,7 @@ class YamboSaveDB():
         self.atomic_numbers       = atomic_numbers   
         self.car_atomic_positions = car_atomic_positions
         self.eigenvalues          = eigenvalues     
-        self.sym_car              = sym_car         
+        self.sym_car              = sym_car        
         self.kpts_iku             = kpts_iku        
         self.lat                  = lat             
         self.alat                 = alat            
@@ -82,7 +76,7 @@ class YamboSaveDB():
             args = dict( atomic_numbers       = atomic_numbers,
                          car_atomic_positions = atomic_positions,
                          eigenvalues          = database.variables['EIGENVALUES'][:,:]*ha2ev,
-                         sym_car              = database.variables['SYMMETRY'][:],
+                         sym_car              = np.transpose( database.variables['SYMMETRY'][:], (0,2,1) ), # transpose leaving first axis as symm index
                          kpts_iku             = database.variables['K-POINTS'][:].T,
                          lat                  = database.variables['LATTICE_VECTORS'][:].T,
                          alat                 = database.variables['LATTICE_PARAMETER'][:].T,
@@ -367,7 +361,7 @@ class YamboSaveDB():
                     kpoints_full_i[nk] = []
 
                 #if the vector is not in the list of this index add it
-                if not vec_in_list(k_bz,kpoints_full_i[nk]):
+                if not vec_in_list(k_bz,kpoints_full_i[nk],atol=atol):
                     kpoints_full_i[nk].append(k_bz)
                     kpoints_full.append(new_k)
                     kpoints_indexes.append(nk)

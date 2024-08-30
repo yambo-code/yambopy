@@ -7,11 +7,9 @@ from __future__ import print_function, division
 import os
 import json
 import re
-from itertools import product
 import numpy as np
 from yambopy.plot.bandstructure import YambopyBandStructure
 from yambopy.tools.duck import isstring
-from yambopy.lattice import red_car, rec_lat, expand_kpts, isbetween
 from yambopy.io.inputfile import YamboIn
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.plot.plotting import add_fig_kwargs

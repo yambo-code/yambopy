@@ -39,8 +39,8 @@ class ExcitonDispersion():
         # Read
         car_qpoints         = np.zeros((nqpoints,3))
         exc_energies        = np.zeros((nqpoints,nexcitons))
-        exc_eigenvectors    = np.zeros((nqpoints,nexcitons,self.ntransitions),dtype=np.complex)
-        exc_tables          = np.zeros((nqpoints,self.ntransitions,5),dtype=np.int)
+        exc_eigenvectors    = np.zeros((nqpoints,nexcitons,self.ntransitions),dtype=complex)
+        exc_tables          = np.zeros((nqpoints,self.ntransitions,5),dtype=int)
         for iQ in range(nqpoints):
             exc_obj = YamboExcitonDB.from_db_file(lattice,filename=folder+'/ndb.BS_diago_Q%d'%(iQ+1))
             if iQ==0: car_qpoints[iQ] = np.array([0.,0.,0.])
@@ -70,7 +70,7 @@ class ExcitonDispersion():
         """
         Check nexcitons and ntransitions in each database
         """
-        nexcitons_each_Q    = np.zeros(nqpoints,dtype=np.int)
+        nexcitons_each_Q    = np.zeros(nqpoints,dtype=int)
         for iQ in range(nqpoints):
             exc_obj = YamboExcitonDB.from_db_file(lattice,filename=folder+'/ndb.BS_diago_Q%d'%(iQ+1))
             nexcitons_each_Q[iQ] = exc_obj.nexcitons
@@ -101,7 +101,7 @@ class ExcitonDispersion():
         TODO: Extend to spin-polarised case
         """
         nq, nexc, nk, nv, nc = self.nqpoints, self.nexcitons, self.nkpoints, self.nvalence, self.nconduction
-        reshaped_eigenvectors = np.zeros((nq,nexc,nk,nv,nc),dtype=np.complex)
+        reshaped_eigenvectors = np.zeros((nq,nexc,nk,nv,nc),dtype=complex)
         #print(eigenvectors[2,5,2])
         for iQ in range(nq):
             for i_exc in range(nexc): 
@@ -134,7 +134,10 @@ class ExcitonDispersion():
 
         # Global plot stuff
         self.fig, self.ax = plt.subplots(1, 1)
-        self.ax.add_patch(BZ_hexagon(self.rlat))
+        if self.nqpoints<self.nkpoints:  c_BZ_borders='black'
+        if self.nqpoints==self.nkpoints: c_BZ_borders='white'
+        self.ax.add_patch(BZ_Wigner_Seitz(self.lattice,color=c_BZ_borders))
+
 
         if plt_cbar:
             if 'cmap' in kwargs.keys(): color_map = plt.get_cmap(kwargs['cmap'])

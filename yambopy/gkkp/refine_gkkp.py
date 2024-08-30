@@ -115,7 +115,7 @@ class YamboRefineElphDB():
         # Frequencies part 
         self.read_frequencies_yambo()
         self.read_matdyn()
-        self.expand_kpoints(mode='yambo')
+        self.expand_kpoints()
         self.expand_frequencies()
         # LO mode part
         if LO_ind is not None:
@@ -186,19 +186,9 @@ class YamboRefineElphDB():
         self.freqs_matdyn = np.array(freqs_matdyn)*invcm2eV
         if np.any(self.freqs_matdyn<0.): print("[WARNING] NEGATIVE frequencies found in the matdyn file!")
 
-    def expand_kpoints(self,atol=1e-6,verbose=1,mode='yambopy'):
+    def expand_kpoints(self,atol=1e-6,verbose=1):
         """
         Expand matdyn qpoints
-
-        mode = 'yambopy': uses symmetries as read from DB. In general, this 
-                          q-expansion will not follow the same ordering of Yambo.
-                          
-                          k_i = S_i k 
-                          
-        mode = 'yambo': uses transposes of the symmetries. This coincides with the
-                        Yambo expansion
-                        
-                          k_i = (S_i)^T k
         """
         #check if the kpoints were already exapnded
         kpoints_indexes  = []
@@ -207,12 +197,8 @@ class YamboRefineElphDB():
 
         #kpoints in the full brillouin zone organized per index
         kpoints_full_i = {}
-        
-        if mode=='yambopy': sym_car_to_apply = self.sym_car
-        if mode=='yambo'  : 
-            sym_car_to_apply = np.copy(self.sym_car)
-            sym_car_to_apply = np.transpose(self.sym_car, (0, 2, 1))
-            #for ns in range(len(self.sym_car)): sym_car_to_apply[ns] = self.sym_car[ns].T
+       
+        syms = self.sym_car
         
         #expand using symmetries
         for nk,k in enumerate(self.qpts_matdyn):
@@ -221,7 +207,7 @@ class YamboRefineElphDB():
             if nk not in kpoints_full_i:
                 kpoints_full_i[nk] = []
 
-            for ns,sym in enumerate(sym_car_to_apply):
+            for ns,sym in enumerate(syms):
 
                 new_k = np.dot(sym,k)
 

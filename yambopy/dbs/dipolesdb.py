@@ -220,7 +220,7 @@ class YamboDipolesDB():
                 dip = dipoles[nk_ibz,:,:,:]
             
             #get symmmetry operation
-            sym = lattice.sym_car[ns].T
+            sym = lattice.sym_car[ns]
             #get projection operation
             pro = np.array([field_dirx,field_diry,field_dirz])
             #transformation

@@ -37,8 +37,6 @@ def expand_kpoints(kpoints,syms,rlat,atol=1e-6,verbose=0):
     #kpoints in the full brillouin zone organized per index
     kpoints_full_i = {}
 
-    sym_car_to_apply = syms
-
     #expand using symmetries
     for nk,k in enumerate(kpoints):
 
@@ -46,7 +44,7 @@ def expand_kpoints(kpoints,syms,rlat,atol=1e-6,verbose=0):
         if nk not in kpoints_full_i:
             kpoints_full_i[nk] = []
 
-        for ns,sym in enumerate(sym_car_to_apply):
+        for ns,sym in enumerate(syms):
 
             new_k = np.dot(sym,k)
 
@@ -158,20 +156,19 @@ class YamboEm1sRotate():
         # Get symmetries in CC and real-space atomic positions
         if not os.path.isfile('%s/%s'%(save_path,db1)): raise FileNotFoundError("File %s not found."%db1)
         database = Dataset("%s/%s"%(save_path,db1), 'r')
-        sym_car = np.array(database.variables['SYMMETRY'][:])
-        self.syms = np.transpose(sym_car, (0, 2, 1))
+        self.sym_car = np.transpose( database.variables['SYMMETRY'][:], (0,2,1) ), # transpose leaving first axis as symm index
         n_atoms =  database.variables['N_ATOMS'][:].astype(int)
         atom_pos = database.variables['ATOM_POS'][:]
         if verbose: iku_kpoints_ibz = database.variables['K-POINTS'][:].T
         database.close()
-        self.nsyms = len(self.syms)
+        self.nsyms = len(self.sym_car)
 
         print("=== Rotating em1s... ===")
         print(" * Getting q-map...  ")
 
         # Obtain transformed qpoints q'=Sq in the full BZ
         self.qpoints, self.qpoints_indices, self.syms_indices, _ = \
-        expand_kpoints(self.qpoints_ibz,self.syms,self.rlat)
+        expand_kpoints(self.qpoints_ibz,self.sym_car,self.rlat)
         self.nqpoints = len(self.qpoints)
 
         print(" * Getting G-map ...  ")
@@ -183,7 +180,7 @@ class YamboEm1sRotate():
         # Spatial inversion or T-rev?
         # [WARNING] We assume one of the two is used!
         self.inv_type, self.inv_index = \
-        find_inversion_type(n_atoms,atom_pos,self.syms)
+        find_inversion_type(n_atoms,atom_pos,self.sym_car)
 
         # Rotate em1s from IBZ to BZ
         self.rotate_em1s()
@@ -207,10 +204,10 @@ class YamboEm1sRotate():
 
         - kwargs are atol and rtol for np.isclose
         """
-        inv_syms = np.linalg.inv(self.syms)
+        inv_syms = np.linalg.inv(self.sym_car)
         Sm1G_table = np.zeros((self.ngvectors,len(inv_syms)),dtype=int)
 
-        self.rotated_gvectors = np.zeros([len(self.syms),len(self.gvectors),3])
+        self.rotated_gvectors = np.zeros([len(self.sym_car),len(self.gvectors),3])
         for iG,G in enumerate(self.gvectors):
             for i_S,sym in enumerate(inv_syms):
                 check = np.sum( (self.gvectors - np.dot(sym,G))**2., axis=1) < tol
@@ -462,7 +459,7 @@ class YamboEm1sRotate():
         print(" * Printing PW-format kpoints file.")
 
         kpoints_ibz = np.array([ k/self.alat for k in kpoints_iku ])
-        kpoints     = expand_kpoints(kpoints_ibz,self.syms,self.rlat)[0]
+        kpoints     = expand_kpoints(kpoints_ibz,self.sym_car,self.rlat)[0]
         if units=='rlu': points = car_red(kpoints,self.rlat)
         if units=='cc':  points = kpoints*self.alat[0]
 
