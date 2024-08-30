@@ -7,6 +7,9 @@ from copy import deepcopy
 class YamboGkkpCompute():
     """
     Class to obtain qe s.dbph* and yambo ndb.elph* databases starting from scratch.
+
+    [NOTE: this class uses the old el-ph yambo interface (via double ph.x calculation + ypp_ph)]
+    [      A new interface making use of the LetzElphC code is available                       ]
     
     It runs the necessary pw.x and ph.x simulations, optionally followed by the yambo setup.
     

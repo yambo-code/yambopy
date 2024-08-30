@@ -24,26 +24,30 @@ class YamboBSEKernelDB(YamboSaveDB):
         self.kernel   = kernel
 
     @classmethod
-    def from_db_file(cls,lattice,Qpt=1,folder='.'):
-        """ initialize this class from a ndb.BS_PAR_Q# file
-        """
-        filename='ndb.BS_PAR_Q%d'%Qpt
-        path_filename = os.path.join(folder,filename)
+    def from_db_file(cls, lattice, Qpt=1, folder='.'):
+        """Initialize this class from a ndb.BS_PAR_Q# file."""
+        filename = 'ndb.BS_PAR_Q%d' % Qpt
+        path_filename = os.path.join(folder, filename)
         if not os.path.isfile(path_filename):
-            raise FileNotFoundError("File %s not found in YamboExcitonDB"%path_filename)
+            raise FileNotFoundError(f"File {path_filename} not found in YamboExcitonDB")
 
         with Dataset(path_filename) as database:
             if 'BSE_RESONANT' in database.variables:
-                # Read as transposed since dimension in netCDF are inverted
+                # Read as transposed since dimensions in netCDF are inverted
                 reker, imker = database.variables['BSE_RESONANT'][:].T
                 ker = reker + imker*I
-                # Transform the triangular matrix in a square one
-                kernel = np.transpose(np.triu(ker.data))+np.triu(ker.data)
-                kernel[np.diag_indices(len(kernel))]*=0.5
+                
+                # Transform the triangular matrix to a square Hermitian matrix
+                kernel = np.conjugate(np.transpose(np.triu(ker))) + np.triu(ker)
+                kernel[np.diag_indices(len(kernel))] *= 0.5
+                
+                # Check if the kernel is Hermitian
+                if not np.allclose(kernel, np.conjugate(kernel.T)):
+                    raise ValueError("The constructed kernel matrix is not Hermitian")
             else:
                 raise ValueError('Only BSE_RESONANT case supported so far')
 
-        return cls(lattice,kernel)
+        return cls(lattice, kernel)
 
     @property
     def ntransitions(self): return len(self.kernel)

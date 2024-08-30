@@ -125,31 +125,30 @@ def shifted_grids_2D(k,b):
 
     return shifted_grids
 
-def plot_mesh_2D_BZ(lattice,car_pts,car_pts2=None):
+def plot_mesh_2D_BZ(lattice,car_pts,car_pts2=None,save=False,**kwargs):
     """
     Fast plot of a k- or q-mesh in the 2D BZ with
     annotated indices and in CARTESIAN coordinates. 
     Supports also a second mesh for comparisons.
     
     This function is intended to help with debug, tests,
-    developments, therefore at the moment plot layout 
-    options are hardcoded.
+    developments.
     """
     import matplotlib.pyplot as plt
-    marker ='H'
-    size   = 200
-    color  = 'teal'
-    lwidth = 0.5
-    ecolor = 'black'
-    label  = 'grid 1'
-    offset_xy = [0.003,0.005]
-    marker2 ='h'
-    size2   = 100
-    color2  = 'orange'
-    lwidth2 = 0.5
-    ecolor2 = 'black'
-    label2  = 'grid 2'
-    offset_xy2 = [-0.005,0.005]
+    marker = kwargs.pop('marker','H')
+    size   = kwargs.pop('size',200)
+    color  = kwargs.pop('color','teal')
+    lwidth = kwargs.pop('lwidth',0.5)
+    ecolor = kwargs.pop('ecolor','black')
+    label  = kwargs.pop('label','grid 1')
+    offset_xy = [kwargs.pop('offset_x',0.003),kwargs.pop('offset_y',0.005)]
+    marker2 = kwargs.pop('marker2','h')
+    size2   = kwargs.pop('size2',100)
+    color2  = kwargs.pop('color2','orange')
+    lwidth2 = kwargs.pop('lwidth2',0.5)
+    ecolor2 = kwargs.pop('ecolor2','black')
+    label2  = kwargs.pop('label2','grid 2')
+    offset_xy2 = [kwargs.pop('offset_x2',-0.005),kwargs.pop('offset_y2',0.005)]
 
     # Do a 2D scatterplot of the kpoints in Cartesian coordinates
     fig = plt.figure(figsize=(9,9))
@@ -177,4 +176,5 @@ def plot_mesh_2D_BZ(lattice,car_pts,car_pts2=None):
             ax.annotate(i_k, (kx,ky), color=color2, xytext=(kx+offset_xy2[0],ky+offset_xy2[1]))
 
     plt.legend()
-    plt.show()
+    if not save: plt.show()
+    else: plt.savefig('grids.png')

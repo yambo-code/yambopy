@@ -7,7 +7,7 @@ EDIT the path below to point to the yambo SAVE folder.
 """
 save_path='BSE_saves/YAMBO_saves'
 from yambopy import *
-from yambopy.plot.plotting import BZ_hexagon
+from yambopy.plot.plotting import BZ_Wigner_Seitz
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         ax.set_title('Cartesian coordinates')
 
         ## Add BZ borders
-        ax.add_patch(BZ_hexagon(ylat.rlat,color='black',linewidth=1.))
+        ax.add_patch(BZ_Wigner_Seitz(ylat,color='black',linewidth=1.))
 
         ## Plot with "nice" layout
         ax.set_aspect('equal')

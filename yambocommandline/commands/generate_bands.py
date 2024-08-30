@@ -233,8 +233,9 @@ def process_bands(eigen,kpts_cart,fermi_e,shift_Delta_c_v,n_val):
     if shift_Delta_c_v is not None:
         scissor = shift_Delta_c_v
         top_v, bottom_c = processed_eigen[:,n_val-1], processed_eigen[:,n_val]
-        ind_k_dir_gap = np.argmin(bottom_c-top_v)
-        ev_max, ec_min = top_v[ind_k_dir_gap], bottom_c[ind_k_dir_gap]
+        #ind_k_dir_gap = np.argmin(bottom_c-top_v)
+        #ev_max, ec_min = top_v[ind_k_dir_gap], bottom_c[ind_k_dir_gap]
+        ev_max, ec_min = np.max(top_v), np.min(bottom_c) # The scissor is applied to the indirect gap
         for ik in range( len(kpts_cart) ):
             for ib in range( len(processed_eigen[0]) ):
                 if ib<n_val: shifted_eigen[ik][ib] = ev_max-(ev_max-processed_eigen[ik][ib])*scissor[2]

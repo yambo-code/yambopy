@@ -347,6 +347,9 @@ class YamboSaveDB():
         #kpoints in the full brillouin zone organized per index
         kpoints_full_i = {}
 
+        # Take correct matrices (transpose of the ones read)
+        self.sym_car = np.transpose(self.sym_car, (0, 2, 1))
+
         #expand using symmetries
         for nk,k in enumerate(self.car_kpoints):
             for ns,sym in enumerate(self.sym_car):

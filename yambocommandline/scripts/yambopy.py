@@ -654,6 +654,47 @@ class ConvertLELPHCtoYAMBO(Cmd):
 		# clean
 		lelph_interface.clean_lelphc(debug,inp_name,ph_path)
 
+class BSEKernelSizeCmd(Cmd):
+    """
+    Script to calculate the expected BSE kernel size, in GB, to be loaded by each MPI task
+
+    Size_kernel_GB = (nk*nv*nc*ncpl)**2*np*4*2)/(1024.)**3.
+
+    Usage:
+
+    >> yambopy bsesize -nk nk -nv nv -nc nc [-ndp] [-ncpl]
+
+    :: -nk,--nkpts_bz      = Number of kpoints in the full BZ
+    :: -nv,--nvalence,     = Number of valence bands included in the kernel
+    :: -nc,--nconduction   = Number of conduction bands included in the kernel
+    :: -ndp,--ndoubleprec  = Double precision [Default: False]
+    :: -ncpl,--ncoupling   = BSE kernel in coupling mode (i.e., no TDA) [Default: False ]
+
+    """
+    def __init__(self,args):
+
+        #check for args
+        if len(args) < 5:
+            print((self.__doc__))
+            exit(0)
+
+        parser = argparse.ArgumentParser(description='Calculate expected size of BSE kernel to be loaded by each MPI task (in GB)')
+        parser.add_argument('-nk',   '--nkpts_bz', type=int, help='Number of kpoints in the full BZ',required=True)
+        parser.add_argument('-nv',   '--nvalence', type=int, help='Number of valence bands included in the kernel',required=True)
+        parser.add_argument('-nc','--nconduction', type=int, help='Number of conduction bands included in the kernel',required=True)
+        parser.add_argument('-ndp', '--ndoubleprec', help='double precision',action='store_false')
+        parser.add_argument('-ncpl','--ncoupling', help='BSE kernel in coupling mode (i.e., no TDA)',action='store_false')
+
+        args = parser.parse_args(args)
+
+        nk   = args.nkpts_bz
+        nv   = args.nvalence
+        nc   = args.nconduction
+        np   = 1 if args.ndoubleprec else 2
+        ncpl = 1 if args.ncoupling else 2
+
+        get_BSE_kernel_size.get_BSE_kernel_size(nk,nv,nc,np,ncpl)
+
 class YambopyCmd(Cmd):
     """
     class to implement commands for yambopy.
@@ -672,6 +713,7 @@ class YambopyCmd(Cmd):
                  'gwsubspace':   GwSubspace,
                  'phinp':        GetPHqInputCmd,
                  'convert':      ConvertRLtoRyCmd,
+                 'bsesize':      BSEKernelSizeCmd,
 				 'l2y':          ConvertLELPHCtoYAMBO,
                  'test':         TestCmd}
 

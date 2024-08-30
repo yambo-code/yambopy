@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 #build-backend = "flit_core.buildapi"
 [project]
 name = "yambopy"
-version = "0.3.1"
+version = "0.3.2"
 authors = [
   { name="Fulvio Paleari", email="fulvio.paleari@nano.cnr.it" },
   { name="Alejandro Molina-Sanchez", email="alejandro.molina@uv.es" },
@@ -13,7 +13,7 @@ authors = [
 ]
 description = "Yambopy: a pre/post-processing tool for Yambo"
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",

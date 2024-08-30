@@ -85,7 +85,7 @@ class ProjwfcXML(object):
         if hasattr(self, 'order_is_l_j_mj') and self.order_is_l_j_mj:
             states = []
             #                                                                                         wfc                  l                 j                 m_j                 
-            for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z]+)\s+\),\s+wfc\s+([0-9])\s+\((?:l=([0-9.]+))? ?(?:j=([0-9.]+))? ?(?:m_j=\s+([0-9.]+))?',f.read()):
+            for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z0-9]+)\s*\),\s+wfc\s+([0-9])\s+\((?:l=([0-9.]+))? ?(?:j=([0-9.]+))? ?(?:m_j=\s+([0-9.]+))?',f.read()):
                 # examples of the lines we have to read
                 #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin case
                 #  5: atom   1 (C  ), wfc  3 (j=1.5 l=1 m_j=-1.5)     #non collinear spin case
@@ -101,7 +101,7 @@ class ProjwfcXML(object):
         if hasattr(self, 'order_is_j_l_m_mj') and self.order_is_j_l_m_mj:      
             states = []
             #                                                                                        wfc                  j                 l                 m                    m_j
-            for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z]+)\s+\),\s+wfc\s+([0-9])\s+\((?:j=([0-9.]+))? ?(?:l=([0-9.]+))? ?(?:m=\s+([0-9.]+))? ?(?:m_j=([ \-0-9.]+))?',f.read()):
+            for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z0-9]+)\s*\),\s+wfc\s+([0-9])\s+\((?:j=([0-9.]+))? ?(?:l=([0-9.]+))? ?(?:m=\s+([0-9.]+))? ?(?:m_j=([ \-0-9.]+))?',f.read()):
                 # examples of the lines we have to read
                 #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin case
                 #  5: atom   1 (C  ), wfc  3 (j=1.5 l=1 m_j=-1.5)     #non collinear spin case
