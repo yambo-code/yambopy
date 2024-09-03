@@ -32,7 +32,7 @@ class YamboLatticeDB(object):
 
     @classmethod
     def from_db(cls,filename='ns.db1',Expand=True,atol=1e-6):
-        return cls.from_db_file(filename,Expand,expand_mode,atol)
+        return cls.from_db_file(filename,Expand,atol)
     
     @classmethod
     def from_db_file(cls,filename='ns.db1',Expand=True,atol=1e-6):
