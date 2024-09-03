@@ -8,74 +8,13 @@
 #
 # This file is part of the yambopy project
 #
-from yambopy import *
+import numpy as np
+import os
+import shutil
 from netCDF4 import Dataset
-
-def expand_kpoints(kpoints,syms,rlat,atol=1e-6,verbose=0):
-    """
-    Expand reciprocal-space BZ vectors using lattice symmetries
-
-    The expansion is consistent with the yambo expansion
-
-    == Inputs ==
-    :: kpoints: points in the IBZ to be expanded [CC]
-    :: syms   : list of symmetry operations [CC]
-    :: rlat   : reciprocal lattice vectors
-
-    == Outputs ==
-    :: List of expanded points [CC]
-    :: Index table to go from unexpanded to expanded points
-    :: Index table for symmetries
-    :: List of weights
-
-    """
-    #check if the kpoints were already exapnded
-    kpoints_indexes  = []
-    kpoints_full     = []
-    symmetry_indexes = []
-
-    #kpoints in the full brillouin zone organized per index
-    kpoints_full_i = {}
-
-    #expand using symmetries
-    for nk,k in enumerate(kpoints):
-
-        #if the index in not in the dictionary add a list
-        if nk not in kpoints_full_i:
-            kpoints_full_i[nk] = []
-
-        for ns,sym in enumerate(syms):
-
-            new_k = np.dot(sym,k)
-
-            #check if the point is inside the bounds
-            k_red = car_red([new_k],rlat)[0]
-            k_red[np.abs(k_red) < atol] = 0. # Set to zero values < atol to avoid mistakes
-            k_bz = (k_red+atol)%1
-
-            #if the vector is not in the list of this index add it
-            if not vec_in_list(k_bz,kpoints_full_i[nk]):
-                kpoints_full_i[nk].append(k_bz)
-                kpoints_full.append(new_k)
-                kpoints_indexes.append(nk)
-                symmetry_indexes.append(ns)
-                continue
-
-    #calculate the weights of each of the kpoints in the irreducible brillouin zone
-    nkpoints_full = len(kpoints_full)
-    weights = np.zeros([nkpoints_full])
-    for nk in kpoints_full_i:
-        weights[nk] = float(len(kpoints_full_i[nk]))/nkpoints_full
-
-    if verbose: print("%d kpoints expanded to %d"%(len(kpoints),len(kpoints_full)))
-
-    #set the variables
-    expanded_car_kpoints  = np.array(kpoints_full)
-    kpoints_indices       = np.array(kpoints_indexes)
-    symmetry_indices      = np.array(symmetry_indexes)
-    weights_ibz           = np.array(weights)
-
-    return expanded_car_kpoints,kpoints_indices,symmetry_indices,weights_ibz
+from yambopy.lattice import car_red, vec_in_list
+from yambopy.kpoints import expand_kpoints
+from yambopy.tools.string import marquee
 
 def find_inversion_type(n_atoms,atom_pos,syms):
     """
@@ -167,8 +106,7 @@ class YamboEm1sRotate():
         print(" * Getting q-map...  ")
 
         # Obtain transformed qpoints q'=Sq in the full BZ
-        self.qpoints, self.qpoints_indices, self.syms_indices, _ = \
-        expand_kpoints(self.qpoints_ibz,self.sym_car,self.rlat)
+        self.qpoints, self.qpoints_indices, self.syms_indices, _ = self.expand_kpoints(self.qpoints_ibz,self.sym_car,self.rlat)
         self.nqpoints = len(self.qpoints)
 
         print(" * Getting G-map ...  ")
@@ -195,6 +133,25 @@ class YamboEm1sRotate():
         if verbose: self.print_kpts_PW_format(iku_kpoints_ibz,units='rlu')
 
         print("===      Done.       ===")
+
+    def expand_kpoints(self,kpoints,syms,rlat,atol=1e-6,verbose=0):
+        """
+        Wrapper of expand_kpoints from yambopy/kpoints.py
+
+        Does not require any self. variables to be set.
+        """
+
+        weights, kpoints_indexes, symmetry_indexes, kpoints_full = expand_kpoints(kpoints,syms,rlat,atol=atol)
+
+        if verbose: print("%d kpoints expanded to %d"%(len(kpoints),len(kpoints_full)))
+
+        #set the variables
+        expanded_car_kpoints  = kpoints_full
+        kpoints_indices       = kpoints_indexes
+        symmetry_indices      = symmetry_indexes
+        weights_ibz           = weights
+
+        return expanded_car_kpoints,kpoints_indices,symmetry_indices,weights_ibz
 
     def inverse_Gvector_table(self,tol=1e-5):
         """
@@ -459,7 +416,7 @@ class YamboEm1sRotate():
         print(" * Printing PW-format kpoints file.")
 
         kpoints_ibz = np.array([ k/self.alat for k in kpoints_iku ])
-        kpoints     = expand_kpoints(kpoints_ibz,self.sym_car,self.rlat)[0]
+        kpoints     = self.expand_kpoints(kpoints_ibz,self.sym_car,self.rlat)[0]
         if units=='rlu': points = car_red(kpoints,self.rlat)
         if units=='cc':  points = kpoints*self.alat[0]
 

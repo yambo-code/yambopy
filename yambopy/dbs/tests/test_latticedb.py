@@ -5,8 +5,9 @@
 #
 import unittest
 import os
-from yambopy.dbs.latticedb import YamboLatticeDB
 from qepy.lattice import Path
+from yambopy.kpoints import get_path
+from yambopy.dbs.latticedb import YamboLatticeDB
 test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','gw_conv')
 
 class TestYamboLatticeDB(unittest.TestCase):
@@ -32,7 +33,7 @@ class TestYamboLatticeDB(unittest.TestCase):
                    [[0.0,0.5,0.5],'X'],
                    [[0.0,0.0,0.0],'G'],
                    [[0.5,0.0,0.0],'L']], [20,20,20])
-        bands_kpoints, bands_indexes, path_car = ydb.get_path(p)
+        bands_kpoints, bands_indexes, path_car = get_path(ydb.car_kpoints,ydb.rlat,None,p)
 
         print(ydb)
 

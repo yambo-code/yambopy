@@ -8,7 +8,9 @@ import os
 import json
 import re
 import numpy as np
+import matplotlib.pyplot as plt
 from yambopy.plot.bandstructure import YambopyBandStructure
+from yambopy.kpoints import get_path
 from yambopy.tools.duck import isstring
 from yambopy.io.inputfile import YamboIn
 from yambopy.dbs.latticedb import YamboLatticeDB
@@ -184,7 +186,7 @@ class YamboAnalyser():
                 #get data from json file
                 jsonfile = list(self.jsonfiles.values())[0]
                 lat = YamboLatticeDB.from_dict(jsonfile['lattice'])
-                kpoints, bands_indexes, path_car = lat.get_path(path_kpoints)  
+                kpoints, bands_indexes, path_car = get_path(lat.car_kpoints,lat.rlat,None,path_kpoints)  
                 bands_e0 = bands_e0[bands_indexes]
                 bands_e  = bands_e[bands_indexes] 
 

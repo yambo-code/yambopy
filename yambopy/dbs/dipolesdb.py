@@ -1,12 +1,19 @@
-# Authors: HPCM, FP, RR
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC,FP, RR
 #
 # This file is part of the yambopy project
 #
-from yambopy.units import *
-from yambopy import *
-from math import sqrt
-from time import time
+import os
+import numpy as np
 import matplotlib.pyplot as plt
+from netCDF4 import Dataset
+from itertools import product 
+import matplotlib.pyplot as plt
+from yambopy.units import I
 from yambopy.tools.string import marquee
 from yambopy.tools.funcs import abs2,lorentzian, gaussian
 from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz,shifted_grids_2D
@@ -20,7 +27,7 @@ class YamboDipolesDB():
 
     Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v]. If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
     """
-    def __init__(self,lattice,save='SAVE',filename='ndb.dip_iR_and_P',dip_type='iR',field_dir=[1,1,1],project=True):
+    def __init__(self,lattice,save='SAVE',filename='ndb.dipoles',dip_type='iR',field_dir=[1,1,1],project=True):
 
         self.lattice   = lattice
         self.filename  = "%s/%s"%(save,filename)
@@ -77,7 +84,7 @@ class YamboDipolesDB():
         Use the electrons to normalize the dipole matrix elements
         """
         # We take the eivs with the added spin dimensions even in non-spin pol case
-        eiv = electrons.eigenvalues_sp_pol
+        eiv = electrons.eigenvalues
         nkpoints, nbands = eiv[0].shape
 
         dipoles = self.dipoles
@@ -299,7 +306,7 @@ class YamboDipolesDB():
         """
         Compute independent-particle absorption [interband transitions]
 
-        electrons -> electrons YamboElectronsDB
+        electrons -> electrons YamboElectronsDB over full BZ (Expand=True)
         ntot_dip -> if nbands_dip in ndb.dipoles < nbands_el in ns.db1, set ntot_dip=nbands_dip 
         nspin -> if -1 spin polarisations are summed (default)
                  if  0 only majority spin channel is considered
@@ -334,12 +341,15 @@ class YamboDipolesDB():
         self.field_dir  = self.field_dir/np.linalg.norm(self.field_dir)
 
         #get eigenvalues and weights of electrons
-        eiv = electrons.eigenvalues_sp_pol
+        if electrons.EXPAND == False:
+            print("[WARNING] Expanding the electrons database")
+            electrons.expandEigenvalues()
+        eiv = electrons.eigenvalues
         weights = electrons.weights
         nv = electrons.nbandsv
         nc = electrons.nbandsc   
         nkpoints = len(eiv[0]) 
-        
+
         #Print band gap values and apply GW_shift
         eiv[0]=electrons.energy_gaps(eiv[0],GWshift)
 
@@ -499,8 +509,3 @@ class YamboDipolesDB():
         #app("field_diry: %10.6lf %10.6lf %10.6lf"%tuple(self.field_diry))
         #app("field_dirz: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirz))
         return "\n".join(lines)
-
-if __name__ == "__main__":
-    ddb = DipolesDB()
-    ddb.get_databases()
-    print(ddb)

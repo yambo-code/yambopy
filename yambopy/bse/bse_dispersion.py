@@ -1,10 +1,20 @@
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: FP, RR
+#
+# This file is part of the yambopy project
+#
 import os
 from glob import glob
 from qepy.lattice import Path
 from yambopy import *
 from yambopy.units import *
-from yambopy.plot.plotting import add_fig_kwargs,BZ_hexagon
-from yambopy.lattice import replicate_red_kmesh, calculate_distances, get_path, car_red
+from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz
+from yambopy.lattice import replicate_red_kmesh, calculate_distances, car_red
+from yambopy.kpoints import get_path
 from yambopy.tools.funcs import gaussian, lorentzian
 
 class ExcitonDispersion():
@@ -173,7 +183,7 @@ class ExcitonDispersion():
 
         rep = list(range(-1,2))
         qpoints_rep, qpoints_idx_rep = replicate_red_kmesh(qpoints,repx=rep,repy=rep,repz=rep)
-        exc_indexes = get_path(qpoints_rep,qpath)
+        exc_indexes = get_path(qpoints_rep,qpath)[1] #indices are second output
         exc_qpoints  = np.array(qpoints_rep[exc_indexes])
         exc_indexes = qpoints_idx_rep[exc_indexes]
         

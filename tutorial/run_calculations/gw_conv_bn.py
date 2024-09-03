@@ -133,7 +133,7 @@ def plot_xi():
                   [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
 
     # Read Lattice information from SAVE
-    lat  = YamboSaveDB.from_db_file(folder='gw-xi/SAVE',filename='ns.db1')
+    lat  = YamboLatticeDB.from_db_file(filename='gw-xi/SAVE/ns.db1')
     # Read QP database
     y1   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-xi/coh')
     y2   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-xi/pp')
@@ -200,7 +200,7 @@ def plot_dyson():
                   [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
 
     # Read Lattice information from SAVE
-    lat  = YamboSaveDB.from_db_file(folder='gw-zeros/SAVE',filename='ns.db1')
+    lat  = YamboLatticeDB.from_db_file(filename='gw-zeros/SAVE/ns.db1')
     # Read QP database
     y1   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-zeros/newton')
     y2   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-zeros/secant')

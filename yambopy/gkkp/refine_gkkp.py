@@ -1,4 +1,11 @@
 from yambopy import *
+import numpy as np
+import matplotlib.pyplot as plt
+from netCDF4 import Dataset
+import os
+from yambopy.plot.plotting import BZ_Wigner_Seitz
+from yambopy.kpoints import expand_kpoints
+from yambopy.units import ha2ev, ev2cm1
 
 def phonon_overlap(mode1,mode2):
     """
@@ -190,53 +197,17 @@ class YamboRefineElphDB():
         """
         Expand matdyn qpoints
         """
-        #check if the kpoints were already exapnded
-        kpoints_indexes  = []
-        kpoints_full     = []
-        symmetry_indexes = []
 
-        #kpoints in the full brillouin zone organized per index
-        kpoints_full_i = {}
-       
-        syms = self.sym_car
-        
-        #expand using symmetries
-        for nk,k in enumerate(self.qpts_matdyn):
+        weights, kpoints_indexes, symmetry_indexes, kpoints_full = expand_kpoints(self.qpts_matdyn,self.sym_car,self.rlat,atol=atol)
 
-            #if the index in not in the dicitonary add a list
-            if nk not in kpoints_full_i:
-                kpoints_full_i[nk] = []
-
-            for ns,sym in enumerate(syms):
-
-                new_k = np.dot(sym,k)
-
-                #check if the point is inside the bounds
-                k_red = car_red([new_k],self.rlat)[0]
-                k_bz = (k_red+atol)%1
-
-                #if the vector is not in the list of this index add it
-                if not vec_in_list(k_bz,kpoints_full_i[nk]):
-                    kpoints_full_i[nk].append(k_bz)
-                    kpoints_full.append(new_k)
-                    kpoints_indexes.append(nk)
-                    symmetry_indexes.append(ns)
-                    continue
-
-        #calculate the weights of each of the kpoints in the irreducible brillouin zone
-        nkpoints_full = len(kpoints_full)
-        weights = np.zeros([nkpoints_full])
-        for nk in kpoints_full_i:
-            weights[nk] = float(len(kpoints_full_i[nk]))/nkpoints_full
-
-        if verbose: print("%d kpoints expanded to %d"%(len(self.qpts_matdyn),len(kpoints_full)))
+        if verbose: print("%d kpoints expanded to %d"%(len(self.car_kpoints),len(kpoints_full)))
 
         #set the variables
-        self.weights_ibz        = np.array(weights)
-        self.qpoints_indices    = np.array(kpoints_indexes)
-        self.symmetry_indices   = np.array(symmetry_indexes)
+        self.weights_ibz        = weights
+        self.qpoints_indices    = kpoints_indexes
+        self.symmetry_indices   = symmetry_indexes
         self.iku_matdyn_qpoints = np.array([k*self.alat for k in kpoints_full])
-        self.car_matdyn_qpoints = np.array(kpoints_full)
+        self.car_matdyn_qpoints = kpoints_full
 
     def expand_frequencies(self):
         self.matdyn_ph_energies = np.zeros([self.nqpoints,self.nmodes])
@@ -411,7 +382,7 @@ class YamboRefineElphDB():
         if mode=='matdyn': points = self.car_matdyn_qpoints
         fig = plt.figure(figsize=(9,9))
         ax = plt.gca()
-        ax.add_patch(BZ_hexagon(self.rlat,color='black',linewidth=1.))
+        ax.add_patch(BZ_Wigner_Seitz(self.rlat,color='black',linewidth=1.))
         ax.set_aspect('equal')
         ax.set_title(title)
         ax.scatter(points[:,0],points[:,1],marker='H',s=80,color='teal',linewidth=0.5,edgecolors='black',label='expanded')

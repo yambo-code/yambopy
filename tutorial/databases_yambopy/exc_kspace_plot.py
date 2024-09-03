@@ -14,9 +14,9 @@ import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
-    Kspace_Plot = False
+    Kspace_Plot = True
     Bands_Plot  = False
-    Bands_Plot_Interpolate = True
+    Bands_Plot_Interpolate = False
     
     # Customly chosen Q-point
     iQ=0 # 0-> Gamma point, i.e., optical absorption limit
@@ -57,9 +57,8 @@ if __name__ == "__main__":
                   [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
 
     ## [2.] Read electron energies
-    yel = YamboSaveDB.from_db_file(folder=save_path+'/SAVE')
+    yel = YamboElectronsDB.from_db_file(folder=save_path+'/SAVE')
     
-
     ## [3.A] Plot without interpolating the values
     if Bands_Plot:
         fig = plt.figure(figsize=(4,6))

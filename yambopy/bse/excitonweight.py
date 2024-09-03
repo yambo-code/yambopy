@@ -1,10 +1,18 @@
-# Copyright (c) 2018, Henrique Miranda
-# All rights reserved.
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC
 #
 # This file is part of the yambopy project
 #
-from __future__ import print_function, division
-from yambopy import *
+import numpy as np
+from scipy.interpolate import griddata
+import matplotlib.pyplot as plt
+from yambopy.lattice import red_car
+from yambopy.kpoints import get_path
+from yambopy.dbs.latticedb import YamboLatticeDB
 from itertools import product
 from netCDF4 import Dataset
 
@@ -21,6 +29,7 @@ class YamboExcitonWeight(object):
         ysave = YamboLatticeDB.from_db_file(folder=save,filename='ns.db1')
         self.sym_car  = ysave.sym_car
         self.kpts_car = ysave.car_kpoints #kpts_car
+        self.rlat     = ysave.rlat
         self.lat = ysave.lat
 
         #super(YamboLatticeDB,self).from_db_file(folder=save,filename='ns.db1')
@@ -244,7 +253,7 @@ class YamboExcitonWeight(object):
         t_v_c = np.array(t_v_c)
 
         #get_path is provided by savedb
-        bands_kpoints, bands_indexes, path_car = self.get_path(path,kpts=kpts)
+        bands_kpoints, bands_indexes, path_car = get_path(kpts,self.rlat,None,path)
 
         #calculate distances
         bands_distances = [0]
@@ -278,11 +287,3 @@ class YamboExcitonWeight(object):
         s += "alat:\n"
         s += ("%12.8lf "*3)%tuple(self.alat)+"\n"
         return s
-
-if __name__ == "__main__":
-    ye = YamboExciton('o-yambo.exc_weights_at_1_02')
-    print(ye)
-    ye.write_irr()
-    ye.write_full()
-    #ye.plot_contour()
-    ye.plot_weights()

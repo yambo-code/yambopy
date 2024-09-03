@@ -70,6 +70,7 @@ Requirements
 - lxml: https://lxml.de/
 - pyyaml: https://pyyaml.org/
 - monty: https://pypi.org/project/monty/
+- scikit-learn: https://pypi.org/project/scikit-learn/
 
 Yambopy works for the following DFT/MBPT codes:
 - yambo (>5.0.0): https://www.yambo-code.eu/
