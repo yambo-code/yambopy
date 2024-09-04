@@ -1327,10 +1327,11 @@ class YamboExcitonDB(object):
 
         d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
         cofactor = ha2ev*spin_degen/(2*np.pi)**3 * d3k_factor * (4*np.pi)  / q0norm**2
-        
+
         chi = 1. + chi*cofactor #We are actually computing the epsilon, not the chi.
 
         return w,chi
+    
     def get_pl(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,Boltz_Temp=300,**kwargs):
         """
         Calculate PL_0  using excitonic states

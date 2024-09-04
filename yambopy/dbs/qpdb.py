@@ -1,8 +1,11 @@
-# Copyright (c) 2022. Yambopy team
-# All rights reserved.
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC, FP, AMS
 #
 # This file is part of the yambopy project
-# Authors: H. Miranda, A. Molina, F. Paleari
 #
 import os
 import numpy as np

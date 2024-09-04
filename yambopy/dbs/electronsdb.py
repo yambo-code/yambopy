@@ -9,53 +9,13 @@
 #
 import os
 import numpy as np
-from itertools import product
 from netCDF4 import Dataset
 from yambopy.tools.string import marquee
 from yambopy.tools.funcs import fermi, fermi_array
 from yambopy.lattice import car_red, rec_lat, vol_lat
 from yambopy.kpoints import expand_kpoints, get_path
+from yambopy.plot.spectra import get_spectra
 from yambopy.units import ha2ev
-
-def histogram_eiv(eiv,weights,emin=-5.0,emax=5.0,step=0.01,sigma=0.05,ctype='lorentzian'):
-    """
-    Histogram of eigenvalues
-    """
-    eiv = np.array(eiv)
-    #sigma = 0.005
-    x = np.arange(emin,emax,step,dtype=np.float32)
-    y = np.zeros([len(x)],dtype=np.float32)
-
-    if ctype == 'gaussian':
-        from math import sqrt
-        c =  1.0/(sigma*sqrt(2))
-        a = -1.0/(2*sigma)
-
-    else:
-        #lorentzian stuff
-        s2 = (.5*sigma)**2
-        c = (.5*sigma)
-
-    eiv     = eiv.flatten()
-    weights = weights.flatten()
-
-    weights = weights[emin < eiv]
-    eiv     = eiv[emin < eiv]
-    weights = weights[eiv < emax]
-    eiv     = eiv[eiv < emax]
-
-    if ctype == 'gaussian':
-        for e,w in zip(eiv,weights):
-            x1 = (x-e)**2
-            #add gaussian
-            y += w*c*np.exp(a*x1)
-    else:
-        #lorentzian stuff
-        for e,w in zip(eiv,weights):
-            x1 = (x-e)**2
-            #add lorentzian
-            y += w*c/(x1+s2)
-    return x, y
 
 class YamboElectronsDB():
     """
@@ -330,8 +290,8 @@ class YamboElectronsDB():
         top = np.max(eigenvalues[:,:,self.nbandsv-1])
         #bottom of conduction
         bot = np.max(eigenvalues[:,:,self.nbandsv])
-        self.efermi = (top+bot)/2.
-        self.setFermi(self.efermi,broad)
+        efermi = (top+bot)/2.
+        self.setFermi(efermi,broad)
 
     def expandEigenvalues(self):
         """
@@ -442,56 +402,46 @@ class YamboElectronsDB():
     ##
     ## DOS and JDOS
     ##
-    def getDOS(self,broad=0.1,emin=-10,emax=10,step=0.01,ctype="lorentzian"):
-        """
-        Calculate the density of states.
-        Should work for metals as well but untested for that case
-
-        It can be used with QP values:
-           - Instance yamboQPDB
-           - set self.eigenvalues_ibz = yqp.eigenvalues_qp
-           - TODO: provide QP broadening QP_broad=yqp.lifetimes
-        """
-        eigenvalues = self.eigenvalues_ibz
-        weights = self.weights_ibz
-        nkpoints = self.nkpoints_ibz
-
-        na = np.newaxis
-        weights_bands = np.ones(eigenvalues.shape,dtype=np.float32)*weights[:,na]
-        energies, self.dos = histogram_eiv(eigenvalues,weights_bands,emin=emin,emax=emax,step=step,sigma=broad,ctype=ctype)
-
-        return energies, self.dos
-
-    def get_transitions(self):
+    def get_transitions(self,eigenvalues=None,nvalence=None,nconduction=None):
         """
         Calculate transition energies
         """
-        eigenvalues = self.eigenvalues_ibz
-        nvalence  = self.nbandsv
-        nconduction  = self.nbandsc
-        nkpoints = self.nkpoints_ibz
+        if eigenvalues is None: eigenvalues = self.eigenvalues_ibz[0] #assume non spin polarized if not given
+        if nvalence is None:    nvalence    = self.nbandsv
+        if nconduction is None: nconduction = self.nbandsc
 
-        transitions = np.zeros([nkpoints,nvalence*nconduction])
-        for k,v,c in product(range(nkpoints),range(nvalence),range(nconduction)):
-            vc = v*nconduction+c
-            transitions[k,vc] = eigenvalues[k,c+nvalence]-eigenvalues[k,v]
-        self.transitions = transitions
+        eigs_valence    = eigenvalues[:, :nvalence] 
+        eigs_conduction = eigenvalues[:, nvalence:nvalence + nconduction]
+        transitions = eigs_conduction[:, None, :] - eigs_valence[:, :, None]
+        transitions = transitions.reshape(self.nkpoints_ibz, nvalence * nconduction)
 
-        return self.transitions
+        return transitions
 
-    def getJDOS(self,broad=0.1,emin=0,emax=10,step=0.01,ctype="lorentzian"):
+    def getDOS(self,eigenvalues=None,broad=0.1,emin=-10,emax=10,estep=0.01):
+        """
+        Retrieve the Density of States (DOS)
+        (Should work for metals as well but untested)
+        """
+        if eigenvalues is None: eigenvalues = self.eigenvalues_ibz[0] # assume non spin polarized if not given
+        if not self.EXPAND: self.expandEigenvalues()                  # we need this to get the weights
+        weights = self.weights_ibz[:self.nkpoints_ibz]
+        
+        w, dos = get_spectra(eigenvalues,weights=weights,broadening=broad,emin=emin,emax=emax,estep=estep)
+
+        return w, dos
+
+    def getJDOS(self,eigenvalues=None,nconduction=None,broad=0.1,emin=0,emax=10,estep=0.01):
         """
         Calculate the joint density of states
         """
-        transitions = self.get_transitions()
-        weights = self.weights_ibz
+        transitions = self.get_transitions(eigenvalues=eigenvalues,nconduction=nconduction)
+        if not self.EXPAND: self.expandEigenvalues() # we need this to get the weights
+        weights = self.weights_ibz[:self.nkpoints_ibz]
 
-        na = np.newaxis
-        weights_transitions = np.ones(transitions.shape,dtype=np.float32)*weights[:,na]
-        energies, self.jdos = histogram_eiv(self.transitions,weights_transitions,emin=emin,emax=emax,step=step,sigma=broad,ctype=ctype)
+        w, jdos = get_spectra(transitions,weights=weights,broadening=broad,emin=emin,emax=emax,estep=estep)
 
-        return energies, self.jdos
-
+        return w, jdos
+    
     def setLifetimes(self,broad=0.1):
         """
         Add electronic lifetimes using the DOS

@@ -1,7 +1,11 @@
-# Copyright (C) 2018 Henrique Pereira Coutada Miranda
-# All rights reserved.
 #
-# This file is part of yambopy
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC, FP
+#
+# This file is part of the yambopy project
 #
 """
 Create, read and write yambo input files
