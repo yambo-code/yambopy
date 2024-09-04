@@ -1,6 +1,16 @@
-from qepy import *
-from yambopy import *
-from schedulerpy import *
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: FP
+#
+# This file is part of the yambopy project
+#
+from yambopy.common.save_generation import CreateYamboSave
+from yambopy.common.calculation_manager import check_qe_completed, shell_qe_run
+from yambopy.io.iofile import YamboIO
+from schedulerpy import Scheduler
 import os
 from copy import deepcopy
 

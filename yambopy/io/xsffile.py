@@ -9,7 +9,6 @@
 #
 import re
 import numpy as np
-from yambopy.lattice import replicate_red_kmesh, calculate_distances, get_path, car_red
 from yambopy.dbs.latticedb import *
 
 Bohr2Ang = 0.529177249

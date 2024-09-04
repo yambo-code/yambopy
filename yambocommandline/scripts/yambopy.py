@@ -4,6 +4,7 @@ from yambopy import *
 from yambocommandline.commands import *
 import argparse
 import sys
+import importlib.metadata
 
 class Cmd():
     """
@@ -13,7 +14,7 @@ class Cmd():
         """
         display the available commands
         """
-        print('yambopy')
+        print('yambopy v{}'.format(importlib.metadata.version('yambopy')))
         print('Available commands are:\n')
         for cmd,c in list(self._commands.items()):
             print("%15s -> %s"%(cmd, c.__doc__.split('\n')[1]))

@@ -16,7 +16,8 @@ path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
               [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
 
 # Read Lattice information from SAVE
-lat  = YamboSaveDB.from_db_file(folder='SAVE',filename='ns.db1')
+## Note: we do not expand the kpts because QP database is in the IBZ
+lat  = YamboLatticeDB.from_db_file(filename='SAVE/ns.db1',Expand=False)
 # Read QP database
 ydb  = YamboQPDB.from_db(filename='ndb.QP',folder='qp-gw')
 n_top_vb = 3 # Top valence band index starting from 0
