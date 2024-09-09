@@ -23,15 +23,14 @@ import os
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD,FRST_ORD=True):
+def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD):
     #
     # Here we use always NW=NX
     #
     M_size = (2*(NX-1) + 1)**2  # Positive and negative components plus the zero
-    if NW != NW:
-        M_samp = NW
-    else:
-        M_samp = M_size
+    M_samp = M_size
+    if NW!=NX:
+        M_samp=NW
     # 
     i_t_start = int(np.round(T_range[0]/T_step)) 
     i_deltaT  = int(np.round((T_range[1]-T_range[0])/T_step)/M_samp)
@@ -48,7 +47,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
             T_i[i_t] = (i_t_start + i_deltaT * i_t)*T_step - efield["initial_time"]
             P_i[i_t] = P[i_t_start + i_deltaT * i_t]
     elif SAMP_MOD=='log':
-        T_i=np.geomspace(i_t_start*T_step, T_range[1], M_size, endpoint=False)
+        T_i=np.geomspace(i_t_start*T_step, T_range[1], M_samp, endpoint=False)
         for i1 in range(M_samp):
             i_t=int(np.round(T_i[i1]/T_step))
             T_i[i1]=i_t*T_step
@@ -64,7 +63,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
     Sampling[:,1]=P_i
 
 # Build the M matrix
-    C = np.zeros((M_size, M_size), dtype=np.int8)
+    C = np.zeros((2*(NX-1)+1, 2*(NX-1)+1), dtype=np.int8)
     for i_t in range(M_samp):
         i_c = 0
         for i_n in range(-NX+1, NX):
@@ -102,7 +101,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
         INV = np.linalg.pinv(M,rcond=tol)
 
 # Calculate X_here
-    X_here=np.zeros((M_size, M_size),dtype=np.cdouble)
+    X_here=np.zeros((2*(NX-1)+1, 2*(NX-1)+1),dtype=np.cdouble)
     for i_n in range(-NX+1, NX):
         for i_n2 in range(-NX+1, NX):
             i_c=C[i_n+NX-1,i_n2+NX-1]
@@ -112,7 +111,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
     return X_here,Sampling
 
 
-def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=False,prn_Xhi=True,frst_ord=True,INV_MODE='svd',SAMP_MOD='log'):
+def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=False,prn_Xhi=True,INV_MODE='svd',SAMP_MOD='log'):
     # Time series 
     time  =nldb.IO_TIME_points
     # Time step of the simulation
@@ -178,13 +177,13 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
     print("Pump frequency : ",str(pump_freq*ha2ev),' [eV] ')
 
     M_size = (2*X_order + 1)**2
-    M_samp = M_size
+    M_samp = M_size*2
     print(" Number of coefficents : "+str(M_size))
     print(" Number of sampling points : "+str(M_samp))
 
-    X_effective       =np.zeros((M_size,M_size,n_frequencies,3),dtype=np.cdouble)
+    X_effective       =np.zeros((2*X_order+1,2*X_order+1,n_frequencies,3),dtype=np.cdouble)
     Sampling          =np.zeros((M_samp,2,n_frequencies,3),dtype=np.double)
-    Susceptibility    =np.zeros((M_size,M_size,n_frequencies,3),dtype=np.cdouble)
+    Susceptibility    =np.zeros((2*X_order+1,2*X_order+1,n_frequencies,3),dtype=np.cdouble)
 
     
     print("Loop in frequecies...")
@@ -194,7 +193,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
 #        T_range=update_T_range(T_range_initial,pump_freq,freqs[i_f])  # Update T_range according to the laser frequencies
 
         for i_d in range(3):
-            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(X_order+1, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
+            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(M_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
         
     # Calculate Susceptibilities from X_effective
     for i_order in range(-X_order,X_order+1):
