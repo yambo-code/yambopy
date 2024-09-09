@@ -16,7 +16,7 @@ import os
 #
 # Polarization coefficient inversion see Sec. III in PRB 88, 235113 (2013) 
 #
-#  NW          order of the response functions 
+#  NW          number of sampling points 
 #  NX          numer of coefficents required
 #  P           real-time polarization 
 #  W           multiples of the laser frequency
@@ -27,8 +27,11 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
     #
     # Here we use always NW=NX
     #
-    M_size = (2*(NW-1) + 1)**2  # Positive and negative components plus the zero
-    M_samp = M_size
+    M_size = (2*(NX-1) + 1)**2  # Positive and negative components plus the zero
+    if NW != NW:
+        M_samp = NW
+    else:
+        M_samp = M_size
     # 
     i_t_start = int(np.round(T_range[0]/T_step)) 
     i_deltaT  = int(np.round((T_range[1]-T_range[0])/T_step)/M_samp)
@@ -175,9 +178,14 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
     print("Pump frequency : ",str(pump_freq*ha2ev),' [eV] ')
 
     M_size = (2*X_order + 1)**2
+    M_samp = M_size
+    print(" Number of coefficents : "+str(M_size))
+    print(" Number of sampling points : "+str(M_samp))
+
     X_effective       =np.zeros((M_size,M_size,n_frequencies,3),dtype=np.cdouble)
-    Sampling          =np.zeros((M_size,2,n_frequencies,3),dtype=np.double)
+    Sampling          =np.zeros((M_samp,2,n_frequencies,3),dtype=np.double)
     Susceptibility    =np.zeros((M_size,M_size,n_frequencies,3),dtype=np.cdouble)
+
     
     print("Loop in frequecies...")
     # Find the Fourier coefficients by inversion
