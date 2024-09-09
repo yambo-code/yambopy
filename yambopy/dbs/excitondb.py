@@ -671,7 +671,7 @@ class YamboExcitonDB(object):
                 weights[k,v] += this_weight
                 sum_weights += this_weight
             if abs(sum_weights - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
- 
+
         return weights
     
     def get_exciton_total_weights(self,excitons):
@@ -1034,7 +1034,12 @@ class YamboExcitonDB(object):
 
         if use_symmetries:
             if isinstance(energies,YamboElectronsDB): eigs = energies.eigenvalues_ibz[0,:,self.start_band:self.mband]
-            if isinstance(energies,YamboQPDB):        eigs = energies.eigenvalues_qp
+            if isinstance(energies,YamboQPDB):        
+                # Pick the same energy range used for the BSE in case the QP energy range is larger
+                if   energies.nbands<self.mband-self.start_band:  raise ValueError("[ERROR] QP range less than BSE range!")
+                elif energies.nbands==self.mband-self.start_band: eigs = energies.eigenvalues_QP # Assuming exact same range
+                else:                                             eigs = energies.eigenvalues_qp[:,self.start_band:self.mband]
+
             kpoints = car_red(np.array([ k/lat.alat for k in lat.ibz_kpoints ]),lat.rlat) #IBZ reduced kpoints 
 
             # we need to select the weights in the IBZ
