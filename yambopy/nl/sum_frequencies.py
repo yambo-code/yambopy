@@ -16,45 +16,42 @@ import os
 #
 # Polarization coefficient inversion see Sec. III in PRB 88, 235113 (2013) 
 #
-#  NW          number of sampling points 
+#  N_samp      number of sampling points 
 #  NX          numer of coefficents required
 #  P           real-time polarization 
 #  W           multiples of the laser frequency
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD):
-    #
-    # Here we use always NW=NX
+def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD):
     #
     M_size = (2*(NX-1) + 1)**2  # Positive and negative components plus the zero
-    M_samp = M_size
-    if NW!=NX:
-        M_samp=NW
+    if N_samp<=M_size:
+        print(" Too few sampling points please increase it ")
     # 
     i_t_start = int(np.round(T_range[0]/T_step)) 
-    i_deltaT  = int(np.round((T_range[1]-T_range[0])/T_step)/M_samp)
+    i_deltaT  = int(np.round((T_range[1]-T_range[0])/T_step)/N_samp)
 
 # Memory alloction 
-    M        = np.zeros((M_samp, M_size), dtype=np.cdouble)
-    P_i      = np.zeros(M_samp, dtype=np.double)
-    T_i      = np.zeros(M_samp, dtype=np.double)
-    Sampling = np.zeros((M_samp,2), dtype=np.double)
+    M        = np.zeros((N_samp, M_size), dtype=np.cdouble)
+    P_i      = np.zeros(N_samp, dtype=np.double)
+    T_i      = np.zeros(N_samp, dtype=np.double)
+    Sampling = np.zeros((N_samp,2), dtype=np.double)
 
 # Calculation of  T_i and P_i
     if SAMP_MOD=='linear':
-        for i_t in range(M_samp):
+        for i_t in range(N_samp):
             T_i[i_t] = (i_t_start + i_deltaT * i_t)*T_step - efield["initial_time"]
             P_i[i_t] = P[i_t_start + i_deltaT * i_t]
     elif SAMP_MOD=='log':
-        T_i=np.geomspace(i_t_start*T_step, T_range[1], M_samp, endpoint=False)
-        for i1 in range(M_samp):
+        T_i=np.geomspace(i_t_start*T_step, T_range[1], N_samp, endpoint=False)
+        for i1 in range(N_samp):
             i_t=int(np.round(T_i[i1]/T_step))
             T_i[i1]=i_t*T_step
             P_i[i1]=P[i_t]
     elif SAMP_MOD=='random':
         T_i=np.random.uniform(i_t_start*T_step, T_range[1], M_size)
-        for i1 in range(M_samp):
+        for i1 in range(N_samp):
             i_t=int(np.round(T_i[i1]/T_step))
             T_i[i1]=i_t*T_step
             P_i[i1]=P[i_t]
@@ -64,7 +61,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
 
 # Build the M matrix
     C = np.zeros((2*(NX-1)+1, 2*(NX-1)+1), dtype=np.int8)
-    for i_t in range(M_samp):
+    for i_t in range(N_samp):
         i_c = 0
         for i_n in range(-NX+1, NX):
             for i_n2 in range(-NX+1, NX):
@@ -81,7 +78,7 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
 
         try:
 # Invert M matrix
-            if M_samp != M_size:
+            if N_samp != M_size:
                 raise TypeError("Only square matrix can be used with full inversion")
             INV = np.zeros((M_size, M_size), dtype=np.cdouble)
             INV = np.linalg.inv(M)
@@ -92,12 +89,12 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
 
     if INV_MODE=='lstsq':
 # Least-squares
-        I = np.eye(M_samp,M_size)
+        I = np.eye(N_samp,M_size)
         INV = np.linalg.lstsq(M, I, rcond=tol)[0]
 
     if INV_MODE=='svd':
 # Truncated SVD
-        INV = np.zeros((M_samp, M_size), dtype=np.cdouble)
+        INV = np.zeros((N_samp, M_size), dtype=np.cdouble)
         INV = np.linalg.pinv(M,rcond=tol)
 
 # Calculate X_here
@@ -105,13 +102,13 @@ def SF_Coefficents_Inversion(NW,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SA
     for i_n in range(-NX+1, NX):
         for i_n2 in range(-NX+1, NX):
             i_c=C[i_n+NX-1,i_n2+NX-1]
-            for i_t in range(M_samp):
+            for i_t in range(N_samp):
                 X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+INV[i_c,i_t]*P_i[i_t]
 
     return X_here,Sampling
 
 
-def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=False,prn_Xhi=True,INV_MODE='svd',SAMP_MOD='log'):
+def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1,prn_Peff=False,prn_Xhi=True,INV_MODE='svd',SAMP_MOD='log'):
     # Time series 
     time  =nldb.IO_TIME_points
     # Time step of the simulation
@@ -177,12 +174,13 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
     print("Pump frequency : ",str(pump_freq*ha2ev),' [eV] ')
 
     M_size = (2*X_order + 1)**2
-    M_samp = M_size*2
+    if N_samp==-1:
+        N_samp = M_size*2
     print(" Number of coefficents : "+str(M_size))
-    print(" Number of sampling points : "+str(M_samp))
+    print(" Number of sampling points : "+str(N_samp))
 
     X_effective       =np.zeros((2*X_order+1,2*X_order+1,n_frequencies,3),dtype=np.cdouble)
-    Sampling          =np.zeros((M_samp,2,n_frequencies,3),dtype=np.double)
+    Sampling          =np.zeros((N_samp,2,n_frequencies,3),dtype=np.double)
     Susceptibility    =np.zeros((2*X_order+1,2*X_order+1,n_frequencies,3),dtype=np.cdouble)
 
     
@@ -193,7 +191,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
 #        T_range=update_T_range(T_range_initial,pump_freq,freqs[i_f])  # Update T_range according to the laser frequencies
 
         for i_d in range(3):
-            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(M_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
+            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
         
     # Calculate Susceptibilities from X_effective
     for i_order in range(-X_order,X_order+1):
@@ -226,7 +224,8 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
         header2+="Py     "
         header2+="Pz     "
         footer2='Time dependent polarization reproduced from Fourier coefficients'
-        for i_f in range(n_frequencies):
+        print("Write reconstructed polarizations ...")        
+        for i_f in tqdm(range(n_frequencies)):
             values=np.c_[time.real/fs2aut]
             values=np.append(values,np.c_[P[i_f,0,:].real],axis=1)
             values=np.append(values,np.c_[P[i_f,1,:].real],axis=1)
@@ -236,7 +235,8 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
 
         # Print Sampling point
         footer2='Sampled polarization'
-        for i_f in range(n_frequencies):
+        print("Write sampling ...")        
+        for i_f in tqdm(range(n_frequencies)):
             values=np.c_[Sampling[:,0,i_f,0]]
             values=np.append(values,np.c_[Sampling[:,1,i_f,0]],axis=1)
             values=np.append(values,np.c_[Sampling[:,1,i_f,1]],axis=1)
@@ -253,7 +253,8 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
         i_t_start = int(np.round(T_range[0]/T_step)) 
         values=np.zeros((n_frequencies,4),dtype=np.double)
         N=len(P[i_f,i_d,:])-i_t_start
-        for i_f in range(n_frequencies):
+        print("Write error ...")        
+        for i_f in tqdm(range(n_frequencies)):
             values[i_f,0]=freqs[i_f]*ha2ev
             for i_d in range(3):
                 values[i_f,i_d+1]=np.sqrt(np.sum((P[i_f,i_d,i_t_start:].real-polarization[i_f][i_d,i_t_start:]))**2)/N
@@ -262,7 +263,8 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1],prn_Peff=F
                 
 
     # Print the result
-    for i_order in range(-X_order,X_order+1):
+    print("Write susceptibilities ...")        
+    for i_order in tqdm(range(-X_order,X_order+1)):
         for i_order2 in range(-X_order,X_order+1):
             if i_order==0 and i_order2==0: 
                 Unit_of_Measure = SVCMm12VMm1/AU2VMm1
