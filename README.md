@@ -50,7 +50,11 @@ Installation
 
 Make sure that you have a suitable python environment (created for example with [conda](https://docs.conda.io/projects/miniconda/en/latest/) or [venv](https://docs.python.org/3/library/venv.html)).
 
-Use python version >=3.10. 
+Use python version >=3.10.
+
+If you never used an environment just type
+`python -m venv MYPATH/yamboenv/`       (you can replace `MYPATH` with any path you prefer, e.g. `~/`)
+`source MYPATH/yamboenv/bin/activate`   (for bash users, you can add to your .bashrt the line `. MYPATH/yamboenv/bin/activate`)
 
 #### Regular installation of released version
 Type `pip install yambopy`
