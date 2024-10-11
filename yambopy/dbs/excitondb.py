@@ -1140,9 +1140,6 @@ class YamboExcitonDB(object):
         kpoints_path = path.get_klist()[:,:3]
         exc_transitions = skw.interp_kpts(kpoints_path).eigens
 
-        print(exc_transitions.shape)
-        exit()
-
         #create band-structure object
         exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
         exc_bands.set_fermi(self.nvbands)
