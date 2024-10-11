@@ -57,6 +57,7 @@ if __name__ == "__main__":
                   [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
 
     ## [2.] Read electron energies
+    ## NB:  A YamboQPDB object containing QP corrections is also accepted
     yel = YamboElectronsDB.from_db_file(folder=save_path+'/SAVE')
     
     ## [3.A] Plot without interpolating the values

@@ -1,12 +1,5 @@
-#
-# Author: Alejandro Molina-Sanchez
-#
-# Example of YamboQPDB Class 
-#
-from qepy import *
 from yambopy import *
 import matplotlib.pyplot as plt
-
 
 # Define path in reduced coordinates using Class Path
 npoints = 10
@@ -57,7 +50,7 @@ qp_bs.plot_ax(ax,legend=True,c_bands='b',fermie=fermie,label='QP-GW')
 
 plt.show()
 
-# 4. Comparison of not-interpolaed and  interpolated eigenvalues
+# 4. Comparison of not-interpolated and  interpolated eigenvalues
 
 fig = plt.figure(figsize=(4,5))
 ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
