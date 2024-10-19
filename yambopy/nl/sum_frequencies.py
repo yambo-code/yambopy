@@ -128,6 +128,8 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
         raise ValueError("Harmonic analysis works only with SIN or SOFTSIN fields")
 
     l_test_one_field=False
+#    print(nldb.Efield_general[1]["name"])
+
     if(nldb.Efield_general[1]["name"] == "SIN" or nldb.Efield_general[1]["name"] == "SOFTSIN"):
         # frequency of the second and third laser, respectively)
         pump_freq=nldb.Efield_general[1]["freq_range"][0] 
