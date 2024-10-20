@@ -24,7 +24,7 @@ import os
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD):
+def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD,INV0=None):
     #
     M_size = (2*(NX-1) + 1)**2  # Positive and negative components plus the zero
     if N_samp<=M_size:
@@ -66,6 +66,8 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
         i_c = 0
         for i_n in range(-NX+1, NX):
             for i_n2 in range(-NX+1, NX):
+                if (abs(i_n)==1 and abs(i_n2)==0) or  (abs(i_n)==0 and abs(i_n2)==1):
+                    continue
                 M[i_t, i_c]          = np.exp(-1j * (i_n*W1+i_n2*W2) * T_i[i_t],dtype=np.cdouble)
                 C[i_n+NX-1,i_n2+NX-1] = i_c
                 i_c+=1
@@ -94,7 +96,11 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
             return np.linalg.norm(np.dot(M, x_cmplx) - P_i)
         # This function works only with real values
         # I convert the complex x0 in to real
-        x0_cmplx = np.linalg.lstsq(M, P_i, rcond=tol)[0]
+        if(INV0 is None):
+            x0_cmplx = np.linalg.lstsq(M, P_i, rcond=tol)[0]
+        else:
+            print(" Sto usanto INV0 from preivous frequencies ")
+            x0_cmplx = np.copy(INV0)
         x0 = np.concatenate((x0_cmplx.real, x0_cmplx.imag))
         res = least_squares(residuals_func, x0)
         INV = res.x[0:int(res.x.size/2)] + 1j * res.x[int(res.x.size/2):res.x.size]
@@ -111,6 +117,8 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
     X_here=np.zeros((2*(NX-1)+1, 2*(NX-1)+1),dtype=np.cdouble)
     for i_n in range(-NX+1, NX):
         for i_n2 in range(-NX+1, NX):
+            if (abs(i_n)==1 and abs(i_n2)==0) or  (abs(i_n)==0 and abs(i_n2)==1):
+                continue
             i_c=C[i_n+NX-1,i_n2+NX-1]
             if INV_MODE=='lstsq' or INV_MODE=='lstsq_init':
                 X_here[i_n+NX-1,i_n2+NX-1]=INV[i_c]
@@ -118,7 +126,11 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
                 for i_t in range(N_samp):
                     X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+INV[i_c,i_t]*P_i[i_t]
 
-    return X_here,Sampling
+
+    if INV_MODE=='lstsq_init':
+        return X_here,Sampling,INV
+    else:
+        return X_here,Sampling
 
 
 def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1,prn_Peff=False,prn_Xhi=True,INV_MODE='svd',SAMP_MOD='log'):
@@ -197,16 +209,28 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
     X_effective       =np.zeros((2*X_order+1,2*X_order+1,n_frequencies,3),dtype=np.cdouble)
     Sampling          =np.zeros((N_samp,2,n_frequencies,3),dtype=np.double)
     Susceptibility    =np.zeros((2*X_order+1,2*X_order+1,n_frequencies,3),dtype=np.cdouble)
+    if(INV_MODE=="lstsq_init"):
+        INV0=np.zeros((3,M_size),dtype=np.cdouble)
 
     
     print("Loop in frequecies...")
+
+    if(INV_MODE=="lstsq_init"):
+        # I use the first inversion as a guess
+        for i_d in range(3):
+            X_effective[:,:,0,i_d],Sampling[:,:,0,i_d],INV0[i_d,:]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[0][i_d,:],freqs[0],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD,INV0=None)
+
     # Find the Fourier coefficients by inversion
     for i_f in tqdm(range(n_frequencies)):
-        #
-#        T_range=update_T_range(T_range_initial,pump_freq,freqs[i_f])  # Update T_range according to the laser frequencies
-
         for i_d in range(3):
-            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
+            if(INV_MODE=="lstsq_init"):
+                if i_f==60:
+                # I use the preivous inversion as initial guess
+                    X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[i_d,:]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD,INV0=INV0[i_d,:])
+                else:
+                    X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[i_d,:]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
+            else:
+                X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
         
     # Calculate Susceptibilities from X_effective
     for i_order in range(-X_order,X_order+1):
@@ -308,7 +332,6 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
                 np.savetxt(output_file,values,header=header,delimiter=' ',footer=footer)
 
     return Susceptibility,freqs
-
 
 
 def update_T_range(T_range_initial,pump_freq, probe_freq):
