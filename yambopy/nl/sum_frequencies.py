@@ -90,21 +90,14 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
     if INV_MODE=='lstsq_init':
 
         def residuals_func(x):
-            x_cmplx=x[0::2] + 1j * x[1::2]
+            x_cmplx=x[0:int(x.size/2)] + 1j * x[int(x.size/2):x.size]
             return np.linalg.norm(np.dot(M, x_cmplx) - P_i)
         # This function works only with real values
         # I convert the complex x0 in to real
         x0_cmplx = np.linalg.lstsq(M, P_i, rcond=tol)[0]
         x0 = np.concatenate((x0_cmplx.real, x0_cmplx.imag))
-#    res = least_squares(residuals_func, x0)
-        # INV = res.x[0::2] + 1j * res.x[1::2]
-        INV = x0_cmplx
-        print(INV[0:2])
-        print(x0[0:2])
-        INV = x0[0::2] + 1j * x0[1::2]
-        print(INV[0:2])
-        sys.exit(0)
-        # INV = np.linalg.lstsq(M, P_i, rcond=tol)[0]
+        res = least_squares(residuals_func, x0)
+        INV = res.x[0:int(res.x.size/2)] + 1j * res.x[int(res.x.size/2):res.x.size]
     if INV_MODE=='lstsq':
 # Least-squares
         INV = np.linalg.lstsq(M, P_i, rcond=tol)[0]
