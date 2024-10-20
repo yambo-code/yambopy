@@ -8,6 +8,7 @@ import numpy as np
 from yambopy.units import ha2ev,fs2aut, SVCMm12VMm1,AU2VMm1
 from yambopy.nl.external_efield import Divide_by_the_Field
 from yambopy.nl.harmonic_analysis import update_T_range
+from scipy.optimize import least_squares
 from tqdm import tqdm
 import scipy.linalg
 import sys
@@ -70,7 +71,7 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
                 i_c+=1
 
 # Multiple possibilities to calculate the inversion
-    INV_MODES = ['full', 'lstsq', 'svd']
+    INV_MODES = ['full', 'lstsq', 'svd','lstsq_init']
     if INV_MODE not in INV_MODES:
         raise ValueError("Invalid inversion mode. Expected one of: %s" % INV_MODES)
 
@@ -86,11 +87,17 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
             print("Singular matrix!!! standard inversion failed ")
             print("set inversion mode to LSTSQ")
             INV_MODE="lstsq"
-
+    if INV_MODE=='lstsq_init':
+        def residuals_func(x):
+            return np.linalg.norm(np.dot(M, x) - P_i)
+#        # Initial guess for the solution
+        x0 = np.linalg.lstsq(M, P_i, rcond=tol)[0]
+        res = least_squares(residuals_func, x0)
+        INV = res.x
+        # Define the residuals function for least_squares
     if INV_MODE=='lstsq':
 # Least-squares
-        I = np.eye(N_samp,M_size)
-        INV = np.linalg.lstsq(M, I, rcond=tol)[0]
+        INV = np.linalg.lstsq(M, P_i, rcond=tol)[0]
 
     if INV_MODE=='svd':
 # Truncated SVD
@@ -103,7 +110,10 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
         for i_n2 in range(-NX+1, NX):
             i_c=C[i_n+NX-1,i_n2+NX-1]
             for i_t in range(N_samp):
-                X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+INV[i_c,i_t]*P_i[i_t]
+                if INV_MODE=='lstsq' or INV_MODE=='lstsq_init':
+                    X_here[i_n+NX-1,i_n2+NX-1]=INV[i_c]
+                else:
+                    X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+INV[i_c,i_t]*P_i[i_t]
 
     return X_here,Sampling
 
