@@ -88,13 +88,23 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
             print("set inversion mode to LSTSQ")
             INV_MODE="lstsq"
     if INV_MODE=='lstsq_init':
+
         def residuals_func(x):
-            return np.linalg.norm(np.dot(M, x) - P_i)
-#        # Initial guess for the solution
-        x0 = np.linalg.lstsq(M, P_i, rcond=tol)[0]
-        res = least_squares(residuals_func, x0)
-        INV = res.x
-        # Define the residuals function for least_squares
+            x_cmplx=x[0::2] + 1j * x[1::2]
+            return np.linalg.norm(np.dot(M, x_cmplx) - P_i)
+        # This function works only with real values
+        # I convert the complex x0 in to real
+        x0_cmplx = np.linalg.lstsq(M, P_i, rcond=tol)[0]
+        x0 = np.concatenate((x0_cmplx.real, x0_cmplx.imag))
+#    res = least_squares(residuals_func, x0)
+        # INV = res.x[0::2] + 1j * res.x[1::2]
+        INV = x0_cmplx
+        print(INV[0:2])
+        print(x0[0:2])
+        INV = x0[0::2] + 1j * x0[1::2]
+        print(INV[0:2])
+        sys.exit(0)
+        # INV = np.linalg.lstsq(M, P_i, rcond=tol)[0]
     if INV_MODE=='lstsq':
 # Least-squares
         INV = np.linalg.lstsq(M, P_i, rcond=tol)[0]
@@ -109,10 +119,10 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
     for i_n in range(-NX+1, NX):
         for i_n2 in range(-NX+1, NX):
             i_c=C[i_n+NX-1,i_n2+NX-1]
-            for i_t in range(N_samp):
-                if INV_MODE=='lstsq' or INV_MODE=='lstsq_init':
-                    X_here[i_n+NX-1,i_n2+NX-1]=INV[i_c]
-                else:
+            if INV_MODE=='lstsq' or INV_MODE=='lstsq_init':
+                X_here[i_n+NX-1,i_n2+NX-1]=INV[i_c]
+            else:
+                for i_t in range(N_samp):
                     X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+INV[i_c,i_t]*P_i[i_t]
 
     return X_here,Sampling
