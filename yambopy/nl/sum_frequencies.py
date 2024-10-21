@@ -66,8 +66,8 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
         i_c = 0
         for i_n in range(-NX+1, NX):
             for i_n2 in range(-NX+1, NX):
-                if (abs(i_n)==1 and abs(i_n2)==0) or  (abs(i_n)==0 and abs(i_n2)==1):
-                    continue
+#                if (abs(i_n)==1 and abs(i_n2)==0) or  (abs(i_n)==0 and abs(i_n2)==1):
+#                    continue
                 M[i_t, i_c]          = np.exp(-1j * (i_n*W1+i_n2*W2) * T_i[i_t],dtype=np.cdouble)
                 C[i_n+NX-1,i_n2+NX-1] = i_c
                 i_c+=1
@@ -117,8 +117,8 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
     X_here=np.zeros((2*(NX-1)+1, 2*(NX-1)+1),dtype=np.cdouble)
     for i_n in range(-NX+1, NX):
         for i_n2 in range(-NX+1, NX):
-            if (abs(i_n)==1 and abs(i_n2)==0) or  (abs(i_n)==0 and abs(i_n2)==1):
-                continue
+#            if (abs(i_n)==1 and abs(i_n2)==0) or  (abs(i_n)==0 and abs(i_n2)==1):
+#                continue
             i_c=C[i_n+NX-1,i_n2+NX-1]
             if INV_MODE=='lstsq' or INV_MODE=='lstsq_init':
                 X_here[i_n+NX-1,i_n2+NX-1]=INV[i_c]
