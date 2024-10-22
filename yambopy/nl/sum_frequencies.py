@@ -10,6 +10,8 @@ from yambopy.nl.external_efield import Divide_by_the_Field
 from yambopy.nl.harmonic_analysis import update_T_range
 from scipy.optimize import least_squares
 from tqdm import tqdm
+from scipy.ndimage import uniform_filter1d
+
 import scipy.linalg
 import sys
 import os
@@ -90,7 +92,6 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
             print("set inversion mode to LSTSQ")
             INV_MODE="lstsq"
     if INV_MODE=='lstsq_init':
-
         def residuals_func(x):
             x_cmplx=x[0:int(x.size/2)] + 1j * x[int(x.size/2):x.size]
             return np.linalg.norm(np.dot(M, x_cmplx) - P_i)
@@ -117,20 +118,13 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
     X_here=np.zeros((2*(NX-1)+1, 2*(NX-1)+1),dtype=np.cdouble)
     for i_n in range(-NX+1, NX):
         for i_n2 in range(-NX+1, NX):
-#            if (abs(i_n)==1 and abs(i_n2)==0) or  (abs(i_n)==0 and abs(i_n2)==1):
-#                continue
             i_c=C[i_n+NX-1,i_n2+NX-1]
             if INV_MODE=='lstsq' or INV_MODE=='lstsq_init':
                 X_here[i_n+NX-1,i_n2+NX-1]=INV[i_c]
             else:
-                for i_t in range(N_samp):
-                    X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+INV[i_c,i_t]*P_i[i_t]
+                X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+np.prod(INV[i_c,:],P_i[:])
 
-
-    if INV_MODE=='lstsq_init':
-        return X_here,Sampling,INV
-    else:
-        return X_here,Sampling
+    return X_here,Sampling,INV
 
 
 def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1,prn_Peff=False,prn_Xhi=True,INV_MODE='svd',SAMP_MOD='log'):
@@ -209,45 +203,56 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
     X_effective       =np.zeros((2*X_order+1,2*X_order+1,n_frequencies,3),dtype=np.cdouble)
     Sampling          =np.zeros((N_samp,2,n_frequencies,3),dtype=np.double)
     Susceptibility    =np.zeros((2*X_order+1,2*X_order+1,n_frequencies,3),dtype=np.cdouble)
-    if(INV_MODE=="lstsq_init"):
-        INV0=np.zeros((3,M_size),dtype=np.cdouble)
+    INV0              =np.zeros((M_size,n_frequencies,3),dtype=np.cdouble)
 
     
     print("Loop in frequecies...")
-
-    if(INV_MODE=="lstsq_init"):
-        # I use the first inversion as a guess
-        for i_d in range(3):
-            X_effective[:,:,0,i_d],Sampling[:,:,0,i_d],INV0[i_d,:]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[0][i_d,:],freqs[0],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD,INV0=None)
-
     # Find the Fourier coefficients by inversion
     for i_f in tqdm(range(n_frequencies)):
         for i_d in range(3):
-            if(INV_MODE=="lstsq_init"):
-                if i_f==60:
-                # I use the preivous inversion as initial guess
-                    X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[i_d,:]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD,INV0=INV0[i_d,:])
-                else:
-                    X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[i_d,:]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
-            else:
-                X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
+            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
         
-    # Calculate Susceptibilities from X_effective
-    for i_order in range(-X_order,X_order+1):
-        for i_order2 in range(-X_order,X_order+1):
-            for i_f in range(n_frequencies):
-                Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]=X_effective[i_order+X_order,i_order2+X_order,i_f,:]
-                if l_test_one_field:
-                    Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
-                else:
-                    D2=1.0
-                    if i_order!=0:
-                        D2*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
-                    if i_order2!=0:
-                        D2*=Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
-                    if i_order==0 and i_order2==0: #  This case is not clear to me how we should define the optical rectification
-                        D2=Divide_by_the_Field(nldb.Efield[0],abs(i_order))*Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
-                    Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=D2
+        
+# check non-converged points and degneracies and fix them
+    i_d=1
+    i_order=1
+    i_order2=1
+    iX=[i_order+X_order,i_order2+X_order]
+    # Calculate the moving average with a window
+    signal= abs(X_effective[i_order+X_order,i_order2+X_order,:,i_d])
+    window_size = 5
+    smooth_signal = uniform_filter1d(signal, size=window_size)
+    # Identify spikes relative to the local average
+    threshold_local = 0.3  # defines how much a value can deviate from the local average
+    spike_indices_local = np.where(np.abs(signal - smooth_signal)/smooth_signal > threshold_local)[0]
+
+    print("Spike indices ",spike_indices_local)
+    for i_f in range(n_frequencies): #spike_indices_local:
+       if(i_f==0):
+           INV0[:,i_f,i_d]=INV0[:,i_f+1,i_d]
+       elif(i_f==n_frequencies-1):
+           INV0[:,i_f,i_d]=INV0[:,i_f-1,i_d]
+       else:
+           INV0[:,i_f,i_d]=(INV0[:,i_f+1,i_d]-INV0[:,i_f-1,i_d])/2.0
+       for i_d in range(3):
+            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
+#           X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD=="lstsq",INV0=INV0[:,i_f,i_d])
+
+    print("Calculate susceptibility ")
+    for i_order,i_order2 in zip(range(-X_order,X_order+1),range(-X_order,X_order+1)):
+        for i_f in range(n_frequencies):
+            Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]=X_effective[i_order+X_order,i_order2+X_order,i_f,:]
+            if l_test_one_field:
+                Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
+            else:
+                D2=1.0
+                if i_order!=0:
+                    D2*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
+                if i_order2!=0:
+                    D2*=Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
+                if i_order==0 and i_order2==0: #  This case is not clear to me how we should define the optical rectification
+                    D2=Divide_by_the_Field(nldb.Efield[0],abs(i_order))*Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
+                Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=D2
 
     if(prn_Peff):
         print("Reconstruct effective polarizations ...")        
@@ -255,9 +260,9 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
         P=np.zeros((n_frequencies,3,len(time)),dtype=np.cdouble)
         for i_f in tqdm(range(n_frequencies)):
             for i_d in range(3):
-                for i_order in range(-X_order,X_order+1):
-                    for i_order2 in range(-X_order,X_order+1):
-                        P[i_f,i_d,:]+=X_effective[i_order+X_order,i_order2+X_order,i_f,i_d]*np.exp(-1j * (i_order*freqs[i_f]+i_order2*pump_freq) * time[:])
+                for i_order,i_order2 in zip(range(-X_order,X_order+1),range(-X_order,X_order+1)):
+                    P[i_f,i_d,:]+=X_effective[i_order+X_order,i_order2+X_order,i_f,i_d]*np.exp(-1j * (i_order*freqs[i_f]+i_order2*pump_freq) * time[:])
+
         header2="[fs]            "
         header2+="Px     "
         header2+="Py     "
