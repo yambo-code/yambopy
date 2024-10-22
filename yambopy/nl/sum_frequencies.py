@@ -42,6 +42,10 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
     Sampling = np.zeros((N_samp,2), dtype=np.double)
 
 # Calculation of  T_i and P_i
+    SAMP_MODES = ['linear', 'log', 'random']
+    if SAMP_MOD not in SAMP_MODES:
+        raise ValueError("Invalid sampling mode. Expected one of: %s" % SAMP_MODES)
+    #
     if SAMP_MOD=='linear':
         for i_t in range(N_samp):
             T_i[i_t] = (i_t_start + i_deltaT * i_t)*T_step - efield["initial_time"]
@@ -68,8 +72,6 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
         i_c = 0
         for i_n in range(-NX+1, NX):
             for i_n2 in range(-NX+1, NX):
-#                if (abs(i_n)==1 and abs(i_n2)==0) or  (abs(i_n)==0 and abs(i_n2)==1):
-#                    continue
                 M[i_t, i_c]          = np.exp(-1j * (i_n*W1+i_n2*W2) * T_i[i_t],dtype=np.cdouble)
                 C[i_n+NX-1,i_n2+NX-1] = i_c
                 i_c+=1
@@ -95,16 +97,17 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
         def residuals_func(x):
             x_cmplx=x[0:int(x.size/2)] + 1j * x[int(x.size/2):x.size]
             return np.linalg.norm(np.dot(M, x_cmplx) - P_i)
+
         # This function works only with real values
         # I convert the complex x0 in to real
         if(INV0 is None):
             x0_cmplx = np.linalg.lstsq(M, P_i, rcond=tol)[0]
         else:
-            print(" Sto usanto INV0 from preivous frequencies ")
-            x0_cmplx = np.copy(INV0)
+            x0_cmplx = INV0
         x0 = np.concatenate((x0_cmplx.real, x0_cmplx.imag))
-        res = least_squares(residuals_func, x0)
+        res = least_squares(residuals_func, x0, ftol=1e-11,gtol=1e-11,xtol=1e-11,verbose=1,x_scale='jac')
         INV = res.x[0:int(res.x.size/2)] + 1j * res.x[int(res.x.size/2):res.x.size]
+
     if INV_MODE=='lstsq':
 # Least-squares
         INV = np.linalg.lstsq(M, P_i, rcond=tol)[0]
@@ -227,16 +230,14 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
     spike_indices_local = np.where(np.abs(signal - smooth_signal)/smooth_signal > threshold_local)[0]
 
     print("Spike indices ",spike_indices_local)
-    for i_f in range(n_frequencies): #spike_indices_local:
-       if(i_f==0):
+    for i_f in tqdm(spike_indices_local):
+       if(i_f==0 or i_f-1 in spike_indices_local):
            INV0[:,i_f,i_d]=INV0[:,i_f+1,i_d]
-       elif(i_f==n_frequencies-1):
+       elif(i_f==n_frequencies-1 or i_f+1 in spike_indices_local):
            INV0[:,i_f,i_d]=INV0[:,i_f-1,i_d]
        else:
-           INV0[:,i_f,i_d]=(INV0[:,i_f+1,i_d]-INV0[:,i_f-1,i_d])/2.0
-       for i_d in range(3):
-            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
-#           X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD=="lstsq",INV0=INV0[:,i_f,i_d])
+           INV0[:,i_f,i_d]=(INV0[:,i_f+1,i_d]+INV0[:,i_f-1,i_d])/2.0
+       X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE="lstsq_init",SAMP_MOD=SAMP_MOD,INV0=INV0[:,i_f,i_d])
 
     print("Calculate susceptibility ")
     for i_order,i_order2 in zip(range(-X_order,X_order+1),range(-X_order,X_order+1)):
