@@ -217,43 +217,50 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
         
         
 # check non-converged points and degneracies and fix them
-    i_d=1
-    i_order=1
-    i_order2=1
-    iX=[i_order+X_order,i_order2+X_order]
-    # Calculate the moving average with a window
-    signal= abs(X_effective[i_order+X_order,i_order2+X_order,:,i_d])
-    window_size = 5
-    smooth_signal = uniform_filter1d(signal, size=window_size)
-    # Identify spikes relative to the local average
-    threshold_local = 0.3  # defines how much a value can deviate from the local average
-    spike_indices_local = np.where(np.abs(signal - smooth_signal)/smooth_signal > threshold_local)[0]
+    spike_correction=True
 
-    print("Spike indices ",spike_indices_local)
-    for i_f in tqdm(spike_indices_local):
-       if(i_f==0 or i_f-1 in spike_indices_local):
-           INV0[:,i_f,i_d]=INV0[:,i_f+1,i_d]
-       elif(i_f==n_frequencies-1 or i_f+1 in spike_indices_local):
-           INV0[:,i_f,i_d]=INV0[:,i_f-1,i_d]
-       else:
-           INV0[:,i_f,i_d]=(INV0[:,i_f+1,i_d]+INV0[:,i_f-1,i_d])/2.0
-       X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE="lstsq_init",SAMP_MOD=SAMP_MOD,INV0=INV0[:,i_f,i_d])
+    if(spike_correction):
+        #
+        # Response function to check for spike
+        i_d=1
+        i_order=1
+        i_order2=1
+        #
+        iX=[i_order+X_order,i_order2+X_order]
+    # Calculate the moving average with a window
+        signal= abs(X_effective[i_order+X_order,i_order2+X_order,:,i_d])
+        window_size = 5
+        smooth_signal = uniform_filter1d(signal, size=window_size)
+    # Identify spikes relative to the local average
+        threshold_local = 0.3  # defines how much a value can deviate from the local average
+        spike_indices_local = np.where(np.abs(signal - smooth_signal)/smooth_signal > threshold_local)[0]
+
+        print("Spike indices: ",spike_indices_local)
+        for i_f in tqdm(spike_indices_local):
+           if(i_f==0 or i_f-1 in spike_indices_local):
+               INV0[:,i_f,i_d]=INV0[:,i_f+1,i_d]
+           elif(i_f==n_frequencies-1 or i_f+1 in spike_indices_local):
+               INV0[:,i_f,i_d]=INV0[:,i_f-1,i_d]
+           else:
+               INV0[:,i_f,i_d]=(INV0[:,i_f+1,i_d]+INV0[:,i_f-1,i_d])/2.0
+               X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE="lstsq_init",SAMP_MOD=SAMP_MOD,INV0=INV0[:,i_f,i_d])
 
     print("Calculate susceptibility ")
-    for i_order,i_order2 in zip(range(-X_order,X_order+1),range(-X_order,X_order+1)):
-        for i_f in range(n_frequencies):
-            Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]=X_effective[i_order+X_order,i_order2+X_order,i_f,:]
-            if l_test_one_field:
-                Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
-            else:
-                D2=1.0
-                if i_order!=0:
-                    D2*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
-                if i_order2!=0:
-                    D2*=Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
-                if i_order==0 and i_order2==0: #  This case is not clear to me how we should define the optical rectification
-                    D2=Divide_by_the_Field(nldb.Efield[0],abs(i_order))*Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
-                Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=D2
+    for i_order in range(-X_order,X_order+1):
+        for i_order2 in range(-X_order,X_order+1):
+            for i_f in range(n_frequencies):
+                Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]=X_effective[i_order+X_order,i_order2+X_order,i_f,:]
+                if l_test_one_field:
+                    Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
+                else:
+                    D2=1.0
+                    if i_order!=0:
+                        D2*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
+                    if i_order2!=0:
+                        D2*=Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
+                    if i_order==0 and i_order2==0: #  This case is not clear to me how we should define the optical rectification
+                        D2=Divide_by_the_Field(nldb.Efield[0],abs(i_order))*Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
+                    Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=D2
 
     if(prn_Peff):
         print("Reconstruct effective polarizations ...")        
@@ -261,8 +268,9 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
         P=np.zeros((n_frequencies,3,len(time)),dtype=np.cdouble)
         for i_f in tqdm(range(n_frequencies)):
             for i_d in range(3):
-                for i_order,i_order2 in zip(range(-X_order,X_order+1),range(-X_order,X_order+1)):
-                    P[i_f,i_d,:]+=X_effective[i_order+X_order,i_order2+X_order,i_f,i_d]*np.exp(-1j * (i_order*freqs[i_f]+i_order2*pump_freq) * time[:])
+                for i_order in range(-X_order,X_order+1):
+                    for i_order2 in range(-X_order,X_order+1):
+                        P[i_f,i_d,:]+=X_effective[i_order+X_order,i_order2+X_order,i_f,i_d]*np.exp(-1j * (i_order*freqs[i_f]+i_order2*pump_freq) * time[:])
 
         header2="[fs]            "
         header2+="Px     "
