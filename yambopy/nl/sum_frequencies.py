@@ -20,15 +20,15 @@ import os
 # Polarization coefficient inversion see Sec. III in PRB 88, 235113 (2013) 
 #
 #  N_samp      number of sampling points 
-#  NX          numer of coefficents required
+#  NX+1        numer of coefficents required
 #  P           real-time polarization 
 #  W           multiples of the laser frequency
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD,INV0=None):
+def SF_Coefficents_Inversion(N_samp,NX,NX2,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD,INV0=None):
     #
-    M_size = (2*(NX-1) + 1)**2  # Positive and negative components plus the zero
+    M_size = (2*NX+1)*(2*NX2+1)  # Positive and negative components plus the zero
     if N_samp<=M_size:
         print(" Too few sampling points please increase it ")
     # 
@@ -67,13 +67,13 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
     Sampling[:,1]=P_i
 
 # Build the M matrix
-    C = np.zeros((2*(NX-1)+1, 2*(NX-1)+1), dtype=np.int8)
+    C = np.zeros((2*NX+1, 2*NX2+1), dtype=np.int8)
     for i_t in range(N_samp):
         i_c = 0
-        for i_n in range(-NX+1, NX):
-            for i_n2 in range(-NX+1, NX):
+        for i_n in range(-NX, NX-1):
+            for i_n2 in range(-NX2, NX2-1):
                 M[i_t, i_c]          = np.exp(-1j * (i_n*W1+i_n2*W2) * T_i[i_t],dtype=np.cdouble)
-                C[i_n+NX-1,i_n2+NX-1] = i_c
+                C[i_n+NX,i_n2+NX2] = i_c
                 i_c+=1
 
 # Multiple possibilities to calculate the inversion
@@ -118,14 +118,14 @@ def SF_Coefficents_Inversion(N_samp,NX,P,W1,W2,T_range,T_step,efield,tol,INV_MOD
         INV = np.linalg.pinv(M,rcond=tol)
 
 # Calculate X_here
-    X_here=np.zeros((2*(NX-1)+1, 2*(NX-1)+1),dtype=np.cdouble)
-    for i_n in range(-NX+1, NX):
-        for i_n2 in range(-NX+1, NX):
-            i_c=C[i_n+NX-1,i_n2+NX-1]
+    X_here=np.zeros((2*NX+1, 2*NX+1),dtype=np.cdouble)
+    for i_n in range(-NX, NX+1):
+        for i_n2 in range(-NX2, NX2+1):
+            i_c=C[i_n+NX,i_n2+NX2]
             if INV_MODE=='lstsq' or INV_MODE=='lstsq_init':
-                X_here[i_n+NX-1,i_n2+NX-1]=INV[i_c]
+                X_here[i_n+NX,i_n2+NX2]=INV[i_c]
             else:
-                X_here[i_n+NX-1,i_n2+NX-1]=X_here[i_n+NX-1,i_n2+NX-1]+np.prod(INV[i_c,:],P_i[:])
+                X_here[i_n+NX,i_n2+NX2]=X_here[i_n+NX,i_n2+NX2]+np.prod(INV[i_c,:],P_i[:])
 
     return X_here,Sampling,INV
 
@@ -213,7 +213,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
     # Find the Fourier coefficients by inversion
     for i_f in tqdm(range(n_frequencies)):
         for i_d in range(3):
-            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
+            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order, X_order,polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
         
         
 # check non-converged points and degneracies and fix them
@@ -243,7 +243,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
                INV0[:,i_f,i_d]=INV0[:,i_f-1,i_d]
            else:
                INV0[:,i_f,i_d]=(INV0[:,i_f+1,i_d]+INV0[:,i_f-1,i_d])/2.0
-               X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order+1, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE="lstsq_init",SAMP_MOD=SAMP_MOD,INV0=INV0[:,i_f,i_d])
+               X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order, X_order, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE="lstsq_init",SAMP_MOD=SAMP_MOD,INV0=INV0[:,i_f,i_d])
 
     print("Calculate susceptibility ")
     for i_order in range(-X_order,X_order+1):
