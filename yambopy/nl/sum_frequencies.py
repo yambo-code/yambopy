@@ -118,7 +118,7 @@ def SF_Coefficents_Inversion(N_samp,NX,NX2,P,W1,W2,T_range,T_step,efield,tol,INV
         INV = np.linalg.pinv(M,rcond=tol)
 
 # Calculate X_here
-    X_here=np.zeros((2*NX+1, 2*NX+1),dtype=np.cdouble)
+    X_here=np.zeros((2*NX+1, 2*NX2+1),dtype=np.cdouble)
     for i_n in range(-NX, NX+1):
         for i_n2 in range(-NX2, NX2+1):
             i_c=C[i_n+NX,i_n2+NX2]
@@ -130,7 +130,7 @@ def SF_Coefficents_Inversion(N_samp,NX,NX2,P,W1,W2,T_range,T_step,efield,tol,INV
     return X_here,Sampling,INV
 
 
-def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1,prn_Peff=False,prn_Xhi=True,INV_MODE='svd',SAMP_MOD='log'):
+def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1, -1], N_samp=-1,prn_Peff=False,prn_Xhi=True,INV_MODE='svd',SAMP_MOD='log'):
     # Time series 
     time  =nldb.IO_TIME_points
     # Time step of the simulation
@@ -150,7 +150,8 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
         raise ValueError("Harmonic analysis works only with SIN or SOFTSIN fields")
 
     l_test_one_field=False
-#    print(nldb.Efield_general[1]["name"])
+    if(X_order2==None):
+        X_order2=X_order
 
     if(nldb.Efield_general[1]["name"] == "SIN" or nldb.Efield_general[1]["name"] == "SOFTSIN"):
         # frequency of the second and third laser, respectively)
@@ -197,15 +198,15 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
     print("Initial time range : ",str(T_range[0]/fs2aut),'-',str(T_range[1]/fs2aut)," [fs] ")
     print("Pump frequency : ",str(pump_freq*ha2ev),' [eV] ')
 
-    M_size = (2*X_order + 1)**2
+    M_size = (2*X_order + 1)*(2*X_order2+1)
     if N_samp==-1:
         N_samp = M_size*2
     print(" Number of coefficents : "+str(M_size))
     print(" Number of sampling points : "+str(N_samp))
 
-    X_effective       =np.zeros((2*X_order+1,2*X_order+1,n_frequencies,3),dtype=np.cdouble)
+    X_effective       =np.zeros((2*X_order+1,2*X_order2+1,n_frequencies,3),dtype=np.cdouble)
     Sampling          =np.zeros((N_samp,2,n_frequencies,3),dtype=np.double)
-    Susceptibility    =np.zeros((2*X_order+1,2*X_order+1,n_frequencies,3),dtype=np.cdouble)
+    Susceptibility    =np.zeros((2*X_order+1,2*X_order2+1,n_frequencies,3),dtype=np.cdouble)
     INV0              =np.zeros((M_size,n_frequencies,3),dtype=np.cdouble)
 
     
@@ -213,11 +214,11 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
     # Find the Fourier coefficients by inversion
     for i_f in tqdm(range(n_frequencies)):
         for i_d in range(3):
-            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order, X_order,polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
+            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order, X_order2, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
         
         
 # check non-converged points and degneracies and fix them
-    spike_correction=True
+    spike_correction=False
 
     if(spike_correction):
         #
@@ -243,15 +244,15 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
                INV0[:,i_f,i_d]=INV0[:,i_f-1,i_d]
            else:
                INV0[:,i_f,i_d]=(INV0[:,i_f+1,i_d]+INV0[:,i_f-1,i_d])/2.0
-               X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order, X_order, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE="lstsq_init",SAMP_MOD=SAMP_MOD,INV0=INV0[:,i_f,i_d])
+               X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order, X_order2, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE="lstsq_init",SAMP_MOD=SAMP_MOD,INV0=INV0[:,i_f,i_d])
 
     print("Calculate susceptibility ")
     for i_order in range(-X_order,X_order+1):
-        for i_order2 in range(-X_order,X_order+1):
+        for i_order2 in range(-X_order2,X_order2+1):
             for i_f in range(n_frequencies):
-                Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]=X_effective[i_order+X_order,i_order2+X_order,i_f,:]
+                Susceptibility[i_order+X_order,i_order2+X_order2,i_f,:]=X_effective[i_order+X_order,i_order2+X_order2,i_f,:]
                 if l_test_one_field:
-                    Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
+                    Susceptibility[i_order+X_order,i_order2+X_order2,i_f,:]*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
                 else:
                     D2=1.0
                     if i_order!=0:
@@ -260,7 +261,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
                         D2*=Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
                     if i_order==0 and i_order2==0: #  This case is not clear to me how we should define the optical rectification
                         D2=Divide_by_the_Field(nldb.Efield[0],abs(i_order))*Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
-                    Susceptibility[i_order+X_order,i_order2+X_order,i_f,:]*=D2
+                    Susceptibility[i_order+X_order,i_order2+X_order2,i_f,:]*=D2
 
     if(prn_Peff):
         print("Reconstruct effective polarizations ...")        
@@ -269,8 +270,8 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
         for i_f in tqdm(range(n_frequencies)):
             for i_d in range(3):
                 for i_order in range(-X_order,X_order+1):
-                    for i_order2 in range(-X_order,X_order+1):
-                        P[i_f,i_d,:]+=X_effective[i_order+X_order,i_order2+X_order,i_f,i_d]*np.exp(-1j * (i_order*freqs[i_f]+i_order2*pump_freq) * time[:])
+                    for i_order2 in range(-X_order2,X_order2+1):
+                        P[i_f,i_d,:]+=X_effective[i_order+X_order,i_order2+X_order2,i_f,i_d]*np.exp(-1j * (i_order*freqs[i_f]+i_order2*pump_freq) * time[:])
 
         header2="[fs]            "
         header2+="Px     "
@@ -318,12 +319,12 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
     # Print the result
     print("Write susceptibilities ...")        
     for i_order in tqdm(range(-X_order,X_order+1)):
-        for i_order2 in range(-X_order,X_order+1):
+        for i_order2 in range(-X_order2,X_order2+1):
             if i_order==0 and i_order2==0: 
                 Unit_of_Measure = SVCMm12VMm1/AU2VMm1
             else:
                 Unit_of_Measure = np.power(SVCMm12VMm1/AU2VMm1,abs(i_order)+abs(i_order2)-1,dtype=np.double)
-                Susceptibility[i_order+X_order,i_order2+X_order,:,:]=Susceptibility[i_order+X_order,i_order2+X_order,:,:]*Unit_of_Measure
+                Susceptibility[i_order+X_order,i_order2+X_order2,:,:]=Susceptibility[i_order+X_order,i_order2+X_order2,:,:]*Unit_of_Measure
             output_file='o.YamboPy-SF_probe_order_'+str(i_order)+'_'+str(i_order2)
             if i_order == 0 or (i_order == 1 and i_order2 == 0) or (i_order == 0 and i_order2 == 1):
                 header="E [eV]            X/Im(x)            X/Re(x)            X/Im(y)            X/Re(y)            X/Im(z)            X/Re(z)"
@@ -334,12 +335,12 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, T_range=[-1, -1], N_samp=-1
                 header+="X/Im[cm/stV]^%d     X/Re[cm/stV]^%d     " % (abs(i_order)+abs(i_order2)-1,abs(i_order)+abs(i_order2)-1)
 
             values=np.c_[freqs*ha2ev]
-            values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order,:,0].imag],axis=1)
-            values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order,:,0].real],axis=1)
-            values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order,:,1].imag],axis=1)
-            values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order,:,1].real],axis=1)
-            values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order,:,2].imag],axis=1)
-            values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order,:,2].real],axis=1)
+            values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order2,:,0].imag],axis=1)
+            values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order2,:,0].real],axis=1)
+            values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order2,:,1].imag],axis=1)
+            values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order2,:,1].real],axis=1)
+            values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order2,:,2].imag],axis=1)
+            values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order2,:,2].real],axis=1)
 
             footer='Non-linear response analysis performed using YamboPy'
             if prn_Xhi:
