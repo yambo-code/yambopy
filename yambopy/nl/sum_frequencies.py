@@ -31,9 +31,10 @@ def SF_Coefficents_Inversion(N_samp,NX,NX2,P,W1,W2,T_range,T_step,efield,tol,INV
     #
     M_size = (2*NX+1)*(2*NX2+1)  # Positive and negative components plus the zero
     #
-    if N_samp<=M_size: raise ValueError(" Too few sampling points please increase it ")
-    # 
-    i_t_start = int(np.round(T_range[0]/T_step)) 
+    if N_samp<=M_size: 
+        raise ValueError(" Too few sampling points please increase it ")
+
+    i_t_start = int(np.round( T_range[0] / T_step)) 
     i_deltaT  = int(np.round((T_range[1]-T_range[0])/T_step)/N_samp)
 
 # Memory alloction 
@@ -43,25 +44,19 @@ def SF_Coefficents_Inversion(N_samp,NX,NX2,P,W1,W2,T_range,T_step,efield,tol,INV
     Sampling = np.zeros((N_samp,2), dtype=np.double)
 
 # Calculation of  T_i and P_i
-    SAMP_MODES = ['linear', 'log', 'random']
-    if SAMP_MOD not in SAMP_MODES:  raise ValueError("Invalid sampling mode. Expected one of: %s" % SAMP_MODES)
+    SAMP_MODES = {'linear', 'log', 'random'}
+    if SAMP_MOD not in SAMP_MODES:  
+        raise ValueError(f"Invalid sampling mode. Expected one of: {SAMP_MODES}")
     #
     if SAMP_MOD=='linear':
-        for i_t in range(N_samp):
-            T_i[i_t] = (i_t_start + i_deltaT * i_t)*T_step - efield["initial_time"]
-            P_i[i_t] = P[i_t_start + i_deltaT * i_t]
+        T_i = (i_t_start + i_deltaT * range(N_samp))*T_step - efield["initial_time"]
+        P_i = P[i_t_start + i_deltaT * range(N_samp)]
     elif SAMP_MOD=='log':
-        T_i=np.geomspace(i_t_start*T_step, T_range[1], N_samp, endpoint=False)
-        for i1 in range(N_samp):
-            i_t=int(np.round(T_i[i1]/T_step))
-            T_i[i1]=i_t*T_step
-            P_i[i1]=P[i_t]
+        T_i = np.geomspace(i_t_start * T_step, T_range[1], N_samp, endpoint=False)
+        P_i = [P[int(np.round(t / T_step))] for t in T_i]
     elif SAMP_MOD=='random':
-        T_i=np.random.uniform(i_t_start*T_step, T_range[1], M_size)
-        for i1 in range(N_samp):
-            i_t=int(np.round(T_i[i1]/T_step))
-            T_i[i1]=i_t*T_step
-            P_i[i1]=P[i_t]
+        T_i = np.random.uniform(i_t_start * T_step, T_range[1], N_samp)
+        P_i = [P[int(np.round(t / T_step))] for t in T_i]
     
     Sampling[:,0]=T_i/fs2aut
     Sampling[:,1]=P_i
@@ -69,21 +64,21 @@ def SF_Coefficents_Inversion(N_samp,NX,NX2,P,W1,W2,T_range,T_step,efield,tol,INV
 # Build the M matrix
     C = np.zeros((2*NX+1, 2*NX2+1), dtype=np.int8)
     for i_t in range(N_samp):
-        i_c = 0
-        for i_n,i_n2 in itertools.product(range(-NX, NX-1),range(-NX2, NX2-1)):
+        for i_c,(i_n,i_n2) in enumerate(itertools.product(range(-NX, NX-1),range(-NX2, NX2-1))):
             M[i_t, i_c]          = np.exp(-1j * (i_n*W1+i_n2*W2) * T_i[i_t],dtype=np.cdouble)
             C[i_n+NX,i_n2+NX2] = i_c
-            i_c+=1
 
 # Multiple possibilities to calculate the inversion
-    INV_MODES = ['full', 'lstsq', 'svd','lstsq_init']
-    if INV_MODE not in INV_MODES: raise ValueError("Invalid inversion mode. Expected one of: %s" % INV_MODES)
+    INV_MODES = {'full', 'lstsq', 'svd','lstsq_init'}
+    if INV_MODE not in INV_MODES: 
+        raise ValueError(f"Invalid inversion mode. Expected one of:  {INV_MODES} ")
 
     if INV_MODE=="full":
-        try:
 # Invert M matrix
-            if N_samp != M_size: raise TypeError("Only square matrix can be used with full inversion")
-            INV = np.zeros((M_size, M_size), dtype=np.cdouble)
+        if N_samp != M_size: 
+            raise TypeError("Only square matrix can be used with full inversion")
+        INV = np.zeros((M_size, M_size), dtype=np.cdouble)
+        try:
             INV = np.linalg.inv(M)
         except:
             print("Singular matrix!!! standard inversion failed ")
