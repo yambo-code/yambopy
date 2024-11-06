@@ -39,7 +39,7 @@ class YamboFile(object):
     _netcdf_sufixes  = {'QP':'gw','HF_and_locXC':'hf'}
     _outputs_type = {'output_abs':'eps','output_loss':'eel','output_alpha':'alpha', 'output_jdos':'jdos'}
 
-    def __init__(self,filename,folder='.'):
+    def __init__(self,filename,folder='.',**parse_kwargs):
         self.filename = filename
         self.folder = folder
         self.errors = [] #list of errors
@@ -59,7 +59,7 @@ class YamboFile(object):
                 self.lines = f.readlines()
             
         #parse the file
-        self.parse()
+        self.parse(**parse_kwargs)
     
     @staticmethod
     def get_filetype(filename,folder):
@@ -95,19 +95,20 @@ class YamboFile(object):
 
         return type
 
-    def parse(self):
+    def parse(self,**parse_kwargs):
         """ Parse the file
             Add here things to read log and report files...
         """
-        if   self.type == 'netcdf_gw': self.parse_netcdf_gw()
-        elif self.type == 'netcdf_hf': self.parse_netcdf_hf()
-        elif self.type in ['output_gw', 'output_abs', 'output_loss', 'output_alpha', 'output_jdos']: self.parse_output()
-        elif self.type == 'log': self.parse_log()
-        elif self.type == 'report'  : self.parse_report()
+        if   self.type == 'netcdf_gw': self.parse_netcdf_gw(**parse_kwargs)
+        elif self.type == 'netcdf_hf': self.parse_netcdf_hf(**parse_kwargs)
+        elif self.type in ['output_gw', 'output_abs', 'output_loss', 'output_alpha', 'output_jdos']: self.parse_output(**parse_kwargs)
+        elif self.type == 'log': self.parse_log(**parse_kwargs)
+        elif self.type == 'report'  : self.parse_report(**parse_kwargs)
 
-    def parse_output(self):
+    def parse_output(self,**parse_kwargs):
         """ Parse an output file from yambo,
         """
+        zip_tags = parse_kwargs.get('zip_tags',False) #flag--default behavior is to do nothing
         #get the tags of the columns
         if self.type in YamboFile._outputs_type.keys():  #== "output_absorption":
             tags = [tag.strip() for tag in re.findall('([ `0-9a-zA-Z\-\/]+)\[[0-9]\]',''.join(self.lines))]
@@ -127,10 +128,11 @@ class YamboFile(object):
                      _kdata[k_index[ind]][tags[itag]]  = [ table[ind,itag] ]
 
         self.data = _kdata
-        #self.data = dict(zip(tags,table.T))
+        if (zip_tags): #combines tags such that keys refer to the columns in data file
+            self.data = dict(zip(tags,table.T))
 
     @if_has_netcdf
-    def parse_netcdf_gw(self):
+    def parse_netcdf_gw(self,**parse_kwargs):
         """ Parse the netcdf gw file
         """
         data = {}
@@ -142,7 +144,7 @@ class YamboFile(object):
             qp_table  = f.variables['QP_table'][:]
             data['Kpoint_index'] = qp_table[2]
             data['Band'] = qp_table[0]
-            print(qp_table.shape)
+            #print(qp_table.shape)
             if qp_table.shape[0] == 4: # spin polarized
                 data['Spin_pol'] = qp_table[3]
             data['qp_table'] = qp_table[:]  # ib, ik, ,(isp if spin polarized)
@@ -169,7 +171,7 @@ class YamboFile(object):
                 self.data=data
 
     @if_has_netcdf
-    def parse_netcdf_hf(self):
+    def parse_netcdf_hf(self,**parse_kwargs):
         """ Parse the netcdf hf file (ndb.HF_and_locXC)
         """
         data = {}
@@ -203,7 +205,7 @@ class YamboFile(object):
         self.data=data
         f.close()
 
-    def parse_report(self):
+    def parse_report(self,**parse_kwargs):
         """ Parse the report files.
             produces output of this nature:
             { k-index1  : { 'dft_enrgy':[...], 'qp_energy':[...] },
@@ -281,7 +283,7 @@ class YamboFile(object):
         """
         pass
 
-    def parse_log(self):
+    def parse_log(self,**parse_kwargs):
         """ Get ERRORS and WARNINGS from  l-*  file, useful for debugging
         """
         warning = re.compile('^\s+?<([0-9a-z-]+)> ([A-Z0-9]+)[:] \[(WARNING)\]? ([a-zA-Z0-9\s.()\[\]]+)?')

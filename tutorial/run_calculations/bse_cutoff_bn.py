@@ -5,6 +5,7 @@ from __future__ import print_function, division
 #
 from yambopy import *
 from qepy import *
+from yambocommandline import *
 from schedulerpy import *
 from functools import partial
 import matplotlib.pyplot as plt
@@ -102,7 +103,7 @@ def run_job(layer_separation,nthreads=1,work_folder='bse_cutoff',cut=False):
     print("scf cycle")
     print("kpoints",scf_kpoints)
     scf(layer_separation,folder="%s/scf"%root_folder)
-    shell.add_command("cd %s/scf; mpirun -np %d %s < %s.scf > scf.log "%(root_folder,nthreads,pw,prefix))
+    shell.add_command("cd %s/scf; mpirun -np %d %s -inp %s.scf > scf.log "%(root_folder,nthreads,pw,prefix))
     shell.add_command("cd ../../../")
 
     # 2. run the non self consistent calculation
@@ -113,7 +114,7 @@ def run_job(layer_separation,nthreads=1,work_folder='bse_cutoff',cut=False):
     nscf(layer_separation,folder="%s/nscf"%root_folder)
 
     shell.add_command('cp -r %s %s'%(src,dst) )
-    shell.add_command("cd %s/nscf; mpirun -np %d %s < %s.nscf > nscf.log"%(root_folder,nthreads,pw,prefix))
+    shell.add_command("cd %s/nscf; mpirun -np %d %s -inp %s.nscf > nscf.log"%(root_folder,nthreads,pw,prefix))
     shell.add_command("cd ../../../" )
 
     # generate the database

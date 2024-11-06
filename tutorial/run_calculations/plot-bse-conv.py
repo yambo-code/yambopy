@@ -1,4 +1,5 @@
 from yambopy import *
+from yambocommandline import *
 import os
 import glob
 

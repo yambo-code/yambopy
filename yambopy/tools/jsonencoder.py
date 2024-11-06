@@ -1,7 +1,11 @@
-# Copyright (C) 2018 Henrique Pereira Coutada Miranda
-# All rights reserved.
 #
-# This file is part of yambopy
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC
+#
+# This file is part of the yambopy project
 #
 """import a special json encoder to do slightly readable files"""
 import json

@@ -1,12 +1,19 @@
-# Authors: HPCM, FP
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC,FP, RR
 #
 # This file is part of the yambopy project
 #
-from yambopy.units import *
-from yambopy import *
-from math import sqrt
-from time import time
+import os
+import numpy as np
 import matplotlib.pyplot as plt
+from netCDF4 import Dataset
+from itertools import product 
+import matplotlib.pyplot as plt
+from yambopy.units import I
 from yambopy.tools.string import marquee
 from yambopy.tools.funcs import abs2,lorentzian, gaussian
 from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz,shifted_grids_2D
@@ -20,10 +27,13 @@ class YamboDipolesDB():
 
     Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v]. If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
     """
-    def __init__(self,lattice,save='SAVE',filename='ndb.dip_iR_and_P',dip_type='iR',field_dir=[1,0,0],field_dir3=[0,0,1]):
-        self.lattice = lattice
-        self.filename = "%s/%s"%(save,filename)
-        
+    def __init__(self,lattice,save='SAVE',filename='ndb.dipoles',dip_type='iR',field_dir=[1,1,1],project=True):
+
+        self.lattice   = lattice
+        self.filename  = "%s/%s"%(save,filename)
+        self.field_dir = field_dir
+        self.project   = project
+
         #read dipoles
         try:
             database = Dataset(self.filename, 'r')
@@ -61,19 +71,20 @@ class YamboDipolesDB():
         #read the database
         self.dipoles = self.readDB(dip_type)
 
-        #expand the dipoles to the full brillouin zone
-        if self.spin==1: self.expandDipoles(self.dipoles)
+        #expand the dipoles to the full brillouin zone 
+        #and project them along field dir
+        if self.spin==1: self.expandDipoles(self.dipoles,project=project)
         if self.spin==2:
             dip_up, dip_dn = self.dipoles[0], self.dipoles[1]
             exp_dip      = self.expandDipoles
-            self.dipoles = np.stack((exp_dip(dip_up,spin=0)[0], exp_dip(dip_dn,spin=1)[0]),axis=0) 
+            self.dipoles = np.stack((exp_dip(dip_up,spin=0,project=project)[0], exp_dip(dip_dn,spin=1,project=project)[0]),axis=0) 
 
     def normalize(self,electrons):
         """ 
         Use the electrons to normalize the dipole matrix elements
         """
         # We take the eivs with the added spin dimensions even in non-spin pol case
-        eiv = electrons.eigenvalues_sp_pol
+        eiv = electrons.eigenvalues
         nkpoints, nbands = eiv[0].shape
 
         dipoles = self.dipoles
@@ -165,9 +176,11 @@ class YamboDipolesDB():
 
         return dipoles
         
-    def expandDipoles(self,dipoles=None,field_dir=[1,0,0],field_dir3=[0,0,1],spin=None):
+    def expandDipoles(self,dipoles=None,spin=None,project=True):
         """
-        Expand diples from the IBZ to the FBZ
+        Rotate dipoles from the IBZ to the FBZ
+        and project them along field_dir
+        (Equivalent to DIP_rotated and DIP_projected in Yambo)
         """
         if dipoles is None:
             dipoles = self.dipoles
@@ -179,15 +192,13 @@ class YamboDipolesDB():
         nss  = lattice.symmetry_indexes
         
         #normalize the fields
-        field_dir  = np.array(field_dir)
-        field_dir  = field_dir/np.linalg.norm(field_dir)
-        field_dir3 = np.array(field_dir3)
-        field_dir3 = field_dir3/np.linalg.norm(field_dir3)
+        self.field_dir  = np.array(self.field_dir)
+        self.field_dir  = self.field_dir/np.linalg.norm(self.field_dir)
         
         #calculate polarization directions
-        field_dirx = field_dir
-        field_diry = np.cross(field_dir3,field_dirx)
-        field_dirz = field_dir3
+        field_dirx = np.array([self.field_dir[0],0.,0.])
+        field_diry = np.array([0.,self.field_dir[1],0.])
+        field_dirz = np.array([0.,0.,self.field_dir[2]])
 
         #get band indexes
         nkpoints = len(nks)
@@ -201,7 +212,7 @@ class YamboDipolesDB():
         if self.open_shell: nbandsc = self.nbandsc_os[spin]
 
         #Note that P is Hermitian and iR anti-hermitian.
-        # [FP] Other possible dipole options (i.e., velocity gauge) to be checked. Treat them as not supported.
+        # [FP] Other possible dipole options to be checked (i.e., velocity gauge needs energy renormalization). Treat them as not supported.
         if self.dip_type == 'P':
             factor =  1.0
         else:
@@ -218,28 +229,26 @@ class YamboDipolesDB():
                 dip = np.conjugate(dipoles[nk_ibz,:,:,:])
             else:
                 dip = dipoles[nk_ibz,:,:,:]
-            
+
             #get symmmetry operation
-            sym = lattice.sym_car[ns].T
+            sym = lattice.sym_car[ns]
             #get projection operation
             pro = np.array([field_dirx,field_diry,field_dirz])
-            #transformation
-            tra = np.dot(pro,sym)
-            
+            #transformation: this is rotation
+            if not project: tra = sym
+            #transformation: this is combined rotation + projection
+            if project:     tra = np.dot(pro,sym)
+
             #rotate dipoles
             for c,v in product(list(range(nbandsc)),list(range(nbandsv))):
                 self.dipoles[nk_fbz,:,indexc+c,indexv+v] = np.dot(tra,dip[:,c,v])
-        
+
             #make hermitian
             for c,v in product(list(range(nbandsc)),list(range(nbandsv))):
                 self.dipoles[nk_fbz,:,indexv+v,indexc+c] = factor*np.conjugate(self.dipoles[nk_fbz,:,indexc+c,indexv+v])
                         
-        self.field_dirx = field_dirx
-        self.field_diry = field_diry
-        self.field_dirz = field_dirz
-        
         return self.dipoles, kpts
-       
+
     def plot(self,ax,kpoint=0,dir=0,func=abs2):
         return ax.matshow(func(self.dipoles[kpoint,dir]))
 
@@ -286,19 +295,18 @@ class YamboDipolesDB():
         else:
             plot=self.ax.scatter(kpts[:,0],kpts[:,1],c=data,**kwargs)
 
-        if plt_cbar: self.fig.colorbar(plot)
+        if plt_cbar: self.cbar = self.fig.colorbar(plot)
 
         plt.gca().set_aspect('equal')
 
         if plt_show: plt.show()
         else: print("Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
         
-    def ip_eps2(self,electrons,mode='imag',pol=1,ntot_dip=-1,nspin=-1,GWshift=0.,broad=0.1,broadtype='l',nbnds=[-1,-1],emin=0.,emax=10.,esteps=500,res_k=False):
+    def ip_eps2(self,electrons,mode='imag',ntot_dip=-1,nspin=-1,GWshift=0.,broad=0.1,broadtype='l',nbnds=[-1,-1],emin=0.,emax=10.,esteps=500,res_k=False,system_2D=False):
         """
         Compute independent-particle absorption [interband transitions]
 
-        electrons -> electrons YamboElectronsDB
-        pol -> polarization direction(s). Can be integer or list of dirs to be summed over.
+        electrons -> electrons YamboElectronsDB over full BZ (Expand=True)
         ntot_dip -> if nbands_dip in ndb.dipoles < nbands_el in ns.db1, set ntot_dip=nbands_dip 
         nspin -> if -1 spin polarisations are summed (default)
                  if  0 only majority spin channel is considered
@@ -311,8 +319,8 @@ class YamboDipolesDB():
 
         mode -> 'imag': Im[eps(w)] resonant case [DEFAULT] i.e. absorption spectrum / Fermi's golden rule
                 'full': complex eps(w) including antiresonant case i.e. dielectric function / additional optical functions
-
-        By R. Reho
+        
+        2D_system -> if True, returns 2D polarizability instead of eps2
         res_k -> if True, it returns an additional array epskres with IPA absorption for each k-point. 
                  In this way, we can plot it on the 2D-BZ (e.g. integrating over an energy range).
 
@@ -322,18 +330,28 @@ class YamboDipolesDB():
                     emin=0.
                     emax=3.5
                     step = int((emax-emin)/0.0025)
-                    _, _, datakres = ydip.ip_eps2(yel,pol[0,1],ntot_dip=-1,broad=0.12,broadtype='l',emin=emin,emax=emax,nbnds=[2,2],esteps=step,res_k=True)
+                    _, _, datakres = ydip.ip_eps2(yel,ntot_dip=-1,broad=0.12,broadtype='l',emin=emin,emax=emax,nbnds=[2,2],esteps=step,res_k=True)
                     kres_int = np.sum(datakres,axis=0) #suitable integral over a frequency range
                     ydip.plot_dipoles(dataplot,marker='H',s=300,cmap='viridis')
                ::  end block ::
         """
 
+        # Normalize field direction
+        self.field_dir  = np.array(self.field_dir)
+        self.field_dir  = self.field_dir/np.linalg.norm(self.field_dir)
+
         #get eigenvalues and weights of electrons
-        eiv = electrons.eigenvalues_sp_pol
+        if electrons.EXPAND == False:
+            print("[WARNING] Expanding the electrons database")
+            electrons.expandEigenvalues()
+        eiv = electrons.eigenvalues
         weights = electrons.weights
         nv = electrons.nbandsv
         nc = electrons.nbandsc   
         nkpoints = len(eiv[0]) 
+
+        #Print band gap values and apply GW_shift
+        eiv[0]=electrons.energy_gaps(eiv[0],GWshift)
 
         #get dipoles
         dipoles = self.dipoles
@@ -356,9 +374,6 @@ class YamboDipolesDB():
             eiv = eiv[:,:,:ntot_dip]
             nc=ntot_dip-nv
 
-        #Print band gap values and apply GW_shift
-        electrons.energy_gaps(GWshift)
-
         #Check bands to include in the calculation
         if nbnds[0]<0: nbnds[0]=nv
         if nbnds[1]<0: nbnds[1]=nc
@@ -371,14 +386,9 @@ class YamboDipolesDB():
             else:                broadening = gaussian
 
         #dimensional factors
-        # [NB] This cofactor is not consistent with the yambo output:
-        #      - In 3D there is a factor missing
-        #      - In 2D there is a frequency dependence eps(w)->eps(w)/w missing (and a factor)
-        #setting to 1. for now
         if self.spin == 1 : spin_deg=2
         if self.spin == 2 : spin_deg=1
-        cofactor = spin_deg*8.*np.pi/self.lattice.rlat_vol
-        cofactor = spin_deg*1.
+        cofactor = spin_deg*8.*np.pi/(self.lattice.rlat_vol)
 
         na = np.newaxis
         epskres = np.zeros([esteps,nkpoints])
@@ -390,18 +400,17 @@ class YamboDipolesDB():
                 eivs = eiv[s]
                 ecv  = eivs[:,c]-eivs[:,v]
 
+                # these are the expanded+projected dipoles already
                 dips = dipoles[s]
-                dip2=0.
-                try:
-                    for p in pol: dip2 = dip2 + np.abs(dips[:,p,c,v])**2
-                except TypeError: 
-                    dip2 = np.abs(dips[:,pol,c,v])**2.
+                if self.project:     dip2= np.abs( np.sum( dips[:,:,c,v], axis=1) )**2.
+                if not self.project: dip2 = np.abs( np.einsum('j,ij->i', self.field_dir , dips[:,:,c,v]) )**2
 
                 #make dimensions match
                 dip2a = dip2[na,:]
                 ecva  = ecv[na,:]
                 freqa = freq[:,na]
-                wa    = weights[na,:]       
+                # rescale weight factors because we are in the expanded BZ
+                wa    = weights[na,:]*self.nk_ibz/nkpoints       
 
                 if mode=='imag' or res_k: 
                     #calculate the lorentzians 
@@ -429,6 +438,17 @@ class YamboDipolesDB():
                     eps += np.sum(osc*(G1+G2),axis=1)/np.pi
 
         eps = eps*cofactor
+       
+        # Treat 2D case
+        # THERE IS STILL A FACTOR MISSING
+        #if system_2D:
+        #    if mode=='imag':
+        #        print("[2D system] Returning 2D polarizability instead of eps2 (bohr units)")
+        #        # assuming supercell direction to be the largest one
+        #        L = np.max(self.lattice.alat) 
+        #        eps = eps#*L/4./np.pi
+        #    if mode=='full':
+        #        print("[2D system] Remember that for spectra, the physical quantity is eps.imag*L/(2*pi), with L aperiodic direction in bohr")
 
         if res_k: return freq, eps, epskres
         else:     return freq, eps
@@ -484,12 +504,8 @@ class YamboDipolesDB():
         if self.spin==2:
             app("open shell       : %s" % (self.open_shell))
             if self.open_shell: app("excess electrons : %d" % (self.n_exc_el))
-        app("field_dirx: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirx))
-        app("field_diry: %10.6lf %10.6lf %10.6lf"%tuple(self.field_diry))
-        app("field_dirz: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirz))
+        app("field_dir: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dir))
+        #app("field_dirx: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirx))
+        #app("field_diry: %10.6lf %10.6lf %10.6lf"%tuple(self.field_diry))
+        #app("field_dirz: %10.6lf %10.6lf %10.6lf"%tuple(self.field_dirz))
         return "\n".join(lines)
-
-if __name__ == "__main__":
-    ddb = DipolesDB()
-    ddb.get_databases()
-    print(ddb)

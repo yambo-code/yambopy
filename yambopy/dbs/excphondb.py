@@ -64,14 +64,14 @@ class YamboExcitonPhononDB():
         else: database_frag.close()
                  
         #read dimensions of exciton phonon parameters
-        self.nexc_i = database.variables['PARS'][2].astype(int)
-        self.nexc_o = database.variables['PARS'][4].astype(int)
-        self.nmodes = database.variables['PARS'][6].astype(int)
-        self.nqpoints = database.variables['PARS'][0].astype(int)
+        self.nexc_i = database.variables['EXCITON_STATES'][1].astype(int)
+        self.nexc_o = database.variables['EXCITON_SUM'][1].astype(int)
+        self.nmodes = database.variables['PHONON_MODES'][0].astype(int)
+        self.nqpoints = database.variables['HEAD_R_LATT'][3].astype(int)
         self.type_exc_i = database.variables['L_kind_in'][...].tostring().decode().strip()
         self.type_exc_o = database.variables['L_kind_out'][...].tostring().decode().strip()
         database.close()
-        
+
         #Check how many databases are present
         self.nfrags = self.nqpoints
         for iq in range(self.nqpoints):
@@ -80,8 +80,9 @@ class YamboExcitonPhononDB():
                 break
         
         # Necessary lattice information
-        self.alat = lattice.alat
-        self.rlat = lattice.rlat
+        self.lattice = lattice
+        self.alat    = lattice.alat
+        self.rlat    = lattice.rlat
         
         # Keep reading
         if read_all: self.read_full_DB()
@@ -118,8 +119,7 @@ class YamboExcitonPhononDB():
         
         NB: EXCPH_GKKP_Q is saved by yambo as (2,mode,exc_out,exc_in), but netCDF stores
             the *transpose* (exc_in,exc_out,mode,2).
-            We want to change it to complex (iq,mode,exc_in,exc_out), therefore we need to
-            *swap* exc_in<->mode and then *swap* exc_in, exc_out.
+            We want to change it to complex (iq,mode,exc_in,exc_out)
         """    
         var_nm    = "EXCITON_PH_GKKP_Q"
         var_sq_nm = "EXCITON_PH_GKKP_SQUARED_Q"
@@ -132,10 +132,12 @@ class YamboExcitonPhononDB():
             fil = self.frag_filename + "%d"%(iq+1)
             database = Dataset(fil)
             excph = database.variables['%s%d'%(var_nm,iq+1)][:]
-            excph_full[iq] = np.swapaxes( np.swapaxes(excph[:,:,:,0] + I*excph[:,:,:,1],-1,0), -1,-2)
+            excph_full[iq] = np.moveaxis( excph[:,:,:,0]+I*excph[:,:,:,1], -1,0 )
+            #excph_full[iq] = np.swapaxes( np.swapaxes(excph[:,:,:,0] + I*excph[:,:,:,1],-1,0), -1,-2)
             
             excph_sq = database.variables['%s%d'%(var_sq_nm,iq+1)][:]
-            excph_sq_full[iq] = np.swapaxes( np.swapaxes(excph_sq[:,:,:],-1,0), -1,-2)
+            excph_sq_full[iq] = np.moveaxis( excph_sq, -1,0)
+            #excph_sq_full[iq] = np.swapaxes( np.swapaxes(excph_sq[:,:,:],-1,0), -1,-2)
             database.close()
         
         # Check integrity of elph values
@@ -168,7 +170,7 @@ class YamboExcitonPhononDB():
         
         # Global plot stuff
         self.fig, self.ax = plt.subplots(1, 1)
-        self.ax.add_patch(BZ_hexagon(self.rlat))
+        self.ax.add_patch(BZ_Wigner_Seitz(self.lattice))
         
         if plt_cbar:
             if 'cmap' in kwargs.keys(): color_map = plt.get_cmap(kwargs['cmap'])
@@ -181,7 +183,7 @@ class YamboExcitonPhononDB():
         BZs = shifted_grids_2D(qpts,self.rlat)
         for qpts_s in BZs: plot=self.ax.scatter(qpts_s[:,0],qpts_s[:,1],c=data,**kwargs)
         
-        if plt_cbar: self.fig.colorbar(plot)
+        if plt_cbar: self.cbar = self.fig.colorbar(plot)
         
         plt.gca().set_aspect('equal')
 
@@ -195,8 +197,8 @@ class YamboExcitonPhononDB():
             
         app('nqpoints: %d'%self.nqpoints)
         app('nmodes: %d'%self.nmodes)
-        app('nexcitons in (%s): %d'%(self.type_exc_i,self.nexc_i))
-        app('nexcitons out (%s): %d'%(self.type_exc_o,self.nexc_o))
+        app('nexcitons in (L_%s): %d'%(self.type_exc_i,self.nexc_i))
+        app('nexcitons out (L_%s): %d'%(self.type_exc_o,self.nexc_o))
         if self.nfrags == self.nqpoints: app('fragments: %d'%self.nfrags)
         else: app('fragments: %d [WARNING] nfrags < nqpoints'%self.nfrags)
         

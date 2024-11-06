@@ -8,8 +8,8 @@ Create automatic workflows for yambo and quantum espresso using python. Work dir
 Do pre/post-processing, data analysis and plotting for yambo and quantum espresso.
 
 - Yambo official website: http://www.yambo-code.eu/ 
-- Yambo wiki: http://www.yambo-code.org/wiki
-- Yambo Github page [download yambo & yambopy]: https://github.com/yambo-code/yambo
+- Yambo wiki: http://wiki.yambo-code.eu/
+- Yambo Github page [download yambo & yambopy]: https://github.com/yambo-code/
 
 
 Documentation
@@ -27,7 +27,7 @@ yambopy
 on terminal to see the options. Typing `yambopy [option]` will show the related help message.
 
 You can find explained tutorials and a partial 
-documentation on the Yambo wiki page: https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy
+documentation on the Yambo wiki page: https://wiki.yambo-code.eu/index.php/First_steps_in_Yambopy
 
 The tutorials contain examples scripts illustrating how to use some of the features: they are intended to be copied, modified and adapted to other use cases and to your ideas and needs. 
 
@@ -51,6 +51,12 @@ Installation
 
 Make sure that you have a suitable python environment (created for example with [conda](https://docs.conda.io/projects/miniconda/en/latest/) or [venv](https://docs.python.org/3/library/venv.html)).
 
+Use python version >=3.10.
+
+If you never used an environment just type
+`python -m venv MYPATH/yamboenv/`       (you can replace `MYPATH` with any path you prefer, e.g. `~/`)
+`source MYPATH/yamboenv/bin/activate`   (for bash users, you can add to your .bashrt the line `. MYPATH/yamboenv/bin/activate`)
+
 #### Regular installation of released version
 Type `pip install yambopy`
 
@@ -58,7 +64,7 @@ Type `pip install yambopy`
 Clone this repository in your local machine or cluster, enter the directory and type `pip install .`
  
 #### More information
-Follow the installation steps on the [Yambo wiki](https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy).
+Follow the installation steps on the [Yambo wiki](https://wiki.yambo-code.eu/index.php/First_steps_in_Yambopy).
 
 Requirements
 ------------
@@ -69,6 +75,7 @@ Requirements
 - lxml: https://lxml.de/
 - pyyaml: https://pyyaml.org/
 - monty: https://pypi.org/project/monty/
+- scikit-learn: https://pypi.org/project/scikit-learn/
 
 Yambopy works for the following DFT/MBPT codes:
 - yambo (>5.0.0): https://www.yambo-code.eu/

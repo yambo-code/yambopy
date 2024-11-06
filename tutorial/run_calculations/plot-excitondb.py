@@ -18,8 +18,8 @@ path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
 
 # Load databases
 
-# SAVE database
-save = YamboSaveDB.from_db_file(folder='bse/SAVE')
+# Electron energies database
+elec = YamboElectronsDB.from_db_file(folder='bse/SAVE')
 
 # Lattice information
 lat  = YamboLatticeDB.from_db_file(filename='bse/SAVE/ns.db1')
@@ -40,9 +40,9 @@ states = [1,2]
 
 # 1. Plot exciton weights in band structure NOT interpolated
 
-exc_bands = yexc.get_exciton_bs(save,path,states,size=1.0)
-exc_bands.plot_ax(ax,color_bands='grey',c_weights='red')
-
+exc_bands = yexc.get_exciton_bs(elec,path,states,size=1.0)
+exc_bands.plot_ax(ax,c_bands='grey',c_weights='red')
+plt.savefig('plot1.png')
 plt.show()
 
 # 2. Plot exciton weights in band structure INTERPOLATED
@@ -51,10 +51,10 @@ fig = plt.figure(figsize=(4,6))
 ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
 
 # In case of problems with the interpolation, try to increase lpratio
-exc_bands_inter = yexc.interpolate(save,path,states,lpratio=10,f=None,size=0.5,verbose=True)
+exc_bands_inter = yexc.interpolate(elec,path,states,lpratio=10,f=None,size=0.5,verbose=True)
 
-exc_bands_inter.plot_ax(ax,color_bands='grey',c_weights='red',alpha_weights=0.5,c_label='$X_1$')
-
+exc_bands_inter.plot_ax(ax,c_bands='grey',c_weights='red',alpha_weights=0.5,c_label='$X_1$')
+plt.savefig('plot2.png')
 plt.show()
 
 
@@ -63,6 +63,7 @@ plt.show()
 fig = plt.figure(figsize=(4,4))
 ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
 
-yexc.plot_exciton_2D_ax(ax,states,mode='hexagon',limfactor=0.8,scale= 600)
-
+#yexc.plot_exciton_2D_ax(ax,states,mode='hexagon',limfactor=0.8,scale= 600)
+yexc.plot_exciton_2D_ax(ax,states,limfactor=0.8,scale= 600)
+plt.savefig('plot3.png')
 plt.show()

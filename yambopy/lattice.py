@@ -1,9 +1,13 @@
-# Copyright (c) 2018, Henrique Miranda
-# All rights reserved.
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC, FP
 #
 # This file is part of the yambopy project
 #
-from yambopy import *
+import numpy as np
 from itertools import product
 
 def calculate_distances(kpoints):
@@ -20,6 +24,8 @@ def calculate_distances(kpoints):
  
 def expand_kpts(kpts,syms):
     """ 
+    Fast expansion giving only coordinate list in output. See kpoints.py for a more complete version.
+
     Take a list of qpoints and symmetry operations and return the full brillouin zone
     with the corresponding index in the irreducible brillouin zone
     """
@@ -73,47 +79,6 @@ def rec_lat(lat):
     b3 = np.cross(a1,a2)/v
     return np.array([b1,b2,b3])
 
-def get_path(kmesh,path,debug=False):
-    """
-    get indexes of the kpoints in the the kmesh
-    that fall along the path
-    """
-    kmesh = np.array(kmesh)
-    path  = np.array(path)
-
-    #find the points along the high symmetry lines
-    bands_indexes = []
-
-    #for all the paths
-    for k in range(len(path)-1):
-
-        # store here all the points in the path
-        # key:   has the coordinates of the kpoint rounded to 4 decimal places
-        # value: index of the kpoint
-        #        the kpoint cordinate
-        kpoints_in_path = []
-
-        start_kpt = path[k]   #start point of the path
-        end_kpt   = path[k+1] #end point of the path
-
-        #iterate over all the kpoints
-        for index, kpt in enumerate(kmesh):
-
-            #if the point is collinear we add it
-            if isbetween(start_kpt,end_kpt,kpt):
-                value = [ index, np.linalg.norm(start_kpt-kpt), kpt ]
-                kpoints_in_path.append( value )
-
-        #sort the points acoording to distance to the start of the path
-        kpoints_in_path = sorted(kpoints_in_path,key=lambda i: i[1])
-
-        #for all the kpoints in the path
-        for index, disp, kpt in kpoints_in_path:
-            bands_indexes.append( index )
-            if debug: print(("%12.8lf "*3)%tuple(kpt), index)
-
-    return np.array(bands_indexes)
-
 def replicate_red_kmesh(kmesh,repx=list(range(1)),repy=list(range(1)),repz=list(range(1))):
     """
     copy a kmesh in the tree directions
@@ -152,7 +117,7 @@ def point_matching(a,b,double_check=True,debug=False,eps=1e-8):
     b = np.array(b)
     start_time = time()
 
-    #initialize thd kdtree
+    #initialize the kdtree
     kdtree = cKDTree(a, leafsize=10)
     map_b_to_a = []
     for xb in b:
@@ -195,4 +160,4 @@ def bravais_types(lats,alat_0):
         if np.array_equal(lats_[1],[0.,lats_[1,1],0.]):
          
             if np.allclose(lats_[2],[0.,0.,lats_[2,2] ]): return bravais_types[1]
-
+    else: return 'No type'

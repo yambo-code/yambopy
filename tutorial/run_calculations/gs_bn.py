@@ -21,10 +21,10 @@ matdyn = 'matdyn.x'
 prefix = 'bn'
 
 npoints = 10 
-p = Path([ [[0.0, 0.0, 0.0],'$\Gamma$'],
-           [[0.5, 0.0, 0.0],'M'],
-           [[1./3,1./3,0.0],'K'],
-           [[0.0, 0.0, 0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
+p = Path([ [[0.0, 0.0, 0.0],r'$\Gamma$'],
+           [[0.5, 0.0, 0.0],r'M'],
+           [[1./3,1./3,0.0],r'K'],
+           [[0.0, 0.0, 0.0],r'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
 # scheduler
 scheduler = Scheduler.factory
