@@ -250,6 +250,11 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
                     D2=Divide_by_the_Field(nldb.Efield[0],abs(i_order))*Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
                 Susceptibility[i_order+X_order,i_order2+X_order2,i_f,:]*=D2
 
+    if nldb.calc!='SAVE':
+        prefix='-'+nldb.calc
+    else:
+        prefix=''
+
     if(prn_Peff):
         print("Reconstruct effective polarizations ...")        
         # Print time dependent polarization
@@ -269,7 +274,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
             values=np.append(values,np.c_[P[i_f,0,:].real],axis=1)
             values=np.append(values,np.c_[P[i_f,1,:].real],axis=1)
             values=np.append(values,np.c_[P[i_f,2,:].real],axis=1)
-            output_file2='o.YamboPy-pol_reconstructed_F'+str(i_f+1)
+            output_file2='o'+prefix+'.YamboPy-pol_reconstructed_F'+str(i_f+1)
             np.savetxt(output_file2,values,header=header2,delimiter=' ',footer=footer2)
 
         # Print Sampling point
@@ -280,7 +285,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
             values=np.append(values,np.c_[Sampling[:,1,i_f,0]],axis=1)
             values=np.append(values,np.c_[Sampling[:,1,i_f,1]],axis=1)
             values=np.append(values,np.c_[Sampling[:,1,i_f,2]],axis=1)
-            output_file3='o.YamboPy-sampling_F'+str(i_f+1)
+            output_file3='o'+prefix+'.YamboPy-sampling_F'+str(i_f+1)
             np.savetxt(output_file3,values,header=header2,delimiter=' ',footer=footer2)
 
         print("Print general error in P(t) reconstruction ")
@@ -297,7 +302,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
             values[i_f,0]=freqs[i_f]*ha2ev
             for i_d in range(3):
                 values[i_f,i_d+1]=np.sqrt(np.sum((P[i_f,i_d,i_t_start:].real-polarization[i_f][i_d,i_t_start:]))**2)/N
-        output_file4='o.YamboPy-errP'
+        output_file4='o'+prefix+'.YamboPy-errP'
         np.savetxt(output_file4,values,header=header2,delimiter=' ',footer=footer2)
                 
 
@@ -309,10 +314,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
         else:
             Unit_of_Measure = np.power(SVCMm12VMm1/AU2VMm1,abs(i_order)+abs(i_order2)-1,dtype=np.double)
             Susceptibility[i_order+X_order,i_order2+X_order2,:,:]=Susceptibility[i_order+X_order,i_order2+X_order2,:,:]*Unit_of_Measure
-        if nldb.calc!='SAVE':
-            output_file='o-'+nldb.calc+'.YamboPy-SF_probe_order_'+str(i_order)+'_'+str(i_order2)
-        else:
-            output_file='o.YamboPy-SF_probe_order_'+str(i_order)+'_'+str(i_order2)
+        output_file='o'+prefix+'.YamboPy-SF_probe_order_'+str(i_order)+'_'+str(i_order2)
         if i_order == 0 or (i_order == 1 and i_order2 == 0) or (i_order == 0 and i_order2 == 1):
             header="E [eV]            X/Im(x)            X/Re(x)            X/Im(y)            X/Re(y)            X/Im(z)            X/Re(z)"
         else:
