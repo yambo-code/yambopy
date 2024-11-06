@@ -27,7 +27,7 @@ class YamboNLDB(object):
     def __init__(self,folder='.',calc='SAVE',nl_db='ndb.Nonlinear'):
         # Find path with RT data
         self.nl_path = '%s/%s/%s'%(folder,calc,nl_db)
-
+        self.calc=calc
         try:
             data_obs= Dataset(self.nl_path)
         except:

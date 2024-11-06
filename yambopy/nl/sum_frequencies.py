@@ -309,8 +309,8 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
         else:
             Unit_of_Measure = np.power(SVCMm12VMm1/AU2VMm1,abs(i_order)+abs(i_order2)-1,dtype=np.double)
             Susceptibility[i_order+X_order,i_order2+X_order2,:,:]=Susceptibility[i_order+X_order,i_order2+X_order2,:,:]*Unit_of_Measure
-        if nldb.calc/='SAVE':
-            output_file='o-'+nldb.calc'.YamboPy-SF_probe_order_'+str(i_order)+'_'+str(i_order2)
+        if nldb.calc!='SAVE':
+            output_file='o-'+nldb.calc+'.YamboPy-SF_probe_order_'+str(i_order)+'_'+str(i_order2)
         else:
             output_file='o.YamboPy-SF_probe_order_'+str(i_order)+'_'+str(i_order2)
         if i_order == 0 or (i_order == 1 and i_order2 == 0) or (i_order == 0 and i_order2 == 1):
