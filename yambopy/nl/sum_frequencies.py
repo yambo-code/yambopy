@@ -226,9 +226,9 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
 
         print("Spike indices: ",spike_indices_local)
         for i_f in tqdm(spike_indices_local):
-           if(i_f==0 and i_f-1 in spike_indices_local):
+           if(i_f==0 and i_f in spike_indices_local):
                INV0[:,i_f,i_d]=INV0[:,i_f+1,i_d]
-           elif(i_f==n_frequencies-1 and i_f+1 in spike_indices_local):
+           elif(i_f==n_frequencies-1 and i_f in spike_indices_local):
                INV0[:,i_f,i_d]=INV0[:,i_f-1,i_d]
            else:
                INV0[:,i_f,i_d]=(INV0[:,i_f+1,i_d]+INV0[:,i_f-1,i_d])/2.0
