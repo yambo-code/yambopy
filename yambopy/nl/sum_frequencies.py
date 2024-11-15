@@ -206,7 +206,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
         
         
 # check non-converged points and degneracies and fix them
-    spike_correction=True #False
+    spike_correction=False
 
     if(spike_correction):
         #
