@@ -215,14 +215,22 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
         i_order=1
         i_order2=1
         #
-        iX=[i_order+X_order,i_order2+X_order]
+        iX=[i_order+X_order,i_order2+X_order2]
     # Calculate the moving average with a window
-        signal= abs(X_effective[i_order+X_order,i_order2+X_order,:,i_d])
+#       signal= abs(X_effective[i_order+X_order,i_order2+X_order,:,i_d])
+        signal_im= abs(X_effective[i_order+X_order,i_order2+X_order2,:,i_d].imag)
+        signal_re= abs(X_effective[i_order+X_order,i_order2+X_order2,:,i_d].real)
+
         window_size = 5
-        smooth_signal = uniform_filter1d(signal, size=window_size)
+   #     smooth_signal = uniform_filter1d(signal, size=window_size)
+        smooth_signal_im = uniform_filter1d(signal_im, size=window_size)
+        smooth_signal_re = uniform_filter1d(signal_re, size=window_size)
     # Identify spikes relative to the local average
         threshold_local = 0.3  # defines how much a value can deviate from the local average
-        spike_indices_local = np.where(np.abs(signal - smooth_signal)/smooth_signal > threshold_local)[0]
+#        spike_indices_local = np.where(np.abs(signal - smooth_signal)/smooth_signal > threshold_local)[0]
+        spike_indices_local_im = np.where(np.abs(signal_im - smooth_signal_im)/smooth_signal_im > threshold_local)[0]
+        spike_indices_local_re = np.where(np.abs(signal_re - smooth_signal_re)/smooth_signal_re > threshold_local)[0]
+        spike_indices_local = np.unique(np.concatenate((spike_indices_local_im, spike_indices_local_re)))
 
         print("Spike indices: ",spike_indices_local)
         for i_f in tqdm(spike_indices_local):
