@@ -244,19 +244,16 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
 
     print("Calculate susceptibility ")
     for i_order,i_order2 in itertools.product(range(-X_order,X_order+1),range(-X_order2,X_order2+1)):
-        for i_f in range(n_frequencies):
-            Susceptibility[i_order+X_order,i_order2+X_order2,i_f,:]=X_effective[i_order+X_order,i_order2+X_order2,i_f,:]
-            if l_test_one_field:
-                Susceptibility[i_order+X_order,i_order2+X_order2,i_f,:]*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
-            else:
-                D2=1.0
-                if i_order!=0:
-                    D2*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
-                if i_order2!=0:
-                    D2*=Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
-                if i_order==0 and i_order2==0: #  This case is not clear to me how we should define the optical rectification
-                    D2=Divide_by_the_Field(nldb.Efield[0],abs(i_order))*Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
-                Susceptibility[i_order+X_order,i_order2+X_order2,i_f,:]*=D2
+        Susceptibility[i_order+X_order,i_order2+X_order2,:,:]=X_effective[i_order+X_order,i_order2+X_order2,:,:]
+        if l_test_one_field:
+            Susceptibility[i_order+X_order,i_order2+X_order2,:,:]*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
+        else:
+            D2=1.0
+        if i_order!=0:
+            D2*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
+        if i_order2!=0:
+            D2*=Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
+        Susceptibility[i_order+X_order,i_order2+X_order2,:,:]*=D2
 
     if nldb.calc!='SAVE':
         prefix='-'+nldb.calc
