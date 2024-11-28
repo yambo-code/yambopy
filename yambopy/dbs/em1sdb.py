@@ -71,7 +71,7 @@ class YamboStaticScreeningDB(object):
 
         #read gvectors used for em1s
         gvectors          = np.array(database.variables['X_RL_vecs'][:].T)
-        self.gvectors     = np.array([g/self.alat for g in gvectors])
+        self.gvectors     = np.array(gvectors/self.alat)
         self.red_gvectors = car_red(self.gvectors,self.rlat)
         self.ngvectors    = len(self.gvectors)
         
