@@ -45,7 +45,7 @@ class YamboStaticScreeningDB(object):
                 self.alat = database.variables['LATTICE_PARAMETER'][:]
                 self.lat  = database.variables['LATTICE_VECTORS'][:].T
                 gvectors_full = database.variables['G-VECTORS'][:].T
-                self.gvectors_full = np.array([ g/self.alat for g in gvectors_full ])
+                self.gvectors_full = gvectors_full / self.alat
                 self.volume = np.linalg.det(self.lat)
                 self.rlat = rec_lat(self.lat)
             except:
@@ -71,13 +71,13 @@ class YamboStaticScreeningDB(object):
 
         #read gvectors used for em1s
         gvectors          = np.array(database.variables['X_RL_vecs'][:].T)
-        self.gvectors     = np.array([g/self.alat for g in gvectors])
+        self.gvectors     = gvectors/self.alat
         self.red_gvectors = car_red(self.gvectors,self.rlat)
         self.ngvectors    = len(self.gvectors)
         
         #read q-points
         self.iku_qpoints = database.variables['HEAD_QPT'][:].T
-        self.car_qpoints = np.array([ q/self.alat for q in self.iku_qpoints ]) #atomic units
+        self.car_qpoints = self.iku_qpoints/self.alat #atomic units
         self.red_qpoints = car_red(self.car_qpoints,self.rlat) 
         self.nqpoints = len(self.car_qpoints)
 
