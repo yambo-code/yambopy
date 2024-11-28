@@ -45,7 +45,7 @@ class YamboStaticScreeningDB(object):
                 self.alat = database.variables['LATTICE_PARAMETER'][:]
                 self.lat  = database.variables['LATTICE_VECTORS'][:].T
                 gvectors_full = database.variables['G-VECTORS'][:].T
-                self.gvectors_full = gvectors_full / self.alat
+                self.gvectors_full = np.array([ g/self.alat for g in gvectors_full ])
                 self.volume = np.linalg.det(self.lat)
                 self.rlat = rec_lat(self.lat)
             except:
@@ -71,13 +71,13 @@ class YamboStaticScreeningDB(object):
 
         #read gvectors used for em1s
         gvectors          = np.array(database.variables['X_RL_vecs'][:].T)
-        self.gvectors     = gvectors/self.alat
+        self.gvectors     = np.array([g/self.alat for g in gvectors])
         self.red_gvectors = car_red(self.gvectors,self.rlat)
         self.ngvectors    = len(self.gvectors)
         
         #read q-points
         self.iku_qpoints = database.variables['HEAD_QPT'][:].T
-        self.car_qpoints = self.iku_qpoints/self.alat #atomic units
+        self.car_qpoints = np.array([ q/self.alat for q in self.iku_qpoints ]) #atomic units
         self.red_qpoints = car_red(self.car_qpoints,self.rlat) 
         self.nqpoints = len(self.car_qpoints)
 
@@ -220,27 +220,30 @@ class YamboStaticScreeningDB(object):
             use_trueX -> Use desymmetrised vX [testing]
             indices   -> Use a subset of the total q-points (e.g. along a certain direction)
         """
-        if not use_trueX: 
-            X = self.X
-        if use_trueX:  
-            _,_ = self.getem1s()
+        if indices is None:
+            indices = np.arange(self.nqpoints)
+        
+        x = np.linalg.norm(self.car_qpoints[indices], axis=1)
+        
+        if use_trueX:
+            _, _ = self._getem1s()
             X = self.trueX
-
-        if indices is None: indices = [ iq for iq in range(self.nqpoints) ] # Use all q-points
-
-        x = [np.linalg.norm(q) for q in self.car_qpoints[indices]]
-        y = [np.linalg.inv(np.eye(self.ngvectors)+xq)[0,0] for xq in X ]
-        y = np.array(y)[indices]
-
-        #order according to the distance
-        x, y = list(zip(*sorted(zip(x, y))))
-        x = np.array(x)
-        y = np.array(y)
-
-        #scale by volume?
-        if volume: y *= self.volume 
-
-        return x,y
+        else:
+            X = self.X
+        
+        # Vectorized inverse calculation
+        y = np.linalg.inv(np.eye(self.ngvectors)[None, :, :] + X[:, :, :])[:, 0, 0]
+        y = y[indices]
+        
+        # Sort using numpy
+        sort_indices = np.argsort(x)
+        x = x[sort_indices]
+        y = y[sort_indices]
+        
+        if volume:
+            y *= self.volume
+        
+        return x, y
     
     def _getvq(self,ng1=0):
         """
@@ -313,31 +316,26 @@ class YamboStaticScreeningDB(object):
             symm     -> True:  √v(q,g1) X_{g1,g2}(q) √v(q,g2)
                         False: v(q,g1) X_{g1,g2}(q) TO BE IMPLEMENTED
         """
-        # First of all store trueX (the desymmetrized form) as attribute
-        trueX = np.zeros([self.nqpoints,self.size,self.size],dtype=np.complex64)
+        self.trueX = self.sqrt_V[:, :, np.newaxis] * self.X / self.sqrt_V[:, np.newaxis, :]
 
-        for ig1 in range(self.ngvectors):
-            for ig2 in range(self.ngvectors):
-                trueX[:,ig1,ig2] = self.sqrt_V[:,ig1]*self.X[:,ig1,ig2]/self.sqrt_V[:,ig2]
+        if indices is None:
+            indices = np.arange(self.nqpoints)
 
-        self.trueX = trueX 
+        # Vectorized computation of x
+        x = np.linalg.norm(self.car_qpoints[indices], axis=1)
 
-        # Now compute quantities for plotting like in _getepsq (but without inversion and for the input g-indices)
-        if indices is None: indices = [ iq for iq in range(self.nqpoints) ] # Use all q-points
+        # Vectorized extraction of y
+        y = self.trueX[:, ng1, ng2][indices]
 
-        x = [np.linalg.norm(q) for q in self.car_qpoints[indices]]
-        y = [xq[ng1,ng2] for xq in self.trueX ]
-        y = np.array(y)[indices]
+        # Sort using numpy
+        sort_indices = np.argsort(x)
+        x = x[sort_indices]
+        y = y[sort_indices]
 
-        #order according to the distance
-        x, y = list(zip(*sorted(zip(x, y))))
-        x = np.array(x)
-        y = np.array(y)
+        if volume:
+            y *= self.volume
 
-        #scale by volume?
-        if volume: y *= self.volume
-
-        return x,y
+        return x, y
    
     def plot_epsm1(self,ax,ng1=0,ng2=0,volume=False,symm=False,**kwargs):
         """
@@ -363,7 +361,7 @@ class YamboStaticScreeningDB(object):
         """
         Get epsilon_{0,0} = [1/(1+vX)]_{0,0} as a function of |q|
         """
-        x,y = self._getepsq(volume=volume)
+        x,y = self._getepsq(volume=volume, use_trueX=use_trueX)
         ax.plot(x,y.real,**kwargs)
         ax.set_xlabel('$|q|$')
         ax.set_ylabel('$\epsilon_{%d%d}(\omega=0)$'%(ng1,ng2))
