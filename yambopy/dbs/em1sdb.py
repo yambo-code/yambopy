@@ -77,7 +77,7 @@ class YamboStaticScreeningDB(object):
         
         #read q-points
         self.iku_qpoints = database.variables['HEAD_QPT'][:].T
-        self.car_qpoints = np.array([ q/self.alat for q in self.iku_qpoints ]) #atomic units
+        self.car_qpoints = self.iku_qpoints/self.alat #atomic units
         self.red_qpoints = car_red(self.car_qpoints,self.rlat) 
         self.nqpoints = len(self.car_qpoints)
 
@@ -256,12 +256,15 @@ class YamboStaticScreeningDB(object):
         Arguments:
             ng1 -> Choose local field component
         """
-        x = [np.linalg.norm(q) for q in self.car_qpoints]
-        y = [vq[ng1]**2. for vq in self.sqrt_V]
+
+        x = np.linalg.norm(self.car_qpoints, axis=1)
+        y = self.sqrt_V[:,ng1]**2
 
         #order according to the distance
-        x, y = list(zip(*sorted(zip(x, y))))
-        y = np.array(y)
+        sort_indices = np.argsort(x)
+
+        x = x[sort_indices]
+        y = y[sort_indices]
 
         return x,y
 
@@ -280,12 +283,13 @@ class YamboStaticScreeningDB(object):
             ng1, ng2 -> Choose local field components
             volume   -> Normalize with the volume of the cell
         """
-        x = [np.linalg.norm(q) for q in self.car_qpoints]
-        y = [xq[ng2,ng1] for xq in self.X ]
-      
+        x = np.linalg.norm(self.car_qpoints, axis=1)
+        y = self.X[:, ng2, ng1]
+
         #order according to the distance
-        x, y = list(zip(*sorted(zip(x, y))))
-        y = np.array(y)
+        sort_indices = np.argsort(x)
+        x = x[sort_indices]
+        y = y[sort_indices]
 
         #scale by volume?
         if volume: y *= self.volume 
