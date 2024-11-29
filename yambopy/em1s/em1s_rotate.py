@@ -97,14 +97,11 @@ class YamboEm1sRotate():
 
 
         # Get symmetries in CC and real-space atomic positions
-        if not os.path.isfile('%s/%s'%(save_path,db1)): raise FileNotFoundError("File %s not found."%db1)
-        database = Dataset("%s/%s"%(save_path,db1), 'r')
-        self.sym_car = np.transpose( database.variables['SYMMETRY'][:], (0,2,1) ), # transpose leaving first axis as symm index
-        n_atoms =  database.variables['N_ATOMS'][:].astype(int)
-        atom_pos = database.variables['ATOM_POS'][:]
-        if verbose: iku_kpoints_ibz = database.variables['K-POINTS'][:].T
-        database.close()
+        atomic_numbers, n_atoms = np.unique(expanded_lattice.atomic_numbers, return_counts=True)
+        atom_pos = expanded_lattice.car_atomic_positions
+        self.sym_car = expanded_lattice.sym_car
         self.nsyms = len(self.sym_car)
+        if verbose: iku_kpoints_ibz = expanded_lattice.ibz_kpoints
 
         print("=== Rotating em1s... ===")
         print(" * Getting q-map...  ")
@@ -113,8 +110,6 @@ class YamboEm1sRotate():
         self.qpoints = expanded_lattice.car_kpoints
         self.qpoints_indices = expanded_lattice.kpoints_indexes
         self.syms_indices  = expanded_lattice.symmetry_indexes
-        self.sym_car = expanded_lattice.sym_car
-        # self.qpoints, self.qpoints_indices, self.syms_indices, _ = self.expand_kpoints(self.qpoints_ibz,self.sym_car,self.rlat)
         self.nqpoints = len(self.qpoints)
 
         print(" * Getting G-map ...  ")
