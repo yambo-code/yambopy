@@ -15,6 +15,7 @@ from netCDF4 import Dataset
 from yambopy.lattice import car_red, vec_in_list
 from yambopy.kpoints import expand_kpoints
 from yambopy.tools.string import marquee
+from yambopy.dbs.latticedb import YamboLatticeDB
 
 def find_inversion_type(n_atoms,atom_pos,syms):
     """
@@ -92,6 +93,9 @@ class YamboEm1sRotate():
 
         self.k_output     = 'kpoints_bz.dat'
 
+        expanded_lattice = YamboLatticeDB.from_db_file(filename = '%s/%s'%(save_path,db1), Expand=True)
+
+
         # Get symmetries in CC and real-space atomic positions
         if not os.path.isfile('%s/%s'%(save_path,db1)): raise FileNotFoundError("File %s not found."%db1)
         database = Dataset("%s/%s"%(save_path,db1), 'r')
@@ -106,7 +110,11 @@ class YamboEm1sRotate():
         print(" * Getting q-map...  ")
 
         # Obtain transformed qpoints q'=Sq in the full BZ
-        self.qpoints, self.qpoints_indices, self.syms_indices, _ = self.expand_kpoints(self.qpoints_ibz,self.sym_car,self.rlat)
+        self.qpoints = expanded_lattice.car_kpoints
+        self.qpoints_indices = expanded_lattice.kpoints_indexes
+        self.syms_indices  = expanded_lattice.symmetry_indexes
+        self.sym_car = expanded_lattice.sym_car
+        # self.qpoints, self.qpoints_indices, self.syms_indices, _ = self.expand_kpoints(self.qpoints_ibz,self.sym_car,self.rlat)
         self.nqpoints = len(self.qpoints)
 
         print(" * Getting G-map ...  ")
