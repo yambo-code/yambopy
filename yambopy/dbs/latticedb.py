@@ -219,7 +219,7 @@ class YamboLatticeDB(object):
         self.weights_ibz      = weights
         self.kpoints_indexes  = kpoints_indexes
         self.symmetry_indexes = symmetry_indexes
-        self.iku_kpoints      = [k*self.alat for k in kpoints_full]
+        self.iku_kpoints      = np.array(kpoints_full*self.alat)
 
     def get_units_info(self):
 
