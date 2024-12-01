@@ -146,7 +146,6 @@ class YamboEm1sRotate():
 
         - kwargs are atol and rtol for np.isclose
         """
-        print('here')
         inv_syms = np.linalg.inv(self.sym_car)
         Sm1G_table = np.zeros((self.ngvectors,len(inv_syms)),dtype=int)
 

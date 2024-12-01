@@ -10,7 +10,7 @@
 import numpy as np
 from itertools import product
 
-def calculate_distances(kpoints):
+def calculate_distances(kpoints):   # Needs optimization
     """
     take a list of k-points and calculate the distances between all of them
     """
@@ -29,11 +29,17 @@ def expand_kpts(kpts,syms):
     Take a list of qpoints and symmetry operations and return the full brillouin zone
     with the corresponding index in the irreducible brillouin zone
     """
-    full_kpts = []
-    print("nkpoints:", len(kpts))
-    for nk,k in enumerate(kpts):
-        for sym in syms:
-            full_kpts.append((nk,np.dot(sym,k)))
+    nkpoints = len(kpts)
+    nsym = len(syms)
+
+    # Reshape kpts to (1, N, 3) to enable broadcasting
+    kpts_reshaped = kpts[np.newaxis, :, :]
+    transformed_kpts = np.einsum('ijk,jk->ij', syms, kpts_reshaped)
+    full_kpts_flat = transformed_kpts.reshape(nsym * nkpoints, 3)
+    nk_indices = np.repeat(np.arange(nkpoints), nsym)
+
+    # Combine indices and transformed k-points into a structured array or list of tuples if needed
+    full_kpts = np.column_stack((nk_indices, full_kpts_flat))
 
     return full_kpts
 
@@ -41,7 +47,13 @@ def vec_in_list(veca,vec_list,atol=1e-6):
     """
     Check if a vector exists in a list of vectors
     """
-    return np.array([ np.allclose(veca,vecb,rtol=atol,atol=atol) for vecb in vec_list ]).any()
+    if vec_list:
+        vec_list = np.array(vec_list)
+
+        # Use broadcasting to compare veca with all vectors in vec_list
+        return np.all(np.isclose(veca, vec_list, atol=atol), axis=1).any()
+    else:
+        return False    # In case the vector is not in the list, otherwise the np.isclose() fails
 
 
 def isbetween(a,b,c,eps=1e-5):
@@ -53,13 +65,14 @@ def red_car(red,lat):
     """
     Convert reduced coordinates to cartesian
     """
-    return np.array([coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2] for coord in red])
+    return np.einsum('ij,ji->i', red, lat.T)
 
 def car_red(car,lat):
     """
     Convert cartesian coordinates to reduced
     """
-    return np.array([np.linalg.solve(np.array(lat).T,coord) for coord in car])
+
+    return np.linalg.solve(np.array(lat).T, np.array(car).T).T
 
 def vol_lat(lat):
     """
@@ -97,7 +110,7 @@ def replicate_red_kmesh(kmesh,repx=list(range(1)),repy=list(range(1)),repz=list(
     return np.vstack(kmesh_full), np.hstack(kmesh_idx)
 
 
-def point_matching(a,b,double_check=True,debug=False,eps=1e-8):
+def point_matching(a,b,double_check=True,debug=False,eps=1e-8):                 #######
     """
     Matches the points of list a to the points of list b
     using a nearest neighbour finding algorithm
