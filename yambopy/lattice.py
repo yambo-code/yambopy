@@ -130,22 +130,31 @@ def point_matching(a,b,double_check=True,debug=False,eps=1e-8):                 
     b = np.array(b)
     start_time = time()
 
-    #initialize the kdtree
+    # Initialize the KDTree
     kdtree = cKDTree(a, leafsize=10)
-    map_b_to_a = []
-    for xb in b:
-        current_dist,index = kdtree.query(xb, k=1, distance_upper_bound=6)
-        map_b_to_a.append(index)
-    map_b_to_a = np.array(map_b_to_a)
-    
+    distances, map_b_to_a = kdtree.query(b, k=1, distance_upper_bound=6)
+
+    # Handle points that are out of bounds (i.e., where indices are equal to the size of a)
+    map_b_to_a[distances == np.inf] = -1  # Set out-of-bounds indices to -1 or any other sentinel value
+
     if debug:
-        print("took %4.2lfs"%(time()-start_time))
+        print(f"Time elapsed: {time() - start_time:.4f} seconds")
 
     if double_check:
-        for ib,ia in enumerate(map_b_to_a):
-            dist = np.linalg.norm(a[ia]-b[ib])
-            if dist > eps:
-                raise ValueError('point a %d: %s is far away from points b %d: %s  dist: %lf'%(ia,str(a[ia]),ib,str(b[ib]),dist))
+        map_b_to_a = np.array(map_b_to_a)
+        a_neighbors = a[map_b_to_a]
+
+        # Calculate distances using vectorized operations
+        distances = np.linalg.norm(a_neighbors - b[:, np.newaxis], axis=1)
+
+        # Check if any distance exceeds eps and raise ValueError if so
+        if np.any(distances > eps):
+            # Find the indices where the condition fails
+            invalid_indices = np.where(distances > eps)[0]
+            for ib in invalid_indices:
+                ia = map_b_to_a[ib]
+                dist = distances[ib]
+                raise ValueError(f'point a {ia}: {a[ia]} is far away from point b {ib}: {b[ib]} dist: {dist:.6f}')
 
     return map_b_to_a
 
