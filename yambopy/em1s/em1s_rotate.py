@@ -13,7 +13,6 @@ import os
 import shutil
 from netCDF4 import Dataset
 from yambopy.lattice import car_red, vec_in_list
-from yambopy.kpoints import expand_kpoints
 from yambopy.tools.string import marquee
 from yambopy.dbs.latticedb import YamboLatticeDB
 
@@ -97,7 +96,7 @@ class YamboEm1sRotate():
 
 
         # Get symmetries in CC and real-space atomic positions
-        atomic_numbers, n_atoms = np.unique(expanded_lattice.atomic_numbers, return_counts=True)
+        _, n_atoms = np.unique(expanded_lattice.atomic_numbers, return_counts=True)
         atom_pos = expanded_lattice.car_atomic_positions
         self.sym_car = expanded_lattice.sym_car
         self.nsyms = len(self.sym_car)
@@ -137,26 +136,9 @@ class YamboEm1sRotate():
 
         print("===      Done.       ===")
 
-    def expand_kpoints(self,kpoints,syms,rlat,atol=1e-6,verbose=0):
-        """
-        Wrapper of expand_kpoints from yambopy/kpoints.py
 
-        Does not require any self. variables to be set.
-        """
 
-        weights, kpoints_indexes, symmetry_indexes, kpoints_full = expand_kpoints(kpoints,syms,rlat,atol=atol)
-
-        if verbose: print("%d kpoints expanded to %d"%(len(kpoints),len(kpoints_full)))
-
-        #set the variables
-        expanded_car_kpoints  = kpoints_full
-        kpoints_indices       = kpoints_indexes
-        symmetry_indices      = symmetry_indexes
-        weights_ibz           = weights
-
-        return expanded_car_kpoints,kpoints_indices,symmetry_indices,weights_ibz
-
-    def inverse_Gvector_table(self,tol=1e-5):
+    def inverse_Gvector_table(self,tol=1e-5):       ################
         """
         Build table Sm1G_table such as:
 
@@ -164,6 +146,7 @@ class YamboEm1sRotate():
 
         - kwargs are atol and rtol for np.isclose
         """
+        print('here')
         inv_syms = np.linalg.inv(self.sym_car)
         Sm1G_table = np.zeros((self.ngvectors,len(inv_syms)),dtype=int)
 
@@ -197,23 +180,31 @@ class YamboEm1sRotate():
             :math:  D_{g1,g2}(ISq) = [ D_{(IS)^-1g1,(IS)^-1g2}(q) ]^*
 
         """
-        X = np.zeros([self.nqpoints,self.ngvectors,self.ngvectors],dtype=np.complex64)
-        
-        for iq in range(self.nqpoints):
-            iq_ibz = self.qpoints_indices[iq] # Index of untransformed q_ibz
-            iS     = self.syms_indices[iq]    # Index of symmetry Sq=q_ibz
-            for ig1 in range(self.ngvectors):
-                Sm1_ig1 = self.Sm1G_table[ig1,iS] # index of G' such as G'=S-1G    
-                for ig2 in range(self.ngvectors):
-                    Sm1_ig2 = self.Sm1G_table[ig2,iS] 
-                    # No TR
-                    if self.inv_type=='spatial' or iS<self.inv_index:
-                        X[iq,ig1,ig2]=self.X_ibz[iq_ibz,Sm1_ig1,Sm1_ig2]
-                    # TR
-                    if self.inv_type=='trev' and iS>=self.inv_index:
-                        X[iq,ig1,ig2]=np.conj(self.X_ibz[iq_ibz,Sm1_ig1,Sm1_ig2])
+        X = np.zeros((self.nqpoints, self.ngvectors, self.ngvectors), dtype=np.complex64)
 
-        self.X = X                   
+        # Pre-compute indices for symmetry transformations
+        Sm1G_table = self.Sm1G_table
+        X_ibz = self.X_ibz
+        qpoints_indices = self.qpoints_indices
+        syms_indices = self.syms_indices
+
+        # Loop over nqpoints
+        for iq in range(self.nqpoints):
+            iq_ibz = qpoints_indices[iq]
+            iS = syms_indices[iq]
+
+            # Pre-compute Sm1G indices for all ig1 and ig2
+            Sm1_indices = Sm1G_table[:, iS]
+
+            # No TR case
+            if self.inv_type == 'spatial' or iS < self.inv_index:
+                X[iq] = X_ibz[iq_ibz, Sm1_indices[:, np.newaxis], Sm1_indices]
+
+            # TR case
+            elif self.inv_type == 'trev' and iS >= self.inv_index:
+                X[iq] = np.conj(X_ibz[iq_ibz, Sm1_indices[:, np.newaxis], Sm1_indices])
+
+        self.X = X            
 
     def saveDBS(self):
         """
@@ -418,8 +409,8 @@ class YamboEm1sRotate():
 
         print(" * Printing PW-format kpoints file.")
 
-        kpoints_ibz = np.array([ k/self.alat for k in kpoints_iku ])
-        kpoints     = self.expand_kpoints(kpoints_ibz,self.sym_car,self.rlat)[0]
+        kpoints_ibz = np.array(kpoints_iku/self.alat)
+        kpoints     = self.qpoints
         if units=='rlu': points = car_red(kpoints,self.rlat)
         if units=='cc':  points = kpoints*self.alat[0]
 
