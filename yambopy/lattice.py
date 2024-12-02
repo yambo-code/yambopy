@@ -110,7 +110,7 @@ def replicate_red_kmesh(kmesh,repx=list(range(1)),repy=list(range(1)),repz=list(
     return np.vstack(kmesh_full), np.hstack(kmesh_idx)
 
 
-def point_matching(a,b,double_check=True,debug=False,eps=1e-8):                 #######
+def point_matching(a,b,double_check=True,debug=False,eps=1e-8):
     """
     Matches the points of list a to the points of list b
     using a nearest neighbour finding algorithm

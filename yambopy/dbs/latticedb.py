@@ -152,7 +152,7 @@ class YamboLatticeDB(object):
     def car_kpoints(self):
         """convert form internal yambo units to cartesian lattice units"""
         if not hasattr(self,"_car_kpoints"):
-            self._car_kpoints = np.array([ k/self.alat for k in self.iku_kpoints ])
+            self._car_kpoints = np.array(self.iku_kpoints/self.alat)
         return self._car_kpoints
 
     @property
@@ -166,38 +166,32 @@ class YamboLatticeDB(object):
     def sym_red(self):
         """Convert cartesian transformations to reduced transformations"""
         if not hasattr(self,"_sym_red"):
-            sym_red = np.zeros([self.nsym,3,3],dtype=int)
-            for n,s in enumerate(self.sym_car):
-                sym_red[n] = np.round(np.dot(np.dot(self.lat,s.T),np.linalg.inv(self.lat)))
-            self._sym_red = sym_red
+            transposed_sym = np.transpose(self.sym_car, axes=[0, 2, 1])
+            R_inv = np.linalg.inv(self.lat)
+            self._sym_red = np.round(np.einsum('ij,njk,kl->nil', self.lat, transposed_sym, R_inv))
         return self._sym_red
 
     @property
     def sym_rec_red(self):
         """Convert reduced transformations to reduced reciprocal transformations"""
         if not hasattr(self,"_sym_rec_red"):
-            sym_rec_red = np.zeros([self.nsym,3,3],dtype=int)
-            for n,s in enumerate(self.sym_red):
-                sym_rec_red[n] = np.linalg.inv(s).T
-            self._sym_rec_red = sym_rec_red
+            S_inv = np.linalg.inv(self.sym_red)
+            self._sym_rec_red = np.transpose(S_inv, axes=[0, 2, 1])
         return self._sym_rec_red
          
     @property
     def sym_rec(self):
         """Convert cartesian transformations to reciprocal transformations"""
         if not hasattr(self,"_sym_rec"):
-            sym_rec = np.zeros([self.nsym,3,3])
-            for n,s in enumerate(self.sym_car):
-                sym_rec[n] = np.linalg.inv(s).T
-            self._sym_rec = sym_rec
+            S_inv = np.linalg.inv(self.sym_car)
+            self._sym_rec = np.transpose(S_inv, axes=[0, 2, 1])
         return self._sym_rec
 
     @property
     def time_rev_list(self):
         """get a list of symmetries with time reversal"""
-        time_rev_list = [False]*self.nsym
-        for i in range(self.nsym):
-            time_rev_list[i] = ( i >= self.nsym/(self.time_rev+1) )
+        threshold = self.nsym // (self.time_rev + 1)
+        time_rev_list = np.arange(self.nsym) >= threshold
         return time_rev_list
 
     def expand_kpoints(self,verbose=1,atol=1.e-6):

@@ -12,7 +12,7 @@ import numpy as np
 import os
 import shutil
 from netCDF4 import Dataset
-from yambopy.lattice import car_red, vec_in_list
+from yambopy.lattice import car_red
 from yambopy.tools.string import marquee
 from yambopy.dbs.latticedb import YamboLatticeDB
 
