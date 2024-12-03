@@ -42,10 +42,10 @@ class YamboStaticScreeningDB(object):
         if os.path.isfile('%s/%s'%(self.save,db1)):
             try:
                 database = Dataset("%s/%s"%(self.save,db1), 'r')
-                self.alat = database.variables['LATTICE_PARAMETER'][:]
-                self.lat  = database.variables['LATTICE_VECTORS'][:].T
-                gvectors_full = database.variables['G-VECTORS'][:].T
-                self.gvectors_full = np.array([ g/self.alat for g in gvectors_full ])
+                self.alat = np.array(database.variables['LATTICE_PARAMETER'][:])
+                self.lat  = np.array(database.variables['LATTICE_VECTORS'][:].T)
+                gvectors_full = np.array(database.variables['G-VECTORS'][:].T)
+                self.gvectors_full = gvectors_full/self.alat
                 self.volume = np.linalg.det(self.lat)
                 self.rlat = rec_lat(self.lat)
             except:
@@ -64,19 +64,19 @@ class YamboStaticScreeningDB(object):
             raise IOError("Error opening %s/%s in YamboStaticScreeningDB"%(self.save,self.filename))
         
         #read some parameters
-        size,band_0,band_1 = database.variables['X_PARS_1'][:3]
+        size,band_0,band_1 = np.array(database.variables['X_PARS_1'][:3])
         self.size = int(size)
         self.nbands = int(band_1-band_0+1)
         self.first_band, self.last_band = int(band_0), int(band_1)
 
         #read gvectors used for em1s
         gvectors          = np.array(database.variables['X_RL_vecs'][:].T)
-        self.gvectors     = np.array(gvectors/self.alat)
+        self.gvectors     = gvectors/self.alat
         self.red_gvectors = car_red(self.gvectors,self.rlat)
         self.ngvectors    = len(self.gvectors)
         
         #read q-points
-        self.iku_qpoints = database.variables['HEAD_QPT'][:].T
+        self.iku_qpoints = np.array(database.variables['HEAD_QPT'][:].T)
         self.car_qpoints = self.iku_qpoints/self.alat #atomic units
         self.red_qpoints = car_red(self.car_qpoints,self.rlat) 
         self.nqpoints = len(self.car_qpoints)
