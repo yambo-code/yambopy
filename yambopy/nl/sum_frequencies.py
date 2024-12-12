@@ -115,7 +115,7 @@ def SF_Coefficents_Inversion(N_samp,NX,NX2,P,W1,W2,T_range,T_step,efield,tol,INV
         if INV_MODE=='lstsq' or INV_MODE=='lstsq_init':
             X_here[i_n+NX,i_n2+NX2]=INV[i_c]
         else:
-            X_here[i_n+NX,i_n2+NX2]=X_here[i_n+NX,i_n2+NX2]+np.prod(INV[i_c,:],P_i[:])
+            X_here[i_n+NX,i_n2+NX2]=X_here[i_n+NX,i_n2+NX2]+np.sum(INV[i_c,:]*P_i[:])
 
     return X_here,Sampling,INV
 
