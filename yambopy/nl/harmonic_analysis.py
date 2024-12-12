@@ -91,7 +91,7 @@ def Coefficents_Inversion(NW,NX,P,W,T_period,T_range,T_step,efield,INV_MODE):
 
 
 
-def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE="full"):
+def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE="full",prt_Xhi=True):
     # Time series 
     time  =nldb.IO_TIME_points
     # Time step of the simulation
@@ -231,50 +231,50 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             output_file3='o'+prefix+'.YamboPy-sampling_F'+str(i_f+1)
             np.savetxt(output_file3,values,header=header2,delimiter=' ',footer=footer2)
 
-    # Print the result
-    print("Write final results: xhi^1,xhi^2,xhi^3, etc...")
+    #Units of measure rescaling
     for i_order in range(X_order+1):
-
         if i_order==0: 
             Unit_of_Measure = SVCMm12VMm1/AU2VMm1
         elif i_order >= 1:
             Unit_of_Measure = np.power(SVCMm12VMm1/AU2VMm1,i_order-1,dtype=np.double)
-        
         Susceptibility[i_order,:,:]=Susceptibility[i_order,:,:]*Unit_of_Measure
 
-        output_file='o'+prefix+'.YamboPy-X_probe_order_'+str(i_order)
+    # Print the result
+    if(prt_Xhi):
+        print("Write final results: xhi^1,xhi^2,xhi^3, etc...")
+        for i_order in range(X_order+1):
+            output_file='o'+prefix+'.YamboPy-X_probe_order_'+str(i_order)
 
-        if loop_on_angles:
+            if loop_on_angles:
+                header0="Ang[degree]    "
+            if loop_on_frequencies:
+                header0="[eV]           "
+            if i_order == 0 or i_order ==1:
+                header =header0
+                header+="X/Im(x)            X/Re(x)            X/Im(y)            X/Re(y)            X/Im(z)            X/Re(z)"
+            else:
+                header=header0
+                header+="X/Im[cm/stV]^%d     X/Re[cm/stV]^%d     " % (i_order-1,i_order-1)
+                header+="X/Im[cm/stV]^%d     X/Re[cm/stV]^%d     " % (i_order-1,i_order-1)
+                header+="X/Im[cm/stV]^%d     X/Re[cm/stV]^%d     " % (i_order-1,i_order-1)
+            if loop_on_frequencies:
+                values=np.c_[freqs*ha2ev]
+            elif loop_on_angles:
+                values=np.c_[angles]
+            values=np.append(values,np.c_[Susceptibility[i_order,:,0].imag],axis=1)
+            values=np.append(values,np.c_[Susceptibility[i_order,:,0].real],axis=1)
+            values=np.append(values,np.c_[Susceptibility[i_order,:,1].imag],axis=1)
+            values=np.append(values,np.c_[Susceptibility[i_order,:,1].real],axis=1)
+            values=np.append(values,np.c_[Susceptibility[i_order,:,2].imag],axis=1)
+            values=np.append(values,np.c_[Susceptibility[i_order,:,2].real],axis=1)
 
-            header0="Ang[degree]    "
-        if loop_on_frequencies:
-            header0="[eV]           "
-
-        if i_order == 0 or i_order ==1:
-            header =header0
-            header+="X/Im(x)            X/Re(x)            X/Im(y)            X/Re(y)            X/Im(z)            X/Re(z)"
+            footer=" \n"
+            if loop_on_angles:
+                footer+="Laser frequency : "+str(freqs[0]*ha2ev)+" [eV] \n"
+            footer+='Non-linear response analysis performed using YamboPy\n '
+            np.savetxt(output_file,values,header=header,delimiter=' ',footer=footer)
         else:
-            header=header0
-            header+="X/Im[cm/stV]^%d     X/Re[cm/stV]^%d     " % (i_order-1,i_order-1)
-            header+="X/Im[cm/stV]^%d     X/Re[cm/stV]^%d     " % (i_order-1,i_order-1)
-            header+="X/Im[cm/stV]^%d     X/Re[cm/stV]^%d     " % (i_order-1,i_order-1)
-
-        if loop_on_frequencies:
-            values=np.c_[freqs*ha2ev]
-        elif loop_on_angles:
-            values=np.c_[angles]
-        values=np.append(values,np.c_[Susceptibility[i_order,:,0].imag],axis=1)
-        values=np.append(values,np.c_[Susceptibility[i_order,:,0].real],axis=1)
-        values=np.append(values,np.c_[Susceptibility[i_order,:,1].imag],axis=1)
-        values=np.append(values,np.c_[Susceptibility[i_order,:,1].real],axis=1)
-        values=np.append(values,np.c_[Susceptibility[i_order,:,2].imag],axis=1)
-        values=np.append(values,np.c_[Susceptibility[i_order,:,2].real],axis=1)
-
-        footer=" \n"
-        if loop_on_angles:
-            footer+="Laser frequency : "+str(freqs[0]*ha2ev)+" [eV] \n"
-        footer+='Non-linear response analysis performed using YamboPy\n '
-        np.savetxt(output_file,values,header=header,delimiter=' ',footer=footer)
+            return Susceptibility
 
 def update_T_range(T_period,T_range_initial,time):
         #
