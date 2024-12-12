@@ -191,7 +191,10 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             
             Susceptibility[i_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[i_f],i_order)
 
-
+   if nldb.calc!='SAVE':
+        prefix='-'+nldb.calc
+    else:
+        prefix=''   
 
     #Rectronstruct Polarization from the X_effective
     if(prn_Peff):
@@ -214,7 +217,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             values2=np.append(values2,np.c_[Peff[i_f,0,:].real],axis=1)
             values2=np.append(values2,np.c_[Peff[i_f,1,:].real],axis=1)
             values2=np.append(values2,np.c_[Peff[i_f,2,:].real],axis=1)
-            output_file2='o.YamboPy-pol_reconstructed_F'+str(i_f+1)
+            output_file2='o'+prefix+'.YamboPy-pol_reconstructed_F'+str(i_f+1)
             np.savetxt(output_file2,values2,header=header2,delimiter=' ',footer=footer2)
 
         # Print Sampling point
@@ -225,7 +228,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             values=np.append(values,np.c_[Sampling[:,1,i_f,0]],axis=1)
             values=np.append(values,np.c_[Sampling[:,1,i_f,1]],axis=1)
             values=np.append(values,np.c_[Sampling[:,1,i_f,2]],axis=1)
-            output_file3='o.YamboPy-sampling_F'+str(i_f+1)
+            output_file3='o'+prefix+'.YamboPy-sampling_F'+str(i_f+1)
             np.savetxt(output_file3,values,header=header2,delimiter=' ',footer=footer2)
 
     # Print the result
@@ -239,7 +242,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
         
         Susceptibility[i_order,:,:]=Susceptibility[i_order,:,:]*Unit_of_Measure
 
-        output_file='o.YamboPy-X_probe_order_'+str(i_order)
+        output_file='o'+prefix+'.YamboPy-X_probe_order_'+str(i_order)
 
         if loop_on_angles:
 
