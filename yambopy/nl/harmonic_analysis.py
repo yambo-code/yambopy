@@ -231,29 +231,45 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
 
 
 def get_Unit_of_Measure(i_order):
-    if i_order==0:
-        return SVCMm12VMm1/AU2VMm1
-    elif i_order >= 1:
-        return np.power(SVCMm12VMm1/AU2VMm1,i_order-1,dtype=np.double)
+    """
+    Calculates the unit of measure based on the order provided.
 
-def update_T_range(T_period,T_range_initial,time):
-        #
-        # Define the time range where analysis is performed
-        #
-        T_range=T_range_initial
-        T_range[1]=T_range[0]+T_period
-        #
-        # If the range where I perform the analysis it out of bounds
-        # I redefine it
-        #
-        T_range_out_of_bounds=False
-        #
-        if T_range[1] > time[-1]:
-            T_range[1]= time[-1]
-            T_range[0]= T_range[1]-T_period
-            T_range_out_of_bounds=True
+    Parameters:
+    i_order (int): The order that determines the calculation of the unit of measure.
 
-        return T_range,T_range_out_of_bounds
+    Returns:
+    float: The calculated unit of measure.
+    """
+    # Define the constant ratio for conversion
+    ratio = SVCMm12VMm1 / AU2VMm1
 
+    # Calculate the unit of measure based on the order
+    if i_order == 0:
+        return ratio
+    return np.power(ratio, i_order - 1, dtype=np.float64)
+
+def update_T_range(t_period, t_range_initial, time):
+    """
+    Updates the time range for analysis based on the specified period.
     
+    Parameters:
+    t_period (float): The period for the analysis range.
+    t_range_initial (list or tuple): Initial time range as [start, end].
+    time (list or array): Array of time points for reference.
+
+    Returns:
+    tuple: Updated time range as [start, end], and a boolean indicating if the range is out of bounds.
+    """
+    # Initialize the analysis range
+    t_range = list(t_range_initial)  # Ensure we work on a mutable copy
+    t_range[1] = t_range[0] + t_period
+
+    # Check if the range goes out of bounds and adjust if necessary
+    t_range_out_of_bounds = False
+    if t_range[1] > time[-1]:
+        t_range[1] = time[-1]
+        t_range[0] = t_range[1] - t_period
+        t_range_out_of_bounds = True
+
+    return t_range, t_range_out_of_bounds
 
