@@ -91,7 +91,7 @@ def Coefficents_Inversion(NW,NX,P,W,T_period,T_range,T_step,efield,INV_MODE):
 
 
 
-def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE="full",prt_Xhi=True):
+def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE="full",prn_Xhi=True):
     # Time series 
     time  =nldb.IO_TIME_points
     # Time step of the simulation
@@ -191,7 +191,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             
             Susceptibility[i_order,i_f,:]*=Divide_by_the_Field(nldb.Efield[i_f],i_order)
 
-   if nldb.calc!='SAVE':
+    if nldb.calc!='SAVE':
         prefix='-'+nldb.calc
     else:
         prefix=''   
@@ -240,7 +240,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
         Susceptibility[i_order,:,:]=Susceptibility[i_order,:,:]*Unit_of_Measure
 
     # Print the result
-    if(prt_Xhi):
+    if(prn_Xhi):
         print("Write final results: xhi^1,xhi^2,xhi^3, etc...")
         for i_order in range(X_order+1):
             output_file='o'+prefix+'.YamboPy-X_probe_order_'+str(i_order)
