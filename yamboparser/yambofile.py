@@ -113,8 +113,9 @@ class YamboFile(object):
         if self.type in YamboFile._outputs_type.keys():  #== "output_absorption":
             pattern = '([ `0-9a-zA-Z\-\/]+)\[[0-9]\]'
             tags = [tag.strip() for tag in re.findall(pattern,''.join(self.lines))]
-            lines_with_matches = [line for line in self.lines if re.search(pattern, line)] # temporary fix for IP case: E[1] [eV]          Im(eps)            Re(eps)
-            tags = [tag.strip() for tag in lines_with_matches[0].replace("#","").replace("\n","").replace("[eV]","").split()]
+            if len(tags) < 2 and self.type in ["output_loss", "output_abs", "output_alpha"]: # temporary fix for IP case: E[1] [eV]          Im(eps)            Re(eps)
+                lines_with_matches = [line for line in self.lines if re.search(pattern, line)] 
+                tags = [tag.strip() for tag in lines_with_matches[0].replace("#","").replace("\n","").replace("[eV]","").split()]
         if self.type == "output_gw":
             tags = [line.replace('(meV)','').replace('Sc(Eo)','Sc|Eo') for line in self.lines if all(tag in line for tag in ['K-point','Band','Eo'])][0]
             tags = tags[2:].strip().split()
