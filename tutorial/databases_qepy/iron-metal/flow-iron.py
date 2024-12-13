@@ -7,7 +7,7 @@ from qepy.matdyn import Matdyn
 from yambopy.io.factories import PwNscfTasks, PwBandsTasks, PwRelaxTasks
 from yambopy.flow import YambopyFlow, PwTask, E2yTask, YamboTask
 from schedulerpy import Scheduler
-from yambopy import yambopyenv
+from yambopy.env import yambopyenv
 
 #sch = Scheduler.factory(scheduler="slurm",ntasks=8,walltime="10:00:00")
 sch = Scheduler.factory(scheduler="bash")
