@@ -4,6 +4,7 @@
 #
 import os
 from yambopy import *
+from yambopy.dbs.savedb import YamboSaveDB
 from yambopy.units import *
 from itertools import product
 
