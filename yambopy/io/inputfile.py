@@ -7,7 +7,7 @@ import os
 import json
 import re
 from subprocess import Popen, PIPE
-#from yambopy.env import yambopyenv
+from yambopy.env import yambopyenv
 from yambopy.tools.duck import isstring
 
 
