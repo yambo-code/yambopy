@@ -1,18 +1,14 @@
-# Copyright (C) 2024 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez, Jorge Cervantes-Villanueva, Fulvio Paleari
-# All rights reserved.
-#
-# This file is part of yambopy
-#
-# Unfolding of supercell band structure to a effective band structure (EBS) projecting into a primitive cell.
-# Program adapted for reading Quantum Espresso output files.
-#
-# Authors: Alejandro Molina-Sanchez, Henrique Miranda, Jorge Cervantes-Villanueva and Fulvio Paleari
-#
-# Future developments will be:
 # 
-# - Assignment of the correspondence G-vectors to g-vectors without reading the PC g-vectors
+# License-Identifier: GPL
 #
-
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HM, AM-S, JC-V, FP
+# First verion by HM and AM-S (2017), revised and expanded by JC-V (2024)
+#
+# This file is part of the yambopy project
+#
+#
 from qepy import *
 import numpy as np
 from sys import stdout
@@ -22,13 +18,29 @@ class UnfoldingHDF5():
 
     def __init__(self,prefix_pc,prefix_sc,path_pc='.',path_sc='.',spin="none",band_min=0,sc_rotated=False,compute_projections=True):
         """ 
-        Initialize the structure with data from the unit cell and the super cell
+        Initialize the structure with data from the unit cell and the supercell and then compute the projection of the supercell band structure
+        taking the unit cell band structure as a reference
 
-        spin = "none" or "noncol" for nspin = 1 (noSOC) and nspin = 4 (SOC) calculations
-        band_min = If band_min = 0, it computes the projection of all the bands. If band_min != 0, it computes the projection of the bands nbands-band_min
-        sc_rotated = If sc_rotated = False, it takes the matrix identity. If sc_rotated = 3x3 matrix, it takes the rotation matrix defined by the user.
-        compute_projections: If compute_projections = True, it compute the projections and save them in a .npy file. If compute_projections = False, it loads the previous .npy file. 
+        === Usage and variables ===
+
+        >> Unfold = UnfoldingHDF5(prefix_pc=db_prefix_pc,path_pc=db_path_pc,prefix_sc=db_prefix_sc,path_sc=db_path_sc,spin="noncol",band_min = 0,sc_rotated=False,compute_projections=True)
+        >> Unfold.plot_eigen_ax(ax,path=db_path_kpoints_sc,ylim = (ylim_min,ylim_max))
+ 
+        Input:
+        :: prefix_pc(sc) is the prefix of the unit cell (supercell) QE save
+        :: path_pc(sc) is the path of the unit cell (supercell) along the Brillouin zone
+        :: spin is equal to "none" or "noncol" for nspin = 1 (noSOC) and nspin 4 (SOC) calculations according to QE format
+        :: band min determines the number of computed bands. If band_min = 0, it computes the projection of all the bands. If band_min != 0, it computes the projection of the nbands-band_min bands
+        :: sc_rotated determines the rotation matrix if necessary. If sc_rotated = False, it takes the matrix identity. If sc_rotated = (3x3) matrix, it takes the rotation matrix defined by the user
+        :: compute_projections determines whether to calculate projections or not. If compute_projections = True, it calculates the projections and save them in a .npy file.
+           If compute_projections = False, it loads the previous .npy file.
+        
+        Output:
+        :: projections.npy file to plot the EBS with an external script
+        :: Plot with the EBS of the supercell taking as a reference the defined unit cell
         """
+
+        print("=== Initializing the data ===")
 
         # Prefix and path of unit cell and supercell
         self.prefix_pc = prefix_pc  
@@ -86,13 +98,12 @@ class UnfoldingHDF5():
         # Array to save the projections
         self.projection = zeros([self.nkpoints_sc,self.nbands_sc-self.band_min]) 
 
+        print("=== Data initialized successfully ===")
 
-        " Calculation of the projections "
+        print("=== Calculation of the projections  ===")
 
         # Condition to compute the projections or to use the saved ones  
         if compute_projections == True:
-
-           print("Dictionary of G-vectors and projection")
 
            # Loop along the kpoints of the supercell  
            for ik in range(self.nkpoints_sc):
@@ -196,15 +207,26 @@ class UnfoldingHDF5():
         # Loading the projections when already computed
         if compute_projections == False:
 
-           self.projection = np.load('projections.npy')
+           print(" * Loading projections ...  ")
 
-        return print("Projections calculated successfully!")
+           try:
+
+              self.projection = np.load('projections.npy')
+
+            except FileNotFoundError:
+
+              print(f"Error: the file projections.npy does not exits")
+              raise
+
+        return print("=== Projections calculated successfully ===")
 
     def plot_eigen_ax(self,ax,path=[],xlim=(),ylim=()):
         """
         Provisional plot function for quick visualization of the data. Useful for small calculations. 
         For large calculations is more useful loading the .npy and plot it with another script.
         """
+
+        print(" * Plotting EBS ...  ")
 
         # Getting the data of the defined path
         if path:
@@ -240,13 +262,15 @@ class UnfoldingHDF5():
         if xlim: ax.set_xlim(xlim)
         if ylim: ax.set_ylim(ylim)
 
+        return print("=== EBS calculated successfully  ===")
+
 # Load bar
 def load(x,n):
     bar_length = 100
     x+=1
     ratio = x/float(n)
     c = int(ratio * bar_length)
-    stdout.write("["+"="*c+" "*(bar_length-c)+"] %03.3f%%" % (ratio*100))
+    stdout.write(" * Computing projections of the supercell onto the unit cell ["+"="*c+" "*(bar_length-c)+"] %03.3f%%" % (ratio*100))
     if (x==n): stdout.write("\n")
     stdout.flush()
     stdout.write("\r")
