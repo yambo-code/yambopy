@@ -192,7 +192,7 @@ class UnfoldingHDF5():
                           x += eivecs[ib][g_contain[ig]]*(eivecs[ib][g_contain[ig]].conjugate())
 
                       # If the value is less than a threshold, the projection is set to zero (to avoid ficticious points when plotting)
-                      if abs(x) < 1e-2:
+                      if abs(x) < 1e-4:
 
                          self.projection[ik,ib] = 0.0
                      
