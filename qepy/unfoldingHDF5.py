@@ -213,7 +213,7 @@ class UnfoldingHDF5():
 
               self.projection = np.load('projections.npy')
 
-            except FileNotFoundError:
+           except FileNotFoundError:
 
               print(f"Error: the file projections.npy does not exits")
               raise
