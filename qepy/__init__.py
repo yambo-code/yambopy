@@ -30,6 +30,7 @@ from qepy.dynmat import *
 from qepy.matdyn import *
 from qepy.unfolding import *
 from qepy.unfoldingHDF5 import *
+from qepy.spin_texture import *
 #from qepy.unfoldingyambo import * # broken ; also causes circular import issue while importing YamboLatticeDB -> yambopy.kpoints -> qepy.lattice -> qepy.unfoldingyambo -> YamboLatticeDB  
 from qepy.supercell import *
 from qepy.upf_interface.ppupf import *
