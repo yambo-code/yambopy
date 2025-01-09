@@ -1,12 +1,5 @@
-#
-# Author: Alejandro Molina-Sanchez
-#
-# Example of YamboQPDB Class 
-#
-from qepy import *
 from yambopy import *
 import matplotlib.pyplot as plt
-
 
 # Define path in reduced coordinates using Class Path
 npoints = 10
@@ -16,7 +9,8 @@ path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
               [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
 
 # Read Lattice information from SAVE
-lat  = YamboSaveDB.from_db_file(folder='SAVE',filename='ns.db1')
+## Note: we do not expand the kpts because QP database is in the IBZ
+lat  = YamboLatticeDB.from_db_file(filename='SAVE/ns.db1',Expand=False)
 # Read QP database
 ydb  = YamboQPDB.from_db(filename='ndb.QP',folder='qp-gw')
 n_top_vb = 3 # Top valence band index starting from 0
@@ -56,7 +50,7 @@ qp_bs.plot_ax(ax,legend=True,c_bands='b',fermie=fermie,label='QP-GW')
 
 plt.show()
 
-# 4. Comparison of not-interpolaed and  interpolated eigenvalues
+# 4. Comparison of not-interpolated and  interpolated eigenvalues
 
 fig = plt.figure(figsize=(4,5))
 ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])

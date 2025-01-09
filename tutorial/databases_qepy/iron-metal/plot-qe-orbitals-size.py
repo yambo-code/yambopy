@@ -1,9 +1,4 @@
-import sys
-import argparse
 from qepy import *
-from schedulerpy import *
-
-# Matplotlib options
 import matplotlib.pyplot as plt
 
 # k-points map

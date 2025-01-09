@@ -3,12 +3,14 @@
 # This file is part of the yambopy project
 #
 import os
-from yambopy import *
-from yambopy.dbs.savedb import YamboSaveDB
-from yambopy.units import *
+from netCDF4 import Dataset
+import numpy as np
 from itertools import product
+from yambopy import YamboLatticeDB
+from yambopy.tools.string import marquee
+from yambopy.units import I
 
-class YamboBSEKernelDB(YamboSaveDB):
+class YamboBSEKernelDB(object):
     """ Read the BSE Kernel database from yambo.
         It reads <t1| K |t2> where K is the kernel and t_i transition indices.
         

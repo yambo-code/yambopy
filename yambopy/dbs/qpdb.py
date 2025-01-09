@@ -1,8 +1,11 @@
-# Copyright (c) 2022. Yambopy team
-# All rights reserved.
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC, FP, AMS
 #
 # This file is part of the yambopy project
-# Authors: H. Miranda, A. Molina, F. Paleari
 #
 import os
 import numpy as np
@@ -12,6 +15,7 @@ from yambopy.plot.bandstructure import YambopyBandStructure, YambopyBandStructur
 from yambopy.plot.plotting import add_fig_kwargs
 from yamboparser import YamboFile
 from yambopy.lattice import car_red, red_car, rec_lat, vol_lat
+from yambopy.kpoints import get_path
 from qepy.lattice import Path
 
 class YamboQPDB():
@@ -231,18 +235,14 @@ class YamboQPDB():
         self.plot_scissor_ax(ax,valence,verbose=verbose)
         return fig
 
-    def get_path_car(self,kpts_path_car,path):
-        return Path( [[kpts_path_car[i],path.klabels[i]] for i in range(len(kpts_path_car))],path.intervals )
-
     def get_bs_path(self,lat,path,debug=False,**kwargs):
         """Get a band-structure on a path  
 
             Here the path is a Path object given in rlu, since it's simpler
             for the user.
-            The Path must then be converted in cc to obtain correct band
-            structure plots.
         """
-        bands_kpoints, bands_indexes, kpts_path_car = lat.get_path(path.kpoints,debug=debug)
+        
+        bands_kpoints, bands_indexes, path_car = get_path(lat.car_kpoints,lat.rlat,lat.sym_car,path,debug=debug)
 
         # set fermi energy
         # NOT EVIDENT IN SPIN-POLARIZED SYSTEM
@@ -253,8 +253,6 @@ class YamboQPDB():
         #print(self.eigenvalues_dft[:,0:(self.top_valence_band-7+2),0])
         #print(self.eigenvalues_dft[:,0:(self.top_valence_band-7+2),1])
         #exit()
-
-        path_car = self.get_path_car(kpts_path_car,path)
 
         #red_bands_kpoints = car_red(bands_kpoints,lat.rlat)
         if self.spin == True:
@@ -296,13 +294,13 @@ class YamboQPDB():
         nelect = 0
         fermie = kwargs.pop('fermie',0)
 
-        #consistency check with lattice from YamboSaveDB
-        if len(lattice.kpts_iku)!=len(self.kpoints_iku):
-            print(len(lattice.kpts_iku),len(self.kpoints_iku))
+        #consistency check with lattice points
+        if len(lattice.iku_kpoints)!=len(self.kpoints_iku):
+            print(len(lattice.iku_kpoints),len(self.kpoints_iku))
             raise ValueError("The QP database is not consistent with the lattice")
 
-        if not np.isclose(lattice.kpts_iku,self.kpoints_iku).all():
-            print(lattice.kpts_iku)
+        if not np.isclose(lattice.iku_kpoints,self.kpoints_iku).all():
+            print(lattice.iku_kpoints)
             print(self.kpoints_iku)
             raise ValueError("The QP database is not consistent with the lattice")
 
@@ -315,9 +313,8 @@ class YamboQPDB():
         band_kpoints_rlu = path.get_klist()[:,:3]
 
         # Obtain quantities in cc needed for plot (since interpolation wants rlu)
-        _, _, kpts_path_car = lattice.get_path(path.kpoints)
+        _, _, path_car = get_path(lattice.car_kpoints,lattice.rlat,lattice.sym_car,path)
         band_kpoints = red_car(band_kpoints_rlu,lattice.rlat)
-        path_car = self.get_path_car(kpts_path_car,path)
 
         #interpolate KS
         ks_ebands, qp_ebands = None, None

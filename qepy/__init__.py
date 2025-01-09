@@ -18,6 +18,7 @@ class qepyenv():
     PSEUDODIR = os.path.join(os.path.dirname(__file__),'data','pseudos')
     CONV_THR = 1e-8
 
+from qepy.lattice import *
 from qepy.xml import *
 from qepy.bravais import *
 from qepy.pw import *
@@ -27,8 +28,7 @@ from qepy.projwfcxml import *
 from qepy.ph import *
 from qepy.dynmat import *
 from qepy.matdyn import *
-from qepy.lattice import *
 from qepy.unfolding import *
-from qepy.unfoldingyambo import *
+#from qepy.unfoldingyambo import * # broken ; also causes circular import issue while importing YamboLatticeDB -> yambopy.kpoints -> qepy.lattice -> qepy.unfoldingyambo -> YamboLatticeDB  
 from qepy.supercell import *
 from qepy.upf_interface.ppupf import *

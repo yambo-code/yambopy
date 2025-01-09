@@ -32,7 +32,7 @@ if __name__ == "__main__":
     print(ydip)
 
     # Read electron energies
-    yel = YamboElectronsDB(ylat,save=save_path+'/SAVE')
+    yel = YamboElectronsDB.from_db_file(folder=save_path+'/SAVE')
     print(yel)
     
     # Plot dipoles in k-space (modulus, summed over x,y,z)

@@ -7,7 +7,7 @@ from yambopy import *
 from yambopy.plot  import *
 import os
 
-class YamboRTMovie(YamboSaveDB):
+class YamboRTMovie(object):
     """
     Create a file with data of real time simulations performed with Yambo
     """
@@ -23,7 +23,8 @@ class YamboRTMovie(YamboSaveDB):
         if not os.path.isdir(self.save):
             raise ValueError('SAVE folder not found in %s'%self.save)
 
-        YamboSaveDB.__init__(self,save=self.save)
+        # FP: changed to new electron class, to be tested
+        YamboElectronsDB.__init__(self,save=self.save)
 
         self.job_string = job_string
         self.data = {"lattice": self.lat,

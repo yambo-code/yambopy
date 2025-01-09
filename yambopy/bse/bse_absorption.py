@@ -17,7 +17,7 @@ Long term:
     1. For the same exciton store multiple WFs changing the hole position
 
 To initialize this structure we require instances of:
-    - YamboExcitonDB (which already requires YamboSaveDB)
+    - YamboExcitonDB (which already requires YamboLatticeDB)
 
 The json format produced by this class for the excitonwebsite is:
 
