@@ -18,18 +18,12 @@ from yambopy.lattice import replicate_red_kmesh, calculate_distances, car_red, r
 from yambopy.kpoints import get_path, get_path_car
 from yambopy.tools.funcs import gaussian, lorentzian, boltzman_f, abs2
 from yambopy.tools.string import marquee
+from yambopy.tools.types import CmplxType
 from yambopy.plot.bandstructure import YambopyBandStructure
 from yambopy.tools.skw import SkwInterpolator
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.electronsdb import YamboElectronsDB
 from yambopy.dbs.qpdb import YamboQPDB
-
-def CmplxType(var):
-    """ Distinguish between double and float for storing residuals and eigenvector with the same precision as in the Yambo database
-    """
-    if var.dtype=='float32':   return np.complex64
-    elif var.dtype=='float64': return np.complex128
-    else: raise TypeError('\n[ERROR] Variable type not recognized. It should be either float (float32) or double (float64).\n')
 
 class ExcitonList():
     """

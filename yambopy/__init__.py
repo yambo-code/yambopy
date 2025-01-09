@@ -54,6 +54,7 @@ class yambopyenv():
 
 #tools and units
 from yambopy.tools.jsonencoder import *
+from yambopy.tools.types import *
 from yambopy.units import *
 
 #lattice-related operations
@@ -66,7 +67,6 @@ from yambopy.kpoints import *
 from yambopy.tools.skw import *
 
 #yambo databases
-#from yambopy.dbs.savedb import *
 from yambopy.dbs.dipolesdb import *
 from yambopy.dbs.qpdb import *
 from yambopy.dbs.hfdb import *

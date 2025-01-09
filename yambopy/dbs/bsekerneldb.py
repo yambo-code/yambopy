@@ -3,9 +3,12 @@
 # This file is part of the yambopy project
 #
 import os
-from yambopy import *
-from yambopy.units import *
+from netCDF4 import Dataset
+import numpy as np
 from itertools import product
+from yambopy import YamboLatticeDB
+from yambopy.tools.string import marquee
+from yambopy.units import I
 
 class YamboBSEKernelDB(object):
     """ Read the BSE Kernel database from yambo.
