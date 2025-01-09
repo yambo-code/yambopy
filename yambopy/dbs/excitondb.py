@@ -24,6 +24,13 @@ from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.electronsdb import YamboElectronsDB
 from yambopy.dbs.qpdb import YamboQPDB
 
+def CmplxType(var):
+    """ Distinguish between double and float for storing residuals and eigenvector with the same precision as in the Yambo database
+    """
+    if var.dtype=='float32':   return np.complex64
+    elif var.dtype=='float64': return np.complex128
+    else: raise TypeError('\n[ERROR] Variable type not recognized. It should be either float (float32) or double (float64).\n')
+
 class ExcitonList():
     """
     Container class to perform operations on lists of excitons
@@ -83,8 +90,11 @@ class YamboExcitonDB(object):
         self.spin_pol = spin_pol
 
     @classmethod
-    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.'):
-        """ initialize this class from a file
+    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.',Load_WF=True):
+        """ 
+        Initialize this class from a file
+
+        Set `Read_WF=False` to avoid reading eigenvectors for faster IO and memory efficiency.
         """
         path_filename = os.path.join(folder,filename)
         if not os.path.isfile(path_filename):
@@ -95,13 +105,18 @@ class YamboExcitonDB(object):
 
         with Dataset(path_filename) as database:
             if 'BS_left_Residuals' in list(database.variables.keys()):
-                #residuals
-                rel,iml = database.variables['BS_left_Residuals'][:].T
-                rer,imr = database.variables['BS_right_Residuals'][:].T
-                l_residual = rel+iml*I
-                r_residual = rer+imr*I
+                # MN: using complex views instead of a+I*b copies to avoid memory duplication
+                # Old (yet instructive) memory duplication code
+                #rel,iml = database.variables['BS_left_Residuals'][:].T
+                #rer,imr = database.variables['BS_right_Residuals'][:].T
+                #l_residual = rel+iml*I
+                #r_residual = rer+imr*I
+                l_residual = database.variables['BS_left_Residuals'][:]
+                r_residual = database.variables['BS_right_Residuals'][:]
+                l_residual = l_residual.view(dtype=CmplxType(l_residual)).reshape(len(l_residual))
+                r_residual = r_residual.view(dtype=CmplxType(r_residual)).reshape(len(r_residual))
             if 'BS_Residuals' in list(database.variables.keys()):
-                #residuals
+                # Compatibility with older Yambo versions
                 rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
                 l_residual = rel+iml*I
                 r_residual = rer+imr*I
@@ -119,14 +134,13 @@ class YamboExcitonDB(object):
             #eigenvectors
             table = None
             eigenvectors = None
-            if 'BS_EIGENSTATES' in database.variables:
+            if Load_WF and 'BS_EIGENSTATES' in database.variables:
                 eiv = database.variables['BS_EIGENSTATES'][:]
-                eiv = eiv[:,:,0] + eiv[:,:,1]*I
-                eigenvectors = eiv
+                #eiv = eiv[:,:,0] + eiv[:,:,1]*I
+                #eigenvectors = eiv
+                eigenvectors = eiv.view(dtype=CmplxType(eiv)).reshape(eiv.shape[:-1])
                 table = database.variables['BS_TABLE'][:].T.astype(int)
 
-            table = table
-            eigenvectors = eigenvectors
             spin_vars = [int(database.variables['SPIN_VARS'][:][0]), int(database.variables['SPIN_VARS'][:][1])]
             if spin_vars[0] == 2 and spin_vars[1] == 1:
                spin_pol = 'pol'

@@ -281,8 +281,8 @@ class YamboEm1sRotate():
         def netcdftype(var_type):
             """ Distinguish between double and float
             """
-            if var.dtype=='float32': return 'f4'
-            elif var.dtype=='float64': return 'f8'
+            if var_type=='float32': return 'f4'
+            elif var_type=='float64': return 'f8'
             else: raise TypeError('\n[ERROR] Variable type not recognized. It should be either float (float32) or double (float64).\n')
         
         # New database
