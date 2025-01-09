@@ -33,6 +33,7 @@ class Path(object):
         
         :: intervals = [ n_steps_1, n_steps_2, ... , n_steps_N-1 ]
 
+        NB: interval steps are the number of kpoints along each high-symmetry direction, must be provided but is USED ONLY FOR INTERPOLATIONS
     """
     def __init__(self,klist,intervals):
         """
@@ -40,9 +41,13 @@ class Path(object):
         """
 
         self.intervals = intervals
-        if len(intervals)!=len(klist)-1:
+        if len(intervals)>len(klist)-1:
             print(f"[WARNING] number of intervals is {len(intervals)}, should be {len(klist)-1} (no. of path lines). Taking the first {len(klist)-1} intervals.")
             self.intervals = intervals[:len(klist)-1]
+        if len(intervals)<len(klist)-1:
+            Nsteps=20
+            print(f"[WARNING] number of intervals (path lines) inconsistent with special points specified, using default of {Nsteps} steps per direction")
+            self.intervals = [ Nsteps for ik in range(len(klist)-1) ]
 
         klabels = []
         kpoints = []
