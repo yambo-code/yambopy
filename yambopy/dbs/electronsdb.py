@@ -265,14 +265,14 @@ class YamboElectronsDB():
 
         #full brillouin zone
         self.eigenvalues     -= self.efermi
-        self.occupations = np.zeros([self.spin,self.nkpoints,self.nbands],dtype=np.float32)
+        self.occupations = np.zeros([self.spin,self.nkpoints,self.nbands],dtype=np.float64)
         for nspin in range(self.spin):
             for nk in range(self.nkpoints):
                 self.occupations[nspin,nk] = fermi_array(self.eigenvalues[nspin,nk,:self.nbands],0)
 
         #for the ibz
         self.eigenvalues_ibz -= self.efermi
-        self.occupations_ibz = np.zeros([self.spin,self.nkpoints_ibz,self.nbands],dtype=np.float32)
+        self.occupations_ibz = np.zeros([self.spin,self.nkpoints_ibz,self.nbands],dtype=np.float64)
         for nspin in range(self.spin):
             for nk in range(self.nkpoints_ibz):
                 self.occupations_ibz[nk] = fermi_array(self.eigenvalues_ibz[nspin,nk,:],0,self.invsmear)
@@ -322,7 +322,7 @@ class YamboElectronsDB():
         self.symmetry_indexes = symmetry_indexes
         self.nkpoints         = len(kpoints_full)
         self.weights_ibz      = weights
-        self.weights          = np.full((self.nkpoints), 1.0/self.nkpoints,dtype=np.float32)
+        self.weights          = np.full((self.nkpoints), 1.0/self.nkpoints,dtype=np.float64)
 
         if verbose: print("%d kpoints expanded to %d"%(len(self.car_kpoints),len(kpoints_full)))
 
@@ -446,8 +446,8 @@ class YamboElectronsDB():
         """
         Add electronic lifetimes using the DOS
         """
-        self.lifetimes_ibz = np.ones(self.eigenvalues_ibz.shape,dtype=np.float32)*broad
-        if self.Expand: self.lifetimes = np.ones(self.eigenvalues.shape,dtype=np.float32)*broad
+        self.lifetimes_ibz = np.ones(self.eigenvalues_ibz.shape,dtype=np.float64)*broad
+        if self.Expand: self.lifetimes = np.ones(self.eigenvalues.shape,dtype=np.float64)*broad
 
     def setLifetimesDOS(self,broad=0.1,debug=False):
         """
@@ -482,8 +482,8 @@ class YamboElectronsDB():
             exit()
 
         #add imaginary part to the energies proportional to the DOS
-        self.lifetimes_ibz = np.array([ [f(eig) for eig in eigk] for eigk in self.eigenvalues_ibz],dtype=np.float32)
-        if self.Expand: self.lifetimes = np.array([ [f(eig) for eig in eigk] for eigk in self.eigenvalues],dtype=np.float32)
+        self.lifetimes_ibz = np.array([ [f(eig) for eig in eigk] for eigk in self.eigenvalues_ibz],dtype=np.float64)
+        if self.Expand: self.lifetimes = np.array([ [f(eig) for eig in eigk] for eigk in self.eigenvalues],dtype=np.float64)
     
     def __str__(self):
         lines = []; app = lines.append

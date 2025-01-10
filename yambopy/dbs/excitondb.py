@@ -1263,7 +1263,7 @@ class YamboExcitonDB(object):
         if nexcitons == 'all': nexcitons = self.nexcitons
 
         #energy range
-        w = np.arange(emin,emax,estep,dtype=np.float32)
+        w = np.arange(emin,emax,estep,dtype=np.float64)
         nenergies = len(w)
         
         if verbose:
@@ -1347,7 +1347,7 @@ class YamboExcitonDB(object):
         if nexcitons == 'all': nexcitons = self.nexcitons
 
         #energy range
-        w = np.arange(emin,emax,estep,dtype=np.float32)
+        w = np.arange(emin,emax,estep,dtype=np.float64)
         nenergies = len(w)
         
         if verbose:

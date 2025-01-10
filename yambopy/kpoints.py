@@ -64,7 +64,7 @@ def expand_kpoints(car_kpoints,sym_car,rlat,atol=1.e-6):
     nkpoints_full = len(kpoints_full)
     weights = np.zeros([nkpoints_full])
     for nk in kpoints_full_i:
-        weights[nk] = float(len(kpoints_full_i[nk]))/nkpoints_full
+        weights[nk] = np.float64(len(kpoints_full_i[nk]))/nkpoints_full
 
     return np.array(weights), np.array(kpoints_indexes), np.array(symmetry_indexes), np.array(kpoints_full)
 
