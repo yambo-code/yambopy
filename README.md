@@ -102,12 +102,13 @@ Original author:
 Current developers and maintainers:
 - [Fulvio Paleari](http://palful.github.io) (CNR - Nanoscience institute, Modena)
 - [Alejandro Molina Sanchez](http://alexmoratalla.github.io/) (University of Valencia)
-- José Castelo (University of Valencia) 
 
 Active contributors:
 - Claudio Attaccalite
 - Miki Bonacci
+- José Castelo
 - Jorge Cervantes-Villanueva
+- Muralidhar Nalabothula
 - Riccardo Reho
 - Michele Re Fiorentin
 - You if you want to share your scripts!
