@@ -111,6 +111,7 @@ class YamboNLDB(object):
         self.E_tot       =[]
         self.E_ks        =[]
         self.Efield      =[] # Store the first external field for each run at different frequencies
+        self.Efield2     =[]
         #
         if self.n_angles!=0:
             self.n_runs=self.n_angles
@@ -145,7 +146,9 @@ class YamboNLDB(object):
             # Read only the first field for SHG
             # I don't need it in the pump-probe configuration
             efield=self.read_Efield(data_p_and_j,self.RT_step,1)
+            efield2=self.read_Efield(data_p_and_j,self.RT_step,2)
             self.Efield.append(efield.copy())
+            self.Efield2.append(efield2.copy())
 
     def __str__(self):
         """

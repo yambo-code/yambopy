@@ -260,7 +260,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
         if i_order!=0:
             D2*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
         if i_order2!=0:
-            D2*=Divide_by_the_Field(nldb.Efield[1],abs(i_order2))
+            D2*=Divide_by_the_Field(nldb.Efield2[0],abs(i_order2))
         Susceptibility[i_order+X_order,i_order2+X_order2,:,:]*=D2
 
     if nldb.calc!='SAVE':
@@ -345,7 +345,8 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
         values=np.append(values,np.c_[Susceptibility[i_order+X_order,i_order2+X_order2,:,2].real],axis=1)
 
         footer='Non-linear response analysis performed using YamboPy'
-        if prn_Xhi:  np.savetxt(output_file,values,header=header,delimiter=' ',footer=footer)
+        if prn_Xhi:  
+            np.savetxt(output_file,values,header=header,delimiter=' ',footer=footer)
 
     return Susceptibility,freqs
 
