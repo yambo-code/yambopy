@@ -5,6 +5,7 @@
 # Calculate linear response from real-time calculations (yambo_nl)
 #
 import numpy as np
+import math
 from yambopy.units import ha2ev,fs2aut, SVCMm12VMm1,AU2VMm1
 from yambopy.nl.external_efield import Divide_by_the_Field
 from yambopy.nl.harmonic_analysis import update_T_range
@@ -201,8 +202,15 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
     
     print("Loop in frequecies...")
     # Find the Fourier coefficients by inversion
-    for i_f,i_d in tqdm(itertools.product(range(n_frequencies),range(3))):
-        X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order, X_order2, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
+#    old_tol=tol
+    for i_f in tqdm(range(n_frequencies)):
+#        These commented lines increase tol if two frequencies are degenerate
+#        tol=old_tol
+#        if np.isclose(pump_freq,freqs[i_f],atol=1e-7):
+#            print(" WARNING: frequency "+str(i_f+1)+" = "+str(freqs[i_f]*ha2ev)+ " very close to the pump one: inversion tolerance reduced ")
+#            tol=tol*100.0
+        for i_d in range(3):
+            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order, X_order2, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
         
         
 # check non-converged points and degneracies and fix them
