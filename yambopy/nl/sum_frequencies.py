@@ -65,7 +65,7 @@ def SF_Coefficents_Inversion(N_samp,NX,NX2,P,W1,W2,T_range,T_step,efield,tol,INV
 # Build the M matrix
     C = np.zeros((2*NX+1, 2*NX2+1), dtype=np.int8)
     for i_t in range(N_samp):
-        for i_c,(i_n,i_n2) in enumerate(itertools.product(range(-NX, NX-1),range(-NX2, NX2-1))):
+        for i_c,(i_n,i_n2) in enumerate(itertools.product(range(-NX, NX+1),range(-NX2, NX2+1))):
             M[i_t, i_c]          = np.exp(-1j * (i_n*W1+i_n2*W2) * T_i[i_t],dtype=np.cdouble)
             C[i_n+NX,i_n2+NX2] = i_c
 
