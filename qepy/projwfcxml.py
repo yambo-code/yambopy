@@ -220,8 +220,8 @@ class ProjwfcXML(object):
         ax.set_ylabel('E (eV)')
 
         #plot vertical lines
-        for t in ticks: ax.axvline(kpoints_dists[t],c='k',lw=1)
-        ax.axhline(0,c='k')
+        for t in ticks: ax.axvline(kpoints_dists[t],c='gray',lw=0.8)
+        ax.axhline(0,c='gray')
      
         # Plot bands for fixed size in a colormap
         if selected_orbitals_2:
