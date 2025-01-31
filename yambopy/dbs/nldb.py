@@ -27,7 +27,7 @@ class YamboNLDB(object):
     def __init__(self,folder='.',calc='SAVE',nl_db='ndb.Nonlinear'):
         # Find path with RT data
         self.nl_path = '%s/%s/%s'%(folder,calc,nl_db)
-
+        self.calc=calc
         try:
             data_obs= Dataset(self.nl_path)
         except:
@@ -68,8 +68,16 @@ class YamboNLDB(object):
         self.NE_steps       = database.variables['NE_steps'][0].astype('int')
         self.RT_step        = database.variables['RT_step'][0].astype(np.double)
         self.n_frequencies  = database.variables['n_frequencies'][0].astype('int')
-        self.n_angles       = database.variables['n_angles'][0].astype('int')
-        self.NL_initial_versor = database.variables['NL_initial_versor'][:].astype(np.double)
+
+        try:
+            self.n_angles       = database.variables['n_angles'][0].astype('int')
+        except:
+            self.n_angles   = 0
+        try:
+            self.NL_initial_versor = database.variables['NL_initial_versor'][:].astype(np.double)
+        except:
+            self.NL_initial_versor = [0.0, 0.0, 0.0] 
+
         self.NL_damping     = database.variables['NL_damping'][0].astype(np.double)
         self.RT_bands       = database.variables['RT_bands'][:].astype('int')
         self.NL_er          = database.variables['NL_er'][:].astype(np.double)
@@ -103,6 +111,7 @@ class YamboNLDB(object):
         self.E_tot       =[]
         self.E_ks        =[]
         self.Efield      =[] # Store the first external field for each run at different frequencies
+        self.Efield2     =[]
         #
         if self.n_angles!=0:
             self.n_runs=self.n_angles
@@ -137,7 +146,9 @@ class YamboNLDB(object):
             # Read only the first field for SHG
             # I don't need it in the pump-probe configuration
             efield=self.read_Efield(data_p_and_j,self.RT_step,1)
+            efield2=self.read_Efield(data_p_and_j,self.RT_step,2)
             self.Efield.append(efield.copy())
+            self.Efield2.append(efield2.copy())
 
     def __str__(self):
         """
