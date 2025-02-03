@@ -11,6 +11,7 @@ from yambopy.units import I
 import shutil
 import os
 from tqdm import tqdm
+import scipy.fft
 
 def abs2(x):
     return x.real**2 + x.imag**2
@@ -65,12 +66,21 @@ class YamboWFDB():
             #
             # number of gvecs for each wfc
             igk = np.array(np.rint(ns_db1['WFC_NG'][...].data),dtype=int)
+            self.ngvecs = igk ## number of meaning full gvecs for each wfc
             #
             # COnvert gvec from yambo internal units to cart units
             G_vec = G_vec/lat_param[None,:]
             #
             # Cart to crystal units. In crystal units. Gvecs are integers
             G_vec = np.array(np.rint(G_vec@lat_vec), dtype = int)
+            #
+            ## find a default fft box grid 
+            min_fft_idx = np.min(G_vec,axis=0)
+            max_fft_idx = np.max(G_vec,axis=0)
+            assert np.min(max_fft_idx) >= 0 and np.max(min_fft_idx) < 0, "Invalid Gvectors"
+            self.fft_box = np.zeros(3,dtype=int)
+            for i in range(3):
+                self.fft_box[i] = max_fft_idx[i] - min_fft_idx[i] + 1
             #
             dimensions = ns_db1['DIMENSIONS'][...].data
             self.nkpts_iBZ_total = int(np.rint(dimensions[6]))
@@ -123,6 +133,14 @@ class YamboWFDB():
         self.ng = wf[0].shape[-1]
         self.wf = np.array(wf).reshape(self.nkpts, self.nspin, self.nbnds, self.nspinor, self.ng)
 
+        self.gvecs = np.zeros((self.nkpts,self.ng,3),dtype=int) # gvecs for the wfcs [ik, ng]
+        for ik in tqdm(range(self.nkpts), desc="Loading miller indices "):
+            ikk = ik + min(kpts_range)
+            self.gvecs[ik,igk[ikk-1]:,:] = 2147483646*np.array([1,1,1])[None,:]
+            ###  NM :This is a garbage number used to identify 
+            ### that this is invalid gvec and should be ignored
+            self.gvecs[ik,:igk[ikk-1],:] = G_vec[wfc_grid[ikk-1][:igk[ikk-1]]-1,:]
+
 ## NM : This need's to be fixed But Why do we need this?
     #def write(self,path):
     #    """
@@ -163,6 +181,15 @@ class YamboWFDB():
         # Compute the expectation values of S_Z operator for electronic states
         # ik must be in [min_kpts, max_kpts]. not from [0,self.nkpts]
         # ib must be in [min_band, max_band]. not from [0,self.nbands]
+
+        assert ik >= min(self.nkpts_range) and ik <= max(self.nkpts_range), \
+            "Invalid kpoint idx. Provided out side the range %d - %d" \
+            %(min(self.nkpts_range), max(self.nkpts_range))
+
+        assert ib >= min(self.nbnds_range) and ib <= max(self.nbnds_range), \
+            "Invalid band idx. Provided out side the range %d - %d" \
+            %(min(self.nbnds_range), max(self.nbnds_range))
+
         assert self.nspin == 1, "spin projections is useful only for nspin = 1"
         if self.nspinor == 1:
             return 0
@@ -176,7 +203,55 @@ class YamboWFDB():
         else:
             print("Invalid nspinor values %d" %(self.nspinor))
             exit()
+
+    def get_wf(self,ik):
+        ## returns :
+        ## wfc and its gvecs in crystal coordinates
+        ## ik is in ibz 
+        ## wfc (nspin,nbnds, nspinor, ng). note ng <= self.ng (only valid gvecs are returned)
+        ## 
+        assert ik >= min(self.nkpts_range) and ik <= max(self.nkpts_range), \
+            "Invalid kpoint idx. Provided out side the range %d - %d" \
+            %(min(self.nkpts_range), max(self.nkpts_range))
+        ikk = ik-min(self.nkpts_range)
+        return [self.wf[ikk][...,:self.ngvecs[ik-1]], self.gvecs[ikk,:self.ngvecs[ik-1],:] ]
+
+    def wfcG2r(self, ik, ib, grid=[]):
+        ## grid is list of three number. (fft box)
+        ## get the wavefunction on real space. (nspin, nspinor, Nx, Ny, Nz)
+        ## The default is a box that will barely fit the sphere.
+        ## Incase, the user wants to provide something, it must be greater than default box
+        ### default box = self.fft_box
+        assert len(grid) == 0 or len(grid) == 3, "grid must be empty list or list of 3 integers"
+        assert ik >= min(self.nkpts_range) and ik <= max(self.nkpts_range), \
+            "Invalid kpoint idx. Provided out side the range %d - %d" \
+            %(min(self.nkpts_range), max(self.nkpts_range))
+
+        assert ib >= min(self.nbnds_range) and ib <= max(self.nbnds_range), \
+            "Invalid band idx. Provided out side the range %d - %d" \
+            %(min(self.nbnds_range), max(self.nbnds_range))
+        #
+        if len(grid) == 0:
+            grid = self.fft_box
+        else :
+            for i in range(3):
+                assert grid[i] >= self.fft_box[i], \
+                    "Invalid fft grid. FFT grid must be >= %d" %(self.fft_box[i])
+        print('FFT Grid : %d %d %d' %(grid[0], grid[1], grid[2]))
+        ikk = ik-min(self.nkpts_range)
+        ibb = ib-min(self.nbnds_range)
+        wfc_tmp = self.wf[ikk][:,ibb,:,:self.ngvecs[ik-1]]
+        gvec_tmp = self.gvecs[ikk,:self.ngvecs[ik-1],:]
+        #
+        tmp_wfc = np.zeros((self.nspin,self.nspinor, grid[0], grid[1], grid[2]),dtype=wfc_tmp.dtype)
+        #
+        Nx_vals = np.where(gvec_tmp[:,0] >= 0, gvec_tmp[:,0], gvec_tmp[:,0] + grid[0])
+        Ny_vals = np.where(gvec_tmp[:,1] >= 0, gvec_tmp[:,1], gvec_tmp[:,1] + grid[1])
+        Nz_vals = np.where(gvec_tmp[:,2] >= 0, gvec_tmp[:,2], gvec_tmp[:,2] + grid[2])
         
+        assert np.min(Nx_vals) >=0 and (np.min(Ny_vals) >=0 and np.min(Nz_vals)) >=0, "Wrong fft indices"
+        tmp_wfc[:,:,Nx_vals, Ny_vals,Nx_vals] = wfc_tmp
+        return scipy.fft.fftn(tmp_wfc,axes=(2,3,4))
 
 if __name__ == "__main__":
     ywf = YamboWFDB(path='database')
