@@ -12,9 +12,9 @@ import shutil
 import os
 from tqdm import tqdm
 import scipy.fft
+from yambopy.io.cubetools import write_cube
+from yambopy.dbs.latticedb import YamboLatticeDB
 
-def abs2(x):
-    return x.real**2 + x.imag**2
 
 class YamboWFDB():
     """
@@ -53,9 +53,13 @@ class YamboWFDB():
 
         ## open the ns.db1 database to get essential data 
         try :
-            ns_db1 = Dataset(os.path.join(path,'ns.db1'), 'r')
+            ns_db1_fname = os.path.join(path,'ns.db1')
+            self.ydb = YamboLatticeDB.from_db_file(ns_db1_fname,Expand=False)
+            #
+            ns_db1 = Dataset(ns_db1_fname, 'r')
             #
             lat_vec = ns_db1['LATTICE_VECTORS'][...].data
+            self.lat_vec = lat_vec # ai = lat_vec[:,i] 
             lat_param = ns_db1['LATTICE_PARAMETER'][...].data
             #
             G_vec = ns_db1['G-VECTORS'][...].data.T # Gvec database
@@ -222,6 +226,8 @@ class YamboWFDB():
         ## The default is a box that will barely fit the sphere.
         ## Incase, the user wants to provide something, it must be greater than default box
         ### default box = self.fft_box
+
+        cel_vol = abs(np.linalg.det(self.lat_vec))
         assert len(grid) == 0 or len(grid) == 3, "grid must be empty list or list of 3 integers"
         assert ik >= min(self.nkpts_range) and ik <= max(self.nkpts_range), \
             "Invalid kpoint idx. Provided out side the range %d - %d" \
@@ -250,8 +256,40 @@ class YamboWFDB():
         Nz_vals = np.where(gvec_tmp[:,2] >= 0, gvec_tmp[:,2], gvec_tmp[:,2] + grid[2])
         
         assert np.min(Nx_vals) >=0 and (np.min(Ny_vals) >=0 and np.min(Nz_vals)) >=0, "Wrong fft indices"
-        tmp_wfc[:,:,Nx_vals, Ny_vals,Nx_vals] = wfc_tmp
-        return scipy.fft.fftn(tmp_wfc,axes=(2,3,4))
+        tmp_wfc[:,:,Nx_vals, Ny_vals,Nz_vals] = wfc_tmp
+        return scipy.fft.ifftn(tmp_wfc,norm="forward",axes=(2,3,4))/np.sqrt(cel_vol)
+
+    def write2cube(self, ik, ib, grid=[]):
+        wfc_r = self.wfcG2r(ik, ib, grid=grid)
+        wfc_r = np.sum(np.abs(wfc_r)**2,axis=(1))
+        wfc_r = wfc_r/wfc_r.max()
+        for ispin in range(self.nspin):
+            filename = 'wfc_k%d_spin%d.cube' %(ik,ispin+1)
+            write_cube(filename, wfc_r[ispin], self.lat_vec, self.ydb.car_atomic_positions, \
+                       self.ydb.atomic_numbers, header='Real space electronic wavefunction')
+
+
+
+    def rotate_wfc(self, ik, time_rev, sym_mat, frac_vec=np.array([0,0,0]), space = 'g'):
+        ## Applies a symmetry operaton on wavefuntion.
+        ### Given a symmetry operation x -> sym_mat * x + frac_vec 
+        ### get the rotated wfc i.e U(R) * psi
+        ## both sym_mat and frac_vec are in cartiasian coordinates 
+
+        ### if space == 'g', returns wfc in reciprocal space 
+        #### if space = 'r', returns wfc in real space
+        
+        ## ik is kpoint index in irreducble bz
+
+        ## time_rev == true if sym_mat is a time-reversal symmetry. 
+        ## In yambo the standard convertion of representing time reversal is to use -R, -tau
+        ##
+        wfc_k, gvecs_k = self.get_wf(ik)
+        
+        ### rotate gvecs_k
+
+
+
 
 if __name__ == "__main__":
     ywf = YamboWFDB(path='database')
