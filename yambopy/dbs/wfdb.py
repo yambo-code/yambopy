@@ -38,13 +38,17 @@ class YamboWFDB():
         if path is None: path = os.getcwd()
         self.path = os.path.join(path,save)
         self.filename = filename
-        
+        self.nbnds_range = bands_range
+        self.nkpts_range = kpts_range
         #read wf 
         self.read()
 
     def read(self):
         path = self.path
         filename = self.filename
+
+        bands_range = self.nbnds_range
+        kpts_range = self.nkpts_range
 
         ## open the ns.db1 database to get essential data 
         try :
@@ -74,7 +78,10 @@ class YamboWFDB():
             self.nspinor   = int(np.rint(dimensions[11]))
             self.nbnds_total = int(np.rint(dimensions[5]))
 
-            if min(kpts_range) < 1 or max(kpts_range) > self.nkpts_iBZ:
+            if len(kpts_range) == 0: kpts_range = [1, self.nkpts_iBZ_total]
+            if len(bands_range) == 0: bands_range = [1, self.nbnds_total]
+
+            if min(kpts_range) < 1 or max(kpts_range) > self.nkpts_iBZ_total:
                 print("Warning : Wrong input for kpts_range, loading all kpoints")
                 kpts_range = [1, self.nkpts_iBZ]
             #
@@ -99,7 +106,7 @@ class YamboWFDB():
             ikk = ik + min(kpts_range)
             for ispin in range(self.nspin):
                 try:
-                    fname = "%s_fragments_%d_1"%(filename, ispin*self.nkpts_iBZ + ikk)
+                    fname = "%s_fragments_%d_1"%(filename, ispin*self.nkpts_iBZ_total + ikk)
                     fname = os.path.join(path,fname)
                     database = Dataset(fname,'r')
                     database_var_name = 'WF_COMPONENTS_@_SP_POL%d_K%d_BAND_GRP_1' % (ispin+1, ikk)
@@ -159,7 +166,7 @@ class YamboWFDB():
         assert self.nspin == 1, "spin projections is useful only for nspin = 1"
         if self.nspinor == 1:
             return 0
-        else self.nspinor == 2:
+        elif self.nspinor == 2:
             # <psi| S_z | psi>. +1 for spin up and -1 for spin down. Maybe not be welldefined
             # in the precence of strong spin-orbit coupling.
             s_z = np.array([[1,0],[0,-1]])
@@ -167,7 +174,7 @@ class YamboWFDB():
             s_tmp = np.einsum('ij,jg->ig',s_z, wfc_tmp,optimize=True)
             return np.dot(s_tmp.reshape(-1),wfc_tmp.reshape(-1).conj())
         else:
-            print("Invalid nspinor values %d", %(self.nspinor))
+            print("Invalid nspinor values %d" %(self.nspinor))
             exit()
         
 
