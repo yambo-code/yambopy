@@ -17,7 +17,6 @@ from yambopy.io.cubetools import write_cube
 from yambopy.dbs.latticedb import YamboLatticeDB
 from scipy.spatial import KDTree
 import scipy
-from yambopy.kpoints import build_ktree, find_kpt
 
 class YamboWFDB:
     """
@@ -27,7 +26,7 @@ class YamboWFDB:
         path (str): Path to the directory containing the wavefunction files.
         filename (str): Name of the wavefunction file (default: 'ns.wf').
         wf (numpy.ndarray): Wavefunctions stored as a 5D array [nkpoints, nspin, nbands, nspinor, ngvect].
-        gvecs (numpy.ndarray): G-vectors for the wavefunctions [nkpoints, ngvect, 3] (in reduced/crystal coordiantes).
+        gvecs (numpy.ndarray): G-vectors for the wavefunctions [nkpoints, ngvect, 3].
         kpts_iBZ (numpy.ndarray): K-points in the irreducible Brillouin Zone (iBZ) in crystal coordinates.
         ngvecs (numpy.ndarray): Number of meaningful G-vectors for each wavefunction.
         fft_box (numpy.ndarray): Default FFT grid size for real-space conversion.
@@ -39,11 +38,11 @@ class YamboWFDB:
 
     Methods:
         read(bands_range=[]): Read wavefunctions from the file.
-        get_spin_projections(ik, ib, s_z=np.array([[1, 0], [0, -1]])): Compute spin projections for operator sz.
-        get_iBZ_wf(ik): Get wavefunctions and G-vectors for a specific k-point.
+        get_spin_projections(ik, ib, s_z=np.array([[1, 0], [0, -1]])): Compute spin projections.
+        get_wf(ik): Get wavefunctions and G-vectors for a specific k-point.
         wfcG2r(ik, ib, grid=[]): Convert wavefunctions from G-space to real space.
         write2cube(ik, ib, grid=[]): Write wavefunctions to a cube file.
-        get_iBZ_kpt(ik): Get the k-point in crystal coordinates.
+        get_wfc_kpt(ik): Get the k-point in crystal coordinates.
         rotate_wfc(ik, isym): Rotate wavefunctions using a symmetry operation.
         apply_symm(kvec, wfc_k, gvecs_k, time_rev, sym_mat, frac_vec=np.array([0, 0, 0])): Apply symmetry to wavefunctions.
         to_real_space(wfc_tmp, gvec_tmp, grid=[]): Convert wavefunctions to real space.
@@ -64,7 +63,6 @@ class YamboWFDB:
         self.path = os.path.join(path, save)
         self.filename = filename
 
-        self.wf_expanded = False ## if true, then wfc's are expanded over full BZ
         # Read wavefunctions
         self.read(bands_range=bands_range)
 
@@ -153,7 +151,7 @@ class YamboWFDB:
 
         self.ng = wf[0].shape[-1]  # Maximum number of wavefunction components
         self.wf = np.array(wf).reshape(self.nkpoints, self.nspin, self.nbands, self.nspinor, self.ng)
-        # (nk, nspin,nbands,nspinor,ngvec)
+
         # Load G-vectors
         self.gvecs = np.zeros((self.nkpoints, self.ng, 3), dtype=int)
         for ik in tqdm(range(self.nkpoints), desc="Loading Miller Indices"):
@@ -200,7 +198,7 @@ class YamboWFDB:
         s_tmp = np.einsum('ij,jg->ig', s_z, wfc_tmp, optimize=True)
         return np.dot(s_tmp.reshape(-1), wfc_tmp.reshape(-1).conj())
 
-    def get_iBZ_wf(self, ik):
+    def get_wf(self, ik):
         """
         Get wavefunctions and G-vectors for a specific k-point.
 
@@ -208,12 +206,10 @@ class YamboWFDB:
             ik (int): K-point index.
 
         Returns:
-            list: Wavefunctions at ik (nspin,nbands,nspinor,ngvec) and G-vectors (ngvec,3) 
-            in crystal coordinates.
+            list: Wavefunctions and G-vectors.
         """
         self.assert_k_inrange(ik)
         return [self.wf[ik][..., :self.ngvecs[ik]], self.gvecs[ik, :self.ngvecs[ik], :]]
-
 
     def wfcG2r(self, ik, ib, grid=[]):
         """
@@ -260,9 +256,9 @@ class YamboWFDB:
             write_cube(filename, wfc_r[ispin], self.ydb.lat.T, self.ydb.car_atomic_positions,
                        self.ydb.atomic_numbers, header='Real space electronic wavefunction')
 
-    def get_iBZ_kpt(self, ik):
+    def get_wfc_kpt(self, ik):
         """
-        Get the iBZ k-point in crystal coordinates.
+        Get the k-point in crystal coordinates.
 
         Args:
             ik (int): K-point index.
@@ -284,9 +280,9 @@ class YamboWFDB:
         Returns:
             list: Rotated wavefunctions and G-vectors.
         """
-        wfc_k, gvecs_k = self.get_iBZ_wf(ik)
+        wfc_k, gvecs_k = self.get_wf(ik)
         sym_mat = self.ydb.sym_car[isym]
-        kvec = self.get_iBZ_kpt(ik)
+        kvec = self.get_wfc_kpt(ik)
         time_rev = (isym >= len(self.ydb.sym_car) / (1 + int(np.rint(self.ydb.time_rev))))
         return self.apply_symm(kvec, wfc_k, gvecs_k, time_rev, sym_mat)
 
@@ -299,8 +295,8 @@ class YamboWFDB:
             wfc_k (numpy.ndarray): Wavefunctions for the k-point.
             gvecs_k (numpy.ndarray): G-vectors for the k-point.
             time_rev (bool): Whether to apply time reversal.
-            sym_mat (numpy.ndarray): Symmetry matrix. (Cart units)
-            frac_vec (numpy.ndarray, optional): Fractional translation vector. Defaults to [0, 0, 0]. (cart units)
+            sym_mat (numpy.ndarray): Symmetry matrix.
+            frac_vec (numpy.ndarray, optional): Fractional translation vector. Defaults to [0, 0, 0].
 
         Returns:
             list: Rotated wavefunctions and G-vectors.
@@ -351,113 +347,7 @@ class YamboWFDB:
         tmp_wfc[:,:,Nx_vals, Ny_vals,Nz_vals] = wfc_tmp
         return scipy.fft.ifftn(tmp_wfc,norm="forward",axes=(2,3,4))/np.sqrt(cel_vol)
 
-    
-    def expand_fullBZ(self):
-        """
-        Expands the wavefunctions to the full Brillouin Zone (BZ) by applying symmetry operations.
 
-        This method constructs wavefunctions at all symmetry-equivalent k-points in the full BZ.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        if self.wf_expanded: return
-        else : self.wf_expanded = True
-        self.ydb.expand_kpoints()
-        kpt_idx = self.ydb.kpoints_indexes
-        sym_idx = self.ydb.symmetry_indexes
-        nkBZ = len(sym_idx)
-        self.nkBZ = nkBZ
-
-        self.wf_bz = np.zeros((nkBZ, self.nspin, self.nbands, self.nspinor, self.ng),dtype=self.wf.dtype)
-        self.g_bz = 2147483646 + np.zeros((nkBZ,self.ng,3),dtype=int)
-        self.kBZ = np.zeros((nkBZ,3))
-        self.ngBZ = np.zeros(nkBZ,dtype=int)
-        for i in tqdm(range(nkBZ), desc="Expanding Wavefunctions full BZ"):
-            ik = kpt_idx[i]
-            isym = sym_idx[i]
-            #if isym == 1 : w_t, g_t = self.get_iBZ_wf(ik)
-            kbz, w_t, g_t = self.rotate_wfc(ik, isym)
-            ng_t = w_t.shape[-1]
-            self.ngBZ[i] = ng_t
-            self.kBZ[i] = kbz
-            self.wf_bz[i][...,:ng_t]  = w_t
-            self.g_bz[i][:ng_t,:]  = g_t
-
-    def get_BZ_kpt(self, ik):
-        """
-        Get the BZ k-point in crystal coordinates.
-
-        Args:
-            ik (int): K-point index.
-
-        Returns:
-            numpy.ndarray: K-point in crystal coordinates.
-        """
-        return self.kBZ[ik]
-
-    def get_BZ_wf(self, ik):
-        """
-        Get wavefunctions and G-vectors for a specific k-point in  full BZ.
-        
-        Args:
-            ik (int): K-point index.
-        Returns:
-            list: Wavefunctions at ik (nspin,nbands,nspinor,ngvec) and G-vectors in crystal coordinates (ngvec,3).
-        """
-        return [self.wf_bz[ik][..., :self.ngBZ[ik]], self.g_bz[ik, :self.ngBZ[ik], :]]
-
-    def Dmat(self, symm_mat=None, frac_vec=None, time_rev=None):
-        """
-        Computes the symmetry-adapted matrix elements < Rk | U(R) | k >.
-
-        Parameters
-        ----------
-        symm_mat : np.ndarray
-            Array of symmetry rotation matrices (nsym, 3, 3).
-        frac_vec : np.ndarray
-            Fractional translation vectors associated with symmetries (nsym, 3).
-        time_rev : bool
-            Whether time-reversal symmetry is included.
-
-        if symm_mat or frac_vec or time_rev is None, the use the symmetries from SAVE
-        Returns
-        -------
-        np.ndarray
-            The computed D matrix with shape (nsym, nk, nspin, nbands, nbands).
-        """
-        # Compute < Rk | U(R) | k> matrix elements 
-        ## isym >= len(symm_mat)/(1+int(time_rev)) must be timereversal symmetries
-        ## X -> Rx + tau, R matrices are given in symm_mat, tau are frac_vec, time_rev is bool
-        ## (nsym, nk, nspin, Rk_bnd, k_bnd)
-        if not self.wf_expanded: self.expand_fullBZ()
-        if symm_mat is None or frac_vec is None or time_rev is None:
-            symm_mat = self.ydb.sym_car
-            frac_vec = np.zeros((len(symm_mat),3),dtype=symm_mat.dtype)
-            time_rev = int(np.rint(self.ydb.time_rev))
-
-        ktree = build_ktree(self.kBZ)
-        Dmat = []
-        nsym = len(symm_mat)
-        assert nsym == len(frac_vec), "The number for frac translation must be same as Rotation matrices"
-        for ik in range(self.nkBZ):
-            wfc_k, gvec_k = self.get_BZ_wf(ik)
-            kvec = self.get_BZ_kpt(ik)
-            for isym in range(nsym):
-                trev = (isym >= nsym/(1+int(time_rev)))
-                ## Compute U(R)\psi_k
-                Rk, wfc_Rk, gvec_Rk = self.apply_symm(kvec, wfc_k, gvec_k, trev, symm_mat[isym], frac_vec[isym])
-                idx = find_kpt(ktree, Rk)
-                ## get Rk wfc stored
-                w_rk, g_rk = self.get_BZ_wf(idx)
-                Dmat.append(wfc_inner_product(self.get_BZ_kpt(idx),w_rk, g_rk, Rk, wfc_Rk, gvec_Rk))
-        Dmat = np.array(Dmat).reshape(self.nkBZ, nsym, self.nspin, self.nbands, self.nbands).transpose(1,0,2,3,4)
-        return Dmat
 
 def wfc_inner_product(k_bra, wfc_bra, gvec_bra, k_ket, wfc_ket, gvec_ket, ket_Gtree=-1):
     """
@@ -510,11 +400,8 @@ def wfc_inner_product(k_bra, wfc_bra, gvec_bra, k_ket, wfc_ket, gvec_ket, ket_Gt
     #
     wfc_bra_tmp[:,:,:,bra_idx] = wfc_bra[...,dd<1e-6].conj()
     # return the dot product
-    inprod = np.zeros((nspin, nbnd, nbnd),dtype=wfc_bra.dtype)
-    for ispin in range(nspin):
-        inprod[ispin] = wfc_bra_tmp.reshape(nbnd,-1)@wfc_ket.reshape(nbnd,-1).T
-    #return np.einsum('sixg,sjxg->sij',wfc_bra_tmp,wfc_ket,optimize=True)
-    return inprod
+    return np.einsum('sixg,sjxg->sij',wfc_bra_tmp,wfc_ket,optimize=True)
+
 
 
 def su2_mat(symm_mat,time_rev1):
@@ -595,8 +482,6 @@ def su2_mat(symm_mat,time_rev1):
     #        database.variables['WF_COMPONENTS_@_SP_POL1_K%d_BAND_GRP_1'%(nk+1)][:] = aux
     #        database.close()
     #    print('New wavefunctions written in %s'%path)
-
-
 
 
 if __name__ == "__main__":
