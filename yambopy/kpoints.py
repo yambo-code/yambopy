@@ -209,11 +209,7 @@ def find_kpt(tree, kpt_search, tol=1e-5):
     """
     kpt_search = make_kpositive(kpt_search)  # Normalize k-point
     dist, idx = tree.query(kpt_search, workers=1)  # Perform nearest-neighbor search
-    if np.isscalar(dist):
-        assert dist < tol, "Kpoint not found"
-    elif len(dist[dist > tol]) != 0:  # Check if any distance exceeds the tolerance
-        print("Kpoint not found")
-        exit()  # Terminate execution if no match is found
+    assert np.max(dist) < tol, "Kpoint not found"
     return idx  # Return the index of the found k-point
 
 
