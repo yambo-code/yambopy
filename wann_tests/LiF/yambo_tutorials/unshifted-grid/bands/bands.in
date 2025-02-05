@@ -1,0 +1,6 @@
+&BANDS
+    prefix = 'LiF',
+    outdir = './',
+    lsym = .true.,
+    filband = 'LiF'
+ /

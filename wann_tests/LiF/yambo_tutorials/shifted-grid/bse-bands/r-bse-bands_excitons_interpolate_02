@@ -1,0 +1,1119 @@
+                                                                          
+     ____  ____     _       ____    ____  ______      ___                 
+    |_  _||_  _|   / \     |_   \  /   _||_   _ \   ."   `.               
+      \ \  / /    / _ \      |   \/   |    | |_) | /  .-.  \              
+       \ \/ /    / ___ \     | |\  /| |    |  __". | |   | |              
+       _|  |_  _/ /   \ \_  _| |_\/_| |_  _| |__) |\  `-"  /              
+      |______||____| |____||_____||_____||_______/  `.___."               
+                                                                          
+                                                                          
+                                                                          
+    Version 5.1.0 Revision 22214 Hash (prev commit) aa5047c1f             
+               Branch is fixes-photoluminescence                          
+                     MPI+HDF5_MPI_IO Build                                
+                   http://www.yambo-code.org                              
+ 
+ 03/26/2024 at 23:08 ypp @ tcn530.local.snellius.surf.nl
+ ==================================================
+
+ Cores-Threads       : 4(CPU)-1(threads)-1(threads@X)-1(threads@DIP)-1(threads@SE)-1(threads@RT)-1(threads@K)-1(threads@NL)
+ MPI Cores           :   4
+ Threads per core    :  1
+ Threads total       :   4
+ Nodes Computing     :  1
+ Nodes IO            :  1
+
+ Fragmented WFs      : yes
+ CORE databases      : .
+ Additional I/O      : .
+ Communications      : bse-bands
+ Input file          : bse-bands/ypp.in_bse-bands
+ Report file         : bse-bands/r-bse-bands_excitons_interpolate_02
+ Verbose log/report  : no
+ Log files           : bse-bands/LOG
+
+ Job   string        : bse-bands
+ Alt#1 string        : 06_BSE_fullq
+
+ Precision           : DOUBLE
+  
+ [RD./SAVE//ns.db1]--------------------------------------------------------------
+  Bands                                            :   50
+  K-points                                         :  10
+  G-vectors                                        :  11017 [RL space]
+  Components                                       :  1392 [wavefunctions]
+  Symmetries                                       :   48 [spatial]
+  Spinor components                                :  1
+  Spin polarizations                               :  1
+  Temperature                                      :  0.000000 [eV]
+  Electrons                                        :  8.000000
+  WF G-vectors                                     :  1855
+  Max atoms/species                                :  1
+  No. of atom species                              :  2
+  Exact exchange fraction in XC                    :  0.000000
+  Exact exchange screening in XC                   :  0.000000
+  Magnetic symmetries                              : no
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+
+ [02] Y(ambo) P(ost)/(re) P(rocessor)
+ ====================================
+
+
+ [03] Core DB
+ ============
+
+
+ [04] K-point grid
+ =================
+
+
+ [05] CORE Variables Setup
+ =========================
+
+
+  [05.01] Unit cells
+  ==================
+
+  Cell kind             :  FCC
+  Atoms in the cell     :  Li  F
+  number of Li atoms    :  1
+  number of F  atoms    :  1
+
+  List of atomic masses
+  Mass of Li    :  6.941000
+  Mass of F     :  18.99840
+
+  List of atomic coordinates    : [cc]
+  Li1       :  0.000000  0.000000  0.000000  order 1
+  F1       :  0.000000 -3.851738  0.000000  order 2
+
+  Alat factors          :  3.851738  3.851738  3.851738 [a.u.]
+  Direct lattice volume :  114.2879 [a.u.]
+  Direct lattice vectors:  A[ 1 ]  A[ 2 ]  A[ 3 ]
+   A[ 1 ]: -1.000000  0.000000  1.000000  [iru]
+   A[ 2 ]:  0.000000  1.000000  1.000000  [iru]
+   A[ 3 ]: -1.000000  1.000000  0.000000  [iru]
+
+  Recip. lattice volume :  2.170398 [a.u.]
+  Recip. lattice vectors:  B[ 1 ]  B[ 2 ]  B[ 3 ]
+   B[ 1 ]: -0.500000 -0.500000  0.500000  [iku]
+   B[ 2 ]:  0.500000  0.500000  0.500000  [iku]
+   B[ 3 ]: -0.500000  0.500000 -0.500000  [iku]
+   
+
+  [05.02] Symmetries
+  ==================
+
+  Inversion symmetry    : yes
+  Spatial inversion     : yes
+  Inversion index       :  25
+  K-space Time-reversal : no
+  Magnetic symmetries   : no
+  Group table correct   : yes
+  Symmetries units      :  [cc]
+
+   [S  1]:   1.0000      0.11300E-16   0.0000      0.11300E-16   1.0000       0.0000     -0.11300E-16  0.11300E-16   1.0000    
+   [S  2]:  -1.0000     -0.11300E-16   0.0000     -0.11300E-16  -1.0000       0.0000      0.11300E-16 -0.11300E-16   1.0000    
+   [S  3]:  -1.0000      0.11300E-16   0.0000     -0.11300E-16   1.0000       0.0000      0.11300E-16  0.11300E-16  -1.0000    
+   [S  4]:   1.0000     -0.11300E-16   0.0000      0.11300E-16  -1.0000       0.0000     -0.11300E-16 -0.11300E-16  -1.0000    
+   [S  5]:  0.11300E-16   1.0000       0.0000       1.0000      0.11300E-16   0.0000      0.11300E-16 -0.11300E-16  -1.0000    
+   [S  6]: -0.11300E-16  -1.0000       0.0000      -1.0000     -0.11300E-16   0.0000     -0.11300E-16  0.11300E-16  -1.0000    
+   [S  7]:  0.11300E-16  -1.0000       0.0000       1.0000     -0.11300E-16   0.0000      0.11300E-16  0.11300E-16   1.0000    
+   [S  8]: -0.11300E-16   1.0000       0.0000      -1.0000      0.11300E-16   0.0000     -0.11300E-16 -0.11300E-16   1.0000    
+   [S  9]:   0.0000     -0.11300E-16   1.0000       0.0000      -1.0000      0.11300E-16   1.0000     -0.11300E-16 -0.11300E-16
+   [S 10]:   0.0000     -0.11300E-16  -1.0000       0.0000      -1.0000     -0.11300E-16  -1.0000     -0.11300E-16  0.11300E-16
+   [S 11]:   0.0000      0.11300E-16  -1.0000       0.0000       1.0000     -0.11300E-16   1.0000      0.11300E-16  0.11300E-16
+   [S 12]:   0.0000      0.11300E-16   1.0000       0.0000       1.0000      0.11300E-16  -1.0000      0.11300E-16 -0.11300E-16
+   [S 13]:  -1.0000       0.0000      0.11300E-16 -0.11300E-16   0.0000       1.0000      0.11300E-16   1.0000      0.11300E-16
+   [S 14]:  -1.0000       0.0000     -0.11300E-16 -0.11300E-16   0.0000      -1.0000      0.11300E-16  -1.0000     -0.11300E-16
+   [S 15]:   1.0000       0.0000     -0.11300E-16  0.11300E-16   0.0000      -1.0000     -0.11300E-16   1.0000     -0.11300E-16
+   [S 16]:   1.0000       0.0000      0.11300E-16  0.11300E-16   0.0000       1.0000     -0.11300E-16  -1.0000      0.11300E-16
+   [S 17]:  0.11300E-16   0.0000       1.0000       1.0000       0.0000      0.11300E-16  0.11300E-16   1.0000     -0.11300E-16
+   [S 18]: -0.11300E-16   0.0000      -1.0000      -1.0000       0.0000     -0.11300E-16 -0.11300E-16   1.0000      0.11300E-16
+   [S 19]:  0.11300E-16   0.0000      -1.0000       1.0000       0.0000     -0.11300E-16  0.11300E-16  -1.0000      0.11300E-16
+   [S 20]: -0.11300E-16   0.0000       1.0000      -1.0000       0.0000      0.11300E-16 -0.11300E-16  -1.0000     -0.11300E-16
+   [S 21]:   0.0000       1.0000      0.11300E-16   0.0000      0.11300E-16   1.0000       1.0000     -0.11300E-16  0.11300E-16
+   [S 22]:   0.0000      -1.0000     -0.11300E-16   0.0000     -0.11300E-16  -1.0000       1.0000      0.11300E-16 -0.11300E-16
+   [S 23]:   0.0000      -1.0000      0.11300E-16   0.0000     -0.11300E-16   1.0000      -1.0000      0.11300E-16  0.11300E-16
+   [S 24]:   0.0000       1.0000     -0.11300E-16   0.0000      0.11300E-16  -1.0000      -1.0000     -0.11300E-16 -0.11300E-16
+   [S 25]:  -1.0000     -0.11300E-16   0.0000     -0.11300E-16  -1.0000       0.0000      0.11300E-16 -0.11300E-16  -1.0000    
+   [S 26]:   1.0000      0.11300E-16   0.0000      0.11300E-16   1.0000       0.0000     -0.11300E-16  0.11300E-16  -1.0000    
+   [S 27]:   1.0000     -0.11300E-16   0.0000      0.11300E-16  -1.0000       0.0000     -0.11300E-16 -0.11300E-16   1.0000    
+   [S 28]:  -1.0000      0.11300E-16   0.0000     -0.11300E-16   1.0000       0.0000      0.11300E-16  0.11300E-16   1.0000    
+   [S 29]: -0.11300E-16  -1.0000       0.0000      -1.0000     -0.11300E-16   0.0000     -0.11300E-16  0.11300E-16   1.0000    
+   [S 30]:  0.11300E-16   1.0000       0.0000       1.0000      0.11300E-16   0.0000      0.11300E-16 -0.11300E-16   1.0000    
+   [S 31]: -0.11300E-16   1.0000       0.0000      -1.0000      0.11300E-16   0.0000     -0.11300E-16 -0.11300E-16  -1.0000    
+   [S 32]:  0.11300E-16  -1.0000       0.0000       1.0000     -0.11300E-16   0.0000      0.11300E-16  0.11300E-16  -1.0000    
+   [S 33]:   0.0000      0.11300E-16  -1.0000       0.0000       1.0000     -0.11300E-16  -1.0000      0.11300E-16  0.11300E-16
+   [S 34]:   0.0000      0.11300E-16   1.0000       0.0000       1.0000      0.11300E-16   1.0000      0.11300E-16 -0.11300E-16
+   [S 35]:   0.0000     -0.11300E-16   1.0000       0.0000      -1.0000      0.11300E-16  -1.0000     -0.11300E-16 -0.11300E-16
+   [S 36]:   0.0000     -0.11300E-16  -1.0000       0.0000      -1.0000     -0.11300E-16   1.0000     -0.11300E-16  0.11300E-16
+   [S 37]:   1.0000       0.0000     -0.11300E-16  0.11300E-16   0.0000      -1.0000     -0.11300E-16  -1.0000     -0.11300E-16
+   [S 38]:   1.0000       0.0000      0.11300E-16  0.11300E-16   0.0000       1.0000     -0.11300E-16   1.0000      0.11300E-16
+   [S 39]:  -1.0000       0.0000      0.11300E-16 -0.11300E-16   0.0000       1.0000      0.11300E-16  -1.0000      0.11300E-16
+   [S 40]:  -1.0000       0.0000     -0.11300E-16 -0.11300E-16   0.0000      -1.0000      0.11300E-16   1.0000     -0.11300E-16
+   [S 41]: -0.11300E-16   0.0000      -1.0000      -1.0000       0.0000     -0.11300E-16 -0.11300E-16  -1.0000      0.11300E-16
+   [S 42]:  0.11300E-16   0.0000       1.0000       1.0000       0.0000      0.11300E-16  0.11300E-16  -1.0000     -0.11300E-16
+   [S 43]: -0.11300E-16   0.0000       1.0000      -1.0000       0.0000      0.11300E-16 -0.11300E-16   1.0000     -0.11300E-16
+   [S 44]:  0.11300E-16   0.0000      -1.0000       1.0000       0.0000     -0.11300E-16  0.11300E-16   1.0000      0.11300E-16
+   [S 45]:   0.0000      -1.0000     -0.11300E-16   0.0000     -0.11300E-16  -1.0000      -1.0000      0.11300E-16 -0.11300E-16
+   [S 46]:   0.0000       1.0000      0.11300E-16   0.0000      0.11300E-16   1.0000      -1.0000     -0.11300E-16  0.11300E-16
+   [S 47]:   0.0000       1.0000     -0.11300E-16   0.0000      0.11300E-16  -1.0000       1.0000     -0.11300E-16 -0.11300E-16
+   [S 48]:   0.0000      -1.0000      0.11300E-16   0.0000     -0.11300E-16   1.0000       1.0000      0.11300E-16  0.11300E-16
+
+  [05.03] Reciprocal space
+  ========================
+
+  nG shells         :  29
+  nG charge         :   749
+  nG WFs            :  1855
+  nC WFs            :  1392
+  G-vecs. in first 2 shells:  [ Number ]
+    1   9
+  ...
+  Shell energy in first 2 shells:  [ mHa ]
+     0.0000  997.8782
+  ...
+
+  [05.04] K-grid lattice
+  ======================
+
+  Compatible Grid is   : 3D
+  Base K vectors       :  K_min[ 1 ]  K_min[ 2 ]  K_min[ 3 ]
+  K_min[ 1 ] :  0.125000  0.125000  0.000000 [rlu]
+  K_min[ 2 ] :  0.12500     -0.13878E-16 -0.12500     [rlu]
+  K_min[ 3 ] : -0.13878E-16  0.12500     -0.12500     [rlu]
+  Grid dimensions      :   8   8   8
+  K lattice UC volume  :  0.008478 [a.u.]
+
+  IBZ K-points :  10
+  BZ  K-points :  256
+
+  K/Q-points units:
+  rlu = crystal or reduced units; cc = cartesian coordinates; iku = interal k-units
+
+  K [ 1]:  0.125000  0.125000  0.125000 [rlu]
+        : wf components:  1387
+  K [ 2]:  0.125000  0.125000  0.375000 [rlu]
+        : wf components:  1376
+  K [ 3]:  0.125000  0.125000 -0.375000 [rlu]
+        : wf components:  1389
+  K [ 4]:  0.125000  0.125000 -0.125000 [rlu]
+        : wf components:  1380
+  K [ 5]:  0.125000  0.375000  0.375000 [rlu]
+        : wf components:  1385
+  K [ 6]:  0.125000  0.375000 -0.375000 [rlu]
+        : wf components:  1386
+  K [ 7]:  0.125000  0.375000 -0.125000 [rlu]
+        : wf components:  1380
+  K [ 8]:  0.125000 -0.375000 -0.375000 [rlu]
+        : wf components:  1370
+  K [ 9]:  0.375000  0.375000  0.375000 [rlu]
+        : wf components:  1392
+  K [10]:  0.375000  0.375000 -0.375000 [rlu]
+        : wf components:  1377
+
+  [05.05] Energies & Occupations
+  ==============================
+
+  [X] === General ===
+  [X] Electronic Temperature                        :  0.000000  0.000000 [eV K]
+  [X] Bosonic    Temperature                        :  0.000000  0.000000 [eV K]
+  [X] Finite Temperature mode                       : no
+  [X] El. density                                   :  0.47237E+24 [cm-3]
+  [X] Fermi Level                                   : -0.337124 [eV]
+
+  [X] === Gaps and Widths ===
+  [X] Conduction Band Min                           :  8.918707 [eV]
+  [X] Valence Band Max                              :  0.000000 [eV]
+  [X] Filled Bands                                  :   4
+  [X] Empty Bands                                   :    5   50
+  [X] Direct Gap                                    :  8.918707 [eV]
+  [X] Direct Gap localized at k                     :  1
+  [X] Indirect Gap                                  :  8.918707 [eV]
+  [X] Indirect Gap between kpts                     :  1  1
+  [X] Last valence band width                       :  0.835140 [eV]
+  [X] 1st conduction band width                     :  4.798843 [eV]
+   
+   
+  E @ K [ 1]:  [eV]
+  -19.42151  -0.40078   0.00000   0.00000   8.91871  19.85652  21.52463  21.52463
+  occ @ K [ 1]
+   2.000000  2.000000  2.000000  2.000000  0.000000  0.000000  0.000000  0.000000
+  E @ K [ 2]:  [eV]
+  -19.13629  -1.62598  -0.54124  -0.05844  10.38645  16.30226  19.02209  19.26048
+  occ @ K [ 2]
+   2.000000  2.000000  2.000000  2.000000  0.000000  0.000000  0.000000  0.000000
+  E @ K [ 3]:  [eV]
+  -18.95611  -2.36514  -0.54479  -0.30254  10.84683  15.61728  18.20416  18.38446
+  occ @ K [ 3]
+   2.000000  2.000000  2.000000  2.000000  0.000000  0.000000  0.000000  0.000000
+  E @ K [ 4]:  [eV]
+  -19.25531  -1.09676  -0.24912  -0.20258   9.94015  17.81821  19.75239  19.99077
+  occ @ K [ 4]
+   2.000000  2.000000  2.000000  2.000000  0.000000  0.000000  0.000000  0.000000
+  E @ K [ 5]:  [eV]
+  -18.99027  -1.98600  -0.71329  -0.59504  11.77593  16.32700  18.08761  19.35960
+  occ @ K [ 5]
+   2.000000  2.000000  2.000000  2.000000  0.000000  0.000000  0.000000  0.000000
+  E @ K [ 6]:  [eV]
+  -18.79074  -2.28139  -1.55639  -0.67802  13.48738  14.67510  17.37854  18.47045
+  occ @ K [ 6]
+   2.000000  2.000000  2.000000  2.000000  0.000000  0.000000  0.000000  0.000000
+  E @ K [ 7]:  [eV]
+  -18.94472  -2.06088  -1.05313  -0.36676  11.67679  15.31663  18.26489  18.65719
+  occ @ K [ 7]
+   2.000000  2.000000  2.000000  2.000000  0.000000  0.000000  0.000000  0.000000
+  E @ K [ 8]:  [eV]
+  -18.77788  -2.67913  -1.06808  -0.83514  13.71755  15.41468  17.01191  19.25304
+  occ @ K [ 8]
+   2.000000  2.000000  2.000000  2.000000  0.000000  0.000000  0.000000  0.000000
+  E @ K [ 9]:  [eV]
+  -19.06918  -2.14494  -0.15409  -0.15409  10.16882  16.12964  18.60343  18.60343
+  occ @ K [ 9]
+   2.000000  2.000000  2.000000  2.000000  0.000000  0.000000  0.000000  0.000000
+  E @ K [10]:  [eV]
+  -18.86237  -2.13937  -1.43459  -0.41528  12.23303  14.77445  18.11774  18.56492
+  occ @ K [10]
+   2.000000  2.000000  2.000000  2.000000  0.000000  0.000000  0.000000  0.000000
+
+ [06] Excitonic Properties
+ =========================
+
+ [RD./06_BSE_fullq//ndb.BS_diago_Q1]---------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   7056
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :   749
+  [K] RL vectors correlation                       :   51
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Field direction                            :  0.100000E-4   0.00000      0.00000   
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+
+ [WARNING] 2 excitonic states added to the USER selection to preserve degeneracy
+
+ [07] Excitons Interpolation
+ ===========================
+
+ [RD./06_BSE_fullq//ndb.BS_diago_Q1]---------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   7056
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :   749
+  [K] RL vectors correlation                       :   51
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Field direction                            :  0.100000E-4   0.00000      0.00000   
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q2]---------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :  2513
+  [K] Q-point                                      :  0.12500     -0.12500      0.31370E-17
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q3]---------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :  2444
+  [K] Q-point                                      :  0.125000 -0.125000 -0.125000
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q4]---------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   6344
+  [K] Q-point                                      : -0.15685E-17 -0.15685E-17 -0.12500    
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q5]---------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   7006
+  [K] Q-point                                      :  0.250000 -0.250000 -0.125000
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q6]---------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   5382
+  [K] Q-point                                      :  0.25000      0.12500      0.85074E-17
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q7]---------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   7375
+  [K] Q-point                                      :  0.25000     -0.25000      0.62740E-17
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q8]---------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   3688
+  [K] Q-point                                      :  0.250000  0.125000 -0.125000
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q9]---------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   3270
+  [K] Q-point                                      :  0.250000 -0.250000  0.250000
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q10]--------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   9932
+  [K] Q-point                                      : -0.125000 -0.250000 -0.375000
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q11]--------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   3482
+  [K] Q-point                                      : -0.125000  0.125000 -0.375000
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q12]--------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :  3064
+  [K] Q-point                                      : -0.62740E-17 -0.62740E-17 -0.25000    
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q13]--------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   3726
+  [K] Q-point                                      :  0.12500     -0.37500      0.62740E-17
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q14]--------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   3308
+  [K] Q-point                                      :  0.37500      0.10741E-16 -0.10741E-16
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q15]--------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   3589
+  [K] Q-point                                      : -0.25000      0.23289E-16  0.37500    
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q16]--------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   3170
+  [K] Q-point                                      : -0.12500      0.50000      0.80814E-17
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q17]--------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   689
+  [K] Q-point                                      :  0.55511E-16  0.25000     -0.50000    
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q18]--------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :   971
+  [K] Q-point                                      :  0.23289E-16 -0.37500      0.37500    
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+ [RD./06_BSE_fullq//ndb.BS_diago_Q19]--------------------------------------------
+  BS kernel          energies                      : Slater exchange(X)+Perdew & Zunger(C)
+  [K] Identifier                                   :  1283
+  [K] Q-point                                      :  0.62740E-17 -0.50000      0.62740E-17
+  [K] Dimension                                    :  2304
+  [K] Bands                                        :   2   7
+  [K] Exchange res                                 : yes
+  [K] Correlation res                              : yes
+  [K] Kernel`s coupling                            : no
+  [K] Exchange cpl                                 : no
+  [K] Correlation cpl                              : no
+  [K] W interaction is bare                        : no
+  [K] ALDA kernel in R-space                       : no
+  [K] RL vectors exchange                          :  27
+  [K] RL vectors correlation                       :  27
+  [K] E/h energy range                             : -1.000000 -1.000000 [eV]
+  [K] Coupling range                               :  100.0000  100.0000 [o/o]
+  [W] Interaction is diagonal                      : no
+  [W] Matrix size                                  :   51
+  [W] Bands                                        :    1   50
+  [W] e/h energy range                             : -1.000000 -1.000000 [eV]
+  [W] Poles                                        :  100.0000 [o/o]
+  [W] RL vectors in the sum                        :   749
+  [W] [r,Vnl] included                             : no
+  [W] Longitudinal Gauge                           : no
+  [W] Field direction                              :  0.100000E-4   0.00000      0.00000   
+  [W] Coulomb Cutoff                               : none
+  [W] Hxc Kernel                                   : none
+  [RIM] RL components col                          : 0
+  [RIM] Random points col                          : 0
+  [SOC] Perturbative SOC                           : no
+  [IO] Kernel IO mode                              : 2D_standard
+  [X] Response Kind                                : BAR
+  [BSS] Eigenstates included                       : no
+  [BSS] Eigenstates computed                       :  2304
+  [BSS] Number of BSE matrices                     :  1
+ - S/N 007917 ---------------------------------------------- v.05.01.00 r.22214 -
+
+ Excitons Energies:
+ #q_x (rlu) q_y (rlu) q_z (rlu)  e1 [eV]  e2 [eV]  e3 [eV]  e4 [eV]  e5 [eV]  e6 [eV]
+   0.00000   0.00000   0.00000  12.34706  12.34725  12.34734  13.49524  13.49531  13.49539
+  -0.12500  -0.12500  -0.25000  12.02548  12.12570  12.29153  13.53159  13.58557  13.67997
+  -0.25000  -0.25000  -0.25000  12.07242  12.07299  12.49404  13.57562  13.57609  13.60309
+ -0.12500     -0.12500     -0.88740E-34   12.051       12.051       12.115       13.564       13.572       13.643    
+  -0.37500  -0.37500  -0.50000  12.16400  12.29417  12.99932  13.66309  13.75623  13.82251
+  -0.25000   0.12500  -0.12500  12.15153  12.31637  12.56858  13.69061  13.72146  13.77160
+  -0.25000  -0.25000  -0.50000  12.16170  12.56007  12.68951  13.69262  13.69561  13.90966
+ -0.37500      0.47356E-17 -0.12500       12.191       12.192       12.769       13.691       13.748       13.755    
+ -0.94713E-17 -0.94713E-17 -0.50000       12.162       12.162       13.266       13.658       13.658       13.756    
+  -0.25000  -0.62500  -0.12500  12.26547  12.47530  13.07570  13.81658  13.91114  13.97032
+  -0.25000  -0.25000   0.25000  12.31395  12.52473  12.91272  13.87714  13.93396  14.06394
+ -0.25000     -0.25000     -0.35496E-33   12.219       12.219       12.459       13.773       13.810       13.856    
+  -0.12500  -0.37500  -0.50000  12.37182  12.52690  12.84521  13.98745  14.01087  14.02256
+ -0.37500      0.35496E-33 -0.37500       12.411       12.412       12.895       13.991       14.064       14.065    
+   0.62500   0.37500   0.25000  12.32708  12.72196  12.81749  13.91089  13.93960  14.05875
+   0.12500   0.50000   0.62500  12.46178  12.61326  13.10272  14.11719  14.17529  14.20156
+  -0.50000  -0.25000   0.25000  12.42546  12.81226  12.91888  14.13240  14.13401  14.17332
+  0.37500      0.86075E-16 -0.37500       12.369       12.584       13.131       13.954       14.003       14.220    
+  0.35496E-33 -0.50000     -0.50000       12.490       12.492       13.250       14.087       14.132       14.134    
+ [INTERPOLATION] Number of shells:  156
+
+ [08] Timing Overview
+ ====================
+
+
+ [09] Memory Overview
+ ====================
+
+ Memory Usage: global (Only MASTER cpu here). [O] stands for group 'O'
+ Memory treshold are: 51.20000 [Mb] (basic treshold)  512.0000 [Mb] (SAVEs treshold)
+
+
+         Max memory used   :  1.516000 [Mb]
+
+ [10] Game Over & Game summary
+ =============================
+
+ 03/26/2024 at 23:08 ypp @ tcn530.local.snellius.surf.nl [start]
+ 03/26/2024 at 23:08                                     [end]
+
+  
+ .-ACKNOWLEDGMENT
+ |
+ | The users of YAMBO have little formal obligations with respect to
+ | the YAMBO group (those specified in the GNU General Public
+ | License, http://www.gnu.org/copyleft/gpl.txt). However, it is
+ | common practice in the scientific literature, to acknowledge the
+ | efforts of people that have made the research possible. In this
+ | spirit, please find below the reference we kindly ask you to use
+ | in order to acknowledge YAMBO
+ |
+ | Many-body perturbation theory calculations using the yambo code
+ | D. Sangalli, A. Ferretti, H. Miranda, C. Attaccalite, I. Marri, E. Cannuccia, P. Melo,
+ | M Marsili, F Paleari, A Marrazzo, G Prandini, P Bonfà, M O Atambo, F Affinito,
+ | M Palummo, A Molina-Sánchez, C Hogan, M Grüning, D Varsano and A Marini.
+ | J. Phys.: Condens. Matter 31, 325902 (2019).
+ |
+ | Yambo: An ab initio tool for excited state calculations
+ | A. Marini, C. Hogan, M. Grüning, D. Varsano
+ | Computer Physics Communications 180, 1392 (2009).
+ |
+  
+ .-Input file  bse-bands/ypp.in_bse-bands
+ | excitons                         # [R] Excitonic properties
+ | interpolate                      # [R] Interpolate
+ | INTERP_mode= "BOLTZ"             # Interpolation mode (NN=nearest point, BOLTZ=boltztrap aproach)
+ | INTERP_Shell_Fac= 20.00000       # The bigger it is a higher number of shells is used
+ | INTERP_NofNN= 1                  # Number of Nearest sites in the NN method
+ | BANDS_steps= 20                  # Number of divisions
+ | cooIn= "rlu"                     # Points coordinates (in) cc/rlu/iku/alat
+ | cooOut= "rlu"                    # Points coordinates (out) cc/rlu/iku/alat
+ | States= "1 - 4"                  # Index of the BS state(s)
+ | % INTERP_Grid
+ | -1 |-1 |-1 |                             # Interpolation BZ Grid
+ | %
+ | #PrtDOS                        # Print Exciton Density of States
+ | % DOSERange
+ |  1.000000 |-1.000000 |         eV    # Energy range
+ | %
+ | DOSESteps=  500                  # Energy steps
+ | DOS_broad= 0.100000        eV    # Broadening of the DOS
+ | %BANDS_kpts                      # K points of the bands circuit
+ |  0.500000| 0.500000| 0.500000|
+ |  0.000000| 0.000000| 0.000000|
+ |  0.500000| 0.000000| 0.500000|
+ |  0.500000| 0.250000| 0.750000|
+ |  0.500000| 0.500000| 0.500000|
+ | %

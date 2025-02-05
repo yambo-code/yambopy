@@ -1,9 +1,4 @@
-from __future__ import print_function, division
-import sys
-import argparse
 from qepy import *
-from schedulerpy import *
-from math import sqrt
 
 # k-points map
 npoints = 50

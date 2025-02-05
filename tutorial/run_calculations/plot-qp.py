@@ -16,7 +16,7 @@ path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
               [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
 
 # Read Lattice information from SAVE
-lat  = YamboSaveDB.from_db_file(folder='gw/SAVE',filename='ns.db1')
+lat  = YamboLatticeDB.from_db_file(filename='gw/SAVE/ns.db1')
 # Read QP database
 ydb  = YamboQPDB.from_db(filename='ndb.QP',folder='gw/yambo')
 

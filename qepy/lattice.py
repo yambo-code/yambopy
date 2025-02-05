@@ -1,9 +1,12 @@
-# Copyright (c) 2018, Henrique Miranda
-# All rights reserved.
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC
 #
 # This file is part of the yambopy project
 #
-from __future__ import division
 import numpy as np
 
 def calculate_distances(kpoints):

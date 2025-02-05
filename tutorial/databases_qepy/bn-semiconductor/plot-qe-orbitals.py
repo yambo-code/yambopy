@@ -1,7 +1,4 @@
-import sys
-import argparse
 from qepy import *
-from schedulerpy import *
 from math import sqrt
 
 # Matplotlib options

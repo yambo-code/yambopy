@@ -8,76 +8,13 @@
 #
 # This file is part of the yambopy project
 #
-from yambopy import *
+import numpy as np
+import os
+import shutil
 from netCDF4 import Dataset
-
-def expand_kpoints(kpoints,syms,rlat,atol=1e-6,verbose=0):
-    """
-    Expand reciprocal-space BZ vectors using lattice symmetries
-
-    The expansion is consistent with the yambo expansion
-
-    == Inputs ==
-    :: kpoints: points in the IBZ to be expanded [CC]
-    :: syms   : list of symmetry operations [CC]
-    :: rlat   : reciprocal lattice vectors
-
-    == Outputs ==
-    :: List of expanded points [CC]
-    :: Index table to go from unexpanded to expanded points
-    :: Index table for symmetries
-    :: List of weights
-
-    """
-    #check if the kpoints were already exapnded
-    kpoints_indexes  = []
-    kpoints_full     = []
-    symmetry_indexes = []
-
-    #kpoints in the full brillouin zone organized per index
-    kpoints_full_i = {}
-
-    sym_car_to_apply = syms
-
-    #expand using symmetries
-    for nk,k in enumerate(kpoints):
-
-        #if the index in not in the dictionary add a list
-        if nk not in kpoints_full_i:
-            kpoints_full_i[nk] = []
-
-        for ns,sym in enumerate(sym_car_to_apply):
-
-            new_k = np.dot(sym,k)
-
-            #check if the point is inside the bounds
-            k_red = car_red([new_k],rlat)[0]
-            k_red[np.abs(k_red) < atol] = 0. # Set to zero values < atol to avoid mistakes
-            k_bz = (k_red+atol)%1
-
-            #if the vector is not in the list of this index add it
-            if not vec_in_list(k_bz,kpoints_full_i[nk]):
-                kpoints_full_i[nk].append(k_bz)
-                kpoints_full.append(new_k)
-                kpoints_indexes.append(nk)
-                symmetry_indexes.append(ns)
-                continue
-
-    #calculate the weights of each of the kpoints in the irreducible brillouin zone
-    nkpoints_full = len(kpoints_full)
-    weights = np.zeros([nkpoints_full])
-    for nk in kpoints_full_i:
-        weights[nk] = float(len(kpoints_full_i[nk]))/nkpoints_full
-
-    if verbose: print("%d kpoints expanded to %d"%(len(kpoints),len(kpoints_full)))
-
-    #set the variables
-    expanded_car_kpoints  = np.array(kpoints_full)
-    kpoints_indices       = np.array(kpoints_indexes)
-    symmetry_indices      = np.array(symmetry_indexes)
-    weights_ibz           = np.array(weights)
-
-    return expanded_car_kpoints,kpoints_indices,symmetry_indices,weights_ibz
+from yambopy.lattice import car_red
+from yambopy.tools.string import marquee
+from yambopy.dbs.latticedb import YamboLatticeDB
 
 def find_inversion_type(n_atoms,atom_pos,syms):
     """
@@ -155,23 +92,23 @@ class YamboEm1sRotate():
 
         self.k_output     = 'kpoints_bz.dat'
 
+        expanded_lattice = YamboLatticeDB.from_db_file(filename = '%s/%s'%(save_path,db1), Expand=True)
+
+
         # Get symmetries in CC and real-space atomic positions
-        if not os.path.isfile('%s/%s'%(save_path,db1)): raise FileNotFoundError("File %s not found."%db1)
-        database = Dataset("%s/%s"%(save_path,db1), 'r')
-        sym_car = np.array(database.variables['SYMMETRY'][:])
-        self.syms = np.transpose(sym_car, (0, 2, 1))
-        n_atoms =  database.variables['N_ATOMS'][:].astype(int)
-        atom_pos = database.variables['ATOM_POS'][:]
-        if verbose: iku_kpoints_ibz = database.variables['K-POINTS'][:].T
-        database.close()
-        self.nsyms = len(self.syms)
+        _, n_atoms = np.unique(expanded_lattice.atomic_numbers, return_counts=True)
+        atom_pos = expanded_lattice.car_atomic_positions
+        self.sym_car = expanded_lattice.sym_car
+        self.nsyms = len(self.sym_car)
+        if verbose: iku_kpoints_ibz = expanded_lattice.ibz_kpoints
 
         print("=== Rotating em1s... ===")
         print(" * Getting q-map...  ")
 
         # Obtain transformed qpoints q'=Sq in the full BZ
-        self.qpoints, self.qpoints_indices, self.syms_indices, _ = \
-        expand_kpoints(self.qpoints_ibz,self.syms,self.rlat)
+        self.qpoints = expanded_lattice.car_kpoints
+        self.qpoints_indices = expanded_lattice.kpoints_indexes
+        self.syms_indices  = expanded_lattice.symmetry_indexes
         self.nqpoints = len(self.qpoints)
 
         print(" * Getting G-map ...  ")
@@ -183,7 +120,7 @@ class YamboEm1sRotate():
         # Spatial inversion or T-rev?
         # [WARNING] We assume one of the two is used!
         self.inv_type, self.inv_index = \
-        find_inversion_type(n_atoms,atom_pos,self.syms)
+        find_inversion_type(n_atoms,atom_pos,self.sym_car)
 
         # Rotate em1s from IBZ to BZ
         self.rotate_em1s()
@@ -199,7 +136,9 @@ class YamboEm1sRotate():
 
         print("===      Done.       ===")
 
-    def inverse_Gvector_table(self,tol=1e-5):
+
+
+    def inverse_Gvector_table(self,tol=1e-5):       ################
         """
         Build table Sm1G_table such as:
 
@@ -207,10 +146,10 @@ class YamboEm1sRotate():
 
         - kwargs are atol and rtol for np.isclose
         """
-        inv_syms = np.linalg.inv(self.syms)
+        inv_syms = np.linalg.inv(self.sym_car)
         Sm1G_table = np.zeros((self.ngvectors,len(inv_syms)),dtype=int)
 
-        self.rotated_gvectors = np.zeros([len(self.syms),len(self.gvectors),3])
+        self.rotated_gvectors = np.zeros([len(self.sym_car),len(self.gvectors),3])
         for iG,G in enumerate(self.gvectors):
             for i_S,sym in enumerate(inv_syms):
                 check = np.sum( (self.gvectors - np.dot(sym,G))**2., axis=1) < tol
@@ -240,23 +179,31 @@ class YamboEm1sRotate():
             :math:  D_{g1,g2}(ISq) = [ D_{(IS)^-1g1,(IS)^-1g2}(q) ]^*
 
         """
-        X = np.zeros([self.nqpoints,self.ngvectors,self.ngvectors],dtype=np.complex64)
-        
-        for iq in range(self.nqpoints):
-            iq_ibz = self.qpoints_indices[iq] # Index of untransformed q_ibz
-            iS     = self.syms_indices[iq]    # Index of symmetry Sq=q_ibz
-            for ig1 in range(self.ngvectors):
-                Sm1_ig1 = self.Sm1G_table[ig1,iS] # index of G' such as G'=S-1G    
-                for ig2 in range(self.ngvectors):
-                    Sm1_ig2 = self.Sm1G_table[ig2,iS] 
-                    # No TR
-                    if self.inv_type=='spatial' or iS<self.inv_index:
-                        X[iq,ig1,ig2]=self.X_ibz[iq_ibz,Sm1_ig1,Sm1_ig2]
-                    # TR
-                    if self.inv_type=='trev' and iS>=self.inv_index:
-                        X[iq,ig1,ig2]=np.conj(self.X_ibz[iq_ibz,Sm1_ig1,Sm1_ig2])
+        X = np.zeros((self.nqpoints, self.ngvectors, self.ngvectors), dtype=np.complex64)
 
-        self.X = X                   
+        # Pre-compute indices for symmetry transformations
+        Sm1G_table = self.Sm1G_table
+        X_ibz = self.X_ibz
+        qpoints_indices = self.qpoints_indices
+        syms_indices = self.syms_indices
+
+        # Loop over nqpoints
+        for iq in range(self.nqpoints):
+            iq_ibz = qpoints_indices[iq]
+            iS = syms_indices[iq]
+
+            # Pre-compute Sm1G indices for all ig1 and ig2
+            Sm1_indices = Sm1G_table[:, iS]
+
+            # No TR case
+            if self.inv_type == 'spatial' or iS < self.inv_index:
+                X[iq] = X_ibz[iq_ibz, Sm1_indices[:, np.newaxis], Sm1_indices]
+
+            # TR case
+            elif self.inv_type == 'trev' and iS >= self.inv_index:
+                X[iq] = np.conj(X_ibz[iq_ibz, Sm1_indices[:, np.newaxis], Sm1_indices])
+
+        self.X = X            
 
     def saveDBS(self):
         """
@@ -461,8 +408,8 @@ class YamboEm1sRotate():
 
         print(" * Printing PW-format kpoints file.")
 
-        kpoints_ibz = np.array([ k/self.alat for k in kpoints_iku ])
-        kpoints     = expand_kpoints(kpoints_ibz,self.syms,self.rlat)[0]
+        kpoints_ibz = np.array(kpoints_iku/self.alat)
+        kpoints     = self.qpoints
         if units=='rlu': points = car_red(kpoints,self.rlat)
         if units=='cc':  points = kpoints*self.alat[0]
 

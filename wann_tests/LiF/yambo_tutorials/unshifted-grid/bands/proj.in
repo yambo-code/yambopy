@@ -1,0 +1,8 @@
+&projwfc
+    prefix = 'LiF',
+    outdir = './',
+    ngauss=0, degauss=0.036748
+    kresolveddos=.true.
+    DeltaE=0.01
+    filpdos = 'LiF-pdos.dat'
+ /

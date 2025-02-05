@@ -4,15 +4,21 @@ I = complex(0,1)
 ha2ev  = 27.2113834 
 ev2cm1 = 8065.5440044136285
 bohr2ang = 0.52917720859
+ang2bohr = 1./bohr2ang
 core_cnst =2.418884326505
 fs2aut    =100.0/core_cnst 
 as2aut    =0.1/core_cnst
 ps2aut    =100000.0/core_cnst
 speed_of_light=137.03599911
+autime2s= 2.418884326505e-17
+m_e = 0.510998950e+06 # electron mass in eV
+KB = 8.617330337217213e-05/ha2ev # Ha/K
+hbar = 6.582119569e-16 #eVs
+alpha = float(1/137)
 
-SVCMm12VMm1 =29.98*np.power(10,3,dtype=np.double) #  from [statV/cm] to [V/m]
+SVCMm12VMm1 =29.98*np.power(10,3,dtype=np.float64) #  from [statV/cm] to [V/m]
 VMm12SVCMm1 =1.0/SVCMm12VMm1
-AU2VMm1     =5.14220632*np.power(10,11,dtype=np.double)
+AU2VMm1     =5.14220632*np.power(10,11,dtype=np.float64)
 
 
 atomic_mass = [   None,      1.00794,    4.002602,     6.941,   9.012182,

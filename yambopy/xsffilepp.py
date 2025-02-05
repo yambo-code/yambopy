@@ -7,11 +7,7 @@
 #
 # This file is part of the yambopy project
 #
-import re
-import numpy as np
-from yambopy.lattice import replicate_red_kmesh, calculate_distances, get_path, car_red
-from yambopy.dbs.latticedb import *
-from yambopy.io.xsffile import *
+from yambopy.io.xsffile import YamboXsf
 
 def interlayer_power(xsf_hole_bottom_file, xsf_hole_top_file, zthreshold, c , fractional = False):
     xsf_hole_bottom = YamboXsf.read_xsf(xsf_hole_bottom_file)

@@ -18,13 +18,11 @@
 #
 
 import xml.etree.ElementTree as ET
-from qepy.auxiliary import *
-from yambopy.dbs.savedb import *
-from yambopy.dbs.wfdb import *
-from qepy.pwxml import *
-from .lattice import *
-from yambopy.plot.plotting import add_fig_kwargs 
-from numpy import array, sqrt, cross, dot, arange, zeros
+from qepy.lattice import Path, calculate_distances
+from qepy.pwxml import PwXML
+from yambopy.dbs.latticedb import YamboLatticeDB
+from yambopy.dbs.wfdb import YamboWFDB
+from numpy import array, sqrt, cross, dot, arange, zeros, around
 from sys import stdout
 
 HatoeV = 27.2107
@@ -95,8 +93,8 @@ class UnfoldingYambo():
 
         self.projection = zeros([self.nkpoints_sc,self.nbands_sc-self.band_min])
 
-        save_pc = YamboSaveDB.from_db_file(folder="%s/%s.save/SAVE" % (self.path_pc,self.prefix_pc))
-        save_sc = YamboSaveDB.from_db_file(folder="%s/%s.save/SAVE" % (self.path_sc,self.prefix_sc))
+        save_pc = YamboLatticeDB.from_db_file(folder="%s/%s.save/SAVE" % (self.path_pc,self.prefix_pc))
+        save_sc = YamboLatticeDB.from_db_file(folder="%s/%s.save/SAVE" % (self.path_sc,self.prefix_sc))
 
         self.wf_pc = YamboWFDB(save_pc,path=self.path_pc)
         self.wf_sc = YamboWFDB(save_sc,path=self.path_sc)
@@ -176,7 +174,7 @@ class UnfoldingYambo():
                 g_sc_int[(int(x),int(y),int(z))] = ig
                 w = x*self.rcell_sc[:][0] + y*self.rcell_sc[:][1] + z*self.rcell_sc[:][2] #scaling
                 w = dot(self.rot,w) #rotations
-                w = np.around(w, decimals=n_decs)+array([0,0,0]) #round and clean
+                w = around(w, decimals=n_decs)+array([0,0,0]) #round and clean
                 w = format_string % (w[0],w[1],w[2]) #truncation
                 g_sc[w] = ig #create dictionary
     
@@ -193,7 +191,7 @@ class UnfoldingYambo():
                 x,y,z = map( float, gkold[ig+1].split())
                 #print(ig,int(x),int(y),int(z))
                 w = x*self.rcell_pc[:][0] + y*self.rcell_pc[:][1] + z*self.rcell_pc[:][2] #scaling
-                w = np.around(w, decimals=n_decs)+array([0,0,0]) #round and clean
+                w = around(w, decimals=n_decs)+array([0,0,0]) #round and clean
                 w = format_string % (w[0],w[1],w[2]) #truncation
                 try:
                     g_contain[ig] = g_sc[w]

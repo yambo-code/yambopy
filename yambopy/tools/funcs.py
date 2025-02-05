@@ -1,10 +1,13 @@
-# Copyright (c) 2018, Henrique Miranda
-# All rights reserved.
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HPC
 #
 # This file is part of the yambopy project
 #
 import numpy as np
-
 
 def abs2(x):
     return x.real**2 + x.imag**2
@@ -24,4 +27,18 @@ def boltzman_f(Eb, Bose_Temp):
     kb = 8.61733326*10**-5
     return np.exp(-Eb/(kb*Bose_Temp))
 
+def fermi(e,max_exp=50,min_exp=-100):
+    """ fermi dirac function
+    """
+    if e > max_exp:
+        return 0
+    elif e < -max_exp:
+        return 1
+    return 1/(np.exp(e)+1)
 
+def fermi_array(e_array,ef,invsmear):
+    """
+    Fermi dirac function for an array
+    """
+    e_array = (e_array-ef)/invsmear
+    return [ fermi(e) for e in e_array]
