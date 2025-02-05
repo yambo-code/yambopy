@@ -87,8 +87,10 @@ class YamboWFDB:
         # Open the ns.db1 database to get essential data
         try:
             ns_db1_fname = os.path.join(path, 'ns.db1')
-            self.ydb = YamboLatticeDB.from_db_file(ns_db1_fname, Expand=False)
-
+            self.ydb = YamboLatticeDB.from_db_file(ns_db1_fname, Expand=True)
+            ## total kpoints in full BZ
+            self.nkBZ = len(self.ydb.symmetry_indexes)
+            #
             # Read G-vectors and other data from ns_db1
             ns_db1 = Dataset(ns_db1_fname, 'r')
             lat_vec = self.ydb.lat.T
@@ -186,8 +188,8 @@ class YamboWFDB:
 
     def get_spin_projections(self, ik, ib=-1, s_z=np.array([[1, 0], [0, -1]])):
         """
-        Compute the expectation values of the spin operator for electronic states.
-
+        Compute the diagonal expectation values of the spin operator for electronic states.
+        
         Args:
             ik (int): ibz K-point index.
             ib (int): Band index/array of indices. Default (-1) for all bands
@@ -210,6 +212,62 @@ class YamboWFDB:
         tmp_nb = s_tmp.shape[0]
         s_proj = s_tmp.reshape(tmp_nb,1,-1) @ wfc_tmp.reshape(tmp_nb,1,-1).transpose(0,2,1).conj()
         return s_proj.reshape(tmp_nb)
+
+    def get_spin_m_e_BZ(self,s_z=np.array([[1, 0], [0, -1]])):
+        """
+        Compute the spin matrix elements (including off-diagonal 
+        i.e, we compute < k,m| S_z | k,n>. 
+        ---
+        Note : get_spin_projections() is a sepecial case where it outputs diagonal terms
+        ---
+        Args:
+            s_z (numpy.ndarray, optional): Spin operator. Defaults to the z-component of spin operator.
+
+        < Sk,m| S_z | Sk,n> = <k,m| (U^\dagger S_z U) | k,m>
+        if S is tim rev: < Sk,m| S_z | Sk,n> = <k,m| (U^\dagger S_z^* U) | k,m>^*
+        This means, we donot need to rotate the wfcs. 
+        instead we need to rotate the spin operator with su(2) matrices 
+        ---
+        ---
+        Returns:
+            numpy.ndarray: Spin operator (nk_bz, nbnd,nbnd)
+        """
+        #
+        assert self.nspin == 1 and self.nspinor == 2, \
+            "Spin operator is useful only for nspin=1 and nspinor=2"
+        #
+        kpt_idx = self.ydb.kpoints_indexes
+        sym_idx = self.ydb.symmetry_indexes
+        sym_mat = self.ydb.sym_car
+        nsym = len(sym_mat)
+        ## compute su(2) matrices for symmetries 
+        su2_ops = np.zeros((nsym,2,2),dtype=self.wf.dtype)
+        for isym in range(nsym):
+            trev_tmp = (isym >= nsym / (1 + int(np.rint(self.ydb.time_rev))))
+            su2_ops[isym] = su2_mat(sym_mat[isym],trev_tmp)
+        #
+        time_rev = (sym_idx >= nsym / (1 + int(np.rint(self.ydb.time_rev))))
+        #
+        su2_k = su2_ops[sym_idx]
+        S_z_tmp = np.zeros((len(sym_idx),2,2),dtype=self.wf.dtype)
+        S_z_tmp[...] = s_z[None,:,:]
+        #
+        # COnjugate the S_z operator in case of time reversal
+        S_z_tmp[time_rev] = S_z_tmp[time_rev].conj()
+        # rotate the S_z operator 
+        S_z_tmp = S_z_tmp@su2_k
+        S_z_tmp = su2_k.conj().transpose(0,2,1)@S_z_tmp
+        #
+        # Apply to wfc
+        wfc_tmps = self.wf[:,0,...][kpt_idx]
+        nk, nb, nspinor, ng = wfc_tmps.shape
+        S_me = S_z_tmp[:,None,:,:]@wfc_tmps
+        #
+        ## compute the inner product
+        S_me = wfc_tmps.reshape(nk,nb,-1).conj()  @ S_me.reshape(nk,nb,-1).transpose(0,2,1)
+        ## Take care of time reversal 
+        S_me[time_rev] = S_me[time_rev].conj()
+        return S_me
 
     def get_iBZ_wf(self, ik):
         """
@@ -380,11 +438,9 @@ class YamboWFDB:
         """
         if self.wf_expanded: return
         else : self.wf_expanded = True
-        self.ydb.expand_kpoints()
         kpt_idx = self.ydb.kpoints_indexes
         sym_idx = self.ydb.symmetry_indexes
         nkBZ = len(sym_idx)
-        self.nkBZ = nkBZ
 
         self.wf_bz = np.zeros((nkBZ, self.nspin, self.nbands, self.nspinor, self.ng),dtype=self.wf.dtype)
         self.g_bz = 2147483646 + np.zeros((nkBZ,self.ng,3),dtype=int)
