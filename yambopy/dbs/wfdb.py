@@ -15,8 +15,14 @@ from tqdm import tqdm
 import scipy.fft
 from yambopy.io.cubetools import write_cube
 from yambopy.dbs.latticedb import YamboLatticeDB
-from scipy.spatial import KDTree
 import scipy
+try:
+    from pykdtree.kdtree import KDTree 
+    ## pykdtree is much faster and is recommanded
+    ## pip install pykdtree
+    ## usefull in Dmat computation
+except ImportError as e:
+    from scipy.spatial import KDTree
 from yambopy.kpoints import build_ktree, find_kpt
 
 class YamboWFDB:
@@ -178,34 +184,39 @@ class YamboWFDB:
         """Assert that the band index is valid."""
         assert 0 <= ib < self.nbands, "Invalid band index"
 
-    def get_spin_projections(self, ik, ib, s_z=np.array([[1, 0], [0, -1]])):
+    def get_spin_projections(self, ik, ib=-1, s_z=np.array([[1, 0], [0, -1]])):
         """
         Compute the expectation values of the spin operator for electronic states.
 
         Args:
-            ik (int): K-point index.
-            ib (int): Band index.
+            ik (int): ibz K-point index.
+            ib (int): Band index/array of indices. Default (-1) for all bands
             s_z (numpy.ndarray, optional): Spin operator. Defaults to the z-component.
 
         Returns:
             numpy.ndarray: Spin projection values.
         """
         self.assert_k_inrange(ik)
-        self.assert_bnd_range(ib)
 
         assert self.nspin == 1 and self.nspinor == 2, "Spin projections are only useful for nspin=1 and nspinor=2"
         assert s_z.shape == (2, 2), "Spin operator must be a 2x2 matrix"
 
-        wfc_tmp = self.wf[ik, 0, ib]
-        s_tmp = np.einsum('ij,jg->ig', s_z, wfc_tmp, optimize=True)
-        return np.dot(s_tmp.reshape(-1), wfc_tmp.reshape(-1).conj())
+        if np.isscalar(ib):
+            if ib < 0 : wfc_tmp = self.wf[ik, 0]
+            else : wfc_tmp = self.wf[ik, 0][[ib]]
+        else: wfc_tmp = self.wf[ik, 0][ib] 
+
+        s_tmp = s_z[None,:,:]@wfc_tmp #'ij,bjg->big', s_z, wfc_tmp
+        tmp_nb = s_tmp.shape[0]
+        s_proj = s_tmp.reshape(tmp_nb,1,-1) @ wfc_tmp.reshape(tmp_nb,1,-1).transpose(0,2,1).conj()
+        return s_proj.reshape(tmp_nb)
 
     def get_iBZ_wf(self, ik):
         """
         Get wavefunctions and G-vectors for a specific k-point.
 
         Args:
-            ik (int): K-point index.
+            ik (int): iBZ K-point index.
 
         Returns:
             list: Wavefunctions at ik (nspin,nbands,nspinor,ngvec) and G-vectors (ngvec,3) 
@@ -220,7 +231,7 @@ class YamboWFDB:
         Convert wavefunctions from G-space to real space.
 
         Args:
-            ik (int): K-point index.
+            ik (int): iBZ K-point index.
             ib (int): Band index.
             grid (list, optional): FFT grid size. Defaults to the default FFT box.
 
@@ -248,7 +259,7 @@ class YamboWFDB:
         Write wavefunctions to a cube file.
 
         Args:
-            ik (int): K-point index.
+            ik (int): iBZ K-point index.
             ib (int): Band index.
             grid (list, optional): FFT grid size. Defaults to the default FFT box.
         """
@@ -265,7 +276,7 @@ class YamboWFDB:
         Get the iBZ k-point in crystal coordinates.
 
         Args:
-            ik (int): K-point index.
+            ik (int): iBZ K-point index.
 
         Returns:
             numpy.ndarray: K-point in crystal coordinates.
@@ -278,8 +289,8 @@ class YamboWFDB:
         Rotate wavefunctions using a symmetry operation.
 
         Args:
-            ik (int): K-point index.
-            isym (int): Symmetry operation index.
+            ik (int): iBZ K-point index.
+            isym (int): Symmetry operation index from SAVE.
 
         Returns:
             list: Rotated wavefunctions and G-vectors.
@@ -311,7 +322,8 @@ class YamboWFDB:
 
         if self.nspinor == 2:
             su_mat = su2_mat(sym_mat, time_rev).astype(wfc_k.dtype)
-            wfc_rot = np.einsum('ij,sbjg->sbig', su_mat, wfc_k, optimize=True)
+            #'ij,sbjg->sbig', su_mat, wfc_k
+            wfc_rot = su_mat[None,None,:,:]@wfc_k
 
         # Add phase due to fractional translation
         Rkvec = sym_red.T @ kvec
@@ -394,7 +406,7 @@ class YamboWFDB:
         Get the BZ k-point in crystal coordinates.
 
         Args:
-            ik (int): K-point index.
+            ik (int): BZ K-point index.
 
         Returns:
             numpy.ndarray: K-point in crystal coordinates.
@@ -406,7 +418,7 @@ class YamboWFDB:
         Get wavefunctions and G-vectors for a specific k-point in  full BZ.
         
         Args:
-            ik (int): K-point index.
+            ik (int): BZ K-point index.
         Returns:
             list: Wavefunctions at ik (nspin,nbands,nspinor,ngvec) and G-vectors in crystal coordinates (ngvec,3).
         """
@@ -445,7 +457,7 @@ class YamboWFDB:
         Dmat = []
         nsym = len(symm_mat)
         assert nsym == len(frac_vec), "The number for frac translation must be same as Rotation matrices"
-        for ik in range(self.nkBZ):
+        for ik in tqdm(range(self.nkBZ), desc="Dmat"):
             wfc_k, gvec_k = self.get_BZ_wf(ik)
             kvec = self.get_BZ_kpt(ik)
             for isym in range(nsym):
@@ -512,8 +524,8 @@ def wfc_inner_product(k_bra, wfc_bra, gvec_bra, k_ket, wfc_ket, gvec_ket, ket_Gt
     # return the dot product
     inprod = np.zeros((nspin, nbnd, nbnd),dtype=wfc_bra.dtype)
     for ispin in range(nspin):
-        inprod[ispin] = wfc_bra_tmp.reshape(nbnd,-1)@wfc_ket.reshape(nbnd,-1).T
-    #return np.einsum('sixg,sjxg->sij',wfc_bra_tmp,wfc_ket,optimize=True)
+        inprod[ispin] = wfc_bra_tmp[ispin].reshape(nbnd,-1)@wfc_ket[ispin].reshape(nbnd,-1).T
+    #return np.einsum('sixg,sjxg->sij',wfc_bra_tmp,wfc_ket,optimize=True) #// einsum is very slow
     return inprod
 
 
