@@ -1,7 +1,7 @@
 import numpy as np
 from yambopy.kpoints import build_ktree, find_kpt
 
-def rotate_exc_Ak(Ak, symm_mat_red, kpoints, exe_qpt, dmats, time_rev, ktree=None):
+def rotate_exc_wf(Ak, symm_mat_red, kpoints, exe_qpt, dmats, time_rev, ktree=None):
     """
     Rotate the exciton wavefunction Ak using symmetry operations.
 
