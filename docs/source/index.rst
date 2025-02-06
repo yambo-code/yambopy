@@ -25,6 +25,14 @@ Welcome to yambopy's documentation!
 
    qurex/index
 
+API Documentation
+=================
+.. toctree::
+   :maxdepth: 2
+   :caption: API doc:
+
+   api/index
+
 Indices and tables
 ==================
 

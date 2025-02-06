@@ -1,3 +1,6 @@
+Databases
+=========
+
 The yambopy databases (DBs) are a set of classes to interact with the modules of 
 Yambo. The classes read the netCDF files that contain dipoles, exciton states, quasi-particles states, 
 dielectric function, Green's functions, etc. They are useful to access and plot

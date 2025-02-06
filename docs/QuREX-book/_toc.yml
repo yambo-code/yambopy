@@ -1,0 +1,5 @@
+format: jb-book
+root: intro  # The landing page (intro.md)
+chapters:
+  - file: theoretical_background
+

@@ -1,0 +1,38 @@
+title: "QuREX Documentation"
+author: "Riccardo Reho"
+sphinx:
+sphinx:
+  config:
+    project: "yambopy"
+    copyright: "2024, Henrique Miranda, Alejandro Molina Sánchez, Fulvio Paleari, Riccardo Reho"
+    author: "Henrique Miranda, Alejandro Molina Sánchez, Fulvio Paleari, Riccardo Reho"
+    release: "3.0.0"
+    sys_path:
+      - "../../yambopy"    
+    extensions:
+      - sphinx.ext.autodoc
+      - sphinx.ext.autosummary
+      - sphinx.ext.todo
+      - sphinx.ext.coverage
+      - sphinx.ext.mathjax
+      - sphinx.ext.ifconfig
+      - sphinx.ext.viewcode
+
+    templates_path:
+      - "_templates"
+    exclude_patterns:
+      - "build"
+      - "Thumbs.db"
+      - ".DS_Store"
+
+    pygments_style: "sphinx"
+
+    html_sidebars:
+      "**":
+        - "globaltoc.html"
+        - "relations.html"
+        - "sourcelink.html"
+        - "searchbox.html"
+
+bibtex_bibfiles:
+  - references.bib  # Make sure this points to your .bib file for citations
