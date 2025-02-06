@@ -116,7 +116,7 @@ def compute_exciton_spin(path='.', bse_dir='SAVE', iqpt=1, nstates=-1, contribut
         # Compute the exciton spin matrix elements <S'|S_z|S>
         exe_Sz.append(exciton_X_matelem(excQpt, np.array([0, 0, 0]), excdb[ix].eigenvectors,
                                excdb[ix].eigenvectors, elec_sz[None, ...], wfdb.kBZ,
-                               diagonal_only=False,contribution=contribution))
+                               diagonal_only=False,contribution=contribution)[0])
 
     # Print a note about the spin matrix
     #print("Note: This is a spin matrix. Diagonalize the matrix in degenerate subspace to get spin values.")
