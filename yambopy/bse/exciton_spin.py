@@ -1,4 +1,3 @@
-## Compute diagonal expectation value of spin operator
 import os
 import numpy as np
 from yambopy.dbs.excitondb import YamboExcitonDB
@@ -8,7 +7,9 @@ from .exciton_matrix_elements import exciton_X_matelem
 
 def compute_exciton_spin(path='.',bse_dir='SAVE',iqpt=1, nstates=-1, 
                         sz = 0.5*np.array([[1, 0], [0, -1]]) ):
-    ## Computing <S|S_z|S>
+    ## Computing <S'|S_z|S>
+    # Note that it also computes off-diagonal.
+    ## One needs to diagonalize in degnerate subspace to get the spin of excitons 
     filename = 'ndb.BS_diago_Q%d'%(iqpt)
     #
     lattice  = YamboLatticeDB.from_db_file(os.path.join(path,'SAVE','ns.db1'))
@@ -33,5 +34,6 @@ def compute_exciton_spin(path='.',bse_dir='SAVE',iqpt=1, nstates=-1,
     #
     exe_Sz = exciton_X_matelem(excQpt, np.array([0,0,0]), excdb.eigenvectors,
                                excdb.eigenvectors, elec_sz[None,...], wfdb.kBZ,
-                               diagonal_only=True)
-    print(exe_Sz)
+                               diagonal_only=False)
+    print("Note : This is a spin matrix. Diagonalize the matrix in degenerate subspace to get spin values.")
+    return exe_Sz
