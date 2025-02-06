@@ -55,7 +55,7 @@ class YamboWFDB:
         to_real_space(wfc_tmp, gvec_tmp, grid=[]): Convert wavefunctions to real space.
     """
 
-    def __init__(self, path=None, save='SAVE', filename='ns.wf', bands_range=[]):
+    def __init__(self, path=None, save='SAVE', filename='ns.wf', bands_range=[], latdb=None):
         """
         Initialize the YamboWFDB class.
 
@@ -72,14 +72,15 @@ class YamboWFDB:
 
         self.wf_expanded = False ## if true, then wfc's are expanded over full BZ
         # Read wavefunctions
-        self.read(bands_range=bands_range)
+        self.read(bands_range=bands_range, latdb=latdb)
 
-    def read(self, bands_range=[]):
+    def read(self, bands_range=[], latdb=None):
         """
         Read wavefunctions from the file.
 
         Args:
             bands_range (list, optional): Range of bands to load. Defaults to all bands.
+            latdb : latticedb, if None (default), it will be created internally
         """
         path = self.path
         filename = self.filename
@@ -87,7 +88,11 @@ class YamboWFDB:
         # Open the ns.db1 database to get essential data
         try:
             ns_db1_fname = os.path.join(path, 'ns.db1')
-            self.ydb = YamboLatticeDB.from_db_file(ns_db1_fname, Expand=True)
+            if latdb :
+                if not hasattr(latdb,'ibz_kpoints'): latdb.expand_kpoints()
+                self.ydb = latdb
+            else :
+                self.ydb = YamboLatticeDB.from_db_file(ns_db1_fname, Expand=True)
             ## total kpoints in full BZ
             self.nkBZ = len(self.ydb.symmetry_indexes)
             #

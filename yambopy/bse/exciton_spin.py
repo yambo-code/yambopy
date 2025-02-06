@@ -6,7 +6,7 @@ from yambopy.dbs.wfdb import YamboWFDB
 from .exciton_matrix_elements import exciton_X_matelem
 
 def compute_exciton_spin(path='.', bse_dir='SAVE', iqpt=1, nstates=-1, contribution='b',
-                         sz=0.5 * np.array([[1, 0], [0, -1]])):
+                         sz=0.5 * np.array([[1, 0], [0, -1]]), lattice=None, wfdb=None, excdb=None):
     """
     Compute the spin matrix elements <S'|S_z|S> for excitons.
 
@@ -31,6 +31,8 @@ def compute_exciton_spin(path='.', bse_dir='SAVE', iqpt=1, nstates=-1, contribut
         'b','e', 'h'. If 'b' total spin is computed. 'e'/'h' for only electron/hole spin. 
          Default is 'b' (total spin)
 
+    if latticedb, wfdb, excitondb are not None, then the provided db is used and is not read again
+    #
     Returns
     -------
     exe_Sz : ndarray
@@ -44,14 +46,16 @@ def compute_exciton_spin(path='.', bse_dir='SAVE', iqpt=1, nstates=-1, contribut
     #
     #
     # Total spin
-    Sz_exe = compute_exciton_spin(bse_dir='GW_BSE',nstates=4)
+    Sz_exe = compute_exciton_spin(bse_dir='GW_BSE',nstates=2)
     #
     # Only Electron spin
-    Sz_exe = compute_exciton_spin(bse_dir='GW_BSE',nstates=4,contribution='e')
+    Sz_exe = compute_exciton_spin(bse_dir='GW_BSE',nstates=2,contribution='e')
     #
     # Only Hole spin
-    Sz_exe = compute_exciton_spin(bse_dir='GW_BSE',nstates=4,contribution='h')
+    Sz_exe = compute_exciton_spin(bse_dir='GW_BSE',nstates=2,contribution='h')
     #
+    #
+    # The first two states are degenerate so, we diagonalize in 2x2 sub block
     w = np.linalg.eigvals(Sz_exe)
     print(w) ## spin values of excitons
     #
@@ -61,17 +65,28 @@ def compute_exciton_spin(path='.', bse_dir='SAVE', iqpt=1, nstates=-1, contribut
     filename = 'ndb.BS_diago_Q%d' % (iqpt)
 
     # Load the lattice database
-    lattice = YamboLatticeDB.from_db_file(os.path.join(path, 'SAVE', 'ns.db1'))
+    if not lattice:
+        lattice = YamboLatticeDB.from_db_file(os.path.join(path, 'SAVE', 'ns.db1'))
 
     # Load the exciton database
-    excdb = YamboExcitonDB.from_db_file(lattice, filename=filename,
+    if not excdb:
+        excdb = YamboExcitonDB.from_db_file(lattice, filename=filename,
                                         folder=os.path.join(path, bse_dir),
                                         Load_WF=True, neigs=nstates)
 
     # Load the wavefunction database
-    wfdb = YamboWFDB(path=path, bands_range=[np.min(excdb.table[:, 1]) - 1,
-                                             np.max(excdb.table[:, 2])])
+    if not wfdb:
+        wfdb = YamboWFDB(path=path, latdb=lattice,
+                         bands_range=[np.min(excdb.table[:, 1]) - 1,
+                        np.max(excdb.table[:, 2])])
+    ## sanity check
+    assert np.min(excdb.table[:, 1]) - 1 == wfdb.min_bnd, \
+            "wfdb and exciton db are inconsistant (Bands)"
+    #
+    assert np.max(excdb.table[:, 2]) == wfdb.min_bnd + wfdb.nbands, \
+            "wfdb and exciton db are inconsistant (Bands)"
 
+    #
     # Ensure the calculation is valid only for spinor wavefunctions
     assert wfdb.nspinor == 2, "Makes sense only for nspinor = 2"
 
