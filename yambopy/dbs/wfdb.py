@@ -102,7 +102,7 @@ class YamboWFDB:
 
             # K-points in BZ (crystal units)
             self.kBZ = self.ydb.iku_kpoints / lat_param[None, :]
-            self.kBZ = self.kpts_iBZ @ lat_vec
+            self.kBZ = self.kBZ @ lat_vec
 
             # G-vectors in cartesian units
             G_vec = ns_db1['G-VECTORS'][...].data.T
