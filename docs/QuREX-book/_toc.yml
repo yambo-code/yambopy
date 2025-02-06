@@ -11,4 +11,5 @@ parts:
       sections:
         - file: model_hamiltonian
         - file: wannier_exciton
+        - file: wannier_chern
 
