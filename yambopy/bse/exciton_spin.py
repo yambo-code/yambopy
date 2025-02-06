@@ -58,9 +58,6 @@ def compute_exciton_spin(path='.', bse_dir='SAVE', iqpt=1, nstates=-1,
     wfdb = YamboWFDB(path=path, bands_range=[np.min(excdb.table[:, 1]) - 1,
                                              np.max(excdb.table[:, 2])])
 
-    # Print the band range for debugging
-    print(np.min(excdb.table[:, 1]) - 1, np.max(excdb.table[:, 2]))
-
     # Ensure the calculation is valid only for spinor wavefunctions
     assert wfdb.nspinor == 2, "Makes sense only for nspinor = 2"
 
