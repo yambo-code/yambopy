@@ -1,5 +1,3 @@
-.. _api:
-
 #################
 API documentation
 #################
@@ -20,5 +18,6 @@ All methods and submodules are listed  :ref:`here <genindex>` and
 
 .. toctree::
    :maxdepth: 2
+   :glob:
 
-   wannier
+   *
