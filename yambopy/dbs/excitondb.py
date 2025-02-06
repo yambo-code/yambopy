@@ -82,7 +82,6 @@ class YamboExcitonDB(object):
         self.table = table
         self.eigenvectors = eigenvectors
         self.spin_pol = spin_pol
-        self.neigs = len(eigenvalues)
 
     @classmethod
     def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.',Load_WF=True, neigs=-1):
