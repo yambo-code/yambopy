@@ -25,7 +25,8 @@ class YamboDipolesDB():
     Can be used to plot, for example, the imaginary part of the dielectric
     function which corresponds to the optical absorption, or directly the matrix elements in kspace.
 
-    Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v]. If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
+    Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v]. 
+    If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
     """
     def __init__(self,lattice,save='SAVE',filename='ndb.dipoles',dip_type='iR',field_dir=[1,1,1],project=True):
 
@@ -69,6 +70,8 @@ class YamboDipolesDB():
             self.nbandsc_os = [self.nbandsc-d_n_el, self.nbandsc ]
 
         #read the database
+        ## Note : Yambo stores dipoles are for light emission.
+        ## In case of light absoption, conjugate it
         self.dipoles = self.readDB(dip_type)
 
         #expand the dipoles to the full brillouin zone 
@@ -211,42 +214,34 @@ class YamboDipolesDB():
         if self.open_shell: nbandsv = self.nbandsv_os[spin]
         if self.open_shell: nbandsc = self.nbandsc_os[spin]
 
-        #Note that P is Hermitian and iR anti-hermitian.
+        assert self.dip_type in ['iR', 'v', 'P'], \
+            "Dipole rotation is supported only for dip_type = iR, v, P."
+        #
+        # Note that P, v is Hermitian and iR anti-hermitian.
         # [FP] Other possible dipole options to be checked (i.e., velocity gauge needs energy renormalization). Treat them as not supported.
-        if self.dip_type == 'P':
-            factor =  1.0
+        # [NM] Works for P, v and iR
+        if self.dip_type == 'iR':
+            factor =  -1.0
         else:
-            factor = -1.0
-           
+            factor =  1.0
+        ##
         #save dipoles in the ibz
         self.dipoles_ibz = dipoles 
+        #get projection operation
+        pro = np.array([field_dirx,field_diry,field_dirz])
         #get dipoles in the full Brillouin zone
-        self.dipoles = np.zeros([nkpoints,3,nbands,nbands],dtype=np.complex64)
-        for nk_fbz,nk_ibz,ns in zip(list(range(nkpoints)),nks,nss):
-            
-            #if time rev we conjugate
-            if lattice.time_rev_list[ns]:
-                dip = np.conjugate(dipoles[nk_ibz,:,:,:])
-            else:
-                dip = dipoles[nk_ibz,:,:,:]
-
-            #get symmmetry operation
-            sym = lattice.sym_car[ns]
-            #get projection operation
-            pro = np.array([field_dirx,field_diry,field_dirz])
-            #transformation: this is rotation
-            if not project: tra = sym
-            #transformation: this is combined rotation + projection
-            if project:     tra = np.dot(pro,sym)
-
-            #rotate dipoles
-            for c,v in product(list(range(nbandsc)),list(range(nbandsv))):
-                self.dipoles[nk_fbz,:,indexc+c,indexv+v] = np.dot(tra,dip[:,c,v])
-
-            #make hermitian
-            for c,v in product(list(range(nbandsc)),list(range(nbandsv))):
-                self.dipoles[nk_fbz,:,indexv+v,indexc+c] = factor*np.conjugate(self.dipoles[nk_fbz,:,indexc+c,indexv+v])
-                        
+        self.dipoles = np.zeros([nkpoints,3,nbands,nbands],dtype=dipoles.dtype)
+        rot_mats = lattice.sym_car[nss, ...]
+        if project: rot_mats = pro[None,:,:]@rot_mats
+        # dipoles (nk, pol, c, v).
+        dip_expanded = np.einsum('kij,kjcv->kicv',rot_mats,dipoles[nks])
+        # Take care of time reversal
+        trev = int(np.rint(lattice.time_rev))
+        time_rev_s = (nss >= (len(lattice.sym_car) / (trev + 1)))
+        dip_expanded[time_rev_s] = dip_expanded[time_rev_s].conj()
+        # store them
+        self.dipoles[:,:,indexc:indexc+nbandsc,indexv:indexv+nbandsv] = dip_expanded
+        self.dipoles[:,:,indexv:indexv+nbandsv,indexc:indexc+nbandsc] = factor*dip_expanded.transpose(0,1,3,2).conj()
         return self.dipoles, kpts
 
     def plot(self,ax,kpoint=0,dir=0,func=abs2):
