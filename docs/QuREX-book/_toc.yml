@@ -1,5 +1,14 @@
 format: jb-book
 root: intro  # The landing page (intro.md)
-chapters:
-  - file: theoretical_background
+options:
+  numbered: true  # Enable numbering globally
+
+parts:
+- caption: Part 1
+  numbered: false  # Ensure numbering applies to this part
+  chapters:
+    - file: theoretical_background  # Acts as the section's intro
+      sections:
+        - file: model_hamiltonian
+        - file: wannier_exciton
 
