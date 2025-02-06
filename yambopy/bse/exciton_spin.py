@@ -5,7 +5,7 @@ from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.wfdb import YamboWFDB
 from .exciton_matrix_elements import exciton_X_matelem
 
-def compute_exciton_spin(path='.', bse_dir='SAVE', iqpt=1, nstates=-1,
+def compute_exciton_spin(path='.', bse_dir='SAVE', iqpt=1, nstates=-1, contribution='b',
                          sz=0.5 * np.array([[1, 0], [0, -1]])):
     """
     Compute the spin matrix elements <S'|S_z|S> for excitons.
@@ -27,6 +27,9 @@ def compute_exciton_spin(path='.', bse_dir='SAVE', iqpt=1, nstates=-1,
         Number of exciton states to consider. If -1, all states are included. Default is -1.
     sz : array_like, optional
         Spin-z operator matrix in the basis of spinor wavefunctions. Default is 0.5 * [[1, 0], [0, -1]].
+    contribution : char, optional
+        'b','e', 'h'. If 'b' total spin is computed. 'e'/'h' for only electron/hole spin. 
+         Default is 'b' (total spin)
 
     Returns
     -------
@@ -39,9 +42,20 @@ def compute_exciton_spin(path='.', bse_dir='SAVE', iqpt=1, nstates=-1,
     import numpy as np
     from yambopy.bse.exciton_spin import compute_exciton_spin
     #
+    #
+    # Total spin
     Sz_exe = compute_exciton_spin(bse_dir='GW_BSE',nstates=4)
+    #
+    # Only Electron spin
+    Sz_exe = compute_exciton_spin(bse_dir='GW_BSE',nstates=4,contribution='e')
+    #
+    # Only Hole spin
+    Sz_exe = compute_exciton_spin(bse_dir='GW_BSE',nstates=4,contribution='h')
+    #
     w = np.linalg.eigvals(Sz_exe)
     print(w) ## spin values of excitons
+    #
+    #
     """
     # Filename for the BSE diagonalization data
     filename = 'ndb.BS_diago_Q%d' % (iqpt)
@@ -73,13 +87,13 @@ def compute_exciton_spin(path='.', bse_dir='SAVE', iqpt=1, nstates=-1,
     # Convert the q-point to crystal coordinates
     excQpt = lattice.lat @ excQpt
 
-    # Compute the exciton spin matrix elements
+    # Compute the exciton spin matrix elements <S'|S_z|S>
     exe_Sz = exciton_X_matelem(excQpt, np.array([0, 0, 0]), excdb.eigenvectors,
                                excdb.eigenvectors, elec_sz[None, ...], wfdb.kBZ,
-                               diagonal_only=False)
+                               diagonal_only=False,contribution=contribution)
 
     # Print a note about the spin matrix
-    print("Note: This is a spin matrix. Diagonalize the matrix in degenerate subspace to get spin values.")
+    #print("Note: This is a spin matrix. Diagonalize the matrix in degenerate subspace to get spin values.")
 
     return exe_Sz
 
