@@ -6,7 +6,7 @@ from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.wfdb import YamboWFDB
 from .exciton_matrix_elements import exciton_X_matelem
 
-def compute_exciton_spin(path='.',bse_dir='',iqpt=1, nstates=-1, 
+def compute_exciton_spin(path='.',bse_dir='SAVE',iqpt=1, nstates=-1, 
                         sz = 0.5*np.array([[1, 0], [0, -1]]) ):
     ## Computing <S|S_z|S>
     filename = 'ndb.BS_diago_Q%d'%(iqpt)
@@ -25,9 +25,9 @@ def compute_exciton_spin(path='.',bse_dir='',iqpt=1, nstates=-1,
     #
     excdb.convert_to_kcv()
     #
-    elec_sz = wfdb.get_spin_m_e_BZ(self,s_z=sz)
+    elec_sz = wfdb.get_spin_m_e_BZ(s_z=sz)
     #
-    excQpt = excdb.Qpt
+    excQpt = excdb.car_qpoint
     # convert to crystal units 
     excQpt = lattice.lat@excQpt
     #
