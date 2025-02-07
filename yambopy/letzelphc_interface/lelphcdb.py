@@ -143,7 +143,7 @@ class LetzElphElectronPhononDB():
                     g[iq,:,inu,:,:,:] = dvscf[iq,:,inu,:,:,:]/np.sqrt(2.*ph_E)
         return dvscf
 
-    def read_read_iq(self,iq, bands_range=[], database=None, convention='yambo'):
+    def read_iq(self,iq, bands_range=[], database=None, convention='yambo'):
         """
         Reads the electron-phonon matrix elements and phonon eigenvectors for a specific q-point index.
 
@@ -196,7 +196,7 @@ class LetzElphElectronPhononDB():
             close_file = False
             if not database :
                 close_file = True
-                database = Dataset(filename,'r')
+                database = Dataset(self.filename,'r')
             eph_mat = database['elph_mat'][iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd, :].data
             ph_eigs = database['POLARIZATION_VECTORS'][iq,...].data
             eph_mat = eph_mat[...,0] + 1j*eph_mat[...,1]
@@ -206,17 +206,29 @@ class LetzElphElectronPhononDB():
 
     def change_convention(self, qpt, elph_iq, convention='yambo'):
         """
-        ## (nk,....)
-        qpt in crystal coordinates
-        if convention == 'yambo', it will give '<k|dv|k-q>'
-        else <k+q |dv|k>
-        # This returns a view and not a copy
+        Adjusts the convention of the electron-phonon matrix elements.
+    
+        Parameters
+        ----------
+        qpt : ndarray
+            The q-point in crystal coordinates.
+        elph_iq : ndarray
+            The electron-phonon matrix elements.
+        convention : str, optional
+            Defines the output format:
+            - 'yambo': Outputs \<k|dV|k-q>.
+            - Any other value: Outputs \<k+q|dV|k>.
+
+        Returns
+        -------
+        ndarray
+            The electron-phonon matrix elements in the desired convention. The returned array is a view, not a copy.
         """
         if convention.strip() != 'yambo': convention = 'standard'
         if self.convention == convention: return elph_iq
         if convention == 'standard': factor = 1.0
-        else factor = -1.0
-        idx_q = find_kindx(self.ktree, factor*qpt[None, :] + self.kpoints)
+        else :factor = -1.0
+        idx_q = find_kpt(self.ktree, factor*qpt[None, :] + self.kpoints)
         return elph_iq[idx_q, ...]
 
     def __str__(self,verbose=False):
