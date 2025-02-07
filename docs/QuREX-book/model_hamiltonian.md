@@ -7,3 +7,5 @@ Then, one can use via a Slater-Koster interpolation scheme {cite}`yates2007spect
 $$
 H_{n m}\left(\mathbf{k}\right)=\sum_{\mathbf{R}} \mathrm{e}^{\mathrm{i} \mathbf{k} \cdot \mathbf{R}} H_{n m}(\mathbf{R}) 
 $$ (HR)
+
+After diagonalization the resulting eigenvectors are in the **Hamilton gauge** {doc}`model_hamiltonian`

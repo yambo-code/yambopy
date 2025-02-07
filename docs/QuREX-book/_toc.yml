@@ -10,6 +10,8 @@ parts:
     - file: theoretical_background  # Acts as the section's intro
       sections:
         - file: model_hamiltonian
+        - file: coulomb_potential
+        - file: h2p
         - file: wannier_exciton
         - file: wannier_chern
         - file: wannier_basis

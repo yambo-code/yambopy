@@ -4,6 +4,7 @@ The Bethe-Salper Equations (BSE) allows computing neutral excitations for electr
 Following the Ai-MBPT formalism {cite}`sangalli2019many, marini2009yambo` the exciton energies and wavefunctions, are obtained solving the BSE equation in the Tamm-Dancoff approximation including local field effects {cite}`onida2002electronic`. 
 
 The BSE can be recast into an eigenvalue equation 
+
 $$
     \left(\varepsilon_{c\mathbf{k}}^{\mathrm{GW}}
     -\varepsilon_{\mathrm{v}\mathbf{k-Q}}^{\mathrm{GW}}\right)
@@ -33,4 +34,4 @@ $$
     c,\mathbf{k}|
     v,\mathbf{k}-\mathbf{Q}\rangle\langle
     v^\prime, \mathbf{k}^\prime-\mathbf{Q}|c^\prime\mathbf{k}^\prime-\mathbf{Q}\rangle \\    
-$$
+$$ (eq:kernels)
