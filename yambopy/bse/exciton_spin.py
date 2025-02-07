@@ -72,7 +72,7 @@ def compute_exciton_spin(lattice, excdb, wfdb, elec_sz, contribution='b',diagona
 
 
 def compute_exc_spin_iqpt(path='.', bse_dir='SAVE', iqpt=1,
-                          nstates=-1, contribution='b', degen_tol = 1e-3
+                          nstates=-1, contribution='b', degen_tol = 1e-3,
                           sz=0.5 * np.array([[1, 0], [0, -1]]),
                           return_dbs_and_spin=True):
     """
