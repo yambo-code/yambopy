@@ -65,7 +65,7 @@ def compute_exciton_spin(lattice, excdb, wfdb, elec_sz, contribution='b',diagona
                                Akcv, elec_sz[None, ...], wfdb.kBZ,
                                diagonal_only=diagonal,contribution=contribution)
     #
-    return exe_Sz
+    return exe_Sz[0]
 
 
 
@@ -153,14 +153,18 @@ def compute_exc_spin_iqpt(path='.', bse_dir='SAVE', iqpt=1,
     #
     exe_Sz = []
     for ixdb in excdb:
-        exe_Sz.append(compute_exciton_spin(lattice, ixdb,
+        smat = compute_exciton_spin(lattice, ixdb,
                                            wfdb, elec_sz,
                                            contribution=contribution,
-                                           diagonal=False))
+                                           diagonal=False)
+        smat = get_spinvals(smat, ixdb.eigenvalues, atol=degen_tol)
+        ss_tmp = []
+        for i in smat: ss_tmp = ss_tmp + list(i)
+        exe_Sz.append(ss_tmp)
     #
-    exe_Sz = get_spinvals(spin_matrix, eigenvalues, atol=degen_tol)
-    if return_dbs_and_spin : return np.array(exe_Sz),[lattice, wfdb, excdb, elec_sz]
-    else : return np.array(exe_Sz)
+    exe_Sz = np.array(exe_Sz)
+    if return_dbs_and_spin : return exe_Sz,[lattice, wfdb, excdb, elec_sz]
+    else : return exe_Sz
 
 
 
@@ -168,7 +172,7 @@ def get_spinvals(spin_matrix, eigenvalues, atol=1e-3, rtol=1e-3):
     degen_idx = find_degeneracy_evs(eigenvalues)
     spins = []
     for id in degen_idx:
-        w = np.linalg.eigvals(spin_matrix[find_degeneracy_evs,:][:,find_degeneracy_evs])
+        w = np.linalg.eigvals(spin_matrix[id,:][:,id])
         spins.append(w)
     return spins
 
