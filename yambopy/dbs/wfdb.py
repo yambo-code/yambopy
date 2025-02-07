@@ -70,7 +70,6 @@ class YamboWFDB:
         self.path = os.path.join(path, save)
         self.filename = filename
 
-        self.wf_expanded = False ## if true, then wfc's are expanded over full BZ
         # Read wavefunctions
         self.read(bands_range=bands_range, latdb=latdb)
 
@@ -445,8 +444,9 @@ class YamboWFDB:
         -------
         None
         """
-        if self.wf_expanded: return
-        else : self.wf_expanded = True
+        #
+        if getattr(self, 'wf_bz', None) is not None: return
+        #
         kpt_idx = self.ydb.kpoints_indexes
         sym_idx = self.ydb.symmetry_indexes
         nkBZ = len(sym_idx)
@@ -487,6 +487,8 @@ class YamboWFDB:
         Returns:
             list: Wavefunctions at ik (nspin,nbands,nspinor,ngvec) and G-vectors in crystal coordinates (ngvec,3).
         """
+        if getattr(self, 'wf_bz', None) is None: self.expand_fullBZ()
+        #
         return [self.wf_bz[ik][..., :self.ngBZ[ik]], self.g_bz[ik, :self.ngBZ[ik], :]]
 
     def Dmat(self, symm_mat=None, frac_vec=None, time_rev=None):
@@ -512,28 +514,51 @@ class YamboWFDB:
         ## isym >= len(symm_mat)/(1+int(time_rev)) must be timereversal symmetries
         ## X -> Rx + tau, R matrices are given in symm_mat, tau are frac_vec, time_rev is bool
         ## (nsym, nk, nspin, Rk_bnd, k_bnd)
-        if not self.wf_expanded: self.expand_fullBZ()
+        if getattr(self, 'wf_bz', None) is None: self.expand_fullBZ()
+        ##
+        ## Check if already computed for SAVE symetries 
+        dmat_save = getattr(self, 'Dmat', None)
+        #
+        #
+        is_save_symm = False
         if symm_mat is None or frac_vec is None or time_rev is None:
+            is_save_symm = True
+        #
+        if is_save_symm: 
+            ## if dmats are already computed, return those
+            if dmat_save is not None : return dmat_save
+            #
             symm_mat = self.ydb.sym_car
             frac_vec = np.zeros((len(symm_mat),3),dtype=symm_mat.dtype)
             time_rev = int(np.rint(self.ydb.time_rev))
-
+        #
         ktree = build_ktree(self.kBZ)
         Dmat = []
         nsym = len(symm_mat)
+        #
         assert nsym == len(frac_vec), "The number for frac translation must be same as Rotation matrices"
         for ik in tqdm(range(self.nkBZ), desc="Dmat"):
+            #
             wfc_k, gvec_k = self.get_BZ_wf(ik)
             kvec = self.get_BZ_kpt(ik)
+            #
             for isym in range(nsym):
                 trev = (isym >= nsym/(1+int(time_rev)))
+                #
                 ## Compute U(R)\psi_k
+                #
                 Rk, wfc_Rk, gvec_Rk = self.apply_symm(kvec, wfc_k, gvec_k, trev, symm_mat[isym], frac_vec[isym])
                 idx = find_kpt(ktree, Rk)
+                #
                 ## get Rk wfc stored
+                #
                 w_rk, g_rk = self.get_BZ_wf(idx)
                 Dmat.append(wfc_inner_product(self.get_BZ_kpt(idx),w_rk, g_rk, Rk, wfc_Rk, gvec_Rk))
+        #
         Dmat = np.array(Dmat).reshape(self.nkBZ, nsym, self.nspin, self.nbands, self.nbands).transpose(1,0,2,3,4)
+        #
+        if is_save_symm: self.Dmat = Dmat
+        #
         return Dmat
 
 def wfc_inner_product(k_bra, wfc_bra, gvec_bra, k_ket, wfc_ket, gvec_ket, ket_Gtree=-1):

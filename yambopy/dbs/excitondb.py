@@ -82,9 +82,6 @@ class YamboExcitonDB(object):
         self.table = table
         self.eigenvectors = eigenvectors
         self.spin_pol = spin_pol
-        self.form = 'bs_tab' ## ('bs_tab or 'kcv')
-        # if form is bs_tab, them eigenvectors are stored in (nexe,BS_table)
-        # if form == 'kcv', they are stored as (nexe, nk, nc, nv)
 
     @classmethod
     def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.',Load_WF=True, neigs=-1):
@@ -237,14 +234,16 @@ class YamboExcitonDB(object):
             for i,n in sort_i:
                 f.write("%3d %12.8lf %12.8e\n"%(n+1,eig[n],i)) 
 
-    def convert_to_kcv(self):
+    def get_Akcv(self):
         """
         Convert eigenvectors from (neigs,BS_table) -> (neigs,k,c,v)
         For now, only works for nspin = 1. nspinor = 1/2 also works.
         """
-        if self.form == 'kcv': return
-        self.form = 'kcv'
+
         assert self.spin_pol == 'no', "Rearrange_Akcv works only for nspin = 1"
+        #
+        tmp_akcv = getattr(self, 'Akcv', None) 
+        if tmp_akcv is not None: return tmp_akcv 
         #
         if self.eigenvectors is None: return None
         eig_wfcs = self.eigenvectors
@@ -278,7 +277,8 @@ class YamboExcitonDB(object):
         # else :
         #     eig_wfcs_returned = eig_wfcs_returned.reshape(-1,nk,nc,nv)
         #
-        self.eigenvectors = eig_wfcs_returned
+        self.Akcv = eig_wfcs_returned
+        return self.Akcv
 
     def get_nondegenerate(self,eps=1e-4):
         """
