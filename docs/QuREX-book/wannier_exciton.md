@@ -36,18 +36,12 @@ $$ (exc-overlap)
 
 The exciton wavefunction in the center of mass reference frame is given by
 $$
-\begin{equation}
-\begin{aligned}
+\begin{align}
 F_{\lambda,\mathbf{Q}}
 = & \frac{1}{\sqrt{N_{\mathbf{k}}}} \sum_{c v \mathbf{k}} A_{c v \mathbf{k}+\mathbf{Q} / 2}^{\lambda \mathbf{Q}} e^{i \mathbf{k} \cdot \mathbf{r}} \\
 & \times u_{c \mathbf{k}+\mathbf{Q} / 2}(\mathbf{R}+\mathbf{r} / 2) u_{v \mathbf{k}-\mathbf{Q} / 2}^{\star}(\mathbf{R}-\mathbf{r} / 2)
-\end{aligned}
-\end{equation}
-$$
-<span style="color:darkgreen">
-How do we make sure that we are in the center of mass reference frame?
-From the paper by Haber it looks like we can start from quantities solved in the $vk-Q$ ref. frame
-</span>.
+\end{align}
+$$ (exc-wf-periodic)
 
 # References
 
