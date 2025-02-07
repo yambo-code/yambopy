@@ -127,6 +127,11 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
         print("Harmonic analysis works only with a single field, please use sum_frequency.py functions")
         sys.exit(0)
 
+    if l_eval_current:
+        print("Current is present: conducibilities will not be calculated ")
+    else:
+        print("Current is not present: conducibilities will not be calculated ")
+
     print(f"Number of runs: {n_runs}")
 
     W_step = min(freqs)
@@ -147,10 +152,18 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
     T_range_initial = np.copy(T_range)
         
     M_size = 2*X_order + 1  # Positive and negative components plut the zero
+    # Polarization response
     X_effective       =np.zeros((X_order+1,n_runs,3),dtype=np.cdouble)
     Susceptibility    =np.zeros((X_order+1,n_runs,3),dtype=np.cdouble)
-    Sampling          =np.zeros((M_size, 2,n_runs,3),dtype=np.double)    
+    SamplingP         =np.zeros((M_size, 2,n_runs,3),dtype=np.double)    
     Harmonic_Frequency=np.zeros((X_order+1,n_runs),dtype=np.double)
+
+    # Current response
+    if l_eval_current:
+        Sigma_effective       =np.zeros((X_order+1,n_runs,3),dtype=np.cdouble)
+        Conducibility         =np.zeros((X_order+1,n_runs,3),dtype=np.cdouble)
+        SamplingJ             =np.zeros((M_size, 2,n_runs,3),dtype=np.double)
+
 
     # Generate multiples of each frequency
     for i_order in range(X_order+1):
@@ -175,18 +188,33 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             print(f"WARNING! Time range out of bounds for frequency: {Harmonic_Frequency[1, i_f] * ha2ev:.3e} [eV]")
 
         for i_d in range(3):
-            X_effective[:, i_f, i_d], Sampling[:, :, i_f, i_d] = Coefficients_Inversion(
+            X_effective[:, i_f, i_d], SamplingP[:, :, i_f, i_d] = Coefficients_Inversion(
                 X_order + 1, X_order + 1, polarization[i_f][i_d, :],
                 Harmonic_Frequency[:, i_f], T_period, T_range, T_step, efield, INV_MODE
             )
+        if l_eval_current:
+            for i_d in range(3):
+                Sigma_effective[:,i_f,i_d],SamplingJ[:,:,i_f,i_d] = Coefficents_Inversion(
+                    X_order+1, X_order+1, current[i_f][i_d,:],
+                    Harmonic_Frequency[:,i_f],T_period,T_range,T_step,efield,INV_MODE
+                )
     # Calculate susceptibilities
     for i_order in range(X_order + 1):
         for i_f in range(n_runs):
             if i_order == 1:
                 Susceptibility[i_order, i_f, 0] = 4.0 * np.pi * np.dot(efield['versor'], X_effective[i_order, i_f, :])
+                if l_eval_current:
+                    Conducibility[i_order,i_f,0]= 4.0*np.pi*np.dot(efield['versor'][:],Sigma_effective[i_order,i_f,:])
             else:
                 Susceptibility[i_order, i_f, :] = X_effective[i_order, i_f, :]
+                if l_eval_current:
+                    Conducibility[i_order,i_f,:] = Sigma_effective[i_order, i_f, :]
+
             Susceptibility[i_order, i_f, :] *= Divide_by_the_Field(nldb.Efield[i_f], i_order)
+            if l_eval_current:
+                Conducibility[i_order,i_f,:] *=Divide_by_the_Field(nldb.Efield[i_f],i_order)
+
+
 
     if nldb.calc != 'SAVE':
         prefix = f'-{nldb.calc}'
@@ -204,6 +232,15 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
                     freq_term = np.exp(-1j * i_order * freqs[i_f] * time)
                     Peff[i_f, i_d, :] += X_effective[i_order, i_f, i_d] * freq_term
                     Peff[i_f, i_d, :] += np.conj(X_effective[i_order, i_f, i_d]) * np.conj(freq_term)
+        if l_eval_current:
+            print("Reconstruct effective current...")
+            Jeff = np.zeros((n_runs, 3, len(time)), dtype=np.cdouble)
+            for i_f in tqdm(range(n_runs)):
+                for i_d in range(3):
+                    for i_order in range(X_order + 1):
+                        freq_term = np.exp(-1j * i_order * freqs[i_f] * time)
+                        Jeff[i_f, i_d, :] += Sigma_effective[i_order, i_f, i_d] * freq_term
+                        Jeff[i_f, i_d, :] += np.conj(Sigma_effective[i_order, i_f, i_d]) * np.conj(freq_term)
 
         print("Print effective polarizations...")
         for i_f in tqdm(range(n_runs)):
@@ -211,10 +248,20 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             output_file = f'o{prefix}.YamboPy-pol_reconstructed_F{i_f + 1}'
             np.savetxt(output_file, values, header="[fs] Px Py Pz", delimiter=' ', footer="Reconstructed polarization")
 
+        if l_eval_current:
+            print("Print effective polarizations...")
+            for i_f in tqdm(range(n_runs)):
+                values = np.column_stack((time / fs2aut, Jeff[i_f, 0, :].real, Jeff[i_f, 1, :].real, Jeff[i_f, 2, :].real))
+                output_file = f'o{prefix}.YamboPy-curr_reconstructed_F{i_f + 1}'
+                np.savetxt(output_file, values, header="[fs] Jx Jy Jz", delimiter=' ', footer="Reconstructed current")
 
     #Units of measure rescaling
     for i_order in range(X_order+1):
         Susceptibility[i_order,:,:]*=get_Unit_of_Measure(i_order)
+
+    if l_eval_current:
+        for i_order in range(X_order+1):
+            Conducibility[i_order,:,:]*=get_Unit_of_Measure(i_order)
     
     # Write final results
     if prn_Xhi:
@@ -225,9 +272,22 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             values = np.column_stack((freqs * ha2ev, Susceptibility[i_order, :, 0].imag, Susceptibility[i_order, :, 0].real,
                                       Susceptibility[i_order, :, 1].imag, Susceptibility[i_order, :, 1].real,
                                       Susceptibility[i_order, :, 2].imag, Susceptibility[i_order, :, 2].real))
-            np.savetxt(output_file, values, header=header, delimiter=' ', footer="Harmonic analysis results")
+            np.savetxt(output_file, values, header=header, delimiter=' ', footer="Polarization Harmonic analysis results")
+        if l_eval_current:
+            print("Write final results: sigma^1, sigma^2, sigma^3, etc...")
+            for i_order in range(X_order + 1):
+                output_file = f'o{prefix}.YamboPy-Sigma_probe_order_{i_order}'
+                header = "[eV] " + " ".join([f"S/Im(z){i_order} S/Re(z){i_order}" for _ in range(3)])
+                values = np.column_stack((freqs * ha2ev, Conducibility[i_order, :, 0].imag, Conducibility[i_order, :, 0].real,
+                                      Conducibility[i_order, :, 1].imag, Conducibility[i_order, :, 1].real,
+                                      Conducibility[i_order, :, 2].imag, Conducibility[i_order, :, 2].real))
+                np.savetxt(output_file, values, header=header, delimiter=' ', footer="Current Harmonic analysis results")
+
     else:
-        return freqs, Susceptibility
+        if l_eval_current:
+            return freqs, Susceptibility, Conducibility
+        else:
+            return freqs, Susceptibility
 
 
 def get_Unit_of_Measure(i_order):
