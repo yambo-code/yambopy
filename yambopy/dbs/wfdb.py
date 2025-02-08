@@ -518,7 +518,7 @@ class YamboWFDB:
         if getattr(self, 'wf_bz', None) is None: expand_wf_present = False
         ##
         ## Check if already computed for SAVE symetries 
-        dmat_save = getattr(self, 'Dmat', None)
+        dmat_save = getattr(self, 'save_Dmat', None)
         #
         #
         is_save_symm = False
@@ -572,7 +572,7 @@ class YamboWFDB:
         #
         Dmat = np.array(Dmat).reshape(self.nkBZ, nsym, self.nspin, self.nbands, self.nbands).transpose(1,0,2,3,4)
         #
-        if is_save_symm: self.Dmat = Dmat
+        if is_save_symm: self.save_Dmat = Dmat
         #
         return Dmat
 
