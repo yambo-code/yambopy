@@ -106,7 +106,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
     Returns:
         tuple: Frequencies, susceptibilities and conducibilities if prn_Xhi is False.
     """
-    # Time serie
+    # Time series
     time = nldb.IO_TIME_points
     # Time step of the simulation
     T_step = time[1] - time[0]
@@ -135,17 +135,13 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
         print("Harmonic analysis works only with a single field, please use sum_frequency.py functions")
         sys.exit(0)
 
-    if l_eval_current:
-        print("Current is present: conducibilities will not be calculated ")
-    else:
-        print("Current is not present: conducibilities will not be calculated ")
-
+    
+    print(f"Current is {'present' if l_eval_current else 'not present'}: conducibilities will {'not' if l_eval_current else ''} be calculated")
     print(f"Number of runs: {n_runs}")
 
     #Max and minimun frequencies
     W_step = min(freqs)
     max_W = max(freqs)
-    
     print(f"Minimum frequency: {W_step * ha2ev:.3e} [eV]")
     print(f"Maximum frequency: {max_W * ha2ev:.3e} [eV]")
 
@@ -160,19 +156,18 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
     print(f"Time range: {T_range[0] / fs2aut:.3f} - {T_range[1] / fs2aut:.3f} [fs]")
     T_range_initial = np.copy(T_range)
         
-    M_size = 2*X_order + 1  # Positive and negative components plut the zero
+    M_size = 2 * X_order + 1  # Positive and negative components plut the zero
     # Polarization response
-    X_effective       =np.zeros((X_order+1,n_runs,3),dtype=np.cdouble)
-    Susceptibility    =np.zeros((X_order+1,n_runs,3),dtype=np.cdouble)
-    SamplingP         =np.zeros((M_size, 2,n_runs,3),dtype=np.double)    
-    Harmonic_Frequency=np.zeros((X_order+1,n_runs),dtype=np.double)
+    X_effective = np.zeros((X_order + 1, n_runs, 3), dtype=np.cdouble)
+    Susceptibility = np.zeros((X_order + 1, n_runs, 3), dtype=np.cdouble)
+    SamplingP = np.zeros((M_size, 2, n_runs, 3), dtype=np.double)
+    Harmonic_Frequency = np.zeros((X_order + 1, n_runs), dtype=np.double)
 
     # Current response
     if l_eval_current:
-        Sigma_effective       =np.zeros((X_order+1,n_runs,3),dtype=np.cdouble)
-        Conducibility         =np.zeros((X_order+1,n_runs,3),dtype=np.cdouble)
-        SamplingJ             =np.zeros((M_size, 2,n_runs,3),dtype=np.double)
-
+        Sigma_effective = np.zeros((X_order + 1, n_runs, 3), dtype=np.cdouble)
+        Conducibility = np.zeros((X_order + 1, n_runs, 3), dtype=np.cdouble)
+        SamplingJ = np.zeros((M_size, 2, n_runs, 3), dtype=np.double)
 
     # Generate multiples of each frequency
     for i_order in range(X_order+1):
@@ -182,7 +177,6 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
     loop_on_frequencies = nldb.n_frequencies != 0
 
     if loop_on_angles:
-        angles = np.linspace(0, 360, n_runs, endpoint=False)
         print("Loop on angles...")
 
     if loop_on_frequencies:
@@ -224,12 +218,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
                 Conducibility[i_order,i_f,:] *=Divide_by_the_Field(nldb.Efield[i_f],i_order)
 
 
-
-    if nldb.calc != 'SAVE':
-        prefix = f'-{nldb.calc}'
-    else:
-        prefix = ''
-
+    prefix = f'-{nldb.calc}' if nldb.calc != 'SAVE' else ''
 
     # Reconstruct effective polarization
     if prn_Peff:
@@ -258,7 +247,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             np.savetxt(output_file, values, header="[fs] Px Py Pz", delimiter=' ', footer="Reconstructed polarization")
 
         if l_eval_current:
-            print("Print effective polarizations...")
+            print("Print effective currents...")
             for i_f in tqdm(range(n_runs)):
                 values = np.column_stack((time / fs2aut, Jeff[i_f, 0, :].real, Jeff[i_f, 1, :].real, Jeff[i_f, 2, :].real))
                 output_file = f'o{prefix}.YamboPy-curr_reconstructed_F{i_f + 1}'
@@ -267,9 +256,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
     #Units of measure rescaling
     for i_order in range(X_order+1):
         Susceptibility[i_order,:,:]*=get_Unit_of_Measure(i_order)
-
-    if l_eval_current:
-        for i_order in range(X_order+1):
+        if l_eval_current:
             Conducibility[i_order,:,:]*=get_Unit_of_Measure(i_order)
     
     # Write final results
@@ -293,10 +280,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
                 np.savetxt(output_file, values, header=header, delimiter=' ', footer="Current Harmonic analysis results")
 
     else:
-        if l_eval_current:
-            return freqs, Susceptibility, Conducibility
-        else:
-            return freqs, Susceptibility
+        return (freqs, Susceptibility, Conducibility) if l_eval_current else (freqs, Susceptibility)
 
 
 def get_Unit_of_Measure(i_order):
