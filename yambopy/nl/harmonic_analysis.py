@@ -104,15 +104,23 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
         prn_Xhi (bool): Print susceptibilities if True.
 
     Returns:
-        tuple: Frequencies and susceptibilities if prn_Xhi is False.
+        tuple: Frequencies, susceptibilities and conducibilities if prn_Xhi is False.
     """
-        # Time series and step
+    # Time serie
     time = nldb.IO_TIME_points
+    # Time step of the simulation
     T_step = time[1] - time[0]
+    # External field of the first run
     efield = nldb.Efield[0]
+    # Numer of exteanl laser frequencies
     n_runs = len(nldb.Polarization)
+    # Array of polarizations for each laser frequency
     polarization = nldb.Polarization
-
+    # Array of currents for each laser frequency
+    current     =nldb.Current
+    # check if current has been calculated
+    l_eval_current=nldb.l_eval_CURRENT
+    # Harmonic frequencies
     freqs = np.array([efield["freq_range"][0] for efield in nldb.Efield], dtype=np.double)
 
     print("\n* * * Harmonic analysis * * *\n")
@@ -134,6 +142,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
 
     print(f"Number of runs: {n_runs}")
 
+    #Max and minimun frequencies
     W_step = min(freqs)
     max_W = max(freqs)
     
