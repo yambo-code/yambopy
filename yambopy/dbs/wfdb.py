@@ -514,7 +514,8 @@ class YamboWFDB:
         ## isym >= len(symm_mat)/(1+int(time_rev)) must be timereversal symmetries
         ## X -> Rx + tau, R matrices are given in symm_mat, tau are frac_vec, time_rev is bool
         ## (nsym, nk, nspin, Rk_bnd, k_bnd)
-        if getattr(self, 'wf_bz', None) is None: self.expand_fullBZ()
+        expand_wf_present = True
+        if getattr(self, 'wf_bz', None) is None: expand_wf_present = False
         ##
         ## Check if already computed for SAVE symetries 
         dmat_save = getattr(self, 'Dmat', None)
@@ -535,13 +536,21 @@ class YamboWFDB:
         ktree = build_ktree(self.kBZ)
         Dmat = []
         nsym = len(symm_mat)
+        kpt_idx = self.ydb.kpoints_indexes
+        sym_idx = self.ydb.symmetry_indexes
         #
         assert nsym == len(frac_vec), "The number for frac translation must be same as Rotation matrices"
         for ik in tqdm(range(self.nkBZ), desc="Dmat"):
-            #
-            wfc_k, gvec_k = self.get_BZ_wf(ik)
-            kvec = self.get_BZ_kpt(ik)
-            #
+            # IN case the wfc are already expanded, load them
+            if expand_wf_present:
+                wfc_k, gvec_k = self.get_BZ_wf(ik)
+                kvec = self.get_BZ_kpt(ik)
+            else:
+                ## else rotate them
+                ixk = kpt_idx[ik]
+                isk = sym_idx[ik]
+                kvec, wfc_k, gvec_k = self.rotate_wfc(ixk, isk)
+
             for isym in range(nsym):
                 trev = (isym >= nsym/(1+int(time_rev)))
                 #
@@ -550,10 +559,16 @@ class YamboWFDB:
                 Rk, wfc_Rk, gvec_Rk = self.apply_symm(kvec, wfc_k, gvec_k, trev, symm_mat[isym], frac_vec[isym])
                 idx = find_kpt(ktree, Rk)
                 #
-                ## get Rk wfc stored
-                #
-                w_rk, g_rk = self.get_BZ_wf(idx)
-                Dmat.append(wfc_inner_product(self.get_BZ_kpt(idx),w_rk, g_rk, Rk, wfc_Rk, gvec_Rk))
+                ## get Rk wfc 
+                # in case stored
+                if expand_wf_present:
+                    w_rk, g_rk = self.get_BZ_wf(idx)
+                    k_rk = self.get_BZ_kpt(idx)
+                else :
+                    iktmp = kpt_idx[idx]
+                    istmp = sym_idx[idx]
+                    k_rk, w_rk, g_rk = self.rotate_wfc(iktmp, istmp)
+                Dmat.append(wfc_inner_product(k_rk, w_rk, g_rk, Rk, wfc_Rk, gvec_Rk))
         #
         Dmat = np.array(Dmat).reshape(self.nkBZ, nsym, self.nspin, self.nbands, self.nbands).transpose(1,0,2,3,4)
         #
