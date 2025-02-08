@@ -83,6 +83,10 @@ class YamboNLDB(object):
         self.NL_er          = database.variables['NL_er'][:].astype(np.double)
         self.l_force_SndOrd = database.variables['l_force_SndOrd'][0].astype('bool')
         self.l_use_DIPOLES  = database.variables['l_use_DIPOLES'][0].astype('bool')
+        try:
+            self.l_eval_CURRENT = database.variables['l_eval_CURRENT'][0].astype('bool')
+        except:
+            self.l_eval_CURRENT = True
         self.QP_ng_SH       = database.variables['QP_ng_SH'][0].astype('int')
         self.QP_ng_Sx       = database.variables['QP_ng_Sx'][0].astype('int')
         self.RAD_LifeTime   = database.variables['RAD_LifeTime'][0].astype(np.double)
