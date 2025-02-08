@@ -157,6 +157,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
     T_range_initial = np.copy(T_range)
         
     M_size = 2 * X_order + 1  # Positive and negative components plut the zero
+
     # Polarization response
     X_effective = np.zeros((X_order + 1, n_runs, 3), dtype=np.cdouble)
     Susceptibility = np.zeros((X_order + 1, n_runs, 3), dtype=np.cdouble)
