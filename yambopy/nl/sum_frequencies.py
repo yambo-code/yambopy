@@ -257,11 +257,11 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
             Susceptibility[i_order+X_order,i_order2+X_order2,:,:]*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
         else:
             D2=1.0
-        if i_order!=0:
-            D2*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
-        if i_order2!=0:
-            D2*=Divide_by_the_Field(nldb.Efield2[0],abs(i_order2))
-        Susceptibility[i_order+X_order,i_order2+X_order2,:,:]*=D2
+            if i_order!=0:
+                D2*=Divide_by_the_Field(nldb.Efield[0],abs(i_order))
+            if i_order2!=0:
+                D2*=Divide_by_the_Field(nldb.Efield2[0],abs(i_order2))
+            Susceptibility[i_order+X_order,i_order2+X_order2,:,:]*=D2
 
     if nldb.calc!='SAVE':
         prefix='-'+nldb.calc

@@ -3,6 +3,7 @@
 #
 # This file is part of the yambopy project
 #
+# Author: MN
 
 from yambopy import *
 from netCDF4 import Dataset
@@ -20,7 +21,7 @@ try:
     from pykdtree.kdtree import KDTree 
     ## pykdtree is much faster and is recommanded
     ## pip install pykdtree
-    ## usefull in Dmat computation
+    ## useful in Dmat computation
 except ImportError as e:
     from scipy.spatial import KDTree
 from yambopy.kpoints import build_ktree, find_kpt
@@ -28,6 +29,27 @@ from yambopy.kpoints import build_ktree, find_kpt
 class YamboWFDB:
     """
     A class to load and manipulate wavefunctions from Yambo (ns.wf).
+
+    Example usage:
+
+    ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+        import numpy as np
+        from yambopy.dbs import wfdb
+        from yambopy.dbs.latticedb import YamboLatticeDB
+        from netCDF4 import Dataset
+
+        np.set_printoptions(suppress=True)
+
+        abc = wfdb.YamboWFDB(path='.', bands_range = [5,10])
+
+        abc.expand_fullBZ() ## expand wfcs to full BZ
+
+        abc.write2cube(ik=2,ib=2) ## write electronic wfc to .cube for visualization
+
+        print(abc.get_spin_projections(ik = 2,ib= 0)) ## get spin projection for SOC systems
+
+        Dmat = abc.Dmat() ## compute phase matrices for SAVE symmetries
+    ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     Attributes:
         path (str): Path to the directory containing the wavefunction files.
