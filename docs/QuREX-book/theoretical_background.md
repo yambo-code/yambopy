@@ -17,6 +17,39 @@ The description of excitonic effect requires constructing and solving the two-pa
 The many body kernel account for the direct and exchange Coulomb interaction, screened by the dielectric environment. The computation of the dielectric screening function from first-principles is computational expensive in terms of memory and computing time. Approaches, based on model dielectric functions and Coulomb potentials, have been employed in the literature but we find out to fail for the description of complex systems such as 2D van der Waals (vDW) transition metal dichalcogenides heterostructures (TMDs HS).
 In this manuscript, we review the theoretical framework of maximally localized exciton Wannier functions (MLXWF) and describe the implementation done in the [yambopy Python library](https://github.com/rreho/yambopy). Our method allows to build and solve the ${H_{2p}}$ via model Coulomb potentials or extracting the many body kernel ${K}$ from first-principles. 
 
+# Gauge issues in Non Linear Optical Responses
+In the study of NLOR the long-range wavelength limit is assumed. This implies that the spatial dependence of the radiation electric field is neglected.
+Hence, one has to deal with two representation of the radiation field {cite}`ventura2017gauge`:
+
+1) Velocity gauge or vector potential approach
+$$
+\mathbf{E}(t) = -\frac{\partial \mathbf{A}}{\partial t} 
+$$ (eq:vel-gauge)
+  - ✅ keeps crystal translational symmetry
+  - ❌ plenty of numerical divergencies that have been shown to be 0
+
+2) Length gauge
+$$
+V(r) = e\mathbf{E}(t)\cdot\mathbf{r}
+$$ (eq:length-gauge)
+  - ❌ breaks crystal translational symmetry
+  - ✅ no numerical divergencies and used in actual calculation
+
+The two gauges are related by unitary transformation $\mathcal{U}(t)$:
+
+$$
+\mathcal{U}(t)=\exp \left[i \frac{e}{\hbar} \int d^d \mathbf{r} \mathbf{A}(t) \cdot \mathbf{r} \rho(\mathbf{r})\right],
+$$ (eq:Uvel-lengthgauge)
+
+whcih can be used to go from vector/velocity $A$ to length/dipole $E$ gauges
+$$
+\mathcal{U}(t) H_A(t) \mathcal{U}^{\dagger}(t)+i \hbar \frac{d \mathcal{U}(t)}{d t} \mathcal{U}^{\dagger}(t)=H_E(t)
+$$
+
+$$
+O_E:=\mathcal{U}(t) O_A(t) \mathcal{U}^{\dagger}(t)
+$$
+
 # References
 
 ```{bibliography}
