@@ -198,6 +198,7 @@ class LetzElphElectronPhononDB():
                 close_file = True
                 database = Dataset(self.filename,'r')
             eph_mat = database['elph_mat'][iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd, :].data
+            # ( nk, nm, nspin, initial bnd, final bnd)
             ph_eigs = database['POLARIZATION_VECTORS'][iq,...].data
             eph_mat = eph_mat[...,0] + 1j*eph_mat[...,1]
             ph_eigs = ph_eigs[...,0] + 1j*ph_eigs[...,1]

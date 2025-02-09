@@ -28,7 +28,8 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     Ak : array_like
         Wavefunction coefficients for k (ket wfc) with shape (n_exe_states, nk, nc, nv).
     Omn : array_like
-        Matrix elements of the operator O in the basis of electronic states with shape (nlambda, nk, nm, nn).
+        Matrix elements of the operator O in the basis of electronic states with shape (nlambda, nk, m_bnd, n_bnd).
+        ie Omn = < k+q, m | O(q) | n, k>, where m_bnd and n_bnd are initial and final bands.
     kpts : array_like
         K-points used to construct the BSE with shape (nk, 3).
     contribution : str, optional
