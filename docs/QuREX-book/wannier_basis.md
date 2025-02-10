@@ -79,8 +79,8 @@ Representation of $\mathbf{x}$ involevs evaluating the following integral
 $$
 \begin{align}
 I_{n^{\prime} \mathbf{k}^{\prime} n \mathbf{k}} & =\int \psi_{n^{\prime} \mathbf{k}^{\prime}}^* \mathbf{x} \psi_{n \mathbf{k}} d^3 \mathbf{x} \nonumber\\
-&=\delta_{n n^{\prime}} \sum_R e^{\left[i\left(\mathbf{k}-\mathbf{k}^{\prime}\right)} \cdot \mathbf{R}\right] \mathbf{R}+ \nonumber \\
-&\sum e^{\left[i\left(\mathbf{k}-\mathbf{k}^{\prime}\right)} \cdot \mathbf{R}\right] \xi_{n^{\prime} n}(\mathbf{k})
+&=\delta_{n n^{\prime}} \sum_R e^{\left[i\left(\mathbf{k}-\mathbf{k}^{\prime}\right) \cdot \mathbf{R}\right]} \mathbf{R}+ \nonumber \\
+&\sum e^{\left[i\left(\mathbf{k}-\mathbf{k}^{\prime}\right) \cdot \mathbf{R}\right]} \xi_{n^{\prime} n}(\mathbf{k})
 \end{align}
 $$ (eq:posrepr1)
 
