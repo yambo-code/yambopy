@@ -476,6 +476,8 @@ class YamboWFDB:
         self.wf_bz = np.zeros((nkBZ, self.nspin, self.nbands, self.nspinor, self.ng),dtype=self.wf.dtype)
         self.g_bz = 2147483646 + np.zeros((nkBZ,self.ng,3),dtype=int)
         self.kBZ = np.zeros((nkBZ,3))
+        # NM : The reason we want to replace the existing kBZ variable is to make sure we have 
+        # correct rotated kpoint (here they should not differ by a G vector !)
         self.ngBZ = np.zeros(nkBZ,dtype=int)
         for i in tqdm(range(nkBZ), desc="Expanding Wavefunctions full BZ"):
             ik = kpt_idx[i]
@@ -487,6 +489,7 @@ class YamboWFDB:
             self.kBZ[i] = kbz
             self.wf_bz[i][...,:ng_t]  = w_t
             self.g_bz[i][:ng_t,:]  = g_t
+        self.kBZ_wf = self.kBZ ## Saving for sanity purposes. because these kvecs should not differ by G
 
     def get_BZ_kpt(self, ik):
         """
@@ -498,7 +501,8 @@ class YamboWFDB:
         Returns:
             numpy.ndarray: K-point in crystal coordinates.
         """
-        return self.kBZ[ik]
+        kpts_tmp = getattr(self, 'kBZ_wf', self.kBZ)
+        return kpts_tmp[ik]
 
     def get_BZ_wf(self, ik):
         """
@@ -564,6 +568,8 @@ class YamboWFDB:
         assert nsym == len(frac_vec), "The number for frac translation must be same as Rotation matrices"
         for ik in tqdm(range(self.nkBZ), desc="Dmat"):
             # IN case the wfc are already expanded, load them
+            # NM : Be very carefull when dealing with kvectors here, use the correct kvec 
+            # for the wfc (they should not differ by G vector !)
             if expand_wf_present:
                 wfc_k, gvec_k = self.get_BZ_wf(ik)
                 kvec = self.get_BZ_kpt(ik)
