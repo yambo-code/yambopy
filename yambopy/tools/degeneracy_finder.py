@@ -7,7 +7,7 @@ def find_degeneracy_evs(eigenvalues, atol=1e-3, rtol=1e-3):
     Parameters
     ----------
     eigenvalues : array-like
-        A sorted list or array of eigenvalues in increasing order.
+        A list or array of eigenvalues
     atol : float, optional
         Absolute tolerance for degeneracy comparison. Default is 1e-3.
     rtol : float, optional
@@ -25,6 +25,8 @@ def find_degeneracy_evs(eigenvalues, atol=1e-3, rtol=1e-3):
     """
     # Input validation
     eigenvalues = np.asarray(eigenvalues)
+    idx_sorted = np.argsort(eigenvalues)
+    eigenvalues = eigenvalues[idx_sorted]
     if eigenvalues.size == 0:
         raise ValueError("Input eigenvalues must not be empty.")
     if atol < 0 or rtol < 0:
@@ -41,12 +43,12 @@ def find_degeneracy_evs(eigenvalues, atol=1e-3, rtol=1e-3):
     degen_sets = np.split(np.arange(len(eigenvalues)), split_indices + 1)
 
     # Convert numpy arrays to lists for consistency
-    degen_sets = [group for group in degen_sets]
+    degen_sets = [idx_sorted[group] for group in degen_sets]
 
     return degen_sets
 
 
 if __name__ == '__main__':
-    eigenvalues = [1.0, 1.001, 1.002, 2.0, 2.001, 3.0]
+    eigenvalues = [3.0001, 2.99976, 1.99999, 1.0, 1.001, 1.002, 2.0, 2.001, 3.0]
     degen_sets = find_degeneracy_evs(eigenvalues, atol=1e-3, rtol=1e-3)
     print(degen_sets)
