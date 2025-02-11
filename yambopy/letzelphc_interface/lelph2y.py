@@ -50,9 +50,14 @@ class ConvertElectronPhononDB():
         self.get_yambo_header_variables(SAVE_path)
 
         # Get el-ph data from external code
-        match code:
-            case 'lelphc': self.get_elph_variables_LELPHC(OBJ)
-            case _: raise NotImplementedError("Code %s not found or implemented"%code)
+        #
+        # NM : using match will enforce python 3.10. some HPC's still use <= 3.8
+        # Commenting it out until it gets old enough.
+        # match code:
+        #     case 'lelphc': self.get_elph_variables_LELPHC(OBJ)
+        #     case _: raise NotImplementedError("Code %s not found or implemented"%code)
+        if code.strip() == 'lelphc': self.get_elph_variables_LELPHC(OBJ)
+        else: raise NotImplementedError("Code %s not found or implemented"%code)
 
         if not os.path.isdir(OUT_path): os.mkdir(OUT_path)
 
@@ -137,7 +142,8 @@ class ConvertElectronPhononDB():
         dbs.createDimension('D_%010d'%1,1)
         dbs.createDimension('D_%010d'%2,2)
         dbs.createDimension('D_%010d'%4,4)
-        for value in [self.natoms,self.nkpoints_ibz,len_pars,self.nqpoints_bz,self.nk_points_bz]:
+        #
+        for value in [self.natoms,self.nkpoints_ibz,len_pars,self.nqpoints_bz,self.nkpoints_bz]:
             if value not in [1,2,3,4]: 
                 try: dbs.createDimension('D_%010d'%value,value)
                 except RuntimeError: pass # This is when one of the dimensions already exists
