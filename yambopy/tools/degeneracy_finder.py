@@ -23,15 +23,16 @@ def find_degeneracy_evs(eigenvalues, atol=1e-3, rtol=1e-3):
     ValueError
         If `eigenvalues` is empty or not a valid array.
     """
-    # Input validation
     eigenvalues = np.asarray(eigenvalues)
-    idx_sorted = np.argsort(eigenvalues)
-    eigenvalues = eigenvalues[idx_sorted]
+    #
     if eigenvalues.size == 0:
         raise ValueError("Input eigenvalues must not be empty.")
     if atol < 0 or rtol < 0:
         raise ValueError("Tolerances `atol` and `rtol` must be non-negative.")
-
+    #
+    idx_sorted = np.argsort(eigenvalues)
+    eigenvalues = eigenvalues[idx_sorted]
+    #
     # Compute differences between consecutive eigenvalues
     diffs = np.diff(eigenvalues)
     tolerance = atol + rtol * np.abs(eigenvalues[:-1])
