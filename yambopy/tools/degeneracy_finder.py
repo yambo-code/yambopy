@@ -32,23 +32,24 @@ def find_degeneracy_evs(eigenvalues, atol=1e-3, rtol=1e-3):
     
     # Sort eigenvalues and get sorted indices
     idx_sorted = np.argsort(eigenvalues)
-    eigenvalues = eigenvalues[idx_sorted]
+    eigenvalues_sorted = eigenvalues[idx_sorted]
     
     # Compute differences between consecutive eigenvalues
-    diffs = np.diff(eigenvalues)
-    tolerance = atol + rtol * np.abs(eigenvalues[:-1])
+    diffs = np.diff(eigenvalues_sorted)
+    tolerance = atol + rtol * np.abs(eigenvalues_sorted[:-1])
     
     # Identify where the differences exceed the tolerance
     split_indices = np.where(diffs > tolerance)[0]
     
-    # Group indices of degenerate states
-    degen_sets = np.split(idx_sorted, split_indices + 1)
+    # Group indices of degenerate states (in sorted order)
+    degen_sets_sorted = np.split(idx_sorted, split_indices + 1)
     
     # Further split groups based on the mean of the group
-    # NM : This is to ensure that the list is a Arithmetic progression
-    # with d < tol
+    # NM : This is to ensure that in case the sequecence if 
+    # Arthematic progession with d < tol, we make sure that the 
+    # values are within its mean
     final_degen_sets = []
-    for group in degen_sets:
+    for group in degen_sets_sorted:
         if len(group) == 0:
             continue
         group_eigenvalues = eigenvalues[group]
@@ -64,13 +65,13 @@ def find_degeneracy_evs(eigenvalues, atol=1e-3, rtol=1e-3):
                 # Update the mean of the current group incrementally
                 current_mean = (current_mean * (len(current_group) - 1) + group_eigenvalues[i]) / len(current_group)
             else:
-                final_degen_sets.append(current_group)
+                final_degen_sets.append(np.array(current_group))
                 current_group = [group[i]]
                 current_mean = group_eigenvalues[i]
         
         # Append the last group
         if current_group:
-            final_degen_sets.append(current_group)
+            final_degen_sets.append(np.array(current_group))
     
     return final_degen_sets
 
