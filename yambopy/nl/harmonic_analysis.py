@@ -198,7 +198,7 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             )
         if l_eval_current:
             for i_d in range(3):
-                Sigma_effective[:,i_f,i_d],SamplingJ[:,:,i_f,i_d] = Coefficents_Inversion(
+                Sigma_effective[:,i_f,i_d],SamplingJ[:,:,i_f,i_d] = Coefficients_Inversion(
                     X_order+1, X_order+1, current[i_f][i_d,:],
                     Harmonic_Frequency[:,i_f],T_period,T_range,T_step,efield,INV_MODE
                 )
