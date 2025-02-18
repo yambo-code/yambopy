@@ -481,14 +481,15 @@ class PwIn(object):
         Note that you have to set the pbc when using it together with aiida
         """
         from ase import Atoms
+        from yambopy.units import bohr2ang
         symbols =[]
-        positions = []
+        positions = self.atomic_car_pos
 
         for atom in self.atoms:
             symbols.append(atom[0])
-            positions.append(atom[1:][0])
+            # positions.append(atom[1:][0])
 
-        atoms = Atoms(cell=self.cell_parameters, symbols=symbols, positions=positions)
+        atoms = Atoms(cell=self.cell_parameters*bohr2ang, symbols=symbols, positions=positions)
         atoms.set_pbc([True,True,False])
         return atoms
     
