@@ -124,7 +124,9 @@ class YamboNLDB(object):
         if (self.n_angles!=0 and self.n_frequencies!=0):
             print("Error both n_angles and n_frequencies !=0 ")
             sys.exit(0)
-            
+        if (self.n_angles==0 and self.n_frequencies==0):
+            self.n_runs=1
+
         #
         for f in range(self.n_runs):
             try:
