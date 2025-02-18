@@ -65,7 +65,7 @@ def red_car(red,lat):
     """
     Convert reduced coordinates to cartesian
     """
-    return np.einsum('ij,ji->i', red, lat.T)
+    return np.einsum("ij,jk->ik", red, lat)
 
 def car_red(car,lat):
     """
