@@ -86,7 +86,7 @@ class YamboNLDB(object):
         try:
             self.l_eval_CURRENT = database.variables['l_eval_CURRENT'][0].astype('bool')
         except:
-            self.l_eval_CURRENT = True
+            self.l_eval_CURRENT = False
         self.QP_ng_SH       = database.variables['QP_ng_SH'][0].astype('int')
         self.QP_ng_Sx       = database.variables['QP_ng_Sx'][0].astype('int')
         self.RAD_LifeTime   = database.variables['RAD_LifeTime'][0].astype(np.double)

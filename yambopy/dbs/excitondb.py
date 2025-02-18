@@ -1264,9 +1264,9 @@ class YamboExcitonDB(object):
 
         return car_kpoints, amplitudes[kindx], np.angle(phases)[kindx]
 
-    def get_chi(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
+    def get_chi(self,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
         """
-        Calculate the dielectric response function using excitonic states
+        Calculate the BSE dielectric response function
         """
         if nexcitons == 'all': nexcitons = self.nexcitons
 
@@ -1275,54 +1275,36 @@ class YamboExcitonDB(object):
         nenergies = len(w)
         
         if verbose:
-            print("energy range: %lf -> +%lf -> %lf "%(emin,estep,emax))
+            print("energy range: %lf -> +%lf -> %lf eV"%(emin,estep,emax))
             print("energy steps: %lf"%nenergies)
+            print("broadening: %lf eV"%broad)
 
         #initialize the susceptibility intensity
-        chi = np.zeros([len(w)],dtype=np.complex64)
+        chi = np.zeros_like(w,dtype=np.complex64)
 
-        if dipoles is None:
-            #get dipole
-            EL1 = self.l_residual
-            EL2 = self.r_residual
-        else:
-            #calculate exciton-light coupling
-            if verbose: print("calculate exciton-light coupling")
-            EL1,EL2 = self.project1(dipoles.dipoles[:,dir],nexcitons) 
+        # Oscillator strengths (residuals)
+        EL1 = self.l_residual
+        EL2 = self.r_residual
 
-        if isinstance(broad,float): broad = [broad]*nexcitons
-
-        if isinstance(broad,tuple): 
-            broad_slope = broad[1]-broad[0]
+        # Broadening
+        if isinstance(broad, float): # fixed broadening
+            broad = np.full(nexcitons, broad) 
+        elif isinstance(broad, tuple):  # linearly varying broadening
+            broad_slope = broad[1] - broad[0]
             min_exciton = np.min(self.eigenvalues.real)
-            broad = [ broad[0]+(es-min_exciton)*broad_slope for es in self.eigenvalues[:nexcitons].real]
+            broad = broad[0] + (self.eigenvalues[:nexcitons].real - min_exciton) * broad_slope
 
-        if "gaussian" in broad or "lorentzian" in broad:
-            i = broad.find(":")
-            if i != -1:
-                value, eunit = broad[i+1:].split()
-                if eunit == "eV": sigma = float(value)
-                else: raise ValueError('Unknown unit %s'%eunit)
+        # Excitonic states
+        es = self.eigenvalues[:nexcitons, None]  # (nexcitons, 1)
+        broad = broad[:, None]  # (nexcitons, 1)
 
-            f = gaussian if "gaussian" in broad else lorentzian
-            broad = np.zeros([nexcitons])
-            for s in range(nexcitons):
-                es = self.eigenvalues[s].real
-                broad += f(self.eigenvalues.real,es,sigma)
-            broad = 0.1*broad/nexcitons
+        # Resonant and antiresonant GF structure
+        G1 = -1 / (w - es + broad * I)  # (nexcitons, nenergies)
+        G2 = -1 / (-w - es - broad * I)  # (nexcitons, nenergies)
 
-        #iterate over the excitonic states
-        for s in range(nexcitons):
-            #get exciton energy
-            es = self.eigenvalues[s]
- 
-            #calculate the green's functions
-            G1 = -1/(   w - es + broad[s]*I)
-            G2 = -1/( - w - es - broad[s]*I)
-
-            r = EL1[s]*EL2[s]
-            chi += r*G1 + r*G2
-
+        # chi = sum_s [ |R_s|^2/(w-E+i*eta) + |R_s|^2/(-w-E-i*eta) ]
+        chi = np.einsum('s,sn->n', EL1 * EL2, G1 + G2)
+        
         #dimensional factors
         try:
             if not self.Qpt=='1': q0norm = 2*np.pi*np.linalg.norm(self.car_qpoint)
@@ -1427,9 +1409,12 @@ class YamboExcitonDB(object):
         cleanup_vars = ['dipoles','dir','emin','emax','estep','broad',
                         'q0norm','nexcitons','spin_degen','verbose']
         for var in cleanup_vars: kwargs.pop(var,None)
-        if 're' in reim: ax.plot(w,chi.real,**kwargs)
-        if 'im' in reim: ax.plot(w,chi.imag,**kwargs)
-        ax.set_ylabel('$Im(\chi(\omega))$')
+        if 're' in reim: 
+            ax.plot(w,chi.real,**kwargs)
+            ax.set_ylabel('$Re(\epsilon_2(\omega))$')
+        if 'im' in reim:
+            ax.plot(w,chi.imag,**kwargs)
+            ax.set_ylabel('$Im(\epsilon_2(\omega))$')
         ax.set_xlabel('Energy (eV)')
         #plot vertical bar on the brightest excitons
         if n_brightest>-1:
