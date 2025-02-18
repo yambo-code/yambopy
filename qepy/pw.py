@@ -473,7 +473,25 @@ class PwIn(object):
         for atype,x,y,z in atoms_str:
             atoms.append([atype,list(map(float,[x,y,z]))])
         self.atoms = atoms
+    
+    @property
+    def get_ase(self):
+        """
+        Get the Atoms object of ase, which is usefull for instance when wanting to write xsf
+        Note that you have to set the pbc when using it together with aiida
+        """
+        from ase import Atoms
+        symbols =[]
+        positions = []
 
+        for atom in self.atoms:
+            symbols.append(atom[0])
+            positions.append(atom[1:][0])
+
+        atoms = Atoms(cell=self.cell_parameters, symbols=symbols, positions=positions)
+        atoms.set_pbc([True,True,False])
+        return atoms
+    
     def set_atoms_ase(self,atoms):
         """ set the atomic postions using a Atoms datastructure from ase
         """
@@ -551,6 +569,11 @@ class PwIn(object):
                 UeV = float(line.strip().split()[2])
                 self.Uvalues.append([ orbital, UeV  ])
 
+    @property
+    def lat(self):
+        lat = np.array(self.cell_parameters)
+        return lat
+    
     @property
     def alat(self):
         if self.ibrav == 0:
