@@ -13,6 +13,7 @@ from qepy import qepyenv
 from .pseudo import get_pseudo_path
 from .tools import fortran_bool
 from .lattice import red_car, car_red
+from .units import bohr2ang
 
 class PwIn(object):
     """
@@ -228,12 +229,11 @@ class PwIn(object):
         else:
             red_atoms = []
             for atype,apos in atoms:
-                red_atoms.append( [atype,car_red([apos],self.cell_parameters)[0]] )
+                red_atoms.append( [atype,car_red([apos],np.array(self.cell_parameters)*bohr2ang)[0]] )
             self._atoms = red_atoms 
 
 
     def get_atoms(self, units=None):
-        from .units     import ang2au,au2ang
         from .lattice   import red_car,car_red
 
         atoms_arr= np.array([atom[1] for atom in self.atoms])   #atom[0] is the atomic symbol; atom[1] is the 3 coord list
@@ -244,7 +244,7 @@ class PwIn(object):
 
         scale_in =1.0
         if self.atomic_pos_type == "angstrom":
-            scale_in = ang2au
+            scale_in = 1/bohr2ang
         elif self.atomic_pos_type == "alat":
             if self.system['celldm(1)'] == None:
                 scale_in=np.linalg.norm(self.cell_parameters[0])
@@ -262,7 +262,7 @@ class PwIn(object):
             else:
                 scale_out=1.0/float(self.system['celldm(1)'])
         elif units == "angstrom":
-            scale_out=au2ang
+            scale_out=bohr2ang
         elif units == "crystal":
             atoms_arr = car_red(atoms, np.array(self.cell_parameters))
 
@@ -476,10 +476,11 @@ class PwIn(object):
 
     def set_atoms_ase(self,atoms):
         """ set the atomic postions using a Atoms datastructure from ase
+        Atoms datastructure is defined in units of angstrom
         """
         # we will write down the cell parameters explicitly
         self.ibrav = 0
-        self.cell_parameters = atoms.get_cell()
+        self.cell_parameters = atoms.get_cell()*1/bohr2ang
         self.atoms = list(zip(atoms.get_chemical_symbols(),atoms.get_scaled_positions()))
 
     def displace(self,cart_mode,displacement,masses=None):
@@ -512,7 +513,7 @@ class PwIn(object):
         pos = []
         for i in range(self.natoms):
             red_pos = self.atoms[i][1]
-            pos.append(red_car([red_pos],self.cell_parameters)[0])
+            pos.append(red_car([red_pos],np.array(self.cell_parameters)*bohr2ang)[0])
         return pos
 
     @property
@@ -560,6 +561,7 @@ class PwIn(object):
 
     @property
     def cell_parameters(self):
+        "In units of Bohr"
         if self.ibrav == 0:
             return self._cell_parameters
         elif self.ibrav == 1:
