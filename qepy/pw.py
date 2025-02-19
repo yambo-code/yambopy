@@ -483,13 +483,13 @@ class PwIn(object):
         from ase import Atoms
         from yambopy.units import bohr2ang
         symbols =[]
-        positions = self.atomic_car_pos
+        positions = np.array(self.atomic_car_pos)
 
         for atom in self.atoms:
             symbols.append(atom[0])
             # positions.append(atom[1:][0])
 
-        atoms = Atoms(cell=self.cell_parameters*bohr2ang, symbols=symbols, positions=positions)
+        atoms = Atoms(cell=self.cell_parameters*bohr2ang, symbols=symbols, positions=positions*bohr2ang)
         atoms.set_pbc([True,True,False])
         return atoms
     
