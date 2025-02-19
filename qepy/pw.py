@@ -692,7 +692,7 @@ class PwIn(object):
         """
         Save the variables specified in each of the groups on the structure
         """
-        group_regexp = '([a-zA-Z_0-9_\(\)]+)(?:\s+)?=(?:\s+)?([a-zA-Z\'"0-9_.+-]+)' 
+        group_regexp = '([a-zA-Z_0-9_\(\)]+)(?:\s+)?=(?:\s+)?([a-zA-Z\/\'"0-9_.+-]+)' 
         for file_slice in self.slicefile(name):
             for keyword, value in re.findall(group_regexp,file_slice):
                 group[keyword.strip()]=value.strip()
