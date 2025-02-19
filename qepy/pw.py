@@ -87,7 +87,9 @@ class PwIn(object):
         new = cls()
 
         with open(filename,"r") as f:
-            new.file_lines = f.readlines() #set file lines
+            file_lines = f.readlines() #set file lines
+            filtered_lines = [line for line in file_lines if not line.lstrip().startswith('!')]
+            new.file_lines = filtered_lines
             new.store(new.control,"control")     #read &control
             new.store(new.system,"system")      #read &system
             new.store(new.electrons,"electrons")   #read &electrons
@@ -514,7 +516,7 @@ class PwIn(object):
         for i in range(self.natoms):
             red_pos = self.atoms[i][1]
             pos.append(red_car([red_pos],np.array(self.cell_parameters))[0])
-        return pos
+        return np.array(pos)
 
     @property
     def atoms(self):
