@@ -229,7 +229,7 @@ class PwIn(object):
         else:
             red_atoms = []
             for atype,apos in atoms:
-                red_atoms.append( [atype,car_red([apos],np.array(self.cell_parameters)*bohr2ang)[0]] )
+                red_atoms.append( [atype,car_red([apos],np.array(self.cell_parameters))[0]] )
             self._atoms = red_atoms 
 
 
@@ -513,7 +513,7 @@ class PwIn(object):
         pos = []
         for i in range(self.natoms):
             red_pos = self.atoms[i][1]
-            pos.append(red_car([red_pos],np.array(self.cell_parameters)*bohr2ang)[0])
+            pos.append(red_car([red_pos],np.array(self.cell_parameters))[0])
         return pos
 
     @property
