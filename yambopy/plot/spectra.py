@@ -58,7 +58,7 @@ def get_spectra(energies,constant=1.,weights=None,residuals=None,broadening=0.01
         energy_poles = w[None, None, :] - energies[:, :, None]
 
         # Compute the DOS / spectral function
-        D = constant*np.einsum('k,kn,knw->w', weights, residuals, broadening / (energy_poles**2 + broadening**2))  
+        D = constant*np.einsum('k,kn,knw->w', weights, residuals, broadening / (energy_poles**2 + broadening**2), optimize=True)  
 
     # Case of the q=0 BSE absorption spectrum 
     else:
@@ -70,6 +70,6 @@ def get_spectra(energies,constant=1.,weights=None,residuals=None,broadening=0.01
         energy_poles = w[None, :] - energies[:, None]
 
         # Compute the DOS / spectral function
-        D = constant*np.einsum('n,n,nw->w', weights, residuals, broadening / (energy_poles**2 + broadening**2))
+        D = constant*np.einsum('n,n,nw->w', weights, residuals, broadening / (energy_poles**2 + broadening**2),optimize=True)
 
     return w,D

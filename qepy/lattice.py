@@ -23,12 +23,31 @@ def calculate_distances(kpoints):
 
 class Path(object):
     """ Class that defines a path in the brillouin zone
+       
+        Input format:
+        :: Path(klist,intervals)
+
+        :: klist = [ [[ k1_x, k1_y, k1_z ], 'K1_label'],
+                        ...                 ...
+                     [[ kN_x, kN_y, kN_z ], 'KN_label'] ]
+        
+        :: intervals = [ n_steps_1, n_steps_2, ... , n_steps_N-1 ]
+
+        NB: interval steps are the number of kpoints along each high-symmetry direction, must be provided but is USED ONLY FOR INTERPOLATIONS
     """
     def __init__(self,klist,intervals):
         """
         Generation of a path in reciprocal space by specifying a list of k-points
         """
+
         self.intervals = intervals
+        if len(intervals)>len(klist)-1:
+            print(f"[WARNING] number of intervals is {len(intervals)}, should be {len(klist)-1} (no. of path lines). Taking the first {len(klist)-1} intervals.")
+            self.intervals = intervals[:len(klist)-1]
+        if len(intervals)<len(klist)-1:
+            Nsteps=20
+            print(f"[WARNING] number of intervals (path lines) inconsistent with special points specified, using default of {Nsteps} steps per direction")
+            self.intervals = [ Nsteps for ik in range(len(klist)-1) ]
 
         klabels = []
         kpoints = []
