@@ -231,6 +231,7 @@ class YambopyBandStructure():
 
         # I choose a colormap for spin
         color_map  = plt.get_cmap('seismic')
+
         x = self.distances
         y = self.bands.T-fermie
         for ib,band in enumerate(self.bands.T):
@@ -238,17 +239,10 @@ class YambopyBandStructure():
             y = band-fermie
             ax.plot(x,y,c=c_bands,lw=lw_label,marker=marker,linestyle=linestyle,label=label if ib == 0 else "_nolegend_")
             # fill between 
-            if self.weights is not None: # and self.spin_proj is not None:
-                dy = self.weights[:,ib]*size
-                #color_spin = self.spin_proj[:,ib] + 0.5 # I renormalize 0 => down; 1 => up
-                ax.fill_between(x,y+dy,y-dy,alpha=alpha_weights,color=c_weights,linewidth=0,label=label)
-                #ax.scatter(x,y,s=100,c=color_spin,cmap=color_map,vmin=0.0,vmax=1.0,edgecolors='none')
-            # dot
-            #if self.weights is not None:
-            #    plt.plot(x,y)#,c=c_weights,size=dy,alpha=alpha_weights)
-            #    ax.scatter(x,y,c=c_weights,size=dy,alpha=alpha_weights)
+            if self.weights is not None:
 
-            #kwargs.pop('label',None)
+                dy = self.weights[:,ib]*size
+                ax.fill_between(x,y+dy,y-dy,alpha=alpha_weights,color=c_weights,linewidth=0,label=label)
 
         self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=ylim)
         ax.set_ylabel(ylabel)
@@ -259,38 +253,30 @@ class YambopyBandStructure():
         """Receive an intance of matplotlib axes and add the plot"""
         #
         # There is a problem with the number of points in the k-poitns path
-        #
         import matplotlib.pyplot as plt
-        #from pylab import *
         kwargs = self.get_kwargs(**kwargs)
         fermie = kwargs.pop('fermie',self.fermie)
-        size = kwargs.pop('size',1)
 
-        # Set color bands and weights
-        c_bands   = kwargs.pop('color_bands',None)
+        # Set kwargs
+        c_bands   = kwargs.pop('c_bands',None)
         c_weights = kwargs.pop('c_weights',None)
-        c_label   = kwargs.pop('c_label',None)
+        label   = kwargs.pop('label',None)
+        lw_label  = kwargs.pop('lw_label',None)
+        marker = kwargs.pop('marker',None)
+        linestyle = kwargs.pop('linestyle',None)
         n_valence = kwargs.pop('n_valence',None)
         weight_option = kwargs.pop('weight_option',None)
-
-        # Add option to plot lines or dots
-        #linetype
-        #dot symbol
 
         # I choose a colormap for spin
         color_map  = plt.get_cmap('PiYG')
 
+        x = self.distances
+        y = self.bands.T-fermie
         nk_distance = len(self.distances)
         for ib,band in enumerate(self.bands.T):
             x = self.distances
             y = band-fermie
-            ax.plot(x,y,color=c_bands,**kwargs,zorder=1)
-
-            # fill between
-#            if self.weights is not None:
-#               dy = self.weights[:,ib]*size
-#               color_spin = color_map(spin_proj_bands[:,n_valence + ib] + 0.5) # I renormalize 0 => down; 1 => up
-#               ax.fill_between(x,y+dy,y-dy,alpha=alpha_weights,color=color_spin,linewidth=0,label=c_label)
+            ax.plot(x,y,c=c_bands,lw=lw_label,marker=marker,linestyle=linestyle,label=label if ib == 0 else "_nolegend_")
 
             # dot
             if self.weights is not None:
@@ -298,15 +284,10 @@ class YambopyBandStructure():
                color_spin = spin_proj_bands[:,n_valence + ib] + 0.5 # I renormalize 0 => down; 1 => up
                ax.scatter(x,y,s=abs(dy),c=color_spin,cmap=color_map,edgecolors='none',zorder=2,rasterized=True) 
 
-            kwargs.pop('label',None)
-
-
         self.set_ax_lim(ax,fermie=fermie,xlim=xlim,ylim=ylim)
         ax.set_ylabel(ylabel)
         self.add_kpath_labels(ax)
         if legend: ax.legend()
-
-
 
     def __add__(self,y):
         """Add the bands of two systems together"""
