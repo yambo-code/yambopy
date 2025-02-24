@@ -12,8 +12,8 @@ Calculate gauge-invariant electron-phonon matrix elements with LetzElPhC and con
 - Input parameters:
 	-ph           : path to ph.x input file, e.g. dvscf/ph.in
 	-b            : initial and final band indices (counting from 1)
-    -par [OPT]    : MPI pools for q and k (needs mpirun)
-    --kernel [OPT]: e-ph kernel type, default 'dfpt'
+	-par [OPT]    : MPI pools for q and k (needs mpirun)
+	--kernel [OPT]: e-ph kernel type, default 'dfpt'
 	--lelphc [OPT]: path to lelphc executable, default 'lelphc', code will prompt
 	--debug [OPT] : won't remove LetzElPhC input and outputs
  
@@ -70,13 +70,13 @@ def checks(phinp,lelphc,bands,kernel,pools):
 			print("[WARNING] mpirun not found, running in serial") 
 			pools = [1,1]
 
-    ## check band indices
+	## check band indices
 	try: assert(int(bands[0])<int(bands[1]))
 	except: raise ValueError("[ERROR] band indices must be integers with b1<b2")
 
-    ## check kernel type
-    if kernel is not in ['dfpt','bare','dfpt_local','bare_local']:
-        raise ValueError(f"[ERROR] Unrecognized kernel type {kernel}")
+	## check kernel type
+	if kernel not in ['dfpt','bare','dfpt_local','bare_local']:
+		raise ValueError(f"[ERROR] Unrecognized kernel type {kernel}")
 
 	## lelphc input file
 	inp_lelphc = get_input(bands,kernel,pools,path_ph)
@@ -151,7 +151,7 @@ if __name__=="__main__":
 	parser = argparse.ArgumentParser(description='Generate electron-phonon coupling databases via LetzElPhC')
 	parser.add_argument('-ph','--ph_inp_path', type=str, help='<Required> Path to ph.x (dvscf) input file',required=True)
 	parser.add_argument('-b','--bands',nargs='2',type=str,help="<Required> First and last band (counting from 1), e.g. 'b_i b_f'",required=True)
-    parser.add_argument('-k','--kernel', type=str, default='dfpt',help="<Optional> Electron-phonon kernel type, e.g. 'dfpt', 'bare', ... (default 'dfpt')")
+	parser.add_argument('-k','--kernel', type=str, default='dfpt',help="<Optional> Electron-phonon kernel type, e.g. 'dfpt', 'bare', ... (default 'dfpt')")
 	parser.add_argument('-par','--pools',nargs='2',type=str,default=[1,1],help="<Optional> MPI tasks as 'nqpools nkpools' (default serial)")
 	parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)")
 	parser.add_argument('-D','--debug', action="store_true", help="Debug mode")
@@ -159,7 +159,7 @@ if __name__=="__main__":
 
 	phinp  = args.ph_inp_path
 	bands  = args.bands
-    kernel = args.kernel
+	kernel = args.kernel
 	pools  = args.pools
 	lelphc = args.lelphc
 	debug  = args.debug

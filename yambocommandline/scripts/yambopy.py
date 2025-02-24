@@ -628,7 +628,7 @@ class ConvertLELPHCtoYAMBO(Cmd):
 		parser = argparse.ArgumentParser(description='Generate electron-phonon coupling databases via LetzElPhC')
 		parser.add_argument('-ph','--ph_inp_path', type=str, help='<Required> Path to ph.x (dvscf) input file',required=True)
 		parser.add_argument('-b','--bands',nargs=2,type=str,help="<Required> First and last band (counting from 1), e.g. 'b_i b_f'",required=True)
-        parser.add_argument('-k','--kernel', type=str, default='dfpt',help="<Optional> Electron-phonon kernel type, e.g. 'dfpt', 'bare', ... (default 'dfpt')")
+		parser.add_argument('-k','--kernel', type=str, default='dfpt',help="<Optional> Electron-phonon kernel type, e.g. 'dfpt', 'bare', ... (default 'dfpt')")
 		parser.add_argument('-par','--pools',nargs=2,type=str, default=[1,1], help="<Optional> MPI tasks as 'nqpools nkpools' (default serial)")
 		parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)")
 		parser.add_argument('-D','--debug', action="store_true", help="Debug mode")
@@ -637,7 +637,7 @@ class ConvertLELPHCtoYAMBO(Cmd):
 
 		phinp  = args.ph_inp_path
 		bands  = args.bands
-        kernel = args.kernel
+		kernel = args.kernel
 		pools  = args.pools
 		lelphc = args.lelphc
 		debug  = args.debug
