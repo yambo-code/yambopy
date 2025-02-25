@@ -77,7 +77,7 @@ class YamboWFDB:
         to_real_space(wfc_tmp, gvec_tmp, grid=[]): Convert wavefunctions to real space.
     """
 
-    def __init__(self, path=None, save='SAVE', filename='ns.wf', bands_range=[]):
+    def __init__(self, path=None, save='SAVE', filename='ns.wf', bands_range=[], latdb=None):
         """
         Initialize the YamboWFDB class.
 
@@ -92,16 +92,16 @@ class YamboWFDB:
         self.path = os.path.join(path, save)
         self.filename = filename
 
-        self.wf_expanded = False ## if true, then wfc's are expanded over full BZ
         # Read wavefunctions
-        self.read(bands_range=bands_range)
+        self.read(bands_range=bands_range, latdb=latdb)
 
-    def read(self, bands_range=[]):
+    def read(self, bands_range=[], latdb=None):
         """
         Read wavefunctions from the file.
 
         Args:
             bands_range (list, optional): Range of bands to load. Defaults to all bands.
+            latdb : latticedb, if None (default), it will be created internally
         """
         path = self.path
         filename = self.filename
@@ -109,7 +109,11 @@ class YamboWFDB:
         # Open the ns.db1 database to get essential data
         try:
             ns_db1_fname = os.path.join(path, 'ns.db1')
-            self.ydb = YamboLatticeDB.from_db_file(ns_db1_fname, Expand=True)
+            if latdb :
+                if not hasattr(latdb,'ibz_kpoints'): latdb.expand_kpoints()
+                self.ydb = latdb
+            else :
+                self.ydb = YamboLatticeDB.from_db_file(ns_db1_fname, Expand=True)
             ## total kpoints in full BZ
             self.nkBZ = len(self.ydb.symmetry_indexes)
             #
@@ -119,8 +123,12 @@ class YamboWFDB:
             lat_param = self.ydb.alat
 
             # K-points in iBZ (crystal units)
-            self.kpts_iBZ = self.ydb.iku_kpoints / lat_param[None, :]
+            self.kpts_iBZ = self.ydb.ibz_kpoints / lat_param[None, :]
             self.kpts_iBZ = self.kpts_iBZ @ lat_vec
+
+            # K-points in BZ (crystal units)
+            self.kBZ = self.ydb.iku_kpoints / lat_param[None, :]
+            self.kBZ = self.kBZ @ lat_vec
 
             # G-vectors in cartesian units
             G_vec = ns_db1['G-VECTORS'][...].data.T
@@ -404,6 +412,7 @@ class YamboWFDB:
             su_mat = su2_mat(sym_mat, time_rev).astype(wfc_k.dtype)
             #'ij,sbjg->sbig', su_mat, wfc_k
             wfc_rot = su_mat[None,None,:,:]@wfc_k
+        else : wfc_rot = wfc_k.copy()
 
         # Add phase due to fractional translation
         Rkvec = sym_red.T @ kvec
@@ -458,8 +467,9 @@ class YamboWFDB:
         -------
         None
         """
-        if self.wf_expanded: return
-        else : self.wf_expanded = True
+        #
+        if getattr(self, 'wf_bz', None) is not None: return
+        #
         kpt_idx = self.ydb.kpoints_indexes
         sym_idx = self.ydb.symmetry_indexes
         nkBZ = len(sym_idx)
@@ -467,6 +477,8 @@ class YamboWFDB:
         self.wf_bz = np.zeros((nkBZ, self.nspin, self.nbands, self.nspinor, self.ng),dtype=self.wf.dtype)
         self.g_bz = 2147483646 + np.zeros((nkBZ,self.ng,3),dtype=int)
         self.kBZ = np.zeros((nkBZ,3))
+        # NM : The reason we want to replace the existing kBZ variable is to make sure we have 
+        # correct rotated kpoint (here they should not differ by a G vector !)
         self.ngBZ = np.zeros(nkBZ,dtype=int)
         for i in tqdm(range(nkBZ), desc="Expanding Wavefunctions full BZ"):
             ik = kpt_idx[i]
@@ -500,6 +512,8 @@ class YamboWFDB:
         Returns:
             list: Wavefunctions at ik (nspin,nbands,nspinor,ngvec) and G-vectors in crystal coordinates (ngvec,3).
         """
+        if getattr(self, 'wf_bz', None) is None: self.expand_fullBZ()
+        #
         return [self.wf_bz[ik][..., :self.ngBZ[ik]], self.g_bz[ik, :self.ngBZ[ik], :]]
 
     def Dmat(self, symm_mat=None, frac_vec=None, time_rev=None):
@@ -525,28 +539,66 @@ class YamboWFDB:
         ## isym >= len(symm_mat)/(1+int(time_rev)) must be timereversal symmetries
         ## X -> Rx + tau, R matrices are given in symm_mat, tau are frac_vec, time_rev is bool
         ## (nsym, nk, nspin, Rk_bnd, k_bnd)
-        if not self.wf_expanded: self.expand_fullBZ()
+        expand_wf_present = True
+        if getattr(self, 'wf_bz', None) is None: expand_wf_present = False
+        ##
+        ## Check if already computed for SAVE symetries 
+        dmat_save = getattr(self, 'save_Dmat', None)
+        #
+        #
+        is_save_symm = False
         if symm_mat is None or frac_vec is None or time_rev is None:
+            is_save_symm = True
+        #
+        if is_save_symm: 
+            ## if dmats are already computed, return those
+            if dmat_save is not None : return dmat_save
+            #
             symm_mat = self.ydb.sym_car
             frac_vec = np.zeros((len(symm_mat),3),dtype=symm_mat.dtype)
             time_rev = int(np.rint(self.ydb.time_rev))
-
+        #
         ktree = build_ktree(self.kBZ)
         Dmat = []
         nsym = len(symm_mat)
+        kpt_idx = self.ydb.kpoints_indexes
+        sym_idx = self.ydb.symmetry_indexes
+        #
         assert nsym == len(frac_vec), "The number for frac translation must be same as Rotation matrices"
         for ik in tqdm(range(self.nkBZ), desc="Dmat"):
-            wfc_k, gvec_k = self.get_BZ_wf(ik)
-            kvec = self.get_BZ_kpt(ik)
+            # IN case the wfc are already expanded, load them
+            if expand_wf_present:
+                wfc_k, gvec_k = self.get_BZ_wf(ik)
+                kvec = self.get_BZ_kpt(ik)
+            else:
+                ## else rotate them
+                ixk = kpt_idx[ik]
+                isk = sym_idx[ik]
+                kvec, wfc_k, gvec_k = self.rotate_wfc(ixk, isk)
+
             for isym in range(nsym):
                 trev = (isym >= nsym/(1+int(time_rev)))
+                #
                 ## Compute U(R)\psi_k
+                #
                 Rk, wfc_Rk, gvec_Rk = self.apply_symm(kvec, wfc_k, gvec_k, trev, symm_mat[isym], frac_vec[isym])
                 idx = find_kpt(ktree, Rk)
-                ## get Rk wfc stored
-                w_rk, g_rk = self.get_BZ_wf(idx)
-                Dmat.append(wfc_inner_product(self.get_BZ_kpt(idx),w_rk, g_rk, Rk, wfc_Rk, gvec_Rk))
+                #
+                ## get Rk wfc 
+                # in case stored
+                if expand_wf_present:
+                    w_rk, g_rk = self.get_BZ_wf(idx)
+                    k_rk = self.get_BZ_kpt(idx)
+                else :
+                    iktmp = kpt_idx[idx]
+                    istmp = sym_idx[idx]
+                    k_rk, w_rk, g_rk = self.rotate_wfc(iktmp, istmp)
+                Dmat.append(wfc_inner_product(k_rk, w_rk, g_rk, Rk, wfc_Rk, gvec_Rk))
+        #
         Dmat = np.array(Dmat).reshape(self.nkBZ, nsym, self.nspin, self.nbands, self.nbands).transpose(1,0,2,3,4)
+        #
+        if is_save_symm: self.save_Dmat = Dmat
+        #
         return Dmat
 
 def wfc_inner_product(k_bra, wfc_bra, gvec_bra, k_ket, wfc_ket, gvec_ket, ket_Gtree=-1):

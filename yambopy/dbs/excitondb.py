@@ -84,11 +84,12 @@ class YamboExcitonDB(object):
         self.spin_pol = spin_pol
 
     @classmethod
-    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.',Load_WF=True):
+    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.',Load_WF=True, neigs=-1):
         """ 
         Initialize this class from a file
 
         Set `Read_WF=False` to avoid reading eigenvectors for faster IO and memory efficiency.
+        If neigs < 0 ; all eigen values (vectors) are loaded or else first neigs are loaded 
         """
         path_filename = os.path.join(folder,filename)
         if not os.path.isfile(path_filename):
@@ -98,6 +99,13 @@ class YamboExcitonDB(object):
         Qpt = filename.split("Q",1)[1]
 
         with Dataset(path_filename) as database:
+            #energies
+            eig =  database.variables['BS_Energies'][:]*ha2ev
+            eigenvalues = eig[:,0]+eig[:,1]*I
+            neig_full = len(eigenvalues)
+            if neigs < 0 or neigs > neig_full: neigs = neig_full
+            eigenvalues = eigenvalues[:neigs]
+
             if 'BS_left_Residuals' in list(database.variables.keys()):
                 # MN: using complex views instead of a+I*b copies to avoid memory duplication
                 # Old (yet instructive) memory duplication code
@@ -105,13 +113,13 @@ class YamboExcitonDB(object):
                 #rer,imr = database.variables['BS_right_Residuals'][:].T
                 #l_residual = rel+iml*I
                 #r_residual = rer+imr*I
-                l_residual = database.variables['BS_left_Residuals'][:]
-                r_residual = database.variables['BS_right_Residuals'][:]
+                l_residual = database['BS_left_Residuals'][:neigs,...].data
+                r_residual = database['BS_right_Residuals'][:neigs,...].data
                 l_residual = l_residual.view(dtype=CmplxType(l_residual)).reshape(len(l_residual))
                 r_residual = r_residual.view(dtype=CmplxType(r_residual)).reshape(len(r_residual))
             if 'BS_Residuals' in list(database.variables.keys()):
                 # Compatibility with older Yambo versions
-                rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
+                rel,iml,rer,imr = database['BS_Residuals'][:neigs,...].data.T
                 l_residual = rel+iml*I
                 r_residual = rer+imr*I
 
@@ -121,19 +129,15 @@ class YamboExcitonDB(object):
                 car_qpoint = database.variables['Q-point'][:]/lattice.alat
             if Qpt=="1": car_qpoint = np.zeros(3)
 
-            #energies
-            eig =  database.variables['BS_Energies'][:]*ha2ev
-            eigenvalues = eig[:,0]+eig[:,1]*I
-                
             #eigenvectors
             table = None
             eigenvectors = None
             if Load_WF and 'BS_EIGENSTATES' in database.variables:
-                eiv = database.variables['BS_EIGENSTATES'][:]
+                eiv = database['BS_EIGENSTATES'][:neigs,...].data
                 #eiv = eiv[:,:,0] + eiv[:,:,1]*I
                 #eigenvectors = eiv
                 eigenvectors = eiv.view(dtype=CmplxType(eiv)).reshape(eiv.shape[:-1])
-                table = database.variables['BS_TABLE'][:].T.astype(int)
+                table = np.rint(database.variables['BS_TABLE'][:].T).astype(int)
 
             spin_vars = [int(database.variables['SPIN_VARS'][:][0]), int(database.variables['SPIN_VARS'][:][1])]
             if spin_vars[0] == 2 and spin_vars[1] == 1:
@@ -229,6 +233,52 @@ class YamboExcitonDB(object):
         with open('%s_I.dat'%prefix,'w') as f:
             for i,n in sort_i:
                 f.write("%3d %12.8lf %12.8e\n"%(n+1,eig[n],i)) 
+
+    def get_Akcv(self):
+        """
+        Convert eigenvectors from (neigs,BS_table) -> (neigs,k,c,v)
+        For now, only works for nspin = 1. nspinor = 1/2 also works.
+        """
+
+        assert self.spin_pol == 'no', "Rearrange_Akcv works only for nspin = 1"
+        #
+        tmp_akcv = getattr(self, 'Akcv', None) 
+        if tmp_akcv is not None: return tmp_akcv 
+        #
+        if self.eigenvectors is None: return None
+        eig_wfcs = self.eigenvectors
+        #
+        nk = self.nkpoints
+        nv = self.nvbands
+        nc = self.ncbands
+        # Make sure nc * nv * nk = BS_TABLE length
+        table_len = nk*nv*nc
+        assert table_len == self.table.shape[0], "BS_TABLE length not equal to nc * nv * nk"
+
+        assert eig_wfcs.shape[-1]//table_len == 1, "rearranged_Akcv works only in TDA"
+        #
+        v_min = np.min(self.table[:,1])
+        c_min = np.min(self.table[:,2])
+        bs_table0 = self.table[:,0]-1
+        bs_table1 = self.table[:,1] - v_min
+        bs_table2 = self.table[:,2] - c_min
+        #
+        eig_wfcs_returned = np.zeros(eig_wfcs.shape,dtype=eig_wfcs.dtype)
+        #
+        sort_idx = bs_table0*nc*nv + bs_table2*nv + bs_table1
+        #
+        eig_wfcs_returned[:,sort_idx] = eig_wfcs[...,:table_len]
+        eig_wfcs_returned = eig_wfcs_returned.reshape(-1,nk,nc,nv)
+        #
+        # check if this is coupling .
+        # if eig_wfcs.shape[-1]//table_len == 2:
+        #     eig_wfcs_returned[:,sort_idx+table_len] = eig_wfcs[...,table_len:]
+        #     eig_wfcs_returned = eig_wfcs_returned.reshape(-1,2,nk,nc,nv)
+        # else :
+        #     eig_wfcs_returned = eig_wfcs_returned.reshape(-1,nk,nc,nv)
+        #
+        self.Akcv = eig_wfcs_returned
+        return self.Akcv
 
     def get_nondegenerate(self,eps=1e-4):
         """
