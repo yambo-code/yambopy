@@ -142,7 +142,7 @@ class ConvertElectronPhononDB():
         dbs.createDimension('D_%010d'%1,1)
         dbs.createDimension('D_%010d'%2,2)
         dbs.createDimension('D_%010d'%4,4)
-        #
+        
         for value in [self.natoms,self.nkpoints_ibz,len_pars,self.nqpoints_bz,self.nkpoints_bz]:
             if value not in [1,2,3,4]: 
                 try: dbs.createDimension('D_%010d'%value,value)

@@ -37,7 +37,7 @@ def Plot_Pol_or_Curr(time=None, pol=None, curr=None, xlim=None,save_file=None):
 
     if isinstance(pol, np.ndarray):
         pj='P'
-        arr=pot
+        arr=pol
         fig.suptitle(' Real-time polarization in the three cartesian directions ', fontsize=char_size)
     else:
         pj='J'
