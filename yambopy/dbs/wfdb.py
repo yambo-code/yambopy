@@ -412,6 +412,7 @@ class YamboWFDB:
             su_mat = su2_mat(sym_mat, time_rev).astype(wfc_k.dtype)
             #'ij,sbjg->sbig', su_mat, wfc_k
             wfc_rot = su_mat[None,None,:,:]@wfc_k
+        else : wfc_rot = wfc_k.copy()
 
         # Add phase due to fractional translation
         Rkvec = sym_red.T @ kvec
