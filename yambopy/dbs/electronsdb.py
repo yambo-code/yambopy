@@ -83,7 +83,7 @@ class YamboElectronsDB():
                          temperature            = dimensions[13],
                          nelectrons             = int(dimensions[14]),
                          nkpoints_ibz           = int(dimensions[6]),
-                         spin                   = int(dimensions[11]),
+                         spin                   = int(dimensions[12]),
                          time_rev               = dimensions[9],
                          spinor_components      = int(dimensions[11]),
                          Expand                 = Expand 
