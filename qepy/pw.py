@@ -13,6 +13,7 @@ from qepy import qepyenv
 from .pseudo import get_pseudo_path
 from .tools import fortran_bool
 from .lattice import red_car, car_red
+from .units import bohr2ang
 
 class PwIn(object):
     """
@@ -86,7 +87,9 @@ class PwIn(object):
         new = cls()
 
         with open(filename,"r") as f:
-            new.file_lines = f.readlines() #set file lines
+            file_lines = f.readlines() #set file lines
+            filtered_lines = [line for line in file_lines if not line.lstrip().startswith('!')]
+            new.file_lines = filtered_lines
             new.store(new.control,"control")     #read &control
             new.store(new.system,"system")      #read &system
             new.store(new.electrons,"electrons")   #read &electrons
@@ -228,12 +231,11 @@ class PwIn(object):
         else:
             red_atoms = []
             for atype,apos in atoms:
-                red_atoms.append( [atype,car_red([apos],self.cell_parameters)[0]] )
+                red_atoms.append( [atype,car_red([apos],np.array(self.cell_parameters))[0]] )
             self._atoms = red_atoms 
 
 
     def get_atoms(self, units=None):
-        from .units     import ang2au,au2ang
         from .lattice   import red_car,car_red
 
         atoms_arr= np.array([atom[1] for atom in self.atoms])   #atom[0] is the atomic symbol; atom[1] is the 3 coord list
@@ -244,7 +246,7 @@ class PwIn(object):
 
         scale_in =1.0
         if self.atomic_pos_type == "angstrom":
-            scale_in = ang2au
+            scale_in = 1/bohr2ang
         elif self.atomic_pos_type == "alat":
             if self.system['celldm(1)'] == None:
                 scale_in=np.linalg.norm(self.cell_parameters[0])
@@ -262,7 +264,7 @@ class PwIn(object):
             else:
                 scale_out=1.0/float(self.system['celldm(1)'])
         elif units == "angstrom":
-            scale_out=au2ang
+            scale_out=bohr2ang
         elif units == "crystal":
             atoms_arr = car_red(atoms, np.array(self.cell_parameters))
 
@@ -473,13 +475,33 @@ class PwIn(object):
         for atype,x,y,z in atoms_str:
             atoms.append([atype,list(map(float,[x,y,z]))])
         self.atoms = atoms
+    
+    @property
+    def get_ase(self):
+        """
+        Get the Atoms object of ase, which is usefull for instance when wanting to write xsf
+        Note that you have to set the pbc when using it together with aiida
+        """
+        from ase import Atoms
+        from yambopy.units import bohr2ang
+        symbols =[]
+        positions = np.array(self.atomic_car_pos)
 
+        for atom in self.atoms:
+            symbols.append(atom[0])
+            # positions.append(atom[1:][0])
+
+        atoms = Atoms(cell=self.cell_parameters*bohr2ang, symbols=symbols, positions=positions*bohr2ang)
+        atoms.set_pbc([True,True,False])
+        return atoms
+    
     def set_atoms_ase(self,atoms):
         """ set the atomic postions using a Atoms datastructure from ase
+        Atoms datastructure is defined in units of angstrom
         """
         # we will write down the cell parameters explicitly
         self.ibrav = 0
-        self.cell_parameters = atoms.get_cell()
+        self.cell_parameters = atoms.get_cell()*1/bohr2ang
         self.atoms = list(zip(atoms.get_chemical_symbols(),atoms.get_scaled_positions()))
 
     def displace(self,cart_mode,displacement,masses=None):
@@ -512,8 +534,8 @@ class PwIn(object):
         pos = []
         for i in range(self.natoms):
             red_pos = self.atoms[i][1]
-            pos.append(red_car([red_pos],self.cell_parameters)[0])
-        return pos
+            pos.append(red_car([red_pos],np.array(self.cell_parameters))[0])
+        return np.array(pos)
 
     @property
     def atoms(self):
@@ -552,6 +574,11 @@ class PwIn(object):
                 self.Uvalues.append([ orbital, UeV  ])
 
     @property
+    def lat(self):
+        lat = np.array(self.cell_parameters)
+        return lat
+    
+    @property
     def alat(self):
         if self.ibrav == 0:
             return np.linalg.norm(self.cell_parameters[0])
@@ -560,6 +587,7 @@ class PwIn(object):
 
     @property
     def cell_parameters(self):
+        "In units of Bohr"
         if self.ibrav == 0:
             return self._cell_parameters
         elif self.ibrav == 1:
@@ -688,7 +716,7 @@ class PwIn(object):
         """
         Save the variables specified in each of the groups on the structure
         """
-        group_regexp = '([a-zA-Z_0-9_\(\)]+)(?:\s+)?=(?:\s+)?([a-zA-Z\'"0-9_.+-]+)' 
+        group_regexp = '([a-zA-Z_0-9_\(\)]+)(?:\s+)?=(?:\s+)?([a-zA-Z\/\'"0-9_.+-]+)' 
         for file_slice in self.slicefile(name):
             for keyword, value in re.findall(group_regexp,file_slice):
                 group[keyword.strip()]=value.strip()

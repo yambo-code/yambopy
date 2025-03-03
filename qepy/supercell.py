@@ -10,14 +10,12 @@ from yambopy.lattice import *
 from itertools import product
 import copy
 from math import *
-# Dimensional constants for reference (actually only b2a is really used in the code for now)
+from .units import *
+# Dimensional constants for reference (actually only bohr2ang is really used in the code for now)
 cm1_2_Tera=0.0299793         # Conversion from cm-1 to THz with 2pi factor included
 Tera=1.e12                   
-b2a =0.529177                
-hbar=6.5821e-16              # Planck's constant (eV*s)
-kb=8.6173e-5                 # Boltzmann's constant (eV/K)
-Mp=1.0073                    # Proton mass (reference, u)
-cMp=Mp*1.660539*6.241509e-29 # Conversion of Mp in eV*\AA^{-2}*s^2
+Mp=1.0072764665789                  # Proton mass (reference, u)
+cMp=Mp*1.66053906892 *6.241509074e-29 # Conversion of Mp in eV*\AA^{-2}*s^2
 #
 ## ISSUES TO FIX ##
 """(iii) Small issue in nondiagonal supercell matrices for certain q-vectors
@@ -212,7 +210,7 @@ class Supercell():
         NB:  Only ARBITRARY displacements can be set.
         NB2: Eigenmodes from quantum espresso are ALREADY weighted by atomic masses
         """
-        RESCALE     = b2a*self.Temp  #Arbitrary displacement
+        RESCALE     = bohr2ang*self.Temp  #Arbitrary displacement
         temperature = 0.*self.Temp      #Harmonic displacement (permanently set to zero for now)
         modes=3*self.basis
         displacements=[]
@@ -223,7 +221,7 @@ class Supercell():
             else: l=sqrt(hbar/(2.*cMp*self.Omega[nu]))
             
             if temperature==0.: sigma2=l*l
-            else: sigma2=l*l*(2./(np.exp(hbar*self.Omega[nu]/(kb*temperature))-1.)+1)
+            else: sigma2=l*l*(2./(np.exp(hbar*self.Omega[nu]/(KB*temperature))-1.)+1)
             
             if self.use_temp=='no': displacements.append(RESCALE*eig_slice)     #Each mode (i.e. atomic displacement directions) is multiplied by the corresponding length
             else:                   displacements.append(np.sqrt(sigma2)*eig_slice) #Displacement by harmonic sigma
@@ -278,7 +276,7 @@ class Supercell():
         R          = self.R
         atoms      = np.array([atom[1] for atom in self.atoms])
         if self.aunits!='angstrom': atoms = red_car(atoms,latvec) 
-        else: latvec = b2a*latvec
+        else: latvec = bohr2ang*latvec
         #new_atoms[cell][basis][direction]
         new_atoms      = np.array([atoms for n in range(self.sup_size)])
         T = []

@@ -10,7 +10,7 @@
 import numpy as np
 from itertools import product
 
-def calculate_distances(kpoints):
+def calculate_distances(kpoints):   # Needs optimization
     """
     take a list of k-points and calculate the distances between all of them
     """
@@ -29,11 +29,17 @@ def expand_kpts(kpts,syms):
     Take a list of qpoints and symmetry operations and return the full brillouin zone
     with the corresponding index in the irreducible brillouin zone
     """
-    full_kpts = []
-    print("nkpoints:", len(kpts))
-    for nk,k in enumerate(kpts):
-        for sym in syms:
-            full_kpts.append((nk,np.dot(sym,k)))
+    nkpoints = len(kpts)
+    nsym = len(syms)
+
+    # Reshape kpts to (1, N, 3) to enable broadcasting
+    kpts_reshaped = kpts[np.newaxis, :, :]
+    transformed_kpts = np.einsum('ijk,jk->ij', syms, kpts_reshaped)
+    full_kpts_flat = transformed_kpts.reshape(nsym * nkpoints, 3)
+    nk_indices = np.repeat(np.arange(nkpoints), nsym)
+
+    # Combine indices and transformed k-points into a structured array or list of tuples if needed
+    full_kpts = np.column_stack((nk_indices, full_kpts_flat))
 
     return full_kpts
 
@@ -41,7 +47,13 @@ def vec_in_list(veca,vec_list,atol=1e-6):
     """
     Check if a vector exists in a list of vectors
     """
-    return np.array([ np.allclose(veca,vecb,rtol=atol,atol=atol) for vecb in vec_list ]).any()
+    if vec_list:
+        vec_list = np.array(vec_list)
+
+        # Use broadcasting to compare veca with all vectors in vec_list
+        return np.all(np.isclose(veca, vec_list, atol=atol), axis=1).any()
+    else:
+        return False    # In case the vector is not in the list, otherwise the np.isclose() fails
 
 
 def isbetween(a,b,c,eps=1e-5):
@@ -53,13 +65,14 @@ def red_car(red,lat):
     """
     Convert reduced coordinates to cartesian
     """
-    return np.array([coord[0]*lat[0]+coord[1]*lat[1]+coord[2]*lat[2] for coord in red])
+    return np.einsum("ij,jk->ik", red, lat)
 
 def car_red(car,lat):
     """
     Convert cartesian coordinates to reduced
     """
-    return np.array([np.linalg.solve(np.array(lat).T,coord) for coord in car])
+
+    return np.linalg.solve(np.array(lat).T, np.array(car).T).T
 
 def vol_lat(lat):
     """
@@ -117,22 +130,31 @@ def point_matching(a,b,double_check=True,debug=False,eps=1e-8):
     b = np.array(b)
     start_time = time()
 
-    #initialize the kdtree
+    # Initialize the KDTree
     kdtree = cKDTree(a, leafsize=10)
-    map_b_to_a = []
-    for xb in b:
-        current_dist,index = kdtree.query(xb, k=1, distance_upper_bound=6)
-        map_b_to_a.append(index)
-    map_b_to_a = np.array(map_b_to_a)
-    
+    distances, map_b_to_a = kdtree.query(b, k=1, distance_upper_bound=6)
+
+    # Handle points that are out of bounds (i.e., where indices are equal to the size of a)
+    map_b_to_a[distances == np.inf] = -1  # Set out-of-bounds indices to -1 or any other sentinel value
+
     if debug:
-        print("took %4.2lfs"%(time()-start_time))
+        print(f"Time elapsed: {time() - start_time:.4f} seconds")
 
     if double_check:
-        for ib,ia in enumerate(map_b_to_a):
-            dist = np.linalg.norm(a[ia]-b[ib])
-            if dist > eps:
-                raise ValueError('point a %d: %s is far away from points b %d: %s  dist: %lf'%(ia,str(a[ia]),ib,str(b[ib]),dist))
+        map_b_to_a = np.array(map_b_to_a)
+        a_neighbors = a[map_b_to_a]
+
+        # Calculate distances using vectorized operations
+        distances = np.linalg.norm(a_neighbors - b[:, np.newaxis], axis=1)
+
+        # Check if any distance exceeds eps and raise ValueError if so
+        if np.any(distances > eps):
+            # Find the indices where the condition fails
+            invalid_indices = np.where(distances > eps)[0]
+            for ib in invalid_indices:
+                ia = map_b_to_a[ib]
+                dist = distances[ib]
+                raise ValueError(f'point a {ia}: {a[ia]} is far away from point b {ib}: {b[ib]} dist: {dist:.6f}')
 
     return map_b_to_a
 

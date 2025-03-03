@@ -202,7 +202,7 @@ class YamboBSEAbsorptionSpectra():
 
                 #shift atoms
                 atoms = []
-                dx,dy,dz = red_car([displacement/np.array([nx,ny,nz],dtype=float)],lat)[0]
+                dx,dy,dz = red_car([displacement/np.array([nx,ny,nz],dtype=np.float64)],lat)[0]
                 for atype,x,y,z in data["atoms"]:
                     atoms.append([atype,x+dx,y+dy,z+dz])
                 self.data["atoms"] = atoms
