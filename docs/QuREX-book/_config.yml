@@ -11,3 +11,4 @@ sphinx:
 
 bibtex_bibfiles:
   - references.bib  # Make sure this points to your .bib file for citations
+  

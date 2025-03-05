@@ -15,4 +15,10 @@ parts:
         - file: wannier_exciton
         - file: wannier_chern
         - file: wannier_basis
+- caption: Part 2
+  numbered: false
+  chapters:
+    - file: workflows/workflows
+      sections:
+        - file: workflows/exciton_phonon
 

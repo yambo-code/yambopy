@@ -4,11 +4,22 @@
 # re-generate this one.
 ###############################################################################
 author = 'Henrique Miranda, Alejandro Molina Sánchez, Fulvio Paleari, Riccardo Reho'
-bibtex_bibfiles = ['references.bib']
 comments_config = {'hypothesis': False, 'utterances': False}
 copyright = '2024, Henrique Miranda, Alejandro Molina Sánchez, Fulvio Paleari, Riccardo Reho'
 exclude_patterns = ['build', 'Thumbs.db', '.DS_Store']
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.mathjax', 'sphinx.ext.ifconfig', 'sphinx.ext.viewcode', 'sphinx_jupyterbook_latex', 'sphinx_multitoc_numbering']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.ifconfig',
+    'sphinx.ext.viewcode',
+    'sphinx_jupyterbook_latex',
+    'sphinx_multitoc_numbering',
+    'sphinxcontrib.bibtex',
+    'sphinx_proof'
+]
 external_toc_exclude_missing = False
 external_toc_path = '_toc.yml'
 html_baseurl = ''
