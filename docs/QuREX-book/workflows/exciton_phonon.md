@@ -43,7 +43,7 @@ We should now have the electron-phonon database `ndb.elph`.
 Details about the GW-BSE calculation using Yambo.
 Construct the BSE kernel and diagonalize to get the exciton wavefunctions.
 Make sure to turn on the flag: `WRbsWF` to write the exciton wavefunctions, which is commented out by default.
-
+For the theoretical background on this section please look at [GW](../theory/GW) and [BSE](../theory/bse_equation).
 
 ## Step 4: Exciton-Phonon calculation using yambopy
 Details about the Exciton-Phonon calculation using yambopy.

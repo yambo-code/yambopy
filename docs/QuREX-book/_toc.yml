@@ -4,21 +4,28 @@ options:
   numbered: true  # Enable numbering globally
 
 parts:
-- caption: Part 1
+- caption: Theory
   numbered: false  # Ensure numbering applies to this part
   chapters:
-    - file: theoretical_background  # Acts as the section's intro
+    - file: content/theory/theoretical_background  # Acts as the section's intro
       sections:
-        - file: model_hamiltonian
-        - file: coulomb_potential
-        - file: h2p
-        - file: wannier_exciton
-        - file: wannier_chern
-        - file: wannier_basis
-- caption: Part 2
+        - file: content/theory/model_hamiltonian
+        - file: content/theory/coulomb_potential
+        - file: content/theory/h2p
+        - file: content/theory/wannier_exciton
+        - file: content/theory/wannier_chern
+        - file: content/theory/wannier_basis
+- caption: Software
   numbered: false
   chapters:
-    - file: workflows/workflows
+    - file: content/software/software
       sections:
-        - file: workflows/exciton_phonon
+        - file: content/software/yambo/yambo
+        - file: content/software/yambo/yambo_input_flags 
+- caption: Workflows
+  numbered: false
+  chapters:
+    - file: content/workflows/workflows
+      sections:
+        - file: content/workflows/exciton_phonon
 

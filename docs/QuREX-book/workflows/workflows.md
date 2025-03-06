@@ -1,2 +1,2 @@
 # Workflows
-- [Exciton Phonon](workflows/exciton_phonon)
+- [Exciton Phonon](exciton_phonon)

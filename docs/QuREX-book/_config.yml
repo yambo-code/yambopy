@@ -3,6 +3,11 @@ author: "Riccardo Reho"
 sphinx:
   config:
     bibtex_reference_style: author_year
+    mathjax_config:
+      tex:
+        tags: "all"  # Enables equation numbering
+        tagSide: "right"  # Places equation numbers on the right
+        tagIndent: "0.8em"
   extra_extensions:
     - sphinx_proof
 #parse:
