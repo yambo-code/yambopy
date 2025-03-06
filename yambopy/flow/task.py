@@ -34,7 +34,7 @@ from qepy.pw import PwIn
 from qepy.ph import PhIn
 from qepy.dynmat import DynmatIn
 from qepy import qepyenv
-from yambopy import yambopyenv
+from yambopy.env import yambopyenv
 from yambopy.tools.string import marquee
 from yambopy.tools.duck import isiter, isstring
 from yambopy.io.inputfile import YamboIn

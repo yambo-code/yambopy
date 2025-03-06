@@ -40,6 +40,7 @@ Features
 - Automatic submissions of calculations (e.g., custom workflows for convergence or multi-executable runs)
 - Access Yambo netCDF databases and Quantum Espresso xml files
 - Analyse, interpolate and plot the results in various ways using matplotlib
+- Analise real-time non-linear response from Yambo-nl
 - Visualize advanced quantities such as:
   -  dielectric function, exciton weights in k and q-space, electron-phonon matrix elements...
 - [Aiida](https://github.com/aiidateam) plugin for Yambo-Aiida workflows 
@@ -102,12 +103,13 @@ Original author:
 Current developers and maintainers:
 - [Fulvio Paleari](http://palful.github.io) (CNR - Nanoscience institute, Modena)
 - [Alejandro Molina Sanchez](http://alexmoratalla.github.io/) (University of Valencia)
-- José Castelo (University of Valencia) 
 
 Active contributors:
 - Claudio Attaccalite
 - Miki Bonacci
+- José Castelo
 - Jorge Cervantes-Villanueva
+- Muralidhar Nalabothula
 - Riccardo Reho
 - Michele Re Fiorentin
 - You if you want to share your scripts!

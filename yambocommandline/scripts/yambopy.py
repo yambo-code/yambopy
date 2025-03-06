@@ -597,14 +597,15 @@ class ConvertLELPHCtoYAMBO(Cmd):
 
 	:: Usage:
 
-	>> yambopy l2y -ph phinp -b b1 b2 -par nq nk [--lelphc lelphc] [--debug]
+    >> yambopy l2y -ph phinp -b b1 b2 -par nq nk [--kernel kernel] [--lelphc lelphc] [--debug]
 
-	:: Input parameters:
-		-ph,--ph_inp_path     : path to ph.x input file, e.g. dvscf/ph.in
-		-b,--bands            : initial and final band indices (counting from 1)
-		-par,--pools [OPT]    : MPI pools for q and k (needs mpirun)
-		-lelphc,--lelphc [OPT]: path to lelphc executable (code will prompt)
-		-D,--debug [OPT]      : won't remove LetzElPhC input and outputs
+    :: Input parameters:
+        -ph           : path to ph.x input file, e.g. dvscf/ph.in
+        -b            : initial and final band indices (counting from 1)
+        -par [OPT]    : MPI pools for q and k (needs mpirun)
+        --kernel [OPT]: e-ph kernel type, default 'dfpt'
+        --lelphc [OPT]: path to lelphc executable (code will prompt)
+        --debug [OPT] : won't remove LetzElPhC input and outputs
 
 	:: Prerequisites:
 
@@ -627,6 +628,7 @@ class ConvertLELPHCtoYAMBO(Cmd):
 		parser = argparse.ArgumentParser(description='Generate electron-phonon coupling databases via LetzElPhC')
 		parser.add_argument('-ph','--ph_inp_path', type=str, help='<Required> Path to ph.x (dvscf) input file',required=True)
 		parser.add_argument('-b','--bands',nargs=2,type=str,help="<Required> First and last band (counting from 1), e.g. 'b_i b_f'",required=True)
+		parser.add_argument('-k','--kernel', type=str, default='dfpt',help="<Optional> Electron-phonon kernel type, e.g. 'dfpt', 'bare', ... (default 'dfpt')")
 		parser.add_argument('-par','--pools',nargs=2,type=str, default=[1,1], help="<Optional> MPI tasks as 'nqpools nkpools' (default serial)")
 		parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)")
 		parser.add_argument('-D','--debug', action="store_true", help="Debug mode")
@@ -635,13 +637,14 @@ class ConvertLELPHCtoYAMBO(Cmd):
 
 		phinp  = args.ph_inp_path
 		bands  = args.bands
+		kernel = args.kernel
 		pools  = args.pools
 		lelphc = args.lelphc
 		debug  = args.debug
 
 		# Check inputs
 		lelphc,ph_path,inp_ph,inp_lelphc,inp_name = \
-		lelph_interface.checks(phinp,lelphc,bands,pools)
+		lelph_interface.checks(phinp,lelphc,bands,kernel,pools)
 
 		# run preprocessing
 		lelph_interface.run_preprocessing(lelphc,ph_path,inp_ph)
