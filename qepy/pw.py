@@ -491,7 +491,7 @@ class PwIn(object):
             symbols.append(atom[0])
             # positions.append(atom[1:][0])
 
-        atoms = Atoms(cell=self.cell_parameters*bohr2ang, symbols=symbols, positions=positions*bohr2ang)
+        atoms = Atoms(cell=np.array(self.cell_parameters)*bohr2ang, symbols=symbols, positions=positions*bohr2ang)
         atoms.set_pbc([True,True,False])
         return atoms
     
