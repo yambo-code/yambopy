@@ -49,9 +49,12 @@ class Spin_texture():
         self.nkpoints = self.data_xml.nkpoints
         self.nbands = self.data_xml.nbands
 
+        print(self.data_xml.kpoints)
+        exit()
+
         kpoints_cart = np.array(self.data_xml.kpoints)
         kpoints_red = np.vstack([car_red([k], self.data_xml.rcell)[0] for k in kpoints_cart])
-        kmesh_full, kmesh_idx = replicate_red_kmesh(kpoints_red, repx=range(-1, 2), repy=range(-1, 2))
+        kmesh_full, kmesh_idx = replicate_red_kmesh(kpoints_red, repx=range(0, 1), repy=range(0, 1))
         self.x, self.y = red_car(kmesh_full, self.data_xml.rcell)[:, :2].T
 
         # Load spin data
