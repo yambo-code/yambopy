@@ -30,7 +30,7 @@ class Cmd():
         print("      month = mar,")
         print("      year = 2025,")
         print("      publisher = {Zenodo},")
-        print(f"      version = {{version}},")
+        print("      version = {%s},"%version)
         print("      doi = {10.5281/zenodo.15012962},")
         print("      url = {https://doi.org/10.5281/zenodo.15012962},}")
  
