@@ -136,7 +136,7 @@ How to cite
 -----------
 If yambopy helped you with your data analysis, workflow management of figure preparation, you can consider citing us.
 
-The way to do so in BibTeX format is the following:
+The way to do so in BibTeX format is the following (or simply type `yambopy cite`):
 
 ```
 @misc{yambopy, 

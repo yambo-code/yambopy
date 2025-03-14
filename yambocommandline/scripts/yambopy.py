@@ -18,7 +18,22 @@ class Cmd():
         print('Available commands are:\n')
         for cmd,c in list(self._commands.items()):
             print("%15s -> %s"%(cmd, c.__doc__.split('\n')[1]))
-    
+
+    def cite(self):
+        """
+        Display the BibTeX citation string
+        """
+        version=importlib.metadata.version('yambopy')
+        print("@misc{yambopy,")
+        print("      author = {Paleari, Fulvio and Molina-Sánchez, Alejandro and Nalabothula, Muralidhar and Reho, Riccardo and Bonacci, Miki and Castelo, José M. and Cervantes-Villanueva, Jorge and Pionteck, Mike and Silvetti, Martino and Attaccalite, Claudio and Pereira Coutada Miranda, Henrique},")
+        print("      title = {Yambopy},")
+        print("      month = mar,")
+        print("      year = 2025,")
+        print("      publisher = {Zenodo},")
+        print(f"      version = {{version}},")
+        print("      doi = {10.5281/zenodo.15012962},")
+        print("      url = {https://doi.org/10.5281/zenodo.15012962},}")
+ 
     def run(self,cmds,args):
         """
         generic run command
@@ -731,7 +746,12 @@ class YambopyCmd(Cmd):
         if len(args) <= 1:
             self.info()
             exit(0)
- 
+
+        #check for how to cite
+        if args[1]=='cite':
+            self.cite()
+            exit()
+
         #start call graph     
         if args[1] in self._commands:
             cmdclass = self._commands[args[1]]
