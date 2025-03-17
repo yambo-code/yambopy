@@ -17,3 +17,8 @@ Project Authors
 
 ## All other contributors and their affiliations:
 
+* Matteo Zanfrognini
+* Alexandre Morlet
+* Davide Romanin
+* Daniel Murphy
+
