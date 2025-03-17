@@ -17,6 +17,7 @@ Project Authors
 
 ## All other contributors and their affiliations:
 
+* Michele Re Fiorentin
 * Matteo Zanfrognini
 * Alexandre Morlet
 * Davide Romanin
