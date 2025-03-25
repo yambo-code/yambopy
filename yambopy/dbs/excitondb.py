@@ -255,8 +255,6 @@ class YamboExcitonDB(object):
         # Make sure nc * nv * nk = BS_TABLE length
         table_len = nk*nv*nc
         assert table_len == self.table.shape[0], "BS_TABLE length not equal to nc * nv * nk"
-
-        assert eig_wfcs.shape[-1]//table_len == 1, "rearranged_Akcv works only in TDA"
         #
         v_min = np.min(self.table[:,1])
         c_min = np.min(self.table[:,2])
