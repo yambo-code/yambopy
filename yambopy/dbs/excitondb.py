@@ -90,6 +90,7 @@ class YamboExcitonDB(object):
 
         Set `Read_WF=False` to avoid reading eigenvectors for faster IO and memory efficiency.
         If neigs < 0 ; all eigen values (vectors) are loaded or else first neigs are loaded 
+        " In case of non-TDA, we load right eigenvectors.
         """
         path_filename = os.path.join(folder,filename)
         if not os.path.isfile(path_filename):
@@ -268,14 +269,14 @@ class YamboExcitonDB(object):
         sort_idx = bs_table0*nc*nv + bs_table2*nv + bs_table1
         #
         eig_wfcs_returned[:,sort_idx] = eig_wfcs[...,:table_len]
-        eig_wfcs_returned = eig_wfcs_returned.reshape(-1,nk,nc,nv)
-        #
         # check if this is coupling .
-        # if eig_wfcs.shape[-1]//table_len == 2:
-        #     eig_wfcs_returned[:,sort_idx+table_len] = eig_wfcs[...,table_len:]
-        #     eig_wfcs_returned = eig_wfcs_returned.reshape(-1,2,nk,nc,nv)
-        # else :
-        #     eig_wfcs_returned = eig_wfcs_returned.reshape(-1,nk,nc,nv)
+        if eig_wfcs.shape[-1]//table_len == 2:
+            eig_wfcs_returned[:,sort_idx+table_len] = eig_wfcs[...,table_len:]
+            # NM : Note that here v and c are inverted i.e 
+            # psi_S = Akcv * phi_v(r_e) * phi_c^*(r_h)
+            eig_wfcs_returned = eig_wfcs_returned.reshape(-1,2,nk,nc,nv)
+        else :
+            eig_wfcs_returned = eig_wfcs_returned.reshape(-1,nk,nc,nv)
         #
         self.Akcv = eig_wfcs_returned
         return self.Akcv

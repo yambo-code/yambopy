@@ -51,6 +51,7 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     # Number of arbitrary parameters (lambda) in the Omn matrix
     nlambda = Omn.shape[0]
     #
+    assert len(Akq.shape) == 4, "Works only with TDA."
     # Shape of the wavefunction coefficients
     n_exe_states, nk, nc, nv = Akq.shape
     #
