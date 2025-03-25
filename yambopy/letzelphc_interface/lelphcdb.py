@@ -116,7 +116,7 @@ class LetzElphElectronPhononDB():
         gkkp_full = np.zeros([self.nq,self.nk,self.nm,self.ns,self.nb1,self.nb2],dtype=np.complex64)
         gkkp_tmp  = database.variables['elph_mat'][:]
         gkkp_full = gkkp_tmp[:,:,:,:,:,:,0]+1j*gkkp_tmp[:,:,:,:,:,:,1]
-        
+       
         # Check integrity of elph values
         if np.isnan(gkkp_full).any(): print('[WARNING] NaN values detected in elph database.')
         
@@ -141,7 +141,7 @@ class LetzElphElectronPhononDB():
                 else:
                     ph_E = self.ph_energies[iq,inu]/(ha2ev/2.) # Put back the energies in Rydberg units
                     g[iq,:,inu,:,:,:] = dvscf[iq,:,inu,:,:,:]/np.sqrt(2.*ph_E)
-        return dvscf
+        return g
 
 
     def read_iq(self,iq, bands_range=[], database=None, convention='yambo'):

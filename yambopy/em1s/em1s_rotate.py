@@ -95,7 +95,7 @@ class YamboEm1sRotate():
         # Get symmetries in CC and real-space atomic positions
         if not os.path.isfile('%s/%s'%(save_path,db1)): raise FileNotFoundError("File %s not found."%db1)
         database = Dataset("%s/%s"%(save_path,db1), 'r')
-        self.sym_car = np.transpose( database.variables['SYMMETRY'][:], (0,2,1) ), # transpose leaving first axis as symm index
+        self.sym_car = np.transpose( database.variables['SYMMETRY'][:], (0,2,1) ) # transpose leaving first axis as symm index
         n_atoms =  database.variables['N_ATOMS'][:].astype(int)
         atom_pos = database.variables['ATOM_POS'][:]
         if verbose: iku_kpoints_ibz = database.variables['K-POINTS'][:].T
