@@ -224,7 +224,7 @@ class YamboLatticeDB(object):
     def get_units_info(self):
 
         info_string = \
-        "          Yambo cartesian units [cc in yambo]: \n\
+        "          bohr^-1 | Yambo cartesian units [cc in yambo]: \n\
                 ::   self.car_kpoints*2.*pi\n\
          \n\
           QE cartesian unists [cart. coord. in units 2pi/alat] in QE: \n\

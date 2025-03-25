@@ -28,11 +28,11 @@ import os
 #  T_prediod   shorted cicle period
 #  X           coefficents of the response functions X1,X2,X3...
 #
-def SF_Coefficents_Inversion(N_samp,NX,NX2,P,W1,W2,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD,INV0=None):
+def SF_Coefficents_Inversion(N_samp,NX,NX2,P,W1,W2,T_range,T_step,tol,INV_MODE,SAMP_MOD,INV0=None):
     #
     M_size = (2*NX+1)*(2*NX2+1)  # Positive and negative components plus the zero
     #
-    if N_samp<=M_size: 
+    if N_samp<M_size:
         raise ValueError(" Too few sampling points please increase it ")
 
     i_t_start = int(np.round( T_range[0] / T_step)) 
@@ -50,11 +50,14 @@ def SF_Coefficents_Inversion(N_samp,NX,NX2,P,W1,W2,T_range,T_step,efield,tol,INV
         raise ValueError(f"Invalid sampling mode. Expected one of: {SAMP_MODES}")
     #
     if SAMP_MOD=='linear':
-        T_i = (i_t_start + i_deltaT * range(N_samp))*T_step - efield["initial_time"]
-        P_i = P[i_t_start + i_deltaT * range(N_samp)]
+        T_i = (i_t_start + i_deltaT * np.arange(N_samp))*T_step
+        P_i = P[i_t_start + i_deltaT * np.arange(N_samp)]
     elif SAMP_MOD=='log':
         T_i = np.geomspace(i_t_start * T_step, T_range[1], N_samp, endpoint=False)
-        P_i = [P[int(np.round(t / T_step))] for t in T_i]
+        for i in range(len(T_i)):
+            i_t=int(np.round(T_i[i]/T_step))
+            T_i[i]=i_t*T_step
+            P_i[i]=P[i_t]
     elif SAMP_MOD=='random':
         T_i = np.random.uniform(i_t_start * T_step, T_range[1], N_samp)
         P_i = [P[int(np.round(t / T_step))] for t in T_i]
@@ -97,7 +100,7 @@ def SF_Coefficents_Inversion(N_samp,NX,NX2,P,W1,W2,T_range,T_step,efield,tol,INV
         else:
             x0_cmplx = INV0
         x0 = np.concatenate((x0_cmplx.real, x0_cmplx.imag))
-        res = least_squares(residuals_func, x0, ftol=1e-11,gtol=1e-11,xtol=1e-11,verbose=1,x_scale='jac')
+        res = least_squares(residuals_func, x0, ftol=1e-11,gtol=1e-11,xtol=1e-11,verbose=0,x_scale='jac')
         INV = res.x[0:int(res.x.size/2)] + 1j * res.x[int(res.x.size/2):res.x.size]
 
     if INV_MODE=='lstsq':
@@ -201,16 +204,21 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
 
     
     print("Loop in frequecies...")
+    if INV_MODE=='lstsq_init':
     # Find the Fourier coefficients by inversion
 #    old_tol=tol
-    for i_f in tqdm(range(n_frequencies)):
+        for i_f in tqdm(range(n_frequencies)):
 #        These commented lines increase tol if two frequencies are degenerate
 #        tol=old_tol
 #        if np.isclose(pump_freq,freqs[i_f],atol=1e-7):
 #            print(" WARNING: frequency "+str(i_f+1)+" = "+str(freqs[i_f]*ha2ev)+ " very close to the pump one: inversion tolerance reduced ")
 #            tol=tol*100.0
-        for i_d in range(3):
-            X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order, X_order2, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE,SAMP_MOD)
+            for i_d in range(3):
+                X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order, X_order2, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,tol,INV_MODE,SAMP_MOD)
+    else:
+        for i_f in tqdm(range(n_frequencies)):
+            for i_d in range(3):
+                X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],_=SF_Coefficents_Inversion(N_samp, X_order, X_order2, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,tol,INV_MODE,SAMP_MOD)
         
         
 # check non-converged points and degneracies and fix them
@@ -225,16 +233,16 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
         #
         iX=[i_order+X_order,i_order2+X_order2]
     # Calculate the moving average with a window
-#       signal= abs(X_effective[i_order+X_order,i_order2+X_order,:,i_d])
+#        signal= abs(X_effective[i_order+X_order,i_order2+X_order2,:,i_d])
         signal_im= abs(X_effective[i_order+X_order,i_order2+X_order2,:,i_d].imag)
         signal_re= abs(X_effective[i_order+X_order,i_order2+X_order2,:,i_d].real)
 
         window_size = 5
-   #     smooth_signal = uniform_filter1d(signal, size=window_size)
+#        smooth_signal = uniform_filter1d(signal, size=window_size)
         smooth_signal_im = uniform_filter1d(signal_im, size=window_size)
         smooth_signal_re = uniform_filter1d(signal_re, size=window_size)
     # Identify spikes relative to the local average
-        threshold_local = 0.3  # defines how much a value can deviate from the local average
+        threshold_local = 2.0  # defines how much a value can deviate from the local average
 #        spike_indices_local = np.where(np.abs(signal - smooth_signal)/smooth_signal > threshold_local)[0]
         spike_indices_local_im = np.where(np.abs(signal_im - smooth_signal_im)/smooth_signal_im > threshold_local)[0]
         spike_indices_local_re = np.where(np.abs(signal_re - smooth_signal_re)/smooth_signal_re > threshold_local)[0]
@@ -248,7 +256,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
                INV0[:,i_f,i_d]=INV0[:,i_f-1,i_d]
            else:
                INV0[:,i_f,i_d]=(INV0[:,i_f+1,i_d]+INV0[:,i_f-1,i_d])/2.0
-               X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order, X_order2, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE="lstsq_init",SAMP_MOD=SAMP_MOD,INV0=INV0[:,i_f,i_d])
+           X_effective[:,:,i_f,i_d],Sampling[:,:,i_f,i_d],INV0[:,i_f,i_d]=SF_Coefficents_Inversion(N_samp, X_order, X_order2, polarization[i_f][i_d,:],freqs[i_f],pump_freq,T_range,T_step,efield,tol,INV_MODE="lstsq_init",SAMP_MOD=SAMP_MOD,INV0=INV0[:,i_f,i_d])
 
     print("Calculate susceptibility ")
     for i_order,i_order2 in itertools.product(range(-X_order,X_order+1),range(-X_order2,X_order2+1)):
