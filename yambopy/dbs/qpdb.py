@@ -86,9 +86,9 @@ class YamboQPDB():
         """
         #start arrays
 
-        # AMS: I changed the way we define the arrays. Hope is not breaking other things
+        # If spin polarisation is present, arrays have one additional dimension
 
-        # I have shifted 
+        # shift
         ncalculatedkpoints = self.max_kpoint - self.min_kpoint + 1
         if self.spin is True:
            eigenvalues_dft = np.zeros([ncalculatedkpoints,self.nbands,2])
@@ -394,15 +394,20 @@ class YamboQPDB():
         else: 
            return ks_ebands, qp_ebands
 
-    def expand_eigenvalues(self,lattice):
+    def expand_eigenvalues(self,lattice,data=None):
         """ Expand QP values in full BZ
             - Input: YamboLatticeDB object with expanded kpts
+            - Input: data as eigenvalues to expand with correct dimensions. If None, expand QP eigenvalues
         """
         nkbz   = lattice.nkpoints
         bz2ibz = lattice.kpoints_indexes
 
-        eigenvalues_qp_expanded = np.zeros((nkbz,self.nbands))
-        for ikbz in range(nkbz): eigenvalues_qp_expanded[ikbz,:] = self.eigenvalues_qp[bz2ibz[ikbz],:] 
+        if data is None: data = self.eigenvalues_qp
+
+        if self.spin: eigenvalues_qp_expanded = np.zeros((nkbz,self.nbands,2))
+        else:         eigenvalues_qp_expanded = np.zeros((nkbz,self.nbands))
+
+        for ikbz in range(nkbz): eigenvalues_qp_expanded[ikbz,:] = data[bz2ibz[ikbz],:] 
         return eigenvalues_qp_expanded
 
 
@@ -446,10 +451,11 @@ class YamboQPDB():
     def __str__(self):
         lines = []; app = lines.append
         app(marquee(self.__class__.__name__))
-        app("nqps:     %d"%self.nqps)
-        app("nkpoints: %d"%self.nkpoints)
-        app("nbands:   %d"%self.nbands)
-        app("min_band: %d"%self.min_band)
-        app("max_band: %d"%self.max_band)
+        app( "nqps:     %d"%self.nqps)
+        app( "nkpoints: %d"%self.nkpoints)
+        app( "nbands:   %d"%self.nbands)
+        app( "min_band: %d"%self.min_band)
+        app( "max_band: %d"%self.max_band)
+        if self.spin: app("Spin-polarized system.")
         return "\n".join(lines)
 

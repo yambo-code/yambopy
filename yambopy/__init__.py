@@ -41,19 +41,9 @@ Modules:
 """
 import numpy as np
 
-class yambopyenv():
-    YAMBO = "yambo"
-    P2Y = "p2y"
-    E2Y = "e2y"
-    YPP = "ypp"
-    SCHEDULER = "bash"
-    YAMBO_RT = "yambo_rt"
-    YPP_RT = "ypp_rt"
-    YAMBO_NL = "yambo_nl"
-    YPP_NL = "ypp_nl"
-
 #tools and units
 from yambopy.tools.jsonencoder import *
+from yambopy.tools.types import *
 from yambopy.units import *
 
 #lattice-related operations
@@ -66,7 +56,6 @@ from yambopy.kpoints import *
 from yambopy.tools.skw import *
 
 #yambo databases
-#from yambopy.dbs.savedb import *
 from yambopy.dbs.dipolesdb import *
 from yambopy.dbs.qpdb import *
 from yambopy.dbs.hfdb import *
@@ -126,6 +115,7 @@ from yambopy.nl.fft_interp import *
 from yambopy.nl.external_efield import *
 from yambopy.nl.damp_it import *
 from yambopy.nl.harmonic_analysis import *
+from yambopy.nl.sum_frequencies import *
 from yambopy.nl.hhg_tools import *
 
 #doublegrid files

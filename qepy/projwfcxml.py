@@ -220,8 +220,8 @@ class ProjwfcXML(object):
         ax.set_ylabel('E (eV)')
 
         #plot vertical lines
-        for t in ticks: ax.axvline(kpoints_dists[t],c='k',lw=1)
-        ax.axhline(0,c='k')
+        for t in ticks: ax.axvline(kpoints_dists[t],c='gray',lw=0.8)
+        ax.axhline(0,c='gray')
      
         # Plot bands for fixed size in a colormap
         if selected_orbitals_2:
@@ -231,16 +231,10 @@ class ProjwfcXML(object):
               for ib in range(bandmin,bandmax):
                   eig = self.eigen[:,ib] + y_offset
                   eig_last = self.eigen[:,-1] + y_offset
-                  state = self.states
-                  j = state[ib]['j']
-                  l = state[ib]['l']
                   if size_projection==True:
                      cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2,marker=marker)
                   else:
                      cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
-                     #print(f'b:{ib} J={j} L={l}')
-                     #ax.textye(f'b:{ib} J={j} L={l}', ((kpoints_dists[-1]-kpoints_dists[0])/2,ib*(eig_last-eig)/(bandmax-bandmin)), textcoords='offset points', xytext=(0,10), ha='center', va='bottom',color='teal')
-                     #ax.annotate(f'b:{ib} J={j} L={l}', ((kpoints_dists[-1]-kpoints_dists[0])/2,ib*(eig_last-eig)/(bandmax-bandmin)), textcoords='offset points', xytext=(0,10), ha='center', va='bottom',color='teal')
 
            # Spin polarized no SOC
            if self.spin_components == 2:
@@ -528,13 +522,14 @@ class ProjwfcXML(object):
         self.eigen  = scissored_bands
 
     def __str__(self):
+        version_number = float(re.findall(r"([0-9.]+)",self.qe_version)[0])
         lines = []; app = lines.append
         app(marquee(self.__class__.__name__))
 
         app(f"Running projwfcxml for QE version {self.qe_version}")
         app(f"nkpoints: {self.nkpoints}")
         app(f"nbands:   {self.nbands}")
-        if (self.qe_version=='7.0'): #replace with order_l-j-m-mj and order_j-l-m-mj 
+        if version_number>=7: #replace with order_l-j-m-mj and order_j-l-m-mj 
             for n,state in enumerate(self.states):
                 app(f"n: {n} -> iatom:{state['iatom']} atype:{state['atype']} wfc:{state['wfc']} l:{state['l']} j:{state['j']} m_j:{state['m_j']}")
             return "\n".join(lines)

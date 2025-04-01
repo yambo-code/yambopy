@@ -3,3 +3,4 @@ build
 *.egg-info
 dist
 .DS_store
+git.sh
