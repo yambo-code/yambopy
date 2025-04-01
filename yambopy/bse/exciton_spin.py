@@ -72,7 +72,7 @@ def compute_exciton_spin(lattice, excdb, wfdb, elec_sz, contribution='b',diagona
 
 
 def compute_exc_spin_iqpt(path='.', bse_dir='SAVE', iqpt=1,
-                          nstates=-1, contribution='b', degen_tol = 1e-3,
+                          nstates=-1, contribution='b', degen_tol = 1e-2,
                           sz=0.5 * np.array([[1, 0], [0, -1]]),
                           return_dbs_and_spin=True):
     """
@@ -99,7 +99,7 @@ def compute_exc_spin_iqpt(path='.', bse_dir='SAVE', iqpt=1,
         - `'e'`: Electron spin only.
         - `'h'`: Hole spin only.
     degen_tol : float, optional
-        Degeneracy tolerance for excitons in eV. Default is `1e-3` eV.
+        Degeneracy tolerance for excitons in eV. Default is `1e-2` eV.
     sz : ndarray, optional
         Spin-z operator matrix in the basis of spinor wavefunctions.
         Default is `0.5 * np.array([[1, 0], [0, -1]])`.
