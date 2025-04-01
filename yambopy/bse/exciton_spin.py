@@ -169,7 +169,7 @@ def compute_exc_spin_iqpt(path='.', bse_dir='SAVE', iqpt=1,
 
 
 def get_spinvals(spin_matrix, eigenvalues, atol=1e-3, rtol=1e-3):
-    degen_idx = find_degeneracy_evs(eigenvalues)
+    degen_idx = find_degeneracy_evs(eigenvalues,atol=atol, rtol=rtol)
     spins = []
     for id in degen_idx:
         w = np.linalg.eigvals(spin_matrix[id,:][:,id])
