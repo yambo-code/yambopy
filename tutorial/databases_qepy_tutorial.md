@@ -51,7 +51,24 @@ python plot-qe-orbitals-size.py
 
 python plot-qe-orbitals-colormap.py
 
-# Tutorial 3. BN (semiconductor). GW Band structure
+# Tutorial 3. Unfolding supercell band structure
+==============================================
+
+Folder 'bn-semiconductor'
+
+1. Calculate scf density and bands for pristine (pc) case.
+
+2. Calculate scf density for supercell (sc) case - In this case, 'ecutwfc' and 'nbnd' have to be the same between pc and sc cases. However, lattice parameters for the sc have to be exactly a factor X with respect to the pc lattice parameter. If 'celldm(1) = 5.952637' for pc case, 'celldm(1) = 11.905274' for 2x2 sc case. In the case of a monolayer, if "celldm(1) = 5.919710945" for pc case, then "celldm(3) = 2.959855472" for 2x2 sc case. Besides, the atomic positions of repeated atoms between pc and sc have to be exactly the same.
+
+2. Calculate bands for sc case - The BZ path has to be exactly a factor X with respect to the pc BZ path. If G-M is (0.0, 0.0, 0.0) - (0.0, 0.5, 0.0) in pc case, (0.0, 0.0, 0.0) - (0.0, 1.0, 0.0) for 2x2 sc case.
+
+(Previous database can be downloaded using the link above)
+
+2. Plot the pc band structure and unfolded sc band structure.
+
+python plot-unfolding.py
+
+# Tutorial 4. BN (semiconductor). GW Band structure
 ==============================================
 
 1. Find stretching coefficients
