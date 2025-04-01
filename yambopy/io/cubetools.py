@@ -35,4 +35,5 @@ def write_cube(filename, data, lat_vec, atom_pos, atomic_num, origin=np.zeros(3)
                 for iz in range(data.shape[2]):
                     cube.write("%.6f      " %(data[ix,iy,iz]))
                     if iz % 6 == 5 : cube.write("\n")
+                cube.write("\n")
 
