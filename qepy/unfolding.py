@@ -18,17 +18,17 @@ class Unfolding():
 
     def __init__(self,prefix_pc,prefix_sc,path_pc='.',path_sc='.',spin="none",band_min=0,sc_rotated=False,compute_projections=True):
         """ 
-        Initialize the structure with data from the unit cell and the supercell and then compute the projection of the supercell band structure
-        taking the unit cell band structure as a reference
+        Initialize the structure with data from the primitive cell and the supercell and then compute the projection of the supercell band structure
+        taking the primitive cell band structure as a reference
 
         === Usage and variables ===
 
-        >> Unfold = UnfoldingHDF5(prefix_pc=db_prefix_pc,path_pc=db_path_pc,prefix_sc=db_prefix_sc,path_sc=db_path_sc,spin="noncol",band_min = 0,sc_rotated=False,compute_projections=True)
+        >> Unfold = Unfolding(prefix_pc=db_prefix_pc,path_pc=db_path_pc,prefix_sc=db_prefix_sc,path_sc=db_path_sc,spin="noncol",band_min = 0,sc_rotated=False,compute_projections=True)
         >> Unfold.plot_eigen_ax(ax,path=db_path_kpoints_sc,ylim = (ylim_min,ylim_max))
  
         Input:
-        :: prefix_pc(sc) is the prefix of the unit cell (supercell) QE save
-        :: path_pc(sc) is the path of the unit cell (supercell) along the Brillouin zone
+        :: prefix_pc(sc) is the prefix of the primitive cell (supercell) QE save
+        :: path_pc(sc) is the path of the primitive cell (supercell) along the Brillouin zone
         :: spin is equal to "none" or "noncol" for nspin = 1 (noSOC) and nspin 4 (SOC) calculations according to QE format
         :: band min determines the number of computed bands. If band_min = 0, it computes the projection of all the bands. If band_min != 0, it computes the projection of the nbands-band_min bands
         :: sc_rotated determines the rotation matrix if necessary. If sc_rotated = False, it takes the matrix identity. If sc_rotated = (3x3) matrix, it takes the rotation matrix defined by the user
@@ -37,29 +37,29 @@ class Unfolding():
         
         Output:
         :: projections.npy file to plot the EBS with an external script
-        :: Plot with the EBS of the supercell taking as a reference the defined unit cell
+        :: Plot with the EBS of the supercell taking as a reference the defined primitive cell
         """
 
         print("=== Initializing the data ===")
 
-        # Prefix and path of unit cell and supercell
+        # Prefix and path of primitive cell and supercell
         self.prefix_pc = prefix_pc  
         self.prefix_sc = prefix_sc
         self.path_pc   = path_pc 
         self.path_sc   = path_sc
        
-        # Reading unit cell and supercell database from QE
+        # Reading primitive cell and supercell database from QE
         pc_xml = PwXML(prefix=self.prefix_pc,path=self.path_pc) 
         sc_xml = PwXML(prefix=self.prefix_sc,path=self.path_sc)
 
-        # Number of kpoints of the unit cell and supercell
+        # Number of kpoints of the primitive cell and supercell
         self.nkpoints_pc = pc_xml.nkpoints 
         self.nkpoints_sc = sc_xml.nkpoints 
 
         # List of kpoints of the supercell 
         self.kpoints = sc_xml.kpoints  
 
-        # Number of bands of the unit cell and supercell
+        # Number of bands of the primitive cell and supercell
         self.nbands_pc = pc_xml.nbands  
         self.nbands_sc = sc_xml.nbands 
 
@@ -70,11 +70,11 @@ class Unfolding():
         if self.band_min > self.nbands_sc:
            raise Exception("Minimum of bands larger than total number of bands")
 
-        # Reciprocal lattice of the unit cell and supercell in cartesian coordiantes
+        # Reciprocal lattice of the primitive cell and supercell in cartesian coordiantes
         self.rcell_pc = array(pc_xml.rcell)/pc_xml.cell[0][0] 
         self.rcell_sc = array(sc_xml.rcell)/sc_xml.cell[0][0]
    
-        # Eigenvalues of the unit cell and supercell
+        # Eigenvalues of the primitive cell and supercell
         self.eigen_pc = array(pc_xml.eigen1) 
         self.eigen_sc = array(sc_xml.eigen1) 
 
@@ -109,7 +109,7 @@ class Unfolding():
            for ik in range(self.nkpoints_sc):
                load(ik,self.nkpoints_sc)
 
-               # Loading the data of each kpoint of the unit cell and supercell 
+               # Loading the data of each kpoint of the primitive cell and supercell 
                f_pc = h5py.File('%s/%s.save/wfc%01d.hdf5' % (self.path_pc,self.prefix_pc,(ik + 1)), 'r') 
                f_sc = h5py.File('%s/%s.save/wfc%01d.hdf5' % (self.path_sc,self.prefix_sc,(ik + 1)), 'r') 
 
@@ -138,10 +138,10 @@ class Unfolding():
                    w = format_string % (abs(w[0]), abs(w[1]), abs(w[2]))
                    g_sc[w] = ig
                    
-               # To check in the following loop if the k-point of the super cell is found in the unit cell    
+               # To check in the following loop if the k-point of the super cell is found in the primitive cell    
                g_contain = [0]*self.ng_pc
 
-               # Loop along the number of Miller indices of the unit cell
+               # Loop along the number of Miller indices of the primitive cell
                for ig in arange(self.ng_pc):
 
                    # Definition of Miller indices in order to reconstruct the k-points
@@ -150,7 +150,7 @@ class Unfolding():
                    w = np.around(w, decimals = n_decs) + array([0,0,0])
                    w = format_string % (abs(w[0]), abs(w[1]), abs(w[2]))
 
-                   # Checking if the k-point in the supercell is found in the unit cell,
+                   # Checking if the k-point in the supercell is found in the primitive cell,
                    # if missing, the projection will be wrong.
                    try:
                        g_contain[ig] = g_sc[w]
@@ -188,7 +188,7 @@ class Unfolding():
                       x = 0.0
                       for ig in range(self.ng_pc): 
 
-                          # Computing the projection between the unit cell and the super cell
+                          # Computing the projection between the primitive cell and the super cell
                           x += eivecs[ib][g_contain[ig]]*(eivecs[ib][g_contain[ig]].conjugate())
 
                       # If the value is less than a threshold, the projection is set to zero (to avoid ficticious points when plotting)
@@ -249,7 +249,7 @@ class Unfolding():
             ax.axvline(kpoints_dists[t],c='k',lw=2)
         ax.axhline(0,c='k',lw=1)
 
-        # Plotting the band for the unit cell
+        # Plotting the band for the primitive cell
         for ib in range(self.nbands_pc):
            ax.plot(kpoints_dists,self.eigen_pc[:,ib],'k--',lw=0.5)
 
@@ -270,7 +270,7 @@ def load(x,n):
     x+=1
     ratio = x/float(n)
     c = int(ratio * bar_length)
-    stdout.write(" * Computing projections of the supercell onto the unit cell ["+"="*c+" "*(bar_length-c)+"] %03.3f%%" % (ratio*100))
+    stdout.write(" * Computing projections of the supercell onto the primitive cell ["+"="*c+" "*(bar_length-c)+"] %03.3f%%" % (ratio*100))
     if (x==n): stdout.write("\n")
     stdout.flush()
     stdout.write("\r")

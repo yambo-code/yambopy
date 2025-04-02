@@ -34,7 +34,7 @@ sc = PwXML(prefix=prefix_sc,path=path_sc)
 fold = Unfolding(prefix_pc=prefix_pc,path_pc=path_pc,prefix_sc=prefix_sc,path_sc=path_sc,spin="noncol", band_min = 0, sc_rotated=False,compute_projections=True)
 
 # Plotting unfolded sc band structure
-fold.plot_eigen_ax(ax,path=path_kpoints_sc,ylim = (-2.0,3.0))
+fold.plot_eigen_ax(ax,path=path_kpoints_sc,ylim = (-4.0,10.0))
 
 plt.show()
 

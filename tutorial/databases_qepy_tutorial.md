@@ -58,7 +58,7 @@ Folder 'bn-semiconductor'
 
 1. Calculate scf density and bands for pristine (pc) case.
 
-2. Calculate scf density for supercell (sc) case - In this case, 'ecutwfc' and 'nbnd' have to be the same between pc and sc cases. However, lattice parameters for the sc have to be exactly a factor X with respect to the pc lattice parameter. If 'celldm(1) = 2.5' for pc case, 'celldm(1) = 5.0' for 2x2 sc case. In the case of a monolayer, if "celldm(3) = 20" for pc case, then "celldm(3) = 10" for 2x2 sc case. Besides, the atomic positions of repeated atoms between pc and sc have to be exactly the same.
+2. Calculate scf density for supercell (sc) case - In this case, 'ecutwfc', 'nbnd' and the k-grid have to be the same between pc and sc cases. However, lattice parameters for the sc have to be exactly a factor X with respect to the pc lattice parameter. If 'celldm(1) = 2.5' for pc case, 'celldm(1) = 5.0' for 2x2 sc case. In the case of a monolayer, if "celldm(3) = 20" for pc case, then "celldm(3) = 10" for 2x2 sc case. Besides, the atomic positions of repeated atoms between pc and sc have to be exactly the same.
 
 2. Calculate bands for sc case - The BZ path has to be exactly a factor X with respect to the pc BZ path. If G-M is (0.0, 0.0, 0.0) - (0.0, 0.5, 0.0) in pc case, (0.0, 0.0, 0.0) - (0.0, 1.0, 0.0) for 2x2 sc case.
 
