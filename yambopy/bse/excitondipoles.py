@@ -58,7 +58,7 @@ def exciton_dipoles(blongdir,lattice_path,dipoles_path=None,bse_path=None,kplot=
     field_dir = blongdir/np.linalg.norm(blongdir)
 
     # Dipole projection along field direction
-    dipoles = np.einsum('j,ijkl',field_dir,ydip.dipoles)
+    dipoles = np.einsum('x,kxcv->kcv',field_dir,ydip.dipoles)
 
     # Rotate to exciton basis (no-loop fast sum)
     dip_exc = np.sum(yexc.eigenvectors*dipoles[tuple(table_kcv[:,:3].T-1)],axis=1)
