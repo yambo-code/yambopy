@@ -442,7 +442,7 @@ class YamboWFDB:
             grid = self.fft_box
         cel_vol = abs(np.linalg.det(self.ydb.lat.T))
 
-        tmp_wfc = np.zeros((self.nspin, self.nspinor, grid[0], grid[1], grid[2]), dtype=wfc_tmp.dtype)
+        tmp_wfc = np.zeros((len(wfc_tmp), self.nspinor, grid[0], grid[1], grid[2]), dtype=wfc_tmp.dtype)
 
         Nx_vals = np.where(gvec_tmp[:, 0] >= 0, gvec_tmp[:, 0], gvec_tmp[:, 0] + grid[0])
         Ny_vals = np.where(gvec_tmp[:, 1] >= 0, gvec_tmp[:, 1], gvec_tmp[:, 1] + grid[1])
