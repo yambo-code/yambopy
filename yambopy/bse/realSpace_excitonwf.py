@@ -93,7 +93,7 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     ktree = build_ktree(wfcdb.kBZ)
     #
     nspinorr = wfcdb.nspinor
-    exe_wfc_real = np.zeros((nstates, nspinorr, np.prod(supercell),
+    exe_wfc_real = np.zeros((nstates, nspinorr, nspinorr, np.prod(supercell),
                              fft_box[0], fft_box[1], fft_box[2]),dtype=np.complex64)
     Lx = np.arange(supercell[0],dtype=int)
     Ly = np.arange(supercell[1],dtype=int)
@@ -110,7 +110,7 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     FFFboxs = np.zeros((fft_box[0],fft_box[1],fft_box[2],3))
     FFFboxs[...,0], FFFboxs[...,1], FFFboxs[...,2] = np.meshgrid(FFTxx,FFTyy,FFTzz,indexing='ij')
     #
-    exe_tmp_wf = np.zeros((nstates, nspinorr, min(nk,block_size) ,
+    exe_tmp_wf = np.zeros((nstates, nspinorr, nspinorr, min(nk,block_size) ,
                            fft_box[0], fft_box[1], fft_box[2]),dtype=np.complex64)
     #
     exp_tmp_kL = np.zeros((min(nk,block_size) ,supercell[0],
@@ -191,23 +191,23 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
             exp_kx_r = np.exp(2*np.pi*1j*FFFboxs.reshape(-1,3)@ft_kvec)
             #
             if fix_particle == 'h':
-                np.einsum('ncv,vx,cxijk->nxijk',Akcv[:,ik,...],fx_wfc[0],ft_wfcr[0],
-                                        optimize=True,out=exe_tmp_wf[:,:,ik-ikstart])
+                np.einsum('ncv,vy,cxijk->nxyijk',Akcv[:,ik,...],fx_wfc[0],ft_wfcr[0],
+                          optimize=True,out=exe_tmp_wf[:,:,:,ik-ikstart])
             else :
-                np.einsum('ncv,cx,vxijk->nxijk',Akcv[:,ik,...],fx_wfc[0],ft_wfcr[0],
-                                        optimize=True,out=exe_tmp_wf[:,:,ik-ikstart])
+                np.einsum('ncv,cx,vyijk->nxyijk',Akcv[:,ik,...],fx_wfc[0],ft_wfcr[0],
+                          optimize=True,out=exe_tmp_wf[:,:,:,ik-ikstart])
             #
-            exe_tmp_wf[:,:,ik-ikstart] *= exp_kx_r[...].reshape(FFFboxs.shape[:3])
+            exe_tmp_wf[:,:,:,ik-ikstart] *= exp_kx_r[...].reshape(FFFboxs.shape[:3])[None,None,None]
             exp_tmp_kL[ik-ikstart] = np.exp(1j*2*np.pi*np.einsum('...x,x->...',Lsupercells,ft_kvec))
         ## perform gemm operation 
         exe_wfc_real[...] += (exp_tmp_kL.reshape(len(exp_tmp_kL),-1)[:(ikstop-ikstart)].T[None,...] @
-                            exe_tmp_wf.reshape(nstates*nspinorr,-1,np.prod(fft_box))[:,:(ikstop-ikstart)]).reshape(
-                                nstates,nspinorr,np.prod(supercell),fft_box[0], fft_box[1], fft_box[2])
+                            exe_tmp_wf.reshape(nstates*nspinorr**2,-1,np.prod(fft_box))[:,:(ikstop-ikstart)]).reshape(
+                                nstates,nspinorr,nspinorr,np.prod(supercell),fft_box[0], fft_box[1], fft_box[2])
 
-    exe_wfc_real = exe_wfc_real.reshape(nstates,nspinorr,supercell[0],supercell[1],supercell[2],
+    exe_wfc_real = exe_wfc_real.reshape(nstates,nspinorr**2,supercell[0],supercell[1],supercell[2],
                                         fft_box[0], fft_box[1], fft_box[2])
     #
-    exe_wfc_real = exe_wfc_real.transpose(0,1,2,5,3,6,4,7).reshape(nstates,nspinorr,
+    exe_wfc_real = exe_wfc_real.transpose(0,1,2,5,3,6,4,7).reshape(nstates,nspinorr,nspinorr,
                     supercell[0]*fft_box[0], supercell[1]*fft_box[1],
                     supercell[2]*fft_box[2])/np.prod(supercell)
     
@@ -251,21 +251,28 @@ def compute_exc_wfc_real(path='.', bse_dir='SAVE', iqpt=1, nstates=[1],
                           fix_particle=fix_particle, supercell=supercell, 
                           wfcCutoffRy=wfcCutoffRy, block_size=block_size)
     #
+    #
     nstates_range = np.arange(nstates[0],nstates[1],dtype=int)
     density = np.abs(real_wfc)**2
+
+    if fix_particle == 'h': name_file = 'electron'
+    else: name_file = 'hole'
+    if real_wfc.shape[1] != 1:
+        print("phase plot only works for nspin = 1 and nspinor == 1")
+        phase = False
     if phase: 
         phase = np.sign(real_wfc.real) #np.sign(np.angle(real_wfc))
         density *= phase
     if aveg:
-        real_wfc = np.sum(density,axis=(0,1))
+        real_wfc = np.sum(density,axis=(0,1,2))
         real_wfc = real_wfc/np.max(np.abs(real_wfc))
-        write_cube('exe_wf_avg_%d-%d.cube' %(nstates[0],nstates[1]), 
+        write_cube('exe_wf_avg_%s_%d-%d.cube' %(name_file,nstates[0],nstates[1]),
                    real_wfc, sc_latvecs, atom_pos, atom_nums, header='Real space exciton wavefunction')
     else:
-        real_wfc = np.sum(density,axis=1)
+        real_wfc = np.sum(density,axis=(1,2))
         for i in range(len(real_wfc)):
             real_wfc1 = real_wfc[i]/np.max(np.abs(real_wfc[i]))
-            write_cube('exe_wf_%d.cube' %nstates[i], real_wfc1, sc_latvecs,
+            write_cube('exe_wf_%s_%d.cube' %(name_file,nstates[i]), real_wfc1, sc_latvecs,
                        atom_pos, atom_nums, header='Real space exciton wavefunction')
 
 
