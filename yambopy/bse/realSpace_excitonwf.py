@@ -200,16 +200,25 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
             exe_tmp_wf[:,:,:,ik-ikstart] *= exp_kx_r[...].reshape(FFFboxs.shape[:3])[None,None,None]
             exp_tmp_kL[ik-ikstart] = np.exp(1j*2*np.pi*np.einsum('...x,x->...',Lsupercells,ft_kvec))
         ## perform gemm operation 
-        exe_wfc_real[...] += (exp_tmp_kL.reshape(len(exp_tmp_kL),-1)[:(ikstop-ikstart)].T[None,...] @
-                            exe_tmp_wf.reshape(nstates*nspinorr**2,-1,np.prod(fft_box))[:,:(ikstop-ikstart)]).reshape(
-                                nstates,nspinorr,nspinorr,np.prod(supercell),fft_box[0], fft_box[1], fft_box[2])
+        total_gemms_t = nstates*nspinorr**2
+        exp_tmp_kL_tmp = exp_tmp_kL.reshape(len(exp_tmp_kL),-1)[:(ikstop-ikstart)].T
+        exe_tmp_wf_tmp = exe_tmp_wf.reshape(nstates,nspinorr,nspinorr,-1,np.prod(fft_box))
+        exe_tmp_wf_tmp = exe_tmp_wf_tmp[...,:(ikstop-ikstart),:]
+        #
+        for igemms in range(total_gemms_t):
+            ii, jj, kk = np.unravel_index(igemms, (nstates,nspinorr,nspinorr))
+            # NM : It is not nice to create an large temporary array again. but numpy does support 
+            # C += A@B call like that blas has.
+            exe_wfc_real[ii, jj, kk ] += (exp_tmp_kL_tmp @ exe_tmp_wf_tmp[ii, jj, kk ]).reshape(
+                                            np.prod(supercell),fft_box[0], fft_box[1], fft_box[2])
 
     exe_wfc_real = exe_wfc_real.reshape(nstates,nspinorr**2,supercell[0],supercell[1],supercell[2],
                                         fft_box[0], fft_box[1], fft_box[2])
     #
     exe_wfc_real = exe_wfc_real.transpose(0,1,2,5,3,6,4,7).reshape(nstates,nspinorr,nspinorr,
-                    supercell[0]*fft_box[0], supercell[1]*fft_box[1],
-                    supercell[2]*fft_box[2])/np.prod(supercell)
+                                            supercell[0]*fft_box[0], supercell[1]*fft_box[1],
+                                                                    supercell[2]*fft_box[2])
+    exe_wfc_real *= (1.0/np.prod(supercell))
     
     # compute postioon of fixed particle in cart units 
     fixed_postion_cc = lat_vec@fixed_postion
