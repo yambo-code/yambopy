@@ -218,12 +218,9 @@ class YamboDipolesDB():
             "Dipole rotation is supported only for dip_type = iR, v, P."
         #
         # Note that P, v is Hermitian and iR anti-hermitian.
-        # [FP] Other possible dipole options to be checked (i.e., velocity gauge needs energy renormalization). Treat them as not supported.
-        # [NM] Works for P, v and iR
-        if self.dip_type == 'iR':
-            factor =  -1.0
-        else:
-            factor =  1.0
+        if self.dip_type == 'iR': factor =  -1.0
+        else:                     factor =  1.0
+        
         ##
         #save dipoles in the ibz
         self.dipoles_ibz = dipoles 

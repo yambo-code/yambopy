@@ -11,7 +11,7 @@ Project Authors
 * Castelo, José, Universitat de València (Spain)
 * Cervantes-Villanueva, Jorge, Universitat de València (Spain)
 * Pionteck, Mike, University of Giessen (Germany)
-* Silvetti, Martino, University of Modena and Reggio Emilia 
+* Silvetti, Martino, University of Modena and Reggio Emilia (Italy)
 * Attaccalite, Claudio, CNRS/Aix-Marseille University (France)
 * Pereira Coutada Miranda, Henrique, VASP Software (Austria)
 
@@ -22,4 +22,5 @@ Project Authors
 * Alexandre Morlet
 * Davide Romanin
 * Daniel Murphy
+* Yuncheng Mao
 

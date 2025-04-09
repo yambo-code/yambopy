@@ -85,6 +85,7 @@ from yambopy.bse.excitonweight import *
 from yambopy.bse.bse_absorption import *
 from yambopy.bse.bse_dispersion import *
 from yambopy.bse.excitonradiativelifetimes import *
+from yambopy.bse.excitondipoles import *
 
 #em1s/static screening operations files
 from yambopy.em1s.em1s_rotate import *
