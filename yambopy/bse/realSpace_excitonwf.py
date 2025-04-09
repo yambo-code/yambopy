@@ -29,6 +29,10 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     # block_size : is a postive integer, the default is 256 which is very good but uses more memory.
     # decrease it when you run into memory issues
 
+    if block_size < 1:
+        print('Warning: Wrong block_size. setting to 1')
+        block_size = 1
+    #
     # Convert them to 
     for i in range(3):
         if supercell[i]%2 == 0:
