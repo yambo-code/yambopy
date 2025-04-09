@@ -3,11 +3,11 @@
 #
 # Copyright (C) 2024 The Yambo Team
 #
-# Authors: RR, FP
+# Authors: MRF, RR, FP
 #
 # This file is part of the yambopy project
 #
-from yambopy.units import *
+from yambopy.units import ha2ev,speed_of_light
 
 def ExcRadLifetimes(yexcdb,statelist=None,degen_step=0.001,gauge='length',verbosity=0,no_cutoff=False):
     """

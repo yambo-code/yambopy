@@ -31,7 +31,7 @@ class YamboNLDB(object):
         try:
             data_obs= Dataset(self.nl_path)
         except:
-            raise ValueError("Error reading OBSERVABLES database at %s"%self.nl_path)
+            raise ValueError("Error reading NONLINEAR database at %s"%self.nl_path)
 
         self.read_observables(data_obs)
 
