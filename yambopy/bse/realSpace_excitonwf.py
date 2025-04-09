@@ -1,8 +1,6 @@
 ### Compute real space exction wavefunction when hole/electron is fixed.
 import numpy as np
-from scipy.spatial import KDTree
 from yambopy.kpoints import build_ktree, find_kpt
-from yambopy.dbs.wfdb import su2_mat 
 from yambopy.dbs.excitondb import YamboExcitonDB
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.wfdb import YamboWFDB
