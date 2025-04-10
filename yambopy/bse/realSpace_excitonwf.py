@@ -27,6 +27,14 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     # block_size : is a postive integer, the default is 256 which is very good but uses more memory.
     # decrease it when you run into memory issues
 
+    ## ! Natoms_in_supercell = (natom_in_unit_call * Nsupercell) + 1 (+1 due to hole/electron)
+    # Outputs :
+    # supercell_latvecs : New lattice vectors for the big supercell (3,3)
+    # atom_nums : atomic numbers of atoms in supercell (Natoms_in_supercell) 
+    # atom_pos : atomic positons in cart units for atoms in supercell. (Natoms_in_supercell,3)
+    # exe_wfc_real: complex array (nstates,nspinor_electron,nspinor_hole, FFTx, FFTy, FFTz).
+    # Please note that you must take absoulte square and contract the spinor dimension to the density.
+    #
     if block_size < 1:
         print('Warning: Wrong block_size. setting to 1')
         block_size = 1
