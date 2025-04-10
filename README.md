@@ -11,6 +11,7 @@ Do pre/post-processing, data analysis and plotting for yambo and quantum espress
 - Yambo wiki: http://wiki.yambo-code.eu/
 - Yambo Github page [download yambo & yambopy]: https://github.com/yambo-code/
 
+Yambopy is distributed under the GPL 2.0 license (same as the Yambo code).
 
 Documentation
 -------------
