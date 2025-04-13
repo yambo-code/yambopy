@@ -281,7 +281,7 @@ class YamboExcitonDB(object):
         self.Akcv = eig_wfcs_returned
         return self.Akcv
     
-    def real_wf_to_cube(iexe, wfdb, fixed_postion=[0,0,0], supercell=[1,1,1], degen_tol=1e-2,
+    def real_wf_to_cube(self, iexe, wfdb, fixed_postion=[0,0,0], supercell=[1,1,1], degen_tol=1e-2,
                         wfcCutoffRy=-1, fix_particle='h', phase=False, block_size=256):
         """
         Function to compute and save real-space exciton wavefunctions and 
@@ -306,6 +306,7 @@ class YamboExcitonDB(object):
         #
         # first get all degenerate states
         iexe_degen_states = np.array(self.get_degenerate(iexe+1,eps=degen_tol))-1
+        print("Degenerate states: ",iexe_degen_states+1)
         # nicely arrange eigvectors to Akcv
         Akcv = self.get_Akcv()[iexe_degen_states]
         excQpt = self.car_qpoint

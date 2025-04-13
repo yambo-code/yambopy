@@ -1,9 +1,6 @@
 ### Compute real space exction wavefunction when hole/electron is fixed.
 import numpy as np
 from yambopy.kpoints import build_ktree, find_kpt
-from yambopy.dbs.excitondb import YamboExcitonDB
-from yambopy.dbs.latticedb import YamboLatticeDB
-from yambopy.dbs.wfdb import YamboWFDB
 from tqdm import tqdm
 import os
 
@@ -13,6 +10,7 @@ import numpy as np
 from yambopy.dbs.excitondb import YamboExcitonDB
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.wfdb import YamboWFDB
+import os
 
 iqpt = 1 # qpt index of exciton
 
@@ -25,11 +23,11 @@ lattice = YamboLatticeDB.from_db_file(os.path.join('.', 'SAVE', 'ns.db1'))
 #
 filename = 'ndb.BS_diago_Q%d' % (iqpt)
 excdb = YamboExcitonDB.from_db_file(lattice, filename=filename,
-                                    folder=os.path.join(path, bse_dir)
+                                    folder=os.path.join('.', 'GW_BSE'),
                                     neigs = 20)
 
 #Load the wavefunction database
-wfdb = YamboWFDB(path=path, latdb=lattice,
+wfdb = YamboWFDB(path='.', latdb=lattice,
                       bands_range=[np.min(excdb.table[:, 1]) - 1,
                       np.max(excdb.table[:, 2])])
 
@@ -38,7 +36,7 @@ wfdb = YamboWFDB(path=path, latdb=lattice,
 # I want to set the degeneracy threshold to 0.01 eV
 # For example I want to plot the 3rd exciton, so iexe = 2 (python indexing )
 #
-excdb.real_wf_to_cube(iexe=2, wfdb, fixed_postion=[0,0,0], supercell=[1,1,1],
+excdb.real_wf_to_cube(iexe=2, wfdb=wfdb, fixed_postion=[0,0,0], supercell=[1,1,1],
                         degen_tol=0.01, wfcCutoffRy=80, fix_particle='h')
 
 ## .cube will be dumped and use vesta to visualize it !
