@@ -4,36 +4,145 @@ from yambopy.kpoints import build_ktree, find_kpt
 from yambopy.dbs.excitondb import YamboExcitonDB
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.wfdb import YamboWFDB
-from yambopy.io.cubetools import write_cube
+from tqdm import tqdm
 import os
 
-def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion, 
-               fix_particle='h', supercell=[1,1,1], wfcCutoffRy=-1, block_size=256):
-    # NM : please note that this only computes Akcv * psi_{kc}(r_e) * (psi_{k-Q,v}(r_h))^*
-    # For density, one must compute the abosulte value.
-    # 
-    # 
-    # Akcv, (Nstates,k,c,v) : Exciton wfc. No checking is done internally about the shape. 
-    # Qpt : Qpt point of exciton in crystal coordinates
-    # wfcdb : wf db 
-    # band indices used in bse [nb1, nb2]. 
-    # nb1  and nb2 are same indices used in yambo input i.e % BSEBands nb1 | nb2 % in yambo input 
-    # fixed_postion : postion of electron or hole in crystal coordinates
-    # fix_particle : 'e' : electron positon is fixed and hole density is computed
-    #                'h' : hole is fixed and the electronic dentisy is computed (default)
-    # supercell : size of supercell list or array of 3 intergers. If even integergs
-    #             are given, we add +1 and turn it to odd.
-    # wfcCutoffRy  : Cutoff for Wfc in Rydberg units, default = -1 (full wfc is cutoff is used)
-    # block_size : is a postive integer, the default is 256 which is very good but uses more memory.
-    # decrease it when you run into memory issues
+## Usage
+"""
+import numpy as np
+from yambopy.dbs.excitondb import YamboExcitonDB
+from yambopy.dbs.latticedb import YamboLatticeDB
+from yambopy.dbs.wfdb import YamboWFDB
 
-    ## ! Natoms_in_supercell = (natom_in_unit_call * Nsupercell) + 1 (+1 due to hole/electron)
-    # Outputs :
-    # supercell_latvecs : New lattice vectors for the big supercell (3,3)
-    # atom_nums : atomic numbers of atoms in supercell (Natoms_in_supercell) 
-    # atom_pos : atomic positons in cart units for atoms in supercell. (Natoms_in_supercell,3)
-    # exe_wfc_real: complex array (nstates,nspinor_electron,nspinor_hole, FFTx, FFTy, FFTz).
-    # Please note that you must take absoulte square and contract the spinor dimension to the density.
+iqpt = 1 # qpt index of exciton
+
+# load lattice db
+lattice = YamboLatticeDB.from_db_file(os.path.join('.', 'SAVE', 'ns.db1'))
+
+# load exciton db
+# note in case too many excitons, load only first few with `neigs' flag
+# DO NOT forget to include all degenerate states when giving neigs flag !
+#
+filename = 'ndb.BS_diago_Q%d' % (iqpt)
+excdb = YamboExcitonDB.from_db_file(lattice, filename=filename,
+                                    folder=os.path.join(path, bse_dir)
+                                    neigs = 20)
+
+#Load the wavefunction database
+wfdb = YamboWFDB(path=path, latdb=lattice,
+                      bands_range=[np.min(excdb.table[:, 1]) - 1,
+                      np.max(excdb.table[:, 2])])
+
+## plot the exciton wavefunction with hole fixed at [0,0,0]
+# in a [1,1,1] supercell with 80 Ry wf cutoff
+# I want to set the degeneracy threshold to 0.01 eV
+# For example I want to plot the 3rd exciton, so iexe = 2 (python indexing )
+#
+excdb.real_wf_to_cube(iexe=2, wfdb, fixed_postion=[0,0,0], supercell=[1,1,1],
+                        degen_tol=0.01, wfcCutoffRy=80, fix_particle='h')
+
+## .cube will be dumped and use vesta to visualize it !
+"""
+
+##
+
+def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
+               fix_particle='h', supercell=[1,1,1], wfcCutoffRy=-1,
+               block_size=256):
+    """
+        Compute real-space exciton wavefunction when hole/electron is fixed.
+
+        This is the main interface function that handles both resonant and anti-resonant parts
+        of the exciton wavefunction in the case of non-TDA calculations.
+
+    Args:
+        Akcv (numpy.ndarray): Exciton wavefunction coefficients with shape:
+                              - (Nstates,k,c,v) for TDA
+                              - (Nstates,2,k,c,v) for non-TDA (2 for resonant/anti-resonant)
+        Qpt (numpy.ndarray): Q-point of exciton in crystal coordinates
+        wfcdb (YamboWFDB): Wavefunction database
+        bse_bnds (list): Band range used in BSE [min_band, max_band] (python indexing)
+        fixed_postion (list): Position of fixed particle in crystal coordinates
+        fix_particle (str): 'e' to fix electron, 'h' to fix hole (default)
+        supercell (list): Supercell dimensions [nx,ny,nz]
+        wfcCutoffRy (float): Wavefunction cutoff in Rydberg (-1 for no cutoff)
+        block_size (int): Block size for memory-efficient computation.
+        ## choosing lowe block_size will slight lower the memory requirment but also less faster
+
+    Returns:
+        tuple: (supercell_latvecs, atom_nums, atom_pos, exe_wfc_real)
+               - supercell_latvecs: Supercell lattice vectors (3,3)
+               - atom_nums: Atomic numbers.
+               - atom_pos: Atomic positions in cartisian units
+               - exe_wfc_real: Real-space exciton wavefunction (nstates, nspinor_electron, nspinor_hole,
+                                                            Nx_grid, Ny_grid, Nz_grid)
+    """
+    if len(Akcv.shape) == 5:
+        #nonTDA
+        ## first the resonat part
+        supercell_latvecs,atom_nums,atom_pos,exe_wfc_real = \
+            ex_wf2Real_kernel(Akcv[:,0], Qpt, wfcdb, bse_bnds, fixed_postion,
+            fix_particle=fix_particle, supercell=supercell,
+            wfcCutoffRy=wfcCutoffRy, block_size=block_size,
+                              ares=False, out_res=None)
+        # add to antiresonant part
+        supercell_latvecs,atom_nums,atom_pos,exe_wfc_real = \
+            ex_wf2Real_kernel(Akcv[:,1], Qpt, wfcdb, bse_bnds, fixed_postion,
+            fix_particle=fix_particle, supercell=supercell,
+            wfcCutoffRy=wfcCutoffRy, block_size=block_size,
+                              ares=True, out_res=exe_wfc_real)
+    else:
+        assert len(Akcv.shape) == 4, "wrong Akcv dimensions"
+        supercell_latvecs,atom_nums,atom_pos,exe_wfc_real = \
+            ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
+            fix_particle=fix_particle, supercell=supercell,
+            wfcCutoffRy=wfcCutoffRy, block_size=block_size,
+                              ares=False, out_res=None)
+
+    return supercell_latvecs,atom_nums,atom_pos,exe_wfc_real
+
+
+
+def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
+               fix_particle='h', supercell=[1,1,1], wfcCutoffRy=-1,
+               block_size=256, ares=False, out_res=None):
+    """
+        Core kernel function for computing real-space exciton wavefunction.
+
+        Computes either:
+        - Akcv * psi_{kc}(r_e) * (psi_{k-Q,v}(r_h))^* (resonant part)
+        - Akcv * psi_{kv}(r_e) * (psi_{k-Q,c}(r_h))^* (anti-resonant part)
+
+        Note: For density, one must compute the absolute value squared.
+
+    Args:
+        Akcv (numpy.ndarray): Exciton coefficients [nstates,nk,nc,nv]
+        Qpt (numpy.ndarray): Q-point in crystal coordinates [3]
+        wfcdb (YamboWFDB): Wavefunction database
+        bse_bnds (list): BSE band range used in bse [nb1, nb2]. fortran indexing. i.e index starts from 1.
+                        i.e nb1  and nb2 are same indices used in yambo input i.e
+                        % BSEBands nb1 | nb2 % in yambo input
+        fixed_postion (list): Fixed particle position in crystal coords [3]
+        fix_particle (str): 'e'=fix electron, 'h'=fix hole (default)
+        supercell (list): Supercell dimensions [nx,ny,nz]
+        wfcCutoffRy (float): Wavefunction cutoff in Rydberg (-1= full cutoff)
+        block_size (int): Memory block size for computation. is a postive integer,
+                        the default is 256 which is very good but uses more memory.
+    # decrease it when you run into memory issues
+        ares (bool): If True, compute anti-resonant part
+        out_res (numpy.ndarray): If provided and ares=True, adds to this array
+                                 and is returned instead of internally creating.
+
+    Returns:
+        tuple: (supercell_latvecs, atom_nums, atom_pos, exe_wfc_real)
+        Natoms = (natom_in_unit_call * Nsupercell) + 1 (+1 due to hole/electron)
+        - supercell_latvecs (numpy.ndarray): Supercell lattice vectors [3,3]
+        - atom_nums (numpy.ndarray): Atomic numbers [Natoms]
+        - atom_pos (numpy.ndarray): Atomic positions in cartisian units [Natoms,3]
+        - exe_wfc_real (numpy.ndarray): Wavefunction in real space
+          [nstates, nspinor_electron, nspinor_hole, FFTx, FFTy, FFTz]
+    """
+    #
     #
     if block_size < 1:
         print('Warning: Wrong block_size. setting to 1')
@@ -74,7 +183,16 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
 
     hole_bnds = [bse_bnds[0],bse_bnds[0]+nv]
     elec_bnds = [bse_bnds[0]+nv,bse_bnds[1]]
-    
+    #
+    if ares:
+        # if anti-resonant part, we swap the electron and hole bands
+        # first transpose c,v dimensions
+        Akcv = Akcv.transpose(0,1,3,2)
+        tmp  = hole_bnds
+        hole_bnds = elec_bnds
+        elec_bnds = tmp
+        nstates, nk, nc, nv = Akcv.shape
+
     lat_vec = wfcdb.ydb.lat.T
     blat = np.linalg.inv(lat_vec)
     gvecs_iBZ_idx = []
@@ -98,13 +216,23 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
             fft_box[i] = max([fft_box[i], max_fft_idx[i] - min_fft_idx[i] + 3])
     
     # Compute nstates, nk, Nx, Ny, Nz object
-    print("FFT Box : ",fft_box[0], fft_box[1], fft_box[2])
+    if out_res is None : print("Wfc FFT Grid : ",fft_box[0], fft_box[1], fft_box[2])
     #
     ktree = build_ktree(wfcdb.kBZ)
     #
     nspinorr = wfcdb.nspinor
-    exe_wfc_real = np.zeros((nstates, nspinorr, nspinorr, np.prod(supercell),
-                             fft_box[0], fft_box[1], fft_box[2]),dtype=np.complex64)
+    if ares and out_res is not None:
+        exe_wfc_real = out_res.reshape(nstates, nspinorr, nspinorr,
+                             supercell[0],fft_box[0],
+                             supercell[1],fft_box[1],
+                             supercell[2],fft_box[2])
+    else:
+        exe_wfc_real = np.zeros((nstates, nspinorr, nspinorr,
+                             supercell[0],fft_box[0],
+                             supercell[1],fft_box[1],
+                             supercell[2],fft_box[2]),
+                            dtype=np.complex64)
+    #
     Lx = np.arange(supercell[0],dtype=int)
     Ly = np.arange(supercell[1],dtype=int)
     Lz = np.arange(supercell[2],dtype=int)
@@ -129,6 +257,8 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     nblks = nk//block_size 
     nrem = nk%block_size
     if nrem > 0: nblks = nblks+1
+    #
+    pbar = tqdm(total=nk, desc="Ex-wf")
     #
     for ibk in range(nblks):
         ikstart = ibk*block_size
@@ -209,6 +339,10 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
             #
             exe_tmp_wf[:,:,:,ik-ikstart] *= exp_kx_r[...].reshape(FFFboxs.shape[:3])[None,None,None]
             exp_tmp_kL[ik-ikstart] = np.exp(1j*2*np.pi*np.einsum('...x,x->...',Lsupercells,ft_kvec))
+            #
+            # update progess bar
+            pbar.update(1)
+            #
         ## perform gemm operation 
         total_gemms_t = nstates*nspinorr**2
         exp_tmp_kL_tmp = exp_tmp_kL.reshape(len(exp_tmp_kL),-1)[:(ikstop-ikstart)].T
@@ -217,19 +351,17 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
         #
         for igemms in range(total_gemms_t):
             ii, jj, kk = np.unravel_index(igemms, (nstates,nspinorr,nspinorr))
-            # NM : It is not nice to create an large temporary array again. but numpy does support 
-            # C += A@B call like that blas has.
-            exe_wfc_real[ii, jj, kk ] += (exp_tmp_kL_tmp @ exe_tmp_wf_tmp[ii, jj, kk ]).reshape(
-                                            np.prod(supercell),fft_box[0], fft_box[1], fft_box[2])
-
-    exe_wfc_real = exe_wfc_real.reshape(nstates,nspinorr**2,supercell[0],supercell[1],supercell[2],
-                                        fft_box[0], fft_box[1], fft_box[2])
+            Ctmp = (exp_tmp_kL_tmp @ exe_tmp_wf_tmp[ii, jj, kk ])
+            Ctmp = Ctmp.reshape(supercell[0], supercell[1], supercell[2],
+                                fft_box[0], fft_box[1], fft_box[2])
+            exe_wfc_real[ii, jj, kk ] += Ctmp.transpose(0,3,1,4,2,5)
     #
-    exe_wfc_real = exe_wfc_real.transpose(0,1,2,5,3,6,4,7).reshape(nstates,nspinorr,nspinorr,
-                                            supercell[0]*fft_box[0], supercell[1]*fft_box[1],
-                                                                    supercell[2]*fft_box[2])
+    exe_wfc_real   = exe_wfc_real.reshape(nstates,nspinorr,nspinorr,
+                                            supercell[0]*fft_box[0],
+                                            supercell[1]*fft_box[1],
+                                            supercell[2]*fft_box[2])
     exe_wfc_real *= (1.0/np.prod(supercell))
-    
+    #
     # compute postioon of fixed particle in cart units 
     fixed_postion_cc = lat_vec@fixed_postion
     Lsupercells = Lsupercells.reshape(-1,3)#/np.array(supercell)[None,:]
@@ -245,56 +377,56 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     #
     return supercell_latvecs,atom_nums,atom_pos,exe_wfc_real
 
-def compute_exc_wfc_real(path='.', bse_dir='SAVE', iqpt=1, nstates=[1],
-                          fixed_postion=[0,0,0], fix_particle='h', aveg=True, supercell=[1,1,1],
-                         wfcCutoffRy=-1, phase=False, block_size=256):
-    #
-    lattice = YamboLatticeDB.from_db_file(os.path.join(path, 'SAVE', 'ns.db1'))
-    filename = 'ndb.BS_diago_Q%d' % (iqpt)
-    excdb = YamboExcitonDB.from_db_file(lattice, filename=filename,
-                                                 folder=os.path.join(path, bse_dir),
-                                                 Load_WF=True, neigs=max(nstates))
-    # Load the wavefunction database
-    wfdb = YamboWFDB(path=path, latdb=lattice,
-                      bands_range=[np.min(excdb.table[:, 1]) - 1,
-                        np.max(excdb.table[:, 2])])
-    #
-    Akcv = excdb.get_Akcv()[min(nstates)-1:max(nstates)]
-    excQpt = excdb.car_qpoint
-    #
-    # Convert the q-point to crystal coordinates
-    Qpt = wfdb.ydb.lat @ excQpt
+#def compute_exc_wfc_real(path='.', bse_dir='SAVE', iqpt=1, nstates=[1],
+#                          fixed_postion=[0,0,0], fix_particle='h', aveg=True, supercell=[1,1,1],
+#                         wfcCutoffRy=-1, phase=False, block_size=256):
+#    #
+#    lattice = YamboLatticeDB.from_db_file(os.path.join(path, 'SAVE', 'ns.db1'))
+#    filename = 'ndb.BS_diago_Q%d' % (iqpt)
+#    excdb = YamboExcitonDB.from_db_file(lattice, filename=filename,
+#                                                 folder=os.path.join(path, bse_dir),
+#                                                 Load_WF=True, neigs=max(nstates))
+#    # Load the wavefunction database
+#    wfdb = YamboWFDB(path=path, latdb=lattice,
+#                      bands_range=[np.min(excdb.table[:, 1]) - 1,
+#                        np.max(excdb.table[:, 2])])
+#    #
+#    Akcv = excdb.get_Akcv()[min(nstates)-1:max(nstates)]
+#    excQpt = excdb.car_qpoint
+#    #
+#    # Convert the q-point to crystal coordinates
+#    Qpt = wfdb.ydb.lat @ excQpt
 
-    sc_latvecs, atom_nums, atom_pos, real_wfc = ex_wf2Real(Akcv, Qpt, wfdb, [np.min(excdb.table[:, 1]),
-                np.max(excdb.table[:, 2])], fixed_postion=fixed_postion,
-                          fix_particle=fix_particle, supercell=supercell, 
-                          wfcCutoffRy=wfcCutoffRy, block_size=block_size)
-    #
-    #
-    nstates_range = np.arange(nstates[0],nstates[1],dtype=int)
-    density = np.abs(real_wfc)**2
+#    sc_latvecs, atom_nums, atom_pos, real_wfc = ex_wf2Real(Akcv, Qpt, wfdb, [np.min(excdb.table[:, 1]),
+#                np.max(excdb.table[:, 2])], fixed_postion=fixed_postion,
+#                          fix_particle=fix_particle, supercell=supercell, 
+#                          wfcCutoffRy=wfcCutoffRy, block_size=block_size)
+#    #
+#    #
+#    nstates_range = np.arange(nstates[0],nstates[1],dtype=int)
+#    density = np.abs(real_wfc)**2
 
-    if fix_particle == 'h': name_file = 'electron'
-    else: name_file = 'hole'
-    if real_wfc.shape[1] != 1:
-        print("phase plot only works for nspin = 1 and nspinor == 1")
-        phase = False
-    if phase: 
-        phase = np.sign(real_wfc.real) #np.sign(np.angle(real_wfc))
-        density *= phase
-    if aveg:
-        real_wfc = np.sum(density,axis=(0,1,2))
-        real_wfc = real_wfc/np.max(np.abs(real_wfc))
-        write_cube('exe_wf_avg_%s_%d-%d.cube' %(name_file,nstates[0],nstates[1]),
-                   real_wfc, sc_latvecs, atom_pos, atom_nums, header='Real space exciton wavefunction')
-    else:
-        real_wfc = np.sum(density,axis=(1,2))
-        for i in range(len(real_wfc)):
-            real_wfc1 = real_wfc[i]/np.max(np.abs(real_wfc[i]))
-            write_cube('exe_wf_%s_%d.cube' %(name_file,nstates[i]), real_wfc1, sc_latvecs,
-                       atom_pos, atom_nums, header='Real space exciton wavefunction')
+#    if fix_particle == 'h': name_file = 'electron'
+#    else: name_file = 'hole'
+#    if real_wfc.shape[1] != 1:
+#        print("phase plot only works for nspin = 1 and nspinor == 1")
+#        phase = False
+#    if phase: 
+#        phase = np.sign(real_wfc.real) #np.sign(np.angle(real_wfc))
+#        density *= phase
+#    if aveg:
+#        real_wfc = np.sum(density,axis=(0,1,2))
+#        real_wfc = real_wfc/np.max(np.abs(real_wfc))
+#        write_cube('exe_wf_avg_%s_%d-%d.cube' %(name_file,nstates[0],nstates[1]),
+#                   real_wfc, sc_latvecs, atom_pos, atom_nums, header='Real space exciton wavefunction')
+#    else:
+#        real_wfc = np.sum(density,axis=(1,2))
+#        for i in range(len(real_wfc)):
+#            real_wfc1 = real_wfc[i]/np.max(np.abs(real_wfc[i]))
+#            write_cube('exe_wf_%s_%d.cube' %(name_file,nstates[i]), real_wfc1, sc_latvecs,
+#                       atom_pos, atom_nums, header='Real space exciton wavefunction')
 
 
 
-#if __name__ == "__main__":
+##if __name__ == "__main__":
 

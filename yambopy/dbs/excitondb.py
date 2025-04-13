@@ -24,6 +24,8 @@ from yambopy.tools.skw import SkwInterpolator
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.electronsdb import YamboElectronsDB
 from yambopy.dbs.qpdb import YamboQPDB
+from yambopy.io.cubetools import write_cube
+from yambopy.bse.realSpace_excitonwf import ex_wf2Real
 
 class ExcitonList():
     """
@@ -278,6 +280,70 @@ class YamboExcitonDB(object):
         #
         self.Akcv = eig_wfcs_returned
         return self.Akcv
+    
+    def real_wf_to_cube(iexe, wfdb, fixed_postion=[0,0,0], supercell=[1,1,1], degen_tol=1e-2,
+                        wfcCutoffRy=-1, fix_particle='h', phase=False, block_size=256):
+        """
+        Function to compute and save real-space exciton wavefunctions and 
+        dump to cube file
+
+        Args:
+            iexe: index of excitonic states (python indexing. so starts with 0)
+            wfcb: wavefunction database.
+            fixed_postion (list): Position of fixed particle in crystal coordinates
+            supercell (list): Supercell dimensions [nx,ny,nz]
+            degen_tol (float): degeneracy threshold (in eV). default 0.01 eV
+            fix_particle (str): 'e' to fix electron, 'h' to fix hole (default)
+            wfcCutoffRy (float): Wavefunction cutoff in Rydberg (-1 for full cutoff)
+            phase (bool): If True, include phase information i.e multiply the density with
+                     sign of real part of the wavefunction
+            block_size (int): Block size for memory-efficient computation. leave it to default
+                        unless you are in exteremely low memory situation.
+
+        Returns:
+            None (write cube file to disk)
+        """
+        #
+        # first get all degenerate states
+        iexe_degen_states = np.array(self.get_degenerate(iexe+1,eps=degen_tol))-1
+        # nicely arrange eigvectors to Akcv
+        Akcv = self.get_Akcv()[iexe_degen_states]
+        excQpt = self.car_qpoint
+        # Convert the q-point to crystal coordinates
+        Qpt = wfdb.ydb.lat @ excQpt
+        #
+        if fix_particle == 'h': name_file = 'electron'
+        else: name_file = 'hole'
+
+        if phase and real_wfc.shape[1] != 1:
+            print("phase plot only works for nspin = 1 and nspinor == 1")
+            phase = False
+        if phase and len(iexe_degen_states) > 1:
+            phase = False
+            print("Warning: phase plots donot work for degenerate states")
+
+        print('Computing exciton wavefunction (%s density) to real space.' %(name_file))
+        sc_latvecs, atom_nums, atom_pos, real_wfc = ex_wf2Real(Akcv, Qpt, wfdb, [np.min(self.table[:, 1]),
+                                                    np.max(self.table[:, 2])], fixed_postion=fixed_postion,
+                                                    fix_particle=fix_particle, supercell=supercell,
+                                                    wfcCutoffRy=wfcCutoffRy, block_size=block_size)
+        # Compute the absoulte^2
+        density = np.abs(real_wfc)**2
+        # Multiply with phase if necessary
+        if phase:
+            phase = np.sign(real_wfc.real) #np.sign(np.angle(real_wfc))
+            density *= phase
+        #
+        # sum over spinor indices and degenerate states
+        real_wfc = np.sum(density,axis=(0,1,2))
+        # normalize with max value
+        real_wfc = real_wfc/np.max(np.abs(real_wfc))
+        # write to cube file 
+        print('Writing to .cube file')
+        write_cube('exe_wf_%s_%d.cube' %(name_file,iexe+1),
+                   real_wfc, sc_latvecs, atom_pos, atom_nums,
+                   header='Real space exciton wavefunction')
+
 
     def get_nondegenerate(self,eps=1e-4):
         """
@@ -325,12 +391,9 @@ class YamboExcitonDB(object):
         Args:
             eps: maximum energy difference to consider the two excitons degenerate in eV
         """
-        energy = self.eigenvalues[index-1]
-        excitons = [] 
-        for n,e in enumerate(self.eigenvalues):
-            if np.isclose(energy,e,atol=eps):
-                excitons.append(n+1)
-        return excitons
+        energy = self.eigenvalues[index-1].real
+        excitons = np.where(np.isclose(self.eigenvalues.real, energy, atol=eps))[0] + 1
+        return excitons.tolist()
 
     def exciton_bs(self,energies,path,excitons=(0,),debug=False):
         """
