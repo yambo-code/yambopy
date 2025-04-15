@@ -31,7 +31,7 @@ wfdb = YamboWFDB(path='.', latdb=lattice,
                       bands_range=[np.min(excdb.table[:, 1]) - 1,
                       np.max(excdb.table[:, 2])])
 
-## plot the exciton wavefunction with hole fixed at [0,0,0]
+## plot the exciton wavefunction with hole fixed at [0,0,0] (crystal coordinates)
 # in a [1,1,1] supercell with 80 Ry wf cutoff
 # I want to set the degeneracy threshold to 0.01 eV
 # For example I want to plot the 3rd exciton, so iexe = 2 (python indexing )
@@ -39,6 +39,7 @@ wfdb = YamboWFDB(path='.', latdb=lattice,
 excdb.real_wf_to_cube(iexe=2, wfdb=wfdb, fixed_postion=[0,0,0], supercell=[1,1,1],
                         degen_tol=0.01, wfcCutoffRy=80, fix_particle='h')
 
+## fix_particle = 'e' if you want to fix electron and plot hole density
 ## .cube will be dumped and use vesta to visualize it !
 """
 
@@ -316,7 +317,6 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
                 fx_wfc = wfc_elec
                 fx_gvec = gvecs_elec
             # compute
-            ## Fix compute the fixed particle wfc in real space.
             ## NM : Donot perform FFT as we only need it for one point.
             exp_fx = np.exp(2*np.pi*1j*((fx_gvec + fx_kvec[None,:])@fixed_postion))
             fx_wfc *= exp_fx[None,None,None,:]

@@ -338,7 +338,9 @@ class YamboExcitonDB(object):
         # sum over spinor indices and degenerate states
         real_wfc = np.sum(density,axis=(0,1,2))
         # normalize with max value
-        real_wfc = real_wfc/np.max(np.abs(real_wfc))
+        max_normalize_val = np.max(np.abs(real_wfc))
+        print('Max Normalization value: ',max_normalize_val)
+        real_wfc *= (1.0/max_normalize_val)
         # write to cube file 
         print('Writing to .cube file')
         write_cube('exe_wf_%s_%d.cube' %(name_file,iexe+1),
