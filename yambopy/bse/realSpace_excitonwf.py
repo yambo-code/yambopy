@@ -173,10 +173,11 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     assert nk == nkBZ, "kpoint mismatch"
     #
     
-    ## Bring the positon of hole/electron in the centre unit cell, i.e make in between [0,1)
-    fixed_postion = np.array(fixed_postion) - np.floor(fixed_postion)
-    fixed_postion = (fixed_postion + 1e-6)%1
-    fixed_postion = fixed_postion - 1e-6
+    # ## Bring the positon of hole/electron in the centre unit cell, i.e make in between [0,1)
+    # fixed_postion = np.array(fixed_postion) - np.floor(fixed_postion)
+    # fixed_postion = (fixed_postion + 1e-6)%1
+    # fixed_postion = fixed_postion - 1e-6
+    fixed_postion = np.array(fixed_postion)
 
     fixed_postion += np.array(supercell)//2
 
