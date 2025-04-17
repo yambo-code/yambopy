@@ -129,8 +129,9 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
                         the default is 256 which is very good but uses more memory.
     # decrease it when you run into memory issues
         ares (bool): If True, compute anti-resonant part
-        out_res (numpy.ndarray): If provided and ares=True, adds to this array
+        out_res (numpy.ndarray): Adds to this array
                                  and is returned instead of internally creating.
+                                 Make sure it its consistant. (no internal checking done)
 
     Returns:
         tuple: (supercell_latvecs, atom_nums, atom_pos, exe_wfc_real)
@@ -220,7 +221,7 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     ktree = build_ktree(wfcdb.kBZ)
     #
     nspinorr = wfcdb.nspinor
-    if ares and out_res is not None:
+    if out_res is not None:
         exe_wfc_real = out_res.reshape(nstates, nspinorr, nspinorr,
                              supercell[0],fft_box[0],
                              supercell[1],fft_box[1],
