@@ -18,6 +18,14 @@ SVCMm12VMm1 =29.98*np.power(10,3,dtype=np.double) #  from [statV/cm] to [V/m]
 VMm12SVCMm1 =1.0/SVCMm12VMm1
 AU2VMm1     =5.14220632*np.power(10,11,dtype=np.double)
 
+Eh = 4.359744e-18 # Hartree in Joule
+e = 1.602e-19 # Coulomb
+hbar = 1.054571e-34 # J.s 
+a0 = 5.291772e-11 # m, Bohr radius
+
+Junit = e*Eh/(hbar * a0**2) # current density in 3D
+EFunit = Eh/(e*a0) # electrical field V/m
+
 
 atomic_mass = [   None,      1.00794,    4.002602,     6.941,   9.012182,
                 10.811,      12.0107,     14.0067,   15.9994, 18.9984032,
