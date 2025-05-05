@@ -39,7 +39,7 @@ class YamboBZgridsDB(object):
     ! qindx_C(ikbz,iqbz,1)-1=okbz
     ! qindx_C(ikbz,iqbz,2)-1=iGo    
 
-    NB: the indices included in the 
+    NB: the indices included in the tables are in fortran ordering (starting from 1)
     """
     def __init__(self,filename):
             
