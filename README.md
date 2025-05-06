@@ -77,6 +77,7 @@ Requirements
 - pyyaml: https://pyyaml.org/
 - monty: https://pypi.org/project/monty/
 - scikit-learn: https://pypi.org/project/scikit-learn/
+- tqdm: https://pypi.org/project/tqdm/
 
 Yambopy works for the following DFT/MBPT codes:
 - yambo (>5.0.0): https://www.yambo-code.eu/
