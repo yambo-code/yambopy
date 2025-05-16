@@ -215,7 +215,7 @@ class YambopyBandStructure():
         ax.axvline(distance,c='k',ls='-',lw=0.0)
         self.kpath.set_xticks(ax)
 
-    def plot_ax(self,ax,xlim=None,ylim=None,size=1.,ylabel='$\epsilon_{n\mathbf{k}}$ [eV]', alpha_weights=0.5,legend=False,**kwargs):
+    def plot_ax(self,ax,xlim=None,ylim=None,size=1.,ylabel=r'$\epsilon_{n\mathbf{k}}$ [eV]', alpha_weights=0.5,legend=False,**kwargs):
         """Receive an intance of matplotlib axes and add the plot"""
         import matplotlib.pyplot as plt
         kwargs = self.get_kwargs(**kwargs)
@@ -249,7 +249,7 @@ class YambopyBandStructure():
         self.add_kpath_labels(ax)
         if legend: ax.legend()
 
-    def plot_spin_ax(self,ax,xlim=None,ylim=None,ylabel='$\epsilon_{n\mathbf{k}}$[eV]',alpha_weights=0.5,spin_proj_bands=None,legend=False,**kwargs):
+    def plot_spin_ax(self,ax,xlim=None,ylim=None,ylabel=r'$\epsilon_{n\mathbf{k}}$[eV]',alpha_weights=0.5,spin_proj_bands=None,legend=False,**kwargs):
         """Receive an intance of matplotlib axes and add the plot"""
         #
         # There is a problem with the number of points in the k-poitns path
