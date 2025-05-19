@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 
 save_folder='./SAVE' 
 yel = YamboElectronsDB.from_db_file(folder=save_folder)
-dos=yel.getDOS()
+energies,dos=yel.getDOS(emin=-14.0,emax=20.0)
 
 fig = plt.figure(figsize=(6,4))
-ax.set_xlabel('$Energy[eV]$')
-ax.set_ylabel('DOS$')
-plt.
+plt.xlabel('$Energy[eV]$')
+plt.ylabel('DOS$')
+plt.plot(energies,dos)
+plt.show()
