@@ -1,5 +1,5 @@
 #
-# This example show how to calculate Density of States using YamboPy
+# This example show how to calculate Joint Density of States using YamboPy
 #
 from qepy import *
 from yambopy import *
