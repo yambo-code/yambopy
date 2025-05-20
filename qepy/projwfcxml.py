@@ -37,7 +37,7 @@ class ProjwfcXML(object):
         self.prefix       = prefix
         self.path         = path
         self.get_qe_version(path,output_filename)
-        version_number = float(re.findall(r"([0-9.]+)",self.qe_version)[0])
+        version_number = float(re.findall(r"([0-9.]+)",self.qe_version)[0][:3])
         if version_number<6.7: raise NotImplementedError(f"Warning: QE version {self.qe_version} not supported by this script (needs to be>=6.7).")
         if version_number>=7.0: self.order_is_l_j_mj   = True
         else:                   self.order_is_j_l_m_mj = True
