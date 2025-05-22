@@ -27,6 +27,7 @@ dependencies = [ "numpy", "scipy", "netCDF4", "h5py", "matplotlib", "pyyaml", "l
 [project.scripts]
 yambopy="yambocommandline.scripts.yambopy:YambopyCmd"
 [tool.setuptools]
+license-files = [] # workaround for bug in twine/setuptools
 packages = ['yambopy',
             'yambopy.io',
             'yambopy.dbs',
