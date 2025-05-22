@@ -1,6 +1,7 @@
 ### Compute real space exction wavefunction when hole/electron is fixed.
 import numpy as np
 from yambopy.kpoints import build_ktree, find_kpt
+from yambopy.tools.function_profiler import func_profile 
 from tqdm import tqdm
 import os
 
@@ -45,6 +46,7 @@ excdb.real_wf_to_cube(iexe=2, wfdb=wfdb, fixed_postion=[0,0,0], supercell=[1,1,1
 
 ##
 
+@func_profile
 def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
                fix_particle='h', supercell=[1,1,1], wfcCutoffRy=-1,
                block_size=256):
@@ -102,6 +104,7 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
 
 
 
+@func_profile
 def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
                fix_particle='h', supercell=[1,1,1], wfcCutoffRy=-1,
                block_size=256, ares=False, out_res=None):

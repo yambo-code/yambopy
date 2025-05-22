@@ -8,7 +8,9 @@
 ###
 import numpy as np
 from yambopy.kpoints import build_ktree, find_kpt
+from yambopy.tools.function_profiler import func_profile
 
+@func_profile
 def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', diagonal_only=False, ktree=None):
     """
     Compute the exciton matrix elements in the Tamm-Dancoff approximation.
