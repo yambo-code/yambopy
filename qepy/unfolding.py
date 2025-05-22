@@ -1,296 +1,276 @@
-# Copyright (C) 2018 Henrique Pereira Coutada Miranda, Alejandro Molina-Sanchez
-# All rights reserved.
-#
-# This file is part of yambopy
-#
-# Unfolding of the electronic structure.
-# Program adapted for reading of Quantum Espresso.
-#
-# Authors: Alejandro Molina-Sanchez and Henrique Miranda
-# Revision from the first version of 24 of February of 2014
-#
-#
-# This class need major revision. So far is uneficcient and a waste of resources.
-# Future developments will be:
 # 
-# - Reading netcdf files from Yambo (faster than converting to xml)
-# - Assignment of the correspondence G-vectors to g-vectors without reading the PC g-vectors
+# License-Identifier: GPL
 #
-
-import xml.etree.ElementTree as ET
-from qepy.auxiliary import *
-from qepy.pwxml import *
-from .lattice import *
-from yambopy.plot.plotting import add_fig_kwargs 
-from numpy import array, sqrt, cross, dot, arange, zeros
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: HM, AM-S, JC-V, FP
+# First verion by HM and AM-S (2017), revised and expanded by JC-V (2025)
+#
+# This file is part of the yambopy project
+#
+#
+from qepy import *
+import numpy as np
 from sys import stdout
-
-HatoeV = 27.2107
+import h5py
 
 class Unfolding():
-    """ Class to unfold the electronic structure of supercell into the
-    original primitive cell. Adapted to Quantum espresso XML files.
-    """
 
-    _eig_xml  = 'eigenval.xml'
-    _gkv_xml  = 'gkvectors.xml'
-    _gkv_dat  = 'gkvectors.dat'
-    _evc_xml  = 'evc.xml'
-    _evc_dat  = 'evc.dat'
-    _evc1_xml = 'evc1.xml'
-    _evc2_xml = 'evc2.xml'
-    _evc1_dat = 'evc1.dat'
-    _evc2_dat = 'evc2.dat'
-
-    def __init__(self,prefix_pc,prefix_sc,path_pc='.',path_sc='.',verbose=0,spin="none",convert_to_xml=True,band_min=0,write_to_file=True):
+    def __init__(self,prefix_pc,prefix_sc,path_pc='.',path_sc='.',spin="none",band_min=0,sc_rotated=False,compute_projections=True):
         """ 
-        Initialize the structure with the paths where the datafile.xml
-        of the primitive and supercell
-        write_to_file: Useful if we need to do the unfolding in a cluster (I leave it activated always, to change later)
-        """
-        self.prefix_pc = prefix_pc
-        self.prefix_sc = prefix_sc
-        self.path_pc   = path_pc
-        self.path_sc   = path_sc
+        Initialize the structure with data from the primitive cell and the supercell and then compute the projection of the supercell band structure
+        taking the primitive cell band structure as a reference
+
+        === Usage and variables ===
+
+        >> Unfold = Unfolding(prefix_pc=db_prefix_pc,path_pc=db_path_pc,prefix_sc=db_prefix_sc,path_sc=db_path_sc,spin="noncol",band_min = 0,sc_rotated=False,compute_projections=True)
+        >> Unfold.plot_eigen_ax(ax,path=db_path_kpoints_sc,ylim = (ylim_min,ylim_max))
+ 
+        Input:
+        :: prefix_pc(sc) is the prefix of the primitive cell (supercell) QE save
+        :: path_pc(sc) is the path of the primitive cell (supercell) along the Brillouin zone
+        :: spin is equal to "none" or "noncol" for nspin = 1 (noSOC) and nspin 4 (SOC) calculations according to QE format
+        :: band min determines the number of computed bands. If band_min = 0, it computes the projection of all the bands. If band_min != 0, it computes the projection of the nbands-band_min bands
+        :: sc_rotated determines the rotation matrix if necessary. If sc_rotated = False, it takes the matrix identity. If sc_rotated = (3x3) matrix, it takes the rotation matrix defined by the user
+        :: compute_projections determines whether to calculate projections or not. If compute_projections = True, it calculates the projections and save them in a .npy file.
+           If compute_projections = False, it loads the previous .npy file.
         
-        pc_xml = PwXML(prefix=self.prefix_pc,path=self.path_pc)
+        Output:
+        :: projections.npy file to plot the EBS with an external script
+        :: Plot with the EBS of the supercell taking as a reference the defined primitive cell
+        """
+
+        print("=== Initializing the data ===")
+
+        # Prefix and path of primitive cell and supercell
+        self.prefix_pc = prefix_pc  
+        self.prefix_sc = prefix_sc
+        self.path_pc   = path_pc 
+        self.path_sc   = path_sc
+       
+        # Reading primitive cell and supercell database from QE
+        pc_xml = PwXML(prefix=self.prefix_pc,path=self.path_pc) 
         sc_xml = PwXML(prefix=self.prefix_sc,path=self.path_sc)
 
-        self.nkpoints_pc = pc_xml.nkpoints
-        self.nkpoints_sc = sc_xml.nkpoints
+        # Number of kpoints of the primitive cell and supercell
+        self.nkpoints_pc = pc_xml.nkpoints 
+        self.nkpoints_sc = sc_xml.nkpoints 
 
-        self.kpoints = sc_xml.kpoints
+        # List of kpoints of the supercell 
+        self.kpoints = sc_xml.kpoints  
 
-        self.nbands_pc = pc_xml.nbands 
+        # Number of bands of the primitive cell and supercell
+        self.nbands_pc = pc_xml.nbands  
         self.nbands_sc = sc_xml.nbands 
-        self.band_min  = band_min
 
+        # This indicates the code to compute the projections of nbands - band_min bands
+        self.band_min  = band_min 
+
+        # Condition to control the number of computed bands  
         if self.band_min > self.nbands_sc:
            raise Exception("Minimum of bands larger than total number of bands")
 
-        self.cell_pc = pc_xml.cell
-        self.cell_sc = sc_xml.cell
+        # Reciprocal lattice of the primitive cell and supercell in cartesian coordiantes
+        self.rcell_pc = array(pc_xml.rcell)/pc_xml.cell[0][0] 
+        self.rcell_sc = array(sc_xml.rcell)/sc_xml.cell[0][0]
+   
+        # Eigenvalues of the primitive cell and supercell
+        self.eigen_pc = array(pc_xml.eigen1) 
+        self.eigen_sc = array(sc_xml.eigen1) 
 
-        self.rcell_pc = array(pc_xml.rcell)/pc_xml.celldm[0]   # Dont remember if we need to write the reciprocal vectors in cart. units?
-        self.rcell_sc = array(sc_xml.rcell)/sc_xml.celldm[0]
+        # Format to save Miller indices
+        format_string = "%12.4lf %12.4lf %12.4lf" 
+        n_decs = 8 
 
-        self.eigen_pc = array(pc_xml.eigen)
-        self.eigen_sc = array(sc_xml.eigen)
+        # Distance of the k-path
+        kpoints_dists = calculate_distances(self.kpoints) 
+       
+        # Condition to use a rotation matrix if needed 
+        if sc_rotated is False:
+            self.rot = np.array([ [1.0,0.0,0.0], [0.0,1.0,0.0], [0.0,0.0,1.0] ])
 
-        format_string = "%12.4lf %12.4lf %12.4lf"
-        n_decs = 8
-        # Angle between prim. cell and supercell
+        elif isinstance(sc_rotated, np.ndarray) and sc_rotated.shape == (3,3):
+            self.rot = sc_rotated
 
-        v1 = array(pc_xml.rcell[:][0])
-        v2 = array(sc_xml.rcell[:][0])
+        else:
+            raise Exception("Input for sc_rotated must be False or a 3x3 matrix")
 
-        norm_v1 = sqrt(abs(dot(v1,v1)))
-        norm_v2 = sqrt(abs(dot(v2,v2)))
+        # Array to save the projections
+        self.projection = zeros([self.nkpoints_sc,self.nbands_sc-self.band_min]) 
 
-        cos_v1v2 = dot(v1,v2)/(norm_v1*norm_v2)
-        sin_v1v2 = sqrt(dot(cross(v1,v2),cross(v1,v2)))/(norm_v1*norm_v2)
+        print("=== Data initialized successfully ===")
 
-        self.rot = array([ [cos_v1v2,sin_v1v2,0.0], [-sin_v1v2,cos_v1v2,0.0], [0.0,0.0,1.0]] )
+        print("=== Calculation of the projections  ===")
 
-        self.projection = zeros([self.nkpoints_sc,self.nbands_sc-self.band_min])
+        # Condition to compute the projections or to use the saved ones  
+        if compute_projections == True:
 
-        if write_to_file==True:
-           f = open('projection.dat','w')
-
-    #def convert_dat_xml(self):
-        if convert_to_xml == True:
-           print("converting dat files to xml...")
+           # Loop along the kpoints of the supercell  
            for ik in range(self.nkpoints_sc):
                load(ik,self.nkpoints_sc)
-               #def convert_dat_xml(self):  Bring this to a function
-               
-               file_dat = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._gkv_dat)
-               file_xml = "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._gkv_xml)
-               os.system('iotk convert %s %s' % (file_dat,file_xml))
-   
-               file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._gkv_dat)
-               file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._gkv_xml)
-               os.system('iotk convert %s %s' % (file_dat,file_xml))
-               
-               if spin == "none":
-            
-                  file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc_dat)
-                  file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc_xml)
-                  os.system('iotk convert %s %s' % (file_dat,file_xml))
-            
-               if spin == "spinor":
-            
-                  file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc1_dat)
-                  file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc1_xml)
-                  os.system('iotk convert %s %s' % (file_dat,file_xml))
-                  file_dat = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc2_dat)
-                  file_xml = "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc2_xml)
-                  os.system('iotk convert %s %s' % (file_dat,file_xml))
-           print("done!") 
+
+               # Loading the data of each kpoint of the primitive cell and supercell 
+               f_pc = h5py.File('%s/%s.save/wfc%01d.hdf5' % (self.path_pc,self.prefix_pc,(ik + 1)), 'r') 
+               f_sc = h5py.File('%s/%s.save/wfc%01d.hdf5' % (self.path_sc,self.prefix_sc,(ik + 1)), 'r') 
+
+               # Dimension of the Miller indices
+               self.ng_pc = int(f_pc.attrs['igwx'])
+               self.ng_sc = int(f_sc.attrs['igwx']) 
+
+               # Creating a dictionary to collect key-value pairs
+               g_sc = dict()
+               g_sc_int = dict()
            
-        #gkvectors = []
-        print("Dictionary of G-vectors and projection")
-        for ik in range(self.nkpoints_sc):
+               # Loading Miller indices
+               mill_sc = f_sc['MillerIndices']
+               mill_pc = f_pc['MillerIndices']
+        
+               # Loop along the number of Miller indices of the super cell
+               for ig in arange(self.ng_sc):
+              
+                   # Definition of Miller indices in order to reconstruct the k-points (to rotate it if neccessary) 
+                   # and to save them in the dictionary associated to an integer
+                   h,k,l = mill_sc[ig,0], mill_sc[ig,1], mill_sc[ig,2]
+                   g_sc_int[(int(h),int(k),int(l))] = ig
+                   w = h*self.rcell_sc[:][0] + k*self.rcell_sc[:][1] + l*self.rcell_sc[:][2]
+                   w = dot(self.rot,w)
+                   w = np.around(w, decimals = n_decs) + array([0,0,0])
+                   w = format_string % (abs(w[0]), abs(w[1]), abs(w[2]))
+                   g_sc[w] = ig
+                   
+               # To check in the following loop if the k-point of the super cell is found in the primitive cell    
+               g_contain = [0]*self.ng_pc
 
-            load(ik,self.nkpoints_sc)
+               # Loop along the number of Miller indices of the primitive cell
+               for ig in arange(self.ng_pc):
 
-            # Reading the G-vectors and g-vectors
-            tree_gk_sc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._gkv_xml) )
-            tree_gk_pc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_pc,self.prefix_pc,(ik + 1),self._gkv_xml) )
-            root_gk_sc = tree_gk_sc.getroot()
-            root_gk_pc = tree_gk_pc.getroot()
+                   # Definition of Miller indices in order to reconstruct the k-points
+                   h,k,l = mill_pc[ig,0], mill_pc[ig,1], mill_pc[ig,2]
+                   w = h*self.rcell_pc[:][0] + k*self.rcell_pc[:][1] + l*self.rcell_pc[:][2]
+                   w = np.around(w, decimals = n_decs) + array([0,0,0])
+                   w = format_string % (abs(w[0]), abs(w[1]), abs(w[2]))
 
-            #get the number of g-vectors
-            n_gvec_sc = int(root_gk_sc.find("GRID").get('size'))
-            n_gvec_pc = int(root_gk_pc.find("GRID").get('size'))
-            self.ng_sc = int(n_gvec_sc/3)
-            self.ng_pc = int(n_gvec_pc/3)
-            g_sc= dict() 
+                   # Checking if the k-point in the supercell is found in the primitive cell,
+                   # if missing, the projection will be wrong.
+                   try:
+                       g_contain[ig] = g_sc[w]
+                   except KeyError:
+                       print("Missing k-point %d" % ig)
+           
 
-            #check this point
+               # Condition to read the eigenvectors for nspin = 1 or nspin = 4 in QE (To implement spin == col, i.e., nspin = 2 in QE)
+               if spin == "none" or spin == "noncol":
+              
+                  # Loading eigenvectors of the super cell
+                  evc_sc = f_sc['evc']
+                  eivecs = []
 
-            for GRID in root_gk_sc.findall("GRID"):
-                gkold = GRID.text.split("\n")
+                  # Loop along the number of bands indicated by the user to be computed
+                  for ib in range(self.band_min,self.nbands_sc):
+                      eivec = evc_sc[ib, :]
+                      
+                      # Rewriting the eigenvectors to manage them properly
+                      eivec_complex = [complex(eivec[i], eivec[i+1]) for i in range(0, len(eivec), 2)]
 
-            g_sc_int = dict()  # dictionary of integers
+                      eivecs.append(eivec_complex)
+                        
+                      # Defining specifically ib == 0 since it presents one component instead of two as the rest of values
+                      if ib==0:
+                         x = 0.0
+                         for ig in range(self.ng_sc):
+                             x += eivecs[-1][ig]*eivecs[-1][ig].conjugate()
+ 
+               # Condition to compute the projections for nspin = 1 or spin = 4 in QE (To implement spin == col, i.e., nspin = 2 in QE)
+               if spin == "none" or spin == "noncol":
 
-            #print('Reading Supercell G-vectors')
-
-            for ig in arange(self.ng_sc):  # ATTENTION: Why was it xrange?
-
-                x,y,z = map( float, gkold[ig+1].split())
-                g_sc_int[(int(x),int(y),int(z))] = ig
-                w = x*self.rcell_sc[:][0] + y*self.rcell_sc[:][1] + z*self.rcell_sc[:][2] #scaling
-                w = dot(self.rot,w) #rotations
-                w = np.around(w, decimals=n_decs)+array([0,0,0])                          #round and clean
-                w = format_string % (w[0],w[1],w[2])                                      #truncation
-                g_sc[w] = ig                                                              #create dictionary
-    
-            #print('Assigning Primitive cell g-vectors')
-
-            g_contain = [0]*self.ng_pc
-
-            for GRID in root_gk_pc.findall("GRID"):
-                gkold = GRID.text.split("\n")
-
-            for ig in arange(self.ng_pc):
-
-                x,y,z = map( float, gkold[ig+1].split())
-                w = x*self.rcell_pc[:][0] + y*self.rcell_pc[:][1] + z*self.rcell_pc[:][2] #scaling
-                w = np.around(w, decimals=n_decs)+array([0,0,0])                          #round and clean
-                w = format_string % (w[0],w[1],w[2])                                      #truncation
-                try:
-                    g_contain[ig] = g_sc[w]
-                except KeyError:
-                    print("Missing k-point %d" % ig)
-                    print(w)
-            
-            ndim_gcontain = len(g_contain)
-
-            # Reading the Super-cell Eigenvectors
-
-            if spin == "none":
-
-               tree_evc_sc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc_xml) )
-               root_evc_sc = tree_evc_sc.getroot()
-
-               eivecs = []
-               for ib in range(self.band_min,self.nbands_sc):
-                   eivec = root_evc_sc.find("evc."+str(ib+1)).text.split("\n")
-                   eivecs.append( map(lambda x: complex( float(x.split(",")[0]), float(x.split(",")[1]) ), eivec[1:-1]) )
-                   if ib==0:
+                  # Loop along the number of bands indicated by the user to be computed
+                  for ib in range(self.nbands_sc-self.band_min): 
                       x = 0.0
-                      for ig in range(self.ng_sc):
-                          x += eivecs[-1][ig]*eivecs[-1][ig].conjugate()
+                      for ig in range(self.ng_pc): 
+
+                          # Computing the projection between the primitive cell and the super cell
+                          x += eivecs[ib][g_contain[ig]]*(eivecs[ib][g_contain[ig]].conjugate())
+
+                      # If the value is less than a threshold, the projection is set to zero (to avoid ficticious points when plotting)
+                      if abs(x) < 1e-4:
+
+                         self.projection[ik,ib] = 0.0
+                     
+                      else:
+
+                         self.projection[ik,ib] = abs(x)
                
-            if spin == "spinor":
+               # Saving the data to avoid recomputing the projections twice
+               np.save('projections',self.projection)
 
-               tree_evc1_sc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc1_xml) )
-               root_evc1_sc = tree_evc1_sc.getroot()
-               tree_evc2_sc = ET.parse( "%s/%s.save/K%05d/%s" % (self.path_sc,self.prefix_sc,(ik + 1),self._evc2_xml) )
-               root_evc2_sc = tree_evc2_sc.getroot()
 
-               eivecs1, eivecs2 = [], []
-               for ib in range(self.band_min,self.nbands_sc):
+        # Loading the projections when already computed
+        if compute_projections == False:
 
-                   eivec1 = root_evc1_sc.find("evc."+str(ib+1)).text.split("\n")
-                   eivec2 = root_evc2_sc.find("evc."+str(ib+1)).text.split("\n")
-                   eivecs1.append(list( map(lambda x: complex( float(x.split(",")[0]), float(x.split(",")[1]) ), eivec1[1:-1]) ) )
-                   eivecs2.append(list( map(lambda x: complex( float(x.split(",")[0]), float(x.split(",")[1]) ), eivec2[1:-1]) ) )
+           print(" * Loading projections ...  ")
 
-            # Projection
+           try:
 
-            if spin == "none":
+              self.projection = np.load('projections.npy')
 
-               for ib in range(self.nbands_sc-self.band_min): 
-                   x = 0.0
-                   for ig in range(self.ng_pc): #ndim_gcontain):
+           except FileNotFoundError:
 
-                       x += eivecs[ib][g_contain[ig]]*(eivecs[ib][g_contain[ig]].conjugate())
+              print(f"Error: the file projections.npy does not exits")
+              raise
 
-                   self.projection[ik][ib] = abs(x)
-
-                   f.write("%lf  %lf  %lf  %lf  \n" % (float(ik), float(ib), self.eigen_sc[ik,ib+self.band_min]*HatoeV, self.projection[ik][ib] ) )
-
-            if spin == "spinor":
-
-               for ib in range(self.nbands_sc-self.band_min): 
-                   x = 0.0
-                   for ig in range(self.ng_pc):
-
-                       x += eivecs1[ib][g_contain[ig]]*(eivecs1[ib][g_contain[ig]].conjugate())
-                       x += eivecs2[ib][g_contain[ig]]*(eivecs2[ib][g_contain[ig]].conjugate())
-
-                   self.projection[ik][ib] = abs(x)
-
-                   f.write("%lf  %lf  %lf  %lf  \n" % (float(ik), float(ib), self.eigen_sc[ik,ib+self.band_min]*HatoeV, self.projection[ik][ib] ) )
-
-        print("Done!")
+        return print("=== Projections calculated successfully ===")
 
     def plot_eigen_ax(self,ax,path=[],xlim=(),ylim=()):
         """
-        The plot function is in a provisional state and is basically useful for small calculations.
-        For large calculations is more useful writing the projections in a file and read with another script.
+        Provisional plot function for quick visualization of the data. Useful for small calculations. 
+        For large calculations is more useful loading the .npy and plot it with another script.
         """
 
+        print(" * Plotting EBS ...  ")
+
+        # Getting the data of the defined path
         if path:
             if isinstance(path,Path):
                 path = path.get_indexes()
             ax.set_xticks( *list(zip(*path)) )
         ax.set_ylabel('E (eV)')
 
-        #get kpoint_dists 
+        # Computing the distance of the path 
         kpoints_dists = calculate_distances(self.kpoints)
 
-        #make labels
+        # Defining labels
         ticks, labels = list(zip(*path))
         ax.set_xticks([kpoints_dists[t] for t in ticks])
         ax.set_xticklabels(labels)
         ax.set_ylabel('E (eV)')
 
-        #plot vertical line
+        # Plotting high-symmetry vertical lines
         for t in ticks:
             ax.axvline(kpoints_dists[t],c='k',lw=2)
         ax.axhline(0,c='k',lw=1)
 
-        #plot bands
+        # Plotting the band for the primitive cell
         for ib in range(self.nbands_pc):
-           ax.plot(kpoints_dists,self.eigen_pc[:,ib]*HatoeV,'k--',lw=0.5)
+           ax.plot(kpoints_dists,self.eigen_pc[:,ib],'k--',lw=0.5)
 
+        # Plotting the projection of the super cell 
         for ib in range(self.nbands_sc-self.band_min):
-           ax.plot(kpoints_dists,self.eigen_sc[:,ib]*HatoeV,'r--',lw=0.2)
-           ax.scatter(kpoints_dists,self.eigen_sc[:,ib+self.band_min]*HatoeV,s=self.projection[:,ib]*20,color='r')
+           #ax.plot(kpoints_dists,self.eigen_sc[:,ib],'darkgreen',lw=0.2)
+           ax.scatter(kpoints_dists,self.eigen_sc[:,ib+self.band_min],s=self.projection[:,ib]*5,color='navy',edgecolor = None)
 
-        #plot options
+        # Establishing x and y axis limits 
         if xlim: ax.set_xlim(xlim)
         if ylim: ax.set_ylim(ylim)
 
+        return print("=== EBS calculated successfully  ===")
+
+# Load bar
 def load(x,n):
     bar_length = 100
     x+=1
     ratio = x/float(n)
     c = int(ratio * bar_length)
-    stdout.write("["+"="*c+" "*(bar_length-c)+"] %03.3f%%" % (ratio*100))
+    stdout.write(" * Computing projections of the supercell onto the primitive cell ["+"="*c+" "*(bar_length-c)+"] %03.3f%%" % (ratio*100))
     if (x==n): stdout.write("\n")
     stdout.flush()
     stdout.write("\r")

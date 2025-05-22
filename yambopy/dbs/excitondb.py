@@ -1045,7 +1045,7 @@ class YamboExcitonDB(object):
             if isinstance(energies,YamboQPDB):        
                 # Pick the same energy range used for the BSE in case the QP energy range is larger
                 if   energies.nbands<self.mband-self.start_band:  raise ValueError("[ERROR] QP range less than BSE range!")
-                elif energies.nbands==self.mband-self.start_band: eigs = energies.eigenvalues_QP # Assuming exact same range
+                elif energies.nbands==self.mband-self.start_band: eigs = energies.eigenvalues_qp # Assuming exact same range
                 else:                                             eigs = energies.eigenvalues_qp[:,self.start_band:self.mband]
 
             kpoints = car_red(np.array([ k/lat.alat for k in lat.ibz_kpoints ]),lat.rlat) #IBZ reduced kpoints 
