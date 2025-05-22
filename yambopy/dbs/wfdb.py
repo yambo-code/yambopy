@@ -25,7 +25,6 @@ try:
 except ImportError as e:
     from scipy.spatial import KDTree
 from yambopy.kpoints import build_ktree, find_kpt
-from yambopy.tools.function_profiler import func_profile
 
 class YamboWFDB:
     """
@@ -390,7 +389,7 @@ class YamboWFDB:
         time_rev = (isym >= len(self.ydb.sym_car) / (1 + int(np.rint(self.ydb.time_rev))))
         return self.apply_symm(kvec, wfc_k, gvecs_k, time_rev, sym_mat)
 
-    @func_profile
+    
     def apply_symm(self, kvec, wfc_k, gvecs_k, time_rev, sym_mat, frac_vec=np.array([0, 0, 0])):
         """
         Apply symmetry to wavefunctions.
@@ -428,7 +427,7 @@ class YamboWFDB:
 
         return [Rkvec, wfc_rot, gvec_rot]
 
-    @func_profile
+    
     def to_real_space(self, wfc_tmp, gvec_tmp, grid=[]):
         """
         Convert wavefunctions from G-space to real space.
@@ -519,7 +518,7 @@ class YamboWFDB:
         #
         return [self.wf_bz[ik][..., :self.ngBZ[ik]], self.g_bz[ik, :self.ngBZ[ik], :]]
 
-    @func_profile
+    
     def Dmat(self, symm_mat=None, frac_vec=None, time_rev=None):
         """
         Computes the symmetry-adapted matrix elements < Rk | U(R) | k >.
@@ -605,7 +604,7 @@ class YamboWFDB:
         #
         return Dmat
 
-@func_profile
+
 def wfc_inner_product(k_bra, wfc_bra, gvec_bra, k_ket, wfc_ket, gvec_ket, ket_Gtree=None):
     """
     Computes the inner product between two wavefunctions in reciprocal space. <k_bra | k_ket>
