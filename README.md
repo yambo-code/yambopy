@@ -73,6 +73,7 @@ Requirements
 - scipy: https://www.scipy.org/
 - matplotlib: http://matplotlib.org/
 - netCDF4: http://unidata.github.io/netcdf4-python/
+- h5py: https://www.h5py.org/
 - lxml: https://lxml.de/
 - pyyaml: https://pyyaml.org/
 - monty: https://pypi.org/project/monty/
@@ -80,7 +81,7 @@ Requirements
 - tqdm: https://pypi.org/project/tqdm/
 
 Yambopy works for the following DFT/MBPT codes:
-- yambo (>5.0.0): https://www.yambo-code.eu/
+- yambo (>=5.0): https://www.yambo-code.eu/
 - Quantum Espresso (optional): http://www.quantum-espresso.org/
 
 Troubleshooting, bugs and questions
