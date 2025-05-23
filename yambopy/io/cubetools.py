@@ -11,10 +11,10 @@ def write_cube(filename, data, lat_vec, atom_pos, atomic_num, origin=np.zeros(3)
     atomic_num: atomic numbers of elements
     """
     ## atomic positions must be in [0,1)
-    apos_crys = atom_pos@lat_vec.T
+    apos_crys = atom_pos@np.linalg.inv(lat_vec.T)
     apos_crys = apos_crys-np.floor(apos_crys)
     apos_crys = (apos_crys+1e-6)%1
-    apos_new = apos_crys@np.linalg.inv(lat_vec.T)
+    apos_new = apos_crys@lat_vec.T
 
     with open(filename, "w") as cube:
         cube.write("# Cube file generated using YamboPy\n")
@@ -35,4 +35,5 @@ def write_cube(filename, data, lat_vec, atom_pos, atomic_num, origin=np.zeros(3)
                 for iz in range(data.shape[2]):
                     cube.write("%.6f      " %(data[ix,iy,iz]))
                     if iz % 6 == 5 : cube.write("\n")
+                cube.write("\n")
 
