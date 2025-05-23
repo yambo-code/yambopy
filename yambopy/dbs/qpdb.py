@@ -308,7 +308,7 @@ class YamboQPDB():
         kpoints = lattice.red_kpoints
         sym_rec  = lattice.sym_rec
         symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
-        time_rev = True
+        time_rev = lattice.time_rev
         
         band_kpoints_rlu = path.get_klist()[:,:3]
 
