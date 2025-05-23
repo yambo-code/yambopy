@@ -223,7 +223,7 @@ class YamboAnalyser():
         #plot the bands
         return gw_bands.plot(show=False)
 
-    def plot_bse(self,tags,cols=(2,),ax=None,png_file=False):
+    def plot_bse(self,tags,cols=(2,),ax=None,png_file=False, **kwargs):
         """
         Use this function to plot the absorption spectrum calculated using the BSE
         cols: a list of indexes to select which columns from the file to plot
@@ -254,6 +254,9 @@ class YamboAnalyser():
         colors = self.get_colors(tags)
 
         n=0
+        x_key = kwargs.pop('x_key','E/ev[1]')
+        y_key = kwargs.pop('y_key','EPS-Im[2]')
+
         for k in sorted(self.jsonfiles.keys()):
             for filename in list(self.jsonfiles[k]["files"].keys()):
                 if all(i in filename for i in tags):
@@ -267,8 +270,8 @@ class YamboAnalyser():
                     for col in cols:
                         #x = data[:,0]
                         #y = data[:,col-1]
-                        x = data['E/ev[1]']
-                        y = data['EPS-Im[2]']
+                        x = data[x_key]
+                        y = data[y_key]
                         label = filename.split('/')[-1]+" col=%d"%col
                         # Should we clean the label?
                         label=label.replace('.eps_q1_haydock_bse','')
