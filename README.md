@@ -11,6 +11,7 @@ Do pre/post-processing, data analysis and plotting for yambo and quantum espress
 - Yambo wiki: http://wiki.yambo-code.eu/
 - Yambo Github page [download yambo & yambopy]: https://github.com/yambo-code/
 
+Yambopy is distributed under the GPL 2.0 license (same as the Yambo code).
 
 Documentation
 -------------
@@ -72,13 +73,15 @@ Requirements
 - scipy: https://www.scipy.org/
 - matplotlib: http://matplotlib.org/
 - netCDF4: http://unidata.github.io/netcdf4-python/
+- h5py: https://www.h5py.org/
 - lxml: https://lxml.de/
 - pyyaml: https://pyyaml.org/
 - monty: https://pypi.org/project/monty/
 - scikit-learn: https://pypi.org/project/scikit-learn/
+- tqdm: https://pypi.org/project/tqdm/
 
 Yambopy works for the following DFT/MBPT codes:
-- yambo (>5.0.0): https://www.yambo-code.eu/
+- yambo (>=5.0): https://www.yambo-code.eu/
 - Quantum Espresso (optional): http://www.quantum-espresso.org/
 
 Troubleshooting, bugs and questions

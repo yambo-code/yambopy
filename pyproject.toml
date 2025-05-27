@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 #build-backend = "flit_core.buildapi"
 [project]
 name = "yambopy"
-version = "0.4"
+version = "0.4.6"
 authors = [
   { name="Fulvio Paleari", email="fulvio.paleari@nano.cnr.it" },
   { name="Alejandro Molina-Sanchez", email="alejandro.molina@uv.es" },
@@ -20,13 +20,14 @@ classifiers = [
     "Operating System :: OS Independent",
     "Development Status :: 3 - Alpha",
 ]
-dependencies = [ "numpy", "scipy", "netCDF4", "matplotlib", "pyyaml", "lxml", "monty","scikit-learn","tqdm"]
+dependencies = [ "numpy", "scipy", "netCDF4", "h5py", "matplotlib", "pyyaml", "lxml", "monty","scikit-learn","tqdm"]
 [project.urls]
 "Homepage" = "https://github.com/yambo-code/yambopy"
 "Documentation" = "https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy"
 [project.scripts]
 yambopy="yambocommandline.scripts.yambopy:YambopyCmd"
 [tool.setuptools]
+license-files = [] # workaround for bug in twine/setuptools
 packages = ['yambopy',
             'yambopy.io',
             'yambopy.dbs',

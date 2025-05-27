@@ -44,6 +44,11 @@ class YamboLatticeDB(object):
         with Dataset(filename) as database:
 
             dimensions = database.variables['DIMENSIONS'][:]
+            mag_syms   = database.variables['mag_syms'][:].astype(int)
+            if dimensions[9]==1:
+                if mag_syms==0:  time_rev=1
+                else:            time_rev=0
+            if dimensions[9]==0: time_rev=0
 
             natoms_a = database.variables['N_ATOMS'][:].astype(int).T
             tmp_an = database.variables['atomic_numbers'][:].astype(int)
@@ -65,7 +70,7 @@ class YamboLatticeDB(object):
                          iku_kpoints          = database.variables['K-POINTS'][:].T,
                          lat                  = database.variables['LATTICE_VECTORS'][:].T,
                          alat                 = database.variables['LATTICE_PARAMETER'][:].T,
-                         time_rev             = dimensions[9] )
+                         time_rev             = time_rev )
 
         y = cls(**args)
         if Expand: y.expand_kpoints(atol=atol)

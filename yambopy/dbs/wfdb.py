@@ -390,6 +390,7 @@ class YamboWFDB:
         time_rev = (isym >= len(self.ydb.sym_car) / (1 + int(np.rint(self.ydb.time_rev))))
         return self.apply_symm(kvec, wfc_k, gvecs_k, time_rev, sym_mat)
 
+
     @func_profile
     def apply_symm(self, kvec, wfc_k, gvecs_k, time_rev, sym_mat, frac_vec=np.array([0, 0, 0])):
         """
@@ -427,6 +428,7 @@ class YamboWFDB:
             wfc_rot = wfc_rot.conj()
 
         return [Rkvec, wfc_rot, gvec_rot]
+
 
     @func_profile
     def to_real_space(self, wfc_tmp, gvec_tmp, grid=[]):
@@ -518,6 +520,7 @@ class YamboWFDB:
         if getattr(self, 'wf_bz', None) is None: self.expand_fullBZ()
         #
         return [self.wf_bz[ik][..., :self.ngBZ[ik]], self.g_bz[ik, :self.ngBZ[ik], :]]
+
 
     @func_profile
     def Dmat(self, symm_mat=None, frac_vec=None, time_rev=None):
