@@ -20,7 +20,8 @@ class YamboLatticeDB(object):
     Class to read the lattice information from the netcdf file
     """
     def __init__(self,lat=None,alat=None,sym_car=None,iku_kpoints=None,
-                      car_atomic_positions=None,atomic_numbers=None,time_rev=None):
+                      car_atomic_positions=None,atomic_numbers=None,
+                      time_rev=None,mag_syms=None):
         self.lat                  = np.array(lat)
         self.alat                 = np.array(alat)
         self.sym_car              = np.array(sym_car)
@@ -28,6 +29,7 @@ class YamboLatticeDB(object):
         self.car_atomic_positions = np.array(car_atomic_positions)
         self.atomic_numbers       = np.array(atomic_numbers)
         self.time_rev             = time_rev
+        self.mag_syms             = mag_syms
         self.ibz_nkpoints         = len(iku_kpoints)
 
     @classmethod
@@ -44,11 +46,8 @@ class YamboLatticeDB(object):
         with Dataset(filename) as database:
 
             dimensions = database.variables['DIMENSIONS'][:]
-            mag_syms   = database.variables['mag_syms'][:].astype(int)
-            if dimensions[9]==1:
-                if mag_syms==0:  time_rev=1
-                else:            time_rev=0
-            if dimensions[9]==0: time_rev=0
+            time_rev = dimensions[9].astype(int)
+            mag_syms   = database.variables['mag_syms'][:].astype(int)[0]
 
             natoms_a = database.variables['N_ATOMS'][:].astype(int).T
             tmp_an = database.variables['atomic_numbers'][:].astype(int)
@@ -70,7 +69,8 @@ class YamboLatticeDB(object):
                          iku_kpoints          = database.variables['K-POINTS'][:].T,
                          lat                  = database.variables['LATTICE_VECTORS'][:].T,
                          alat                 = database.variables['LATTICE_PARAMETER'][:].T,
-                         time_rev             = time_rev )
+                         time_rev             = time_rev,
+                         mag_syms             = mag_syms)
 
         y = cls(**args)
         if Expand: y.expand_kpoints(atol=atol)

@@ -1130,13 +1130,19 @@ class YamboExcitonDB(object):
             # sym_red are the symmetries of the reciprocal lattice...
             # skw interp wants the symmetries of the direct lattice, so we use sym_rec_red
             # plus, we take the non t-revved ones
-            symrel = [sym for sym,trev in zip(lat.sym_rec_red,lat.time_rev_list) if trev==False ]
-            time_rev = bool(lat.time_rev)
+            if not lat.mag_syms:
+                symrel = [sym for sym,trev in zip(lat.sym_rec_red,lat.time_rev_list) if trev==False ]
+                trev_for_interp = lat.time_rev
+            # Handle special case of mag_sys + trev (e.g. SOC + ferromagnet, etc)
+            elif lat.time_rev:
+                symrel = lat.sym_rec_red
+                trev_for_interp=False
+
         elif no_symmetries:
             eigs = energies.eigenvalues[0,:,self.start_band:self.mband]
             kpoints = lat.red_kpoints
             symrel = [np.identity(3)]
-            time_rev = False
+            trev_for_interp = False
         else:
             raise ValueError("Energies argument must be an instance of YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
@@ -1150,11 +1156,11 @@ class YamboExcitonDB(object):
         kpoints_path =  path.get_klist()[:,:3]
         
         #interpolate energies
-        skw = SkwInterpolator(lpratio,kpoints,eigs[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        skw = SkwInterpolator(lpratio,kpoints,eigs[na,:,:],fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
         exc_energies = skw.interp_kpts(kpoints_path).eigens
 
         #interpolate weights
-        skw = SkwInterpolator(lpratio,kpoints,weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        skw = SkwInterpolator(lpratio,kpoints,weights[na,:,:],fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
         exc_weights = skw.interp_kpts(kpoints_path).eigens
 
         # For the band plot (bandstructure object), we need to switch to cartesian coordinates
@@ -1181,8 +1187,13 @@ class YamboExcitonDB(object):
         # Here there is something strange...
         fermie = kwargs.pop('fermie',0)
         ##
-        symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
-        time_rev = True
+        if not lattice.mag_syms:
+            symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
+            trev_for_interp = lattice.time_rev
+        # Handle special case of mag_sys + trev (e.g. SOC + ferromagnet, etc)
+        elif lattice.time_rev:
+            symrel = lattice.sym_rec_red
+            trev_for_interp=False
 
         #vmin, vmax = self.unique_vbands[0], self.unique_vbands[1]
         #cmin, cmax = self.unique_cbands[0], self.unique_cbands[1]
@@ -1210,13 +1221,13 @@ class YamboExcitonDB(object):
 
         #interpolate energies
         na = np.newaxis
-        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
         kpoints_path = path.get_klist()[:,:3]
         energies = skw.interp_kpts(kpoints_path).eigens
      
         #interpolate transitions
         na = np.newaxis
-        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_transitions[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_transitions[na,:,:],fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
         kpoints_path = path.get_klist()[:,:3]
         exc_transitions = skw.interp_kpts(kpoints_path).eigens
 
