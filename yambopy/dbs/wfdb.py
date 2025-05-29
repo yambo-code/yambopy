@@ -1,7 +1,5 @@
-# Copyright (c) 2018, Henrique Miranda
+# Copyright (c) 2025, Muralidhar Nalabothula
 # All rights reserved.
-#
-# This file is part of the yambopy project
 #
 # Author: MN
 
