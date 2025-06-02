@@ -50,9 +50,15 @@ class LetzElphElectronPhononDB():
         self.nsym = database.dimensions['nsym_ph'].size
 
         conv = database['convention'][...].data
-        convlist = [iconv.decode('utf-8') for iconv in conv]
-        conv = ''
-        for iconv in convlist: conv = conv + iconv
+        if isinstance(conv, np.ndarray):
+            if conv.dtype.kind == 'S':  # Byte strings (C chars)
+                conv = conv.tobytes().decode('utf-8').strip()
+            else:
+                conv = str(conv)  # Fallback for non-string arrays
+        elif isinstance(conv, bytes):
+            conv = conv.decode('utf-8').strip()
+        else:
+            conv = str(conv).strip()
         stard_conv = False
         if conv.strip() == 'standard':
             print("Convention used in Letzelphc : k -> k+q (standard)")
