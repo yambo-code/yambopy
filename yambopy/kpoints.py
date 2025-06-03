@@ -11,6 +11,7 @@ import numpy as np
 from itertools import product
 from yambopy.lattice import red_car, vec_in_list, isbetween, car_red
 from qepy.lattice import Path
+from scipy.spatial import KDTree
 
 def expand_kpoints(car_kpoints,sym_car,rlat,atol=1.e-6):
     """
@@ -143,3 +144,73 @@ def get_path(car_kpoints,rlat,sym_car,path,debug=False):
             if debug: print(("%12.8lf "*3)%tuple(kpt), index)
 
     return bands_kpoints, bands_indexes, path_car
+
+
+def make_kpositive(klist, tol=1e-6):
+    """
+    Shifts all k-points into the range [0,1) by applying modulo operation.
+
+    Parameters
+    ----------
+    klist : np.ndarray
+        Array of k-points in crystal coordinates.
+    tol : float, optional
+        A small tolerance to ensure numerical stability, default is 1e-6.
+
+    Returns
+    -------
+    np.ndarray
+        Array of k-points mapped to the range [0,1).
+    """
+    kpos = klist - np.floor(klist)  # Ensure k-points are within [0,1)
+    return (kpos + tol) % 1  # Apply small tolerance correction
+
+
+def build_ktree(kpts):
+    """
+    Builds a k-d tree for efficient k-point searching.
+
+    Parameters
+    ----------
+    kpts : np.ndarray
+        Array of k-points in crystal coordinates.
+
+    Returns
+    -------
+    KDTree
+        A KDTree structure for fast nearest-neighbor lookup of k-points.
+    """
+    tree = make_kpositive(kpts)  # Normalize k-points to [0,1)
+    return KDTree(tree, boxsize=[1, 1, 1])  # Construct KDTree with periodic boundaries
+
+
+def find_kpt(tree, kpt_search, tol=1e-5):
+    """
+    Finds the index of a k-point in a KDTree within a given tolerance.
+
+    Parameters
+    ----------
+    tree : KDTree
+        Pre-built KDTree of k-points.
+    kpt_search : np.ndarray
+        The k-point to search for in crystal coordinates.
+    tol : float, optional
+        Tolerance for k-point matching, default is 1e-5.
+
+    Returns
+    -------
+    int
+        Index of the matched k-point in the original k-point list.
+
+    Raises
+    ------
+    SystemExit
+        If the k-point is not found within the specified tolerance.
+    """
+    kpt_search = make_kpositive(kpt_search)  # Normalize k-point
+    dist, idx = tree.query(kpt_search, workers=1)  # Perform nearest-neighbor search
+    assert np.max(dist) < tol, "Kpoint not found"
+    return idx  # Return the index of the found k-point
+
+
+

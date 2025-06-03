@@ -18,7 +18,22 @@ class Cmd():
         print('Available commands are:\n')
         for cmd,c in list(self._commands.items()):
             print("%15s -> %s"%(cmd, c.__doc__.split('\n')[1]))
-    
+
+    def cite(self):
+        """
+        Display the BibTeX citation string
+        """
+        version=importlib.metadata.version('yambopy')
+        print("@misc{yambopy,")
+        print("      author = {Paleari, Fulvio and Molina-Sánchez, Alejandro and Nalabothula, Muralidhar and Reho, Riccardo and Bonacci, Miki and Castelo, José M. and Cervantes-Villanueva, Jorge and Pionteck, Mike and Silvetti, Martino and Attaccalite, Claudio and Pereira Coutada Miranda, Henrique},")
+        print("      title = {Yambopy},")
+        print("      month = mar,")
+        print("      year = 2025,")
+        print("      publisher = {Zenodo},")
+        print("      version = {%s},"%version)
+        print("      doi = {10.5281/zenodo.15012962},")
+        print("      url = {https://doi.org/10.5281/zenodo.15012962},}")
+ 
     def run(self,cmds,args):
         """
         generic run command
@@ -597,14 +612,15 @@ class ConvertLELPHCtoYAMBO(Cmd):
 
 	:: Usage:
 
-	>> yambopy l2y -ph phinp -b b1 b2 -par nq nk [--lelphc lelphc] [--debug]
+    >> yambopy l2y -ph phinp -b b1 b2 -par nq nk [--kernel kernel] [--lelphc lelphc] [--debug]
 
-	:: Input parameters:
-		-ph,--ph_inp_path     : path to ph.x input file, e.g. dvscf/ph.in
-		-b,--bands            : initial and final band indices (counting from 1)
-		-par,--pools [OPT]    : MPI pools for q and k (needs mpirun)
-		-lelphc,--lelphc [OPT]: path to lelphc executable (code will prompt)
-		-D,--debug [OPT]      : won't remove LetzElPhC input and outputs
+    :: Input parameters:
+        -ph           : path to ph.x input file, e.g. dvscf/ph.in
+        -b            : initial and final band indices (counting from 1)
+        -par [OPT]    : MPI pools for q and k (needs mpirun)
+        --kernel [OPT]: e-ph kernel type, default 'dfpt'
+        --lelphc [OPT]: path to lelphc executable (code will prompt)
+        --debug [OPT] : won't remove LetzElPhC input and outputs
 
 	:: Prerequisites:
 
@@ -627,6 +643,7 @@ class ConvertLELPHCtoYAMBO(Cmd):
 		parser = argparse.ArgumentParser(description='Generate electron-phonon coupling databases via LetzElPhC')
 		parser.add_argument('-ph','--ph_inp_path', type=str, help='<Required> Path to ph.x (dvscf) input file',required=True)
 		parser.add_argument('-b','--bands',nargs=2,type=str,help="<Required> First and last band (counting from 1), e.g. 'b_i b_f'",required=True)
+		parser.add_argument('-k','--kernel', type=str, default='dfpt',help="<Optional> Electron-phonon kernel type, e.g. 'dfpt', 'bare', ... (default 'dfpt')")
 		parser.add_argument('-par','--pools',nargs=2,type=str, default=[1,1], help="<Optional> MPI tasks as 'nqpools nkpools' (default serial)")
 		parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)")
 		parser.add_argument('-D','--debug', action="store_true", help="Debug mode")
@@ -635,13 +652,14 @@ class ConvertLELPHCtoYAMBO(Cmd):
 
 		phinp  = args.ph_inp_path
 		bands  = args.bands
+		kernel = args.kernel
 		pools  = args.pools
 		lelphc = args.lelphc
 		debug  = args.debug
 
 		# Check inputs
 		lelphc,ph_path,inp_ph,inp_lelphc,inp_name = \
-		lelph_interface.checks(phinp,lelphc,bands,pools)
+		lelph_interface.checks(phinp,lelphc,bands,kernel,pools)
 
 		# run preprocessing
 		lelph_interface.run_preprocessing(lelphc,ph_path,inp_ph)
@@ -728,7 +746,12 @@ class YambopyCmd(Cmd):
         if len(args) <= 1:
             self.info()
             exit(0)
- 
+
+        #check for how to cite
+        if args[1]=='cite':
+            self.cite()
+            exit()
+
         #start call graph     
         if args[1] in self._commands:
             cmdclass = self._commands[args[1]]

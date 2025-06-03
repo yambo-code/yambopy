@@ -7,9 +7,9 @@ class LetzElphElectronPhononDB():
     """
     Python class to read the electron-phonon matrix elements from LetzElPhC.
 
-    About LetzElPhC: https://github.com/muralidhar-nalabothula/LetzElPhC
+    About LetzElPhC: https://github.com/yambo-code/LetzElPhC/tree/main
     
-    By default it reads the full database g(k,q,m,s,b1,b2) including phonon energies.
+    By default it reads the full database g(q,k,m,s,b1,b2) including phonon energies.
     
     - Input: path of ndb.elph
     - Input: read_all (default True), read ph. eigenvectors and el-ph matrix elements
@@ -23,17 +23,15 @@ class LetzElphElectronPhononDB():
       :: lph.qpoints         #qpoints in crist. coords. (BZ)
       :: lph.ph_energies     #Phonon energies (eV)      
       :: lph.ph_eigenvectors #Phonon modes
-      :: lph.gkkp            #El-ph matrix elements (by default normalised with ph. energies):
+      :: lph.gkkp            #El-ph matrix elements (by default normalised with ph. energies) [!!!! RYDBERG UNITS !!!!]:
       :: lph.gkkp_sq         #Couplings (square)
 
-       
-   
     Formats:
     - modes[iq][il][iat][ix]
     - gkkp[iq][ik][il][is][ib1][ib2]              
     """
 
-    def __init__(self,filename,read_all=True,div_by_energies=True):
+    def __init__(self,filename,read_all=True,div_by_energies=True,verbose=False):
 
         # Open database
         try: database = Dataset(filename)
@@ -66,6 +64,8 @@ class LetzElphElectronPhononDB():
             if var.name=='elph_mat': self.ncfloat_type=var.dtype 
 
         database.close()
+        
+        self.verbose = verbose
 
     def check_energies(self):
         """
@@ -101,7 +101,7 @@ class LetzElphElectronPhononDB():
         gkkp_full = np.zeros([self.nq,self.nk,self.nm,self.ns,self.nb1,self.nb2],dtype=np.complex64)
         gkkp_tmp  = database.variables['elph_mat'][:]
         gkkp_full = gkkp_tmp[:,:,:,:,:,:,0]+1j*gkkp_tmp[:,:,:,:,:,:,1]
-        
+       
         # Check integrity of elph values
         if np.isnan(gkkp_full).any(): print('[WARNING] NaN values detected in elph database.')
         
@@ -126,9 +126,9 @@ class LetzElphElectronPhononDB():
                 else:
                     ph_E = self.ph_energies[iq,inu]/(ha2ev/2.) # Put back the energies in Rydberg units
                     g[iq,:,inu,:,:,:] = dvscf[iq,:,inu,:,:,:]/np.sqrt(2.*ph_E)
-        return dvscf
+        return g
 
-    def __str__(self,verbose=False):
+    def __str__(self):
 
         lines = []; app = lines.append
         app(marquee(self.__class__.__name__))
@@ -139,7 +139,7 @@ class LetzElphElectronPhononDB():
         app('natoms: %d'%self.nat)
         app('nbands: %d %d'%(self.nb1,self.nb2))
  
-        if verbose:
+        if self.verbose:
 
             if hasattr(self, 'ph_eigenvectors'):                 
                 app('-----------------------------------')

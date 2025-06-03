@@ -29,6 +29,6 @@ from qepy.ph import *
 from qepy.dynmat import *
 from qepy.matdyn import *
 from qepy.unfolding import *
-from qepy.spin_texture import *
 from qepy.supercell import *
 from qepy.upf_interface.ppupf import *
+from qepy.spin_texture import *

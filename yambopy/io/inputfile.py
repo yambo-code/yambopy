@@ -7,8 +7,9 @@ import os
 import json
 import re
 from subprocess import Popen, PIPE
-from yambopy import yambopyenv
+from yambopy.env import yambopyenv
 from yambopy.tools.duck import isstring
+
 
 def issave(path):
     """ Check if yambo SAVE folder is present either as directory or as symlink """
