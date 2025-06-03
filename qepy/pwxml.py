@@ -416,7 +416,7 @@ class PwXML():
         for ib in range(self.nbands):
             x = kpoints_dists
             y = eigen1[:,ib] - self.fermi
-            print(self.spin_proj[:,ib])
+
             color_spin = self.spin_proj[:,ib] + 0.5 # I renormalize 0 => down; 1 => up
             ax.scatter(x,y,s=100,c=color_spin,cmap=color_map,vmin=0.0,vmax=1.0,edgecolors='none')
        

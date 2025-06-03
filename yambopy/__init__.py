@@ -94,8 +94,8 @@ from yambopy.em1s.em1s_rotate import *
 from yambopy.quasiparticles.QP_rotate import *
 
 #LetzElPhC interface
-#from yambopy.letzelphc_interface.lelphcdb import *
-#from yambopy.letzelphc_interface.lelph2y import *
+from yambopy.letzelphc_interface.lelphcdb import *
+from yambopy.letzelphc_interface.lelph2y import *
 
 #analyse stuff
 from yambopy.analyse import *
