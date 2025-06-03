@@ -51,17 +51,6 @@ python plot-qe-orbitals-size.py
 
 python plot-qe-orbitals-colormap.py
 
-# Tutorial 3. BN (semiconductor). Spin texture
-==============================================
-
-Folder 'bn-semiconductor'
-
-1. Load spin projection values and plot spin texture. We can select the spin-{x,y,z}
-   projection to load. Besides, we can plot the spin texture in three different modes,
-   "raw", "interpolated" (only spin-z) and "arrow" (needs spin-x, spin-y and spin-z)
-
-python plot-qe-spin_texture.py
-
 # Tutorial 4. BN (semiconductor). GW Band structure
 ==============================================
 
@@ -72,4 +61,15 @@ python plot-qe-spin_texture.py
 3. Plot DFT and GW band structures interpolated
 
 4. Compare non-interpolated and interpolated band structures
+
+# Tutorial 5. BN (semiconductor). Spin texture
+==============================================
+
+Folder 'bn-semiconductor'
+
+1. Load spin projection values and plot spin texture. We can select the spin-{x,y,z}
+   projection to load. Besides, we can plot the spin texture in three different modes,
+   "raw", "interpolated" (only spin-z) and "arrow" (needs spin-x, spin-y and spin-z)
+
+python plot-qe-spin_texture.py
 
