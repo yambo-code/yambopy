@@ -31,3 +31,4 @@ from qepy.matdyn import *
 from qepy.unfolding import *
 from qepy.supercell import *
 from qepy.upf_interface.ppupf import *
+from qepy.spin_texture import *
