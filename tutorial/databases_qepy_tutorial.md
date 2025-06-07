@@ -68,7 +68,21 @@ Folder 'bn-semiconductor'
 
 python plot-unfolding.py
 
-# Tutorial 4. BN (semiconductor). GW Band structure
+# Tutorial 4. BN (semiconductor). Spin texture
+==============================================
+
+Folder 'bn-semiconductor'
+
+1. Perform scf and nscf calculations. Note that, for the correct representation of the spin texture, 
+   the flags ‘nosym = .true.’ and ‘noinv = .true.’ have to be added in the nscf calculation.
+
+2. Load spin projection values and plot spin texture. We can select the spin-{x,y,z}
+   projection to load. Besides, we can plot the spin texture in three different modes,
+   "raw", "interpolated" (only spin-z) and "arrow" (needs spin-x, spin-y and spin-z)
+
+python plot-qe-spin_texture.py
+
+# Tutorial 5. BN (semiconductor). GW Band structure
 ==============================================
 
 1. Find stretching coefficients

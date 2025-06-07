@@ -386,8 +386,6 @@ class PwXML():
 
         if spin_proj == True:
            self.spin_projection(spin_dir=3,folder=spin_folder,prefix='bands')
-           print(self.spin_3)
-        exit()
 
         if path_kpoints:
             if isinstance(path_kpoints,Path):
@@ -418,6 +416,7 @@ class PwXML():
         for ib in range(self.nbands):
             x = kpoints_dists
             y = eigen1[:,ib] - self.fermi
+
             color_spin = self.spin_proj[:,ib] + 0.5 # I renormalize 0 => down; 1 => up
             ax.scatter(x,y,s=100,c=color_spin,cmap=color_map,vmin=0.0,vmax=1.0,edgecolors='none')
        
