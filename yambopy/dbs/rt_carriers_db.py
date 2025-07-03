@@ -82,7 +82,7 @@ class YamboRT_Carriers_DB():
         print('delta_f',self.delta_f.shape)
 
 
-    def build_f_bare_dos(self, dE = 0.1, eta = 0.05, broad_kind = 'lorentzian'):
+    def build_f_bare_dos(self, dE = 0.1, eta = 0.1, broad_kind = 'lorentzian'):
         """
         For each kpoint build a dos which expresses the bare occupation level in terms
         of the energy. The energy ranges from the minum to the maximum of the
