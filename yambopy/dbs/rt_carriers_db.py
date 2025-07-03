@@ -3,7 +3,7 @@ Module that manages the parsing of the ``ndb.RT_carriers`` database created by `
 """
 from netCDF4 import Dataset
 from yambopy.units import ha2ev
-from yambopy.tools.dos import Dos
+# from yambopy.tools.dos import Dos
 
 import numpy as np
 
@@ -102,11 +102,12 @@ class YamboRT_Carriers_DB():
         numkp = self.bands_kpts[2]
         Emin,Emax = min(self.E_bare)-10*eta,max(self.E_bare)+10*eta
 
-        dos = Dos()
-        for kind in range(numkp):
-            E_bare_k = self.E_bare[kind*numbnds:(kind+1)*numbnds]
-            f_bare_k = self.f_bare[kind*numbnds:(kind+1)*numbnds]
-            dos.append(E_bare_k,weights=f_bare_k,minVal=Emin,maxVal=Emax,
-                step=dE,eta=eta,broad_kind=broad_kind)
-
-        return dos
+#        w, dos = get_spectra(eigenvalues,weights=weights,broadening=broad,emin=Emin,emax=Emax,estep=estep)
+#        for kind in range(numkp):
+#            E_bare_k = self.E_bare[kind*numbnds:(kind+1)*numbnds]
+#            f_bare_k = self.f_bare[kind*numbnds:(kind+1)*numbnds]
+#
+#            dos.append(E_bare_k,weights=f_bare_k,minVal=Emin,maxVal=Emax,
+#                step=dE,eta=eta,broad_kind=broad_kind)
+        return
+#        return dos
