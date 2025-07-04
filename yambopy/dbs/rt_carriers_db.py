@@ -66,8 +66,7 @@ class YamboRT_Carriers_DB():
         self.bands_kpts = np.array(database.variables['RT_bands_kpts'])
         self.k_weight = np.array(database.variables['RT_k_weight'])
         self.delta_E = ha2ev*np.array(database.variables['RT_carriers_delta_E'])
-        self.delta_f = np.array(database.variables['RT_carriers_delta_f'])
-
+        self.delta_f = np.hstack(np.array(database.variables['RT_carriers_delta_f']))
 
     def get_info(self):
         """
@@ -107,3 +106,32 @@ class YamboRT_Carriers_DB():
         #
         w, dos = get_spectra(energies=self.E_bare,residuals=self.f_bare,broadening=eta,emin=Emin,emax=Emax)
         return w,dos
+    
+    
+    def build_delta_f_dos(self, dE = 0.1, eta = 0.1, broad_kind = 'lorentzian'):
+        """
+        For each kpoint build a dos which expresses the bare occupation level in terms
+        of the energy. The energy ranges from the minum to the maximum of the
+        E_bare variable.
+
+        Args:
+            dE (:py:class:`float`) : energy step in eV
+            eta (:py:class:`float`) : magnitude of the broading parameter (in the same units used for the values array)
+            broad_kind (:py:class:`string`) : type of broading function used (lorentzian, gaussian)
+
+        Returns:
+            :py:class:`Dos` : Instance of the ``Dos`` class. The object is an array of dos, one for
+                each kpoint
+
+        """
+        numbnds = self.bands_kpts[1]-self.bands_kpts[0]
+        numkp = self.bands_kpts[2]
+        Emin,Emax = min(self.E_bare)-10*eta,max(self.E_bare)+10*eta
+        #
+        # Here I want to calculate the weighted density of states (w-DOS) so I pass
+        # to the get_spectra function the occupation as residual for the DOS
+        #
+        w, dos = get_spectra(energies=self.E_bare,residuals=self.delta_f,broadening=eta,emin=Emin,emax=Emax)
+        return w,dos
+
+
