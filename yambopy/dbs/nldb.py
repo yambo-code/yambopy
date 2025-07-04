@@ -40,7 +40,7 @@ class YamboNLDB(object):
 
     def read_Efield(self,database,RT_step,n):
          efield={}
-         efield["name"]       =database.variables['Field_Name_'+str(n)][...].tostring().decode().strip()
+         efield["name"]       =database.variables['Field_Name_'+str(n)][...].tobytes().decode().strip()
          efield["versor"]     =database.variables['Field_Versor_'+str(n)][:].astype(np.double)
          efield["intensity"]  =database.variables['Field_Intensity_'+str(n)][0].astype(np.double)
          efield["damping"]    =database.variables['Field_Damping_'+str(n)][0].astype(np.double)
@@ -64,7 +64,7 @@ class YamboNLDB(object):
         """
         Read all data from the database
         """
-        self.Gauge          = database.variables['GAUGE'][...].tostring().decode().strip()
+        self.Gauge          = database.variables['GAUGE'][...].tobytes().decode().strip()
         self.NE_steps       = database.variables['NE_steps'][0].astype('int')
         self.RT_step        = database.variables['RT_step'][0].astype(np.double)
         self.n_frequencies  = database.variables['n_frequencies'][0].astype('int')
@@ -90,8 +90,8 @@ class YamboNLDB(object):
         self.QP_ng_SH       = database.variables['QP_ng_SH'][0].astype('int')
         self.QP_ng_Sx       = database.variables['QP_ng_Sx'][0].astype('int')
         self.RAD_LifeTime   = database.variables['RAD_LifeTime'][0].astype(np.double)
-        self.Integrator     = database.variables['Integrator'][...].tostring().decode().strip()
-        self.Correlation    = database.variables['Correlation'][...].tostring().decode().strip()
+        self.Integrator     = database.variables['Integrator'][...].tobytes().decode().strip()
+        self.Correlation    = database.variables['Correlation'][...].tobytes().decode().strip()
         #
         # Time variables
         #

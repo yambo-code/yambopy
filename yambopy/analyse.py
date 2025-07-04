@@ -279,8 +279,8 @@ class YamboAnalyser():
                         ax.plot(x,y,label=label,color=color)
                         plot = True
         if plot:
-            ax.set_ylabel('Im$[\\chi(\omega)]$')
-            ax.set_xlabel('$\omega$ (eV)')
+            ax.set_ylabel(r'Im$[\\chi(\omega)]$')
+            ax.set_xlabel(r'$\omega$ (eV)')
 
             ax.legend(frameon=False,loc=1)
             if standalone: plt.show()
