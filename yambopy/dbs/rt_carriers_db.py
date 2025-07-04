@@ -99,7 +99,8 @@ class YamboRT_Carriers_DB():
         """
         numbnds = self.bands_kpts[1]-self.bands_kpts[0]
         numkp = self.bands_kpts[2]
-        Emin,Emax = min(self.E_bare)-10*eta,max(self.E_bare)+10*eta
+        Emin= min(self.E_bare)-10*eta
+        Emax= max(max(self.E_bare*self.f_bare),max(self.E_bare*self.delta_f))+10*eta
         #
         # Here I want to calculate the weighted density of states (w-DOS) so I pass
         # to the get_spectra function the occupation as residual for the DOS
@@ -126,7 +127,8 @@ class YamboRT_Carriers_DB():
         """
         numbnds = self.bands_kpts[1]-self.bands_kpts[0]
         numkp = self.bands_kpts[2]
-        Emin,Emax = min(self.E_bare)-10*eta,max(self.E_bare)+10*eta
+        Emin= min(self.E_bare)-10*eta
+        Emax= max(max(self.E_bare*self.f_bare),max(self.E_bare*self.delta_f))+10*eta
         #
         # Here I want to calculate the weighted density of states (w-DOS) so I pass
         # to the get_spectra function the occupation as residual for the DOS
