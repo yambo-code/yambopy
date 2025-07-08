@@ -143,9 +143,14 @@ class dynamic_occupations():
 
             #assign valence band index, and conduction band index
             self.vb_idx = max(np.where(occupations[0] >= 1.0)[0])
-            self.cb_idex = min(np.where(occupations[0] == 0.0)[0])
+            self.cb_idx = min(np.where(occupations[0] == 0.0)[0])
             
             self.full_num_bands = num_bands   
+
+            print("Number of Yambo k-points ",num_kpts)
+            print("Number of Yambo bands    ",num_bands)
+            print("Top valence:    ",self.vb_idx+1)
+            print("Bottom conduction:     ",self.cb_idx+1)
             
             #construct occupation template for later, and assign occups as one would normally see in QE
             self.occup_template = occupations[0]
