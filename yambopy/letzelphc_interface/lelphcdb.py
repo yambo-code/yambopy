@@ -8,7 +8,7 @@ class LetzElphElectronPhononDB():
     """
     Python class to read the electron-phonon matrix elements from LetzElPhC.
 
-    About LetzElPhC: https://github.com/yambo-code/LetzElPhC/tree/main
+    About LetzElPhC: https://gitlab.com/lumen-code/LetzElPhC
     
     By default it reads the full database g(q,k,m,s,b1,b2) including phonon energies.
     
