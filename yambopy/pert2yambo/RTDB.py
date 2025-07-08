@@ -5,7 +5,7 @@ import numpy as np
 from collections import defaultdict
 from tqdm import tqdm 
 import h5py
-from grid_match import GridMatch 
+from yambopy.pert2yambo.grid_match import GridMatch 
 from itertools import product 
 import pickle 
 import yaml  
