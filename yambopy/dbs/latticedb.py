@@ -95,7 +95,7 @@ class YamboLatticeDB(object):
     def from_json_file(cls,filename):
         data = JsonLoader(filename)
         return cls.from_dict(data)
- 
+
     @property
     def nkpoints(self):
         return len(self.car_kpoints)
@@ -166,6 +166,28 @@ class YamboLatticeDB(object):
         if not hasattr(self,"_red_kpoints"):
             self._red_kpoints = car_red(self.car_kpoints,self.rlat)
         return self._red_kpoints
+
+    @property
+    def k_grid(self,atol=1.e-6):
+        """Return the k-points grid dimensions """
+        if hasattr(self,"_kgrid"):
+            return self._kgrid
+        if not hasattr(self,"_red_kpoints"):
+            self._red_kpoints = car_red(self.car_kpoints,self.rlat)
+        self._kgrid =np.zeros(3,dtype=int)
+        self._small_q=np.full(3,1e4,dtype=float)
+        for idx in range(3): 
+            for kpt in self._red_kpoints:
+                val = abs(kpt[idx])
+                if atol < val < self._small_q[idx]:
+                    self._small_q[idx]=val
+        self.bring_kpts_bz01()
+        for idx in range(3): 
+            for kpt in self._red_kpoints:
+                n_grid = np.rint(kpt[idx]/self._small_q[idx])+1
+                if self._kgrid[idx]< n_grid:
+                    self._kgrid[idx]=n_grid
+        return self._kgrid
   
     @property
     def sym_red(self):
@@ -204,6 +226,16 @@ class YamboLatticeDB(object):
         for i in range(self.nsym):
             time_rev_list[i] = ( i >= self.nsym/(self.time_rev+1) )
         return time_rev_list
+
+    def bring_kpts_bz01(self,atol=1.e-6):
+        if not hasattr(self,"_red_kpoints"):
+            self._red_kpoints = car_red(self.car_kpoints,self.rlat)
+        # Bring k-points between [0,1)
+        for kpt in self._red_kpoints:
+            for d in range(3):
+                kpt[d] = kpt[d] - np.rint(kpt[d])  # Bring in the BZ
+                if kpt[d]<-atol:
+                    kpt[d]+= 1.0
 
     def expand_kpoints(self,verbose=1,atol=1.e-6):
         """
