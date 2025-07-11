@@ -20,6 +20,13 @@ yamlfile_e = "./cdyna-elec/gaas_dynamics-run.yml"
 yamlfile_h = "./cdyna-hole/gaas_dynamics-run.yml"
 
 
+#Debug=False
+Debug=True
+
+# Return the list of neighboar p_ikpt of a given y_ikpt
+#def is_neighboar(y_ikpt,p_grid):
+
+
 
 dynoccups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_e,cdynafile=cdyna_e,teth5file=teth5_e,ndbfile=save_path+'/SAVE/'+ndb)
 dynoccups.pert_grid_reduced()
@@ -36,12 +43,16 @@ if any(p_k_grid%y_k_grid != 0):
     sys.exit(0)
 else:
     print("Compatible k-grids found")
+    
+grid_ratio=np.int32(p_k_grid/y_k_grid)
+print("Grid ratio ",grid_ratio)
+if(any(grid_ratio%2 ==0)):
+   print("Please use an odd grid ratio! ")
+   sys.exit(0)
 
 dynoccups.read_pert_num_kpts()
 n_kpt_pert=dynoccups.num_pert_kpts
 print("Number of k-points in perturbo : ",n_kpt_pert)
-
-
 
 pert_kpts=dynoccups.read_perturbo_kpts()
 
@@ -50,14 +61,30 @@ small_q=np.zeros(3,dtype=float)
 small_q=1.0/p_k_grid
 
 pert_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in pert_kpts]
-# for ikpt in pert_ikpt:
-#    print(ikpt)
+if Debug:
+    with open('perturbo_ik_bz.pts', 'w') as f:
+        f.write("#Perturbo ik-points in the BZ\n")
+        for ikpt in pert_ikpt:
+            f.write(str(ikpt)+'\n')
+
 
 
 yambo_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in ylat.red_kpoints]
-for ikpt in yambo_ikpt:
-    print(ikpt)
-# dynoccups.get_files()
+if Debug:
+    with open('yambo_ik_bz.pts', 'w') as f:
+        f.write("#Yambo ik-points in the BZ\n")
+        for ikpt in yambo_ikpt:
+            f.write(str(ikpt)+'\n')
+
+
+yambo_ikpt_ibz=[np.int32(np.rint(kpt/small_q)) for kpt in ylat.red_kpoints]
+if Debug:
+    with open('yambo_ik_ibz.pts', 'w') as f:
+        f.write("#Yambo ik-points in the IBZ\n")
+        for ikpt in yambo_ikpt_ibz:
+            f.write(str(ikpt)+'\n')
+
+
 
 
 dynoccups.get_vcb_indices()
