@@ -327,7 +327,7 @@ class Supercell():
             z = g23*nums[0]/g12+g31*q*nums[1]/g12
             if gg_r == 1: r = 0
             else:
-                for i in range(1,gg_r):
+                for i in range(1,round(gg_r)):
                     if (z+i*nums[2]) % gg_r == 0:
                         r=i
                         break
