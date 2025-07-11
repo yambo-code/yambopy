@@ -12,7 +12,7 @@ import numpy as np
 from netCDF4 import Dataset
 from yambopy.tools.jsonencoder import JsonDumper, JsonLoader
 from yambopy.lattice import vol_lat, rec_lat, car_red
-from yambopy.kpoints import expand_kpoints
+from yambopy.kpoints import expand_kpoints,make_kpositive
 from yambopy.tools.string import marquee
 
 class YamboLatticeDB(object):
@@ -181,7 +181,7 @@ class YamboLatticeDB(object):
                 val = abs(kpt[idx])
                 if atol < val < self._small_q[idx]:
                     self._small_q[idx]=val
-        self.bring_kpts_bz01()
+        self._red_kpoints=make_kpositive(self._red_kpoints)
         for idx in range(3): 
             for kpt in self._red_kpoints:
                 n_grid = np.rint(kpt[idx]/self._small_q[idx])+1
@@ -226,16 +226,6 @@ class YamboLatticeDB(object):
         for i in range(self.nsym):
             time_rev_list[i] = ( i >= self.nsym/(self.time_rev+1) )
         return time_rev_list
-
-    def bring_kpts_bz01(self,atol=1.e-6):
-        if not hasattr(self,"_red_kpoints"):
-            self._red_kpoints = car_red(self.car_kpoints,self.rlat)
-        # Bring k-points between [0,1)
-        for kpt in self._red_kpoints:
-            for d in range(3):
-                kpt[d] = kpt[d] - np.rint(kpt[d])  # Bring in the BZ
-                if kpt[d]<-atol:
-                    kpt[d]+= 1.0
 
     def expand_kpoints(self,verbose=1,atol=1.e-6):
         """

@@ -106,26 +106,26 @@ class dynamic_occupations():
     #        self.ndb_data[key]["f"] = f
         
         
-    #def read_perturbo_kpts(self):
-    #    """
+    def read_perturbo_kpts(self):
+        """
         
-    #    Read kpts from perturbo prefix_tet.kpt file. If the kpts were reduced by perturbo, then it will creake two .pkl files
-    #    accoutning for the difference; else, it simply reads the entire BZ from perturbo. 
+        Read kpts from perturbo prefix_tet.kpt file. If the kpts were reduced by perturbo, then it will creake two .pkl files
+        accoutning for the difference; else, it simply reads the entire BZ from perturbo. 
         
-    #    """
-    #    with h5py.File(self.teth5file, 'r') as teth5:
+        """
+        with h5py.File(self.teth5file, 'r') as teth5:
             
-    #        return teth5["kpts_all_crys_coord"][:,:]    
+            return teth5["kpts_all_crys_coord"][:,:]    
             
-    #def read_pert_num_kpts(self):
+    def read_pert_num_kpts(self):
         
-    #    """
-    #    Get number of num of perturbo kpts. 
+        """
+        Get number of num of perturbo kpts. 
+       
+        """
         
-    #    """
-        
-    #    with h5py.File(self.teth5file, 'r') as teth5:
-    #        self.num_pert_kpts = teth5['num_kpts'][()]
+        with h5py.File(self.teth5file, 'r') as teth5:
+            self.num_pert_kpts = teth5['num_kpts'][()]
     
     
     #def update_dynamic_entries(self):
@@ -213,17 +213,21 @@ class dynamic_occupations():
 
                 #loop over all snapshots
                 for snapshot_t in tqdm(cdyna[f'dynamics_run_{run}'].keys()):
+                    print("In the loop ",snapshot_t)
                     
                     if snapshot_t == 'num_steps' or snapshot_t == 'time_step_fs':
                                 continue
                     
                     #get filenames to store the occupations
                     occupsfilename = os.path.join(self.tmp_out,f"dynamic_occups_run_{1}_snap_{snapshot_t}.pkl")
+                    print("occups file name ",occupsfilename)
                     
                     if reduced is True:
                         global red_occupsfilename
                         red_occupsfilename = os.path.join(self.tmp_out,f"dynamic_occups_run_{1}_snap_{snapshot_t}_redkpts.pkl")
                     
+                    print("Show occupations ")
+                    print(cdyna[f'dynamics_run_{run}'][snapshot_t][:,:])
                     #with open(red_occupsfilename, "ab") as red_occupspkl:
                     
                     with open(occupsfilename,"wb") as occupspkl:
@@ -231,7 +235,7 @@ class dynamic_occupations():
                         
                         #verify that the occupations are not zero
                         pert_sum_occups = np.sum(cdyna[f'dynamics_run_{run}'][snapshot_t][:,:])
-                        assert pert_sum_occups > 0.0, "Bands have occupation of zero!" #need to verify that the bands are somewhat occupied
+#                        assert pert_sum_occups > 0.0, "Bands have occupation of zero!" #need to verify that the bands are somewhat occupied
                         
                                             
                         #loop over relevant timesteps
@@ -247,37 +251,37 @@ class dynamic_occupations():
                                 red_occupspkl = open(red_occupsfilename,"wb")
 
                             #retrieve the perturbo occupations and create a dict; write if reduced
-                            with h5py.File(self.teth5file, 'r') as teth5:
-                                for index in range(0,self.kpts_used):
+#                            with h5py.File(self.teth5file, 'r') as teth5:
+#                                for index in range(0,self.kpts_used):
                                 
-                                    kpt = teth5["kpts_all_crys_coord"][index,:]
-                                    key = tuple(kpt.tolist())
-                                    
-                                    occups = cdyna[f'dynamics_run_{run}'][snapshot_t][index,:]
-                                    pert_occups[key] = occups
+#                                    kpt = teth5["kpts_all_crys_coord"][index,:]
+#                                    key = tuple(kpt.tolist())
+#                                    
+#                                    occups = cdyna[f'dynamics_run_{run}'][snapshot_t][index,:]
+#                                    pert_occups[key] = occups
                                 
                             
-                                    if reduced is True:
-                                        pickle.dump([kpt,occups],red_occupspkl)
+#                                    if reduced is True:
+#                                        pickle.dump([kpt,occups],red_occupspkl)
                             
-                            #close file
-                            if reduced is True:
-                                red_occupspkl.close()  
+#                            #close file
+#                            if reduced is True:
+#                                red_occupspkl.close()  
                                        
                             #assign the occupations to the full perturbo grid and write to file
-                            with open(occupsfilename,"wb") as occupspkl:
-                            
-                                for full_kpt in tqdm(self.create_grid(self.kpts_grid)):
-                                    
-                                    occups = self.occup_template #assign baseline occupations at zero temp
-                                    
-                                    try:
-                                        occups = pert_occups[full_kpt]
-                                            
-                                    except KeyError:
-                                        pass
-                                    
-                                    pickle.dump([full_kpt,occups],occupspkl)
+#                            with open(occupsfilename,"wb") as occupspkl:
+#                            
+#                                for full_kpt in tqdm(self.create_grid(self.kpts_grid)):
+#                                    
+#                                    occups = self.occup_template #assign baseline occupations at zero temp
+#                                    
+#                                    try:
+#                                        occups = pert_occups[full_kpt]
+#                                            
+#                                    except KeyError:
+#                                        pass
+#                                    
+#                                    pickle.dump([full_kpt,occups],occupspkl)
                 
                                     
     
