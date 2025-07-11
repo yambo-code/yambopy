@@ -27,6 +27,7 @@ dynoccups.pert_grid_reduced()
 ylat = YamboLatticeDB.from_db_file(filename=save_path+'/SAVE/ns.db1')
 y_k_grid=ylat.k_grid
 p_k_grid=dynoccups.kpts_grid
+
 print("Perturbo k-grid ",p_k_grid)
 print("Yambo k-grid ",y_k_grid)
 
@@ -35,6 +36,23 @@ if any(p_k_grid%y_k_grid != 0):
     sys.exit(0)
 else:
     print("Compatible k-grids found")
+
+dynoccups.read_pert_num_kpts()
+n_kpt_pert=dynoccups.num_pert_kpts
+print("Number of k-points in perturbo : ",n_kpt_pert)
+
+
+
+pert_kpts=dynoccups.read_perturbo_kpts()
+
+pert_kpts=make_kpositive(pert_kpts.tolist())
+small_q=np.full(3,1.0/120.0,dtype=float)
+pert_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in pert_kpts]
+
+for ikpt in pert_ikpt:
+    print(ikpt)
+
+# dynoccups.get_files()
 
 
 dynoccups.get_vcb_indices()
