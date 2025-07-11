@@ -46,12 +46,17 @@ print("Number of k-points in perturbo : ",n_kpt_pert)
 pert_kpts=dynoccups.read_perturbo_kpts()
 
 pert_kpts=make_kpositive(pert_kpts.tolist())
-small_q=np.full(3,1.0/120.0,dtype=float)
+small_q=np.zeros(3,dtype=float)
+small_q=1.0/p_k_grid
+
 pert_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in pert_kpts]
+# for ikpt in pert_ikpt:
+#    print(ikpt)
 
-for ikpt in pert_ikpt:
+
+yambo_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in ylat.red_kpoints]
+for ikpt in yambo_ikpt:
     print(ikpt)
-
 # dynoccups.get_files()
 
 
