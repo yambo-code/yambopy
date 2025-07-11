@@ -213,4 +213,39 @@ def find_kpt(tree, kpt_search, tol=1e-5):
     return idx  # Return the index of the found k-point
 
 
+def find_kpatch(kpts, kcentre, kdist, lat_vecs):
+    """
+    find set of kpoints around the kcentre with in kdist
+
+    Parameters
+    ----------
+    kpts : kpoints in crystal coordinates (nk,3)
+    kcentre : kpoint centre in crystal coordinates (3)
+    kdist : distance around kcentre to be considered in atomic units 
+            i.e 1/bohr.
+    lat_vecs: lattice vectors. ith lattice vector is ai = a[:,i]
+    Returns
+    -------
+    int array
+        Indices of kpoints in kpts array which satify the given condition i.e
+        | k - kcentre + G0| <= kdist, where G0 is reciprocal lattice vector to bring to BZ
+    """
+    #
+    blat = 2*np.pi*np.linalg.inv(lat_vecs)
+    kdiff = kpts-kcentre[None,:]
+    kdiff = kdiff-np.floor(kdiff)
+    #
+    tmp_arr = np.array([-3, -2, -1, 0, 1, 2, 3])
+    nG0 = len(tmp_arr)
+    G0 = np.zeros((nG0,nG0,nG0,3))
+    G0[...,0], G0[...,1], G0[...,2] = np.meshgrid(tmp_arr, tmp_arr,
+                                                  tmp_arr, indexing='ij')
+    G0 = G0.reshape(-1,3)
+    kdiff = kdiff[:,None,:]-G0[None,:,:]
+    kdiff = kdiff.reshape(-1,3)@blat
+    kdiff = np.linalg.norm(kdiff,axis=-1).reshape(len(kpts),-1)
+    kdiff = np.min(kdiff,axis=-1)
+    return np.where(kdiff <= kdist)[0]
+
+    
 
