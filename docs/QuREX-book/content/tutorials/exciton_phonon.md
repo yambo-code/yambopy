@@ -30,7 +30,7 @@ Details about the DFPT calculation using ph.x.
 
 ## Step 2: DVSCF calculation using Letzelph-yambopy
 Details about the DVSCF calculation using LetzElPhC-yambopy.
-For documentation on how to compile and run the LetzELPhC code using yambopy have a look at the [LetzElPhC documentation](../../external_files/LetzElPhC_documentation.pdf).
+For documentation on how to compile and run the LetzELPhC code using yambopy have a look at the [LetzElPhC documentation](../external_files/LetzElPhC_documentation.pdf).
 We run `yambopy l2y`:
 ```
 yambopy l2y -ph /path/of/ph_input.in -b n_i n_f -par n_qpools n_kpools -lelphc /path/to/lelphc_exe -D

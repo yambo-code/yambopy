@@ -15,6 +15,7 @@ parts:
         - file: content/theory/wannier_exciton
         - file: content/theory/wannier_chern
         - file: content/theory/wannier_basis
+        - file: content/theory/quantum_well
 - caption: Software
   numbered: false
   chapters:
@@ -22,10 +23,10 @@ parts:
       sections:
         - file: content/software/yambo/yambo
         - file: content/software/yambo/yambo_input_flags 
-- caption: Workflows
+- caption: Tutorials
   numbered: false
   chapters:
-    - file: content/workflows/workflows
+    - file: content/tutorials/tutorials
       sections:
-        - file: content/workflows/exciton_phonon
+        - file: content/tutorials/exciton_phonon
 
