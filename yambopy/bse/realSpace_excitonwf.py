@@ -198,7 +198,7 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     for ik in range(len(wfcdb.gvecs)):
         idx_gvecs_tmp = np.arange(wfcdb.ngvecs[ik],dtype=int)
         if wfcCutoffRy > 0:
-            tmp_gvecs = np.linalg.norm((wfcdb.gvecs[ik, :wfcdb.ngvecs[ik], :] 
+            tmp_gvecs = 2*np.pi*np.linalg.norm((wfcdb.gvecs[ik, :wfcdb.ngvecs[ik], :] 
                                         + wfcdb.kpts_iBZ[ik][None,:])@blat,axis=-1)
             idx_tmp = tmp_gvecs < np.sqrt(wfcCutoffRy)
             idx_gvecs_tmp = idx_gvecs_tmp[idx_tmp].copy()
@@ -224,9 +224,11 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     fixed_postion += np.array(supercell)//2
     #
     if fix_particle == 'h':
-        print("Position of the hole is set to : ", fixed_postion[0], fixed_postion[1], fixed_postion[2])
+        print("Position of the hole (reduced units) is set to : ",
+              fixed_postion[0], fixed_postion[1], fixed_postion[2])
     if fix_particle == 'e':
-        print("Position of the electron is set to : ", fixed_postion[0], fixed_postion[1], fixed_postion[2])
+        print("Position of the electron (reduced units) is set to : ",
+              fixed_postion[0], fixed_postion[1], fixed_postion[2])
     #
     ktree = wfcdb.ktree #build_ktree(wfcdb.kBZ)
     #
