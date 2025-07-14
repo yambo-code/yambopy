@@ -176,15 +176,6 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     assert nk == nkBZ, "kpoint mismatch"
     #
     fixed_postion = np.array(fixed_postion)
-    fixed_postion += np.array(supercell)//2
-    #
-    if fix_particle == 'h':
-        print("Position of the hole is set to (reduced units) : ",
-              fixed_postion[0], fixed_postion[1], fixed_postion[2])
-    elif fix_particle == 'e':
-        print("Position of the electron is set to (reduced units) : ",
-              fixed_postion[0], fixed_postion[1], fixed_postion[2])
-    #
     #
     hole_bnds = [bse_bnds[0],bse_bnds[0]+nv]
     elec_bnds = [bse_bnds[0]+nv,bse_bnds[1]]
@@ -223,7 +214,21 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     # Compute nstates, nk, Nx, Ny, Nz object
     if out_res is None : print("Wfc FFT Grid : ",fft_box[0], fft_box[1], fft_box[2])
     #
-    ktree = wfcdb.ktree
+    ##
+    # find the nearest fft grid point.
+    fx_pnt_int = np.floor(fixed_postion)
+    fixed_postion -= fx_pnt_int
+    fixed_postion = np.round(fixed_postion * fft_box) / fft_box
+    fixed_postion += fx_pnt_int
+    # shift the position of hole to middle of supercell
+    fixed_postion += np.array(supercell)//2
+    #
+    if fix_particle == 'h':
+        print("Position of the hole is set to : ", fixed_postion[0], fixed_postion[1], fixed_postion[2])
+    if fix_particle == 'e':
+        print("Position of the electron is set to : ", fixed_postion[0], fixed_postion[1], fixed_postion[2])
+    #
+    ktree = wfcdb.ktree #build_ktree(wfcdb.kBZ)
     #
     nspinorr = wfcdb.nspinor
     if out_res is not None:
