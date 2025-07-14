@@ -30,3 +30,8 @@ parts:
       sections:
         - file: content/tutorials/exciton_phonon
 
+- caption: Notebooks
+  numbered: false
+  chapters:
+    - file: notebooks/notebooks
+    - file: notebooks/exciton_phonon

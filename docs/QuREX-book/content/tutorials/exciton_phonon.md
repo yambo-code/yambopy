@@ -69,8 +69,7 @@ Run the python script.
 Now you obtain `Ex-ph.npy` and `luminescence_intensities.dat`. Which we can plot:
 ![Photoluminescence Spectrum of 2D hBN](/plots/2D_hBN_PL.png)
 
-
-
+Follow the [Jupyter Notebook](../../notebooks/exciton_phonon.ipynb) for a pratical tutorial on how to compute photoluminescence and Raman including exciton-phonon coupling.
 
 
 # References
