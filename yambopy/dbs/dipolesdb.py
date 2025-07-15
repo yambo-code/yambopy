@@ -29,6 +29,26 @@ class YamboDipolesDB():
     If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
     """
     def __init__(self,lattice,save='SAVE',filename='ndb.dipoles',dip_type='iR',field_dir=[1,1,1],project=True, polarization_mode='linear'):
+        """
+        Initialize the YamboDipolesDB
+        
+        Parameters:
+        -----------
+        lattice: YamboLatticeDB
+            Lattice information
+        save: str, optional
+            Path to the Yambo save folder, default is 'SAVE'
+        filename: str, optional
+            Name of the database, default is 'ndb.dipoles'
+        dip_type: str, optional
+            Type of dipole matrix elements to read, can be 'iR', 'v', 'P', default is 'iR'
+        field_dir: list of 3 floats, optional
+            Direction of the electric field, default is [1,1,1]
+        project: bool, optional
+            Whether to project the dipoles along the field direction, default is True
+        polarization_mode: str, optional
+            Polarization mode, can be 'linear', 'circular', default is 'linear'
+        """
 
         self.lattice   = lattice
         self.filename  = "%s/%s"%(save,filename)
@@ -480,12 +500,20 @@ class YamboDipolesDB():
         if np.issubdtype(eps.dtype, np.floating):        eps+=Drude_imag
 
         return freq,eps
-
     def _polarization_vectors(self):
         """
-        Return a list of (vector, weight) tuples.
-        • vector  : complex ndarray(3,)   — ê in cartesian basis
-        • weight  : real scalar           — how each contribution enters eps
+        Return a list of (vector, weight) tuples based on the polarization mode.
+        
+        Each tuple contains:
+        • vector  : complex ndarray(3,)   — The polarization direction in the Cartesian basis.
+        • weight  : real scalar           — The weight of each contribution to the dielectric function.
+
+        Polarization mode options:
+        • 'linear'      : The polarization is defined by a user-specified direction.
+        • 'unpolarized' : Averages over the three Cartesian directions: x, y, and z.
+        • 'circular+'   : Circularly right polarized light in the xy/yz/xz planes. 
+        • 'circular-'   : Circularly left polarized light in the xy/yz/xz planes.                   
+        • 'dichroism'   : Difference between right and left circularly polarized light.                   
         """
         mode = self.polarization_mode.lower()
 
