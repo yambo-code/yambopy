@@ -28,13 +28,13 @@ class YamboDipolesDB():
     Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v]. 
     If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
     """
-    def __init__(self,lattice,save='SAVE',filename='ndb.dipoles',dip_type='iR',field_dir=[1,1,1],project=True):
+    def __init__(self,lattice,save='SAVE',filename='ndb.dipoles',dip_type='iR',field_dir=[1,1,1],project=True, polarization_mode='linear'):
 
         self.lattice   = lattice
         self.filename  = "%s/%s"%(save,filename)
         self.field_dir = field_dir
         self.project   = project
-
+        self.polarization_mode =polarization_mode
         #read dipoles
         try:
             database = Dataset(self.filename, 'r')
@@ -95,7 +95,6 @@ class YamboDipolesDB():
 
         dipoles = self.dipoles
         if self.spin==1: dipoles = np.expand_dims(dipoles,axis=0)
-        print(dipoles.shape)
         for nk in range(nkpoints):
             for ns in range(self.spin):
 
@@ -397,9 +396,10 @@ class YamboDipolesDB():
 
                 # these are the expanded+projected dipoles already
                 dips = dipoles[s]
-                if self.project:     dip2= np.abs( np.sum( dips[:,:,c,v], axis=1) )**2.
-                if not self.project: dip2 = np.abs( np.einsum('j,ij->i', self.field_dir , dips[:,:,c,v]) )**2
-
+                for e_vec, w in self._polarization_vectors():           # ⇐ NEW
+                    #  ┌──── e_vec (3,) , dips_slice (nk,3)  ─────┐
+                    proj = np.einsum('d,kd->k', e_vec, dips[:,:,c,v])   # shape (nk,)
+                    dip2 = w*np.abs(proj)**2
                 #make dimensions match
                 dip2a = dip2[na,:]
                 ecva  = ecv[na,:]
@@ -480,6 +480,41 @@ class YamboDipolesDB():
         if np.issubdtype(eps.dtype, np.floating):        eps+=Drude_imag
 
         return freq,eps
+
+    def _polarization_vectors(self):
+        """
+        Return a list of (vector, weight) tuples.
+        • vector  : complex ndarray(3,)   — ê in cartesian basis
+        • weight  : real scalar           — how each contribution enters eps
+        """
+        mode = self.polarization_mode.lower()
+
+        if mode == 'linear':                   # ✱ ê set by user
+            e = np.asarray(self.field_dir, dtype=np.complex64)
+            e /= np.linalg.norm(e)
+            return [(e, 1.0)]
+
+        if mode == 'unpolarized':              # ✱ average over x,y,z
+            return [ (np.array([1,0,0],np.complex64), 1/3),
+                    (np.array([0,1,0],np.complex64), 1/3),
+                    (np.array([0,0,1],np.complex64), 1/3) ]
+
+        if mode == 'circular+':                # ✱ σ⁺  (propagation ‖ z)
+            e = np.array([1, 1j, 0], np.complex64)/np.sqrt(2)
+            return [(e, 1.0)]
+
+        if mode == 'circular-':                # ✱ σ⁻
+            e = np.array([1,-1j, 0], np.complex64)/np.sqrt(2)
+            return [(e, 1.0)]
+
+        if mode == 'dichroism_xy':             # ✱ σ⁺ − σ⁻  (CD signal)
+            e_p = np.array([1,  1j, 0], np.complex64)/np.sqrt(2)
+            e_m = np.array([1, -1j, 0], np.complex64)/np.sqrt(2)
+            return [(e_p,  1.0),              # add σ⁺
+                    (e_m, -1.0)]              # subtract σ⁻
+
+        raise ValueError(f'Unknown polarization mode: {mode}')
+
 
     def __str__(self):
         lines = []; app = lines.append
