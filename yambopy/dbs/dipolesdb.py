@@ -112,32 +112,32 @@ class YamboDipolesDB():
         if self.spin==1: dipoles=np.squeeze(dipoles,axis=0)
         self.dipoles = dipoles
 
-    def readDB(self,dip_type):
+    def readDB(self, dip_type):
         """
         The dipole matrix has the following indexes:
         [nspin, nkpoints, cartesian directions, nbands conduction, nbands valence]
         """
-        #check if output is in the old format
-        fragmentname = "%s_fragment_1"%(self.filename)
-        if os.path.isfile(fragmentname): return self.readDB_oldformat(dip_type)
+        fragmentname = f"{self.filename}_fragment_1"
+        if os.path.isfile(fragmentname):
+            return self.readDB_oldformat(dip_type)
 
         self.dip_type = dip_type
-        if self.spin==1: 
-            dipoles = np.zeros([self.nk_ibz,3,self.nbandsc,self.nbandsv],dtype=np.complex64)
-        if self.spin==2:
-            dipoles = np.zeros([self.spin,self.nk_ibz,3,self.nbandsc,self.nbandsv],dtype=np.complex64)
-        
-        database = Dataset(self.filename)
-        dip = database.variables['DIP_%s'%(dip_type)]
-        if self.spin==1:
-            dip = np.squeeze(dip,axis=0)
-            dip = (dip[:,:,:,:,0]+1j*dip[:,:,:,:,1]) # Read as nk,nv,nc,ir
-        if self.spin==2:
-            dip = (dip[:,:,:,:,:,0]+1j*dip[:,:,:,:,:,1]) # Read as ns,nk,nv,nc,ir
-        dipoles = np.swapaxes(dip,self.spin,self.spin+2) # Swap indices as mentioned in the docstring
-        database.close()
+        with Dataset(self.filename) as database:
+            dip = database.variables[f'DIP_{dip_type}']
 
-        return dipoles
+            if self.spin == 1:
+                # dip shape: (1, nk, nv, nc, 3, 2)
+                dip_complex = dip[0]  # remove spin dimension (size 1)
+                dip_complex = dip_complex[..., 0] + 1j * dip_complex[..., 1]
+                # Now shape is (nk, nv, nc, 3)
+                dip_complex = np.swapaxes(dip_complex,self.spin,self.spin+2) # Swap indices
+            else:
+                # dip shape: (2, nk, nv, nc, 3, 2)
+                dip_complex = dip[... , 0] + 1j * dip[..., 1]
+                # Now shape is (2, nk, nv, nc, 3)
+                dip_complex = np.swapaxes(dip_complex,self.spin,self.spin+2) # Swap indices
+
+        return dip_complex
 
     def readDB_oldformat(self,dip_type):
         """
@@ -499,12 +499,26 @@ class YamboDipolesDB():
                     (np.array([0,1,0],np.complex64), 1/3),
                     (np.array([0,0,1],np.complex64), 1/3) ]
 
-        if mode == 'circular+':                # ✱ σ⁺  (propagation ‖ z)
+        if mode == 'circularxy+':                # ✱ σ⁺  (propagation ‖ z)
             e = np.array([1, 1j, 0], np.complex64)/np.sqrt(2)
             return [(e, 1.0)]
 
-        if mode == 'circular-':                # ✱ σ⁻
+        if mode == 'circularxy-':                # ✱ σ⁻
             e = np.array([1,-1j, 0], np.complex64)/np.sqrt(2)
+            return [(e, 1.0)]
+        if mode == 'circularxz+':                # ✱ σ⁺  (propagation ‖ z)
+            e = np.array([1, 0, 1j], np.complex64)/np.sqrt(2)
+            return [(e, 1.0)]
+
+        if mode == 'circularxz-':                # ✱ σ⁻
+            e = np.array([1,0, -1j], np.complex64)/np.sqrt(2)
+            return [(e, 1.0)]
+        if mode == 'circularyz+':                # ✱ σ⁺  (propagation ‖ z)
+            e = np.array([0, 1, 1j], np.complex64)/np.sqrt(2)
+            return [(e, 1.0)]
+
+        if mode == 'circularyz-':                # ✱ σ⁻
+            e = np.array([0, 1, -1j], np.complex64)/np.sqrt(2)
             return [(e, 1.0)]
 
         if mode == 'dichroism_xy':             # ✱ σ⁺ − σ⁻  (CD signal)
@@ -512,6 +526,16 @@ class YamboDipolesDB():
             e_m = np.array([1, -1j, 0], np.complex64)/np.sqrt(2)
             return [(e_p,  1.0),              # add σ⁺
                     (e_m, -1.0)]              # subtract σ⁻
+        if mode == 'dichroism_xz':             # ✱ σ⁺ − σ⁻  (CD signal)
+            e_p = np.array([1,  0, 1j], np.complex64)/np.sqrt(2)
+            e_m = np.array([1, 0, -1j], np.complex64)/np.sqrt(2)
+            return [(e_p,  1.0),              # add σ⁺
+                    (e_m, -1.0)]              # subtract σ⁻       
+        if mode == 'dichroism_yz':             # ✱ σ⁺ − σ⁻  (CD signal)
+            e_p = np.array([0, 1,  1j], np.complex64)/np.sqrt(2)
+            e_m = np.array([0, 1, -1j], np.complex64)/np.sqrt(2)
+            return [(e_p,  1.0),              # add σ⁺
+                    (e_m, -1.0)]              # subtract σ⁻ 
 
         raise ValueError(f'Unknown polarization mode: {mode}')
 
