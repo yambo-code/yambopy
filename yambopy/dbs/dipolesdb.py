@@ -72,6 +72,8 @@ class YamboDipolesDB():
         # indexv is the maximum partially occupied band
         # indexc is the minimum partially empty band
         self.min_band, self.max_band, self.indexv, self.indexc = database.variables['PARS'][:4].astype(int)
+        self.dip_bands_ordered = database.variables['PARS'][8].astype(int) #if 1: the array has cond and valence bands, if 0 it computes all bands- all bands
+
         database.close()
 
         # determine the number of bands
@@ -103,10 +105,9 @@ class YamboDipolesDB():
         self.index_firstv = self.min_band-1        
         self.open_shell = False
         d_n_el = self.nbandsv + self.nbandsc - self.nbands
-        if (self.nbandsv == self.nbands): 
+        if (self.dip_bands_ordered==0): 
             d_n_el=0
-            print("[WARNING] Are you running with an old Yambo version? According to database, the index of the valence band"+
-                  "is the same as the number of bands.")
+            print("[WARNING] You are running with dip_bands_ordered = 0 and the check on open-shell is skipped")
         if d_n_el != 0:
             # We assume the excess electron(s)/hole(s) are in the spin=0 channel
             print("[WARNING] You may be considering an open-shell system. Careful: optical absorption UNTESTED.")
