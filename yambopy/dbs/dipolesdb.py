@@ -27,14 +27,17 @@ class YamboDipolesDB():
 
     Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v]. 
     If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
+    - bands_range : select bands_range for computation of dipoles (Fortran indexing). Negative numbers -> all bands
+        example: [7,10]  you consider from 7th (v) to the 10 (c) bands
     """
-    def __init__(self,lattice,save='SAVE',filename='ndb.dipoles',dip_type='iR',field_dir=[1,1,1],project=True):
+    def __init__(self,lattice,save='SAVE',filename='ndb.dipoles',dip_type='iR',field_dir=[1,1,1],\
+                 project=True, expand=False, bands_range=[-1,-1]):
 
         self.lattice   = lattice
         self.filename  = "%s/%s"%(save,filename)
         self.field_dir = field_dir
         self.project   = project
-
+        self.expand    = expand
         #read dipoles
         try:
             database = Dataset(self.filename, 'r')
@@ -48,14 +51,37 @@ class YamboDipolesDB():
         # indexc is the minimum partially empty band
         self.min_band, self.max_band, self.indexv, self.indexc = database.variables['PARS'][:4].astype(int)
         database.close()
-
+        #self.min_band = nvmin
+        #self.max_band = ncmmax
+        #self.indexv nvmax
+        #self.indexc ncmin
         # determine the number of bands
         self.nbands  = self.max_band-self.min_band+1
         self.nbandsv = self.indexv-self.min_band+1
         self.nbandsc = self.max_band-self.indexc+1
+        # indexv is for python counting
         self.indexv = self.indexv-1
         self.indexc = self.indexc-1
-        self.index_firstv = self.min_band-1
+        
+        if bands_range[0]<0: bands_range[0]=self.min_band
+        if bands_range[1]<0: bands_range[1]=self.max_band
+        self.bands_range = bands_range
+        assert (self.bands_range[0] >= self.min_band)
+        assert (self.bands_range[1] <= self.max_band)
+        self.min_bnd_range = min(self.bands_range) 
+        self.max_bnd_range = max(self.bands_range)
+        self.nbnds_range = self.max_bnd_range-self.min_bnd_range + 1
+        if (self.indexv+1) == self.max_band and (self.indexc+1) == self.min_band:
+            self.start_bnd_idx = self.min_bnd_range - self.min_band
+            self.end_bnd = self.start_bnd_idx + self.nbnds_range
+            self.val_bnd_idx = self.start_bnd_idx + self.nbandsv
+        else:
+            assert (self.min_bnd_range <= (self.indexv+1))
+            assert (self.max_bnd_range >= (self.indexc+1))
+            self.v_start_bnd = self.min_bnd_range - self.min_band
+            self.c_end_bnd = self.max_bnd_range - (self.indexc+1) + 1
+                    
+        self.index_firstv = self.min_band-1        
         self.open_shell = False
         d_n_el = self.nbandsv + self.nbandsc - self.nbands
         if d_n_el != 0:
@@ -76,11 +102,12 @@ class YamboDipolesDB():
 
         #expand the dipoles to the full brillouin zone 
         #and project them along field dir
-        if self.spin==1: self.expandDipoles(self.dipoles,project=project)
-        if self.spin==2:
-            dip_up, dip_dn = self.dipoles[0], self.dipoles[1]
-            exp_dip      = self.expandDipoles
-            self.dipoles = np.stack((exp_dip(dip_up,spin=0,project=project)[0], exp_dip(dip_dn,spin=1,project=project)[0]),axis=0) 
+        if(self.expand):
+            if self.spin==1: self.expandDipoles(self.dipoles,project=project)
+            if self.spin==2:
+                dip_up, dip_dn = self.dipoles[0], self.dipoles[1]
+                exp_dip      = self.expandDipoles
+                self.dipoles = np.stack((exp_dip(dip_up,spin=0,project=project)[0], exp_dip(dip_dn,spin=1,project=project)[0]),axis=0) 
 
     def normalize(self,electrons):
         """ 
@@ -129,9 +156,20 @@ class YamboDipolesDB():
         dip = database.variables['DIP_%s'%(dip_type)]
         if self.spin==1:
             dip = np.squeeze(dip,axis=0)
-            dip = (dip[:,:,:,:,0]+1j*dip[:,:,:,:,1]) # Read as nk,nv,nc,ir
+            if (self.indexv+1) == self.max_band and (self.indexc+1) == self.min_band:
+                dip = (dip[:,self.start_bnd_idx:self.val_bnd_idx,self.val_bnd_idx:self.end_bnd,:,0] / 
+                       +1j*dip[:,self.start_bnd_idx:self.val_bnd_idx,self.val_bnd_idx:self.end_bnd,:,1]) # Read as nk,nv,nc,ir
+            else:
+                dip = (dip[:,self.v_start_bnd:,:self.c_end_bnd,:,0]+\
+                       1j*dip[:,self.v_start_bnd:,:self.c_end_bnd,:,1]) # Read as nk,nv,nc,ir
+            
         if self.spin==2:
-            dip = (dip[:,:,:,:,:,0]+1j*dip[:,:,:,:,:,1]) # Read as ns,nk,nv,nc,ir
+            if (self.indexv+1) == self.max_band and (self.indexc+1) == self.min_band:
+                dip = (dip[:,:,self.start_bnd_idx:self.val_bnd_idx,self.val_bnd_idx:self.end_bnd,:,0]+\
+                       1j*dip[:,:,self.start_bnd_idx:self.val_bnd_idx,self.val_bnd_idx:self.end_bnd,:,1]) # Read as ns,nk,nv,nc,ir
+            else:
+                dip = (dip[:,:,self.v_start_bnd:,:self.c_end_bnd,:,0]+1j*dip[:,:,self.v_start_bnd:,:self.c_end_bnd,:,1]) # Read as ns,nk,nv,nc,ir
+                
         dipoles = np.swapaxes(dip,self.spin,self.spin+2) # Swap indices as mentioned in the docstring
         database.close()
 
