@@ -38,10 +38,6 @@ def periodic_dist(ikpt1,ikpt2,kgrid):
 dynoccups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_e,cdynafile=cdyna_e,teth5file=teth5_e,ndbfile=save_path+'/SAVE/'+ndb)
 dynoccups.pert_grid_reduced()
 
-
-dynoccups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_e,cdynafile=cdyna_e,teth5file=teth5_e,ndbfile=save_path+'/SAVE/'+ndb)
-dynoccups.pert_grid_reduced()
-
 ylat = YamboLatticeDB.from_db_file(filename=save_path+'/SAVE/ns.db1')
 y_k_grid=ylat.k_grid
 p_k_grid=dynoccups.kpts_grid
@@ -125,3 +121,7 @@ dynoccups.get_vcb_indices()
 # dynoccups.parse_bands_from_yaml()
 # dynoccups.get_files()
 
+
+# Copy bare occupation for all k-points
+
+# Update occupation only for the points included in the dynamics
