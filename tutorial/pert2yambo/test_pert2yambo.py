@@ -23,9 +23,20 @@ yamlfile_h = "./cdyna-hole/gaas_dynamics-run.yml"
 #Debug=False
 Debug=True
 
-# Return the list of neighboar p_ikpt of a given y_ikpt
-#def is_neighboar(y_ikpt,p_grid):
+# Return the integer distance for periodic grids
+# defined by kgrid
+def periodic_dist(ikpt1,ikpt2,kgrid):
+    idist=ikpt1-ikpt2
+    # distances are between -kgrid/2, and kgrid/2
+    for idx in range(3):
+        if idist[idx]<-int(kgrid[idx]/2):
+            idist[idx]=idist[idx]+kgrid[idx]
+        if idist[idx]>=int(kgrid[idx]/2):
+            idist[idx]=idist[idx]-kgrid[idx]
+    return idist
 
+dynoccups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_e,cdynafile=cdyna_e,teth5file=teth5_e,ndbfile=save_path+'/SAVE/'+ndb)
+dynoccups.pert_grid_reduced()
 
 
 dynoccups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_e,cdynafile=cdyna_e,teth5file=teth5_e,ndbfile=save_path+'/SAVE/'+ndb)
@@ -84,8 +95,13 @@ if Debug:
         for ikpt in yambo_ikpt_ibz:
             f.write(str(ikpt)+'\n')
 
-
-
+#search perturbo neighboars for each yambo point
+yneigboar=np.empty((len(yambo_ikpt),),dtype=int)
+for iyk,ykpt in enumerate(yambo_ikpt):
+    for ipk,pkpt in enumerate(pert_ikpt):
+        dist=periodic_dist(ykpt,pkpt,p_k_grid):
+            if all(abs(dist)<=kgrid/2):
+                yneighboars[iyk].append(ipk)
 
 dynoccups.get_vcb_indices()
 # dynoccups.parse_bands_from_yaml()
