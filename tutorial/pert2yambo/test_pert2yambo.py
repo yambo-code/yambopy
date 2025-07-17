@@ -96,12 +96,30 @@ if Debug:
             f.write(str(ikpt)+'\n')
 
 #search perturbo neighboars for each yambo point
-yneigboar=np.empty((len(yambo_ikpt),),dtype=int)
-for iyk,ykpt in enumerate(yambo_ikpt):
+yneighboars=[]
+for iyk in tqdm(range(len(yambo_ikpt))):
+    ykpt=yambo_ikpt[iyk]
+    ylist=[]
     for ipk,pkpt in enumerate(pert_ikpt):
-        dist=periodic_dist(ykpt,pkpt,p_k_grid):
-            if all(abs(dist)<=kgrid/2):
-                yneighboars[iyk].append(ipk)
+        dist=periodic_dist(ykpt,pkpt,p_k_grid)
+        if all(abs(dist)<=grid_ratio/2):
+            ylist.append(ipk)
+    yneighboars.append(ylist)
+
+#Average number of neighboars for each y-kpts
+ave_n=0
+max_n=-1
+min_n=1000000
+for ylist in yneighboars:
+    y_n=len(ylist)
+    ave_n=ave_n+y_n
+    if max_n < y_n:
+        max_n=y_n
+    if min_n > y_n:
+        min_n=y_n
+ave_n=ave_n/len(yambo_ikpt)
+print("Average number of neighboards : ",ave_n)
+print("Max/Min number of neighboards : ",max_n,min_n)
 
 dynoccups.get_vcb_indices()
 # dynoccups.parse_bands_from_yaml()
