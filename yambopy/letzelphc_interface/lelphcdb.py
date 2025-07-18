@@ -72,6 +72,7 @@ class LetzElphElectronPhononDB():
         self.bands   = database.variables['bands'][:]
         self.ktree   = build_ktree(self.kpoints)
         self.qtree   = build_ktree(self.qpoints)
+        self.kmap = database.variables['kmap'][...].data
         
         self.ph_energies = database.variables['FREQ'][:]*(ha2ev/2.) # Energy units are in Rydberg
         self.check_energies()
@@ -181,7 +182,7 @@ class LetzElphElectronPhononDB():
             - ph_eigenvectors : ndarray
                 The phonon eigenvectors.
             - ph_elph_me : ndarray
-                The electron-phonon matrix elements with the specified convention.
+                The electron-phonon matrix elements with the specified convention [Ry].
         """
         #
         if len(bands_range) == 0:
@@ -204,11 +205,14 @@ class LetzElphElectronPhononDB():
             if not database :
                 close_file = True
                 database = Dataset(self.filename,'r')
-            eph_mat = database['elph_mat'][iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd, :].data
+            eph_mat = database['elph_mat'][iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd, :].data #
             # ( nk, nm, nspin, initial bnd, final bnd)
             ph_eigs = database['POLARIZATION_VECTORS'][iq,...].data
-            eph_mat = eph_mat[...,0] + 1j*eph_mat[...,1]
+            eph_mat = eph_mat[...,0] + 1j*eph_mat[...,1]            
             ph_eigs = ph_eigs[...,0] + 1j*ph_eigs[...,1]
+            sqrt_EPh = 1.0 / np.sqrt(2 * self.ph_energies[iq]/ha2ev*2)
+            sqrt_EPh[np.isnan(sqrt_EPh)] = 0 # Ry
+            eph_mat = np.einsum('v...,v->v...', eph_mat, sqrt_EPh)            
             if close_file :database.close()
         return [ph_eigs, self.change_convention(self.qpoints[iq],eph_mat, convention)]
 

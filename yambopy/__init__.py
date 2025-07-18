@@ -86,6 +86,7 @@ from yambopy.bse.bse_absorption import *
 from yambopy.bse.bse_dispersion import *
 from yambopy.bse.excitonradiativelifetimes import *
 from yambopy.bse.excitondipoles import *
+from yambopy.bse.rotate_excitonwf  import rotate_exc_wf
 
 #em1s/static screening operations files
 from yambopy.em1s.em1s_rotate import *
@@ -118,6 +119,9 @@ from yambopy.nl.damp_it import *
 from yambopy.nl.harmonic_analysis import *
 from yambopy.nl.sum_frequencies import *
 from yambopy.nl.hhg_tools import *
+
+#optical properties files
+from yambopy.optical_properties.luminescence import *
 
 #doublegrid files
 from yambopy.double_grid.dg_convergence import *

@@ -84,7 +84,7 @@ class YamboWFDB:
             path (str, optional): Path to the directory containing the wavefunction files. Defaults to the current directory.
             save (str, optional): Subdirectory containing the wavefunction files. Defaults to 'SAVE'.
             filename (str, optional): Name of the wavefunction file. Defaults to 'ns.wf'.
-            bands_range (list, optional): Range of bands to load. Defaults to all bands.
+            bands_range (list, optional): Range of bands to load. Defaults to all bands. Python indexing. Right one is excluded.
         """
         if path is None:
             path = os.getcwd()

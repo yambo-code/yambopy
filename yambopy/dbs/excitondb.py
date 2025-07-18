@@ -128,9 +128,9 @@ class YamboExcitonDB(object):
                 r_residual = rer+imr*I
 
             car_qpoint = None
-            if 'Q-point' in list(database.variables.keys()):
+            if 'BS_Q' in list(database.variables.keys()):
                 # Finite momentum
-                car_qpoint = database.variables['Q-point'][:]/lattice.alat
+                car_qpoint = database.variables['BS_Q'][:]/lattice.alat
             if Qpt=="1": car_qpoint = np.zeros(3)
 
             #eigenvectors
