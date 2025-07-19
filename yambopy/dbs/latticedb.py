@@ -167,7 +167,6 @@ class YamboLatticeDB(object):
             self._red_kpoints = car_red(self.car_kpoints,self.rlat)
         return self._red_kpoints
 
-    @property
     def k_grid(self,atol=1.e-6):
         """Return the k-points grid dimensions """
         if hasattr(self,"_kgrid"):
@@ -188,6 +187,23 @@ class YamboLatticeDB(object):
                 if self._kgrid[idx]< n_grid:
                     self._kgrid[idx]=n_grid
         return self._kgrid
+
+    def get_ibz_kpoints(self,units='iku')
+        if hasattr(self,"ikz_kpoints"):
+            kpts=self.ibz_kpoints
+        else:
+            kpts=self.iku_kpoints
+
+        if units.lower=='iku':
+            return kpts
+        elif units.lower=='red':
+            kpts = car_red(self.car_kpoints,self.rlat)
+        elif units.lower=='car':
+            kpts = np.array([ k/self.alat for k in kpts ])
+        else:
+            raise Exception("Sorry, wrong k-points units, use: iku, red or car") 
+
+
   
     @property
     def sym_red(self):
