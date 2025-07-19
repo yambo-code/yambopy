@@ -75,7 +75,6 @@ if Debug:
             f.write(str(ikpt)+'\n')
 
 
-
 yambo_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in ylat.red_kpoints]
 if Debug:
     with open('yambo_ik_bz.pts', 'w') as f:
@@ -83,8 +82,10 @@ if Debug:
         for ikpt in yambo_ikpt:
             f.write(str(ikpt)+'\n')
 
+yambo_ibz_kpts=ylat.get_ibz_kpoints(units='red')
+print("Number of IBZ k-points in Yabmo : ",len(yambo_ibz_kpts))
 
-yambo_ikpt_ibz=[np.int32(np.rint(kpt/small_q)) for kpt in ylat.red_kpoints]
+yambo_ikpt_ibz=[np.int32(np.rint(kpt/small_q)) for kpt in yambo_ibz_kpts]
 if Debug:
     with open('yambo_ik_ibz.pts', 'w') as f:
         f.write("#Yambo ik-points in the IBZ\n")
@@ -93,8 +94,8 @@ if Debug:
 
 #search perturbo neighboars for each yambo point
 yneighboars=[]
-for iyk in tqdm(range(len(yambo_ikpt))):
-    ykpt=yambo_ikpt[iyk]
+for iyk in tqdm(range(len(yambo_ikpt_ibz))):
+    ykpt=yambo_ikpt_ibz[iyk]
     ylist=[]
     for ipk,pkpt in enumerate(pert_ikpt):
         dist=periodic_dist(ykpt,pkpt,p_k_grid)
