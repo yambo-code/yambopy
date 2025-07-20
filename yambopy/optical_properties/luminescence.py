@@ -110,8 +110,7 @@ class Luminescence():
         self.kpts = self.lelph_db.kpoints
         self.qpts = self.lelph_db.qpoints
         self.elph_bnds_range = self.lelph_db.bands
-        self.ph_freq = self.lelph_db.ph_energies/ha2ev # in lelph_db energies are store in eV, we work in Hartree
-        
+        self.ph_freq = self.lelph_db.ph_energies/ha2ev*2 # yambopy gives energies in Ry, I work in Hartree
         #read YamboDipolesDb
         try:
             ndb_dipoles_fname = os.path.join(self.DIP_dir, 'ndb.dipoles')
@@ -169,7 +168,7 @@ class Luminescence():
                              temp = 20,
                              broadening = 0.00124, 
                              npol = 3, 
-                             ph_thr = 1e-5                             
+                             ph_thr = 1e-9                             
                              ):
         
         ome_range = np.linspace(ome_range[0], ome_range[1], num=ome_range[2])
@@ -233,7 +232,7 @@ class Luminescence():
             ## read elph_matrix elements
             _,eph_mat_iq = self.lelph_db.read_iq(i, bands_range = [6,10],convention='standard') # this has to be standard for exciton_X_matelem
             eph_mat_iq=eph_mat_iq[:,:,0,:,:].transpose(1,0,3,2) # comes out in Ry
-            eph_mat_iq*=0.5 # convert to Hartree
+            eph_mat_iq*=0.5 # convert from [Ry] Hartree
             time_elph_io = time_elph_io + time() - tik
             ## get rotated ex-wfc
             tik = time()
@@ -308,7 +307,7 @@ def compute_luminescence_per_freq(ome_light,
                         temp=20,
                         broadening=0.00124,
                         npol=3,
-                        ph_thr = 1e-5):
+                        ph_thr = 1e-9):
     ## We need exciton dipoles for light emission (<0|r|S>)
     ## and exciton phonon matrix elements for phonon absorption <S',Q|dV_Q|S,0>
     ## energy of the lowest energy energy exe_low_energy

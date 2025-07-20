@@ -22,7 +22,7 @@ class LetzElphElectronPhononDB():
     
       :: lph.kpoints         #kpoints in cryst. coords. (BZ)
       :: lph.qpoints         #qpoints in crist. coords. (BZ)
-      :: lph.ph_energies     #Phonon energies (eV)      
+      :: lph.ph_energies     #Phonon energies (eV), energies in LetzElPhCode [Ry]      
       :: lph.ph_eigenvectors #Phonon modes
       :: lph.gkkp            #El-ph matrix elements (by default normalised with ph. energies) [!!!! RYDBERG UNITS !!!!]:
       :: lph.gkkp_sq         #Couplings (square)
@@ -74,7 +74,7 @@ class LetzElphElectronPhononDB():
         self.qtree   = build_ktree(self.qpoints)
         self.kmap = database.variables['kmap'][...].data
         
-        self.ph_energies = database.variables['FREQ'][:]*(ha2ev/2.) # Energy units are in Rydberg
+        self.ph_energies = database.variables['FREQ'][:]*(ha2ev/2.) # From [Ry] to [eV]
         self.check_energies()
 
         if read_all: 
@@ -153,6 +153,7 @@ class LetzElphElectronPhononDB():
 
     def read_iq(self,iq, bands_range=[], database=None, convention='yambo'):
         """
+        !!!! This method works in Ry !!!!
         Reads the electron-phonon matrix elements and phonon eigenvectors for a specific q-point index.
 
         If the data is already loaded in memory, it returns the corresponding array slice. Otherwise,
@@ -182,7 +183,7 @@ class LetzElphElectronPhononDB():
             - ph_eigenvectors : ndarray
                 The phonon eigenvectors.
             - ph_elph_me : ndarray
-                The electron-phonon matrix elements with the specified convention [Ry].
+                The electron-phonon matrix elements with the QE convention [!!Ry!!].
         """
         #
         if len(bands_range) == 0:
@@ -210,7 +211,7 @@ class LetzElphElectronPhononDB():
             ph_eigs = database['POLARIZATION_VECTORS'][iq,...].data
             eph_mat = eph_mat[...,0] + 1j*eph_mat[...,1]            
             ph_eigs = ph_eigs[...,0] + 1j*ph_eigs[...,1]
-            sqrt_EPh = 1.0 / np.sqrt(2 * self.ph_energies[iq]/ha2ev*2)
+            sqrt_EPh = 1.0 / np.sqrt(2 * self.ph_energies[iq]/ha2ev*2) # energies [eV]->[Ry]
             sqrt_EPh[np.isnan(sqrt_EPh)] = 0 # Ry
             eph_mat = np.einsum('v...,v->v...', eph_mat, sqrt_EPh)            
             if close_file :database.close()
