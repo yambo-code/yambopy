@@ -101,7 +101,7 @@ class LetzElphElectronPhononDB():
             for M in indices[1]:
                 if Q==0 and M in [0,1,2]: 
                     print('Acoustic modes have been set to zero')
-                    self.ph_energies[Q,M]=np.abs(self.ph_energies[Q,M])#self.ph_energies[Q,M]=0.
+                    self.ph_energies[Q,M]= 0 #np.abs(self.ph_energies[Q,M])#self.ph_energies[Q,M]=0.
                 else:
                     warn = True
                     self.ph_energies[Q,M]=np.abs(self.ph_energies[Q,M])
@@ -197,9 +197,8 @@ class LetzElphElectronPhononDB():
         assert (max_bnd <= max(self.bands))
         start_bnd_idx = 1+min_bnd - min(self.bands)
         end_bnd = start_bnd_idx + nbnds
-        self.ph_eigenvectors , self.gkkp
+        
         if hasattr(self, 'ph_eigenvectors'):
-            print('Phonon eigenvetors present')
             ph_eigs = self.ph_eigenvectors[iq]
             eph_mat = self.gkkp[iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd ]
         else :
@@ -216,9 +215,10 @@ class LetzElphElectronPhononDB():
         sqrt_EPh = 1.0 / np.sqrt(2 * self.ph_energies[iq]/ha2ev) # energies [eV]->[Ry]
         sqrt_EPh[np.isnan(sqrt_EPh)] = 0 # Ry
         sqrt_EPh=(0.5)**1.5 * sqrt_EPh 
+        if(iq==0): sqrt_EPh[:3]=0 # ensure acoustic modes are zero
         eph_mat = np.einsum('kvslm,v->kvslm', eph_mat, sqrt_EPh)
         if close_file :database.close()
-        return [ph_eigs, self.change_convention(self.qpoints[iq],eph_mat, convention).astype(self.ph_eigenvectors.dtype)]
+        return [ph_eigs, self.change_convention(self.qpoints[iq],eph_mat, convention).astype(eph_mat.dtype)]
 
     def change_convention(self, qpt, elph_iq, convention='yambo'):
         """
