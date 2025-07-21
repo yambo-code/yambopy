@@ -67,14 +67,16 @@ class LetzElphElectronPhononDB():
         self.convention = conv.strip()
         #
         # Read DB
-        self.kpoints = database.variables['kpoints'][:]
-        self.qpoints = database.variables['qpoints'][:]
-        self.bands   = database.variables['bands'][:]
+        #For developes: Do not use database.variables['x'][:]
+        #prefer to use : databaase.variables['x'][...].data to preserve precision
+        self.kpoints = database.variables['kpoints'][...].data
+        self.qpoints = database.variables['qpoints'][...].data
+        self.bands   = database.variables['bands'][...].data
         self.ktree   = build_ktree(self.kpoints)
         self.qtree   = build_ktree(self.qpoints)
         self.kmap = database.variables['kmap'][...].data
         
-        self.ph_energies = database.variables['FREQ'][:]*(ha2ev/2.) # From [Ry] to [eV]
+        self.ph_energies = database.variables['FREQ'][...].data*(ha2ev/2.) # From [Ry] to [eV]
         self.check_energies()
 
         if read_all: 
@@ -110,9 +112,8 @@ class LetzElphElectronPhononDB():
         Read phonon eigenmodes
         """
 
-        self.ph_eigenvectors = np.zeros([self.nq,self.nm,self.nat,3],dtype=np.complex64)
-        #eivs_tmp[qpt][mode][atom][coord][cmplx]
-        eivs_tmp = database.variables['POLARIZATION_VECTORS'][:]
+        eivs_tmp = database.variables['POLARIZATION_VECTORS'][...].data
+        self.ph_eigenvectors = np.zeros([self.nq,self.nm,self.nat,3],dtype=eivs_tmp.dtype)
         self.ph_eigenvectors = eivs_tmp[:,:,:,:,0] + 1j*eivs_tmp[:,:,:,:,1]
 
     def read_elph(self,database,scale_g_with_ph_energies=True):
@@ -121,8 +122,8 @@ class LetzElphElectronPhononDB():
         
         - If scale_g_with_ph_energies they are divided by sqrt(2*ph_E)
         """    
-        gkkp_full = np.zeros([self.nq,self.nk,self.nm,self.ns,self.nb1,self.nb2],dtype=np.complex64)
-        gkkp_tmp  = database.variables['elph_mat'][:]
+        gkkp_tmp  = database.variables['elph_mat'][...].data
+        gkkp_full = np.zeros([self.nq,self.nk,self.nm,self.ns,self.nb1,self.nb2],dtype=gkkp_tmp.dtype)
         gkkp_full = gkkp_tmp[:,:,:,:,:,:,0]+1j*gkkp_tmp[:,:,:,:,:,:,1]
        
         # Check integrity of elph values
@@ -141,7 +142,7 @@ class LetzElphElectronPhononDB():
         g_qnu = dvscf_qnu/sqrt(2*w_qnu)
         """
         
-        g = np.zeros([self.nq,self.nk,self.nm,self.ns,self.nb1,self.nb2],dtype=np.complex64)
+        g = np.zeros([self.nq,self.nk,self.nm,self.ns,self.nb1,self.nb2],dtype=self.ph_eigenvectors.dtype)
         for iq in range(self.nq):
             for inu in range(self.nm): 
                 if iq==0 and inu in [0,1,2]: 
@@ -196,7 +197,7 @@ class LetzElphElectronPhononDB():
         assert (max_bnd <= max(self.bands))
         start_bnd_idx = 1+min_bnd - min(self.bands)
         end_bnd = start_bnd_idx + nbnds
-        # self.ph_eigenvectors , self.gkkp
+        #self.ph_eigenvectors , self.gkkp
         #if hasattr(self, 'ph_eigenvectors'):
         #    ph_eigs = self.ph_eigenvectors[iq]
         #    eph_mat = self.gkkp[iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd ]
@@ -217,7 +218,7 @@ class LetzElphElectronPhononDB():
         sqrt_EPh=(0.5)**1.5 * sqrt_EPh 
         eph_mat = np.einsum('v...,v->v...', eph_mat, sqrt_EPh)
         if close_file :database.close()
-        return [ph_eigs, self.change_convention(self.qpoints[iq],eph_mat, convention).astype(np.complex64)]
+        return [ph_eigs, self.change_convention(self.qpoints[iq],eph_mat, convention).astype(self.ph_eigenvectors.dtype)]
 
     def change_convention(self, qpt, elph_iq, convention='yambo'):
         """

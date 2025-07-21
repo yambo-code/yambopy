@@ -174,7 +174,7 @@ class Luminescence():
             BS_eigs.append(tmp_eigs)
             BS_wfcs.append(tmp_wfcs)
             excQpt.append(tmp_qpt)
-        return bs_bands, np.array(BS_eigs)/ha2ev, np.array(BS_wfcs), excQpt
+        return bs_bands, (np.array(BS_eigs)/ha2ev).astype(self.wfdb.wf.dtype), np.array(BS_wfcs).astype(self.wfdb.wf.dtype), excQpt
     
     def compute_luminescence(self, 
                              ome_range,
@@ -214,7 +214,7 @@ class Luminescence():
         except Exception as e:
             raise IOError(f'Cannot compute exciton-phonon matrix elements')
         for i in tqdm(range(ome_range.shape[0]), desc="Luminescence "):
-            inte_tmp = compute_luminescence_per_freq(ome_range[i], self.ph_freq.data, exe_ene, \
+            inte_tmp = compute_luminescence_per_freq(ome_range[i], self.ph_freq, exe_ene, \
                 Exe_min, self.ex_dip, self.ex_ph, npol=npol, ph_thr=ph_thr,broadening=broadening, temp=temp)
             self_inten.append(inte_tmp)
         ## save intensties
@@ -233,8 +233,6 @@ class Luminescence():
         time_exph_io = 0
         ### compute ex-ph matrix elements:
         ex_ph = []
-        wfc = []
-        eph_mat = []
         kpts_ibz = self.wfdb.kpts_iBZ
         print('Computing Exciton-phonon matrix elements for phonon absorption ...')
         for i in tqdm(range(self.qidx_in_kpts.shape[0]), desc="Exciton-phonon "):
@@ -247,7 +245,6 @@ class Luminescence():
             ## read elph_matrix elements
             _,eph_mat_iq = self.lelph_db.read_iq(i, bands_range = self.bands_range,convention='standard') # this has to be standard for exciton_X_matelem
             #eph_mat_iq=eph_mat_iq[:,:,0,:,:].transpose(1,0,3,2) # comes out in Ry
-            eph_mat.append(eph_mat_iq)            
             time_elph_io = time_elph_io + time() - tik
             ## get rotated ex-wfc
             tik = time()
@@ -261,19 +258,15 @@ class Luminescence():
             ## compute ex-ph matrix
             time_ex_rot = time_ex_rot + time() - tik
             tik = time()
-            ex_ph_tmp = ex_ph_mat(
+            ex_ph_tmp = exciton_X_matelem(
+                            self.excQpt[ik_ibz],
+                            self.kpts[self.qidx_in_kpts[i]],
                             wfc_tmp,
                             self.BS_wfcs[0],
                             eph_mat_iq,
-                            self.kpts[0],
-                            self.kpts[self.qidx_in_kpts[i]],
                             self.kpts, 
-                            self.kpt_tree    
             )
             ex_ph.append(ex_ph_tmp)
-            wfc.append(wfc_tmp)
-        self.wfc = wfc
-        self.eph_mat = eph_mat
         time_exph = time_exph + time() - tik
         ## SAving exciton phonon matrix elements
         if(self.save_files):
@@ -329,11 +322,10 @@ def compute_luminescence_per_freq(ome_light,
     ## We need exciton dipoles for light emission (<0|r|S>)
     ## and exciton phonon matrix elements for phonon absorption <S',Q|dV_Q|S,0>
     ## energy of the lowest energy energy exe_low_energy
-    numpy_float   = np.float32
     Nqpts, nmode, nbnd_i, nbnd_f = ex_ph.shape
-    broadening = numpy_float(broadening / 27.211 / 2)
-    ome_light_Ha = numpy_float(ome_light / 27.211)
-    KbT = numpy_float(3.1726919127302026e-06 * temp)  ## Ha
+    broadening = (broadening / 27.211 / 2)
+    ome_light_Ha = (ome_light / 27.211)
+    KbT = (3.1726919127302026e-06 * temp)  ## Ha
     bolt_man_fac = -(ex_ene - exe_low_energy) / KbT
     bolt_man_fac = np.exp(bolt_man_fac)  ##(iq,nexe)
     sum_out = 0.0
@@ -346,50 +338,15 @@ def compute_luminescence_per_freq(ome_light,
             else:
                 bose_ph_fac = 1 #+ 1.0 / (np.exp(ph_freq[iq, iv] / KbT) - 1.0)
             E_f_omega = ex_ene[iq, :] - ph_freq[iq, iv]
-            Tmu = np.zeros((npol, nbnd_f), dtype=ex_dip.dtype)  # D*G
+            Tmu = np.zeros((npol, nbnd_f), dtype=np.complex64)  # D*G
             ## compute scattering matrix
             for ipol in range(npol):
                 for ii in range(nbnd_i):
                     Tmu[ipol,:] = Tmu[ipol,:] + np.conj(ex_ph[iq,iv,ii,:]) * ex_dip[ipol,ii] \
-                        /(ex_ene[0,ii] - E_f_omega + (1j*broadening)).astype(ex_dip.dtype)
+                        /(ex_ene[0,ii] - E_f_omega + (1j*broadening)).astype(np.complex64)
             ## abs and sum over initial states and pols
             Gamma_mu = bose_ph_fac * np.sum(np.abs(Tmu)**2,axis=0) * ome_fac * bolt_man_fac[iq,:] \
                         /E_f_omega/((ome_light_Ha-E_f_omega)**2 + broadening
 **2)
             sum_out = sum_out + np.sum(Gamma_mu)
     return sum_out * broadening/ np.pi / Nqpts
-
-def ex_ph_mat(wfc_k_q, wfc_k, elph_mat, qpt_exe, qpt_ph, kpts, ktree):
-    ## compute exction phonon matrix element
-    ## < Q+q|dv|Q> where Q (qpt_exe) is exciton momentum
-    ## q (qpt_ph) is phonon momentum
-    ## elph_mat for qpt_ph point (nmodes,nk, final_band_PH_abs, initial_band)
-    # outpur : modes, initial_state, final_state
-    nmodes = elph_mat.shape[0]
-    n_exe_states, nk, nc, nv = wfc_k_q.shape
-    #
-    idx_k_minus_Q_minus_q = find_kpt(ktree,kpts - qpt_ph[None, :] -
-                                       qpt_exe[None, :])  # k-Q-q
-    idx_k_minus_q = find_kpt(ktree, kpts - qpt_ph[None, :])  # k-q
-    #
-    gcc = pytorch.from_numpy(elph_mat)[:, idx_k_minus_q, nv:, nv:]
-    gvv = pytorch.from_numpy(elph_mat)[:, idx_k_minus_Q_minus_q, :nv, :nv]
-    #
-    # make arrays C_CONTIGUOUS to reduce repeated cache misses
-    wfc_k_electron = pytorch.from_numpy(wfc_k)[:, idx_k_minus_q,
-                                               ...].contiguous()
-    wfc_k_hole = pytorch.from_numpy(wfc_k)
-    wfc_kq_conj = pytorch.from_numpy(wfc_k_q).reshape(n_exe_states, -1).conj()
-    #
-    ex_ph_mat = pytorch.zeros((nmodes, n_exe_states, n_exe_states),
-                              dtype=pytorch.complex64)
-    ## compute the ex-ph mats
-    for imode in range(nmodes):
-        ## 1) Compute electron contribution # (k-q,k-q)
-        tmp_wfc = pytorch.einsum('nkiv,kci->nkcv', wfc_k_electron, gcc[imode])
-        ### 2) Compute Hole contribution #(k,k-q-Q) and subtract to (1)
-        tmp_wfc -= pytorch.einsum('nkci,kiv->nkcv', wfc_k_hole, gvv[imode])
-        tmp_wfc = tmp_wfc.reshape(n_exe_states, -1)
-        pytorch.matmul(tmp_wfc, wfc_kq_conj.T, out=ex_ph_mat[imode])
-    ## return ex-ph mat
-    return ex_ph_mat.numpy()
