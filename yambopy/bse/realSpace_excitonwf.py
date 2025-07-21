@@ -175,16 +175,8 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     assert nc + nv == bse_bnds[1]-bse_bnds[0], "Band mismatch"
     assert nk == nkBZ, "kpoint mismatch"
     #
-    
-    # ## Bring the positon of hole/electron in the centre unit cell, i.e make in between [0,1)
-    # fixed_postion = np.array(fixed_postion) - np.floor(fixed_postion)
-    # fixed_postion = (fixed_postion + 1e-6)%1
-    # fixed_postion = fixed_postion - 1e-6
     fixed_postion = np.array(fixed_postion)
-
-    fixed_postion += np.array(supercell)//2
-
-
+    #
     hole_bnds = [bse_bnds[0],bse_bnds[0]+nv]
     elec_bnds = [bse_bnds[0]+nv,bse_bnds[1]]
     #
@@ -206,7 +198,7 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     for ik in range(len(wfcdb.gvecs)):
         idx_gvecs_tmp = np.arange(wfcdb.ngvecs[ik],dtype=int)
         if wfcCutoffRy > 0:
-            tmp_gvecs = np.linalg.norm((wfcdb.gvecs[ik, :wfcdb.ngvecs[ik], :] 
+            tmp_gvecs = 2*np.pi*np.linalg.norm((wfcdb.gvecs[ik, :wfcdb.ngvecs[ik], :] 
                                         + wfcdb.kpts_iBZ[ik][None,:])@blat,axis=-1)
             idx_tmp = tmp_gvecs < np.sqrt(wfcCutoffRy)
             idx_gvecs_tmp = idx_gvecs_tmp[idx_tmp].copy()
@@ -222,7 +214,23 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     # Compute nstates, nk, Nx, Ny, Nz object
     if out_res is None : print("Wfc FFT Grid : ",fft_box[0], fft_box[1], fft_box[2])
     #
-    ktree = build_ktree(wfcdb.kBZ)
+    ##
+    # find the nearest fft grid point.
+    fx_pnt_int = np.floor(fixed_postion)
+    fixed_postion -= fx_pnt_int
+    fixed_postion = np.round(fixed_postion * fft_box) / fft_box
+    fixed_postion += fx_pnt_int
+    # shift the position of hole to middle of supercell
+    fixed_postion += np.array(supercell)//2
+    #
+    if fix_particle == 'h':
+        print("Position of the hole (reduced units) is set to : ",
+              fixed_postion[0], fixed_postion[1], fixed_postion[2])
+    if fix_particle == 'e':
+        print("Position of the electron (reduced units) is set to : ",
+              fixed_postion[0], fixed_postion[1], fixed_postion[2])
+    #
+    ktree = wfcdb.ktree #build_ktree(wfcdb.kBZ)
     #
     nspinorr = wfcdb.nspinor
     if out_res is not None:
@@ -331,7 +339,8 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
             #if ft_ikpt not in prev_ikpts:
             ft_wfcr = wfcdb.to_real_space(ft_wfc.reshape(-1,nspinorr,ng),ft_gvec, grid=fft_box)
             ft_wfcr = ft_wfcr.reshape(ns1,nbndc,nspinorr,fft_box[0],fft_box[1],fft_box[2])
-            exp_kx_r = np.exp(2*np.pi*1j*FFFboxs.reshape(-1,3)@ft_kvec)
+            exp_kx_r = np.exp(2*np.pi*1j*FFFboxs.reshape(-1,3)@ft_kvec).reshape(FFFboxs.shape[:3])
+            ft_wfcr *= exp_kx_r[None,None,None,...]
             #
             if fix_particle == 'h':
                 np.einsum('ncv,vy,cxijk->nxyijk',Akcv[:,ik,...],fx_wfc[0],ft_wfcr[0],
@@ -340,7 +349,7 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
                 np.einsum('ncv,cx,vyijk->nxyijk',Akcv[:,ik,...],fx_wfc[0],ft_wfcr[0],
                           optimize=True,out=exe_tmp_wf[:,:,:,ik-ikstart])
             #
-            exe_tmp_wf[:,:,:,ik-ikstart] *= exp_kx_r[...].reshape(FFFboxs.shape[:3])[None,None,None]
+            #exe_tmp_wf[:,:,:,ik-ikstart] *= exp_kx_r[...].reshape(FFFboxs.shape[:3])[None,None,None]
             exp_tmp_kL[ik-ikstart] = np.exp(1j*2*np.pi*np.einsum('...x,x->...',Lsupercells,ft_kvec))
             #
             # update progess bar

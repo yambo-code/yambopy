@@ -128,6 +128,7 @@ class YamboWFDB:
             # K-points in BZ (crystal units)
             self.kBZ = self.ydb.iku_kpoints / lat_param[None, :]
             self.kBZ = self.kBZ @ lat_vec
+            self.ktree = build_ktree(self.kBZ)
 
             # G-vectors in cartesian units
             G_vec = ns_db1['G-VECTORS'][...].data.T
@@ -214,6 +215,13 @@ class YamboWFDB:
     def assert_bnd_range(self, ib):
         """Assert that the band index is valid."""
         assert 0 <= ib < self.nbands, "Invalid band index"
+    
+    def kptBZidx(self, kpts):
+        """ 
+        return the index of the kpoint or kpoints in the wavefunction db.
+        The kpts must be in crystal (reduced) coordinates.
+        """
+        return find_kpt(self.ktree, kpts)
 
     def get_spin_projections(self, ik, ib=-1, s_z=np.array([[1, 0], [0, -1]])):
         """
@@ -493,6 +501,9 @@ class YamboWFDB:
             self.kBZ[i] = kbz
             self.wf_bz[i][...,:ng_t]  = w_t
             self.g_bz[i][:ng_t,:]  = g_t
+        #
+        self.ktree = build_ktree(self.kBZ)
+        return 
 
     def get_BZ_kpt(self, ik):
         """
@@ -563,7 +574,7 @@ class YamboWFDB:
             frac_vec = np.zeros((len(symm_mat),3),dtype=symm_mat.dtype)
             time_rev = int(np.rint(self.ydb.time_rev))
         #
-        ktree = build_ktree(self.kBZ)
+        ktree = self.ktree #build_ktree(self.kBZ)
         Dmat = []
         nsym = len(symm_mat)
         kpt_idx = self.ydb.kpoints_indexes
