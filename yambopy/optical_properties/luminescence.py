@@ -95,7 +95,7 @@ class Luminescence():
         Dmats = Dmat_data['Dmats'][:, :, 0, start_bnd_idx:end_bnd,
                                     start_bnd_idx:end_bnd, :].data
         Dmats = Dmats[...,0] + 1j * Dmats[..., 1]
-        Dmats = Dmats.astype(np.complex64)
+        Dmats = Dmats.astype(self.wfdb.wf.dtype)
         self.Dmats    = Dmats #self.wfdb.save_Dmat
         Dmat_data.close()
         #self.nbands = max(bands_range) - self.min_bnd
@@ -279,7 +279,7 @@ class Luminescence():
         if(self.save_files):
             print('Saving exciton phonon matrix elements')
             tik_exph = time()
-            ex_ph = np.array(ex_ph).astype(np.complex64)
+            ex_ph = np.array(ex_ph).astype(self.BS_wfcs.dtype)
             #     # (iq, modes, initial state (i), final-states (f)) i.e <f|dv_Q|i> for phonon absoption
             np.save('Ex-ph', ex_ph)
             time_exph_io = time_exph_io + time() - tik_exph
@@ -330,7 +330,6 @@ def compute_luminescence_per_freq(ome_light,
     ## and exciton phonon matrix elements for phonon absorption <S',Q|dV_Q|S,0>
     ## energy of the lowest energy energy exe_low_energy
     numpy_float   = np.float32
-    numpy_complex = np.complex64  
     Nqpts, nmode, nbnd_i, nbnd_f = ex_ph.shape
     broadening = numpy_float(broadening / 27.211 / 2)
     ome_light_Ha = numpy_float(ome_light / 27.211)
@@ -347,12 +346,12 @@ def compute_luminescence_per_freq(ome_light,
             else:
                 bose_ph_fac = 1 #+ 1.0 / (np.exp(ph_freq[iq, iv] / KbT) - 1.0)
             E_f_omega = ex_ene[iq, :] - ph_freq[iq, iv]
-            Tmu = np.zeros((npol, nbnd_f), dtype=numpy_complex)  # D*G
+            Tmu = np.zeros((npol, nbnd_f), dtype=ex_dip.dtype)  # D*G
             ## compute scattering matrix
             for ipol in range(npol):
                 for ii in range(nbnd_i):
                     Tmu[ipol,:] = Tmu[ipol,:] + np.conj(ex_ph[iq,iv,ii,:]) * ex_dip[ipol,ii] \
-                        /(ex_ene[0,ii] - E_f_omega + numpy_complex(1j*broadening))
+                        /(ex_ene[0,ii] - E_f_omega + (1j*broadening)).astype(ex_dip.dtype)
             ## abs and sum over initial states and pols
             Gamma_mu = bose_ph_fac * np.sum(np.abs(Tmu)**2,axis=0) * ome_fac * bolt_man_fac[iq,:] \
                         /E_f_omega/((ome_light_Ha-E_f_omega)**2 + broadening
