@@ -121,7 +121,10 @@ from yambopy.nl.sum_frequencies import *
 from yambopy.nl.hhg_tools import *
 
 #optical properties files
+from yambopy.optical_properties.ex_dipole import *
+from yambopy.optical_properties.ex_phonon import *
 from yambopy.optical_properties.luminescence import *
+
 
 #doublegrid files
 from yambopy.double_grid.dg_convergence import *

@@ -1,24 +1,16 @@
-#
-# License-Identifier: GPL
-#
-# Copyright (C) 2024 The Yambo Team
-#
-# Authors: RR, MN
-#
-# This file is part of the yambopy project
-#
 import warnings
 from numba import njit, prange
 import os
 from netCDF4 import Dataset
+import torch as pytorch
 from yambopy.letzelphc_interface.lelphcdb import LetzElphElectronPhononDB
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.wfdb import YamboWFDB
 from yambopy.dbs.excitondb import YamboExcitonDB
 from yambopy.dbs.dipolesdb import YamboDipolesDB
+from yambopy.bse.exciton_matrix_elements import exciton_X_matelem
 from yambopy.units import *
-from yambopy.optical_properties.ex_dipole import ExcitonDipole
-from yambopy.optical_properties.ex_phonon import ExcitonPhonon
+from yambopy.bse.rotate_excitonwf import rotate_exc_wf
 try:
     from pykdtree.kdtree import KDTree 
     ## pykdtree is much faster and is recommanded
@@ -31,13 +23,10 @@ from yambopy.kpoints import build_ktree, find_kpt
 from tqdm import tqdm
 warnings.filterwarnings('ignore')
 
-class Luminescence(object):
+class ExcitonPhonon(object):
     def __init__(self, path=None, save='SAVE', lelph_db=None, latdb=None, wfdb=None, \
                  ydipdb=None, bands_range=[], BSE_dir='bse', LELPH_dir='lelph', \
                  DIP_dir='gw',save_files=True):
-        if path is None:
-            path = os.getcwd()
-        self.path = path
         self.SAVE_dir  = os.path.join(path, save)
         self.BSE_dir   = os.path.join(path,BSE_dir)
         self.LELPH_dir = os.path.join(path,LELPH_dir)
@@ -177,101 +166,75 @@ class Luminescence(object):
             excQpt.append(tmp_qpt)
         return bs_bands, (np.array(BS_eigs)/ha2ev).astype(self.wfdb.wf.dtype), np.array(BS_wfcs).astype(self.wfdb.wf.dtype), excQpt
     
-    def compute_luminescence(self, 
-                             ome_range,
-                             temp = 20,
-                             broadening = 0.00124, 
-                             npol = 2, 
-                             ph_thr = 1e-9                             
-                             ):
-        
-        ome_range = np.linspace(ome_range[0], ome_range[1], num=ome_range[2])
-        exe_ene = self.BS_eigs[self.kmap[self.qidx_in_kpts, 0], :]
-        self_inten = []
-
-        Exe_min = np.min(exe_ene)
-        print(f'Minimum energy of the exciton is        : {Exe_min*ha2ev:.4f} eV')
-        print(
-            f'Minimum energy of the Direct exciton is : {min(self.BS_eigs[0]*ha2ev):.4f} eV'
-        )
-        print('Computing luminescence intensities ...')
-        try: 
-            if hasattr(self, 'ex_dip'):
-                print('exciton-photon matrix elements founds')
-                #self.ex_dip = np.load(f'ex_dip')
-            else:             
-                print('Computing exciton-photon matrix elements')
-                ExDipole = ExcitonDipole(self.path, self.SAVE_dir, self.latdb, self.wfdb, \
-                self.ydipdb, self.bands_range, self.BSE_dir, \
-                self.DIP_dir,self.save_files)
-                ExDipole.compute_Exdipole()
-                self.ex_dip = ExDipole.ex_dip
-        except Exception as e:
-            raise IOError(f'Cannot compute exciton-photon matrix elements')
-
-        try: 
-            if hasattr(self, 'ex_ph'):
-                print('exciton-phonon matrix elements founds')
-            else:
-                print('Computing exciton-phonon matrix elements')
-                ExPhonon =  ExcitonPhonon(self.path, self.SAVE_dir, self.lelph_db, self.latdb, self.wfdb, \
-                self.ydipdb, self.bands_range, self.BSE_dir, self.LELPH_dir, \
-                self.DIP_dir,self.save_files)
-                ExPhonon.compute_Exph()
-                self.ex_ph  = ExPhonon.ex_ph
+    def compute_Exph(self):
+        from time import time
+        """Compute exciton-phonon coupling matrix elements"""
+        time_exph = 0
+        time_elph_io = 0
+        time_ex_rot = 0
+        time_exph_io = 0
+        ### compute ex-ph matrix elements:
+        ex_ph = []
+        kpts_ibz = self.wfdb.kpts_iBZ
+        ### build a kdtree for kpoints
+        print('Building kD-tree for kpoints')
+        kpt_tree = build_ktree(self.kpts)
+        self.kpt_tree = kpt_tree
+        ### fomd tje omdoces pf qpoints in kpts
+        self.qidx_in_kpts = find_kpt(self.kpt_tree, self.kpts)
                 
-        except Exception as e:
-            raise IOError(f'Cannot compute exciton-phonon matrix elements')
-        for i in tqdm(range(ome_range.shape[0]), desc="Luminescence "):
-            inte_tmp = compute_luminescence_per_freq(ome_range[i], self.ph_freq, exe_ene, \
-                Exe_min, self.ex_dip, self.ex_ph, npol=npol, ph_thr=ph_thr,broadening=broadening, temp=temp)
-            self_inten.append(inte_tmp)
-        ## save intensties
-        if self.save_files:
-            np.savetxt('luminescence_intensities.dat', np.c_[ome_range,
-                                                        np.array(self_inten)].real)
-            np.save('Intensties_self', np.array(self_inten))
-        return ome_range,np.array(self_inten).real
-    
-@njit(cache=True, nogil=True, parallel=True)
-def compute_luminescence_per_freq(ome_light,
-                        ph_freq,
-                        ex_ene,
-                        exe_low_energy,
-                        ex_dip,
-                        ex_ph,
-                        temp=20,
-                        broadening=0.00124,
-                        npol=2,
-                        ph_thr = 1e-9):
-    ## We need exciton dipoles for light emission (<0|r|S>)
-    ## and exciton phonon matrix elements for phonon absorption <S',Q|dV_Q|S,0>
-    ## energy of the lowest energy energy exe_low_energy
-    Nqpts, nmode, nbnd_i, nbnd_f = ex_ph.shape
-    broadening = (broadening / 27.211 / 2)
-    ome_light_Ha = (ome_light / 27.211)
-    KbT = (3.1726919127302026e-06 * temp)  ## Ha
-    bolt_man_fac = -(ex_ene - exe_low_energy) / KbT
-    bolt_man_fac = np.exp(bolt_man_fac)  ##(iq,nexe)
-    sum_out = 0.0
-    for iq in prange(Nqpts):
-        for iv in range(nmode):
-            ome_fac = ome_light_Ha * (ome_light_Ha + 2 * ph_freq[iq, iv])**2
-            if ph_freq[iq, iv] < ph_thr:
-                bose_ph_fac = 1.0
-                Warning('Negative frequencies set to zero')
-            else:
-                bose_ph_fac = 1 #+ 1.0 / (np.exp(ph_freq[iq, iv] / KbT) - 1.0)
-            E_f_omega = ex_ene[iq, :] - ph_freq[iq, iv]
-            Tmu = np.zeros((npol, nbnd_f), dtype=np.complex64)  # D*G
-            ## compute scattering matrix
-            for ipol in range(npol):
-                for ii in range(nbnd_i):
-                    Tmu[ipol,:] = Tmu[ipol,:] + np.conj(ex_ph[iq,iv,ii,:]) * ex_dip[ipol,ii] \
-                        /(ex_ene[0,ii] - E_f_omega + (1j*broadening)).astype(np.complex64)
-            ## abs and sum over initial states and pols
-            Gamma_mu = bose_ph_fac * np.sum(np.abs(Tmu)**2,axis=0) * ome_fac * bolt_man_fac[iq,:] \
-                        /E_f_omega/((ome_light_Ha-E_f_omega)**2 + broadening
-**2)
-            sum_out = sum_out + np.sum(Gamma_mu)
-    return sum_out * broadening/ np.pi / Nqpts
+        print('Computing Exciton-phonon matrix elements for phonon absorption ...')
+        for i in tqdm(range(self.qidx_in_kpts.shape[0]), desc="Exciton-phonon "):
+            # < S|dv|0>
+            ## first do a basic check
+            kq_diff = self.qpts[i] - self.kpts[self.qidx_in_kpts[i]]
+            kq_diff = kq_diff - np.rint(kq_diff)
+            assert (np.linalg.norm(kq_diff) < 10**-5)
+            tik = time()
+            ## read elph_matrix elements
+            _,eph_mat_iq = self.lelph_db.read_iq(i, bands_range = self.bands_range,convention='standard') # this has to be standard for exciton_X_matelem
+            eph_mat_iq=eph_mat_iq[:,:,0,:,:].transpose(1,0,3,2) # take spin 0 and I don't know why MN swap initial and final bands
+            time_elph_io = time_elph_io + time() - tik
+            ## get rotated ex-wfc
+            tik = time()
+            ik_ibz, isym = self.kmap[self.qidx_in_kpts[i]]  ## get the ibZ kpt and symmetry matrix for this q/k point
+            is_sym_time_rev = False
+            if (isym >= self.symm_mats.shape[0] / (int(self.ele_time_rev) + 1)):
+                is_sym_time_rev = True
+            wfc_tmp = rotate_exc_wf(self.BS_wfcs[ik_ibz], self.sym_red[isym], self.kpts.data, \
+                kpts_ibz[ik_ibz], self.Dmats[isym], is_sym_time_rev, ktree=self.kpt_tree
+                )
+            ## compute ex-ph matrix
+            time_ex_rot = time_ex_rot + time() - tik
+            tik = time()
+            ex_ph_tmp = exciton_X_matelem(
+                            self.excQpt[ik_ibz],
+                            self.kpts[self.qidx_in_kpts[i]],
+                            wfc_tmp,
+                            self.BS_wfcs[0],
+                            eph_mat_iq,
+                            self.kpts, 
+            )
+            ex_ph.append(ex_ph_tmp)
+        time_exph = time_exph + time() - tik
+        ## SAving exciton phonon matrix elements
+        if(self.save_files):
+            print('Saving exciton phonon matrix elements')
+            tik_exph = time()
+            ex_ph = np.array(ex_ph).astype(self.BS_wfcs.dtype)
+            #     # (iq, modes, initial state (i), final-states (f)) i.e <f|dv_Q|i> for phonon absoption
+            np.save('Ex-ph', ex_ph)
+            time_exph_io = time_exph_io + time() - tik_exph
+        else:
+            print('Loading exciton phonon matrix elements')
+            tik_exph = time()
+            ex_ph = np.load('Ex-ph.npy')
+            time_exph_io = time_exph_io + time() - tik_exph
+        self.ex_ph = ex_ph
+
+        print('** Timings **')
+        print(f'ELPH IO   : {time_elph_io:.4f} s')
+        print(f'Ex-ph IO  : {time_exph_io:.4f} s')
+        print(f'Ex rot    : {time_ex_rot:.4f} s')
+        print(f'Ex-ph     : {time_exph:.4f} s')
+        print('*' * 30, ' Program ended ', '*' * 30)
