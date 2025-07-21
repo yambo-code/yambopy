@@ -1,0 +1,37 @@
+format: jb-book
+root: intro  # The landing page (intro.md)
+options:
+  numbered: true  # Enable numbering globally
+
+parts:
+- caption: Theory
+  numbered: false  # Ensure numbering applies to this part
+  chapters:
+    - file: content/theory/theoretical_background  # Acts as the section's intro
+      sections:
+        - file: content/theory/model_hamiltonian
+        - file: content/theory/coulomb_potential
+        - file: content/theory/h2p
+        - file: content/theory/wannier_exciton
+        - file: content/theory/wannier_chern
+        - file: content/theory/wannier_basis
+        - file: content/theory/quantum_well
+- caption: Software
+  numbered: false
+  chapters:
+    - file: content/software/software
+      sections:
+        - file: content/software/yambo/yambo
+        - file: content/software/yambo/yambo_input_flags 
+- caption: Tutorials
+  numbered: false
+  chapters:
+    - file: content/tutorials/tutorials
+      sections:
+        - file: content/tutorials/exciton_phonon
+
+- caption: Notebooks
+  numbered: false
+  chapters:
+    - file: notebooks/notebooks
+    - file: notebooks/exciton_phonon
