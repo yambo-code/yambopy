@@ -2,7 +2,6 @@ import warnings
 from numba import njit, prange
 import os
 from netCDF4 import Dataset
-import torch as pytorch
 from yambopy import YamboLatticeDB
 from yambopy.dbs.wfdb import YamboWFDB
 from yambopy.dbs.excitondb import YamboExcitonDB

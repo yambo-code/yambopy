@@ -2,7 +2,6 @@ import warnings
 from numba import njit, prange
 import os
 from netCDF4 import Dataset
-import torch as pytorch
 from yambopy.letzelphc_interface.lelphcdb import LetzElphElectronPhononDB
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.wfdb import YamboWFDB
