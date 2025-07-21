@@ -104,7 +104,7 @@ class YamboExcitonDB(object):
 
         with Dataset(path_filename) as database:
             #energies
-            eig =  database.variables['BS_Energies'][:]*ha2ev
+            eig =  database.variables['BS_Energies'][...].data*ha2ev
             eigenvalues = eig[:,0]+eig[:,1]*I
             neig_full = len(eigenvalues)
             if neigs < 0 or neigs > neig_full: neigs = neig_full
@@ -130,7 +130,7 @@ class YamboExcitonDB(object):
             car_qpoint = None
             if 'BS_Q' in list(database.variables.keys()):
                 # Finite momentum
-                car_qpoint = database.variables['BS_Q'][:]/lattice.alat
+                car_qpoint = database.variables['BS_Q'][...].data/lattice.alat
             if Qpt=="1": car_qpoint = np.zeros(3)
 
             #eigenvectors
@@ -153,7 +153,7 @@ class YamboExcitonDB(object):
         q_cutoff = None
         if os.path.isfile(path_cutoff):
             with Dataset(path_cutoff) as database:
-                bare_qpg = database.variables['CUT_BARE_QPG'][:]
+                bare_qpg = database.variables['CUT_BARE_QPG'][...].data
                 bare_qpg = bare_qpg[:,:,0]+bare_qpg[:,:,1]*I
                 q_cutoff = np.abs(bare_qpg[0,int(Qpt)-1])
 
@@ -1330,7 +1330,7 @@ class YamboExcitonDB(object):
         nkpoints = len(car_kpoints)
         print(nkpoints)
         amplitudes = np.zeros([nkpoints])
-        phases     = np.zeros([nkpoints],dtype=np.complex64)
+        phases     = np.zeros([nkpoints],dtype=self.eigenvalues.dtype)
         for exciton in excitons:
             #the the eigenstate
             eivec = self.eigenvectors[exciton-1]
@@ -1364,7 +1364,7 @@ class YamboExcitonDB(object):
             print("broadening: %lf eV"%broad)
 
         #initialize the susceptibility intensity
-        chi = np.zeros_like(w,dtype=np.complex64)
+        chi = np.zeros_like(w,dtype=self.eigenvalues.dtype)
 
         # Oscillator strengths (residuals)
         EL1 = self.l_residual
@@ -1429,7 +1429,7 @@ class YamboExcitonDB(object):
             print("energy steps: %lf"%nenergies)
 
         #initialize the susceptibility intensity
-        pl = np.zeros([len(w)],dtype=np.complex64)
+        pl = np.zeros([len(w)],dtype=self.eigenvalues.dtype)
 
         if dipoles is None:
             #get dipole
