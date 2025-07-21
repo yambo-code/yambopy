@@ -197,13 +197,14 @@ class LetzElphElectronPhononDB():
         assert (max_bnd <= max(self.bands))
         start_bnd_idx = 1+min_bnd - min(self.bands)
         end_bnd = start_bnd_idx + nbnds
-        #self.ph_eigenvectors , self.gkkp
-        #if hasattr(self, 'ph_eigenvectors'):
-        #    ph_eigs = self.ph_eigenvectors[iq]
-        #    eph_mat = self.gkkp[iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd ]
-        #else :
+        self.ph_eigenvectors , self.gkkp
+        if hasattr(self, 'ph_eigenvectors'):
+            print('Phonon eigenvetors present')
+            ph_eigs = self.ph_eigenvectors[iq]
+            eph_mat = self.gkkp[iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd ]
+        else :
             ## else we load from the file
-        close_file = False
+            close_file = False
         if not database :
             close_file = True
             database = Dataset(self.filename,'r')
