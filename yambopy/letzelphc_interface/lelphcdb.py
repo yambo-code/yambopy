@@ -98,7 +98,8 @@ class LetzElphElectronPhononDB():
         for Q in indices[0]:
             for M in indices[1]:
                 if Q==0 and M in [0,1,2]: 
-                    self.ph_energies[Q,M]=0.
+                    print('Acoustic modes have been set to zero')
+                    self.ph_energies[Q,M]=np.abs(self.ph_energies[Q,M])#self.ph_energies[Q,M]=0.
                 else:
                     warn = True
                     self.ph_energies[Q,M]=np.abs(self.ph_energies[Q,M])
@@ -195,27 +196,28 @@ class LetzElphElectronPhononDB():
         assert (max_bnd <= max(self.bands))
         start_bnd_idx = 1+min_bnd - min(self.bands)
         end_bnd = start_bnd_idx + nbnds
-
         # self.ph_eigenvectors , self.gkkp
-        if hasattr(self, 'ph_eigenvectors'):
-            ph_eigs = self.ph_eigenvectors[iq]
-            eph_mat = self.gkkp[iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd ]
-        else :
+        #if hasattr(self, 'ph_eigenvectors'):
+        #    ph_eigs = self.ph_eigenvectors[iq]
+        #    eph_mat = self.gkkp[iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd ]
+        #else :
             ## else we load from the file
-            close_file = False
-            if not database :
-                close_file = True
-                database = Dataset(self.filename,'r')
-            eph_mat = database['elph_mat'][iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd, :].data #
-            # ( nk, nm, nspin, initial bnd, final bnd)
-            ph_eigs = database['POLARIZATION_VECTORS'][iq,...].data
-            eph_mat = eph_mat[...,0] + 1j*eph_mat[...,1]            
-            ph_eigs = ph_eigs[...,0] + 1j*ph_eigs[...,1]
-            sqrt_EPh = 1.0 / np.sqrt(2 * self.ph_energies[iq]/ha2ev*2) # energies [eV]->[Ry]
-            sqrt_EPh[np.isnan(sqrt_EPh)] = 0 # Ry
-            eph_mat = np.einsum('v...,v->v...', eph_mat, sqrt_EPh)            
-            if close_file :database.close()
-        return [ph_eigs, self.change_convention(self.qpoints[iq],eph_mat, convention)]
+        close_file = False
+        if not database :
+            close_file = True
+            database = Dataset(self.filename,'r')
+        eph_mat = database['elph_mat'][iq, :, :, 0, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd, :].data #
+        # ( nk, nm, nspin, initial bnd, final bnd)
+        ph_eigs = database['POLARIZATION_VECTORS'][iq,...].data
+        eph_mat = eph_mat[...,0] + 1j*eph_mat[...,1]            
+        ph_eigs = ph_eigs[...,0] + 1j*ph_eigs[...,1]
+        eph_mat=eph_mat.transpose(1,0,3,2)
+        sqrt_EPh = 1.0 / np.sqrt(2 * self.ph_energies[iq]/ha2ev) # energies [eV]->[Ry]
+        sqrt_EPh[np.isnan(sqrt_EPh)] = 0 # Ry
+        sqrt_EPh=(0.5)**1.5 * sqrt_EPh 
+        eph_mat = np.einsum('v...,v->v...', eph_mat, sqrt_EPh)
+        if close_file :database.close()
+        return [ph_eigs, self.change_convention(self.qpoints[iq],eph_mat, convention).astype(np.complex64)]
 
     def change_convention(self, qpt, elph_iq, convention='yambo'):
         """
@@ -242,7 +244,7 @@ class LetzElphElectronPhononDB():
         if convention == 'standard': factor = 1.0
         else :factor = -1.0
         idx_q = find_kpt(self.ktree, factor*qpt[None, :] + self.kpoints)
-        return elph_iq[idx_q, ...]
+        return elph_iq[:,idx_q, ...]
 
     def __str__(self):
 
