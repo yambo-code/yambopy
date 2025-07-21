@@ -244,7 +244,7 @@ class Luminescence():
             tik = time()
             ## read elph_matrix elements
             _,eph_mat_iq = self.lelph_db.read_iq(i, bands_range = self.bands_range,convention='standard') # this has to be standard for exciton_X_matelem
-            #eph_mat_iq=eph_mat_iq[:,:,0,:,:].transpose(1,0,3,2) # comes out in Ry
+            eph_mat_iq=eph_mat_iq[:,:,0,:,:].transpose(1,0,3,2) # take spin 0 and I don't know why MN swap initial and final bands
             time_elph_io = time_elph_io + time() - tik
             ## get rotated ex-wfc
             tik = time()
