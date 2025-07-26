@@ -83,7 +83,7 @@ class ExcitonPhonon(object):
         nbnds = max(bands_range)-min(bands_range)
         start_bnd_idx = 0
         end_bnd = start_bnd_idx + nbnds
-        self.Dmats = self.wfdb.Dmat()
+        self.Dmats = self.wfdb.Dmat()[:,:,0,:,:]
         #self.nbands = max(bands_range) - self.min_bnd
         self.bands_range = bands_range
         
