@@ -23,6 +23,9 @@ class ExcitonDipole(object):
     def __init__(self, path=None, save='SAVE', latdb=None, wfdb=None, \
                 ydipdb=None, bands_range=[], BSE_dir='bse', \
                  DIP_dir='gw',save_files=True):
+        if path is None:
+            path = os.getcwd()        
+        self.path = path        
         self.SAVE_dir  = os.path.join(path, save)
         self.BSE_dir   = os.path.join(path,BSE_dir)
         self.DIP_dir   = os.path.join(path,DIP_dir) # usually dip_dir is in gw run

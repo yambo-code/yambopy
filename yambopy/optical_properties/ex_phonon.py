@@ -26,6 +26,9 @@ class ExcitonPhonon(object):
     def __init__(self, path=None, save='SAVE', lelph_db=None, latdb=None, wfdb=None, \
                  ydipdb=None, bands_range=[], BSE_dir='bse', LELPH_dir='lelph', \
                  DIP_dir='gw',save_files=True):
+        if path is None:
+            path = os.getcwd()        
+        self.path = path
         self.SAVE_dir  = os.path.join(path, save)
         self.BSE_dir   = os.path.join(path,BSE_dir)
         self.LELPH_dir = os.path.join(path,LELPH_dir)
@@ -80,13 +83,7 @@ class ExcitonPhonon(object):
         nbnds = max(bands_range)-min(bands_range)
         start_bnd_idx = 0
         end_bnd = start_bnd_idx + nbnds
-        Dmat_data = Dataset(f'{self.LELPH_dir}/ndb.Dmats', 'r')
-        Dmats = Dmat_data['Dmats'][:, :, 0, start_bnd_idx:end_bnd,
-                                    start_bnd_idx:end_bnd, :].data
-        Dmats = Dmats[...,0] + 1j * Dmats[..., 1]
-        Dmats = Dmats.astype(self.wfdb.wf.dtype)
-        self.Dmats    = Dmats #self.wfdb.save_Dmat
-        Dmat_data.close()
+        self.Dmats = self.wfdb.Dmat()
         #self.nbands = max(bands_range) - self.min_bnd
         self.bands_range = bands_range
         
@@ -165,7 +162,7 @@ class ExcitonPhonon(object):
             excQpt.append(tmp_qpt)
         return bs_bands, (np.array(BS_eigs)/ha2ev).astype(self.wfdb.wf.dtype), np.array(BS_wfcs).astype(self.wfdb.wf.dtype), excQpt
     
-    def compute_Exph(self):
+    def compute_Exph(self, gamma_only = True):
         from time import time
         """Compute exciton-phonon coupling matrix elements"""
         time_exph = 0
@@ -173,7 +170,8 @@ class ExcitonPhonon(object):
         time_ex_rot = 0
         time_exph_io = 0
         ### compute ex-ph matrix elements:
-        ex_ph = []
+        ex_ph = np.zeros((len(self.excQpt), self.qidx_in_kpts.shape[0], self.lelph_db.nm, \
+                          self.BS_eigs.shape[1],self.BS_eigs.shape[1]), dtype = self.BS_eigs.dtype)
         kpts_ibz = self.wfdb.kpts_iBZ
         ### build a kdtree for kpoints
         print('Building kD-tree for kpoints')
@@ -181,41 +179,100 @@ class ExcitonPhonon(object):
         self.kpt_tree = kpt_tree
         ### fomd tje omdoces pf qpoints in kpts
         self.qidx_in_kpts = find_kpt(self.kpt_tree, self.kpts)
-                
+        
+        self.qplusQ_in_kpts = np.zeros((len(self.excQpt), self.kpts.shape[0]), dtype = int)
+        for iQ in range(0,len(self.excQpt)):
+            self.qplusQ_in_kpts[iQ] = find_kpt(self.kpt_tree, self.kpts + self.excQpt[iQ])
+        
         print('Computing Exciton-phonon matrix elements for phonon absorption ...')
-        for i in tqdm(range(self.qidx_in_kpts.shape[0]), desc="Exciton-phonon "):
-            # < S|dv|0>
-            ## first do a basic check
-            kq_diff = self.qpts[i] - self.kpts[self.qidx_in_kpts[i]]
-            kq_diff = kq_diff - np.rint(kq_diff)
-            assert (np.linalg.norm(kq_diff) < 10**-5)
-            tik = time()
-            ## read elph_matrix elements
-            _,eph_mat_iq = self.lelph_db.read_iq(i, bands_range = self.bands_range,convention='standard') # this has to be standard for exciton_X_matelem
-            eph_mat_iq=eph_mat_iq[:,:,0,:,:].transpose(1,0,3,2) # take spin 0 and I don't know why MN swap initial and final bands
-            time_elph_io = time_elph_io + time() - tik
-            ## get rotated ex-wfc
-            tik = time()
-            ik_ibz, isym = self.kmap[self.qidx_in_kpts[i]]  ## get the ibZ kpt and symmetry matrix for this q/k point
-            is_sym_time_rev = False
-            if (isym >= self.symm_mats.shape[0] / (int(self.ele_time_rev) + 1)):
-                is_sym_time_rev = True
-            wfc_tmp = rotate_exc_wf(self.BS_wfcs[ik_ibz], self.sym_red[isym], self.kpts.data, \
-                kpts_ibz[ik_ibz], self.Dmats[isym], is_sym_time_rev, ktree=self.kpt_tree
+        
+        if gamma_only:
+            print("Only at the Gamma point")
+            iQ = 0  # Only run for Gamma
+            for i in tqdm(range(self.qidx_in_kpts.shape[0]), desc="Exciton-phonon Gamma"):
+                # < S|dv|0>
+                # Basic check
+                kq_diff = self.qpts[i] - self.kpts[self.qidx_in_kpts[i]]
+                kq_diff = kq_diff - np.rint(kq_diff)
+                assert (np.linalg.norm(kq_diff) < 1e-5)
+
+                tik = time()
+                # Read elph_matrix elements
+                _, eph_mat_iq = self.lelph_db.read_iq(i, bands_range=self.bands_range, convention='standard')
+                eph_mat_iq = eph_mat_iq[:, :, 0, :, :].transpose(1, 0, 3, 2)
+                time_elph_io += time() - tik
+
+                # Get rotated exciton wavefunctions
+                tik = time()
+                ik_ibz, isym = self.kmap[self.qidx_in_kpts[i]]
+                ik_ibz_qplusQ, isym_qplusQ = self.kmap[self.qplusQ_in_kpts[iQ,i]]
+
+                is_sym_time_rev = isym >= self.symm_mats.shape[0] // (int(self.ele_time_rev) + 1)
+
+                Ak = rotate_exc_wf(
+                    self.BS_wfcs[ik_ibz], self.sym_red[isym], self.kpts.data,
+                    kpts_ibz[ik_ibz], self.Dmats[isym], is_sym_time_rev, ktree=self.kpt_tree
                 )
-            ## compute ex-ph matrix
-            time_ex_rot = time_ex_rot + time() - tik
-            tik = time()
-            ex_ph_tmp = exciton_X_matelem(
-                            self.excQpt[ik_ibz], # Q
-                            self.kpts[self.qidx_in_kpts[i]], # q
-                            wfc_tmp, # <S', q+Q|
-                            self.BS_wfcs[0], #|S,Q>
-                            eph_mat_iq, # <k+q| dvscf| k>
-                            self.kpts, 
-            )
-            ex_ph.append(ex_ph_tmp)
-        time_exph = time_exph + time() - tik
+                Akq = rotate_exc_wf(
+                    self.BS_wfcs[ik_ibz_qplusQ], self.sym_red[isym_qplusQ], self.kpts.data,
+                    kpts_ibz[ik_ibz_qplusQ], self.Dmats[isym_qplusQ], is_sym_time_rev, ktree=self.kpt_tree
+                )
+                time_ex_rot += time() - tik
+
+                # Compute exciton-phonon matrix element
+                tik = time()
+                ex_ph_tmp = exciton_X_matelem(
+                    self.excQpt[ik_ibz_qplusQ],
+                    self.kpts[self.qidx_in_kpts[i]],
+                    Akq,
+                    Ak,
+                    eph_mat_iq,
+                    self.kpts,
+                    contribution='b'
+                )
+                ex_ph[iQ, i, ...] = ex_ph_tmp
+            time_exph = time_exph + time() - tik
+        else:
+            for iQ in tqdm(range(len(self.excQpt)), desc="Exciton-phonon all Q"):
+                for i in tqdm(range(self.qidx_in_kpts.shape[0]), desc=f"Exciton-phonon Q[{iQ}]"):
+                        # < S|dv|0>
+                        ## first do a basic check
+                        kq_diff = self.qpts[i] - self.kpts[self.qidx_in_kpts[i]]
+                        kq_diff = kq_diff - np.rint(kq_diff)
+                        assert (np.linalg.norm(kq_diff) < 10**-5)
+                        tik = time()
+                        ## read elph_matrix elements
+                        _,eph_mat_iq = self.lelph_db.read_iq(i, bands_range = self.bands_range,convention='standard') # this has to be standard for exciton_X_matelem
+                        eph_mat_iq=eph_mat_iq[:,:,0,:,:].transpose(1,0,3,2) # take spin 0 and I don't know why MN swap initial and final bands
+                        time_elph_io = time_elph_io + time() - tik
+                        ## get rotated ex-wfc
+                        tik = time()
+                        ik_ibz, isym = self.kmap[self.qidx_in_kpts[i]]  ## get the ibZ kpt and symmetry matrix for this q/k point
+                        ik_ibz_qplusQ, isym_qplusQ = self.kmap[self.qplusQ_in_kpts[iQ,i]]
+
+                        is_sym_time_rev = False
+                        if (isym >= self.symm_mats.shape[0] / (int(self.ele_time_rev) + 1)):
+                            is_sym_time_rev = True
+                        Ak = rotate_exc_wf(self.BS_wfcs[ik_ibz], self.sym_red[isym], self.kpts.data, \
+                            kpts_ibz[ik_ibz], self.Dmats[isym], is_sym_time_rev, ktree=self.kpt_tree
+                            )#kpts_ibz is the momentum of exciton #
+                        Akq = rotate_exc_wf(self.BS_wfcs[ik_ibz_qplusQ], self.sym_red[isym_qplusQ], self.kpts.data,\
+                                            kpts_ibz[ik_ibz_qplusQ], self.Dmats[isym_qplusQ], is_sym_time_rev, ktree = self.kpt_tree)
+                        ## compute ex-ph matrix
+                        time_ex_rot = time_ex_rot + time() - tik
+                        tik = time()
+                        ex_ph_tmp = exciton_X_matelem(
+                                        self.excQpt[ik_ibz_qplusQ], # Q+q (for iQ = 0 -> q)
+                                        self.kpts[self.qidx_in_kpts[i]], # q
+                                        Akq, # <S', Q+q|
+                                        Ak, #|S,Q>
+                                        eph_mat_iq, # <k+q| dvscf| k>
+                                        self.kpts, 
+                                        contribution='b'
+                        )
+                        ex_ph[iQ, i,...] = ex_ph_tmp
+            time_exph = time_exph + time() - tik
+
         ## SAving exciton phonon matrix elements
         if(self.save_files):
             print('Saving exciton phonon matrix elements')

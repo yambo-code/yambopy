@@ -217,8 +217,8 @@ class Luminescence(object):
                 ExPhonon =  ExcitonPhonon(self.path, self.SAVE_dir, self.lelph_db, self.latdb, self.wfdb, \
                 self.ydipdb, self.bands_range, self.BSE_dir, self.LELPH_dir, \
                 self.DIP_dir,self.save_files)
-                ExPhonon.compute_Exph()
-                self.ex_ph  = ExPhonon.ex_ph
+                ExPhonon.compute_Exph(gamma_only = True)
+                self.ex_ph  = ExPhonon.ex_ph[0]
                 
         except Exception as e:
             raise IOError(f'Cannot compute exciton-phonon matrix elements')
