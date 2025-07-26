@@ -71,12 +71,12 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     idx_k_minus_q = find_kpt(ktree, kpts - O_qvec[None, :])  # k-q
     #
     # Extract the occupied and unoccupied parts of the Omn matrix
-    Occ = Omn[:, idx_k_minus_q, nv:, nv:]  # Occupied part
-    Ovv = Omn[:, idx_k_minus_Q_minus_q, :nv, :nv]  # conduction part
+    Occ = Omn[:, idx_k_minus_q, nv:, nv:]  # Occupied part, g(k-q,q)
+    Ovv = Omn[:, idx_k_minus_Q_minus_q, :nv, :nv]  # conduction part g(k-q-Q)
     #
     # Ensure the arrays are C-contiguous to reduce cache misses
-    Ak_electron = np.ascontiguousarray(Ak[:, idx_k_minus_q, ...])
-    Akq_conj = Akq.reshape(n_exe_states, -1).conj()
+    Ak_electron = np.ascontiguousarray(Ak[:, idx_k_minus_q, ...]) # A^{Q}_{k-q}
+    Akq_conj = Akq.reshape(n_exe_states, -1).conj()# A^{Q+q,*}_{k}
     #
     # Initialize the output matrix
     if diagonal_only:
@@ -88,13 +88,13 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     for il in range(nlambda):
         # Compute the electron contribution
         if contribution == 'e' or contribution == 'b':
-            tmp_wfc = Occ[il][None, :, :, :] @ Ak_electron
+            tmp_wfc = Occ[il][None, :, :, :] @ Ak_electron # g(k-q,q)*A^{Q}_{k-q}
         #
         # Compute the hole contribution and subtract from the electron contribution
         if contribution == 'h' or contribution == 'b':
-            tmp_h = -Ak @ Ovv[il][None, ...]
-            if contribution == 'b':
-                tmp_wfc += tmp_h
+            tmp_h = -Ak @ Ovv[il][None, ...] #g(k-q-Q,q)*A^{Q}_{k}
+            if contribution == 'b': 
+                tmp_wfc += tmp_h # add g(k-q-Q,q)*A^{Q}_{k}
             else:
                 tmp_wfc = tmp_h
         #
@@ -105,7 +105,7 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
         if diagonal_only:
             ex_O_mat[il] = np.sum(Akq_conj * tmp_wfc, axis=-1)
         else:
-            np.matmul(Akq_conj, tmp_wfc.T, out=ex_O_mat[il])
+            np.matmul(Akq_conj, tmp_wfc.T, out=ex_O_mat[il]) #A^{Q+q,*}_{k}*(electron-hole)
     #
     # Return the computed exciton matrix elements
     return ex_O_mat
