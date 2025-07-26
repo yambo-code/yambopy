@@ -2,7 +2,9 @@
 The exciton wavefunction $\Psi_{\lambda\mathbf{Q}} (\mathbf{r_e},\mathbf{r_h})$ can be expressed as sum over noninteracting electron-hole products:
 
 $$
+\begin{align}
 \Psi_{\lambda \mathbf{Q}}\left(\mathbf{r}_e, \mathbf{r}_h\right)=\sum_{c v \mathbf{k}} A_{c v \mathbf{k}}^{\lambda \mathbf{Q}} \psi_{c \mathbf{k}}\left(\mathbf{r}_e\right) \psi_{v \mathbf{k}-\mathbf{Q}}^{\star}\left(\mathbf{r}_h\right)
+\end{align}
 $$ (exc-wavefunction-electronframe)
 
 where $\Psi_{n\mathbf{k}} = e^{i\mathbf{k}\cdot{\mathbf{r}}} u_{n\mathbf{k}}(\mathbf{r})$ denotes a single-particle Bloch state with band index $n$ and crystal momentum $\mathbf{k}$.

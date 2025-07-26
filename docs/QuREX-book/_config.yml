@@ -1,19 +1,32 @@
 title: "QuREX Documentation"
 author: "Riccardo Reho"
+
 sphinx:
   config:
     bibtex_reference_style: author_year
+
+    # Enable equation numbering and styling like LaTeX
     mathjax_config:
       tex:
-        tags: "all"  # Enables equation numbering
-        tagSide: "right"  # Places equation numbers on the right
-        tagIndent: "0.8em"
+        tags: "none"            # Number all displayed equations
+        tagSide: "right"       # Equation numbers on the right
+        tagIndent: "0.8em"     # Spacing before equation numbers
+
+    # Enable MyST extensions for advanced math and referencing
+    myst_enable_extensions:
+      - amsmath               # Enables environments like align, gather
+      - dollarmath            # Inline and block LaTeX with $...$ or $$...$$
+      - deflist               # (Optional) Definition lists
+      - linkify               # Auto-detect links
+      - substitutions         # Enable |substitution| syntax
+      - colon_fence           # For ::: fenced blocks (like admonitions)
+      - smartquotes           # Typographic quotes
+
   extra_extensions:
-    - sphinx_proof
-#parse:
-#   myst_enable_extensions:
-#   - amsmath
+    - sphinxcontrib.bibtex    # For citations and references
 
 bibtex_bibfiles:
-  - references.bib  # Make sure this points to your .bib file for citations
-  
+  - references.bib            # Your BibTeX file
+
+parse:
+  myst_extended_syntax: true

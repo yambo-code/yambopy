@@ -207,11 +207,11 @@ class ExcitonPhonon(object):
             time_ex_rot = time_ex_rot + time() - tik
             tik = time()
             ex_ph_tmp = exciton_X_matelem(
-                            self.excQpt[ik_ibz],
-                            self.kpts[self.qidx_in_kpts[i]],
-                            wfc_tmp,
-                            self.BS_wfcs[0],
-                            eph_mat_iq,
+                            self.excQpt[ik_ibz], # Q
+                            self.kpts[self.qidx_in_kpts[i]], # q
+                            wfc_tmp, # <S', q+Q|
+                            self.BS_wfcs[0], #|S,Q>
+                            eph_mat_iq, # <k+q| dvscf| k>
                             self.kpts, 
             )
             ex_ph.append(ex_ph_tmp)

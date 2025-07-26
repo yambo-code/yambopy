@@ -16,6 +16,7 @@ parts:
         - file: content/theory/wannier_chern
         - file: content/theory/wannier_basis
         - file: content/theory/quantum_well
+        - file: content/theory/exciton_phonon_coupling
 - caption: Software
   numbered: false
   chapters:
@@ -32,6 +33,8 @@ parts:
 
 - caption: Notebooks
   numbered: false
+  execute: 
+    execute_notebooks: 'off'
   chapters:
     - file: notebooks/notebooks
     - file: notebooks/exciton_phonon

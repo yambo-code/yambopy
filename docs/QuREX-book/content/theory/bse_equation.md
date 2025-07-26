@@ -15,12 +15,12 @@ On this page, we follow the **Ai-MBPT formalism** {cite}`sangalli2019many, marin
 In the **Tamm-Dancoff approximation (TDA)**, including **local field effects** {cite}`onida2002electronic`, the **two-particle BSE Hamiltonian** for a **non-spin-polarized system** in the **optical limit** \( q = 0 \) is given by:
 `yambo -o b -k sex -b`
 
-$$
+```{math}
 H_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}}=
 \left(\epsilon_{c \mathbf{k}}-\epsilon_{v \mathbf{k}}\right) \delta_{c, c^{\prime}} \delta_{v, v^{\prime}} \delta_{\mathbf{k k}^{\prime}} 
 + \left(f_{c \mathbf{k}}-f_{v \mathbf{k}}\right)\left[2 \bar{V}_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}} - 
  W_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}}\right]
-$$
+```
 
 ### Physical Meaning of Terms
 - The indices **vc𝑘** denote the **valence and conduction bands** at **quasiparticle momentum** $ \mathbf{k} $. \
@@ -29,7 +29,7 @@ $$
     Yambo: `KfnQPdb=" E < ./SAVE/ndb.QP"` Location of QP corrections database from previous GW calculation.\
     `% KfnQP_E scissor | stretch conduction | stretch valence ` QP corrections parameter. 
 - The second term, 
-  $  \left[2 \bar{V}_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}} - W_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}}\right]$
+  $\left[2 \bar{V}_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}} - W_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}}\right]$
   forms the **kernel** $ K $, where the key **electron-hole interactions** occur.
 
 For clarity, we decompose the **kernel** into:
@@ -39,19 +39,19 @@ For clarity, we decompose the **kernel** into:
 ### Exchange and Correlation Kernels
 The **exchange kernel** $ K^x $ accounts for the **repulsive electron-hole exchange interaction**, given by:
 
-$$
+```{math}
 K_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}}^x=
 \bar{V}_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}}=
 \frac{1}{\Omega} \sum_{\mathbf{G, G^{\prime}} \neq \mathbf{0}} v(\mathbf{G})
 \left\langle c \mathbf{k}\left|e^{i \mathbf{G r}}\right| v \mathbf{k}\right\rangle
 \left\langle v^{\prime} \mathbf{k}^{\prime}\left|e^{-i \mathbf{G}^{\prime} \mathbf{r}}\right| c^{\prime} \mathbf{k}^{\prime}\right\rangle
-$$
+```
 
  - Yambo: `BSENGexx = ` G Compontents of Hartree potential included in the summation. 
 
 The **correlation kernel** $ K^c $ describes the **screened electron-hole attraction**, incorporating many-body effects via the **inverse dielectric function** $ \varepsilon^{-1}$:
 
-$$
+```{math}
 K_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}}^c=
 W_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}}=
 \frac{1}{\Omega} \sum_{\mathbf{G}, \mathbf{G}^{\prime}} v(\mathbf{q}+\mathbf{G}) 
@@ -59,7 +59,7 @@ W_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}
 \left\langle c \mathbf{k}\left|e^{i(\mathbf{q}+\mathbf{G}) \mathbf{r}}\right| c^{\prime} \mathbf{k}^{\prime}\right\rangle 
 \left\langle v^{\prime} \mathbf{k}^{\prime}\left|e^{-i\left(\mathbf{q}+\mathbf{G}^{\prime}\right) \mathbf{r}}\right| v \mathbf{k}\right\rangle 
 \delta_{\mathbf{q k}-\mathbf{k}^{\prime}}
-$$
+```
 - Yambo: `BSENGblk = `G included in sum for the screened interaction 
 
 
@@ -76,7 +76,8 @@ This dielectric screening is also a crucial component of the **GW approximation*
 
 The BSE can be recast into an eigenvalue equation 
 
-$$
+```{math}
+:label:eq-BSE
 \left(\varepsilon_{c\mathbf{k}}
 -\varepsilon_{\mathrm{v}\mathbf{k-Q}}\right)
 A_{\mathrm{vc}\mathbf{k}}^\lambda+\sum_{\mathbf{k}^{\prime}
@@ -84,8 +85,7 @@ c^{\prime} \mathbf{v}^{\prime}}
 K_{\substack{\mathrm{vc\mathbf{k}} \\ v^{\prime} c^{\prime} \mathbf{k}^{\prime}}}^{\mathbf{Q}}
 A_{v^{\prime} c^{\prime} \mathbf{k}^{\prime}}^{\lambda,\mathbf{Q}}
 =E_{\lambda,\mathbf{Q}} A_{v c \mathbf{k}}^{\lambda,\mathbf{Q}}
-$$(eq-BSE)
-
+```
 
  $A^{\lambda}_{v c\mathbf{k}}$ are the eigenvectors, $E_{\lambda,\mathbf{Q}}$ are 
 the energy of excitonic transition $\lambda$, and $\mathbf{Q}$ the momentum transfer between an electron at $\mathbf{k}$ and a hole at $\mathbf{k-Q}$.
@@ -95,12 +95,12 @@ the energy of excitonic transition $\lambda$, and $\mathbf{Q}$ the momentum tran
 
 The macroscopic dielectric function is obtained with the excitonic eigenvectors $A^{\lambda}$ and eigenenergies $E_{\lambda}$: 
 
-$$
+```{math}
 \varepsilon_{M}(\omega) = 1 - \text{lim}_{\mathbf{q} \rightarrow 0} \dfrac{8\pi}{|\mathbf{q}|^2\Omega} \sum_{v,c,\mathbf{k}}\sum_{v^{\prime},c^{\prime},\mathbf{k}^{\prime}}
 \left\langle v \mathbf{k} - \mathbf{q}\left|e^{-i\mathbf{q r}}\right| c \mathbf{k}\right\rangle
 \left\langle c^{\prime} \mathbf{k}^{\prime} - \mathbf{q}\left|e^{i\mathbf{q r}}\right| v^{\prime} \mathbf{k^{\prime}- q}\right\rangle
 \sum_{\lambda}\dfrac{A^{\lambda}_{cv\mathbf{k}}(A^{\lambda}_{cv\mathbf{k}})^*}{\omega - E_{\lambda}}
-$$
+```
 
 
 
