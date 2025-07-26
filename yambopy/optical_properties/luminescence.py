@@ -261,7 +261,7 @@ def compute_luminescence_per_freq(ome_light,
                 bose_ph_fac = 1.0
                 Warning('Negative frequencies set to zero')
             else:
-                bose_ph_fac = 1 #+ 1.0 / (np.exp(ph_freq[iq, iv] / KbT) - 1.0)
+                bose_ph_fac = 1 + 1.0 / (np.exp(ph_freq[iq, iv] / KbT) - 1.0)
             E_f_omega = ex_ene[iq, :] - ph_freq[iq, iv]
             Tmu = np.zeros((npol, nbnd_f), dtype=np.complex64)  # D*G
             ## compute scattering matrix
