@@ -35,6 +35,22 @@ class Luminescence(object):
     def __init__(self, path=None, save='SAVE', lelph_db=None, latdb=None, wfdb=None, \
                  ydipdb=None, bands_range=[], BSE_dir='bse', LELPH_dir='lelph', \
                  DIP_dir='gw',save_files=True):
+        """
+        Initialize the Luminescence class.
+
+        Args:
+            path (str, optional): Path to the directory containing the wavefunction files. Defaults to the current directory.
+            save (str, optional): Subdirectory containing the wavefunction files. Defaults to 'SAVE'.
+            lelph_db (LetzElphElectronPhononDB, optional): Electron-Phonon coupling database. Defaults to None.
+            latdb (YamboLatticeDB, optional): Yambo Lattice database. Defaults to None.
+            wfdb (YamboWFDB, optional): Yambo wavefunction database. Defaults to None.
+            ydipdb (YamboDipolesDB, optional): Yambo Dipoles database. Defaults to None.
+            bands_range (list, optional): Range of bands to load. Defaults to all bands. Python indexing. Right one is excluded.
+            BSE_dir (str, optional): Subdirectory containing the BSE output. Defaults to 'bse'.
+            LELPH_dir (str, optional): Subdirectory containing the LELPH output. Defaults to 'lelph'.
+            DIP_dir (str, optional): Subdirectory containing the dipoles output. Defaults to 'gw'.
+            save_files (bool, optional): Whether to save files in .npy database. Defaults to True.
+        """
         if path is None:
             path = os.getcwd()
         self.path = path
@@ -55,6 +71,27 @@ class Luminescence(object):
     def read(self, lelph_db=None, latdb=None, wfdb=None,\
              ydipdb = None, bands_range = []):
         # Open the ns.db1 database to get essential data
+        """
+        Read Yambo databases and wavefunction files.
+
+        Reads the Yambo Lattice database, Yambo wavefunction database, Yambo Exciton
+        database, Yambo Dipoles database, and LetzElPhC database. Additionally, reads
+        the wavefunction files and computes the electron-phonon coupling matrix elements
+        using the save_Dmat method of the Yambo wavefunction database.
+
+        Parameters
+        ----------
+        lelph_db : LetzElphElectronPhononDB
+            Electron-Phonon coupling database.
+        latdb : YamboLatticeDB
+            Yambo Lattice database.
+        wfdb : YamboWFDB
+            Yambo wavefunction database.
+        ydipdb : YamboDipolesDB
+            Yambo Dipoles database.
+        bands_range : list
+            Range of bands to load. Defaults to all bands. Python indexing. Right one is excluded.
+        """
         SAVE_dir = self.SAVE_dir
         # readlatdb        
         try:
@@ -158,7 +195,26 @@ class Luminescence(object):
         self.sym_red = np.rint(sym_red).astype(int)
 
     def read_excdb(self, BSE_dir):
-        """Read yambo exciton database for each Q-point"""
+        """
+        Reads YamboExcitonDB objects for all q-points, extracting the number of bands involved in the BSE,
+        the eigenenergies of the excitons, their wavefunctions, and the Q-point of each BSE calculation.
+        
+        Parameters
+        ----------
+        BSE_dir : str
+            Path to the directory containing the BSE calculations.
+        
+        Returns
+        -------
+        bs_bands : list
+            List of the number of bands involved in the BSE for each q-point.
+        BS_eigs : list
+            List of the eigenenergies of the excitons for each q-point.
+        BS_wfcs : list
+            List of the exciton wavefunctions for each q-point.
+        excQpt : list
+            List of the Q-point of each BSE calculation.
+        """
         bs_bands = [] # bands involved in BSE
         BS_eigs  = [] #eigenenergies BSE
         BS_wfcs = [] # exciton wavefunctions
@@ -183,8 +239,30 @@ class Luminescence(object):
                              broadening = 0.00124, 
                              npol = 2, 
                              ph_thr = 1e-9                             
-                             ):
-        
+                             ):   
+        """
+        Compute luminescence intensities.
+
+        Parameters
+        ----------
+        ome_range : tuple (start, end, num)
+            Range of energies to compute luminescence intensities.
+        temp : float, optional
+            Temperature in Kelvin. Default is 20.
+        broadening : float, optional
+            Broadening of the luminescence peaks. Default is 0.00124 Ha.
+        npol : int, optional
+            Number of polarizations. Default is 2.
+        ph_thr : float, optional
+            Threshold for phonon frequencies. Default is 1e-9 Ry.
+
+        Returns
+        -------
+        ome_range : array
+            Array of energies.
+        self_inten : array
+            Array of luminescence intensities.
+        """
         ome_range = np.linspace(ome_range[0], ome_range[1], num=ome_range[2])
         exe_ene = self.BS_eigs[self.kmap[self.qidx_in_kpts, 0], :]
         self_inten = []
@@ -247,6 +325,37 @@ def compute_luminescence_per_freq(ome_light,
     ## We need exciton dipoles for light emission (<0|r|S>)
     ## and exciton phonon matrix elements for phonon absorption <S',Q|dV_Q|S,0>
     ## energy of the lowest energy energy exe_low_energy
+    """
+    Compute the luminescence intensity per frequency.
+
+    Parameters
+    ----------
+    ome_light : float
+        Photon energy in eV
+    ph_freq : array_like
+        Phonon frequencies in Ha
+    ex_ene : array_like
+        Exciton energies in Ha
+    exe_low_energy : float
+        Lowest energy of the exciton in Ha
+    ex_dip : array_like
+        Exciton-photon matrix elements in a.u.
+    ex_ph : array_like
+        Exciton-phonon matrix elements in a.u.
+    temp : float, optional
+        Temperature in Kelvin
+    broadening : float, optional
+        Broadening in eV
+    npol : int, optional
+        Number of polarizations
+    ph_thr : float, optional
+        Threshold for negative frequencies
+
+    Returns
+    -------
+    luminescence : float
+        Luminescence intensity per frequency
+    """
     Nqpts, nmode, nbnd_i, nbnd_f = ex_ph.shape
     broadening = (broadening / 27.211 / 2)
     ome_light_Ha = (ome_light / 27.211)
