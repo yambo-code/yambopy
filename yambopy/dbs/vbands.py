@@ -96,8 +96,8 @@ class YamboVbandsDB():
         s+="Selected Kpt  : "+str(self.kpt)+"\n"
         s+="Selected Band : "+str(self.band)+"\n"
         s+='Time[au]   c1.real             c1.imag              c2.real               c2.imag\n'
-            for i,v in enumerate(self.tvecs):
-                s+=str(self.times[i])+
+        for i,v in enumerate(self.tvecs):
+            s+=str(self.times[i])+
                                   "  "+str(v[0].real)+
                                   "  "+str(v[0].imag)+
                                   "  "+str(v[1].real)+
