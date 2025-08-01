@@ -24,11 +24,22 @@ class YamboVbandsDB():
         number_of_steps = int(ds['IO_TIME_steps_last_nsteps'][2])
         return number_of_steps
     
-    def get_basis_size(self): 
+    def get_basis_size(self):
+        """gets the size of the basis
+        """
         ds=Dataset(self.vb_path+'/ndb.RT_V_bands_K_section')
         basis_size=int(ds.dimensions['RT_nbands'].size)
         return basis_size
-
+    
+    def get_basis_idx(self):
+        """gets the basis index
+        """
+        basis_idx = [-1,-1]
+        ds=Dataset(self.jobdir+'/ndb.RT_V_bands')
+        basis_idx[0] = int(ds['RT_bands_kpts'][0])   
+        basis_idx[1] = int(ds['RT_bands_kpts'][1])   
+        return basis_idx
+    
     def get_tvecs(self,kpt,band):
         """kpt: type int from 1 to BZ
            band: type int from 1 to E%nbf
@@ -79,12 +90,13 @@ class YamboVbandsDB():
 
         self.n_timesteps = self.get_ntimesteps()
         self.basis_size = self.get_basis_size()
+        self.basis_index = self.get_basis_idx()
         self.tvecs = self.get_tvecs(kpt,band)
         self.times = self.get_times()
         self.fl_order = self.get_florder()
         self.kpt = kpt
         self.band = band
-        
+
     def __str__(self):
         """
         Print all info of the class
@@ -92,10 +104,14 @@ class YamboVbandsDB():
         s="\n * * * ndb.V_bands dbs data * * * \n\n"
         s+="N timesteps   : "+str(self.n_timesteps)+"\n"
         s+="Basis size    : "+str(self.basis_size)+"\n"
+        s+="Basis index   : "+str(self.basis_index)+"\n"
         s+="Floquet order : "+str(self.fl_order)+"\n"
         s+="Selected Kpt  : "+str(self.kpt)+"\n"
         s+="Selected Band : "+str(self.band)+"\n"
-        s+='Time[au]   c1.real             c1.imag              c2.real               c2.imag\n'
         for i,v in enumerate(self.tvecs):
-            s+=str(self.times[i])+ "  "+str(v[0].real)+ "  "+str(v[0].imag)+ "  "+str(v[1].real)+ "  "+str(v[1].imag)+'\n'
+            s+="Time: "+str(self.times[i])+" au:\n"
+            s+='n   c.real             c.imag\n'
+            for j in range(self.basis_size):
+                idx = self.basis_index[0] + j
+                s+=str(idx)+"  "+str(v[j].real)+"  "+str(v[j].imag)+"\n"
         return s
