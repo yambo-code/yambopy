@@ -5,7 +5,6 @@
 #
 from yambopy import *
 from yambopy.plot import *
-from yambopy.units import ha2ev,fs2aut
 import numpy as np
 import sys
 import os
@@ -14,7 +13,7 @@ import os
 # 
 # Time series is stored in IO_TIME_points variable
 # 
-class YamboVBandsDB():
+class YamboVbandsDB():
     """
     Open the Vbands databases and store it in a VBandsDB class.
     """
@@ -54,7 +53,7 @@ class YamboVBandsDB():
         list_of_times = []
         ds=Dataset(self.vb_path+'/ndb.RT_V_bands')
         for i in range(1,self.n_timesteps):
-            time_fs=float(ds['IO_TIME_points'][i])*2.418884326505/100 #AUT2FS
+            time_fs=float(ds['IO_TIME_points'][i]) #should I do it here?
             list_of_times.append(time_fs)
         return list_of_times
     
@@ -88,7 +87,7 @@ class YamboVBandsDB():
         
     def __str__(self):
         """
-        Print all info of the database
+        Print all info of the class
         """
         s="\n * * * ndb.V_bands dbs data * * * \n\n"
         s+="N timesteps   : "+str(self.n_timesteps)+"\n"
@@ -96,7 +95,7 @@ class YamboVBandsDB():
         s+="Floquet order : "+str(self.fl_order)+"\n"
         s+="Selected Kpt  : "+str(self.kpt)+"\n"
         s+="Selected Band : "+str(self.band)+"\n"
-        s+='Time   c1.real             c1.imag              c2.real               c2.imag\n'
+        s+='Time[au]   c1.real             c1.imag              c2.real               c2.imag\n'
             for i,v in enumerate(self.tvecs):
                 s+=str(self.times[i])+
                                   "  "+str(v[0].real)+
