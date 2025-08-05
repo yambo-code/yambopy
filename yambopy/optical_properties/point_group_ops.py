@@ -173,10 +173,12 @@ def decompose_rep2irrep(red_rep, char_table, pg_order, class_order, irreps):
         return "0"
 
 
-def normalize(a):
-    """Normalize a vector."""
-    return a / np.linalg.norm(a)
 
+def normalize(vec):
+    norm = np.linalg.norm(vec)
+    if norm == 0:
+        raise ZeroDivisionError("Cannot normalize a zero vector.")
+    return vec / norm
 
 def rotation_matrix(axis, theta):
     """
