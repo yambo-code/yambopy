@@ -6,33 +6,33 @@ QuREX (Quantum Real-space Exciton Analysis) is a comprehensive theoretical and c
 
 ## What is QuREX?
 
-QuREX combines advanced many-body theory with practical computational tools to analyze:
+QuREX combines many-body theory with computational tools to analyze:
 
 - **Excitonic States**: Bound electron-hole pairs and their properties
-- **Electron-Phonon Coupling**: Interactions between electronic excitations and lattice vibrations  
+- **Electron-Phonon Coupling**: Interactions between excitations and lattice vibrations  
 - **Optical Properties**: Absorption, emission, and photoluminescence spectra
 - **Real-Space Analysis**: Spatial distribution and localization of excitons
 - **Symmetry Properties**: Group theory analysis of excitonic states
 
 ## Key Features
 
-### 🔬 **Theoretical Rigor**
-- Complete many-body formalism based on the Bethe-Salpeter equation
-- Advanced treatment of electron-phonon interactions
+### Theoretical Framework
+- Many-body formalism based on the Bethe-Salpeter equation
+- Electron-phonon interaction treatment
 - Wannier function representation for real-space analysis
 - Group theory analysis for symmetry classification
 
-### 💻 **Computational Tools**
+### Computational Tools
 - Integration with Yambo for first-principles calculations
 - Yambopy interface for data analysis and post-processing
 - LetzElPhC for electron-phonon matrix elements
-- Comprehensive Python toolkit for analysis
+- Python toolkit for analysis
 
-### 📚 **Educational Resources**
-- Step-by-step theoretical derivations
-- Hands-on tutorials with practical examples
-- Complete API documentation
-- Real-world case studies
+### Documentation
+- Theoretical derivations
+- Practical tutorials with examples
+- API documentation
+- Case studies
 
 ## Who Should Use This Documentation?
 
@@ -45,34 +45,34 @@ This resource is designed for:
 
 ## How to Navigate This Book
 
-### 📖 **Theory Section**
-Comprehensive theoretical background covering:
+### Theory Section
+Theoretical background covering:
 - Many-body theory fundamentals
 - Bethe-Salpeter equation formalism
 - Electron-phonon coupling theory
 - Wannier function methods
 - Group theory applications
 
-### 🛠️ **Software Section**
-Practical implementation guides for:
+### Software Section
+Implementation guides for:
 - Yambo calculation setup
 - Yambopy data analysis
-- Custom analysis tools
+- Analysis tools
 - Integration workflows
 
-### 🎓 **Tutorials Section**
-Hands-on learning with:
-- Step-by-step examples
-- Real material calculations
+### Tutorials Section
+Practical examples with:
+- Step-by-step calculations
+- Material examples
 - Troubleshooting guides
 - Best practices
 
-### 📓 **Notebooks Section**
+### Notebooks Section
 Interactive examples including:
-- Complete calculation workflows
+- Calculation workflows
 - Data analysis scripts
 - Visualization tools
-- Reproducible research examples
+- Research examples
 
 ## Getting Started
 
@@ -94,5 +94,5 @@ QuREX builds upon decades of theoretical and computational advances in many-body
 
 ---
 
-*Ready to explore the fascinating world of excitons? Choose your path above and begin your journey into quantum real-space exciton analysis!*
+*Choose your path above to begin exploring quantum real-space exciton analysis.*
 

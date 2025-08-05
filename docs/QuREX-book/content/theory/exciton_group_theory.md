@@ -10,52 +10,52 @@ The `ExcitonGroupTheory` class in Yambopy provides a comprehensive framework for
 
 An exciton is a bound state of an electron and a hole, described by the wavefunction:
 
-$$|\psi_{\lambda}(\mathbf{Q})\rangle = \sum_{\mathbf{k},v,c} A_{\lambda}^{vc}(\mathbf{k},\mathbf{Q}) |v\mathbf{k}, c(\mathbf{k}+\mathbf{Q})\rangle$$
+{math}`|\psi_{\lambda}(\mathbf{Q})\rangle = \sum_{\mathbf{k},v,c} A_{\lambda}^{vc}(\mathbf{k},\mathbf{Q}) |v\mathbf{k}, c(\mathbf{k}+\mathbf{Q})\rangle{math}`
 
 where:
-- $\lambda$ is the exciton state index
-- $\mathbf{Q}$ is the exciton center-of-mass momentum
-- $A_{\lambda}^{vc}(\mathbf{k},\mathbf{Q})$ are the exciton amplitudes
-- $|v\mathbf{k}, c(\mathbf{k}+\mathbf{Q})\rangle$ represents an electron-hole pair state
+- {math}`\lambda` is the exciton state index
+- {math}`\mathbf{Q}` is the exciton center-of-mass momentum
+- {math}`A_{\lambda}^{vc}(\mathbf{k},\mathbf{Q})` are the exciton amplitudes
+- {math}`|v\mathbf{k}, c(\mathbf{k}+\mathbf{Q})\rangle` represents an electron-hole pair state
 
 ### Group Theory Analysis
 
-The symmetry properties of exciton states are determined by the little group of the exciton momentum $\mathbf{Q}$. The little group $G_{\mathbf{Q}}$ consists of all symmetry operations $g$ of the crystal point group that leave $\mathbf{Q}$ invariant:
+The symmetry properties of exciton states are determined by the little group of the exciton momentum {math}`\mathbf{Q}`. The little group {math}`G_{\mathbf{Q}}` consists of all symmetry operations {math}`g` of the crystal point group that leave {math}`\mathbf{Q}` invariant:
 
-$$G_{\mathbf{Q}} = \{g \in G : g\mathbf{Q} = \mathbf{Q} + \mathbf{G}\}$$
+{math}`G_{\mathbf{Q}} = \{g \in G : g\mathbf{Q} = \mathbf{Q} + \mathbf{G}\}{math}`
 
-where $\mathbf{G}$ is a reciprocal lattice vector.
+where {math}`\mathbf{G}` is a reciprocal lattice vector.
 
 ### Symmetry Operations on Exciton States
 
-Under a symmetry operation $g$, the exciton wavefunction transforms as:
+Under a symmetry operation {math}`g`, the exciton wavefunction transforms as:
 
-$$g|\psi_{\lambda}(\mathbf{Q})\rangle = \sum_{\mu} D_{\mu\lambda}^{(g)}|\psi_{\mu}(\mathbf{Q})\rangle$$
+{math}`g|\psi_{\lambda}(\mathbf{Q})\rangle = \sum_{\mu} D_{\mu\lambda}^{(g)}|\psi_{\mu}(\mathbf{Q})\rangle{math}`
 
-where $D^{(g)}$ is the representation matrix of the symmetry operation $g$.
+where {math}`D^{(g)}` is the representation matrix of the symmetry operation {math}`g`.
 
 The representation matrix elements are calculated as:
 
-$$D_{\mu\lambda}^{(g)} = \langle\psi_{\mu}(\mathbf{Q})|g|\psi_{\lambda}(\mathbf{Q})\rangle$$
+{math}`D_{\mu\lambda}^{(g)} = \langle\psi_{\mu}(\mathbf{Q})|g|\psi_{\lambda}(\mathbf{Q})\rangle{math}`
 
 ### Character Analysis
 
-The character of a representation for symmetry operation $g$ is:
+The character of a representation for symmetry operation {math}`g` is:
 
-$$\chi^{(g)} = \text{Tr}[D^{(g)}] = \sum_{\lambda} D_{\lambda\lambda}^{(g)}$$
+{math}`\chi^{(g)} = \text{Tr}[D^{(g)}] = \sum_{\lambda} D_{\lambda\lambda}^{(g)}{math}`
 
 For degenerate states with the same energy, the character is computed over the degenerate subspace.
 
 ### Irreducible Representation Decomposition
 
-The reducible representation $\Gamma$ can be decomposed into irreducible representations using the reduction formula:
+The reducible representation {math}`\Gamma` can be decomposed into irreducible representations using the reduction formula:
 
-$$a_i = \frac{1}{|G|} \sum_{g \in G} \chi^{(g)} \chi_i^{(g)*}$$
+{math}`a_i = \frac{1}{|G|} \sum_{g \in G} \chi^{(g)} \chi_i^{(g)*}{math}`
 
 where:
-- $a_i$ is the multiplicity of irreducible representation $\Gamma_i$
-- $|G|$ is the order of the group
-- $\chi_i^{(g)}$ is the character of irreducible representation $\Gamma_i$ for operation $g$
+- {math}`a_i` is the multiplicity of irreducible representation {math}`\Gamma_i`
+- {math}`|G|` is the order of the group
+- {math}`\chi_i^{(g)}` is the character of irreducible representation {math}`\Gamma_i` for operation {math}`g`
 
 ## Implementation Details
 
@@ -75,25 +75,25 @@ The `ExcitonGroupTheory` class implements the following key components:
 
 The rotation of exciton wavefunctions under symmetry operations involves:
 
-1. **K-point mapping**: For each k-point $\mathbf{k}$, find $\mathbf{k}' = g\mathbf{k}$
+1. **K-point mapping**: For each k-point {math}`\mathbf{k}`, find {math}`\mathbf{k}' = g\mathbf{k}`
 2. **D-matrix application**: Apply the D-matrix to rotate the Bloch functions:
-   $$\psi_{n\mathbf{k}'}(\mathbf{r}) = \sum_{m} D_{mn}^{(g)}(\mathbf{k}) \psi_{m\mathbf{k}}(\mathbf{r})$$
+   {math}`\psi_{n\mathbf{k}'}(\mathbf{r}) = \sum_{m} D_{mn}^{(g)}(\mathbf{k}) \psi_{m\mathbf{k}}(\mathbf{r}){math}`
 3. **Phase factor**: Include the phase factor from fractional translations:
-   $$e^{i\mathbf{Q} \cdot \boldsymbol{\tau}_g}$$
+   {math}`e^{i\mathbf{Q} \cdot \boldsymbol{\tau}_g}{math}`
 
 #### Representation Matrix Calculation
 
 The representation matrix is computed as:
 
-$$D_{\mu\lambda}^{(g)} = \sum_{\mathbf{k},v,c} A_{\mu}^{vc*}(\mathbf{k}',\mathbf{Q}) \sum_{v',c'} D_{v'v}^{(g)}(\mathbf{k}) D_{c'c}^{(g)}(\mathbf{k}+\mathbf{Q}) A_{\lambda}^{v'c'}(\mathbf{k},\mathbf{Q}) e^{i\mathbf{Q} \cdot \boldsymbol{\tau}_g}$$
+{math}`D_{\mu\lambda}^{(g)} = \sum_{\mathbf{k},v,c} A_{\mu}^{vc*}(\mathbf{k}',\mathbf{Q}) \sum_{v',c'} D_{v'v}^{(g)}(\mathbf{k}) D_{c'c}^{(g)}(\mathbf{k}+\mathbf{Q}) A_{\lambda}^{v'c'}(\mathbf{k},\mathbf{Q}) e^{i\mathbf{Q} \cdot \boldsymbol{\tau}_g}{math}`
 
-where $\mathbf{k}' = g\mathbf{k}$.
+where {math}`\mathbf{k}' = g\mathbf{k}`.
 
 ### Degeneracy Analysis
 
 States are considered degenerate if their energy difference is below a threshold:
 
-$$|E_{\lambda} - E_{\mu}| < \epsilon_{\text{deg}}$$
+{math}`|E_{\lambda} - E_{\mu}| < \epsilon_{\text{deg}}{math}`
 
 The analysis groups degenerate states and computes the representation for each degenerate subspace.
 

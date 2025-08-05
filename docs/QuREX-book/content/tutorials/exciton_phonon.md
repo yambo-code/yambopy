@@ -6,9 +6,9 @@ This workflow is split up into several sections:
 0. [DFT](#step-0-dft-ground-state-calculation-using-pwx)
 Calculate ground state wavefunctions of the system using Quantum Espresso `pw.x`.
 1. [DFPT](#step-1-dfpt-calculation-using-phx)
-Calculate the phonons and $\Delta V_{scf}$ for the electron-phonon matrix elements using Quantum Espresso `ph.x`.
+Calculate the phonons and {math}`\Delta V_{scf}` for the electron-phonon matrix elements using Quantum Espresso `ph.x`.
 2. [ELPH](#step-2-dvscf-calculation-using-letzelph-yambopy)
-Compute the electron-phonon matrix elements $g_{kkp}$ using the [LetzElPhC code](https://github.com/muralidhar-nalabothula/LetzElPhC/). 
+Compute the electron-phonon matrix elements {math}`g_{kkp}` using the [LetzElPhC code](https://github.com/muralidhar-nalabothula/LetzElPhC/). 
 3. [GW-BSE](#step-3-gw-bse-calculation-using-yambo)
 Compute BSE kernel and diagonalize on top of GW calculation, using the Yambo code to get the exciton wavefunctions.
 4. [EXC-PH](#step-4-exciton-phonon-calculation-using-yambopy)

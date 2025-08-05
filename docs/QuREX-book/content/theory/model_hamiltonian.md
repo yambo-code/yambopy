@@ -9,27 +9,28 @@ The construction of effective model Hamiltonians represents a crucial bridge bet
 
 ### From DFT to Tight-Binding
 
-The MLWF-TB approach extracts the electronic tight-binding Hamiltonian ($H$) from converged DFT calculations using established open-source codes such as:
+The MLWF-TB approach extracts the electronic tight-binding Hamiltonian ({math}`H`) from converged DFT calculations using established open-source codes such as:
 
 - **Quantum ESPRESSO**{cite}`giannozzi2009quantum,giannozzi2017advanced`: Ground-state DFT calculations
 - **Wannier90**{cite}`mostofi2008wannier90`: Wannier function construction and tight-binding extraction
 
 This procedure yields a **real-space representation** of the electronic Hamiltonian:
 
-$$H_{nm}(\mathbf{R})$$
+{math}`H_{nm}(\mathbf{R})`
 
 where:
-- $\mathbf{R}$ are lattice vectors within a supercell conjugate to the DFT k-mesh
-- $n, m$ label the electronic band indices (or Wannier function indices)
+- {math}`\mathbf{R}` are lattice vectors within a supercell conjugate to the DFT k-mesh
+- {math}`n, m` label the electronic band indices (or Wannier function indices)
 - The matrix elements represent hopping integrals between Wannier orbitals
 
 ### Slater-Koster Interpolation
 
 The real-space Hamiltonian enables **k-space interpolation** via the Slater-Koster scheme{cite}`yates2007spectral`, allowing calculation of the reciprocal space Hamiltonian on arbitrarily fine k-meshes:
 
-$$
+```{math}
+:label: eq:HR
 H_{nm}(\mathbf{k}) = \sum_{\mathbf{R}} e^{i\mathbf{k} \cdot \mathbf{R}} H_{nm}(\mathbf{R})
-$$ (HR)
+```
 
 This interpolation provides several key advantages:
 
@@ -88,9 +89,9 @@ Ensuring reliable model Hamiltonians requires:
 
 ### Hopping Integrals
 
-The real-space matrix elements $H_{nm}(\mathbf{R})$ provide direct physical insight:
+The real-space matrix elements {math}`H_{nm}(\mathbf{R})` provide direct physical insight:
 
-- **On-site Terms** ($\mathbf{R} = 0$): Atomic energy levels and local environment
+- **On-site Terms** ({math}`\mathbf{R} = 0`): Atomic energy levels and local environment
 - **Nearest-Neighbor Hopping**: Primary bonding interactions
 - **Long-Range Terms**: Extended interactions and screening effects
 - **Orbital Character**: s, p, d orbital contributions and hybridization

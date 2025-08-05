@@ -212,10 +212,10 @@ Perform comprehensive group theory analysis for exciton states.
 
 The method performs the following steps:
 
-1. **Little Group Determination**: Finds all symmetry operations $g$ such that $g\mathbf{Q} = \mathbf{Q} + \mathbf{G}$
+1. **Little Group Determination**: Finds all symmetry operations {math}`g` such that {math}`g\mathbf{Q} = \mathbf{Q} + \mathbf{G}`
 2. **Wavefunction Rotation**: Applies symmetry operations to exciton wavefunctions
-3. **Representation Matrix**: Computes $D_{\mu\lambda}^{(g)} = \langle\psi_{\mu}|g|\psi_{\lambda}\rangle$
-4. **Character Calculation**: Computes traces $\chi^{(g)} = \text{Tr}[D^{(g)}]$
+3. **Representation Matrix**: Computes {math}`D_{\mu\lambda}^{(g)} = \langle\psi_{\mu}|g|\psi_{\lambda}\rangle`
+4. **Character Calculation**: Computes traces {math}`\chi^{(g)} = \text{Tr}[D^{(g)}]`
 5. **Irrep Decomposition**: Uses reduction formula to decompose representations
 
 **Example:**

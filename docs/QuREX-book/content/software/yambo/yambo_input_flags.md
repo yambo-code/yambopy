@@ -132,7 +132,7 @@ All the default input flags parsed to ``yambo``
 - BSKmod  [BSE] IP/Hartree/HF/ALDA/SEX/BSfxcBSK_mode
 - Gauge  [BSE/X] Gauge (length|velocity)
 - NoCondSumRule [BSE/X] Do not impose the conductivity sum rule in velocity gauge
-- MetDamp       [BSE] Define $//slash//w+=sqrt(//slash//w*(//slash//w+i//slash//eta))$
+- MetDamp       [BSE] Define {math}`//slash//w+=sqrt(//slash//w*(//slash//w+i//slash//eta))`
 - BSSmod    [BSS] (h)aydock/(d)iagonalization/(s)lepc/(i)nversion/(t)ddft
 - BSEprop   [BSS] Can be any among abs/jdos/kerr/magn/dich/photolum/esrt
 - BSEdips   [BSS] Can be "trace/none" or "xy/xz/yz" to define off-diagonal rotation plane
@@ -228,7 +228,7 @@ All the default input flags parsed to ``yambo``
 ### Real Time dynamics
 
 - RTBands    [RT] Bands
-- TwoAlpha   [RT] $C_{nk} \approx \alpha*\Gamma_{nk}^2 2_{alpha}$
+- TwoAlpha   [RT] {math}`C_{nk} \approx \alpha*\Gamma_{nk}^2 2_{alpha}`
 - GrKind     [RT] G-ret kind: Lorentzian (QP)/ Hyperbolic QP_secant (HS)
 - RADLifeTime: [RT] Radiative life-time (if negative Yambo sets it equal to Phase_LifeTime in NL)
 - RADmagnific: [RT] Radiative life-time magnificationRAD_magnification
@@ -361,7 +361,7 @@ SLKdim  [SLK] Matrix Dimension for scalapack
 - DipApproach    [DIP] [G-space v/R-space x/Covariant/Shifted grids]
 - DipComputed    [DIP] [default R P V; extra P2 Spin Orb]
 - ShiftedPaths   [DIP] Shifted grids paths (separated by a space)grid_paths,
-- DipPDirect [DIP] Directly compute $<v>$ also when using other approaches for dipoles
+- DipPDirect [DIP] Directly compute {math}`<v>` also when using other approaches for dipoles
 - DipBandsALL: [DIP] Compute all bands range, not only valence and conduction
 
 ### NL OR ELECTRIC
