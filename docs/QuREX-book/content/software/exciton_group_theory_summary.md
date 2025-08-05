@@ -45,13 +45,13 @@ The `ExcitonGroupTheory` class has been successfully implemented in Yambopy to p
 The implementation is based on solid group theory principles:
 
 #### Exciton Wavefunction Transformation
-$$g|\psi_{\lambda}(\mathbf{Q})\rangle = \sum_{\mu} D_{\mu\lambda}^{(g)}|\psi_{\mu}(\mathbf{Q})\rangle$$
+{math}`g|\psi_{\lambda}(\mathbf{Q})\rangle = \sum_{\mu} D_{\mu\lambda}^{(g)}|\psi_{\mu}(\mathbf{Q})\rangle{math}`
 
 #### Character Calculation
-$$\chi^{(g)} = \text{Tr}[D^{(g)}] = \sum_{\lambda} D_{\lambda\lambda}^{(g)}$$
+{math}`\chi^{(g)} = \text{Tr}[D^{(g)}] = \sum_{\lambda} D_{\lambda\lambda}^{(g)}{math}`
 
 #### Irreducible Representation Decomposition
-$$a_i = \frac{1}{|G|} \sum_{g \in G} \chi^{(g)} \chi_i^{(g)*}$$
+{math}`a_i = \frac{1}{|G|} \sum_{g \in G} \chi^{(g)} \chi_i^{(g)*}{math}`
 
 ## Documentation Structure
 

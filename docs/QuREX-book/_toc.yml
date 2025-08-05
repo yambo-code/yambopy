@@ -1,44 +1,47 @@
 format: jb-book
-root: intro  # The landing page (intro.md)
+root: intro
 options:
-  numbered: true  # Enable numbering globally
+  numbered: true
 
 parts:
-- caption: Theory
-  numbered: false  # Ensure numbering applies to this part
+- caption: Theoretical Foundation
+  numbered: true
   chapters:
-    - file: content/theory/theoretical_background  # Acts as the section's intro
+    - file: content/theory/theoretical_background
       sections:
+        - file: content/theory/GW
+        - file: content/theory/bse_equation
         - file: content/theory/model_hamiltonian
         - file: content/theory/coulomb_potential
-        - file: content/theory/h2p
-        - file: content/theory/wannier_exciton
-        - file: content/theory/wannier_chern
         - file: content/theory/wannier_basis
+        - file: content/theory/wannier_exciton
+        - file: content/theory/h2p
         - file: content/theory/quantum_well
         - file: content/theory/exciton_phonon_coupling
         - file: content/theory/exciton_group_theory
-- caption: Software
-  numbered: false
+        - file: content/theory/wannier_chern
+
+- caption: Software Implementation
+  numbered: true
   chapters:
     - file: content/software/software
       sections:
         - file: content/software/yambo/yambo
         - file: content/software/yambo/yambo_input_flags
-        - file: content/software/exciton_group_theory_api 
-- caption: Tutorials
-  numbered: false
+        - file: content/software/exciton_group_theory_api
+
+- caption: Practical Tutorials
+  numbered: true
   chapters:
     - file: content/tutorials/tutorials
       sections:
         - file: content/tutorials/exciton_phonon
         - file: content/tutorials/exciton_group_theory_tutorial
 
-- caption: Notebooks
+- caption: Interactive Examples
   numbered: false
-  execute: 
-    execute_notebooks: 'off'
   chapters:
     - file: notebooks/notebooks
-    - file: notebooks/exciton_phonon
-    - file: notebooks/exciton_group_theory_example
+      sections:
+        - file: notebooks/exciton_phonon
+        - file: notebooks/exciton_group_theory_example

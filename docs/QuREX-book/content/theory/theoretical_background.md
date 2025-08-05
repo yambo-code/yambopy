@@ -2,213 +2,177 @@
 
 ## Overview
 
-This section provides the comprehensive theoretical foundation needed to understand and contribute to the QuREX library and beyond. The formalism presented here bridges fundamental many-body theory with practical computational implementations for excitonic systems.
+This section provides the theoretical foundation for understanding excitonic systems within the QuREX framework. The formalism bridges many-body theory with computational implementations for excitonic calculations.
 
 ## Chapter Organization
 
-The theoretical framework is organized into interconnected topics:
+The theoretical framework covers:
 
-- **[Model Hamiltonian](model_hamiltonian)**: Construction of effective Hamiltonians for excitonic systems
-- **[Excitonic Hamiltonian](h2p)**: Two-particle formalism and electron-hole interactions  
-- **[Wannier Basis](wannier_basis)**: Localized basis functions for real-space analysis
+- **[GW Approximation](GW)**: Quasiparticle energies and self-energy corrections
 - **[BSE Equation](bse_equation)**: Bethe-Salpeter equation for optical excitations
+- **[Model Hamiltonian](model_hamiltonian)**: Effective Hamiltonians for excitonic systems
+- **[Coulomb Potential](coulomb_potential)**: Electron-hole interaction modeling
+- **[Wannier Basis](wannier_basis)**: Localized basis functions for real-space analysis
 - **[Wannier Excitons](wannier_exciton)**: Real-space representation of excitonic states
+- **[Two-Particle Hamiltonian](h2p)**: Electron-hole interaction formalism
 - **[Quantum Wells](quantum_well)**: Confined systems and dimensional effects
-- **[Exciton-Phonon Coupling](exciton_phonon_coupling)**: Vibrational interactions with excitons
-- **[Group Theory Analysis](exciton_group_theory)**: Symmetry properties of excitonic states
+- **[Exciton-Phonon Coupling](exciton_phonon_coupling)**: Vibrational interactions
+- **[Group Theory Analysis](exciton_group_theory)**: Symmetry properties
+- **[Wannier-Chern](wannier_chern)**: Topological properties
 
 ## Introduction to Many-Body Theory for Excitons
 
 ### From Ground State to Excited States
 
-Density Functional Theory (DFT){cite}`kohn1965self` serves as the foundation for materials simulation in nanoscale systems, providing a quantitative microscopic description of ground state properties from first principles. However, the description of excited states—particularly optical excitations and excitons—requires going beyond the single-particle picture of DFT.
+Density Functional Theory (DFT){cite}`kohn1965self` provides ground state properties from first principles. However, excited states—particularly optical excitations and excitons—require many-body methods beyond the single-particle DFT picture.
 
-The **Ab Initio Many-Body Perturbation Theory (AI-MBPT)**{cite}`onida2002electronic` framework has been developed to predict the physical properties of excited systems under external perturbations. This approach exploits perturbation techniques based on Green's function methods to describe particle propagation and interactions in the excited state manifold.
+**Ab Initio Many-Body Perturbation Theory (AI-MBPT)**{cite}`onida2002electronic` describes excited systems using Green's function methods and perturbation theory to account for particle interactions in the excited state manifold.
 
 ### Theoretical Spectroscopy Framework
 
-Theoretical spectroscopy investigates the interaction between matter and electromagnetic radiation. State-of-the-art calculations employ:
+Theoretical spectroscopy calculations employ:
 
-1. **GW Approximation**: For accurate quasiparticle energies and band gaps
-2. **Bethe-Salpeter Equation (BSE)**: For optical absorption spectra including excitonic effects
-3. **Advanced Kernels**: For electron-hole interactions and screening effects
+1. **GW Approximation**: Quasiparticle energies and band gaps
+2. **Bethe-Salpeter Equation (BSE)**: Optical absorption spectra with excitonic effects
+3. **Interaction Kernels**: Electron-hole interactions and screening effects
 
-These methods have been implemented in sophisticated open-source codes such as **Yambo**{cite}`sangalli2019many,marini2009yambo`, providing the computational foundation for modern excitonic calculations.
+These methods are implemented in codes such as **Yambo**{cite}`sangalli2019many,marini2009yambo`.
 
 ### Computational Challenges and Solutions
 
-#### The Scale Problem
+#### Computational Challenges
 
-Simulating complex systems such as van der Waals heterostructures requires large simulation cells containing hundreds of atoms, making calculations extremely demanding in terms of:
-- **Computational Time**: Scaling with system size and number of states
-- **Memory Requirements**: Storage of wavefunctions and interaction matrices
-- **Algorithmic Complexity**: Efficient handling of many-body interactions
+Large systems like van der Waals heterostructures present challenges:
+- **Computational Time**: Scaling with system size and states
+- **Memory Requirements**: Storage of wavefunctions and matrices
+- **Algorithmic Complexity**: Many-body interaction handling
 
-#### Wannierization Strategy
+#### Wannierization Approach
 
-These challenges can be addressed through the development of cost-effective theoretical models that maintain high accuracy, particularly **Wannierized models**{cite}`marzari2012maximally`. The Wannierization technique provides:
+**Wannierized models**{cite}`marzari2012maximally` address these challenges by providing:
 
-- **Localized Basis Functions**: Refined description of quantum Hilbert space
-- **Computational Efficiency**: Significant reduction in computational expenses
-- **Physical Insight**: Real-space understanding of electronic properties
-- **Transferability**: Models applicable across different conditions
+- **Localized Basis Functions**: Efficient Hilbert space description
+- **Computational Efficiency**: Reduced computational cost
+- **Physical Insight**: Real-space electronic properties
+- **Transferability**: Applicable across different conditions
 
-While ground-state DFT codes commonly integrate Wannierization, similar integration is highly desirable for first-principles codes treating excited systems with correlations and excitonic effects{cite}`haber2023maximally`.
+Wannierization is standard in DFT codes and beneficial for excited-state calculations{cite}`haber2023maximally`.
 
 ### The Two-Particle Problem
 
-#### Excitonic Hamiltonian Construction
+#### Two-Particle Hamiltonian
 
-The description of excitonic effects requires constructing and solving the **two-particle Hamiltonian** $H_{2p}$, which consists of:
+Excitonic effects require the **two-particle Hamiltonian** {math}`H_{2p}`:
 
-1. **Single-Particle Terms**: Energy differences between valence and conduction states
-2. **Many-Body Kernel** $K$: Electron-hole interactions including:
+1. **Single-Particle Terms**: Valence-conduction energy differences
+2. **Many-Body Kernel** {math}`K`: Electron-hole interactions including:
    - Direct Coulomb interaction
    - Exchange interactions  
-   - Screening effects from the dielectric environment
+   - Dielectric screening effects
 
-#### Computational Strategies
+#### Computational Approaches
 
-The many-body kernel accounts for Coulomb interactions screened by the dielectric environment. Computing the dielectric screening function from first principles is computationally expensive, leading to two main approaches:
+Two strategies exist for the many-body kernel:
 
-1. **First-Principles Approach**: 
-   - Direct calculation of screening functions
-   - High accuracy but computationally demanding
-   - Suitable for small to medium systems
+1. **First-Principles**: Direct screening calculation (accurate but expensive)
+2. **Model-Based**: Model dielectric functions (efficient but requires validation)
 
-2. **Model-Based Approach**:
-   - Model dielectric functions and Coulomb potentials
-   - Computationally efficient
-   - Requires careful validation for complex systems
+#### Complex System Challenges
 
-#### Challenges in Complex Systems
-
-Traditional model approaches often fail for complex systems such as 2D van der Waals transition metal dichalcogenide heterostructures (TMD-HS) due to:
-- **Anisotropic Screening**: Different screening in different directions
-- **Interface Effects**: Modified dielectric properties at interfaces
-- **Quantum Confinement**: Dimensional effects on Coulomb interactions
+2D van der Waals heterostructures present difficulties:
+- **Anisotropic Screening**: Direction-dependent screening
+- **Interface Effects**: Modified dielectric properties
+- **Quantum Confinement**: Dimensional effects on interactions
 
 ### The QuREX Approach
 
 #### Maximally Localized Exciton Wannier Functions
 
-This documentation reviews the theoretical framework of **Maximally Localized Exciton Wannier Functions (MLXWF)** and describes the implementation in the [yambopy Python library](https://github.com/rreho/yambopy). Our method enables:
+The **Maximally Localized Exciton Wannier Functions (MLXWF)** framework implemented in yambopy enables:
 
-- **Flexible Hamiltonian Construction**: Build and solve $H_{2p}$ using various approaches
-- **Model Potentials**: Efficient calculations with validated model Coulomb potentials  
-- **First-Principles Integration**: Extract many-body kernel $K$ from ab initio calculations
-- **Real-Space Analysis**: Understand exciton localization and spatial properties
+- **Flexible Hamiltonian Construction**: Multiple approaches for building {math}`H_{2p}`
+- **Model Potentials**: Efficient calculations with validated Coulomb potentials  
+- **First-Principles Integration**: Extract kernel {math}`K` from ab initio calculations
+- **Real-Space Analysis**: Exciton localization and spatial properties
 
-#### Methodological Advantages
+#### Framework Advantages
 
-The QuREX framework provides:
-- **Computational Efficiency**: Reduced computational cost through Wannierization
-- **Physical Insight**: Real-space understanding of excitonic properties
-- **Flexibility**: Adaptable to different materials and conditions
-- **Accuracy**: Maintains first-principles accuracy where needed 
+QuREX provides:
+- **Computational Efficiency**: Reduced cost through Wannierization
+- **Physical Insight**: Real-space excitonic properties
+- **Flexibility**: Adaptable to different materials
+- **Accuracy**: Maintains first-principles accuracy 
 
 ## Gauge Issues in Nonlinear Optical Responses
 
-### The Long-Wavelength Approximation
+### Long-Wavelength Approximation
 
-In the study of nonlinear optical responses (NLOR), the **long-wavelength limit** is typically assumed. This approximation implies that the spatial dependence of the radiation electric field is neglected, leading to the dipole approximation where the electromagnetic field is treated as spatially uniform over the extent of the system.
-
-This approximation necessitates careful consideration of gauge choices, as different representations of the electromagnetic field can lead to different computational approaches{cite}`ventura2017gauge`.
+In nonlinear optical responses, the **long-wavelength limit** assumes spatially uniform electromagnetic fields (dipole approximation). This requires careful gauge choice considerations{cite}`ventura2017gauge`.
 
 ### Gauge Representations
 
-#### 1. Velocity Gauge (Vector Potential Approach)
+#### Velocity Gauge
 
-In the velocity gauge, the electric field is expressed in terms of the vector potential:
+Electric field via vector potential:
+```{math}
+:label: eq:vel-gauge
+\mathbf{E}(t) = -\frac{\partial \mathbf{A}(t)}{\partial t}
+```
 
-$$
-\mathbf{E}(t) = -\frac{\partial \mathbf{A}(t)}{\partial t} 
-$$ (eq:vel-gauge)
+**Advantages:** Preserves crystal symmetry, gauge invariant, physical interpretation  
+**Disadvantages:** Numerical divergences, computational complexity, slower convergence
 
-**Advantages:**
-- ✅ **Preserves Crystal Symmetry**: Maintains translational symmetry of the crystal
-- ✅ **Gauge Invariance**: Natural gauge-invariant formulation
-- ✅ **Physical Interpretation**: Direct connection to current operators
+#### Length Gauge  
 
-**Disadvantages:**
-- ❌ **Numerical Divergences**: Contains apparent divergences that must be shown to cancel
-- ❌ **Computational Complexity**: More complex numerical implementation
-- ❌ **Convergence Issues**: Slower convergence with respect to k-point sampling
-
-#### 2. Length Gauge (Dipole Approach)
-
-In the length gauge, the interaction is expressed through the position operator:
-
-$$
+Interaction via position operator:
+```{math}
+:label: eq:length-gauge
 V(\mathbf{r}) = e\mathbf{E}(t) \cdot \mathbf{r}
-$$ (eq:length-gauge)
+```
 
-**Advantages:**
-- ✅ **Numerical Stability**: No spurious divergences in practical calculations
-- ✅ **Computational Efficiency**: Simpler numerical implementation
-- ✅ **Faster Convergence**: Better convergence properties
-- ✅ **Standard Implementation**: Commonly used in actual calculations
-
-**Disadvantages:**
-- ❌ **Broken Translational Symmetry**: Violates crystal translational symmetry
-- ❌ **Surface Effects**: Can introduce artificial surface contributions
-- ❌ **Gauge Dependence**: Requires careful treatment of gauge issues
+**Advantages:** Numerical stability, computational efficiency, faster convergence  
+**Disadvantages:** Broken translational symmetry, surface effects, gauge dependence
 
 ### Gauge Transformation
 
-#### Unitary Transformation Between Gauges
+#### Gauge Transformation
 
-The two gauge representations are related by a unitary transformation $\mathcal{U}(t)$:
-
-$$
+Gauges are related by unitary transformation:
+```{math}
+:label: eq:gauge-transform
 \mathcal{U}(t) = \exp \left[i \frac{e}{\hbar} \int d^3\mathbf{r} \, \mathbf{A}(t) \cdot \mathbf{r} \, \rho(\mathbf{r})\right]
-$$ (eq:Uvel-lengthgauge)
+```
 
-where $\rho(\mathbf{r})$ is the charge density operator.
-
-#### Hamiltonian Transformation
-
-This unitary operator transforms the Hamiltonian from velocity gauge to length gauge:
-
-$$
+Hamiltonian transformation:
+```{math}
+:label: eq:hamiltonian-transform
 H_E(t) = \mathcal{U}(t) H_A(t) \mathcal{U}^{\dagger}(t) + i\hbar \frac{d\mathcal{U}(t)}{dt} \mathcal{U}^{\dagger}(t)
-$$ (eq:hamiltonian-transform)
+```
 
-#### Observable Transformation
-
-Similarly, observables transform according to:
-
-$$
+Observable transformation:
+```{math}
+:label: eq:observable-transform
 O_E(t) = \mathcal{U}(t) O_A(t) \mathcal{U}^{\dagger}(t)
-$$ (eq:observable-transform)
+```
 
 ### Practical Considerations
 
-#### Computational Strategy
-
-In practice, most calculations use the **length gauge** due to its numerical advantages, while ensuring that:
-
-1. **Gauge Invariance**: Physical results are independent of gauge choice
-2. **Proper Limits**: Correct behavior in appropriate limits
+Most calculations use **length gauge** for numerical advantages while ensuring:
+1. **Gauge Invariance**: Physical results independent of gauge choice
+2. **Proper Limits**: Correct behavior in appropriate limits  
 3. **Symmetry Restoration**: Careful treatment of broken symmetries
 
-#### Validation Approaches
-
-To ensure reliability, calculations should:
-- Compare results between different gauges when possible
-- Check gauge invariance of physical observables
-- Validate against experimental data
-- Use appropriate convergence criteria
+Validation requires comparing gauges, checking invariance, and validating against experiments.
 
 ### Applications in QuREX
 
-Within the QuREX framework, gauge considerations are particularly important for:
-- **Optical Matrix Elements**: Calculation of transition dipole moments
+Gauge considerations affect:
+- **Optical Matrix Elements**: Transition dipole moments
 - **Nonlinear Responses**: Higher-order optical processes
-- **Real-Space Analysis**: Spatial distribution of optical transitions
-- **Symmetry Analysis**: Group theory applications to optical properties
+- **Real-Space Analysis**: Spatial distribution of transitions
+- **Symmetry Analysis**: Group theory applications
 
-The choice of gauge affects both the computational implementation and the physical interpretation of results, making it a crucial consideration in excitonic calculations.
+Gauge choice affects both implementation and physical interpretation in excitonic calculations.
 
 # References
 
