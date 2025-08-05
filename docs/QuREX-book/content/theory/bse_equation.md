@@ -1,14 +1,30 @@
-# BSE Equation
+# Bethe-Salpeter Equation (BSE)
 
-## Bethe-Salpeter Equation (BSE) and Excitonic Effects
+## Introduction to the BSE Formalism
 
-The **Bethe-Salpeter Equation (BSE)** formalism is widely used in **many-body perturbation theory (MBPT)** to describe **neutral excitations** such as excitons. It extends the **[GW](GW) approximation** by incorporating electron-hole interactions, making it essential for calculating **optical spectra** with excitonic effects.
+The **Bethe-Salpeter Equation (BSE)** represents the cornerstone of modern theoretical spectroscopy, providing a rigorous framework within **many-body perturbation theory (MBPT)** to describe **neutral excitations** such as excitons, plasmons, and magnons. The BSE extends beyond the single-particle picture by incorporating crucial electron-hole interactions, making it indispensable for calculating **optical spectra** that accurately reproduce experimental observations.
 
-On this page, we follow the **Ai-MBPT formalism** {cite}`sangalli2019many, marini2009yambo` and reference its implementation in the **Yambo code**. The input variables related to this calculation can be found [here](../software/yambo/yambo_input_flags.md#bse-bsk).
+The BSE formalism builds upon the **[GW approximation](GW)** for quasiparticle energies, creating a comprehensive theoretical framework that bridges ground-state DFT calculations with excited-state properties. This approach has proven essential for understanding optical properties in a wide range of materials, from bulk semiconductors to low-dimensional systems.
+
+This chapter follows the **ab initio many-body perturbation theory (AI-MBPT) formalism**{cite}`sangalli2019many,marini2009yambo` as implemented in the **Yambo code**. For practical implementation details and input parameters, refer to the [Yambo BSE flags documentation](../software/yambo/yambo_input_flags.md#bse-bsk).
+
+## Theoretical Foundation
+
+### From Independent Particles to Correlated Excitations
+
+The transition from ground-state DFT to excited-state properties requires addressing two fundamental many-body effects:
+
+1. **Quasiparticle Corrections**: Modification of single-particle energies due to exchange-correlation effects (addressed by GW)
+2. **Excitonic Effects**: Electron-hole interactions that can dramatically modify optical spectra (addressed by BSE)
+
+The BSE provides a systematic way to include these correlated effects, transforming the independent-particle absorption spectrum into a realistic description that accounts for:
+- **Bound exciton states** below the quasiparticle gap
+- **Continuum resonances** above the gap
+- **Oscillator strength redistribution** due to many-body effects
 
 
 
-### Connection to the Optical Limit and Experiments
+### Connection to Experimental Observables
 - In the **optical limit** \( q = 0 \), we compute the system’s **response to light absorption**.
 - Solving the BSE provides **exciton energies and wavefunctions**, enabling **optical spectra** calculations, which can be directly compared to experimental **absorption spectra** and **electron energy loss spectra (EELS)**.
 

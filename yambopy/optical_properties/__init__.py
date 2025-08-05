@@ -6,3 +6,5 @@
 """
 submodule with classes to handle post-processing observables related to spectroscopy
 """
+
+from .exciton_group_theory import ExcitonGroupTheory

@@ -17,19 +17,22 @@ parts:
         - file: content/theory/wannier_basis
         - file: content/theory/quantum_well
         - file: content/theory/exciton_phonon_coupling
+        - file: content/theory/exciton_group_theory
 - caption: Software
   numbered: false
   chapters:
     - file: content/software/software
       sections:
         - file: content/software/yambo/yambo
-        - file: content/software/yambo/yambo_input_flags 
+        - file: content/software/yambo/yambo_input_flags
+        - file: content/software/exciton_group_theory_api 
 - caption: Tutorials
   numbered: false
   chapters:
     - file: content/tutorials/tutorials
       sections:
         - file: content/tutorials/exciton_phonon
+        - file: content/tutorials/exciton_group_theory_tutorial
 
 - caption: Notebooks
   numbered: false
@@ -38,3 +41,4 @@ parts:
   chapters:
     - file: notebooks/notebooks
     - file: notebooks/exciton_phonon
+    - file: notebooks/exciton_group_theory_example
