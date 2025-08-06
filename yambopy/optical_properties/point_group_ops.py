@@ -67,16 +67,8 @@ def get_pg_info(symm_mats):
     sym_tree = KDTree(pg_sym_mats.reshape(order, -1))
     distance, idx = sym_tree.query(symm_mats_transformed.reshape(order, -1),
                                    k=1)
-    # Note: We use lenient tolerance because our symmetry matrices use different
-    # axis conventions than the reference implementation. The transformation matrix
-    # approach assumes both sets can be related by a single rotation, but our
-    # different axis choices (θ = i*π/n vs i*2π/n) make this impossible.
-    # This doesn't affect the physics - character tables and irreps are identical.
-    assert np.max(distance) < 2.0  # Lenient tolerance due to different axis conventions
-    # Skip uniqueness check - some reference matrices map to the same target due to
-    # axis convention differences. This is acceptable since the final group theory
-    # analysis produces correct results.
-    # assert len(np.unique(idx)) == order  # Would fail due to axis convention differences
+    assert np.max(distance) < 1e-4, f"Max distance {np.max(distance)} exceeds tolerance"
+    assert len(np.unique(idx)) == order, f"Non-unique mapping: {len(np.unique(idx))}/{order}"
     ctab = pg_to_chartab(pg_label)
     classes = ctab.classes
     irreps = ctab.irreps
@@ -97,11 +89,8 @@ def decompose_rep2irrep(red_rep, char_table, pg_order, class_order,
     assert np.abs(irrep_coeff.imag).max() < 1e-3, print(
         np.abs(irrep_coeff.imag).max())
     irrep_coeff = irrep_coeff.real
-    # More lenient tolerance due to axis convention differences in transformation
-    if np.abs(irrep_coeff-np.rint(irrep_coeff)).max() > 1e-3:
-        print(f"Warning: Irrep coefficients not close to integers (max diff: {np.abs(irrep_coeff-np.rint(irrep_coeff)).max()})")
-        print("This is due to axis convention differences in the transformation matrix")
-    # assert np.abs(irrep_coeff-np.rint(irrep_coeff)).max() < 1e-3
+    assert np.abs(irrep_coeff-np.rint(irrep_coeff)).max() < 1e-3, \
+        f"Irrep coefficients not close to integers: {np.abs(irrep_coeff-np.rint(irrep_coeff)).max()}"
     irrep_coeff = np.rint(irrep_coeff).astype(int)
     rep_string = ''
     for i in range(len(irrep_labels)):
@@ -694,25 +683,30 @@ def generate_Sn(n, S2n=False):
 
 def generate_sigma_v(n):
     if n % 2 == 0:
-        nn = n >> 1
+        nsigma_vs = n >> 1
     else:
-        nn = n
+        nsigma_vs = n
     symels = []
-    x_axis = np.asarray([1, 0, 0])  # Orient sigma_v along x-axis (standard convention)
-    rot_mat = Cn([0, 0, 1], n)      # Rotation matrix for 2π/n around z-axis
-    for i in range(nn):
-        axis = np.dot(matrix_power(rot_mat, i), x_axis)  # Rotate x-axis by i*(2π/n)
+    x_axis = np.asarray([1, 0, 0])  # Orient C2 and sigma_v along x-axis
+    z_axis = np.asarray([0, 0, 1])
+    rot_mat = Cn(z_axis, n)
+    for i in range(nsigma_vs):
+        axis = np.cross(np.dot(matrix_power(rot_mat, i), x_axis), z_axis)
         symels.append(Symel(f"sigma_v({i+1})", axis, reflection_matrix(axis)))
     return symels
 
 
 def generate_sigma_d(n):
     symels = []
+    x_axis = np.asarray([1, 0, 0])  # Orient C2 and sigma_v along x-axis
+    z_axis = np.asarray([0, 0, 1])
+    rot_mat = Cn(z_axis, 2 * n)
+    base_axis = np.dot(
+        Cn(z_axis, 4 * n),
+        x_axis)  # Rotate x-axis by Cn/2 to produce an axis for sigma_d's
     for i in range(n):
-        theta = (2 * i + 1) * np.pi / (2 * n)
-        axis = np.asarray([np.cos(theta), np.sin(theta), 0])
-        symels.append(Symel(f"sigma_d_{i+1:d}", axis,
-                            reflection_matrix(axis)))  # sigma_ds
+        axis = np.cross(np.dot(matrix_power(rot_mat, i), base_axis), z_axis)
+        symels.append(Symel(f"sigma_d({i+1})", axis, reflection_matrix(axis)))
     return symels
 
 
@@ -722,7 +716,7 @@ def generate_C2p(n):
     else:
         nn = n
     symels = []
-    x_axis = np.asarray([1, 0, 0])  # Orient C2 along x-axis (standard convention)
+    x_axis = np.asarray([1, 0, 0])  # Orient C2 along x-axis 
     rot_mat = Cn([0, 0, 1], n)      # Rotation matrix for 2π/n around z-axis
     for i in range(nn):
         axis = np.dot(matrix_power(rot_mat, i), x_axis)  # Rotate x-axis by i*(2π/n)

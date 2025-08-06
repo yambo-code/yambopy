@@ -169,14 +169,14 @@ class ExcitonGroupTheory(object):
         self.qpts = self.lelph_db.qpoints
         self.elph_bnds_range = self.lelph_db.bands
 
-        # Read D-matrices (following yambopy conventions)
+        # Read D-matrices
         nbnds = max(bands_range)-min(bands_range)
         start_bnd_idx = 0
         end_bnd = start_bnd_idx + nbnds
         self.Dmats = self.wfdb.Dmat()[:,:,0,:,:]
         self.bands_range = bands_range
 
-        # Handle symmetry matrices and kmap (following yambopy conventions)
+        # Handle symmetry matrices and kmap
         if not self.read_symm_from_ns_db_file:
             try:
                 elph_file = Dataset(ndb_lelph_fname, 'r')
@@ -208,7 +208,7 @@ class ExcitonGroupTheory(object):
         self.kpt_tree = self.wfdb.ktree
         #self.kpt_tree = build_ktree(self.kpts)
         
-        # Compute symmetry matrices in reduced coordinates (following yambopy conventions)
+        # Compute symmetry matrices in reduced coordinates
         temp = np.matmul(self.symm_mats, self.blat_vecs)  # shape (n, j, l)
         # temp: (n, j, l)
         # lat_vecs: (i, j)
@@ -319,7 +319,7 @@ class ExcitonGroupTheory(object):
             tau_dot_k = np.exp(1j * 2 * np.pi *
                               np.dot(self.kpts_iBZ[iQ - 1], self.frac_trans[isym]))
             
-            # Rotate exciton wavefunction (following yambopy conventions)
+            # Rotate exciton wavefunction
             wfc_tmp = rotate_exc_wf(
                 BS_wfcs,
                 self.sym_red[isym],
