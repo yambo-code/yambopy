@@ -86,7 +86,7 @@ class ExcitonGroupTheory(object):
     
     def __init__(self, path=None, save='SAVE', lelph_db=None, latdb=None, wfdb=None, 
                  bands_range=[], BSE_dir='bse', LELPH_dir='lelph', 
-                 read_symm_from_ns_db_file=False):
+                 read_symm_from_ns_db_file=True):
         if path is None:
             path = os.getcwd()        
         self.path = path
