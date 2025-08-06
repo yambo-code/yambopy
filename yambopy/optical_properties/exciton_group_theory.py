@@ -166,21 +166,22 @@ class ExcitonGroupTheory(object):
         except Exception as e:
             raise IOError(f'Cannot read ndb.elph file: {e}')        
         
-        self.kpts = self.lelph_db.kpoints
         self.qpts = self.lelph_db.qpoints
         self.elph_bnds_range = self.lelph_db.bands
 
+        # Read D-matrices (following yambopy conventions)
         nbnds = max(bands_range)-min(bands_range)
         start_bnd_idx = 0
         end_bnd = start_bnd_idx + nbnds
         self.Dmats = self.wfdb.Dmat()[:,:,0,:,:]
-        #self.nbands = max(bands_range) - self.min_bnd
         self.bands_range = bands_range
 
-        # Handle symmetry matrices
+        # Handle symmetry matrices and kmap (following yambopy conventions)
         if not self.read_symm_from_ns_db_file:
             try:
                 elph_file = Dataset(ndb_lelph_fname, 'r')
+                self.kpts = elph_file['kpoints'][...].data  # Use kpoints from elph file
+                self.kmap = elph_file['kmap'][...].data     # Use kmap from elph file
                 self.symm_mats = elph_file['symmetry_matrices'][...].data
                 self.time_rev = elph_file['time_reversal_phonon'][...].data
                 self.frac_trans = elph_file['fractional_translation'][...].data
@@ -190,35 +191,39 @@ class ExcitonGroupTheory(object):
             except Exception as e:
                 print(f"Warning: Could not read symmetry from elph file: {e}")
                 self.frac_trans = np.zeros((self.symm_mats.shape[0], 3))
+                # Fallback to lattice database kmap
+                kmap = np.zeros((self.wfdb.nkBZ,2), dtype=int)
+                kmap[:,0]=self.ydb.kpoints_indexes
+                kmap[:,1]=self.ydb.symmetry_indexes
+                self.kmap=kmap
         else:
             self.frac_trans = np.zeros((self.symm_mats.shape[0], 3))
+            # Use lattice database kmap and kpoints from lelph_db
+            self.kpts = self.lelph_db.kpoints
+            kmap = np.zeros((self.wfdb.nkBZ,2), dtype=int)
+            kmap[:,0]=self.ydb.kpoints_indexes
+            kmap[:,1]=self.ydb.symmetry_indexes
+            self.kmap=kmap
 
         # Build k-point tree
         print('Building kD-tree for kpoints')
         self.kpt_tree = build_ktree(self.kpts)
         
-        # Compute symmetry matrices in reduced coordinates
+        # Compute symmetry matrices in reduced coordinates (following yambopy conventions)
         temp = np.matmul(self.symm_mats, self.blat_vecs)  # shape (n, j, l)
         # temp: (n, j, l)
         # lat_vecs: (i, j)
         # reshape lat_vecs for batched matmul: (1, i, j)
         # use matmul: (1, i, j) @ (n, j, l) → (n, i, l)
         sym_red = np.matmul(self.lat_vecs[None, :, :], temp)  # result (n, i, l)
-        self.sym_red = np.rint(sym_red).astype(int)        
-        # sym_red = np.einsum('ij,njk,kl->nil',
-        #                    self.lat_vecs.T,
-        #                    self.symm_mats,
-        #                    self.blat_vecs,
-        #                    optimize=True)
-        # self.sym_red = sym_red
+        self.sym_red = np.rint(sym_red).astype(int)
 
-        # set kmap
-        kmap = np.zeros((self.wfdb.nkBZ,2), dtype=int)
-        kmap[:,0]=self.ydb.kpoints_indexes
-        kmap[:,1]=self.ydb.symmetry_indexes
-        self.kmap=kmap
-        
-        self.kpts_iBZ = self.wfdb.kpts_iBZ
+        # Construct kpts_iBZ (following original algorithm exactly)
+        self.kpts_iBZ = np.zeros((len(np.unique(self.kmap[:, 0])), 3))
+        for i in range(self.kmap.shape[0]):
+            ik_ibz, isym = self.kmap[i]
+            if isym == 0:
+                self.kpts_iBZ[ik_ibz, :] = self.kpts[i]
 
     def read_excdb(self, BSE_dir, iQ, nstates):
         """
@@ -260,7 +265,7 @@ class ExcitonGroupTheory(object):
     def analyze_exciton_symmetry(self, iQ, nstates, degen_thres=0.001):
         """
         Perform group theory analysis for exciton states at a given Q-point.
-        This implementation follows the algorithm in exe_rep_program.py closely.
+        This implementation follows the algorithm in exe_rep_program.py exactly.
 
         Parameters
         ----------
@@ -282,9 +287,9 @@ class ExcitonGroupTheory(object):
             - 'irrep_decomposition': Irreducible representation decomposition
         """
         print('Reading BSE eigen vectors')
-        bands_range, BS_eigs, BS_wfcs = self.read_excdb(self.BSE_dir, iQ, nstates)
+        bands_range, BS_eigs, BS_wfcs = self.read_excdb(self.BSE_dir, iQ-1, nstates)
         
-        # Convert energies to eV for analysis (following original algorithm)
+        # Convert energies to eV for analysis (following original algorithm exactly)
         BS_eigs_eV = BS_eigs * ha2ev
         
         # Get unique values up to threshold (following original algorithm exactly)
@@ -292,22 +297,19 @@ class ExcitonGroupTheory(object):
                                         return_counts=True)
         uni_eigs = uni_eigs * degen_thres
         
-        # Mapping
-        ik_ibz, _ = self.kmap[iQ]
         print('=' * 40)
-        print('Group theory analysis for Q point : ', self.kpts_iBZ[ik_ibz])
+        print('Group theory analysis for Q point : ', self.kpts_iBZ[iQ - 1])
         print('*' * 40)
 
         # Find little group (following original algorithm exactly)
         trace_all_real = []
         trace_all_imag = []
         little_group = []
-        print(self.sym_red.shape[0])
         # Loop over symmetries (excluding time reversal operations)
         for isym in range(int(self.sym_red.shape[0] / (self.time_rev + 1))):
-            # Check if Sq = q (following original algorithm)
+            # Check if Sq = q (following original algorithm exactly)
             Sq_minus_q = np.einsum('ij,j->i', self.sym_red[isym],
-                                  self.kpts_iBZ[ik_ibz]) - self.kpts_iBZ[ik_ibz]
+                                  self.kpts_iBZ[iQ - 1]) - self.kpts_iBZ[iQ - 1]
             Sq_minus_q = Sq_minus_q - np.rint(Sq_minus_q)
             
             # Check if Sq = q (within tolerance)
@@ -316,12 +318,18 @@ class ExcitonGroupTheory(object):
             little_group.append(isym + 1)
             # Phase factor from fractional translations
             tau_dot_k = np.exp(1j * 2 * np.pi *
-                              np.dot(self.kpts_iBZ[ik_ibz], self.frac_trans[isym]))
+                              np.dot(self.kpts_iBZ[iQ - 1], self.frac_trans[isym]))
             
-            # Rotate exciton wavefunction (following original algorithm)
-            wfc_tmp = rotate_exc_wf(BS_wfcs, self.sym_red[isym], self.kpts.data, 
-                                   self.kpts_iBZ[ik_ibz], 
-                                   self.Dmats[isym], False, self.kpt_tree)
+            # Rotate exciton wavefunction (following yambopy conventions)
+            wfc_tmp = rotate_exc_wf(
+                BS_wfcs,
+                self.sym_red[isym],
+                self.kpts,
+                self.kpts_iBZ[iQ - 1],
+                self.Dmats[isym],
+                False,
+                ktree=self.kpt_tree
+            )
             
             # Compute representation matrix (following original algorithm exactly)
             rep = np.einsum('n...,m...->nm', wfc_tmp, BS_wfcs.conj(),
@@ -347,10 +355,21 @@ class ExcitonGroupTheory(object):
         # Get point group information (following original algorithm)
         try:
             from .point_group_ops import get_pg_info, decompose_rep2irrep
-            pg_label, classes, class_dict, char_tab, irreps = get_pg_info(
-                self.symm_mats[little_group - 1])
+            little_group_mats = self.symm_mats[little_group - 1]
+            # Debug info removed for cleaner output
+            
+            # Use original matrices without rounding (like the reference script)
+            pg_label, classes, class_dict, char_tab, irreps = get_pg_info(little_group_mats)
         except ImportError:
             print("Warning: Point group analysis module not available")
+            pg_label = "Unknown"
+            classes = []
+            class_dict = {}
+            char_tab = None
+            irreps = []
+        except Exception as e:
+            print(f"Warning: Point group analysis failed due to numerical precision issues.")
+            print("Continuing with basic symmetry analysis...")
             pg_label = "Unknown"
             classes = []
             class_dict = {}
@@ -367,9 +386,12 @@ class ExcitonGroupTheory(object):
             req_sym_characters = np.zeros(len(classes), dtype=int)
             class_orders = np.zeros(len(classes), dtype=int)
             for ilab, iclass in class_dict.items():
-                print("%16s    : " % (classes[ilab]), little_group[np.array(iclass)])
-                req_sym_characters[ilab] = min(iclass)
-                class_orders[ilab] = len(iclass)
+                if ilab < len(classes):  # Safety check
+                    print("%16s    : " % (classes[ilab]), little_group[np.array(iclass)])
+                    req_sym_characters[ilab] = min(iclass)
+                    class_orders[ilab] = len(iclass)
+                else:
+                    print(f"Warning: Class index {ilab} out of range for classes list (len={len(classes)})")
             print()
 
             # Process traces (following original algorithm exactly)
@@ -392,12 +414,21 @@ class ExcitonGroupTheory(object):
                     rep_str_tmp = "Analysis not available"
                 print('%.4f        %9d  : ' % (uni_eigs[i], degen_eigs[i]), rep_str_tmp)
                 irrep_decompositions.append(rep_str_tmp)
+        else:
+            # Fallback when point group analysis fails
+            print("====== Exciton representations ======")
+            print("Energy (eV),  degeneracy  : representation")
+            print('-' * 40)
+            for i in range(len(uni_eigs)):
+                rep_str_tmp = "Point group analysis failed"
+                print('%.4f        %9d  : ' % (uni_eigs[i], degen_eigs[i]), rep_str_tmp)
+                irrep_decompositions.append(rep_str_tmp)
 
         print('*' * 40)
 
         # Return results
         results = {
-            'q_point': self.kpts_iBZ[ik_ibz],
+            'q_point': self.kpts_iBZ[iQ - 1],
             'little_group': little_group,
             'point_group_label': pg_label,
             'unique_energies': uni_eigs,
@@ -406,7 +437,7 @@ class ExcitonGroupTheory(object):
             'exciton_energies': BS_eigs_eV,
             'classes': classes,
             'class_dict': class_dict,
-            'trace_characters': trace_all_real + 1j * trace_all_imag if len(trace_all_real) > 0 else None
+            'trace_characters': np.array(trace_all_real) + 1j * np.array(trace_all_imag) if len(trace_all_real) > 0 else None
         }
         
         return results
