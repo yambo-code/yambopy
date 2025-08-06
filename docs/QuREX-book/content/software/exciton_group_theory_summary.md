@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `ExcitonGroupTheory` class has been **significantly improved** in Yambopy to provide comprehensive group theory analysis of exciton states in crystalline materials. The implementation has been **completely rewritten** to follow the original algorithm from MN exactly, ensuring **maximum accuracy** and **algorithmic fidelity**. This implementation enables researchers to understand the symmetry properties, optical selection rules, and degeneracies of excitonic states with unprecedented precision.
+The `ExcitonGroupTheory` class has been **implemented** in Yambopy to provide comprehensive group theory analysis of exciton states in crystalline materials. The implementation has been **completely rewritten** to follow the original algorithm from MN exactly, ensuring **maximum accuracy** and **algorithmic fidelity**. This implementation enables researchers to understand the symmetry properties, optical selection rules, and degeneracies of excitonic states with unprecedented precision.
 
 ## Key Features
 
@@ -20,51 +20,6 @@ The `ExcitonGroupTheory` class has been **significantly improved** in Yambopy to
 - **Optical Selection Rules**: Identifies bright vs. dark exciton states
 - **Degeneracy Analysis**: Groups states by energy with configurable thresholds
 - **Symmetry Breaking**: Detects and analyzes symmetry-breaking effects
-
-## Major Improvements (2024)
-
-### Algorithm Fidelity
-- **Complete rewrite** of `point_group_ops.py` to match the original implementation exactly
-- **Preserved all variable names** and computational patterns from the reference code
-- **Maintained exact numerical tolerances** and thresholds
-- **Identical point group classification logic** following the crystallographic flowchart
-
-### Performance Optimizations
-- **Eliminated unnecessary array copies** throughout the codebase
-- **Optimized numpy operations** using `einsum` with `optimize=True`
-- **Reduced memory allocations** in matrix operations
-- **Enhanced KDTree usage** for efficient symmetry matrix matching
-
-### Code Quality Improvements
-- **Enhanced readability** while preserving algorithmic structure
-- **Consistent optimization patterns** across all modules
-- **Maintained backward compatibility** with existing workflows
-- **Comprehensive documentation** updates reflecting improvements
-
-## Implementation Details
-
-### Core Components
-
-1. **ExcitonGroupTheory Class** (`exciton_group_theory.py`)
-   - **Updated `analyze_exciton_symmetry()`** to follow `exe_rep_program.py` exactly
-   - **Preserved all variable names**: `trace_all_real`, `trace_all_imag`, `little_group`, etc.
-   - **Maintained exact computational steps** and einsum operations
-   - **Enhanced error handling** and user feedback
-
-2. **Point Group Operations** (`point_group_ops.py`) - **COMPLETELY REWRITTEN**
-   - **Exact reproduction** of original algorithms:
-     - `find_symm_axis()` - Symmetry axis finding with identical logic
-     - `get_point_grp()` - Point group classification using original flowchart
-     - `find_axis_angle()` - Rotation axis and angle determination
-     - `fix_axis_angle_gauge()` - Axis gauge fixing convention
-   - **Enhanced character table database** for common point groups
-   - **Optimized matrix operations** for rotations, reflections, and inversions
-
-3. **Comprehensive Testing** (`test_exciton_group_theory.py`)
-   - **Expanded test coverage** for all mathematical operations
-   - **Integration tests** for complete workflows
-   - **Performance benchmarks** for optimization validation
-   - **Mock testing** for development without data files
 
 ### Mathematical Foundation
 
@@ -99,7 +54,7 @@ The implementation is based on solid group theory principles:
 - **Error handling**: Exception types and solutions
 
 ### 4. Example Implementation
-- **`exciton_group_theory_example.py`**: Practical example script
+- **`exciton_group_theory_example.ipymb`**: Practical example notebook
 - **Real-world usage**: Demonstrates typical analysis workflow
 - **Best practices**: Shows recommended usage patterns
 
@@ -133,30 +88,6 @@ print(f"Point group: {results['point_group_label']}")
 - **Optical property prediction**: Determine selection rules and polarizations
 
 ## Specific Optimizations Implemented
-
-### Memory Efficiency Improvements
-
-#### Wavefunction Database (`yambopy/dbs/wfdb.py`)
-```python
-# Before:
-wfc_rot = wfc_k.copy()
-
-# After:
-wfc_rot = wfc_k if not time_rev else wfc_k.copy()
-```
-- **Avoided unnecessary copying** when time reversal is not applied
-- **Reduced memory usage** for large wavefunction arrays
-
-#### Nonlinear Optics Modules
-```python
-# Before:
-T_range_initial = np.copy(T_range)
-
-# After:
-T_range_initial = np.array(T_range)
-```
-- **Eliminated redundant copy operations** in `sum_frequencies.py` and `harmonic_analysis.py`
-- **Used array constructor** for clarity and efficiency
 
 ### Algorithmic Optimizations
 

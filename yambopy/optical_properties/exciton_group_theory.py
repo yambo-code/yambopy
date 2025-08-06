@@ -205,9 +205,8 @@ class ExcitonGroupTheory(object):
             kmap[:,1]=self.ydb.symmetry_indexes
             self.kmap=kmap
 
-        # Build k-point tree
-        print('Building kD-tree for kpoints')
-        self.kpt_tree = build_ktree(self.kpts)
+        self.kpt_tree = self.wfdb.ktree
+        #self.kpt_tree = build_ktree(self.kpts)
         
         # Compute symmetry matrices in reduced coordinates (following yambopy conventions)
         temp = np.matmul(self.symm_mats, self.blat_vecs)  # shape (n, j, l)

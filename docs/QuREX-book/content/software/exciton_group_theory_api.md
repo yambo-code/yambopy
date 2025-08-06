@@ -283,20 +283,6 @@ egt.save_analysis_results(results, 'my_analysis.txt')
 
 The point group operations module has been **completely rewritten** to follow the original algorithm from MN. This ensures **maximum accuracy** and **algorithmic fidelity** for symmetry analysis.
 
-### Key Improvements
-
-#### Algorithm Fidelity
-- **Exact reproduction** of the original `find_symm_axis()` algorithm
-- **Preserved numerical tolerances** and computational patterns
-- **Maintained variable names** and function signatures from the reference implementation
-- **Identical point group classification logic** following crystallographic flowchart
-
-#### Performance Optimizations
-- **Optimized numpy operations** using `einsum` with `optimize=True`
-- **Reduced memory allocations** in matrix operations
-- **Efficient KDTree usage** for symmetry matrix matching
-- **Eliminated unnecessary array copies** throughout the codebase
-
 ### Functions
 
 #### get_pg_info()
@@ -349,12 +335,12 @@ irrep_coeff = np.einsum('j,j,rj->r', class_order, red_rep, char_table, optimize=
 
 #### Core Algorithm Functions
 
-| Function | Description | Algorithm Source |
-|----------|-------------|------------------|
-| `find_symm_axis(sym_mats)` | Find symmetry axes and n-fold values | **Exact copy from original** |
-| `get_point_grp(symm_mats)` | Classify point group using flowchart | **Follows original logic exactly** |
-| `find_axis_angle(Rmat)` | Extract rotation axis and angle | **Preserved original algorithm** |
-| `fix_axis_angle_gauge(axis, nfold)` | Fix axis gauge convention | **Maintained original implementation** |
+| Function | Description |
+|----------|-------------|
+| `find_symm_axis(sym_mats)` | Find symmetry axes and n-fold values | 
+| `get_point_grp(symm_mats)` | Classify point group using flowchart | 
+| `find_axis_angle(Rmat)` | Extract rotation axis and angle | 
+| `fix_axis_angle_gauge(axis, nfold)` | Fix axis gauge convention |
 
 #### Utility Functions
 
@@ -459,77 +445,6 @@ Generate symmetry elements for point groups. **Follows original MolSym structure
 | Medium (100-500 atoms) | `nstates=10`, `bands_range=[1,20]` | 1-10 minutes |
 | Large (> 500 atoms) | `nstates=5`, `bands_range=[1,15]` | 10+ minutes |
 
-## Integration with Other Tools
-
-### Yambo Integration
-
-```python
-# Use with Yambo post-processing
-from yambopy.bse import YamboExcitonDB
-from yambopy.dbs import YamboLatticeDB
-
-# Pre-load databases for efficiency
-latdb = YamboLatticeDB.from_db_file('SAVE/ns.db1', Expand=True)
-egt = ExcitonGroupTheory(latdb=latdb)
-```
-
-### Visualization Integration
-
-```python
-# Integration with matplotlib
-import matplotlib.pyplot as plt
-
-def plot_symmetry_analysis(results):
-    fig, ax = plt.subplots()
-    energies = results['unique_energies']
-    degeneracies = results['degeneracies']
-    
-    ax.scatter(range(len(energies)), energies, s=degeneracies*50)
-    ax.set_xlabel('Level Index')
-    ax.set_ylabel('Energy (eV)')
-    ax.set_title(f"Exciton Levels - {results['point_group_label']}")
-    return fig
-```
-
-### Export to Other Formats
-
-```python
-# Export to JSON
-import json
-
-def export_to_json(results, filename):
-    # Convert numpy arrays to lists for JSON serialization
-    json_results = {}
-    for key, value in results.items():
-        if isinstance(value, np.ndarray):
-            json_results[key] = value.tolist()
-        else:
-            json_results[key] = value
-    
-    with open(filename, 'w') as f:
-        json.dump(json_results, f, indent=2)
-
-# Export to CSV
-import pandas as pd
-
-def export_to_csv(results, filename):
-    df = pd.DataFrame({
-        'Energy_eV': results['unique_energies'],
-        'Degeneracy': results['degeneracies'],
-        'Irrep': results['irrep_decomposition']
-    })
-    df.to_csv(filename, index=False)
-```
-
-## Version History and Compatibility
-
-### Version Requirements
-
-- **Python**: ≥ 3.7
-- **NumPy**: ≥ 1.18
-- **SciPy**: ≥ 1.5
-- **netCDF4**: ≥ 1.5
-- **Yambopy**: Latest version
 
 ### Compatibility Notes
 
