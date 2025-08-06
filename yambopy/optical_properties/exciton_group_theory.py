@@ -139,13 +139,12 @@ class ExcitonGroupTheory(object):
 
         # Read wavefunction database
         try:
-            ns_wfdb_fname = os.path.join(SAVE_dir, 'ns.wf')
             if wfdb:
                 if not hasattr(wfdb, 'save_Dmat'): 
                     wfdb.Dmat()
                 self.wfdb = wfdb
             else:
-                self.wfdb = YamboWFDB(filename=ns_wfdb_fname, 
+                self.wfdb = YamboWFDB(path = self.path, save='SAVE', filename='ns.wf', 
                                     latdb=self.ydb, bands_range=bands_range)  
         except Exception as e:
             raise IOError(f'Cannot read ns.wf file: {e}')
@@ -171,26 +170,12 @@ class ExcitonGroupTheory(object):
         self.qpts = self.lelph_db.qpoints
         self.elph_bnds_range = self.lelph_db.bands
 
-        # Read D-matrices for wavefunction rotation
-        try:
-            ndb_dmats_fname = os.path.join(self.LELPH_dir, 'ndb.Dmats')
-            Dmat_data = Dataset(ndb_dmats_fname, 'r')
-            
-            if bands_range:
-                min_bnd = min(bands_range)
-                max_bnd = max(bands_range)
-                nbnds = max_bnd - min_bnd
-                start_bnd_idx = min_bnd - min(self.elph_bnds_range)
-                end_bnd = start_bnd_idx + nbnds
-                self.Dmats = Dmat_data['Dmats'][:, :, 0, start_bnd_idx:end_bnd,
-                                               start_bnd_idx:end_bnd, :].data
-            else:
-                self.Dmats = Dmat_data['Dmats'][:, :, 0, :, :, :].data
-                
-            self.Dmats = self.Dmats[..., 0] + 1j * self.Dmats[..., 1]
-            Dmat_data.close()
-        except Exception as e:
-            raise IOError(f'Cannot read ndb.Dmats file: {e}')
+        nbnds = max(bands_range)-min(bands_range)
+        start_bnd_idx = 0
+        end_bnd = start_bnd_idx + nbnds
+        self.Dmats = self.wfdb.Dmat()[:,:,0,:,:]
+        #self.nbands = max(bands_range) - self.min_bnd
+        self.bands_range = bands_range
 
         # Handle symmetry matrices
         if not self.read_symm_from_ns_db_file:
@@ -213,25 +198,27 @@ class ExcitonGroupTheory(object):
         self.kpt_tree = build_ktree(self.kpts)
         
         # Compute symmetry matrices in reduced coordinates
-        sym_red = np.einsum('ij,njk,kl->nil',
-                           self.lat_vecs.T,
-                           self.symm_mats,
-                           self.blat_vecs,
-                           optimize=True)
-        self.sym_red = sym_red
+        temp = np.matmul(self.symm_mats, self.blat_vecs)  # shape (n, j, l)
+        # temp: (n, j, l)
+        # lat_vecs: (i, j)
+        # reshape lat_vecs for batched matmul: (1, i, j)
+        # use matmul: (1, i, j) @ (n, j, l) → (n, i, l)
+        sym_red = np.matmul(self.lat_vecs[None, :, :], temp)  # result (n, i, l)
+        self.sym_red = np.rint(sym_red).astype(int)        
+        # sym_red = np.einsum('ij,njk,kl->nil',
+        #                    self.lat_vecs.T,
+        #                    self.symm_mats,
+        #                    self.blat_vecs,
+        #                    optimize=True)
+        # self.sym_red = sym_red
 
-        # Get IBZ k-points
-        kmap = np.zeros((len(self.kpts), 2), dtype=int)
-        for i in range(len(self.kpts)):
-            # Find which IBZ k-point this belongs to
-            kmap[i, 0] = i % self.nibz  # This is a simplified mapping
-            kmap[i, 1] = 0  # Symmetry index
+        # set kmap
+        kmap = np.zeros((self.wfdb.nkBZ,2), dtype=int)
+        kmap[:,0]=self.ydb.kpoints_indexes
+        kmap[:,1]=self.ydb.symmetry_indexes
+        self.kmap=kmap
         
-        self.kpts_ibz = np.zeros((self.nibz, 3))
-        for i in range(len(self.kpts)):
-            ik_ibz, isym = kmap[i]
-            if isym == 0:
-                self.kpts_ibz[ik_ibz, :] = self.kpts[i]
+        self.kpts_iBZ = self.wfdb.kpts_iBZ
 
     def read_excdb(self, BSE_dir, iQ, nstates):
         """
@@ -257,7 +244,7 @@ class ExcitonGroupTheory(object):
         """
         try:
             bse_db_iq = YamboExcitonDB.from_db_file(self.ydb, folder=BSE_dir,
-                                                   filename=f'ndb.BS_diago_Q{iQ}')
+                                                   filename=f'ndb.BS_diago_Q{iQ+1}')
         except Exception as e:
             raise IOError(f'Cannot read ndb.BS_diago_Q{iQ} file: {e}')
             
@@ -305,36 +292,36 @@ class ExcitonGroupTheory(object):
                                         return_counts=True)
         uni_eigs = uni_eigs * degen_thres
         
+        # Mapping
+        ik_ibz, _ = self.kmap[iQ]
         print('=' * 40)
-        print('Group theory analysis for Q point : ', self.kpts_ibz[iQ - 1])
+        print('Group theory analysis for Q point : ', self.kpts_iBZ[ik_ibz])
         print('*' * 40)
-        
+
         # Find little group (following original algorithm exactly)
         trace_all_real = []
         trace_all_imag = []
         little_group = []
-        
+        print(self.sym_red.shape[0])
         # Loop over symmetries (excluding time reversal operations)
         for isym in range(int(self.sym_red.shape[0] / (self.time_rev + 1))):
             # Check if Sq = q (following original algorithm)
             Sq_minus_q = np.einsum('ij,j->i', self.sym_red[isym],
-                                  self.kpts_ibz[iQ - 1]) - self.kpts_ibz[iQ - 1]
+                                  self.kpts_iBZ[ik_ibz]) - self.kpts_iBZ[ik_ibz]
             Sq_minus_q = Sq_minus_q - np.rint(Sq_minus_q)
             
             # Check if Sq = q (within tolerance)
             if np.linalg.norm(Sq_minus_q) > 1e-5:
                 continue
-                
             little_group.append(isym + 1)
-            
             # Phase factor from fractional translations
             tau_dot_k = np.exp(1j * 2 * np.pi *
-                              np.dot(self.kpts_ibz[iQ - 1], self.frac_trans[isym]))
+                              np.dot(self.kpts_iBZ[ik_ibz], self.frac_trans[isym]))
             
             # Rotate exciton wavefunction (following original algorithm)
-            wfc_tmp = rotate_exc_wf(BS_wfcs, self.sym_red[isym], self.kpts, 
-                                   self.kpt_tree, self.kpts_ibz[iQ-1], 
-                                   self.Dmats[isym], False)
+            wfc_tmp = rotate_exc_wf(BS_wfcs, self.sym_red[isym], self.kpts.data, 
+                                   self.kpts_iBZ[ik_ibz], 
+                                   self.Dmats[isym], False, self.kpt_tree)
             
             # Compute representation matrix (following original algorithm exactly)
             rep = np.einsum('n...,m...->nm', wfc_tmp, BS_wfcs.conj(),
@@ -410,7 +397,7 @@ class ExcitonGroupTheory(object):
 
         # Return results
         results = {
-            'q_point': self.kpts_ibz[iQ - 1],
+            'q_point': self.kpts_iBZ[ik_ibz],
             'little_group': little_group,
             'point_group_label': pg_label,
             'unique_energies': uni_eigs,
