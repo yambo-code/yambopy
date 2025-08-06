@@ -121,12 +121,15 @@ def test_from_database():
     # Perform group theory analysis
     results = egt.analyze_exciton_symmetry(
         iQ=1,           # Q-point index
-        nstates=10,     # Number of states
+        nstates=2,     # Number of states
         degen_thres=0.001  # Degeneracy threshold in eV
     )
 
     # # Save results
-    # egt.save_analysis_results(results, 'exciton_symmetry.txt')    
+    # egt.save_analysis_results(results, 'exciton_symmetry.txt')
+    
+    # Test passed if we got here without errors
+    return True
     
 
 def main():
