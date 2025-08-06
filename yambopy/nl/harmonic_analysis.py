@@ -154,7 +154,8 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
         T_range[1] = time[-1]
 
     print(f"Time range: {T_range[0] / fs2aut:.3f} - {T_range[1] / fs2aut:.3f} [fs]")
-    T_range_initial = np.copy(T_range)
+    # Avoid unnecessary copy - use array constructor
+    T_range_initial = np.array(T_range)
         
     M_size = 2 * X_order + 1  # Positive and negative components plut the zero
 

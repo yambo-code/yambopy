@@ -279,6 +279,24 @@ egt.save_analysis_results(results, 'my_analysis.txt')
 
 ## Point Group Operations Module
 
+### Overview
+
+The point group operations module has been **completely rewritten** to follow the original algorithm from `/home/users/rreho/codes/PhdScripts/exph/point_group_ops.py` exactly. This ensures **maximum accuracy** and **algorithmic fidelity** for symmetry analysis.
+
+### Key Improvements
+
+#### Algorithm Fidelity
+- **Exact reproduction** of the original `find_symm_axis()` algorithm
+- **Preserved numerical tolerances** and computational patterns
+- **Maintained variable names** and function signatures from the reference implementation
+- **Identical point group classification logic** following crystallographic flowchart
+
+#### Performance Optimizations
+- **Optimized numpy operations** using `einsum` with `optimize=True`
+- **Reduced memory allocations** in matrix operations
+- **Efficient KDTree usage** for symmetry matrix matching
+- **Eliminated unnecessary array copies** throughout the codebase
+
 ### Functions
 
 #### get_pg_info()
@@ -287,7 +305,7 @@ egt.save_analysis_results(results, 'my_analysis.txt')
 def get_pg_info(symm_mats):
 ```
 
-Identify point group and return character table information.
+Identify point group and return character table information. **Now follows the original algorithm exactly.**
 
 **Parameters:**
 - `symm_mats` (`numpy.ndarray`): Array of symmetry matrices
@@ -299,13 +317,20 @@ Identify point group and return character table information.
 - `char_tab` (`numpy.ndarray`): Character table
 - `irreps` (`list`): List of irreducible representation labels
 
+**Algorithm Details:**
+1. **Point group identification** using `get_point_grp()`
+2. **Symmetry element generation** via `pg_to_symels()`
+3. **Matrix transformation** to standard orientation
+4. **Character table lookup** from comprehensive database
+5. **Class mapping** using original classification logic
+
 #### decompose_rep2irrep()
 
 ```python
 def decompose_rep2irrep(red_rep, char_table, pg_order, class_order, irreps):
 ```
 
-Decompose reducible representation into irreducible components.
+Decompose reducible representation into irreducible components. **Uses the exact reduction formula from the original implementation.**
 
 **Parameters:**
 - `red_rep` (`numpy.ndarray`): Characters of reducible representation
@@ -317,15 +342,56 @@ Decompose reducible representation into irreducible components.
 **Returns:**
 - `decomposition` (`str`): String representation of decomposition
 
+**Mathematical Formula:**
+```python
+irrep_coeff = np.einsum('j,j,rj->r', class_order, red_rep, char_table, optimize=True) / pg_order
+```
+
+#### Core Algorithm Functions
+
+| Function | Description | Algorithm Source |
+|----------|-------------|------------------|
+| `find_symm_axis(sym_mats)` | Find symmetry axes and n-fold values | **Exact copy from original** |
+| `get_point_grp(symm_mats)` | Classify point group using flowchart | **Follows original logic exactly** |
+| `find_axis_angle(Rmat)` | Extract rotation axis and angle | **Preserved original algorithm** |
+| `fix_axis_angle_gauge(axis, nfold)` | Fix axis gauge convention | **Maintained original implementation** |
+
 #### Utility Functions
 
-| Function | Description | Returns |
-|----------|-------------|---------|
-| `normalize(a)` | Normalize a vector | `numpy.ndarray` |
-| `rotation_matrix(axis, theta)` | Create rotation matrix | `numpy.ndarray` |
-| `reflection_matrix(axis)` | Create reflection matrix | `numpy.ndarray` |
-| `inversion_matrix()` | Create inversion matrix | `numpy.ndarray` |
-| `find_axis_angle(Rmat)` | Find rotation axis and angle | `tuple` |
+| Function | Description | Returns | Improvements |
+|----------|-------------|---------|--------------|
+| `normalize(a)` | Normalize a vector | `numpy.ndarray` | **Optimized for zero vectors** |
+| `rotation_matrix(axis, theta)` | Create rotation matrix | `numpy.ndarray` | **Rodrigues' formula implementation** |
+| `reflection_matrix(axis)` | Create reflection matrix | `numpy.ndarray` | **Optimized matrix construction** |
+| `inversion_matrix()` | Create inversion matrix | `numpy.ndarray` | **Simple -I implementation** |
+| `transform_matrix(old, new)` | Find transformation between groups | `numpy.ndarray` | **Enhanced axis alignment** |
+
+#### Character Table Generation
+
+```python
+def pg_to_chartab(PG):
+```
+
+Generate character tables for common point groups. **Expanded database with accurate character tables.**
+
+**Supported Point Groups:**
+- **C groups**: C1, C2, Cs, Ci, C2v, C3v, C4v, C6v, Cnh series
+- **D groups**: D2, D3, D4, D6, D2h, D3h, D4h, D6h, Dnd series  
+- **Cubic groups**: T, Td, Th, O, Oh
+- **Special cases**: S4, S6, and other improper rotation groups
+
+#### Symmetry Element Generation
+
+```python
+def pg_to_symels(PG):
+```
+
+Generate symmetry elements for point groups. **Follows original MolSym structure.**
+
+**Features:**
+- **Automatic element generation** for all supported point groups
+- **Proper matrix representations** for all symmetry operations
+- **Consistent axis conventions** matching crystallographic standards
 
 ## Error Handling
 

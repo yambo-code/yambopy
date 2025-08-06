@@ -29,6 +29,8 @@ parts:
         - file: content/software/yambo/yambo
         - file: content/software/yambo/yambo_input_flags
         - file: content/software/exciton_group_theory_api
+        - file: content/software/exciton_group_theory_summary
+        - file: content/software/yambopy_improvements_2024
 
 - caption: Practical Tutorials
   numbered: true

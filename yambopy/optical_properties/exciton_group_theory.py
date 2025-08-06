@@ -273,6 +273,7 @@ class ExcitonGroupTheory(object):
     def analyze_exciton_symmetry(self, iQ, nstates, degen_thres=0.001):
         """
         Perform group theory analysis for exciton states at a given Q-point.
+        This implementation follows the algorithm in exe_rep_program.py closely.
 
         Parameters
         ----------
@@ -296,10 +297,10 @@ class ExcitonGroupTheory(object):
         print('Reading BSE eigen vectors')
         bands_range, BS_eigs, BS_wfcs = self.read_excdb(self.BSE_dir, iQ, nstates)
         
-        # Convert energies to eV for analysis
+        # Convert energies to eV for analysis (following original algorithm)
         BS_eigs_eV = BS_eigs * ha2ev
         
-        # Get unique values up to threshold
+        # Get unique values up to threshold (following original algorithm exactly)
         uni_eigs, degen_eigs = np.unique((BS_eigs_eV / degen_thres).astype(int),
                                         return_counts=True)
         uni_eigs = uni_eigs * degen_thres
@@ -308,12 +309,14 @@ class ExcitonGroupTheory(object):
         print('Group theory analysis for Q point : ', self.kpts_ibz[iQ - 1])
         print('*' * 40)
         
-        # Find little group
+        # Find little group (following original algorithm exactly)
         trace_all_real = []
         trace_all_imag = []
         little_group = []
         
+        # Loop over symmetries (excluding time reversal operations)
         for isym in range(int(self.sym_red.shape[0] / (self.time_rev + 1))):
+            # Check if Sq = q (following original algorithm)
             Sq_minus_q = np.einsum('ij,j->i', self.sym_red[isym],
                                   self.kpts_ibz[iQ - 1]) - self.kpts_ibz[iQ - 1]
             Sq_minus_q = Sq_minus_q - np.rint(Sq_minus_q)
@@ -323,19 +326,21 @@ class ExcitonGroupTheory(object):
                 continue
                 
             little_group.append(isym + 1)
+            
+            # Phase factor from fractional translations
             tau_dot_k = np.exp(1j * 2 * np.pi *
                               np.dot(self.kpts_ibz[iQ - 1], self.frac_trans[isym]))
             
-            # Rotate exciton wavefunction
+            # Rotate exciton wavefunction (following original algorithm)
             wfc_tmp = rotate_exc_wf(BS_wfcs, self.sym_red[isym], self.kpts, 
                                    self.kpt_tree, self.kpts_ibz[iQ-1], 
                                    self.Dmats[isym], False)
             
-            # Compute representation matrix
+            # Compute representation matrix (following original algorithm exactly)
             rep = np.einsum('n...,m...->nm', wfc_tmp, BS_wfcs.conj(),
                            optimize=True) * tau_dot_k
             
-            # Compute traces for each irreducible representation
+            # Compute traces for each degenerate subspace (following original algorithm)
             irrep_sum = 0
             real_trace = []
             imag_trace = []
@@ -352,7 +357,7 @@ class ExcitonGroupTheory(object):
 
         little_group = np.array(little_group, dtype=int)
         
-        # Get point group information
+        # Get point group information (following original algorithm)
         try:
             from .point_group_ops import get_pg_info, decompose_rep2irrep
             pg_label, classes, class_dict, char_tab, irreps = get_pg_info(
@@ -368,7 +373,8 @@ class ExcitonGroupTheory(object):
         print('Little group : ', pg_label)
         print('Little group symmetries : ', little_group)
 
-        # Print class information
+        # Print class information (following original algorithm exactly)
+        irrep_decompositions = []
         if classes:
             print('Classes (symmetry indices in each class): ')
             req_sym_characters = np.zeros(len(classes), dtype=int)
@@ -379,6 +385,7 @@ class ExcitonGroupTheory(object):
                 class_orders[ilab] = len(iclass)
             print()
 
+            # Process traces (following original algorithm exactly)
             trace_all_real = np.array(trace_all_real)
             trace_all_imag = np.array(trace_all_imag)
             trace = trace_all_real + 1j * trace_all_imag
@@ -388,7 +395,7 @@ class ExcitonGroupTheory(object):
             print("Energy (eV),  degeneracy  : representation")
             print('-' * 40)
             
-            irrep_decompositions = []
+            # Decompose representations (following original algorithm exactly)
             for i in range(len(trace_req)):
                 if char_tab is not None:
                     rep_str_tmp = decompose_rep2irrep(trace_req[i], char_tab, 
@@ -398,8 +405,6 @@ class ExcitonGroupTheory(object):
                     rep_str_tmp = "Analysis not available"
                 print('%.4f        %9d  : ' % (uni_eigs[i], degen_eigs[i]), rep_str_tmp)
                 irrep_decompositions.append(rep_str_tmp)
-        else:
-            irrep_decompositions = []
 
         print('*' * 40)
 
@@ -413,7 +418,8 @@ class ExcitonGroupTheory(object):
             'irrep_decomposition': irrep_decompositions,
             'exciton_energies': BS_eigs_eV,
             'classes': classes,
-            'class_dict': class_dict
+            'class_dict': class_dict,
+            'trace_characters': trace_all_real + 1j * trace_all_imag if len(trace_all_real) > 0 else None
         }
         
         return results

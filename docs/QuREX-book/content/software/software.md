@@ -15,8 +15,8 @@ This section documents the software tools and computational implementations in t
 - **LetzElPhC**: Electron-phonon coupling calculations
 
 #### Analysis Tools
-- **Yambopy**: Python interface for Yambo data analysis
-- **[ExcitonGroupTheory](exciton_group_theory_api)**: Symmetry analysis of excitonic states
+- **Yambopy**: Python interface for Yambo data analysis (**[Major improvements in 2024](yambopy_improvements_2024)**)
+- **[ExcitonGroupTheory](exciton_group_theory_api)**: Symmetry analysis of excitonic states (**completely rewritten for maximum accuracy**)
 - **Real-space analysis**: Wannier exciton visualization
 - **Optical calculators**: Absorption, emission, photoluminescence
 
