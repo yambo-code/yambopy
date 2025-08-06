@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `ExcitonGroupTheory` class has been **significantly improved** in Yambopy to provide comprehensive group theory analysis of exciton states in crystalline materials. The implementation has been **completely rewritten** to follow the original algorithm from `/home/users/rreho/codes/PhdScripts/exph/point_group_ops.py` exactly, ensuring **maximum accuracy** and **algorithmic fidelity**. This implementation enables researchers to understand the symmetry properties, optical selection rules, and degeneracies of excitonic states with unprecedented precision.
+The `ExcitonGroupTheory` class has been **significantly improved** in Yambopy to provide comprehensive group theory analysis of exciton states in crystalline materials. The implementation has been **completely rewritten** to follow the original algorithm from MN exactly, ensuring **maximum accuracy** and **algorithmic fidelity**. This implementation enables researchers to understand the symmetry properties, optical selection rules, and degeneracies of excitonic states with unprecedented precision.
 
 ## Key Features
 
@@ -220,7 +220,7 @@ The **significantly improved** ExcitonGroupTheory implementation represents a ma
 
 ### Key Achievements
 
-1. **Algorithmic Fidelity**: The implementation now **exactly reproduces** the original algorithm from `/home/users/rreho/codes/PhdScripts/exph/point_group_ops.py`, ensuring maximum accuracy in symmetry analysis.
+1. **Algorithmic Fidelity**: The implementation now **exactly reproduces** the original algorithm from MN, ensuring maximum accuracy in symmetry analysis.
 
 2. **Performance Improvements**: **Significant optimizations** have been implemented throughout the codebase:
    - **Eliminated unnecessary array copies** reducing memory usage

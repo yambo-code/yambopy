@@ -281,7 +281,7 @@ egt.save_analysis_results(results, 'my_analysis.txt')
 
 ### Overview
 
-The point group operations module has been **completely rewritten** to follow the original algorithm from `/home/users/rreho/codes/PhdScripts/exph/point_group_ops.py` exactly. This ensures **maximum accuracy** and **algorithmic fidelity** for symmetry analysis.
+The point group operations module has been **completely rewritten** to follow the original algorithm from MN. This ensures **maximum accuracy** and **algorithmic fidelity** for symmetry analysis.
 
 ### Key Improvements
 

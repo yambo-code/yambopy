@@ -8,7 +8,7 @@ This tutorial demonstrates how to use the **significantly improved** `ExcitonGro
 
 The ExcitonGroupTheory implementation has undergone major improvements:
 
-- **Algorithm Fidelity**: Complete rewrite to match the original `/home/users/rreho/codes/PhdScripts/exph/point_group_ops.py` exactly
+- **Algorithm Fidelity**: Complete rewrite to match the original algorithm from MN exactly
 - **Performance Optimizations**: 10-30% faster execution with reduced memory usage
 - **Enhanced Accuracy**: Exact reproduction of reference algorithms ensures reliable results
 - **Maintained Compatibility**: All existing workflows continue to function without changes

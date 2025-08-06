@@ -9,7 +9,7 @@ This document details the significant improvements made to YamboPy in 2024, focu
 ### 1. Point Group Operations Module (`yambopy/optical_properties/point_group_ops.py`)
 
 #### Complete Algorithm Rewrite
-The point group operations module has been **completely rewritten** to follow the original algorithm from `/home/users/rreho/codes/PhdScripts/exph/point_group_ops.py` exactly.
+The point group operations module has been **completely rewritten** to follow the original algorithm from MN exactly.
 
 **Key Changes:**
 - **Exact reproduction** of all core algorithms:
