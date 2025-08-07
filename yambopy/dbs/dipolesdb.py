@@ -27,18 +27,38 @@ class YamboDipolesDB():
 
     Dipole matrix elements <ck|vec{r}|vk> are stored in self.dipoles with indices [k,r_i,c,v]. 
     If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
-    - bands_range : list, optional
-        Specifies the range of bands to read. The start index follows Python indexing (starting from 0),
-        and the end index is excluded. If not provided, it defaults to the minimum and maximum bands available.
     """
     def __init__(self,lattice,save='SAVE',filename='ndb.dipoles',dip_type='iR',field_dir=[1,1,1],\
-                 project=True, expand=False, bands_range=[]):
-
+                 project=True, polarization_mode='linear', expand=False, bands_range=[]):
+        """
+        Initialize the YamboDipolesDB
+        
+        Parameters:
+        -----------
+        lattice: YamboLatticeDB
+            Lattice information
+        save: str, optional
+            Path to the Yambo save folder, default is 'SAVE'
+        filename: str, optional
+            Name of the database, default is 'ndb.dipoles'
+        dip_type: str, optional
+            Type of dipole matrix elements to read, can be 'iR', 'v', 'P', default is 'iR'
+        field_dir: list of 3 floats, optional
+            Direction of the electric field, default is [1,1,1]
+        project: bool, optional
+            Whether to project the dipoles along the field direction, default is True
+        polarization_mode: str, optional
+            Polarization mode, can be 'linear', 'circular', default is 'linear'
+        bands_range : array, optional
+            select bands_range for computation of dipoles (Fortran indexing). Negative numbers -> all bands
+            example: [7,10]  you consider from 7th (v) to the 10 (c) bands            
+        """        
         self.lattice   = lattice
         self.filename  = "%s/%s"%(save,filename)
         self.field_dir = field_dir
         self.project   = project
         self.expand    = expand
+        self.polarization_mode = polarization_mode.lower()
         #read dipoles
         try:
             database = Dataset(self.filename, 'r')
@@ -441,8 +461,14 @@ class YamboDipolesDB():
 
                 # these are the expanded+projected dipoles already
                 dips = dipoles[s]
-                if self.project:     dip2= np.abs( np.sum( dips[:,:,c,v], axis=1) )**2.
-                if not self.project: dip2 = np.abs( np.einsum('j,ij->i', self.field_dir , dips[:,:,c,v]) )**2
+                
+                # Initialize dip2 to accumulate contributions from all polarization vectors
+                dip2 = np.zeros(nkpoints, dtype=np.float64)
+                
+                for e_vec, w in self._polarization_vectors():           # ⇐ NEW
+                    #  ┌──── e_vec (3,) , dips_slice (nk,3)  ─────┐
+                    proj = np.einsum('d,kd->k', e_vec, dips[:,:,c,v])   # shape (nk,)
+                    dip2 += w*np.abs(proj)**2
 
                 #make dimensions match
                 dip2a = dip2[na,:]
@@ -525,6 +551,71 @@ class YamboDipolesDB():
 
         return freq,eps
 
+    def _polarization_vectors(self):
+        """
+        Return a list of (vector, weight) tuples based on the polarization mode.
+        
+        Each tuple contains:
+        • vector  : complex ndarray(3,)   — The polarization direction in the Cartesian basis.
+        • weight  : real scalar           — The weight of each contribution to the dielectric function.
+        Polarization mode options:
+        • 'linear'      : The polarization is defined by a user-specified direction.
+        • 'unpolarized' : Averages over the three Cartesian directions: x, y, and z.
+        • 'circular+'   : Circularly right polarized light in the xy/yz/xz planes. 
+        • 'circular-'   : Circularly left polarized light in the xy/yz/xz planes.                   
+        • 'dichroism'   : Difference between right and left circularly polarized light.                   
+        """
+        mode = self.polarization_mode.lower()
+
+        if mode == 'linear':                   # ✱ ê set by user
+            e = np.asarray(self.field_dir, dtype=np.complex64)
+            e /= np.linalg.norm(e)
+            return [(e, 1.0)]
+
+        if mode == 'unpolarized':              # ✱ average over x,y,z
+            return [ (np.array([1,0,0],np.complex64), 1/3),
+                    (np.array([0,1,0],np.complex64), 1/3),
+                    (np.array([0,0,1],np.complex64), 1/3) ]
+
+        if mode == 'circularxy+':                # ✱ σ⁺  (propagation ‖ z)
+            e = np.array([1, 1j, 0], np.complex64)/np.sqrt(2)
+            return [(e, 1.0)]
+
+        if mode == 'circularxy-':                # ✱ σ⁻
+            e = np.array([1,-1j, 0], np.complex64)/np.sqrt(2)
+            return [(e, 1.0)]
+        if mode == 'circularxz+':                # ✱ σ⁺  (propagation ‖ z)
+            e = np.array([1, 0, 1j], np.complex64)/np.sqrt(2)
+            return [(e, 1.0)]
+
+        if mode == 'circularxz-':                # ✱ σ⁻
+            e = np.array([1,0, -1j], np.complex64)/np.sqrt(2)
+            return [(e, 1.0)]
+        if mode == 'circularyz+':                # ✱ σ⁺  (propagation ‖ z)
+            e = np.array([0, 1, 1j], np.complex64)/np.sqrt(2)
+            return [(e, 1.0)]
+
+        if mode == 'circularyz-':                # ✱ σ⁻
+            e = np.array([0, 1, -1j], np.complex64)/np.sqrt(2)
+            return [(e, 1.0)]
+
+        if mode == 'dichroism_xy':             # ✱ σ⁺ − σ⁻  (CD signal)
+            e_p = np.array([1,  1j, 0], np.complex64)/np.sqrt(2)
+            e_m = np.array([1, -1j, 0], np.complex64)/np.sqrt(2)
+            return [(e_p,  1.0),              # add σ⁺
+                    (e_m, -1.0)]              # subtract σ⁻
+        if mode == 'dichroism_xz':             # ✱ σ⁺ − σ⁻  (CD signal)
+            e_p = np.array([1,  0, 1j], np.complex64)/np.sqrt(2)
+            e_m = np.array([1, 0, -1j], np.complex64)/np.sqrt(2)
+            return [(e_p,  1.0),              # add σ⁺
+                    (e_m, -1.0)]              # subtract σ⁻       
+        if mode == 'dichroism_yz':             # ✱ σ⁺ − σ⁻  (CD signal)
+            e_p = np.array([0, 1,  1j], np.complex64)/np.sqrt(2)
+            e_m = np.array([0, 1, -1j], np.complex64)/np.sqrt(2)
+            return [(e_p,  1.0),              # add σ⁺
+                    (e_m, -1.0)]              # subtract σ⁻ 
+
+        raise ValueError(f'Unknown polarization mode: {mode}')
     def __str__(self):
         lines = []; app = lines.append
         app(marquee(self.__class__.__name__))
