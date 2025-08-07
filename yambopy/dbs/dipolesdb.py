@@ -184,20 +184,20 @@ class YamboDipolesDB():
         dip = database.variables['DIP_%s'%(dip_type)]
         if self.spin==1:
             dip = np.squeeze(dip,axis=0)
-            # if (self.indexv+1) == self.max_band and (self.indexc+1) == self.min_band:
-            #     dip = (dip[:,self.start_bnd_idx:self.val_bnd_idx,self.val_bnd_idx:self.end_bnd,:,0] / 
-            #            +1j*dip[:,self.start_bnd_idx:self.val_bnd_idx,self.val_bnd_idx:self.end_bnd,:,1]) # Read as nk,nv,nc,ir
-            # else:
-            dip = (dip[:,self.v_start_bnd:,:self.c_end_bnd,:,0]+\
-                    1j*dip[:,self.v_start_bnd:,:self.c_end_bnd,:,1]) # Read as nk,nv,nc,ir
+            if (self.indexv+1) == self.max_band and (self.indexc+1) == self.min_band:
+                dip = (dip[:,self.start_bnd_idx:self.val_bnd_idx,self.val_bnd_idx:self.end_bnd,:,0] / 
+                       +1j*dip[:,self.start_bnd_idx:self.val_bnd_idx,self.val_bnd_idx:self.end_bnd,:,1]) # Read as nk,nv,nc,ir
+            else:
+                dip = (dip[:,self.v_start_bnd:,:self.c_end_bnd,:,0]+\
+                       1j*dip[:,self.v_start_bnd:,:self.c_end_bnd,:,1]) # Read as nk,nv,nc,ir
         
         if self.spin==2:
-            # if (self.indexv+1) == self.max_band and (self.indexc+1) == self.min_band:
-            #     dip = (dip[:,:,self.start_bnd_idx:self.val_bnd_idx,self.val_bnd_idx:self.end_bnd,:,0]+\
-            #            1j*dip[:,:,self.start_bnd_idx:self.val_bnd_idx,self.val_bnd_idx:self.end_bnd,:,1]) # Read as ns,nk,nv,nc,ir
-            #else:
-            dip = (dip[:,:,self.v_start_bnd:,self.indexc:self.c_end_bnd,:,0]\
-                   +1j*dip[:,:,self.v_start_bnd:,:self.c_end_bnd,:,1]) # Read as ns,nk,nv,nc,ir
+            if (self.indexv+1) == self.max_band and (self.indexc+1) == self.min_band:
+                dip = (dip[:,:,self.start_bnd_idx:self.val_bnd_idx,self.val_bnd_idx:self.end_bnd,:,0]+\
+                       1j*dip[:,:,self.start_bnd_idx:self.val_bnd_idx,self.val_bnd_idx:self.end_bnd,:,1]) # Read as ns,nk,nv,nc,ir
+            else:
+                dip = (dip[:,:,self.v_start_bnd:,self.indexc:self.c_end_bnd,:,0]\
+                       +1j*dip[:,:,self.v_start_bnd:,:self.c_end_bnd,:,1]) # Read as ns,nk,nv,nc,ir
                 
         dipoles = np.swapaxes(dip,self.spin,self.spin+2) # Swap indices as mentioned in the docstring
         database.close()
