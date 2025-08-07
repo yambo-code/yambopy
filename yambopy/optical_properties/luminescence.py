@@ -98,7 +98,7 @@ class Luminescence(BaseOpticalProperties):
         self.ph_freq = self.lelph_db.ph_energies / ha2ev  # Convert to Hartree
         
         # Read dipoles database
-        self._read_dipoles_db(ydipdb, dip_dir='gw', bands_range=bands_range)
+        self._read_dipoles_db(ydipdb, dip_dir=self.DIP_dir, bands_range=bands_range)
 
     def compute(self):
         """

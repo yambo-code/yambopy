@@ -72,7 +72,7 @@ class ExcitonDipole(BaseOpticalProperties):
         self.read_common_databases(latdb=latdb, wfdb=wfdb, bands_range=bands_range)
         
         # Read dipoles database
-        self._read_dipoles_db(ydipdb, dip_dir='gw', bands_range=bands_range)
+        self._read_dipoles_db(ydipdb, dip_dir=self.DIP_dir, bands_range=bands_range)
 
     def compute(self):
         """

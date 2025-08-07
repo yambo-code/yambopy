@@ -5,6 +5,7 @@ import numpy as np
 from netCDF4 import Dataset
 from yambopy.bse.exciton_matrix_elements import exciton_X_matelem
 from yambopy.units import *
+from yambopy.kpoints import build_ktree, find_kpt
 from yambopy.bse.rotate_excitonwf import rotate_exc_wf
 from yambopy.optical_properties.base_optical import BaseOpticalProperties
 from yambopy.optical_properties.utils import (
@@ -141,6 +142,7 @@ class ExcitonPhonon(BaseOpticalProperties):
         """
         # Read common databases using base class method
         self.read_common_databases(latdb=latdb, wfdb=wfdb, bands_range=bands_range)
+        self.Dmats = self.wfdb.Dmat()[:,:,0,:,:]
         
         # Read LetzElPhC database
         self.lelph_db = read_lelph_database(self.LELPH_dir, lelph_db)
@@ -151,7 +153,7 @@ class ExcitonPhonon(BaseOpticalProperties):
         
         # Read dipoles database if provided
         if ydipdb is not None:
-            self._read_dipoles_db(ydipdb, dip_dir='gw', bands_range=bands_range)
+            self._read_dipoles_db(ydipdb, dip_dir=self.BSE_dir, bands_range=bands_range)
 
     def compute(self):
         """
