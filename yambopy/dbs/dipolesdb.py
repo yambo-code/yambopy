@@ -58,7 +58,7 @@ class YamboDipolesDB():
         self.field_dir = field_dir
         self.project   = project
         self.expand    = expand
-        self.polarization_mode = polarization_mode.lower()
+        self.polarization_mode = polarization_mode
         #read dipoles
         try:
             database = Dataset(self.filename, 'r')
