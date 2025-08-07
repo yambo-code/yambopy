@@ -99,6 +99,12 @@ class Luminescence(BaseOpticalProperties):
         
         # Read dipoles database
         self._read_dipoles_db(ydipdb, dip_dir=self.DIP_dir, bands_range=bands_range)
+        
+        # Build k-point tree and find q-point indices (needed for luminescence)
+        from yambopy.kpoints import build_ktree, find_kpt
+        print('Building kD-tree for kpoints')
+        self.kpt_tree = build_ktree(self.kpts)
+        self.qidx_in_kpts = find_kpt(self.kpt_tree, self.qpts)
 
     def compute(self):
         """
@@ -113,43 +119,57 @@ class Luminescence(BaseOpticalProperties):
     
     def compute_luminescence(self):
         """
-        Compute luminescence properties using exciton-dipole and exciton-phonon coupling.
+        Compute luminescence matrix elements (exciton-dipole and exciton-phonon).
         
         Returns
         -------
         dict
-            Dictionary containing luminescence results.
+            Dictionary containing computed matrix elements.
         """
         from time import time
         
         start_time = time()
-        print('Computing Luminescence properties')
-        
-        # Initialize ExcitonDipole and ExcitonPhonon objects using existing data
-        ex_dipole = ExcitonDipole(
-            path=self.path, latdb=self.ydb, wfdb=self.wfdb, 
-            ydipdb=self.ydipdb, bands_range=self.bands_range
-        )
-        
-        ex_phonon = ExcitonPhonon(
-            path=self.path, lelph_db=self.lelph_db, latdb=self.ydb, 
-            wfdb=self.wfdb, ydipdb=self.ydipdb, bands_range=self.bands_range
-        )
+        print('Computing Luminescence matrix elements')
         
         # Compute exciton-dipole matrix elements
-        dipole_matrix = ex_dipole.compute()
-        
-        # Placeholder for luminescence calculation
-        # The actual implementation would combine dipole and phonon matrix elements
-        print("Luminescence computation method needs full implementation")
-        print("This would combine exciton-dipole and exciton-phonon matrix elements")
+        try: 
+            if hasattr(self, 'ex_dip'):
+                print('exciton-photon matrix elements found')
+            else:             
+                print('Computing exciton-photon matrix elements')
+                ex_dipole = ExcitonDipole(
+                    path=self.path, latdb=self.ydb, wfdb=self.wfdb, 
+                    ydipdb=self.ydipdb, bands_range=self.bands_range, 
+                    BSE_dir=self.BSE_dir, DIP_dir=self.BSE_dir, save_files=self.save_files
+                )
+                self.ex_dip = ex_dipole.compute()
+        except Exception as e:
+            raise IOError(f'Cannot compute exciton-photon matrix elements: {e}')
+
+        # Compute exciton-phonon matrix elements
+        try: 
+            if hasattr(self, 'ex_ph'):
+                print('exciton-phonon matrix elements found')
+            else:
+                print('Computing exciton-phonon matrix elements')
+                ex_phonon = ExcitonPhonon(
+                    path=self.path, lelph_db=self.lelph_db, latdb=self.ydb, 
+                    wfdb=self.wfdb, ydipdb=self.ydipdb, bands_range=self.bands_range,
+                    BSE_dir=self.BSE_dir, LELPH_dir=self.LELPH_dir, DIP_dir=self.BSE_dir,
+                )
+                ex_phonon.compute_Exph(gamma_only=True)
+                self.ex_ph = ex_phonon.ex_ph[0]
+                
+        except Exception as e:
+            raise IOError(f'Cannot compute exciton-phonon matrix elements: {e}')
         
         computation_time = time() - start_time
-        print(f'Luminescence computation completed in {computation_time:.4f} s')
+        print(f'Luminescence matrix elements computed in {computation_time:.4f} s')
         print('*' * 60)
         
         return {
-            'dipole_matrix': dipole_matrix,
+            'ex_dip': self.ex_dip,
+            'ex_ph': self.ex_ph,
             'computation_time': computation_time
         }
 
@@ -194,31 +214,34 @@ class Luminescence(BaseOpticalProperties):
         print('Computing luminescence intensities ...')
         try: 
             if hasattr(self, 'ex_dip'):
-                print('exciton-photon matrix elements founds')
-                #self.ex_dip = np.load(f'ex_dip')
+                print('exciton-photon matrix elements found')
             else:             
                 print('Computing exciton-photon matrix elements')
-                ExDipole = ExcitonDipole(self.path, self.SAVE_dir, self.latdb, self.wfdb, \
-                self.ydipdb, self.bands_range, self.BSE_dir, \
-                self.DIP_dir,self.save_files)
-                ExDipole.compute_Exdipole()
-                self.ex_dip = ExDipole.ex_dip
+                ExDipole = ExcitonDipole(
+                    path=self.path, latdb=self.ydb, wfdb=self.wfdb, 
+                    ydipdb=self.ydipdb, bands_range=self.bands_range, BSE_dir = self.BSE_dir,
+                    DIP_dir=self.BSE_dir, save_files=self.save_files
+                )
+                self.ex_dip = ExDipole.compute()
         except Exception as e:
-            raise IOError(f'Cannot compute exciton-photon matrix elements')
+            raise IOError(f'Cannot compute exciton-photon matrix elements: {e}')
 
         try: 
             if hasattr(self, 'ex_ph'):
-                print('exciton-phonon matrix elements founds')
+                print('exciton-phonon matrix elements found')
             else:
                 print('Computing exciton-phonon matrix elements')
-                ExPhonon =  ExcitonPhonon(self.path, self.SAVE_dir, self.lelph_db, self.latdb, self.wfdb, \
-                self.ydipdb, self.bands_range, self.BSE_dir, self.LELPH_dir, \
-                self.DIP_dir,self.save_files)
-                ExPhonon.compute_Exph(gamma_only = True)
-                self.ex_ph  = ExPhonon.ex_ph[0]
+                ExPhonon = ExcitonPhonon(
+                    path=self.path, lelph_db=self.lelph_db, latdb=self.ydb, 
+                    wfdb=self.wfdb, ydipdb=self.ydipdb, bands_range=self.bands_range,
+                    BSE_dir=self.BSE_dir, LELPH_dir=self.LELPH_dir, DIP_dir=self.BSE_dir,
+                    save_files=self.save_files
+                )
+                ExPhonon.compute_Exph(gamma_only=True)
+                self.ex_ph = ExPhonon.ex_ph[0]
                 
         except Exception as e:
-            raise IOError(f'Cannot compute exciton-phonon matrix elements')
+            raise IOError(f'Cannot compute exciton-phonon matrix elements: {e}')
         for i in tqdm(range(ome_range.shape[0]), desc="Luminescence "):
             inte_tmp = compute_luminescence_per_freq(ome_range[i], self.ph_freq, exe_ene, \
                 Exe_min, self.ex_dip, self.ex_ph, npol=npol, ph_thr=ph_thr,broadening=broadening, temp=temp)
