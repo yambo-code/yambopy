@@ -29,7 +29,7 @@ class YamboDipolesDB():
     If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
     """
     def __init__(self,lattice,save='SAVE',filename='ndb.dipoles',dip_type='iR',field_dir=[1,1,1],\
-                 project=True, polarization_mode='linear', expand=False, bands_range=[]):
+                 project=True, polarization_mode=None, expand=False, bands_range=[]):
         """
         Initialize the YamboDipolesDB
         
@@ -464,11 +464,19 @@ class YamboDipolesDB():
                 
                 # Initialize dip2 to accumulate contributions from all polarization vectors
                 dip2 = np.zeros(nkpoints, dtype=np.float64)
+                #RR: I believe the class should work without projecting but only via polarization_mode.
+                #This series of if is there only to prevent back-compatibility problems.
+                if self.project and self.polarization_mode is None:
+                    dip2= np.abs( np.sum( dips[:,:,c,v], axis=1) )**2.
                 
-                for e_vec, w in self._polarization_vectors():           # ⇐ NEW
-                    #  ┌──── e_vec (3,) , dips_slice (nk,3)  ─────┐
-                    proj = np.einsum('d,kd->k', e_vec, dips[:,:,c,v])   # shape (nk,)
-                    dip2 += w*np.abs(proj)**2
+                elif not self.project and self.polarization_mode is None:
+                    dip2 = np.abs( np.einsum('j,ij->i', self.field_dir , dips[:,:,c,v]) )**2
+
+                if self.polarization_mode is not None: 
+                    for e_vec, w in self._polarization_vectors():           # ⇐ NEW
+                        #  ┌──── e_vec (3,) , dips_slice (nk,3)  ─────┐
+                        proj = np.einsum('d,kd->k', e_vec, dips[:,:,c,v])   # shape (nk,)
+                        dip2 += w*np.abs(proj)**2
 
                 #make dimensions match
                 dip2a = dip2[na,:]
