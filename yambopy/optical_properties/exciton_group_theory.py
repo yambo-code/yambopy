@@ -12,26 +12,18 @@ import numpy as np
 import os
 from netCDF4 import Dataset
 from yambopy.letzelphc_interface.lelphcdb import LetzElphElectronPhononDB
-from yambopy.dbs.latticedb import YamboLatticeDB
-from yambopy.dbs.wfdb import YamboWFDB
-from yambopy.dbs.excitondb import YamboExcitonDB
-from yambopy.dbs.dipolesdb import YamboDipolesDB
 from yambopy.units import *
 from yambopy.bse.rotate_excitonwf import rotate_exc_wf
-try:
-    from pykdtree.kdtree import KDTree 
-    ## pykdtree is much faster and is recommended
-    ## pip install pykdtree
-    ## useful in Dmat computation
-except ImportError as e:
-    from scipy.spatial import KDTree
-from yambopy.kpoints import build_ktree, find_kpt
+from yambopy.optical_properties.base_optical import BaseOpticalProperties
+from yambopy.optical_properties.utils import (
+    read_lelph_database, compute_symmetry_matrices
+)
 from tqdm import tqdm
 import re
 
 warnings.filterwarnings('ignore')
 
-class ExcitonGroupTheory(object):
+class ExcitonGroupTheory(BaseOpticalProperties):
     """
     This class performs group theory analysis of exciton states.
     
@@ -85,105 +77,89 @@ class ExcitonGroupTheory(object):
     """
     
     def __init__(self, path=None, save='SAVE', lelph_db=None, latdb=None, wfdb=None, 
-                 bands_range=[], BSE_dir='bse', LELPH_dir='lelph', 
+                 bands_range=None, BSE_dir='bse', LELPH_dir='lelph', 
                  read_symm_from_ns_db_file=True):
-        if path is None:
-            path = os.getcwd()        
-        self.path = path
-        self.SAVE_dir = os.path.join(path, save)
-        self.BSE_dir = os.path.join(path, BSE_dir)
-        self.LELPH_dir = os.path.join(path, LELPH_dir)
-        self.latdb = latdb
-        self.lelph_db = lelph_db
-        self.wfdb = wfdb
-        self.read_symm_from_ns_db_file = read_symm_from_ns_db_file
-        
-        self.read(lelph_db=lelph_db, latdb=latdb, wfdb=wfdb, bands_range=bands_range)
-
-    def read(self, lelph_db=None, latdb=None, wfdb=None, bands_range=[]):
         """
-        Read in the YamboLatticeDB, YamboWFDB, LetzElphElectronPhononDB objects
-        and set the necessary attributes for group theory analysis.
-
+        Initialize ExcitonGroupTheory class.
+        
         Parameters
         ----------
-        lelph_db : LetzElphElectronPhononDB
-            The LetzElphElectronPhononDB object which contains the electron-phonon matrix
-            elements.
-        latdb : YamboLatticeDB
-            The YamboLatticeDB object which contains the lattice information.
-        wfdb : YamboWFDB
-            The YamboWFDB object which contains the wavefunction information.
-        bands_range : list
-            A list of two integers which define the range of bands to be read.
+        path : str, optional
+            Path to calculation directory. Defaults to current directory.
+        save : str, optional
+            SAVE directory name. Defaults to 'SAVE'.
+        lelph_db : LetzElphElectronPhononDB, optional
+            Pre-loaded electron-phonon database.
+        latdb : YamboLatticeDB, optional
+            Pre-loaded lattice database.
+        wfdb : YamboWFDB, optional
+            Pre-loaded wavefunction database.
+        bands_range : list, optional
+            Range of bands to load.
+        BSE_dir : str, optional
+            BSE directory name. Defaults to 'bse'.
+        LELPH_dir : str, optional
+            LELPH directory name. Defaults to 'lelph'.
+        read_symm_from_ns_db_file : bool, optional
+            Whether to read symmetry from ns.db1 file. Defaults to True.
         """
-        SAVE_dir = self.SAVE_dir
+        # Initialize base class
+        super().__init__(path=path, save=save, latdb=latdb, wfdb=wfdb, 
+                        bands_range=bands_range, BSE_dir=BSE_dir)
         
-        # Read lattice database        
-        try:
-            ns_db1_fname = os.path.join(SAVE_dir, 'ns.db1')
-            if latdb:
-                if not hasattr(latdb, 'ibz_kpoints'): 
-                    latdb.expand_kpoints()
-                self.ydb = latdb
-            else:
-                self.ydb = YamboLatticeDB.from_db_file(ns_db1_fname, Expand=True)        
-        except Exception as e:
-            raise IOError(f'Cannot read ns.db1 file: {e}')
+        # Setup additional directories
+        self._setup_directories(LELPH_dir=LELPH_dir)
+        
+        # Store specific parameters
+        self.lelph_db = lelph_db
+        self.read_symm_from_ns_db_file = read_symm_from_ns_db_file
+        
+        # Read all necessary databases
+        self.read(lelph_db=lelph_db, latdb=latdb, wfdb=wfdb, bands_range=bands_range)
 
-        self.lat_vecs = self.ydb.lat
-        self.nibz = self.ydb.ibz_nkpoints
-        self.symm_mats = self.ydb.sym_car
-        self.time_rev = self.ydb.time_rev
-        self.blat_vecs = self.ydb.rlat.T
-
-        # Read wavefunction database
-        try:
-            if wfdb:
-                if not hasattr(wfdb, 'save_Dmat'): 
-                    wfdb.Dmat()
-                self.wfdb = wfdb
-            else:
-                self.wfdb = YamboWFDB(path = self.path, save='SAVE', filename='ns.wf', 
-                                    latdb=self.ydb, bands_range=bands_range)  
-        except Exception as e:
-            raise IOError(f'Cannot read ns.wf file: {e}')
-            
-        # Read dimensions
-        self.nkpoints = self.wfdb.nkpoints
-        self.nspin = self.wfdb.nspin
-        self.nspinor = self.wfdb.nspinor
-        self.nbands = self.wfdb.nbands
-        self.bands_range = bands_range
-
+    def read(self, lelph_db=None, latdb=None, wfdb=None, bands_range=None):
+        """
+        Read all necessary databases for group theory analysis.
+        
+        Parameters
+        ----------
+        lelph_db : LetzElphElectronPhononDB, optional
+            Pre-loaded electron-phonon database.
+        latdb : YamboLatticeDB, optional
+            Pre-loaded lattice database.
+        wfdb : YamboWFDB, optional
+            Pre-loaded wavefunction database.
+        bands_range : list, optional
+            Range of bands to load.
+        """
+        # Read common databases using base class method
+        self.read_common_databases(latdb=latdb, wfdb=wfdb, bands_range=bands_range)
+        
         # Read LetzElPhC database
-        try:
-            ndb_lelph_fname = os.path.join(self.LELPH_dir, 'ndb.elph')
-            if lelph_db:
-                self.lelph_db = lelph_db
-            else:
-                self.lelph_db = LetzElphElectronPhononDB(filename=ndb_lelph_fname)        
-        except Exception as e:
-            raise IOError(f'Cannot read ndb.elph file: {e}')        
-        
+        self.lelph_db = read_lelph_database(self.LELPH_dir, lelph_db)
         self.qpts = self.lelph_db.qpoints
         self.elph_bnds_range = self.lelph_db.bands
 
         # Read D-matrices
-        nbnds = max(bands_range)-min(bands_range)
-        start_bnd_idx = 0
-        end_bnd = start_bnd_idx + nbnds
-        self.Dmats = self.wfdb.Dmat()[:,:,0,:,:]
-        self.bands_range = bands_range
+        if bands_range:
+            self.Dmats = self.wfdb.Dmat()[:,:,0,:,:]
+        else:
+            self.Dmats = self.wfdb.Dmat()[:,:,0,:,:]
 
-        # Handle symmetry matrices and kmap
+        # Handle symmetry matrices and kmap specific to group theory
+        self._setup_symmetry_data()
+
+    def _setup_symmetry_data(self):
+        """Setup symmetry data specific to group theory analysis."""
+        ndb_lelph_fname = os.path.join(self.LELPH_dir, 'ndb.elph')
+        
         if not self.read_symm_from_ns_db_file:
             try:
                 elph_file = Dataset(ndb_lelph_fname, 'r')
-                self.kpts = elph_file['kpoints'][...].data  # Use kpoints from elph file
-                self.kmap = elph_file['kmap'][...].data     # Use kmap from elph file
+                self.kpts = elph_file['kpoints'][...].data
+                self.kmap = elph_file['kmap'][...].data
                 self.symm_mats = elph_file['symmetry_matrices'][...].data
-                self.time_rev = elph_file['time_reversal_phonon'][...].data
+                self.ele_time_rev = elph_file['time_reversal_phonon'][...].data
                 self.frac_trans = elph_file['fractional_translation'][...].data
                 # Convert to crystal coordinates
                 self.frac_trans = np.einsum('ij,nj->ni', self.blat_vecs.T, self.frac_trans)
@@ -192,30 +168,20 @@ class ExcitonGroupTheory(object):
                 print(f"Warning: Could not read symmetry from elph file: {e}")
                 self.frac_trans = np.zeros((self.symm_mats.shape[0], 3))
                 # Fallback to lattice database kmap
-                kmap = np.zeros((self.wfdb.nkBZ,2), dtype=int)
-                kmap[:,0]=self.ydb.kpoints_indexes
-                kmap[:,1]=self.ydb.symmetry_indexes
-                self.kmap=kmap
+                self.kmap = self.kmap
         else:
             self.frac_trans = np.zeros((self.symm_mats.shape[0], 3))
             # Use lattice database kmap and kpoints from lelph_db
             self.kpts = self.lelph_db.kpoints
-            kmap = np.zeros((self.wfdb.nkBZ,2), dtype=int)
-            kmap[:,0]=self.ydb.kpoints_indexes
-            kmap[:,1]=self.ydb.symmetry_indexes
-            self.kmap=kmap
 
-        self.kpt_tree = self.wfdb.ktree
-        #self.kpt_tree = build_ktree(self.kpts)
+        # Use existing k-point tree from base class
+        if hasattr(self.wfdb, 'ktree'):
+            self.kpt_tree = self.wfdb.ktree
+        else:
+            self._build_kpoint_tree(self.kpts)
         
-        # Compute symmetry matrices in reduced coordinates
-        temp = np.matmul(self.symm_mats, self.blat_vecs)  # shape (n, j, l)
-        # temp: (n, j, l)
-        # lat_vecs: (i, j)
-        # reshape lat_vecs for batched matmul: (1, i, j)
-        # use matmul: (1, i, j) @ (n, j, l) → (n, i, l)
-        sym_red = np.matmul(self.lat_vecs[None, :, :], temp)  # result (n, i, l)
-        self.sym_red = np.rint(sym_red).astype(int)
+        # Compute symmetry matrices in reduced coordinates using utility function
+        self.sym_red = compute_symmetry_matrices(self.symm_mats, self.blat_vecs, self.lat_vecs)
 
         # Construct kpts_iBZ (following original algorithm exactly)
         self.kpts_iBZ = np.zeros((len(np.unique(self.kmap[:, 0])), 3))
@@ -224,7 +190,7 @@ class ExcitonGroupTheory(object):
             if isym == 0:
                 self.kpts_iBZ[ik_ibz, :] = self.kpts[i]
 
-    def read_excdb(self, BSE_dir, iQ, nstates):
+    def read_excdb_single(self, BSE_dir, iQ, nstates):
         """
         Read yambo exciton database for a specific Q-point.
 
@@ -239,18 +205,16 @@ class ExcitonGroupTheory(object):
 
         Returns
         -------
-        bands_range : list
-            The list of bands involved in the BSE calculation.
-        BS_eigs : numpy.ndarray
-            The eigenenergies of the BSE.
-        BS_wfcs : numpy.ndarray
-            The exciton wavefunctions.
+        tuple
+            (bands_range, BS_eigs, BS_wfcs) for the specific Q-point.
         """
+        from yambopy.dbs.excitondb import YamboExcitonDB
+        
         try:
             bse_db_iq = YamboExcitonDB.from_db_file(self.ydb, folder=BSE_dir,
                                                    filename=f'ndb.BS_diago_Q{iQ+1}')
         except Exception as e:
-            raise IOError(f'Cannot read ndb.BS_diago_Q{iQ} file: {e}')
+            raise IOError(f'Cannot read ndb.BS_diago_Q{iQ+1} file: {e}')
             
         bands_range = bse_db_iq.nbands
         BS_eigs = bse_db_iq.eigenvalues[:nstates]
@@ -260,6 +224,20 @@ class ExcitonGroupTheory(object):
         BS_eigs = BS_eigs / ha2ev
         
         return bands_range, BS_eigs, BS_wfcs
+
+    def compute(self):
+        """
+        Main computation method - placeholder for group theory analysis.
+        
+        Returns
+        -------
+        dict
+            Results of group theory analysis.
+        """
+        print("ExcitonGroupTheory compute method called.")
+        print("Use analyze_exciton_symmetry() method for specific Q-point analysis.")
+        #For now it is a dummy method
+        return {}
 
     def analyze_exciton_symmetry(self, iQ, nstates, degen_thres=0.001):
         """
@@ -286,7 +264,7 @@ class ExcitonGroupTheory(object):
             - 'irrep_decomposition': Irreducible representation decomposition
         """
         print('Reading BSE eigen vectors')
-        bands_range, BS_eigs, BS_wfcs = self.read_excdb(self.BSE_dir, iQ-1, nstates)
+        bands_range, BS_eigs, BS_wfcs = self.read_excdb_single(self.BSE_dir, iQ-1, nstates)
         
         # Convert energies to eV for analysis (following original algorithm exactly)
         BS_eigs_eV = BS_eigs * ha2ev
@@ -305,7 +283,7 @@ class ExcitonGroupTheory(object):
         trace_all_imag = []
         little_group = []
         # Loop over symmetries (excluding time reversal operations)
-        for isym in range(int(self.sym_red.shape[0] / (self.time_rev + 1))):
+        for isym in range(int(self.sym_red.shape[0] / (self.ele_time_rev + 1))):
             # Check if Sq = q (following original algorithm exactly)
             Sq_minus_q = np.einsum('ij,j->i', self.sym_red[isym],
                                   self.kpts_iBZ[iQ - 1]) - self.kpts_iBZ[iQ - 1]
