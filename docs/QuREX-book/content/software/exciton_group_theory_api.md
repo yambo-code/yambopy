@@ -4,18 +4,20 @@
 
 ### Overview
 
-The `ExcitonGroupTheory` class provides comprehensive group theory analysis of exciton states in crystalline materials. It determines the irreducible representations of exciton states under the little group of the exciton momentum.
+The `ExcitonGroupTheory` class provides comprehensive group theory analysis of exciton states in crystalline materials. It determines the irreducible representations of exciton states under the little group of the exciton momentum. **This class now inherits from `BaseOpticalProperties` for improved code organization and consistency.**
 
 ### Class Definition
 
 ```python
-class ExcitonGroupTheory(object):
+class ExcitonGroupTheory(BaseOpticalProperties):
     """
     Group theory analysis of exciton states.
     
     This class analyzes the irreducible representations of exciton states under the 
     little group of the exciton momentum, providing insight into the symmetry
     properties of excitonic states.
+    
+    Inherits from BaseOpticalProperties for common database handling and utilities.
     """
 ```
 
@@ -23,8 +25,8 @@ class ExcitonGroupTheory(object):
 
 ```python
 def __init__(self, path=None, save='SAVE', lelph_db=None, latdb=None, wfdb=None, 
-             bands_range=[], BSE_dir='bse', LELPH_dir='lelph', 
-             read_symm_from_ns_db_file=False):
+             bands_range=None, BSE_dir='bse', LELPH_dir='lelph', 
+             read_symm_from_ns_db_file=False, save_files=True):
 ```
 
 #### Parameters
@@ -36,10 +38,11 @@ def __init__(self, path=None, save='SAVE', lelph_db=None, latdb=None, wfdb=None,
 | `lelph_db` | `LetzElphElectronPhononDB` or `None` | `None` | Pre-loaded electron-phonon database object. If `None`, reads from file. |
 | `latdb` | `YamboLatticeDB` or `None` | `None` | Pre-loaded lattice database object. If `None`, reads from file. |
 | `wfdb` | `YamboWFDB` or `None` | `None` | Pre-loaded wavefunction database object. If `None`, reads from file. |
-| `bands_range` | `list` | `[]` | Range of bands for analysis `[min_band, max_band]`. If empty, uses all bands. |
+| `bands_range` | `list` or `None` | `None` | Range of bands for analysis `[min_band, max_band]`. If `None`, uses all bands. |
 | `BSE_dir` | `str` | `'bse'` | Directory containing BSE calculation files. |
 | `LELPH_dir` | `str` | `'lelph'` | Directory containing electron-phonon matrix elements. |
 | `read_symm_from_ns_db_file` | `bool` | `False` | If `True`, reads symmetries from `ns.db1`; if `False`, from `ndb.elph`. |
+| `save_files` | `bool` | `True` | Whether to save intermediate results to files. |
 
 #### Raises
 
@@ -128,13 +131,32 @@ egt = ExcitonGroupTheory(
 
 ### Methods
 
+#### compute()
+
+```python
+def compute(self):
+```
+
+Main computation method - placeholder for group theory analysis.
+
+**Returns:**
+- `dict`: Empty dictionary (placeholder implementation)
+
+**Note:** This is a placeholder method. Use `analyze_exciton_symmetry()` for actual analysis.
+
+**Example:**
+```python
+# Main compute method (placeholder)
+results = egt.compute()
+```
+
 #### read()
 
 ```python
-def read(self, lelph_db=None, latdb=None, wfdb=None, bands_range=[]):
+def read(self, lelph_db=None, latdb=None, wfdb=None, bands_range=None):
 ```
 
-Read and initialize all required database objects.
+Read and initialize all required database objects. **Now uses base class functionality for common operations.**
 
 **Parameters:**
 - `lelph_db` (`LetzElphElectronPhononDB`, optional): Pre-loaded electron-phonon database
@@ -151,13 +173,13 @@ Read and initialize all required database objects.
 egt.read(bands_range=[1, 15])
 ```
 
-#### read_excdb()
+#### read_excdb_single()
 
 ```python
-def read_excdb(self, BSE_dir, iQ, nstates):
+def read_excdb_single(self, BSE_dir, iQ, nstates):
 ```
 
-Read Yambo exciton database for a specific Q-point.
+Read Yambo exciton database for a specific Q-point. **Renamed from `read_excdb()` for clarity.**
 
 **Parameters:**
 - `BSE_dir` (`str`): Directory containing BSE calculation data
@@ -165,16 +187,14 @@ Read Yambo exciton database for a specific Q-point.
 - `nstates` (`int`): Number of exciton states to read
 
 **Returns:**
-- `bands_range` (`list`): Band range from BSE calculation
-- `BS_eigs` (`numpy.ndarray`): BSE eigenvalues in Hartree
-- `BS_wfcs` (`numpy.ndarray`): Exciton wavefunctions
+- `tuple`: (bands_range, BS_eigs, BS_wfcs) for the specific Q-point
 
 **Raises:**
 - `IOError`: If BSE database file cannot be read
 
 **Example:**
 ```python
-bands, energies, wavefunctions = egt.read_excdb('bse', iQ=1, nstates=10)
+bands, energies, wavefunctions = egt.read_excdb_single('bse', iQ=1, nstates=10)
 ```
 
 #### analyze_exciton_symmetry()

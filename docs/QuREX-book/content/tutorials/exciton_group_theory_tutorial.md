@@ -4,17 +4,6 @@
 
 This tutorial demonstrates how to use the **significantly improved** `ExcitonGroupTheory` class to analyze the symmetry properties of exciton states in crystalline materials. The implementation has been **completely rewritten** in 2024 to follow the original algorithm exactly, ensuring **maximum accuracy** and **enhanced performance**. We'll walk through a complete example showing how to set up the analysis, interpret the results, and understand the physical implications.
 
-## Recent Improvements (2024)
-
-The ExcitonGroupTheory implementation has undergone major improvements:
-
-- **Algorithm Fidelity**: Complete rewrite to match the original algorithm from MN exactly
-- **Performance Optimizations**: 10-30% faster execution with reduced memory usage
-- **Enhanced Accuracy**: Exact reproduction of reference algorithms ensures reliable results
-- **Maintained Compatibility**: All existing workflows continue to function without changes
-
-For detailed information about the improvements, see the [YamboPy Improvements 2024](../software/yambopy_improvements_2024.md) documentation.
-
 ## Prerequisites
 
 Before starting this tutorial, ensure you have:
@@ -46,7 +35,7 @@ calculation_directory/
 
 ```python
 import numpy as np
-from yambopy.optical_properties import ExcitonGroupTheory
+from yambopy.optical_properties.exciton_group_theory import ExcitonGroupTheory
 
 # Set up paths and parameters
 calculation_path = '.'  # Current directory
@@ -70,7 +59,7 @@ egt = ExcitonGroupTheory(
 print(f"Successfully initialized ExcitonGroupTheory!")
 print(f"Number of IBZ k-points: {egt.nibz}")
 print(f"Number of symmetry operations: {len(egt.symm_mats)}")
-print(f"Time reversal symmetry: {egt.time_rev}")
+print(f"Time reversal symmetry: {egt.ele_time_rev}")
 ```
 
 ### Step 3: Performing the Group Theory Analysis
