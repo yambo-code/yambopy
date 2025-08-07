@@ -157,7 +157,7 @@ class Luminescence(BaseOpticalProperties):
                     wfdb=self.wfdb, ydipdb=self.ydipdb, bands_range=self.bands_range,
                     BSE_dir=self.BSE_dir, LELPH_dir=self.LELPH_dir, DIP_dir=self.BSE_dir,
                 )
-                ex_phonon.compute_Exph(gamma_only=True)
+                ex_phonon.compute(gamma_only=True)
                 self.ex_ph = ex_phonon.ex_ph[0]
                 
         except Exception as e:
@@ -237,7 +237,7 @@ class Luminescence(BaseOpticalProperties):
                     BSE_dir=self.BSE_dir, LELPH_dir=self.LELPH_dir, DIP_dir=self.BSE_dir,
                     save_files=self.save_files
                 )
-                ExPhonon.compute_Exph(gamma_only=True)
+                ExPhonon.compute(gamma_only=True)
                 self.ex_ph = ExPhonon.ex_ph[0]
                 
         except Exception as e:

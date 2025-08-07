@@ -155,41 +155,21 @@ class ExcitonPhonon(BaseOpticalProperties):
         if ydipdb is not None:
             self._read_dipoles_db(ydipdb, dip_dir=self.BSE_dir, bands_range=bands_range)
 
-    def compute(self):
+    def compute(self, gamma_only=True):
         """
         Main computation method - computes exciton-phonon coupling matrix elements.
         
-        Returns
-        -------
-        np.ndarray
-            Exciton-phonon matrix elements.
-        """
-        return self.compute_ExPhonon()
-    
-    def compute_ExPhonon(self):
-        """
-        Compute exciton-phonon coupling matrix elements.
+        Parameters
+        ----------
+        gamma_only : bool, optional
+            If True, only compute matrix elements for gamma point. Default is True.
         
         Returns
         -------
         np.ndarray
             Exciton-phonon matrix elements.
         """
-        from time import time
-        
-        start_time = time()
-        print('Computing Exciton-phonon matrix elements')
-        
-        # This is a placeholder - the actual computation would go here
-        # The original method is quite complex and would need the full implementation
-        print("ExcitonPhonon computation method needs full implementation")
-        print("Use specific methods like compute_exph_matelem() for detailed calculations")
-        
-        computation_time = time() - start_time
-        print(f'Exciton-phonon computation completed in {computation_time:.4f} s')
-        print('*' * 60)
-        
-        return np.array([])
+        return self.compute_Exph(gamma_only=gamma_only)
     
     def compute_Exph(self, gamma_only = True):
         """
