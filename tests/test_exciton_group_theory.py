@@ -21,17 +21,17 @@ class TestPointGroupOperations(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures."""
-        from yambopy.optical_properties.point_group_ops import (
-            get_pg_info, decompose_rep2irrep, normalize, rotation_matrix,
-            reflection_matrix, inversion_matrix, find_axis_angle
+        from yambopy.optical_properties.spgrep_point_group_ops import (
+            get_pg_info, decompose_rep2irrep
         )
+        # These functions are no longer available - they were internal utilities
+        # self.normalize = normalize
+        # self.rotation_matrix = rotation_matrix
+        # self.reflection_matrix = reflection_matrix
+        # self.inversion_matrix = inversion_matrix
+        # self.find_axis_angle = find_axis_angle
         self.get_pg_info = get_pg_info
         self.decompose_rep2irrep = decompose_rep2irrep
-        self.normalize = normalize
-        self.rotation_matrix = rotation_matrix
-        self.reflection_matrix = reflection_matrix
-        self.inversion_matrix = inversion_matrix
-        self.find_axis_angle = find_axis_angle
     
     def test_normalize(self):
         """Test vector normalization."""
@@ -380,7 +380,7 @@ class TestErrorHandling(unittest.TestCase):
     
     def test_invalid_parameters(self):
         """Test handling of invalid parameters."""
-        from yambopy.optical_properties.point_group_ops import decompose_rep2irrep
+        from yambopy.optical_properties.spgrep_point_group_ops import decompose_rep2irrep
         
         # Test with None character table
         result = decompose_rep2irrep(

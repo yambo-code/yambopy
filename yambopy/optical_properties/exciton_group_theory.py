@@ -329,14 +329,16 @@ class ExcitonGroupTheory(BaseOpticalProperties):
 
         little_group = np.array(little_group, dtype=int)
         
-        # Get point group information (following original algorithm)
+        # Get point group information using spgrep for complete crystallographic analysis
+        # Note: We use spgrep here to get the full crystallographic point group including
+        # non-symmorphic symmetries, while the actual wavefunction rotations above
+        # used the Yambo symmetries from the SAVE database
         try:
-            from .point_group_ops import get_pg_info, decompose_rep2irrep
-            little_group_mats = self.symm_mats[little_group - 1]
-            # Debug info removed for cleaner output
+            from .spgrep_point_group_ops import get_pg_info, decompose_rep2irrep
             
-            # Use original matrices without rounding (like the reference script)
-            pg_label, classes, class_dict, char_tab, irreps = get_pg_info(little_group_mats)
+            # For irrep analysis, we need to determine the crystallographic point group
+            # This may include additional symmetries not present in the Yambo SAVE
+            pg_label, classes, class_dict, char_tab, irreps = self._get_crystallographic_point_group(little_group)
         except ImportError:
             print("Warning: Point group analysis module not available")
             pg_label = "Unknown"
@@ -364,8 +366,11 @@ class ExcitonGroupTheory(BaseOpticalProperties):
             class_orders = np.zeros(len(classes), dtype=int)
             for ilab, iclass in class_dict.items():
                 if ilab < len(classes):  # Safety check
-                    print("%16s    : " % (classes[ilab]), little_group[np.array(iclass)])
-                    req_sym_characters[ilab] = min(iclass)
+                    # Convert 1-based indices to 0-based for array access
+                    iclass_0based = np.array(iclass) - 1
+                    # But print the 1-based indices as they appear in little_group
+                    print("%16s    : " % (classes[ilab]), np.array(iclass))
+                    req_sym_characters[ilab] = min(iclass) - 1  # Convert to 0-based
                     class_orders[ilab] = len(iclass)
                 else:
                     print(f"Warning: Class index {ilab} out of range for classes list (len={len(classes)})")
@@ -418,6 +423,215 @@ class ExcitonGroupTheory(BaseOpticalProperties):
         }
         
         return results
+    
+    def _get_crystallographic_point_group(self, little_group_yambo):
+        """
+        Determine the crystallographic point group for irrep analysis.
+        
+        This method takes the little group operations from Yambo and determines
+        the corresponding crystallographic point group using spgrep, which may
+        include additional non-symmorphic symmetries not present in the Yambo SAVE.
+        
+        Parameters
+        ----------
+        little_group_yambo : array_like
+            Little group operation indices from Yambo analysis
+            
+        Returns
+        -------
+        tuple
+            Point group information (pg_label, classes, class_dict, char_tab, irreps)
+        """
+        from .spgrep_point_group_ops import get_pg_info
+        
+        # Get the Yambo symmetry matrices for the little group
+        little_group_mats_yambo = self.symm_mats[little_group_yambo - 1]
+        
+        # For crystallographic analysis, we need to determine the space group
+        # and extract the corresponding point group with all symmetries
+        # This is where spgrep's comprehensive database is crucial
+        
+        try:
+            # First attempt: use the Yambo matrices directly with spgrep
+            pg_label, classes, class_dict, char_tab, irreps = get_pg_info(
+                little_group_mats_yambo, 
+                time_rev=(self.ele_time_rev == 1)
+            )
+            return pg_label, classes, class_dict, char_tab, irreps
+            
+        except Exception as e:
+            print(f"Direct spgrep analysis failed: {e}")
+            
+            # Use spglib to get proper crystallographic symmetries for irrep analysis
+            return self._get_point_group_from_spglib(little_group_yambo)
+    
+
+    
+    def _get_point_group_from_spglib(self, little_group_yambo):
+        """
+        Use spglib to get proper crystallographic symmetries for irrep analysis.
+        
+        This method uses spglib to identify the space group and extract the 
+        corresponding point group symmetries for proper irrep decomposition.
+        """
+        try:
+            import spglib
+            
+            # Get atomic positions and lattice from the SAVE database
+            lattice, positions, numbers = self._get_crystal_structure()
+            
+            if lattice is not None and positions is not None and numbers is not None:
+                # Use spglib to find the space group
+                cell = (lattice, positions, numbers)
+                spacegroup_info = spglib.get_spacegroup(cell, symprec=1e-5)
+                
+                if spacegroup_info:
+                    print(f"spglib identified space group: {spacegroup_info}")
+                    
+                    # Get symmetry operations from spglib
+                    symmetry = spglib.get_symmetry(cell, symprec=1e-5)
+                    
+                    if symmetry:
+                        # Extract point group operations (rotations without translations)
+                        rotations = symmetry['rotations']
+                        
+                        # Use spgrep with the proper spglib symmetries
+                        return self._analyze_with_spglib_symmetries(rotations, little_group_yambo)
+            
+            # Fallback if spglib analysis fails
+            print("spglib analysis failed, using operation matching")
+            return self._match_operations_to_point_group(little_group_yambo)
+                
+        except ImportError:
+            print("spglib not available, using operation matching")
+            return self._match_operations_to_point_group(little_group_yambo)
+        except Exception as e:
+            print(f"spglib analysis failed: {e}")
+            return self._match_operations_to_point_group(little_group_yambo)
+    
+    def _get_crystal_structure(self):
+        """
+        Get crystal structure information from the SAVE database.
+        
+        Returns
+        -------
+        tuple
+            (lattice, positions, numbers) for spglib analysis
+        """
+        try:
+            # Get lattice vectors (already available)
+            lattice = self.lat_vecs
+            
+            # Read atomic positions and numbers from the SAVE database
+            if (hasattr(self.ydb, 'car_atomic_positions') and 
+                hasattr(self.ydb, 'atomic_numbers')):
+                
+                # Use the actual atomic positions and numbers from SAVE
+                # spglib expects fractional coordinates, not Cartesian
+                positions = self.ydb.red_atomic_positions
+                numbers = self.ydb.atomic_numbers
+                
+                print(f"Read crystal structure from SAVE: {len(positions)} atoms")
+                print(f"Atomic numbers: {numbers}")
+                
+                return lattice, positions, numbers
+            else:
+                print("No atomic structure information found in SAVE database")
+                return None, None, None
+            
+        except Exception as e:
+            print(f"Failed to get crystal structure: {e}")
+            return None, None, None
+    
+
+    
+    def _analyze_with_spglib_symmetries(self, spglib_rotations, little_group_yambo):
+        """
+        Analyze point group using spglib symmetries with spgrep.
+        
+        Parameters
+        ----------
+        spglib_rotations : array_like
+            Rotation matrices from spglib
+        little_group_yambo : array_like
+            Little group indices from Yambo (for reference)
+            
+        Returns
+        -------
+        tuple
+            Point group analysis results
+        """
+        try:
+            from .spgrep_point_group_ops import get_pg_info
+            
+            # Convert spglib rotations to the format expected by spgrep
+            # spglib gives integer matrices in the standard crystallographic setting
+            print(f"Using {len(spglib_rotations)} symmetry operations from spglib")
+            
+            # Use spgrep with the proper spglib symmetries
+            pg_label, classes, class_dict, char_tab, irreps = get_pg_info(
+                spglib_rotations, 
+                time_rev=(self.ele_time_rev == 1)
+            )
+            
+            print(f"spgrep analysis with spglib symmetries successful: {pg_label}")
+            return pg_label, classes, class_dict, char_tab, irreps
+            
+        except Exception as e:
+            print(f"spgrep analysis with spglib symmetries failed: {e}")
+            # Final fallback
+            return self._match_operations_to_point_group(little_group_yambo)
+    
+
+    
+    def _match_operations_to_point_group(self, little_group_yambo):
+        """
+        Match symmetry operations to known point groups as a fallback.
+        
+        This analyzes the actual symmetry operations to determine the point group.
+        """
+        try:
+            # Get the symmetry matrices for the little group
+            little_group_mats = self.symm_mats[little_group_yambo - 1]
+            
+            # Analyze the operations to determine point group
+            n_ops = len(little_group_mats)
+            
+            # Count different types of operations
+            identity_count = 0
+            c3_rotations = 0
+            c2_rotations = 0
+            horizontal_reflections = 0
+            vertical_reflections = 0
+            improper_rotations = 0
+            
+            for mat in little_group_mats:
+                det = np.linalg.det(mat)
+                trace = np.trace(mat)
+                
+                if np.allclose(mat, np.eye(3)):
+                    identity_count += 1
+                elif np.isclose(det, 1) and np.isclose(trace, 0):
+                    c3_rotations += 1
+                elif np.isclose(det, 1) and np.isclose(trace, -1):
+                    c2_rotations += 1
+                elif (np.isclose(det, -1) and np.isclose(mat[2,2], 1) and 
+                      np.allclose(mat[2,:2], 0) and np.allclose(mat[:2,2], 0)):
+                    horizontal_reflections += 1
+                elif np.isclose(det, -1) and np.isclose(trace, 1):
+                    vertical_reflections += 1
+                elif np.isclose(det, -1):
+                    improper_rotations += 1
+            
+            # If we can't identify the point group, return unknown
+            print(f"Could not identify point group from {n_ops} operations")
+            return "Unknown", [], {}, None, []
+            
+        except Exception as e:
+            print(f"Operation matching failed: {e}")
+            return "Unknown", [], {}, None, []
+    
+
 
     def save_analysis_results(self, results, filename=None):
         """

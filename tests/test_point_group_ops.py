@@ -15,9 +15,8 @@ def test_basic_functionality():
     print("Testing basic point group operations...")
     
     try:
-        from yambopy.optical_properties.point_group_ops import (
-            get_pg_info, decompose_rep2irrep, normalize, 
-            find_symm_axis, get_point_grp
+        from yambopy.optical_properties.spgrep_point_group_ops import (
+            get_pg_info, decompose_rep2irrep
         )
         
         # Test with C2v point group matrices
