@@ -301,7 +301,19 @@ egt.save_analysis_results(results, 'my_analysis.txt')
 
 ### Overview
 
-The point group operations module has been **completely rewritten** to follow the original algorithm from MN. This ensures **maximum accuracy** and **algorithmic fidelity** for symmetry analysis.
+The point group operations module now uses the **spgrep library** for state-of-the-art crystallographic point group analysis. This modern implementation provides:
+
+- **Automatic point group identification** using International Tables standards
+- **Comprehensive character tables** from the spgrep database  
+- **Robust irreducible representation matrices**
+- **Automatic fallback** to original implementation if spgrep unavailable
+
+### spgrep Integration Benefits
+
+- **Enhanced Accuracy**: Uses crystallographic standards from International Tables
+- **Comprehensive Coverage**: Supports all crystallographic point groups
+- **Maintained Compatibility**: Automatic fallback ensures existing workflows continue
+- **Performance**: Optimized algorithms from the spgrep library
 
 ### Functions
 

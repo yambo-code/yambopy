@@ -178,6 +178,54 @@ results = lum.compute_luminescence()
 spectrum = lum.compute_luminescence_spectrum((1.0, 3.0, 1000), temp=300)
 ```
 
+## Point Group Operations with spgrep
+
+### Overview
+
+The point group operations now use the **spgrep library** for enhanced accuracy and comprehensive analysis. This provides:
+
+- **Automatic point group identification** using crystallographic standards
+- **Complete character tables** from comprehensive databases
+- **Robust irreducible representation analysis**
+- **Fallback to original implementation** if spgrep is not available
+
+### Key Functions
+
+#### get_pg_info()
+
+```python
+def get_pg_info(symm_mats):
+```
+
+Analyze point group with automatic spgrep/fallback selection.
+
+**Parameters:**
+- `symm_mats` (`numpy.ndarray`): Symmetry matrices (nsym, 3, 3)
+
+**Returns:**
+- `pg_label` (`str`): Point group label (e.g., 'C2v', 'D3h')
+- `classes` (`list`): Symmetry class labels
+- `class_dict` (`dict`): Class to operation mapping
+- `char_tab` (`numpy.ndarray`): Character table
+- `irreps` (`list`): Irreducible representation labels
+
+#### decompose_rep2irrep()
+
+```python
+def decompose_rep2irrep(red_rep, char_table, pg_order, class_order, irreps):
+```
+
+Decompose reducible representation using spgrep-enhanced analysis.
+
+### Installation
+
+To use spgrep features:
+```bash
+pip install spgrep
+```
+
+If spgrep is not available, the system automatically falls back to the original implementation.
+
 ## Utility Functions
 
 The `utils.py` module provides common utility functions:

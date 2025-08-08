@@ -12,6 +12,11 @@ Before starting this tutorial, ensure you have:
 2. **LetzElPhC calculation**: Electron-phonon matrix elements and D-matrices for wavefunction rotation
 3. **Required databases**: All necessary Yambo database files in the correct directories
 4. **Yambopy installed**: The yambopy package with the ExcitonGroupTheory module
+5. **spgrep library (recommended)**: For enhanced point group analysis
+   ```bash
+   pip install spgrep
+   ```
+   If not available, the system automatically falls back to the original implementation.
 
 ## Step-by-Step Tutorial
 
