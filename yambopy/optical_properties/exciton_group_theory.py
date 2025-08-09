@@ -606,10 +606,29 @@ class ExcitonGroupTheory(BaseOpticalProperties):
         }
         
         # Add optical activity analysis
-        results['optical_activity'] = self._analyze_optical_activity(
+        optical_activities = self._analyze_optical_activity(
             results['irrep_decomposition'], 
             results['point_group_label']
         )
+        results['optical_activity'] = optical_activities
+        
+        # Add reliability summary
+        reliable_count = sum(1 for activity in optical_activities 
+                           if activity.get('analysis_reliable', True))
+        unreliable_count = len(optical_activities) - reliable_count
+        
+        results['analysis_summary'] = {
+            'total_states': len(optical_activities),
+            'reliable_states': reliable_count,
+            'unreliable_states': unreliable_count,
+            'reliability_fraction': reliable_count / len(optical_activities) if optical_activities else 0.0
+        }
+        
+        # Print warning if some states are unreliable
+        if unreliable_count > 0:
+            print(f"\n⚠️  WARNING: {unreliable_count} out of {len(optical_activities)} states have unreliable symmetry analysis")
+            print("   Optical activity predictions are not reliable for these states")
+            print("   Consider checking numerical precision or calculation parameters")
         
         return results
     
@@ -639,24 +658,39 @@ class ExcitonGroupTheory(BaseOpticalProperties):
         for irrep_str in irrep_decompositions:
             activity = {
                 'irrep': irrep_str,
-                'electric_dipole_allowed': False,
-                'raman_active': False,
-                'ir_active': False,
-                'selection_rules': []
+                'electric_dipole_allowed': None,  # None means "cannot determine"
+                'raman_active': None,
+                'ir_active': None,
+                'selection_rules': [],
+                'analysis_reliable': True
             }
             
-            # Parse irrep string (handle cases like "Γ5 ⊕ Γ7", "A1g", etc.)
-            irreps = self._parse_irrep_string(irrep_str)
-            
-            for irrep in irreps:
-                # Apply selection rules based on point group and irrep
-                rules = self._get_selection_rules(irrep, point_group_label)
+            # Check if irrep was not identified
+            if irrep_str.startswith('[irrep not identified'):
+                activity['analysis_reliable'] = False
+                activity['selection_rules'].append({
+                    'notes': ['Irreducible representation could not be determined reliably',
+                             'Optical activity analysis not possible',
+                             'This may be due to numerical precision issues or symmetry analysis failure']
+                })
+            else:
+                # Parse irrep string (handle cases like "Γ5 ⊕ Γ7", "A1g", etc.)
+                irreps = self._parse_irrep_string(irrep_str)
                 
-                # Combine rules (if any component is active, the whole state is active)
-                activity['electric_dipole_allowed'] |= rules['electric_dipole_allowed']
-                activity['raman_active'] |= rules['raman_active'] 
-                activity['ir_active'] |= rules['ir_active']
-                activity['selection_rules'].append(rules)
+                # Initialize as False for reliable analysis
+                activity['electric_dipole_allowed'] = False
+                activity['raman_active'] = False
+                activity['ir_active'] = False
+                
+                for irrep in irreps:
+                    # Apply selection rules based on point group and irrep
+                    rules = self._get_selection_rules(irrep, point_group_label)
+                    
+                    # Combine rules (if any component is active, the whole state is active)
+                    activity['electric_dipole_allowed'] |= rules['electric_dipole_allowed']
+                    activity['raman_active'] |= rules['raman_active'] 
+                    activity['ir_active'] |= rules['ir_active']
+                    activity['selection_rules'].append(rules)
             
             optical_activities.append(activity)
         
@@ -918,7 +952,7 @@ class ExcitonGroupTheory(BaseOpticalProperties):
             return pg_label, classes, class_dict, char_tab, irreps
             
         except Exception as e:
-            print(f"Direct spgrep analysis failed: {e}")
+            print(f"Direct spgrep analysis failed when fed with Yambo matrices: {e}")
             
             # Use spglib to get proper crystallographic symmetries for irrep analysis
             return self._get_point_group_from_spglib(little_group_yambo)

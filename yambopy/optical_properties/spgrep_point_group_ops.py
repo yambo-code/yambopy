@@ -340,17 +340,30 @@ def decompose_rep2irrep(red_rep: np.ndarray, char_table: np.ndarray,
     Returns
     -------
     str
-        String representation of the decomposition
+        String representation of the decomposition or error message
     """
     # Use the standard reduction formula
     irrep_coeffs = np.einsum('j,j,rj->r', class_order, red_rep, char_table.conj(), optimize=True) / pg_order
     
+    # Check for numerical issues before rounding
+    raw_coeffs = irrep_coeffs.real
+    max_coeff = np.max(np.abs(raw_coeffs))
+    
+    # If all coefficients are very small, this indicates numerical problems
+    if max_coeff < 0.1:
+        return "[irrep not identified due to numerical precision issues]"
+    
     # Round to nearest integers
-    irrep_coeffs = np.round(irrep_coeffs.real).astype(int)
+    irrep_coeffs_rounded = np.round(raw_coeffs).astype(int)
+    
+    # Check if rounding caused significant changes (indicates precision issues)
+    rounding_errors = np.abs(raw_coeffs - irrep_coeffs_rounded)
+    if np.max(rounding_errors) > 0.3:
+        return "[irrep not identified due to character mismatch]"
     
     # Build decomposition string
     decomp_parts = []
-    for i, coeff in enumerate(irrep_coeffs):
+    for i, coeff in enumerate(irrep_coeffs_rounded):
         if coeff > 0:
             if coeff == 1:
                 decomp_parts.append(irreps[i])
@@ -358,7 +371,7 @@ def decompose_rep2irrep(red_rep: np.ndarray, char_table: np.ndarray,
                 decomp_parts.append(f"{coeff}{irreps[i]}")
     
     if not decomp_parts:
-        return "0"
+        return "[irrep not identified due to symmetry analysis failure]"
     
     return " ⊕ ".join(decomp_parts)
 
