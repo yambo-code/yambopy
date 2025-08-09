@@ -15,9 +15,16 @@ M_{\lambda \lambda^{\prime}}(\mathbf{Q}, \mathbf{Q}+\mathbf{Q_{\hat{i}}})=
 & =\sum_{c v c^{\prime} v^{\prime} \mathbf{k}} A_{c v \mathbf{k}}^{\lambda \mathbf{Q} \star} A_{c^{\prime} v^{\prime} \mathbf{k}+\alpha \mathbf{Q_{\hat{i}}}}^{\lambda^{\prime} \mathbf{Q}+\mathbf{Q_{\hat{i}}}}\left\langle u_{c \mathbf{k}} \mid u_{c^{\prime} \mathbf{k}+\alpha \mathbf{Q_{\hat{i}}}}\right\rangle_{\mathrm{uc}}\left\langle u_{v^{\prime} \mathbf{k}-\mathbf{Q}-\beta \mathbf{Q_{\hat{i}}}} \mid u_{v \mathbf{k}-\mathbf{Q}}\right\rangle_{\mathrm{uc}} .
 \end{align}
 {math}` (plaquette-overlap)
-
 <span style="color:darkgreen">
 </span>.
+
+General formula for computation of Chern number
+{math}`
+\begin{aligned}
+&C_n=\frac{1}{2 \pi} \int_{\mathrm{BZ}} \Omega_n(\mathbf{k}) d^2 k\\
+&\Omega_n(\mathbf{k})=i \sum_{m \neq n} \frac{\left\langle u_{n \mathbf{k}}\right| \partial_{k_x} H(\mathbf{k})\left|u_{m \mathbf{k}}\right\rangle\left\langle u_{m \mathbf{k}}\right| \partial_{k_y} H(\mathbf{k})\left|u_{n \mathbf{k}}\right\rangle-(x \leftrightarrow y)}{\left(E_n(\mathbf{k})-E_m(\mathbf{k})\right)^2}
+\end{aligned}
+{math}` (chern-general)
 
 # References
 

@@ -29,17 +29,24 @@ parts:
         - file: content/software/yambo/yambo
         - file: content/software/yambo/yambo_input_flags
         - file: content/software/optical_properties_api
-        - file: content/software/exciton_group_theory_api
+        - file: content/software/exciton_group_theory_api_auto
         - file: content/software/exciton_group_theory_summary
         - file: content/software/yambopy_improvements_2024
 
-- caption: Practical Tutorials
-  numbered: true
+- caption: API Documentation
+  numbered: false
   chapters:
-    - file: content/tutorials/tutorials
+    - file: content/api/index
       sections:
-        - file: content/tutorials/exciton_phonon
-        - file: content/tutorials/exciton_group_theory_tutorial
+        - file: content/api/baseopticalproperties_api.rst
+        - file: content/api/excitongrouptheory_api.rst
+        - file: content/api/excitondipole_api.rst
+        - file: content/api/excitonphonon_api.rst
+        - file: content/api/luminescence_api.rst
+        - file: content/api/letzelphelectronphonondb_api.rst
+        - file: content/api/spgrep_point_group_ops_api.rst
+        - file: content/api/utils_api.rst
+        - file: content/api/lelph2y_api.rst
 
 - caption: Interactive Examples
   numbered: false

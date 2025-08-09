@@ -7,6 +7,9 @@ The BSE Hamiltonian can be built from:
 3) It can be reconstructured from `YamboExcitonDB` and the already computed by eigenvalues and eigenvectors by Yambo
 
 
-$$
-H^{2P}_{\lambda,\lambda^\prime} =
-$$ (eq:H2P)
+```{math}
+:label: eq:H2P
+H^{2P}_{\lambda,\lambda^\prime} = \delta_{\lambda,\lambda^\prime} E_{\lambda}^{QP} + K_{\lambda,\lambda^\prime}
+```
+
+where $E_{\lambda}^{QP}$ are the quasiparticle energies and $K_{\lambda,\lambda^\prime}$ is the electron-hole interaction kernel.

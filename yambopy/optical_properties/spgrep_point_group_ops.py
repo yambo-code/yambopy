@@ -245,8 +245,40 @@ def _generate_class_label(mat: np.ndarray) -> str:
             return "C6"
         else:
             return f"C{int(2*np.pi/theta + 0.5)}"
-    else:  # Improper rotation
-        return "σ"  # Generic reflection/improper rotation
+    else:  # Improper rotation (det < 0)
+        # Distinguish between different types of reflections
+        # Check if it's a pure reflection (trace = 1) or improper rotation
+        if np.isclose(trace, 1):
+            # Pure reflection - determine type by normal vector
+            # Find the reflection plane normal
+            eigenvals, eigenvecs = np.linalg.eig(mat)
+            
+            # The eigenvector with eigenvalue -1 is the normal to reflection plane
+            normal_idx = np.argmin(np.abs(eigenvals + 1))
+            normal = np.real(eigenvecs[:, normal_idx])
+            
+            # Classify reflection type
+            if np.abs(normal[2]) > 0.9:  # Normal along z-axis
+                return "σh"  # Horizontal reflection
+            elif np.abs(normal[2]) < 0.1:  # Normal in xy-plane
+                return "σv"  # Vertical reflection
+            else:
+                return "σd"  # Diagonal reflection
+        elif np.isclose(trace, -1):
+            # Improper rotation (S_n operations)
+            return "S"
+        else:
+            # Other improper rotations
+            cos_theta = (trace + 1) / 2
+            cos_theta = np.clip(cos_theta, -1, 1)
+            theta = np.arccos(cos_theta)
+            
+            if np.isclose(theta, np.pi/3):
+                return "S6"
+            elif np.isclose(theta, 2*np.pi/3):
+                return "S3"
+            else:
+                return "S"
 
 
 def _generate_irrep_labels(pg_label: str, n_irreps: int, char_tab: np.ndarray) -> List[str]:

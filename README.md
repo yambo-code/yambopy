@@ -64,6 +64,12 @@ Type `pip install yambopy`
 #### Local installation from this repository (for latest patches)
 Clone this repository in your local machine or cluster, enter the directory and type `pip install .`
  
+#### Installation for developers
+Enter the directory and type `pip install ".[dev]"`
+
+#### Installation for QuREX-book
+Enter the directory and type `pip install ".[docs]"`
+
 #### More information
 Follow the installation steps on the [Yambo wiki](https://wiki.yambo-code.eu/index.php/First_steps_in_Yambopy).
 

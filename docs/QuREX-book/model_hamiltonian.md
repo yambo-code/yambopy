@@ -4,8 +4,9 @@ The workhorse method for tight-binding (TB) parametrization of the electronic pr
 In this way, one obtains a real space representation of the electronic Hamiltonian $H_{nm}(\mathbf{R})$, where $\mathbf{R}$ are the lattice vectors lying in a supercell conjugate to the $\mathbf{k}$-mesh and $n$,$m$ label the electronic band indices.
 Then, one can use via a Slater-Koster interpolation scheme {cite}`yates2007spectral` the reciprocal space Hamiltonian ($H_{nm}(\mathbf{k})$) on a finer mesh of $\mathbf{k}$-points with respect to the one used in the DFT calculation as
 
-$$
-H_{n m}\left(\mathbf{k}\right)=\sum_{\mathbf{R}} \mathrm{e}^{\mathrm{i} \mathbf{k} \cdot \mathbf{R}} H_{n m}(\mathbf{R}) 
-$$ (HR)
+```{math}
+:label: eq:HR
+H_{n m}\left(\mathbf{k}\right)=\sum_{\mathbf{R}} \mathrm{e}^{\mathrm{i} \mathbf{k} \cdot \mathbf{R}} H_{n m}(\mathbf{R})
+```
 
 After diagonalization the resulting eigenvectors are in the **Hamilton gauge** {doc}`model_hamiltonian`
