@@ -27,13 +27,13 @@ class ExcitonGroupTheory(BaseOpticalProperties):
     """
     Group theory analysis of exciton states using crystallographic symmetries.
     
-    This class performs comprehensive symmetry analysis of exciton states by:
+    This class performs symmetry analysis of exciton states by:
     
     1. **Point Group Identification**: Determines the crystallographic point group
-       using spglib and spgrep libraries for accurate symmetry classification.
+       using spglib and spgrep libraries for symmetry classification.
        
     2. **Little Group Analysis**: Identifies symmetry operations that leave the 
-       exciton momentum invariant, crucial for k-point dependent analysis.
+       exciton momentum invariant.
        
     3. **Irreducible Representation Decomposition**: Decomposes exciton states 
        into irreducible representations of the little group.
