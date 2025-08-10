@@ -62,15 +62,26 @@ def rotate_exc_wf(Ak, symm_mat_red, kpoints, exe_qpt, dmats, time_rev, ktree=Non
         Ak_tmp = Ak.conj()
 
     # Rotate the Ak wavefunction using the representation matrices
+    # FIXED: Properly rearrange k-points instead of leaving zeros
     if tda :
-        rot_Ak[:, idx_Rk, ...] = (Dcc[None, ...] @ Ak_tmp) @ (Dvv.transpose(0, 2, 1)[None, ...])
+        # Apply rotation: rot_Ak[n, Rk, c, v] = sum_c',v' D_cc'[k] * Ak[n, k, c', v'] * D_vv'[k-q]
+        rotated_wfc = (Dcc[None, ...] @ Ak_tmp) @ (Dvv.transpose(0, 2, 1)[None, ...])
+        # Rearrange k-points: put rotated wavefunction at rotated k-point positions
+        for ik in range(nk):
+            rot_Ak[:, idx_Rk[ik], ...] = rotated_wfc[:, ik, ...]
     else :
         ## rotate the resonant part
-        rot_Ak[:, 0, idx_Rk, ...] = (Dcc[None, ...] @ Ak_tmp[:,0,...]) @ (Dvv.transpose(0, 2, 1)[None, ...])
+        rotated_wfc_res = (Dcc[None, ...] @ Ak_tmp[:,0,...]) @ (Dvv.transpose(0, 2, 1)[None, ...])
+        for ik in range(nk):
+            rot_Ak[:, 0, idx_Rk[ik], ...] = rotated_wfc_res[:, ik, ...]
+        
         # Rotate the anti-resonant part
         Dvv = dmats[:, :nv, :nv]  
         Dcc = dmats[idx_k_minus_q, nv:, nv:].conj()  
-        rot_Ak[:, 1, idx_Rk, ...] = (Dcc[None, ...] @ Ak_tmp[:,1,...]) @ (Dvv.transpose(0, 2, 1)[None, ...])
+        rotated_wfc_anti = (Dcc[None, ...] @ Ak_tmp[:,1,...]) @ (Dvv.transpose(0, 2, 1)[None, ...])
+        for ik in range(nk):
+            rot_Ak[:, 1, idx_Rk[ik], ...] = rotated_wfc_anti[:, ik, ...]
+    
     # done return the rotate wfc
     return rot_Ak
 
