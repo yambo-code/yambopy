@@ -115,7 +115,8 @@ class ExcitonGroupTheory(BaseOpticalProperties):
     """
     
     def __init__(self, path=None, save='SAVE', lelph_db=None, latdb=None, wfdb=None, 
-                 bands_range=None, BSE_dir='bse', LELPH_dir='lelph'):
+                 bands_range=None, BSE_dir='bse', LELPH_dir='lelph', 
+                 read_symm_from_ns_db_file=True):
         """Initialize with minimal setup."""
         super().__init__(path=path, save=save, latdb=latdb, wfdb=wfdb, 
                         bands_range=bands_range, BSE_dir=BSE_dir)

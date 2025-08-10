@@ -12,3 +12,6 @@ from .exciton_group_theory import ExcitonGroupTheory
 from .ex_dipole import ExcitonDipole
 from .ex_phonon import ExcitonPhonon
 from .luminescence import Luminescence
+
+# Backward compatibility alias
+ExcitonSymmetryAnalyzer = ExcitonGroupTheory

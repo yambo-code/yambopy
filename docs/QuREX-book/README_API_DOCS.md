@@ -104,33 +104,43 @@ To ensure high-quality auto-generated documentation, follow these guidelines:
 ```python
 class ExcitonGroupTheory(BaseOpticalProperties):
     """
-    Brief one-line description.
+    Group theory analysis of exciton states using crystallographic symmetries.
     
-    Longer description with multiple paragraphs explaining the purpose,
-    theoretical background, and key features.
+    This class performs symmetry analysis of exciton states by automatically
+    identifying the crystallographic point group and decomposing exciton states
+    into irreducible representations.
     
     **Theoretical Background**
     
-    Mathematical formulations and equations using LaTeX:
+    The symmetry of exciton states is determined by the little group G_k:
     
         D^(n)_R = ⟨ψ_n(Rk)| U(R) |ψ_n(k)⟩
+        χ^(n)(R) = Tr[D^(n)_R]
     
     Parameters
     ----------
-    param1 : type
-        Description of parameter 1.
-    param2 : type, optional
-        Description of optional parameter 2.
+    path : str, optional
+        Path to the calculation directory.
+    BSE_dir : str, optional
+        Name of the BSE directory. Default is 'bse'.
+    LELPH_dir : str, optional
+        Name of the electron-phonon directory. Default is 'lelph'.
+    bands_range : list, optional
+        Range of bands to include in the analysis.
     
     Attributes
     ----------
-    attr1 : type
-        Description of attribute 1.
+    point_group_label : str
+        Identified crystallographic point group.
+    spacegroup_label : str
+        Identified space group.
     
     Examples
     --------
-    >>> egt = ExcitonGroupTheory(path='.')
+    >>> from yambopy.optical_properties import ExcitonGroupTheory
+    >>> egt = ExcitonGroupTheory(path='./', BSE_dir='bse', LELPH_dir='lelph')
     >>> results = egt.analyze_exciton_symmetry(iQ=1, nstates=10)
+    >>> latex_labels = egt.get_latex_labels(['A1g', 'E2u'])
     """
 ```
 
