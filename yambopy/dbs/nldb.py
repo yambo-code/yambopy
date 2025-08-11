@@ -103,8 +103,12 @@ class YamboNLDB(object):
         # 
         self.Efield_general=[]
         for n in range(1,4):
-            efield=self.read_Efield(database,self.RT_step,n)
-            self.Efield_general.append(efield.copy())
+            try:
+                efield=self.read_Efield(database,self.RT_step,n)
+            except:
+                print("Field %d not found" % n)
+            else:
+                self.Efield_general.append(efield.copy())
 
         #
         # Read polarization and currect files 
@@ -152,7 +156,10 @@ class YamboNLDB(object):
             # Read only the first field for SHG
             # I don't need it in the pump-probe configuration
             efield=self.read_Efield(data_p_and_j,self.RT_step,1)
-            efield2=self.read_Efield(data_p_and_j,self.RT_step,2)
+            try:
+                efield2=self.read_Efield(data_p_and_j,self.RT_step,2)
+            except:
+                efield2=efield
             self.Efield.append(efield.copy())
             self.Efield2.append(efield2.copy())
 
