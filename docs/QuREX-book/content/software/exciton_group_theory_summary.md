@@ -66,6 +66,27 @@ egt.display_symmetry_operations()
 - ✅ Complete operation details
 - ✅ Professional mathematical notation
 
+### Optical Activity Analysis
+**Universal optical selection rules for all 32 point groups**
+
+```python
+# Automatic optical activity analysis
+results = egt.analyze_exciton_symmetry(iQ=1, nstates=10)
+
+# Each result includes comprehensive activity information:
+for result in results['results']:
+    print(f"Energy: {result['energy']:.4f} eV")
+    print(f"Irrep: {result['irrep']}")
+    print(f"Activity: {result['activity']}")  # Now works for ALL point groups!
+```
+
+**Supported Analysis:**
+- ✅ **IR activity**: Infrared absorption selection rules
+- ✅ **Raman activity**: Raman scattering selection rules  
+- ✅ **Electric dipole transitions**: Optical absorption/emission rules
+- ✅ **All 32 point groups**: Complete crystallographic coverage
+- ✅ **Literature accuracy**: Based on standard group theory references
+
 ### `analyze_exciton_symmetry()`
 **Core exciton group theory analysis**
 

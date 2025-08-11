@@ -376,6 +376,9 @@ class ExcitonGroupTheory(BaseOpticalProperties):
         """
         Analyze Raman and IR activity based on irreducible representations.
         
+        Uses comprehensive optical activity database supporting all 32 crystallographic
+        point groups with proper selection rules.
+        
         Parameters
         ----------
         irrep_multiplicities : list
@@ -386,49 +389,9 @@ class ExcitonGroupTheory(BaseOpticalProperties):
         str
             Activity description
         """
-        activities = []
+        from .optical_activity_database import analyze_optical_activity
         
-        # D6h point group selection rules
-        if self.point_group_label == '6/mmm':  # D6h
-            # IR active: A2u, E1u
-            # Raman active: A1g, E1g, E2g
-            # Electric dipole allowed: A2u, E1u
-            
-            ir_active_irreps = ['A2u', 'E1u']
-            raman_active_irreps = ['A1g', 'E1g', 'E2g']
-            electric_dipole_irreps = ['A2u', 'E1u']
-            
-        elif self.point_group_label == '4/mmm':  # D4h
-            # IR active: A2u, Eu
-            # Raman active: A1g, B1g, B2g, Eg
-            # Electric dipole allowed: A2u, Eu
-            
-            ir_active_irreps = ['A2u', 'Eu']
-            raman_active_irreps = ['A1g', 'B1g', 'B2g', 'Eg']
-            electric_dipole_irreps = ['A2u', 'Eu']
-            
-        else:
-            # Generic case - cannot determine activity
-            return "activity unknown"
-        
-        # Check which activities are present
-        present_irreps = [label for label, mult in irrep_multiplicities]
-        
-        is_ir_active = any(irrep in present_irreps for irrep in ir_active_irreps)
-        is_raman_active = any(irrep in present_irreps for irrep in raman_active_irreps)
-        is_electric_dipole = any(irrep in present_irreps for irrep in electric_dipole_irreps)
-        
-        if is_ir_active:
-            activities.append("IR active")
-        if is_raman_active:
-            activities.append("Raman active")
-        if is_electric_dipole:
-            activities.append("electric dipole allowed")
-            
-        if not activities:
-            activities.append("optically inactive")
-            
-        return ", ".join(activities)
+        return analyze_optical_activity(self.point_group_label, irrep_multiplicities)
 
     def get_latex_labels(self, text_labels):
         """
