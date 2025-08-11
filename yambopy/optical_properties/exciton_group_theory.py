@@ -908,7 +908,7 @@ class ExcitonGroupTheory(BaseOpticalProperties):
         print(f"GENERAL SYMMETRY OPERATIONS ANALYSIS")
         print("=" * 80)
         
-        print(f"\n🔍 CRYSTAL STRUCTURE INFORMATION:")
+        print(f"\nCRYSTAL STRUCTURE INFORMATION:")
         print(f"   Space Group: {summary.get('space_group', 'Unknown')} (#{summary.get('space_group_number', '?')})")
         print(f"   Point Group: {summary.get('point_group', 'Unknown')}")
         print(f"   Crystal System: {summary.get('crystal_system', 'Unknown').title()}")
@@ -916,7 +916,7 @@ class ExcitonGroupTheory(BaseOpticalProperties):
         print(f"   Spglib Operations: {summary.get('spglib_operations', '?')}")
         
         # Count operations by type
-        print(f"\n📊 OPERATION BREAKDOWN:")
+        print(f"\nOPERATION BREAKDOWN:")
         print("   " + "-" * 70)
         
         operation_symbols = {
@@ -944,7 +944,7 @@ class ExcitonGroupTheory(BaseOpticalProperties):
         print(f"   Total classified: {total_classified}/{summary.get('total_operations', len(self.symm_mats))}")
         
         # Detailed breakdown
-        print(f"\n🔬 DETAILED OPERATION LIST:")
+        print(f"\nDETAILED OPERATION LIST:")
         print("   " + "-" * 70)
         
         for op_type, op_list in operations.items():
@@ -985,7 +985,7 @@ class ExcitonGroupTheory(BaseOpticalProperties):
         space_group = summary.get('space_group', '')
         
         if crystal_system:
-            print(f"\n🎯 {crystal_system.upper()} CRYSTAL SYSTEM PROPERTIES:")
+            print(f"\n{crystal_system.upper()} CRYSTAL SYSTEM PROPERTIES:")
             print("   " + "-" * 70)
             
             if crystal_system == 'hexagonal':
@@ -1025,13 +1025,5 @@ class ExcitonGroupTheory(BaseOpticalProperties):
                 print("     • Lowest symmetry: only identity and/or inversion")
                 print("     • No rotation axes or mirror planes")
                 print("     • Space groups: P1, P-1")
-        
-        print(f"\n📚 SPGLIB INTEGRATION:")
-        print("   " + "-" * 70)
-        print("   This analysis uses spglib for general space group support:")
-        print("     • Works with all 230 space groups")
-        print("     • Includes non-symmorphic operations (screw, glide)")
-        print("     • Provides crystallographic standard notation")
-        print("     • Validates against International Tables")
-        
+               
         return operations
