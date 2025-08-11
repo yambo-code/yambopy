@@ -14,6 +14,7 @@ Project Authors
 * Silvetti, Martino, University of Modena and Reggio Emilia (Italy)
 * Attaccalite, Claudio, CNRS/Aix-Marseille University (France)
 * Pereira Coutada Miranda, Henrique, VASP Software (Austria)
+* Myrta Grüning, Queen's University, Belfast (UK)
 
 ## All other contributors and their affiliations:
 
@@ -25,3 +26,5 @@ Project Authors
 * Yuncheng Mao
 * Marco D'Alessandro
 * Daniel Santos Stone
+* Ignacio Alliati 
+
