@@ -479,27 +479,3 @@ def validate_database():
     
     return results
 
-if __name__ == "__main__":
-    # Validate the database
-    validation = validate_database()
-    print("Optical Activity Database Validation:")
-    print(f"Total point groups: {validation['total_point_groups']}")
-    print("Point groups per crystal system:")
-    for system, count in validation['crystal_systems'].items():
-        print(f"  {system.title()}: {count}")
-    
-    if validation['issues']:
-        print("Issues found:")
-        for issue in validation['issues']:
-            print(f"  - {issue}")
-    else:
-        print("✅ Database validation passed!")
-    
-    # Example usage
-    print("\nExample usage:")
-    activity = get_optical_activity('6/mmm')
-    if activity:
-        print(f"D6h (6/mmm) point group:")
-        print(f"  IR active: {activity['ir_active']}")
-        print(f"  Raman active: {activity['raman_active']}")
-        print(f"  Electric dipole: {activity['electric_dipole']}")
