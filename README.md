@@ -110,6 +110,7 @@ Active contributors:
 - Jorge Cervantes-Villanueva
 - Riccardo Reho
 - Michele Re Fiorentin
+- Ali Esquembre-Kucukalic
 - You if you want to share your scripts!
 
 Past contributors:
