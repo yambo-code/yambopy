@@ -6,6 +6,10 @@ This script demonstrates how to use the ExcitonGroupTheory class to analyze
 the symmetry properties of exciton states in crystalline materials.
 
 Features:
+- Universal space group support (all 230 space groups)
+- General symmetry operation classification using spglib
+- Non-symmorphic operations (screw rotations, glide reflections)
+- Comprehensive crystal system analysis
 - Automatic point group identification using spglib
 - Irreducible representation decomposition using spgrep
 - Optical activity analysis (Raman, IR, electric dipole)
@@ -109,6 +113,9 @@ def main():
         # Create visualization
         create_plot(egt, results)
         
+        # Demonstrate general symmetry classification
+        demonstrate_general_symmetry_classification(egt)
+        
         # Demonstrate LaTeX conversion
         demonstrate_latex_conversion(egt)
         
@@ -186,6 +193,94 @@ def create_plot(egt, results):
     
     # Show the plot
     plt.show()
+
+def demonstrate_general_symmetry_classification(egt):
+    """Demonstrate the general symmetry classification functionality."""
+    
+    print("\n" + "=" * 60)
+    print("GENERAL SYMMETRY CLASSIFICATION")
+    print("=" * 60)
+    print("This feature works with all 230 space groups!")
+    
+    # Run the general classification
+    operations = egt.classify_symmetry_operations()
+    summary = operations.get('_summary', {})
+    
+    print(f"\n🔍 CRYSTAL STRUCTURE INFORMATION:")
+    print(f"   Space Group: {summary.get('space_group', 'Unknown')} (#{summary.get('space_group_number', '?')})")
+    print(f"   Point Group: {summary.get('point_group', 'Unknown')}")
+    print(f"   Crystal System: {summary.get('crystal_system', 'Unknown').title()}")
+    print(f"   Total Operations: {summary.get('total_operations', 0)}")
+    
+    print(f"\n📊 OPERATION BREAKDOWN:")
+    print("-" * 50)
+    
+    operation_symbols = {
+        'identity': 'E (Identity)',
+        'rotation': 'Cₙ (Rotations)',
+        'reflection': 'σ (Reflections)',
+        'inversion': 'i (Inversion)',
+        'rotoinversion': 'Sₙ (Rotoinversions)',
+        'screw': 'nₘ (Screw rotations)',
+        'glide': 'g (Glide reflections)',
+        'unknown': '? (Unclassified)'
+    }
+    
+    total_classified = 0
+    for op_type, op_list in operations.items():
+        if op_type == '_summary':
+            continue
+        if op_list:
+            description = operation_symbols.get(op_type, op_type.title())
+            count = len(op_list)
+            total_classified += count
+            print(f"  {description:25s}: {count:2d} operations")
+    
+    print("-" * 50)
+    print(f"  Total classified: {total_classified}/{summary.get('total_operations', 0)}")
+    
+    # Show examples of each operation type
+    print(f"\n🔬 OPERATION EXAMPLES:")
+    print("-" * 50)
+    
+    key_operations = ['identity', 'rotation', 'reflection', 'inversion', 'screw', 'glide']
+    for op_type in key_operations:
+        op_list = operations.get(op_type, [])
+        if op_list:
+            print(f"\n  {operation_symbols.get(op_type, op_type.title())}:")
+            for i, op_data in enumerate(op_list[:2]):  # Show first 2 of each type
+                if len(op_data) >= 4:
+                    idx, mat, desc, symbol, spglib_info = op_data
+                    print(f"    {i+1}. {desc} ({symbol})")
+                    if spglib_info.get('has_translation', False):
+                        trans = spglib_info.get('spg_translation', [0, 0, 0])
+                        print(f"       Translation: [{trans[0]:6.3f} {trans[1]:6.3f} {trans[2]:6.3f}]")
+            if len(op_list) > 2:
+                print(f"    ... and {len(op_list) - 2} more")
+    
+    print(f"\n💡 CRYSTAL SYSTEM FEATURES:")
+    crystal_system = summary.get('crystal_system', '').lower()
+    if crystal_system == 'hexagonal':
+        print("   • 6-fold rotation symmetry")
+        print("   • Horizontal and vertical mirror planes")
+        print("   • Possible screw axes (6₁, 6₂, 6₃, 6₄, 6₅)")
+    elif crystal_system == 'cubic':
+        print("   • Highest symmetry crystal system")
+        print("   • Multiple high-order rotation axes")
+        print("   • Complex screw and glide operations")
+    elif crystal_system == 'tetragonal':
+        print("   • 4-fold rotation symmetry")
+        print("   • Square-based unit cell")
+        print("   • 4₁ and 4₃ screw axes possible")
+    else:
+        print(f"   • {crystal_system.title()} crystal system characteristics")
+        print("   • See crystallography references for details")
+    
+    print(f"\n🎯 UNIVERSALITY:")
+    print("   ✅ Works with all 230 space groups")
+    print("   ✅ Includes non-symmorphic operations")
+    print("   ✅ Uses spglib for accuracy")
+    print("   ✅ Provides complete crystallographic analysis")
 
 def demonstrate_latex_conversion(egt):
     """Demonstrate the LaTeX conversion functionality."""

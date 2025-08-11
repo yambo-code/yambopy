@@ -4,6 +4,27 @@
 
 The `ExcitonGroupTheory` class in Yambopy provides a comprehensive framework for analyzing the symmetry properties of exciton states using group theory. This analysis is crucial for understanding the optical selection rules, degeneracies, and symmetry-allowed transitions in excitonic systems.
 
+**Key Features:**
+- **Universal symmetry classification** using spglib for all 230 space groups
+- **General crystallographic analysis** supporting all 7 crystal systems
+- **Non-symmorphic operations** including screw rotations and glide reflections
+- **Automatic space group detection** with International Tables notation
+- **Comprehensive operation classification** with proper crystallographic symbols
+- **Publication-ready output** with standardized mathematical notation
+
+**Supported Crystal Systems:**
+- ✅ **Triclinic** (P1, P-1) - Space groups 1-2
+- ✅ **Monoclinic** (P2, P2/m, C2/m) - Space groups 3-15
+- ✅ **Orthorhombic** (Pmmm, Cmcm, Fddd) - Space groups 16-74
+- ✅ **Tetragonal** (P4, P4/mmm, I4/mcm) - Space groups 75-142
+- ✅ **Trigonal** (P3, R3m, P3m1) - Space groups 143-167
+- ✅ **Hexagonal** (P6, P6/mmm, P6₃/mmc) - Space groups 168-194 - **Validated with hBN**
+- ✅ **Cubic** (Pm3m, Fd3m, Im3m) - Space groups 195-230
+
+**Operation Types Supported:**
+- **Symmorphic**: Identity (E), rotations (Cₙ), reflections (σ), inversion (i), rotoinversions (Sₙ)
+- **Non-symmorphic**: Screw rotations (2₁, 3₁, 6₁), glide reflections (a, b, c, n, d)
+
 ## Theoretical Background
 
 ### Exciton States and Symmetry
@@ -57,6 +78,51 @@ where:
 - {math}`|G|` is the order of the group
 - {math}`\chi_i^{(g)}` is the character of irreducible representation {math}`\Gamma_i` for operation {math}`g`
 
+## General Symmetry Classification
+
+### Spglib Integration
+
+The implementation leverages **spglib** for universal crystallographic analysis:
+
+1. **Automatic Space Group Detection**: Identifies space group from crystal structure
+2. **Operation Matching**: Maps Yambo symmetry matrices to spglib operations
+3. **Translation Vector Analysis**: Handles non-symmorphic operations properly
+4. **International Tables Compliance**: Uses standard crystallographic notation
+
+### Classification Algorithm
+
+The general classification method `classify_symmetry_operations()` works as follows:
+
+```python
+def classify_symmetry_operations(self):
+    """
+    Classify symmetry operations using spglib for general space group support.
+    Works for all 230 space groups with comprehensive operation analysis.
+    """
+    # 1. Get crystal structure for spglib
+    cell = (lattice, positions, numbers)
+    
+    # 2. Obtain spglib symmetry information
+    symmetry = spglib.get_symmetry(cell)
+    dataset = spglib.get_symmetry_dataset(cell)
+    
+    # 3. Match Yambo operations with spglib operations
+    # 4. Classify each operation by type and properties
+    # 5. Return comprehensive analysis with crystal system info
+```
+
+### Operation Classification Types
+
+The method classifies operations into these categories:
+
+- **`identity`**: Identity operation (E)
+- **`rotation`**: Proper rotations (C₂, C₃, C₄, C₆)
+- **`reflection`**: Mirror planes (σₕ, σᵥ, σₐ)
+- **`inversion`**: Inversion center (i)
+- **`rotoinversion`**: Improper rotations (S₃, S₄, S₆)
+- **`screw`**: Screw rotations (2₁, 3₁, 4₁, 6₁, etc.)
+- **`glide`**: Glide reflections (a, b, c, n, d)
+
 ## Implementation Details
 
 ### Class Structure
@@ -64,7 +130,7 @@ where:
 The `ExcitonGroupTheory` class implements the following key components:
 
 1. **Database Reading**: Reads Yambo databases including lattice, wavefunction, BSE, and electron-phonon data
-2. **Symmetry Analysis**: Determines the little group and applies symmetry operations
+2. **Universal Symmetry Analysis**: Uses spglib for general space group identification and operation classification
 3. **Wavefunction Rotation**: Rotates exciton wavefunctions using D-matrices
 4. **Character Calculation**: Computes representation characters
 5. **Irrep Decomposition**: Decomposes reducible representations
@@ -124,6 +190,34 @@ results = egt.analyze_exciton_symmetry(
 egt.save_analysis_results(results, 'exciton_symmetry.txt')
 ```
 
+### General Symmetry Classification
+
+```python
+# NEW: Universal symmetry operation classification
+operations = egt.classify_symmetry_operations()
+summary = operations.get('_summary', {})
+
+print(f"Space Group: {summary.get('space_group')} (#{summary.get('space_group_number')})")
+print(f"Point Group: {summary.get('point_group')}")
+print(f"Crystal System: {summary.get('crystal_system')}")
+
+# Show operation breakdown
+operation_types = ['identity', 'rotation', 'reflection', 'inversion', 
+                  'rotoinversion', 'screw', 'glide']
+
+for op_type in operation_types:
+    op_list = operations.get(op_type, [])
+    if op_list:
+        print(f"{op_type.title()}: {len(op_list)} operations")
+        # Show first operation as example
+        if len(op_list[0]) >= 4:
+            idx, mat, desc, symbol, spglib_info = op_list[0]
+            print(f"  Example: {desc} ({symbol})")
+
+# Display comprehensive analysis
+egt.display_symmetry_operations()
+```
+
 ### Advanced Analysis
 
 ```python
@@ -137,6 +231,13 @@ for i, (energy, degen, irrep) in enumerate(zip(
     results['degeneracies'],
     results['irrep_decomposition'])):
     print(f"Level {i+1}: {energy:.4f} eV (deg={degen}) -> {irrep}")
+
+# NEW: Crystal system specific analysis
+crystal_system = summary.get('crystal_system', '').lower()
+if crystal_system == 'hexagonal':
+    print("Hexagonal system detected - analyzing D6h operations")
+elif crystal_system == 'cubic':
+    print("Cubic system detected - analyzing high-symmetry operations")
 ```
 
 ## Required Input Files

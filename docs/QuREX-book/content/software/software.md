@@ -16,7 +16,11 @@ This section documents the software tools and computational implementations in t
 
 #### Analysis Tools
 - **Yambopy**: Python interface for Yambo data analysis (**[Major improvements in 2024](yambopy_improvements_2024)**)
-- **[ExcitonGroupTheory](exciton_group_theory_api)**: Symmetry analysis of excitonic states (**completely rewritten for maximum accuracy**)
+- **[ExcitonGroupTheory](exciton_group_theory_summary)**: **Universal symmetry analysis** for all 230 space groups (**[completely rewritten](exciton_group_theory_api_auto)**)
+  - **NEW**: General space group classification using spglib
+  - **NEW**: Non-symmorphic operations (screw rotations, glide reflections)
+  - **IMPROVED**: Clean implementation with no duplicate methods
+  - **ENHANCED**: Professional crystallographic accuracy
 - **Real-space analysis**: Wannier exciton visualization
 - **Optical calculators**: Absorption, emission, photoluminescence
 

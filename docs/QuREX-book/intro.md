@@ -82,7 +82,9 @@ Interactive examples including:
 
 3. **Learn by Example?** Explore the [Tutorials](content/tutorials/tutorials) for hands-on experience.
 
-4. **Need Quick Reference?** Check the [API Documentation](content/software/exciton_group_theory_api) for detailed method descriptions.
+4. **Need Quick Reference?** Check the [API Documentation](content/software/exciton_group_theory_api_auto) for detailed method descriptions.
+
+5. **NEW: Universal Symmetry Analysis?** Explore the [General Symmetry Classification](content/software/exciton_group_theory_summary) that works with all 230 space groups.
 
 ## Contributing
 

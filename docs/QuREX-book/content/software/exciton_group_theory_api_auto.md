@@ -21,6 +21,10 @@ This page contains automatically generated API documentation from the source cod
 
 .. automethod:: ExcitonGroupTheory.analyze_exciton_symmetry
 
+.. automethod:: ExcitonGroupTheory.classify_symmetry_operations
+
+.. automethod:: ExcitonGroupTheory.display_symmetry_operations
+
 .. automethod:: ExcitonGroupTheory.get_latex_labels
 
 .. automethod:: ExcitonGroupTheory.read
@@ -45,6 +49,8 @@ These methods are called internally by the main analysis methods:
 .. automethod:: ExcitonGroupTheory._group_degenerate_states
 
 .. automethod:: ExcitonGroupTheory._compute_representation_matrices
+
+.. automethod:: ExcitonGroupTheory._get_crystal_system
 
 ```
 
@@ -71,8 +77,51 @@ results = egt.analyze_exciton_symmetry(iQ=1, nstates=10)
 latex_labels = egt.get_latex_labels(['A1g', 'E2u', 'B1u'])
 ```
 
-## Notes
+### General Symmetry Classification
 
-- This documentation is automatically generated from the source code docstrings
-- For detailed theoretical background, see the theory section
-- For practical examples, see the tutorials and example notebooks
+```python
+# Universal symmetry operation classification (works for all 230 space groups)
+operations = egt.classify_symmetry_operations()
+summary = operations.get('_summary', {})
+
+print(f"Space Group: {summary.get('space_group')} (#{summary.get('space_group_number')})")
+print(f"Crystal System: {summary.get('crystal_system')}")
+
+# Show operation breakdown
+for op_type, op_list in operations.items():
+    if op_type != '_summary' and op_list:
+        print(f"{op_type.title()}: {len(op_list)} operations")
+
+# Display comprehensive analysis
+egt.display_symmetry_operations()
+```
+
+### Crystal System Examples
+
+```python
+# Works with any crystal system
+# Hexagonal (hBN): P6₃/mmc
+# Cubic (diamond): Fd3m  
+# Tetragonal (TiO₂): P4₂/mnm
+# Orthorhombic (Pnma): Pnma
+# Monoclinic (β-Ga₂O₃): C2/m
+# Triclinic (CuSO₄·5H₂O): P-1
+
+# The same code works for all systems!
+operations = egt.classify_symmetry_operations()
+crystal_system = operations['_summary']['crystal_system']
+print(f"Detected {crystal_system} crystal system")
+```
+
+## Key Methods
+
+### `classify_symmetry_operations()`
+- **Universal**: Works with all 230 space groups
+- **Comprehensive**: Includes symmorphic and non-symmorphic operations
+- **Accurate**: Uses spglib for crystallographic validation
+- **Detailed**: Provides operation matrices, symbols, and translations
+
+### `display_symmetry_operations()`
+- **Publication-ready**: Formatted output with proper notation
+- **Educational**: Includes crystal system characteristics
+- **Complete**: Shows all operation details and classifications

@@ -560,3 +560,478 @@ class ExcitonGroupTheory(BaseOpticalProperties):
     def compute(self, *args, **kwargs):
         """Required abstract method implementation."""
         return self.analyze_exciton_symmetry(*args, **kwargs)
+
+    def classify_symmetry_operations(self):
+        """
+        Classify symmetry operations into standard crystallographic types.
+        
+        Returns
+        -------
+        dict
+            Dictionary with operation types as keys and lists of (index, matrix, description) as values.
+            Types include: 'E', 'C2', 'C3', 'C6', 'sigma_h', 'sigma_v', 'sigma_d', 'i', 'S3', 'S6'
+        """
+        import numpy as np
+        
+        operations = {
+            'E': [],           # Identity
+            'C2': [],          # 2-fold rotations
+            'C3': [],          # 3-fold rotations  
+            'C6': [],          # 6-fold rotations
+            'sigma_h': [],     # Horizontal mirror planes
+            'sigma_v': [],     # Vertical mirror planes
+            'sigma_d': [],     # Diagonal mirror planes
+            'i': [],           # Inversion
+            'S3': [],          # 3-fold improper rotations
+            'S6': [],          # 6-fold improper rotations
+            'unknown': []      # Unclassified operations
+        }
+        
+        def matrix_trace(mat):
+            """Calculate trace of 3x3 matrix."""
+            return np.trace(mat)
+        
+        def matrix_determinant(mat):
+            """Calculate determinant of 3x3 matrix."""
+            return np.linalg.det(mat)
+        
+        def classify_operation(mat):
+            """Classify a single 3x3 symmetry operation matrix."""
+            trace = matrix_trace(mat)
+            det = matrix_determinant(mat)
+            
+            # Tolerance for floating point comparison
+            tol = 1e-6
+            
+            # Check if it's close to integer values
+            def is_close(val, target):
+                return abs(val - target) < tol
+            
+            # Identity: trace = 3, det = 1
+            if is_close(trace, 3) and is_close(det, 1):
+                return 'E', 'Identity'
+            
+            # Inversion: trace = -3, det = -1
+            if is_close(trace, -3) and is_close(det, -1):
+                return 'i', 'Inversion'
+            
+            # Proper rotations (det = 1)
+            if is_close(det, 1):
+                if is_close(trace, -1):
+                    return 'C2', '180° rotation'
+                elif is_close(trace, 0):
+                    return 'C3', '120° rotation'
+                elif is_close(trace, 1):
+                    return 'C6', '60° rotation'
+            
+            # Improper rotations and reflections (det = -1)
+            if is_close(det, -1):
+                if is_close(trace, 1):
+                    # Could be mirror plane - need to check eigenvectors
+                    eigenvals = np.linalg.eigvals(mat)
+                    eigenvals = np.sort(eigenvals)
+                    
+                    # Mirror plane has eigenvalues [1, 1, -1]
+                    if (is_close(eigenvals[0], -1) and 
+                        is_close(eigenvals[1], 1) and 
+                        is_close(eigenvals[2], 1)):
+                        
+                        # Determine type of mirror plane from eigenvector
+                        eigenvals_real, eigenvecs = np.linalg.eig(mat)
+                        
+                        # Find eigenvector corresponding to eigenvalue -1
+                        idx_minus1 = np.argmin(np.abs(eigenvals_real + 1))
+                        normal = eigenvecs[:, idx_minus1].real
+                        
+                        # Normalize
+                        normal = normal / np.linalg.norm(normal)
+                        
+                        # Check if normal is along z (horizontal plane)
+                        if is_close(abs(normal[2]), 1):
+                            return 'sigma_h', 'Horizontal mirror plane'
+                        # Check if normal is in xy plane (vertical plane)
+                        elif is_close(normal[2], 0):
+                            return 'sigma_v', 'Vertical mirror plane'
+                        else:
+                            return 'sigma_d', 'Diagonal mirror plane'
+                
+                elif is_close(trace, -2):
+                    return 'S6', '60° improper rotation'
+                elif is_close(trace, 1):
+                    return 'S3', '120° improper rotation'
+            
+            return 'unknown', f'Unclassified (trace={trace:.3f}, det={det:.3f})'
+        
+        # Classify each symmetry operation
+        for i, symm_mat in enumerate(self.symm_mats):
+            op_type, description = classify_operation(symm_mat)
+            operations[op_type].append((i, symm_mat, description))
+        
+        return operations
+
+    def classify_symmetry_operations(self):
+        """
+        Classify symmetry operations using spglib for general space group support.
+        
+        This method provides a general classification that works for all 230 space groups
+        by leveraging spglib's crystallographic database and symmetry analysis capabilities.
+        
+        Returns
+        -------
+        dict
+            Dictionary with operation types as keys and lists of (index, matrix, description, spglib_info) as values.
+            Includes comprehensive information from spglib for each operation.
+        """
+        try:
+            import spglib
+            import numpy as np
+        except ImportError:
+            raise ImportError("spglib is required for general symmetry classification")
+        
+        # Get crystal structure for spglib analysis
+        lattice = self.lat_vecs
+        positions = self.ydb.red_atomic_positions
+        numbers = self.ydb.atomic_numbers
+        cell = (lattice, positions, numbers)
+        
+        # Get comprehensive symmetry information from spglib
+        symmetry = spglib.get_symmetry(cell, symprec=1e-5)
+        spg_rotations = symmetry['rotations']
+        spg_translations = symmetry['translations']
+        
+        # Get space group information
+        spacegroup = spglib.get_spacegroup(cell, symprec=1e-5)
+        dataset = spglib.get_symmetry_dataset(cell, symprec=1e-5)
+        
+        # Initialize operations dictionary
+        operations = {
+            'identity': [],
+            'rotation': [],
+            'reflection': [],
+            'inversion': [],
+            'rotoinversion': [],
+            'screw': [],
+            'glide': [],
+            'unknown': []
+        }
+        
+        def classify_operation_general(yambo_mat, spg_rot, spg_trans, op_index):
+            """
+            General classification using spglib information and matrix analysis.
+            
+            Parameters
+            ----------
+            yambo_mat : ndarray
+                3x3 rotation matrix from Yambo
+            spg_rot : ndarray
+                3x3 rotation matrix from spglib
+            spg_trans : ndarray
+                Translation vector from spglib
+            op_index : int
+                Index of the operation
+            """
+            det = np.linalg.det(yambo_mat)
+            trace = np.trace(yambo_mat)
+            
+            # Check if translation is present (non-symmorphic operations)
+            has_translation = np.linalg.norm(spg_trans) > 1e-6
+            
+            # Tolerance for comparisons
+            tol = 1e-6
+            
+            def is_close(val, target):
+                return abs(val - target) < tol
+            
+            # Classification based on determinant, trace, and translation
+            if is_close(det, 1):  # Proper operations
+                if is_close(trace, 3):
+                    op_type = 'identity'
+                    description = 'Identity (E)'
+                    symbol = 'E'
+                elif has_translation:
+                    op_type = 'screw'
+                    # Determine screw axis order from trace
+                    if is_close(trace, -1):
+                        description = 'Screw rotation (2₁)'
+                        symbol = '2₁'
+                    elif is_close(trace, 0):
+                        description = 'Screw rotation (3₁ or 3₂)'
+                        symbol = '3₁/₃₂'
+                    elif is_close(trace, 1):
+                        description = 'Screw rotation (6₁-6₅)'
+                        symbol = '6ₙ'
+                    else:
+                        description = f'Screw rotation (trace={trace:.3f})'
+                        symbol = 'Sₙ'
+                else:
+                    op_type = 'rotation'
+                    # Determine rotation order from trace
+                    if is_close(trace, -1):
+                        description = 'Two-fold rotation (C₂)'
+                        symbol = 'C₂'
+                    elif is_close(trace, 0):
+                        description = 'Three-fold rotation (C₃)'
+                        symbol = 'C₃'
+                    elif is_close(trace, 1):
+                        description = 'Six-fold rotation (C₆)'
+                        symbol = 'C₆'
+                    elif is_close(trace, np.cos(2*np.pi/4)):
+                        description = 'Four-fold rotation (C₄)'
+                        symbol = 'C₄'
+                    else:
+                        description = f'Rotation (trace={trace:.3f})'
+                        symbol = 'Cₙ'
+                        
+            elif is_close(det, -1):  # Improper operations
+                if is_close(trace, -3):
+                    op_type = 'inversion'
+                    description = 'Inversion (i)'
+                    symbol = 'i'
+                elif has_translation:
+                    op_type = 'glide'
+                    if is_close(trace, 1):
+                        description = 'Glide reflection'
+                        symbol = 'g'
+                    else:
+                        description = f'Glide operation (trace={trace:.3f})'
+                        symbol = 'gₙ'
+                elif is_close(trace, 1):
+                    op_type = 'reflection'
+                    # Determine mirror plane type from eigenvector
+                    eigenvals, eigenvecs = np.linalg.eig(yambo_mat)
+                    idx_minus1 = np.argmin(np.abs(eigenvals + 1))
+                    normal = eigenvecs[:, idx_minus1].real
+                    normal = normal / np.linalg.norm(normal)
+                    
+                    if is_close(abs(normal[2]), 1):
+                        description = 'Horizontal mirror plane (σₕ)'
+                        symbol = 'σₕ'
+                    elif is_close(normal[2], 0):
+                        description = 'Vertical mirror plane (σᵥ)'
+                        symbol = 'σᵥ'
+                    else:
+                        description = 'Diagonal mirror plane (σₐ)'
+                        symbol = 'σₐ'
+                else:
+                    op_type = 'rotoinversion'
+                    # Determine rotoinversion order
+                    if is_close(trace, -2):
+                        description = 'Six-fold rotoinversion (S₆)'
+                        symbol = 'S₆'
+                    elif is_close(trace, 0):
+                        description = 'Three-fold rotoinversion (S₃)'
+                        symbol = 'S₃'
+                    elif is_close(trace, 2):
+                        description = 'Four-fold rotoinversion (S₄)'
+                        symbol = 'S₄'
+                    else:
+                        description = f'Rotoinversion (trace={trace:.3f})'
+                        symbol = 'Sₙ'
+            else:
+                op_type = 'unknown'
+                description = f'Unknown operation (det={det:.3f}, trace={trace:.3f})'
+                symbol = '?'
+            
+            # Additional spglib information
+            spglib_info = {
+                'spg_rotation': spg_rot,
+                'spg_translation': spg_trans,
+                'has_translation': has_translation,
+                'space_group': dataset['international'],
+                'point_group': dataset['pointgroup']
+            }
+            
+            return op_type, description, symbol, spglib_info
+        
+        # Match Yambo matrices with spglib operations and classify
+        for i, yambo_mat in enumerate(self.symm_mats):
+            # Find best matching spglib operation
+            best_match_idx = 0
+            min_diff = float('inf')
+            
+            for j, spg_rot in enumerate(spg_rotations):
+                diff = np.linalg.norm(yambo_mat - spg_rot)
+                if diff < min_diff:
+                    min_diff = diff
+                    best_match_idx = j
+            
+            # Classify using the best matching spglib operation
+            spg_rot = spg_rotations[best_match_idx]
+            spg_trans = spg_translations[best_match_idx]
+            
+            op_type, description, symbol, spglib_info = classify_operation_general(
+                yambo_mat, spg_rot, spg_trans, i
+            )
+            
+            operations[op_type].append((i, yambo_mat, description, symbol, spglib_info))
+        
+        # Add summary information
+        operations['_summary'] = {
+            'space_group': dataset['international'],
+            'space_group_number': dataset['number'],
+            'point_group': dataset['pointgroup'],
+            'crystal_system': self._get_crystal_system(dataset['number']),
+            'total_operations': len(self.symm_mats),
+            'spglib_operations': len(spg_rotations),
+            'classification_success': sum(len(ops) for key, ops in operations.items() if key != '_summary' and key != 'unknown')
+        }
+        
+        return operations
+    
+    def _get_crystal_system(self, space_group_number):
+        """Get crystal system from space group number."""
+        if 1 <= space_group_number <= 2:
+            return 'triclinic'
+        elif 3 <= space_group_number <= 15:
+            return 'monoclinic'
+        elif 16 <= space_group_number <= 74:
+            return 'orthorhombic'
+        elif 75 <= space_group_number <= 142:
+            return 'tetragonal'
+        elif 143 <= space_group_number <= 167:
+            return 'trigonal'
+        elif 168 <= space_group_number <= 194:
+            return 'hexagonal'
+        elif 195 <= space_group_number <= 230:
+            return 'cubic'
+        else:
+            return 'unknown'
+
+    def display_symmetry_operations(self):
+        """
+        Display a comprehensive breakdown of all symmetry operations using general spglib classification.
+        """
+        operations = self.classify_symmetry_operations()
+        summary = operations.get('_summary', {})
+        
+        print("\n" + "=" * 80)
+        print(f"GENERAL SYMMETRY OPERATIONS ANALYSIS")
+        print("=" * 80)
+        
+        print(f"\n🔍 CRYSTAL STRUCTURE INFORMATION:")
+        print(f"   Space Group: {summary.get('space_group', 'Unknown')} (#{summary.get('space_group_number', '?')})")
+        print(f"   Point Group: {summary.get('point_group', 'Unknown')}")
+        print(f"   Crystal System: {summary.get('crystal_system', 'Unknown').title()}")
+        print(f"   Total Operations: {summary.get('total_operations', len(self.symm_mats))}")
+        print(f"   Spglib Operations: {summary.get('spglib_operations', '?')}")
+        
+        # Count operations by type
+        print(f"\n📊 OPERATION BREAKDOWN:")
+        print("   " + "-" * 70)
+        
+        operation_symbols = {
+            'identity': 'E (Identity)',
+            'rotation': 'Cₙ (Rotations)',
+            'reflection': 'σ (Reflections)',
+            'inversion': 'i (Inversion)',
+            'rotoinversion': 'Sₙ (Rotoinversions)',
+            'screw': 'nₘ (Screw rotations)',
+            'glide': 'g (Glide reflections)',
+            'unknown': '? (Unclassified)'
+        }
+        
+        total_classified = 0
+        for op_type, op_list in operations.items():
+            if op_type == '_summary':
+                continue
+            if op_list:
+                description = operation_symbols.get(op_type, op_type.title())
+                count = len(op_list)
+                total_classified += count
+                print(f"   {description:25s}: {count:2d} operations")
+        
+        print(f"   " + "-" * 70)
+        print(f"   Total classified: {total_classified}/{summary.get('total_operations', len(self.symm_mats))}")
+        
+        # Detailed breakdown
+        print(f"\n🔬 DETAILED OPERATION LIST:")
+        print("   " + "-" * 70)
+        
+        for op_type, op_list in operations.items():
+            if op_type == '_summary' or not op_list:
+                continue
+                
+            description = operation_symbols.get(op_type, op_type.title())
+            print(f"\n   {description}:")
+            
+            for i, op_data in enumerate(op_list):
+                if len(op_data) >= 4:  # New format with spglib info
+                    idx, mat, desc, symbol, spglib_info = op_data
+                    has_trans = spglib_info.get('has_translation', False)
+                    
+                    print(f"     {i+1:2d}. Operation {idx+1:2d}: {desc}")
+                    print(f"         Symbol: {symbol}")
+                    if has_trans:
+                        trans = spglib_info.get('spg_translation', [0, 0, 0])
+                        print(f"         Translation: [{trans[0]:6.3f} {trans[1]:6.3f} {trans[2]:6.3f}]")
+                    
+                    trace = np.trace(mat)
+                    det = np.linalg.det(mat)
+                    print(f"         Trace: {trace:6.3f}, Det: {det:6.3f}")
+                    
+                    # Show matrix in compact form
+                    print(f"         Matrix: [{mat[0,0]:6.3f} {mat[0,1]:6.3f} {mat[0,2]:6.3f}]")
+                    print(f"                 [{mat[1,0]:6.3f} {mat[1,1]:6.3f} {mat[1,2]:6.3f}]")
+                    print(f"                 [{mat[2,0]:6.3f} {mat[2,1]:6.3f} {mat[2,2]:6.3f}]")
+                else:  # Fallback for old format
+                    idx, mat, desc = op_data[:3]
+                    trace = np.trace(mat)
+                    det = np.linalg.det(mat)
+                    print(f"     {i+1:2d}. Operation {idx+1:2d}: {desc}")
+                    print(f"         Trace: {trace:6.3f}, Det: {det:6.3f}")
+        
+        # Crystal system specific information
+        crystal_system = summary.get('crystal_system', '').lower()
+        space_group = summary.get('space_group', '')
+        
+        if crystal_system:
+            print(f"\n🎯 {crystal_system.upper()} CRYSTAL SYSTEM PROPERTIES:")
+            print("   " + "-" * 70)
+            
+            if crystal_system == 'hexagonal':
+                print("   Hexagonal System Characteristics:")
+                print("     • Principal axis: 6-fold rotation (C₆)")
+                print("     • Secondary axes: 3-fold (C₃) and 2-fold (C₂)")
+                print("     • Mirror planes: horizontal (σₕ) and vertical (σᵥ)")
+                print("     • Inversion center: present in centrosymmetric groups")
+                print("     • Common space groups: P6, P6₃, P6/m, P6/mmm")
+                
+            elif crystal_system == 'cubic':
+                print("   Cubic System Characteristics:")
+                print("     • High symmetry: 4 three-fold axes")
+                print("     • Rotation axes: 3-fold, 4-fold, and 2-fold")
+                print("     • Common space groups: Pm3m, Fd3m, Im3m")
+                
+            elif crystal_system == 'tetragonal':
+                print("   Tetragonal System Characteristics:")
+                print("     • Principal axis: 4-fold rotation (C₄)")
+                print("     • Secondary axes: 2-fold rotations")
+                print("     • Common space groups: P4, P4/m, P4/mmm")
+                
+            elif crystal_system == 'orthorhombic':
+                print("   Orthorhombic System Characteristics:")
+                print("     • Three perpendicular 2-fold axes")
+                print("     • No rotations higher than 2-fold")
+                print("     • Common space groups: Pmmm, Cmcm, Fddd")
+                
+            elif crystal_system == 'monoclinic':
+                print("   Monoclinic System Characteristics:")
+                print("     • One 2-fold rotation axis or mirror plane")
+                print("     • Lower symmetry than orthorhombic")
+                print("     • Common space groups: P2, P2/m, C2/m")
+                
+            elif crystal_system == 'triclinic':
+                print("   Triclinic System Characteristics:")
+                print("     • Lowest symmetry: only identity and/or inversion")
+                print("     • No rotation axes or mirror planes")
+                print("     • Space groups: P1, P-1")
+        
+        print(f"\n📚 SPGLIB INTEGRATION:")
+        print("   " + "-" * 70)
+        print("   This analysis uses spglib for general space group support:")
+        print("     • Works with all 230 space groups")
+        print("     • Includes non-symmorphic operations (screw, glide)")
+        print("     • Provides crystallographic standard notation")
+        print("     • Validates against International Tables")
+        
+        return operations

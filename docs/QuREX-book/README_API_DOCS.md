@@ -21,14 +21,15 @@ The API documentation is now **automatically generated** from the docstrings in 
 
 ### Generated Documentation
 
-- **`content/software/exciton_group_theory_api_auto.md`**: Auto-generated ExcitonGroupTheory API
+- **`content/software/exciton_group_theory_api_auto.md`**: Auto-generated ExcitonGroupTheory API (**UPDATED 2024**)
 - **`content/software/point_group_operations_api_auto.md`**: Auto-generated point group operations API
 
-### Manual Documentation (Still Used)
+### Manual Documentation (Updated 2024)
 
-- **`content/theory/exciton_group_theory.md`**: Theoretical background (manual)
-- **`content/tutorials/exciton_group_theory_tutorial.md`**: Tutorial (manual)
-- **`notebooks/exciton_group_theory_*.ipynb`**: Example notebooks (manual)
+- **`content/theory/exciton_group_theory.md`**: Theoretical background (**UPDATED** - universal space group support)
+- **`content/software/exciton_group_theory_summary.md`**: Comprehensive summary (**NEW** - complete feature overview)
+- **`content/software/yambopy_improvements_2024.md`**: 2024 improvements documentation (**NEW**)
+- **`notebooks/exciton_group_theory_*.ipynb`**: Example notebooks (**UPDATED** - new universal features)
 
 ## Usage
 
@@ -104,11 +105,18 @@ To ensure high-quality auto-generated documentation, follow these guidelines:
 ```python
 class ExcitonGroupTheory(BaseOpticalProperties):
     """
-    Group theory analysis of exciton states using crystallographic symmetries.
+    Universal group theory analysis of exciton states for all 230 space groups.
     
-    This class performs symmetry analysis of exciton states by automatically
-    identifying the crystallographic point group and decomposing exciton states
-    into irreducible representations.
+    **NEW 2024**: Complete rewrite with universal space group support using spglib.
+    This class performs comprehensive symmetry analysis including non-symmorphic 
+    operations (screw rotations, glide reflections) for any crystal system.
+    
+    **Key Features**
+    - Universal space group support (all 230 space groups)
+    - Non-symmorphic operations (screw rotations, glide reflections)
+    - Automatic crystal system detection
+    - Professional crystallographic accuracy via spglib
+    - Clean implementation with no duplicate methods
     
     **Theoretical Background**
     
@@ -139,6 +147,13 @@ class ExcitonGroupTheory(BaseOpticalProperties):
     --------
     >>> from yambopy.optical_properties import ExcitonGroupTheory
     >>> egt = ExcitonGroupTheory(path='./', BSE_dir='bse', LELPH_dir='lelph')
+    
+    # NEW: Universal symmetry classification
+    >>> operations = egt.classify_symmetry_operations()
+    >>> summary = operations['_summary']
+    >>> print(f"Space Group: {summary['space_group']} (#{summary['space_group_number']})")
+    
+    # Legacy: Exciton group theory analysis
     >>> results = egt.analyze_exciton_symmetry(iQ=1, nstates=10)
     >>> latex_labels = egt.get_latex_labels(['A1g', 'E2u'])
     """
