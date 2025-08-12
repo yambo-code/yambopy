@@ -28,7 +28,7 @@ def phonon_overlap(mode1,mode2):
 
     The overlap matrix is:
 
-    M_nm(q1,q2) = \sum_ka e_ka,n (q1) e^*_ka,m (q2)
+    M_nm(q1,q2) = \\sum_ka e_ka,n (q1) e^*_ka,m (q2)
     """
     
     # Overlap matrix
@@ -99,6 +99,13 @@ class YamboRefineElphDB():
         self.car_qpoints = np.array([ q/self.alat for q in self.qpoints ])
         #read dimensions of electron phonon parameters
         self.nmodes, self.nqpoints, self.nkpoints, self.nbands = database.variables['PARS'][:4].astype(int)
+        self.nmodes, self.nqpoints, self.nkpoints, b_1, b_2 = database.variables['PARS'][:5].astype(int)
+        if b_1>b_2: # Old database (no GkkpBands in PARS)
+            self.nbands = b_1
+            self.b_in, self.b_out = [0,self.nbands-1]
+        else: # New database (PARS with GkkpBands)
+            self.b_in, self.b_out = [b_1-1,b_2-1]
+            self.nbands = b_2-b_1+1
         self.natoms = int(self.nmodes/3)
         try: # Check if K-point list is provided (upon expansion)
             self.kpoints_elph = database.variables['PH_K'][:].T
@@ -117,7 +124,6 @@ class YamboRefineElphDB():
 
         #Check presence of matdyn output
         if not os.path.isfile(self.matdyn): raise FileNotFoundError("Matdyn 'prefix.freq' file not found")
-
         # Now the checks are done, we can continue
         # Frequencies part 
         self.read_frequencies_yambo()
@@ -281,12 +287,12 @@ class YamboRefineElphDB():
         """
         # q=0 modes
         eig0 = self.read_eigenvectors(0,mode=mode)
-        print(eig0.shape) 
         # NN modes
         self.modes_NN = []
-        for iq in self.qpoints_indices[self.q_NN]:
+        for iq_bz in self.q_NN:
+            iq_ibz = self.qpoints_indices[iq_bz]
             # (i) Read all the modes at iq_NN (in the IBZ)
-            eigq = self.read_eigenvectors(iq,mode=mode)
+            eigq = self.read_eigenvectors(iq_ibz,mode=mode)
             # (ii) Get the overlap of all the modes with those at q=0
             Overlap_matrix = phonon_overlap(eig0,eigq)
             # (iii) Find the mode with highest overlap with LO mode
@@ -299,14 +305,13 @@ class YamboRefineElphDB():
                     best_mode = im
             # (iv) Obtain mode index of NN of LO modes
             self.modes_NN.append(best_mode)
-
             if verbose:
                 if best_mode==self.LO:
                     print("==== No crossings detected ===")
-                    print("Phonon mode #%d at q 0 remains phonon mode #%d at q #%d"%(self.LO,best_mode,iq))
+                    print("Phonon mode #%d at q 0 remains phonon mode #%d at q_ibz #%d / q_bz #%d"%(self.LO,best_mode,iq_ibz,iq_bz))
                 else:
                     print("==== Crossings detected ===")
-                    print("Phonon mode #%d at q 0 becomes phonon mode #%d at q #%d"%(self.LO,best_mode,iq))
+                    print("Phonon mode #%d at q 0 becomes phonon mode #%d at q_ibz #%d / q_bz $%d"%(self.LO,best_mode,iq_ibz,iq_bz))
 
     def get_LO_modes(self):
         """ Obtain values for LO modes

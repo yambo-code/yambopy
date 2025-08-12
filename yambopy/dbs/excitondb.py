@@ -18,6 +18,7 @@ from yambopy.lattice import replicate_red_kmesh, calculate_distances, car_red, r
 from yambopy.kpoints import get_path, get_path_car
 from yambopy.tools.funcs import gaussian, lorentzian, boltzman_f, abs2
 from yambopy.tools.string import marquee
+from yambopy.tools.types import CmplxType
 from yambopy.plot.bandstructure import YambopyBandStructure
 from yambopy.tools.skw import SkwInterpolator
 from yambopy.dbs.latticedb import YamboLatticeDB
@@ -83,8 +84,11 @@ class YamboExcitonDB(object):
         self.spin_pol = spin_pol
 
     @classmethod
-    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.'):
-        """ initialize this class from a file
+    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.',Load_WF=True):
+        """ 
+        Initialize this class from a file
+
+        Set `Read_WF=False` to avoid reading eigenvectors for faster IO and memory efficiency.
         """
         path_filename = os.path.join(folder,filename)
         if not os.path.isfile(path_filename):
@@ -95,13 +99,18 @@ class YamboExcitonDB(object):
 
         with Dataset(path_filename) as database:
             if 'BS_left_Residuals' in list(database.variables.keys()):
-                #residuals
-                rel,iml = database.variables['BS_left_Residuals'][:].T
-                rer,imr = database.variables['BS_right_Residuals'][:].T
-                l_residual = rel+iml*I
-                r_residual = rer+imr*I
+                # MN: using complex views instead of a+I*b copies to avoid memory duplication
+                # Old (yet instructive) memory duplication code
+                #rel,iml = database.variables['BS_left_Residuals'][:].T
+                #rer,imr = database.variables['BS_right_Residuals'][:].T
+                #l_residual = rel+iml*I
+                #r_residual = rer+imr*I
+                l_residual = database.variables['BS_left_Residuals'][:]
+                r_residual = database.variables['BS_right_Residuals'][:]
+                l_residual = l_residual.view(dtype=CmplxType(l_residual)).reshape(len(l_residual))
+                r_residual = r_residual.view(dtype=CmplxType(r_residual)).reshape(len(r_residual))
             if 'BS_Residuals' in list(database.variables.keys()):
-                #residuals
+                # Compatibility with older Yambo versions
                 rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
                 l_residual = rel+iml*I
                 r_residual = rer+imr*I
@@ -125,14 +134,13 @@ class YamboExcitonDB(object):
             #eigenvectors
             table = None
             eigenvectors = None
-            if 'BS_EIGENSTATES' in database.variables:
+            if Load_WF and 'BS_EIGENSTATES' in database.variables:
                 eiv = database.variables['BS_EIGENSTATES'][:]
-                eiv = eiv[:,:,0] + eiv[:,:,1]*I
-                eigenvectors = eiv
+                #eiv = eiv[:,:,0] + eiv[:,:,1]*I
+                #eigenvectors = eiv
+                eigenvectors = eiv.view(dtype=CmplxType(eiv)).reshape(eiv.shape[:-1])
                 table = database.variables['BS_TABLE'][:].T.astype(int)
 
-            table = table
-            eigenvectors = eigenvectors
             spin_vars = [int(database.variables['SPIN_VARS'][:][0]), int(database.variables['SPIN_VARS'][:][1])]
             if spin_vars[0] == 2 and spin_vars[1] == 1:
                spin_pol = 'pol'
@@ -316,13 +324,22 @@ class YamboExcitonDB(object):
             exit()
 
         #get eigenvalues along the path
+        max_val = max(self.unique_vbands)
         if isinstance(energies,YamboElectronsDB):
             #expand eigenvalues to the full brillouin zone
             if not energies.EXPAND: energies.expandEigenvalues()
             exc_energies = energies.eigenvalues[0] # SPIN-UP CHANNEL ONLY      
         elif isinstance(energies,YamboQPDB):
+            if energies.min_band-1>self.start_band or energies.max_band<self.mband:
+                print("[WARNING] BSE band range: {self.start_band+1} - {self.mband}\n \
+                                 QP  band range: {energies.min_band} - {energies.max_band}")
             #expand the quasiparticle energies to the full brillouin zone
-            exc_energies = energies.expand_eigenvalues(self.lattice)
+            QP_energies = energies.expand_eigenvalues(self.lattice)
+            #deal with index mismatches
+            max_band  =max(energies.max_band,self.mband)
+            exc_energies = np.zeros((len(QP_energies),max_band))
+            exc_energies[:,energies.min_band-1:energies.max_band] = QP_energies
+            max_val = max_val - energies.min_band+1
         else:
             raise ValueError("Energies argument must be an instance of YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
@@ -331,23 +348,9 @@ class YamboExcitonDB(object):
         exc_weights  = exc_weights[band_indexes]
 
         #make top valence band to be zero
-        exc_energies -= max(exc_energies[:,max(self.unique_vbands)])
+        exc_energies -= max(exc_energies[:,max_val])
         
         return bands_kpoints, exc_energies, exc_weights, path_car 
-
-    def magnon_bs(self,energies,path,magnons=(0,),debug=False):
-        """
-        Calculate magnon band-structure
-            
-            Arguments:
-            energies -> can be an instance of YamboElectronsDB or YamboQPDB
-            path     -> Path object in reduced coordinates to use for plotting the band structure
-            magnons  -> magnon index to plot
-
-            FP: to be moved in a separate class
-
-            TO BE IMPLEMENTED
-        """
 
     def arpes_intensity(self,energies_db,path,excitons,ax):   #,size=1,space='bands',f=None,debug=False): later on
         """
@@ -1008,7 +1011,7 @@ class YamboExcitonDB(object):
         size *= 1.0/np.max(plot_weights)
         ybs = YambopyBandStructure(plot_energies, bands_kpoints, weights=plot_weights, kpath=path, size=size)
         return ybs
-
+      
     def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=1,space='bands',f=None,debug=None):
         ybs = self.get_exciton_bs(energies_db,path,excitons,size=size,space=space,f=f,debug=debug)
         return ybs.plot_ax(ax) 
@@ -1048,7 +1051,7 @@ class YamboExcitonDB(object):
             if isinstance(energies,YamboQPDB):        
                 # Pick the same energy range used for the BSE in case the QP energy range is larger
                 if   energies.nbands<self.mband-self.start_band:  raise ValueError("[ERROR] QP range less than BSE range!")
-                elif energies.nbands==self.mband-self.start_band: eigs = energies.eigenvalues_QP # Assuming exact same range
+                elif energies.nbands==self.mband-self.start_band: eigs = energies.eigenvalues_qp # Assuming exact same range
                 else:                                             eigs = energies.eigenvalues_qp[:,self.start_band:self.mband]
 
             kpoints = car_red(np.array([ k/lat.alat for k in lat.ibz_kpoints ]),lat.rlat) #IBZ reduced kpoints 
@@ -1061,13 +1064,19 @@ class YamboExcitonDB(object):
             # sym_red are the symmetries of the reciprocal lattice...
             # skw interp wants the symmetries of the direct lattice, so we use sym_rec_red
             # plus, we take the non t-revved ones
-            symrel = [sym for sym,trev in zip(lat.sym_rec_red,lat.time_rev_list) if trev==False ]
-            time_rev = bool(lat.time_rev)
+            if not lat.mag_syms:
+                symrel = [sym for sym,trev in zip(lat.sym_rec_red,lat.time_rev_list) if trev==False ]
+                trev_for_interp = lat.time_rev
+            # Handle special case of mag_sys + trev (e.g. SOC + ferromagnet, etc)
+            elif lat.time_rev:
+                symrel = lat.sym_rec_red
+                trev_for_interp=False
+
         elif no_symmetries:
             eigs = energies.eigenvalues[0,:,self.start_band:self.mband]
             kpoints = lat.red_kpoints
             symrel = [np.identity(3)]
-            time_rev = False
+            trev_for_interp = False
         else:
             raise ValueError("Energies argument must be an instance of YamboElectronsDB or YamboQPDB. Got %s"%(type(energies)))
 
@@ -1081,11 +1090,11 @@ class YamboExcitonDB(object):
         kpoints_path =  path.get_klist()[:,:3]
         
         #interpolate energies
-        skw = SkwInterpolator(lpratio,kpoints,eigs[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        skw = SkwInterpolator(lpratio,kpoints,eigs[na,:,:],fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
         exc_energies = skw.interp_kpts(kpoints_path).eigens
 
         #interpolate weights
-        skw = SkwInterpolator(lpratio,kpoints,weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        skw = SkwInterpolator(lpratio,kpoints,weights[na,:,:],fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
         exc_weights = skw.interp_kpts(kpoints_path).eigens
 
         # For the band plot (bandstructure object), we need to switch to cartesian coordinates
@@ -1112,8 +1121,13 @@ class YamboExcitonDB(object):
         # Here there is something strange...
         fermie = kwargs.pop('fermie',0)
         ##
-        symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
-        time_rev = True
+        if not lattice.mag_syms:
+            symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
+            trev_for_interp = lattice.time_rev
+        # Handle special case of mag_sys + trev (e.g. SOC + ferromagnet, etc)
+        elif lattice.time_rev:
+            symrel = lattice.sym_rec_red
+            trev_for_interp=False
 
         #vmin, vmax = self.unique_vbands[0], self.unique_vbands[1]
         #cmin, cmax = self.unique_cbands[0], self.unique_cbands[1]
@@ -1141,13 +1155,13 @@ class YamboExcitonDB(object):
 
         #interpolate energies
         na = np.newaxis
-        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
         kpoints_path = path.get_klist()[:,:3]
         energies = skw.interp_kpts(kpoints_path).eigens
      
         #interpolate transitions
         na = np.newaxis
-        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_transitions[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+        skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_transitions[na,:,:],fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
         kpoints_path = path.get_klist()[:,:3]
         exc_transitions = skw.interp_kpts(kpoints_path).eigens
 
@@ -1267,9 +1281,9 @@ class YamboExcitonDB(object):
 
         return car_kpoints, amplitudes[kindx], np.angle(phases)[kindx]
 
-    def get_chi(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
+    def get_chi(self,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,**kwargs):
         """
-        Calculate the dielectric response function using excitonic states
+        Calculate the BSE dielectric response function
         """
         if nexcitons == 'all': nexcitons = self.nexcitons
 
@@ -1278,54 +1292,36 @@ class YamboExcitonDB(object):
         nenergies = len(w)
         
         if verbose:
-            print("energy range: %lf -> +%lf -> %lf "%(emin,estep,emax))
+            print("energy range: %lf -> +%lf -> %lf eV"%(emin,estep,emax))
             print("energy steps: %lf"%nenergies)
+            print("broadening: %lf eV"%broad)
 
         #initialize the susceptibility intensity
-        chi = np.zeros([len(w)],dtype=np.complex64)
+        chi = np.zeros_like(w,dtype=np.complex64)
 
-        if dipoles is None:
-            #get dipole
-            EL1 = self.l_residual
-            EL2 = self.r_residual
-        else:
-            #calculate exciton-light coupling
-            if verbose: print("calculate exciton-light coupling")
-            EL1,EL2 = self.project1(dipoles.dipoles[:,dir],nexcitons) 
+        # Oscillator strengths (residuals)
+        EL1 = self.l_residual
+        EL2 = self.r_residual
 
-        if isinstance(broad,float): broad = [broad]*nexcitons
-
-        if isinstance(broad,tuple): 
-            broad_slope = broad[1]-broad[0]
+        # Broadening
+        if isinstance(broad, float): # fixed broadening
+            broad = np.full(nexcitons, broad) 
+        elif isinstance(broad, tuple):  # linearly varying broadening
+            broad_slope = broad[1] - broad[0]
             min_exciton = np.min(self.eigenvalues.real)
-            broad = [ broad[0]+(es-min_exciton)*broad_slope for es in self.eigenvalues[:nexcitons].real]
+            broad = broad[0] + (self.eigenvalues[:nexcitons].real - min_exciton) * broad_slope
 
-        if "gaussian" in broad or "lorentzian" in broad:
-            i = broad.find(":")
-            if i != -1:
-                value, eunit = broad[i+1:].split()
-                if eunit == "eV": sigma = float(value)
-                else: raise ValueError('Unknown unit %s'%eunit)
+        # Excitonic states
+        es = self.eigenvalues[:nexcitons, None]  # (nexcitons, 1)
+        broad = broad[:, None]  # (nexcitons, 1)
 
-            f = gaussian if "gaussian" in broad else lorentzian
-            broad = np.zeros([nexcitons])
-            for s in range(nexcitons):
-                es = self.eigenvalues[s].real
-                broad += f(self.eigenvalues.real,es,sigma)
-            broad = 0.1*broad/nexcitons
+        # Resonant and antiresonant GF structure
+        G1 = -1 / (w - es + broad * I)  # (nexcitons, nenergies)
+        G2 = -1 / (-w - es - broad * I)  # (nexcitons, nenergies)
 
-        #iterate over the excitonic states
-        for s in range(nexcitons):
-            #get exciton energy
-            es = self.eigenvalues[s]
- 
-            #calculate the green's functions
-            G1 = -1/(   w - es + broad[s]*I)
-            G2 = -1/( - w - es - broad[s]*I)
-
-            r = EL1[s]*EL2[s]
-            chi += r*G1 + r*G2
-
+        # chi = sum_s [ |R_s|^2/(w-E+i*eta) + |R_s|^2/(-w-E-i*eta) ]
+        chi = np.einsum('s,sn->n', EL1 * EL2, G1 + G2)
+        
         #dimensional factors
         try:
             if not self.Qpt=='1': q0norm = 2*np.pi*np.linalg.norm(self.car_qpoint)
@@ -1430,9 +1426,12 @@ class YamboExcitonDB(object):
         cleanup_vars = ['dipoles','dir','emin','emax','estep','broad',
                         'q0norm','nexcitons','spin_degen','verbose']
         for var in cleanup_vars: kwargs.pop(var,None)
-        if 're' in reim: ax.plot(w,chi.real,**kwargs)
-        if 'im' in reim: ax.plot(w,chi.imag,**kwargs)
-        ax.set_ylabel('$Im(\chi(\omega))$')
+        if 're' in reim: 
+            ax.plot(w,chi.real,**kwargs)
+            ax.set_ylabel('$Re(\epsilon_2(\omega))$')
+        if 'im' in reim:
+            ax.plot(w,chi.imag,**kwargs)
+            ax.set_ylabel('$Im(\epsilon_2(\omega))$')
         ax.set_xlabel('Energy (eV)')
         #plot vertical bar on the brightest excitons
         if n_brightest>-1:

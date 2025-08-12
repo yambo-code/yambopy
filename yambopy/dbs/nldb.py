@@ -27,11 +27,11 @@ class YamboNLDB(object):
     def __init__(self,folder='.',calc='SAVE',nl_db='ndb.Nonlinear'):
         # Find path with RT data
         self.nl_path = '%s/%s/%s'%(folder,calc,nl_db)
-
+        self.calc=calc
         try:
             data_obs= Dataset(self.nl_path)
         except:
-            raise ValueError("Error reading OBSERVABLES database at %s"%self.nl_path)
+            raise ValueError("Error reading NONLINEAR database at %s"%self.nl_path)
 
         self.read_observables(data_obs)
 
@@ -40,7 +40,7 @@ class YamboNLDB(object):
 
     def read_Efield(self,database,RT_step,n):
          efield={}
-         efield["name"]       =database.variables['Field_Name_'+str(n)][...].tostring().decode().strip()
+         efield["name"]       =database.variables['Field_Name_'+str(n)][...].tobytes().decode().strip()
          efield["versor"]     =database.variables['Field_Versor_'+str(n)][:].astype(np.double)
          efield["intensity"]  =database.variables['Field_Intensity_'+str(n)][0].astype(np.double)
          efield["damping"]    =database.variables['Field_Damping_'+str(n)][0].astype(np.double)
@@ -64,22 +64,34 @@ class YamboNLDB(object):
         """
         Read all data from the database
         """
-        self.Gauge          = database.variables['GAUGE'][...].tostring().decode().strip()
+        self.Gauge          = database.variables['GAUGE'][...].tobytes().decode().strip()
         self.NE_steps       = database.variables['NE_steps'][0].astype('int')
         self.RT_step        = database.variables['RT_step'][0].astype(np.double)
         self.n_frequencies  = database.variables['n_frequencies'][0].astype('int')
-        self.n_angles       = database.variables['n_angles'][0].astype('int')
-        self.NL_initial_versor = database.variables['NL_initial_versor'][:].astype(np.double)
+
+        try:
+            self.n_angles       = database.variables['n_angles'][0].astype('int')
+        except:
+            self.n_angles   = 0
+        try:
+            self.NL_initial_versor = database.variables['NL_initial_versor'][:].astype(np.double)
+        except:
+            self.NL_initial_versor = [0.0, 0.0, 0.0] 
+
         self.NL_damping     = database.variables['NL_damping'][0].astype(np.double)
         self.RT_bands       = database.variables['RT_bands'][:].astype('int')
         self.NL_er          = database.variables['NL_er'][:].astype(np.double)
         self.l_force_SndOrd = database.variables['l_force_SndOrd'][0].astype('bool')
         self.l_use_DIPOLES  = database.variables['l_use_DIPOLES'][0].astype('bool')
+        try:
+            self.l_eval_CURRENT = database.variables['l_eval_CURRENT'][0].astype('bool')
+        except:
+            self.l_eval_CURRENT = False
         self.QP_ng_SH       = database.variables['QP_ng_SH'][0].astype('int')
         self.QP_ng_Sx       = database.variables['QP_ng_Sx'][0].astype('int')
         self.RAD_LifeTime   = database.variables['RAD_LifeTime'][0].astype(np.double)
-        self.Integrator     = database.variables['Integrator'][...].tostring().decode().strip()
-        self.Correlation    = database.variables['Correlation'][...].tostring().decode().strip()
+        self.Integrator     = database.variables['Integrator'][...].tobytes().decode().strip()
+        self.Correlation    = database.variables['Correlation'][...].tobytes().decode().strip()
         #
         # Time variables
         #
@@ -91,8 +103,12 @@ class YamboNLDB(object):
         # 
         self.Efield_general=[]
         for n in range(1,4):
-            efield=self.read_Efield(database,self.RT_step,n)
-            self.Efield_general.append(efield.copy())
+            try:
+                efield=self.read_Efield(database,self.RT_step,n)
+            except:
+                print("Field %d not found" % n)
+            else:
+                self.Efield_general.append(efield.copy())
 
         #
         # Read polarization and currect files 
@@ -103,6 +119,7 @@ class YamboNLDB(object):
         self.E_tot       =[]
         self.E_ks        =[]
         self.Efield      =[] # Store the first external field for each run at different frequencies
+        self.Efield2     =[]
         #
         if self.n_angles!=0:
             self.n_runs=self.n_angles
@@ -111,7 +128,9 @@ class YamboNLDB(object):
         if (self.n_angles!=0 and self.n_frequencies!=0):
             print("Error both n_angles and n_frequencies !=0 ")
             sys.exit(0)
-            
+        if (self.n_angles==0 and self.n_frequencies==0):
+            self.n_runs=1
+
         #
         for f in range(self.n_runs):
             try:
@@ -137,7 +156,12 @@ class YamboNLDB(object):
             # Read only the first field for SHG
             # I don't need it in the pump-probe configuration
             efield=self.read_Efield(data_p_and_j,self.RT_step,1)
+            try:
+                efield2=self.read_Efield(data_p_and_j,self.RT_step,2)
+            except:
+                efield2=efield
             self.Efield.append(efield.copy())
+            self.Efield2.append(efield2.copy())
 
     def __str__(self):
         """

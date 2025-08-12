@@ -195,7 +195,7 @@ class SkwInterpolator():
         if warn:
             # Issue warning if error too large.
             cprint("Large error in SKW interpolation!", "red")
-            cprint("MAE:", mae, "[meV]", "red")
+            cprint("MAE: %.3e (meV)" % mae, color= "red")
 
         self.mae = mae
 

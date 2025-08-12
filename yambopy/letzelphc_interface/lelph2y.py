@@ -137,7 +137,7 @@ class ConvertElectronPhononDB():
         dbs.createDimension('D_%010d'%1,1)
         dbs.createDimension('D_%010d'%2,2)
         dbs.createDimension('D_%010d'%4,4)
-        for value in [self.natoms,self.nkpoints_ibz,len_pars,self.nqpoints_bz]:
+        for value in [self.natoms,self.nkpoints_ibz,len_pars,self.nqpoints_bz,self.nkpoints_bz]:
             if value not in [1,2,3,4]: 
                 try: dbs.createDimension('D_%010d'%value,value)
                 except RuntimeError: pass # This is when one of the dimensions already exists
@@ -154,7 +154,7 @@ class ConvertElectronPhononDB():
         PARS = dbs.createVariable('PARS',netcdftype('f',p), ('D_%.10d'%len_pars))
         dbs.createVariable('MAX_PH_FREQ',netcdftype('f',p), ('D_%.10d'%1))
         dbs.createVariable('PH_Q',netcdftype('f',p), ('D_%.10d'%3, 'D_%.10d'%self.nqpoints_bz))
-        dbs.createVariable('PH_K',netcdftype('f',p), ('D_%.10d'%3, 'D_%.10d'%self.nqpoints_bz))
+        dbs.createVariable('PH_K',netcdftype('f',p), ('D_%.10d'%3, 'D_%.10d'%self.nkpoints_bz))
 
         # Fill variables
         dbs['HEAD_VERSION'][:]  = self.head_version
