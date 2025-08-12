@@ -105,6 +105,12 @@ class YamboExcitonDB(object):
                 rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
                 l_residual = rel+iml*I
                 r_residual = rer+imr*I
+            if 'BS_L_magn_Residuals' in list(database.variables.keys()):
+                #residuals
+                rel,iml = database.variables['BS_L_magn_Residuals'][:].T
+                rer,imr = database.variables['BS_L_magn_Residuals'][:].T
+                l_residual = rel+iml*I
+                r_residual = rer+imr*I
 
             car_qpoint = None
             if 'Q-point' in list(database.variables.keys()):
