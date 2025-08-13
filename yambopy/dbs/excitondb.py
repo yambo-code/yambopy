@@ -1470,23 +1470,18 @@ class YamboExcitonDB(object):
             energies -> can be an instance of YamboElectronsDB or YamboQBDB
             path     -> path in reduced coordinates in which to plot the band structure
             exciton  -> exciton index to plot
-            spin     -> ??
         """
         if self.eigenvectors is None:
             raise ValueError('This database does not contain Excitonic states,'
                               'please re-run the yambo BSE calculation with the WRbsWF option in the input file.')
         if isinstance(excitons, int):
             excitons = (excitons,)
-        #get full kmesh
-        kpoints = self.lattice.red_kpoints
-        rlat    = self.lattice.rlat
 
-        rep = list(range(-1,2))
-        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=rep,repy=rep,repz=rep)
-        band_indexes = get_path(kpoints_rep,rlat,None,path)[1] 
-        band_kpoints = kpoints_rep[band_indexes] 
-        band_indexes = kpoints_idx_rep[band_indexes]
-
+        #THESE THREE LINES FROM THE NOPOL CASE
+        car_kpoints = self.lattice.car_kpoints
+        rlat        = self.lattice.rlat
+        bands_kpoints, band_indexes, path_car = get_path(car_kpoints,rlat,None,path,debug=debug) # None means the kpoints are already expanded
+        
         if debug:
             for i,k in zip(band_indexes,band_kpoints):
                 x,y,z = k
@@ -1500,8 +1495,17 @@ class YamboExcitonDB(object):
         #get eigenvalues along the path
         if isinstance(energies,YamboElectronsDB):
             #expand eigenvalues to the full brillouin zone
-            energies_up = energies.eigenvalues[0,self.lattice.kpoints_indexes]
-            energies_dw = energies.eigenvalues[1,self.lattice.kpoints_indexes]
+            if not energies.EXPAND: energies.expandEigenvalues()
+            energies_up = energies.eigenvalues[0,:,:] # SPIN-UP
+#            energies_up = energies.eigenvalues[0] # SPIN-UP
+            energies_dw = energies.eigenvalues[1] # SPIN-DN 
+        #AEK 13.08.2025
+        #It was written like this before. Using it gives very bad bands. 
+        #I think we can remove it
+        #if isinstance(energies,YamboElectronsDB):
+        #    #expand eigenvalues to the full brillouin zone
+        #    energies_up = energies.eigenvalues[0,self.lattice.kpoints_indexes]
+        #    energies_dw = energies.eigenvalues[1,self.lattice.kpoints_indexes]
             
         elif isinstance(energies,YamboQPDB):
             #expand the quasiparticle energies to the bull brillouin zone
@@ -1537,7 +1541,7 @@ class YamboExcitonDB(object):
         energies_up -= fermi_level  
         energies_dw -= fermi_level  
         
-        return np.array(band_kpoints), energies_up, energies_dw, weights_up, weights_dw
+        return np.array(bands_kpoints), energies_up, energies_dw, weights_up, weights_dw, path_car
 
     def get_exciton_bs_spin_pol(self,energies_db,path,excitons,size_up=1,size_dw=1,space='bands',f=None,debug=False):
         """
@@ -1554,7 +1558,7 @@ class YamboExcitonDB(object):
             raise ValueError('Path argument must be a instance of Path. Got %s instead'%type(path))
         if space == 'bands':
             if self.spin_pol=='pol':
-               bands_kpoints, energies_up, energies_dw, weights_up, weights_dw = self.exciton_bs_spin_pol(energies_db, path.kpoints, excitons, debug)
+               bands_kpoints, energies_up, energies_dw, weights_up, weights_dw, path_car = self.exciton_bs_spin_pol(energies_db, path, excitons, debug)
                nkpoints = len(bands_kpoints)
                plot_energies_up = energies_up[:,self.start_band:self.mband]
                plot_energies_dw = energies_dw[:,self.start_band:self.mband]
@@ -1574,9 +1578,11 @@ class YamboExcitonDB(object):
         if f: plot_weights_up, plot_weights_dw = f(plot_weights_up), f(plot_weights_dw)
         size_plot_up = 100.0 # 1.0/np.max(plot_weights_up)*100.0
         size_plot_dw = 100.0 # 1.0/np.max(plot_weights_dw)*100.0
-        ybs_up = YambopyBandStructure(plot_energies_up, bands_kpoints, weights=plot_weights_up, kpath=path, size=size_plot_up)
-        ybs_dw = YambopyBandStructure(plot_energies_dw, bands_kpoints, weights=plot_weights_dw, kpath=path, size=size_plot_dw)
-        
+        ybs_up = YambopyBandStructure(plot_energies_up, bands_kpoints, weights=plot_weights_up, kpath=path_car, size=size_plot_up)
+        ybs_dw = YambopyBandStructure(plot_energies_dw, bands_kpoints, weights=plot_weights_dw, kpath=path_car, size=size_plot_dw)
+
+        #AEK: This was already commented 13.08.2025
+        #I don't understand what is it for. We might delete it.
         #from numpy import arange
         #x = arange(nkpoints)
         #import matplotlib.pyplot as plt
