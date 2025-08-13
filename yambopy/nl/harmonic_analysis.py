@@ -205,14 +205,14 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
     # Calculate susceptibilities
     for i_order in range(X_order + 1):
         for i_f in range(n_runs):
-            if i_order == 1:
-                Susceptibility[i_order, i_f, 0] = 4.0 * np.pi * np.dot(efield['versor'], X_effective[i_order, i_f, :])
-                if l_eval_current:
-                    Conductibility[i_order,i_f,0]= 4.0*np.pi*np.dot(efield['versor'][:],Sigma_effective[i_order,i_f,:])
-            else:
-                Susceptibility[i_order, i_f, :] = X_effective[i_order, i_f, :]
-                if l_eval_current:
-                    Conductibility[i_order,i_f,:] = Sigma_effective[i_order, i_f, :]
+#            if i_order == 1:
+#                Susceptibility[i_order, i_f, 0] = 4.0 * np.pi * np.dot(efield['versor'], X_effective[i_order, i_f, :])
+#                if l_eval_current:
+#                    Conductibility[i_order,i_f,0]= 4.0*np.pi*np.dot(efield['versor'][:],Sigma_effective[i_order,i_f,:])
+#            else:
+            Susceptibility[i_order, i_f, :] = X_effective[i_order, i_f, :]
+            if l_eval_current:
+                Conductibility[i_order,i_f,:] = Sigma_effective[i_order, i_f, :]
 
             Susceptibility[i_order, i_f, :] *= Divide_by_the_Field(nldb.Efield[i_f], i_order)
             if l_eval_current:
