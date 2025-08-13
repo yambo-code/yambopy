@@ -114,6 +114,12 @@ class YamboExcitonDB(object):
                 rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
                 l_residual = rel+iml*I
                 r_residual = rer+imr*I
+            if 'BS_L_magn_Residuals' in list(database.variables.keys()):
+                #residuals
+                rel,iml = database.variables['BS_L_magn_Residuals'][:].T
+                rer,imr = database.variables['BS_L_magn_Residuals'][:].T
+                l_residual = rel+iml*I
+                r_residual = rer+imr*I
 
             car_qpoint = None
             if 'Q-point' in list(database.variables.keys()):
@@ -686,7 +692,8 @@ class YamboExcitonDB(object):
             #add weights
             sum_weights = 0
             for t,kcv in enumerate(self.table):
-                k,c,v = kcv[0:3]
+#                k,c,v = kcv[0:3]
+                k = kcv[0]
                 total_weights[k-1] += abs2(eivec[t])
             if abs(sum(total_weights) - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
  
@@ -956,13 +963,55 @@ class YamboExcitonDB(object):
             bands_kpoints, exc_energies, exc_weights, path_car = self.exciton_bs(energies_db, path, excitons, debug)
             exc_energies = exc_energies[:,self.start_band:self.mband]
             exc_weights  = exc_weights[:,self.start_band:self.mband]
-        #elif spin_pol=='pol':
+        elif self.spin_pol=='pol':
+            bands_kpoints, exc_energies, exc_weights, path_car = self.exciton_bs(energies_db, path, excitons, debug)
+            exc_energies = exc_energies[:,self.start_band:self.mband]
+            exc_weights  = exc_weights[:,self.start_band:self.mband]
 
         if f: exc_weights = f(exc_weights)
         size *= 1.0/np.max(exc_weights)
         ybs = YambopyBandStructure(exc_energies, bands_kpoints, weights=exc_weights, kpath=path_car, size=size)
         return ybs
 
+    def get_magnon_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False):
+        #UNDER DEVELOPMENT
+        """
+        Get a YambopyBandstructure object with the exciton band-structure
+        
+            Arguments:
+            ax          -> axis extance of matplotlib to add the plot to
+            lattice     -> Lattice database
+            energies_db -> Energies database, can be either a SaveDB or QPDB
+            path        -> Path in the brillouin zone
+
+            FP: to be moved in a separate class
+
+            TO BE IMPLEMENTED
+        """
+        from qepy.lattice import Path
+        if not isinstance(path,Path): 
+            raise ValueError('Path argument must be a instance of Path. Got %s instead'%type(path))
+    
+        if space == 'bands':
+            bands_kpoints, energies, weights = self.magnon_bs(energies_db, path.kpoints, excitons, debug)
+            nkpoints = len(bands_kpoints)
+            plot_energies = energies[:,self.start_band:self.mband]
+            plot_weights  = weights[:,self.start_band:self.mband]
+        else:
+            raise NotImplementedError('TODO')
+            eh_size = len(self.unique_vbands)*len(self.unique_cbands)
+            nkpoints = len(bands_kpoints)
+            plot_energies = np.zeros([nkpoints,eh_size])
+            plot_weights = np.zeros([nkpoints,eh_size])
+            for eh,(v,c) in enumerate(product(self.unique_vbands,self.unique_cbands)):
+                plot_energies[:,eh] = energies[:,c]-energies[:,v]
+                plot_weights[:,eh] = weights[:,c] 
+
+        if f: plot_weights = f(plot_weights)
+        size *= 1.0/np.max(plot_weights)
+        ybs = YambopyBandStructure(plot_energies, bands_kpoints, weights=plot_weights, kpath=path, size=size)
+        return ybs
+      
     def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=1,space='bands',f=None,debug=None):
         ybs = self.get_exciton_bs(energies_db,path,excitons,size=size,space=space,f=f,debug=debug)
         return ybs.plot_ax(ax) 
@@ -1511,8 +1560,6 @@ class YamboExcitonDB(object):
                plot_energies_dw = energies_dw[:,self.start_band:self.mband]
                plot_weights_up  = weights_up[:,self.start_band:self.mband]
                plot_weights_dw  = weights_dw[:,self.start_band:self.mband]
-        #    elif spin_pol=='pol':
-               
         else:
             raise NotImplementedError('TODO')
             eh_size = len(self.unique_vbands)*len(self.unique_cbands)
