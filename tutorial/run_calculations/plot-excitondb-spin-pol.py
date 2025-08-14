@@ -4,6 +4,7 @@ from yambopy import *
 import matplotlib.pyplot as plt
 import os
 
+ymin,ymax = -2,8
 npoints = 20
 bse_dir = 'bse-exc'
 #bse_dir = 'bse-magn'
@@ -43,18 +44,21 @@ states = [1,2]
 exc_bands_up, exc_bands_dn = yexc.get_exciton_bs_spin_pol(elec,path,states,size_up=1.0, size_dw = 1.0)
 exc_bands_up.plot_ax(ax,c_bands='red',c_weights='orange')
 exc_bands_dn.plot_ax(ax,c_bands='blue',c_weights='orange')
+ax.set_ylim(ymin,ymax)
 plt.savefig('plot1.png')
 plt.show()
 
 # 2. Plot exciton weights in band structure INTERPOLATED
-#PART UNDER DEVELOPMENT
+
 fig = plt.figure(figsize=(4,6))
 ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
 
 # In case of problems with the interpolation, try to increase lpratio
 exc_bands_inter_up, exc_bands_inter_dn  = yexc.interpolate_spin_pol(elec,path,states,lpratio=10,f=None,size=0.5,verbose=True)
 exc_bands_inter_up.plot_ax(ax,c_bands='red',c_weights='orange',alpha_weights=0.5,c_label='$X_1$')
-#plt.savefig('plot2.png')
+exc_bands_inter_dn.plot_ax(ax,c_bands='blue',c_weights='orange',alpha_weights=0.5,c_label='$X_1$')
+ax.set_ylim(ymin,ymax)
+plt.savefig('plot2.png')
 plt.show()
 
 
@@ -65,5 +69,5 @@ ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
 
 #yexc.plot_exciton_2D_ax(ax,states,mode='hexagon',limfactor=0.8,scale= 600)
 yexc.plot_exciton_2D_ax(ax,states,limfactor=0.8,scale= 600)
-#plt.savefig('plot3.png')
+plt.savefig('plot3.png')
 plt.show()
