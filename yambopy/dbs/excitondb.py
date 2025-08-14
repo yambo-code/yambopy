@@ -1647,8 +1647,10 @@ class YamboExcitonDB(object):
     def interpolate_spin_pol(self,energies,path,excitons,lpratio=5,f=None,size_up=1.0,size_dw=1.0,verbose=True,**kwargs):
         """ Interpolate exciton bandstructure using SKW interpolation from
         Abipy and SPIN-POLARIZED CALCULATIONS
-        """
 
+        AEK 14.08.2025
+        It plots the weight on spin pol bands. 
+        """
         if verbose:
             print("This interpolation is provided by the SKW interpolator implemented in Abipy")
 
@@ -1681,21 +1683,16 @@ class YamboExcitonDB(object):
         ibz_weights_dw = np.zeros([ibz_nkpoints,self.mband_dw-self.start_band_dw]) 
         
         ibz_kpoints = np.zeros([ibz_nkpoints,3])
-        print(self.mband_up,self.start_band_up)
-        print(ibz_weights_up.shape)
-        print(weights_up.shape)
-        print(lattice.kpoints_indexes)
-        print('just before error')
         for idx_bz,idx_ibz in enumerate(lattice.kpoints_indexes):
-            print(weights_up[idx_bz,:])
+#            print(weights_up[idx_bz,:])
             ibz_weights_up[idx_ibz,:], ibz_weights_dw[idx_ibz,:]= weights_up[idx_bz,:], weights_dw[idx_bz,:] 
             ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
 
         #get eigenvalues along the path
         # DFT values from SAVE
         if isinstance(energies,YamboElectronsDB):
-            ibz_energies_up = energies.eigenvalues[0,:,self.start_band:self.mband] # spin-up channel
-            ibz_energies_dw = energies.eigenvalues[1,:,self.start_band:self.mband] # spin-dw channel
+            ibz_energies_up = energies.eigenvalues_ibz[0,:,self.start_band:self.mband] # spin-up channel
+            ibz_energies_dw = energies.eigenvalues_ibz[1,:,self.start_band:self.mband] # spin-dw channel
             ibz_kpoints_qp  = ibz_kpoints
         # GW values from ndb.QP
         elif isinstance(energies,YamboQPDB):
@@ -1742,9 +1739,9 @@ class YamboExcitonDB(object):
         fermi_up_dw = max([max(energies_up[0][:,self.nvbands_up-1]), max(energies_dw[0][:,self.nvbands_dw-1])])
 
         #create band-structure object
+        kwargs.pop('size', None)
         exc_bands_up = YambopyBandStructure(energies_up[0],kpoints_path,kpath=path,fermie=fermi_up_dw,weights=exc_weights_up[0],size=size_up,**kwargs)
         exc_bands_dw = YambopyBandStructure(energies_dw[0],kpoints_path,kpath=path,fermie=fermi_up_dw,weights=exc_weights_dw[0],size=size_dw,**kwargs)
-
         return exc_bands_up, exc_bands_dw
 
     ##############################################
