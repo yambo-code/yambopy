@@ -45,10 +45,13 @@ def periodic_dist(ikpt1,ikpt2,kgrid):
     idist=ikpt1-ikpt2
     # distances are between -kgrid/2, and kgrid/2
     for idx in range(3):
-        if idist[idx]<-int(kgrid[idx]/2):
-            idist[idx]=idist[idx]+kgrid[idx]
-        if idist[idx]>=int(kgrid[idx]/2):
-            idist[idx]=idist[idx]-kgrid[idx]
+        if kgrid[idx]==1:
+            idist[idx]=0
+        else:
+            if idist[idx]<-int(kgrid[idx]/2):
+                idist[idx]=idist[idx]+kgrid[idx]
+            if idist[idx]>=int(kgrid[idx]/2):
+                idist[idx]=idist[idx]-kgrid[idx]
     return idist
 
 dynoccups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_e,cdynafile=cdyna_e,teth5file=teth5_e,ndbfile=save_path+'/SAVE/'+ndb)
@@ -60,8 +63,8 @@ p_k_grid=dynoccups.kpts_grid
 
 ### Generate fake grids to check the code ##############
 if Debug:
-    y_grid=np.array([4,1,1])
-    p_grid=np.array([12,1,1])
+    y_grid=np.array([4,4,1])
+    p_grid=np.array([116,116,1])
     
     y_k_grid=y_grid
     p_k_grid=p_grid
@@ -92,9 +95,13 @@ else:
 print("Number of k-points in perturbo : ",n_kpt_pert)
 
 if Debug:
-    pert_kpts=generate_grid(p_k_grid)
+    pert_kpts    =generate_grid(p_k_grid)
+    yambo_kpts_bz=generate_grid(y_k_grid)
+    yambo_kpts_ibz=generate_grid(y_k_grid)
 else:
-    pert_kpts=dynoccups.read_perturbo_kpts()
+    pert_kpts     =dynoccups.read_perturbo_kpts()
+    yambo_kpts_bz =ylat.red_kpoints
+    yambo_kpts_ibz=ylat.get_ibz_kpoints(units='red')
 
 
 pert_kpts=make_kpositive(pert_kpts.tolist())
@@ -108,18 +115,16 @@ if Debug:
         for ikpt in pert_ikpt:
             f.write(str(ikpt)+'\n')
 
-
-yambo_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in ylat.red_kpoints]
+yambo_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in yambo_kpts_bz]
 if Debug:
     with open('yambo_ik_bz.pts', 'w') as f:
         f.write("#Yambo ik-points in the BZ\n")
         for ikpt in yambo_ikpt:
             f.write(str(ikpt)+'\n')
 
-yambo_ibz_kpts=ylat.get_ibz_kpoints(units='red')
-print("Number of IBZ k-points in Yabmo : ",len(yambo_ibz_kpts))
+print("Number of IBZ k-points in Yabmo : ",len(yambo_kpts_ibz))
 
-yambo_ikpt_ibz=[np.int32(np.rint(kpt/small_q)) for kpt in yambo_ibz_kpts]
+yambo_ikpt_ibz=[np.int32(np.rint(kpt/small_q)) for kpt in yambo_kpts_ibz]
 if Debug:
     with open('yambo_ik_ibz.pts', 'w') as f:
         f.write("#Yambo ik-points in the IBZ\n")
@@ -136,6 +141,7 @@ for iyk in tqdm(range(len(yambo_ikpt_ibz))):
         if all(abs(dist)<=grid_ratio/2):
             ylist.append(ipk)
     yneighboars.append(ylist)
+
 
 #Average number of neighboars for each y-kpts
 ave_n=0
