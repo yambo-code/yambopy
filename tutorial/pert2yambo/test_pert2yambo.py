@@ -20,8 +20,8 @@ yamlfile_e = "./cdyna-elec/gaas_dynamics-run.yml"
 yamlfile_h = "./cdyna-hole/gaas_dynamics-run.yml"
 
 
-#Debug=False
-Debug=True
+Debug=False
+# Debug=True
 
 
 def generate_grid(grid):
@@ -105,31 +105,29 @@ else:
 
 
 pert_kpts=make_kpositive(pert_kpts.tolist())
+yambo_kpts_ibz=make_kpositive(yambo_kpts_ibz.tolist())
 small_q=np.zeros(3,dtype=float)
 small_q=1.0/p_k_grid
 
 pert_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in pert_kpts]
-if Debug:
-    with open('perturbo_ik_bz.pts', 'w') as f:
-        f.write("#Perturbo ik-points in the BZ\n")
-        for ikpt in pert_ikpt:
-            f.write(str(ikpt)+'\n')
+with open('perturbo_ik_bz.pts', 'w') as f:
+    f.write("#Perturbo ik-points in the BZ\n")
+    for ikpt in pert_ikpt:
+        f.write(str(ikpt)+'\n')
 
 yambo_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in yambo_kpts_bz]
-if Debug:
-    with open('yambo_ik_bz.pts', 'w') as f:
-        f.write("#Yambo ik-points in the BZ\n")
-        for ikpt in yambo_ikpt:
-            f.write(str(ikpt)+'\n')
+with open('yambo_ik_bz.pts', 'w') as f:
+    f.write("#Yambo ik-points in the BZ\n")
+    for ikpt in yambo_ikpt:
+        f.write(str(ikpt)+'\n')
 
 print("Number of IBZ k-points in Yabmo : ",len(yambo_kpts_ibz))
 
 yambo_ikpt_ibz=[np.int32(np.rint(kpt/small_q)) for kpt in yambo_kpts_ibz]
-if Debug:
-    with open('yambo_ik_ibz.pts', 'w') as f:
-        f.write("#Yambo ik-points in the IBZ\n")
-        for ikpt in yambo_ikpt_ibz:
-            f.write(str(ikpt)+'\n')
+with open('yambo_ik_ibz.pts', 'w') as f:
+    f.write("#Yambo ik-points in the IBZ\n")
+    for ikpt in yambo_ikpt_ibz:
+        f.write(str(ikpt)+'\n')
 
 #search perturbo neighboars for each yambo point
 yneighboars=[]
