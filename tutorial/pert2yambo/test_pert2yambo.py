@@ -64,9 +64,9 @@ p_k_grid=dynoccups.kpts_grid
 ### Generate fake grids to check the code ##############
 if Debug:
     y_grid=np.array([4,4,1])
-    p_grid=np.array([116,116,1])
-    
     y_k_grid=y_grid
+
+    p_grid=np.array([56,56,56])
     p_k_grid=p_grid
 
 #######################################################
@@ -100,6 +100,7 @@ if Debug:
     yambo_kpts_ibz=generate_grid(y_k_grid)
 else:
     pert_kpts     =dynoccups.read_perturbo_kpts()
+    pert_kpts    =generate_grid(p_k_grid)
     yambo_kpts_bz =ylat.red_kpoints
     yambo_kpts_ibz=ylat.get_ibz_kpoints(units='red')
 
@@ -134,10 +135,13 @@ yneighboars=[]
 for iyk in tqdm(range(len(yambo_ikpt_ibz))):
     ykpt=yambo_ikpt_ibz[iyk]
     ylist=[]
+#    i_nn=0
     for ipk,pkpt in enumerate(pert_ikpt):
         dist=periodic_dist(ykpt,pkpt,p_k_grid)
         if all(abs(dist)<=grid_ratio/2):
+#            i_nn=i_nn+1
             ylist.append(ipk)
+#    print("Number of nn ",i_nn)
     yneighboars.append(ylist)
 
 
@@ -152,7 +156,7 @@ for ylist in yneighboars:
         max_n=y_n
     if min_n > y_n:
         min_n=y_n
-ave_n=ave_n/len(yambo_ikpt)
+ave_n=ave_n/len(yambo_ikpt_ibz)
 print("Average number of neighboards : ",ave_n)
 print("Max/Min number of neighboards : ",max_n,min_n)
 
