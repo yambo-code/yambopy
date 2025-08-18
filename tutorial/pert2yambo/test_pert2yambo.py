@@ -54,7 +54,10 @@ def periodic_dist(ikpt1,ikpt2,kgrid):
                 idist[idx]=idist[idx]-kgrid[idx]
     return idist
 
-dynoccups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_e,cdynafile=cdyna_e,teth5file=teth5_e,ndbfile=save_path+'/SAVE/'+ndb)
+# read electrons
+# dynoccups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_e,cdynafile=cdyna_e,teth5file=teth5_e,ndbfile=save_path+'/SAVE/'+ndb)
+# read hole
+dynoccups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_h,cdynafile=cdyna_h,teth5file=teth5_h,ndbfile=save_path+'/SAVE/'+ndb)
 dynoccups.pert_grid_reduced()
 
 ylat = YamboLatticeDB.from_db_file(filename=save_path+'/SAVE/ns.db1')
@@ -66,8 +69,8 @@ if Debug:
     y_grid=np.array([4,4,1])
     y_k_grid=y_grid
 
-    p_grid=np.array([56,56,56])
-    p_k_grid=p_grid
+p_grid=np.array([24,24,24])
+p_k_grid=p_grid
 
 #######################################################
 
@@ -161,9 +164,8 @@ print("Average number of neighboards : ",ave_n)
 print("Max/Min number of neighboards : ",max_n,min_n)
 
 dynoccups.get_vcb_indices()
-# dynoccups.parse_bands_from_yaml()
-# dynoccups.get_files()
-
+dynoccups.parse_bands_from_yaml()
+dynoccups.get_files()
 
 # Copy bare occupation for all k-points
 
