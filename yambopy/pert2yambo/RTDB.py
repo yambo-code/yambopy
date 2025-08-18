@@ -1,5 +1,6 @@
 #import libs 
 import os 
+import sys
 from netCDF4 import Dataset
 import numpy as np 
 from collections import defaultdict
@@ -164,7 +165,7 @@ class dynamic_occupations():
             data = yaml.safe_load(f)
             
             input_params = data.get('input parameters', {})
-            before_conv = input_params.get('before conversion', {})
+            before_conv = input_params.get('before conversion (before reading from epr file)', {})
 
             self.pert_band_min = before_conv.get('band_min')
             self.pert_band_max = before_conv.get('band_max')
