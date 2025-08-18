@@ -36,19 +36,22 @@ class YamboRT_Carriers_DB():
 
     """
 
-    def __init__(self,folder='.',calc='SAVE',carriers_db='ndb.RT_carriers'):
+    def __init__(self,folder='.',calc='SAVE',carriers_db='ndb.RT_carriers',keep_open=False):
         # Find path with RT data
         self.carriers_path = '%s/%s/%s'%(folder,calc,carriers_db)
         self.calc=calc
         try:
-            data_obs= Dataset(self.carriers_path)
+            self.data_obs= Dataset(self.carriers_path)
         except:
             raise ValueError("Error reading CARRIERS database at %s"%self.carriers_path)
 
-        self.readDB(data_obs)
+        self.readDB(self.data_obs)
 
-        data_obs.close()
+        if not keep_open: 
+            self.closeDB()
 
+    def closeDB(self):
+        self.data_obs.close()
 
     def readDB(self,database):
         """
