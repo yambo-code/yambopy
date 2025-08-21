@@ -208,7 +208,6 @@ if not os.path.exists(carriers_path):
 #Make a copy of the original RT carriers DB
 
 delta_f=np.zeros([RT_db.numkp,RT_db.numbnds],float)
-print("Dimensions ",RT_db.numkp,RT_db.numbnds)
 
 for key in elec_occups.occupation.keys():
     shutil.copyfile(save_path+'SAVE/ndb.RT_carriers',carriers_path+"/ndb.RT_carriers_"+str(key))
