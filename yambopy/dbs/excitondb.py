@@ -239,11 +239,11 @@ class YamboExcitonDB(object):
 
     def get_Akcv(self):
         """
-        Convert eigenvectors from (neigs,BS_table) -> (neigs,k,c,v)
-        For now, only works for nspin = 1. nspinor = 1/2 also works.
+        Convert eigenvectors from (neigs,BS_table) -> (neigs,nblks,nspin,k,c,v)
+        nblks = 2 for coupling, else 1 for TDA
         """
-
-        assert self.spin_pol == 'no', "Rearrange_Akcv works only for nspin = 1"
+        nspin = 1
+        if self.spin_pol == 'pol': nspin = 2
         #
         tmp_akcv = getattr(self, 'Akcv', None) 
         if tmp_akcv is not None: return tmp_akcv 
@@ -254,19 +254,20 @@ class YamboExcitonDB(object):
         nk = self.nkpoints
         nv = self.nvbands
         nc = self.ncbands
-        # Make sure nc * nv * nk = BS_TABLE length
-        table_len = nk*nv*nc
-        assert table_len == self.table.shape[0], "BS_TABLE length not equal to nc * nv * nk"
+        # Make sure nspin * nc * nv * nk = BS_TABLE length
+        table_len = nspin*nk*nv*nc
+        assert table_len == self.table.shape[0], "BS_TABLE length not equal to ns * nc * nv * nk"
         #
         v_min = np.min(self.table[:,1])
         c_min = np.min(self.table[:,2])
         bs_table0 = self.table[:,0]-1
         bs_table1 = self.table[:,1] - v_min
         bs_table2 = self.table[:,2] - c_min
+        bs_table3 = self.table[:,3]-1
         #
         eig_wfcs_returned = np.zeros(eig_wfcs.shape,dtype=eig_wfcs.dtype)
         #
-        sort_idx = bs_table0*nc*nv + bs_table2*nv + bs_table1
+        sort_idx = bs_table0*nc*nv + bs_table2*nv + bs_table1 + nk*nc*nv*bs_table3
         #
         eig_wfcs_returned[:,sort_idx] = eig_wfcs[...,:table_len]
         # check if this is coupling .
@@ -274,9 +275,9 @@ class YamboExcitonDB(object):
             eig_wfcs_returned[:,sort_idx+table_len] = eig_wfcs[...,table_len:]
             # NM : Note that here v and c are inverted i.e 
             # psi_S = Akcv * phi_v(r_e) * phi_c^*(r_h)
-            eig_wfcs_returned = eig_wfcs_returned.reshape(-1,2,nk,nc,nv)
+            eig_wfcs_returned = eig_wfcs_returned.reshape(-1,2,nspin,nk,nc,nv)
         else :
-            eig_wfcs_returned = eig_wfcs_returned.reshape(-1,nk,nc,nv)
+            eig_wfcs_returned = eig_wfcs_returned.reshape(-1,1,nspin,nk,nc,nv)
         #
         self.Akcv = eig_wfcs_returned
         return self.Akcv

@@ -62,7 +62,7 @@ def compute_exciton_spin(lattice, excdb, wfdb, elec_sz, contribution='b',diagona
     #
     # Compute the exciton spin matrix elements <S'|S_z|S>
     exe_Sz = exciton_X_matelem(excQpt, np.array([0, 0, 0]), Akcv,
-                               Akcv, elec_sz[None, ...], wfdb.kBZ,
+                               Akcv, elec_sz[None,:,None,...], wfdb.kBZ,
                                diagonal_only=diagonal,contribution=contribution)
     #
     return exe_Sz[0]

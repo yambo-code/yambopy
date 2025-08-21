@@ -78,27 +78,19 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
                - exe_wfc_real: Real-space exciton wavefunction (nstates, nspinor_electron, nspinor_hole,
                                                             Nx_grid, Ny_grid, Nz_grid)
     """
-    if len(Akcv.shape) == 5:
-        #nonTDA
-        ## first the resonat part
-        supercell_latvecs,atom_nums,atom_pos,exe_wfc_real = \
+    ## first the resonat part
+    supercell_latvecs,atom_nums,atom_pos,exe_wfc_real = \
             ex_wf2Real_kernel(Akcv[:,0], Qpt, wfcdb, bse_bnds, fixed_postion,
-            fix_particle=fix_particle, supercell=supercell,
-            wfcCutoffRy=wfcCutoffRy, block_size=block_size,
+                              fix_particle=fix_particle, supercell=supercell,
+                              wfcCutoffRy=wfcCutoffRy, block_size=block_size,
                               ares=False, out_res=None)
-        # add to antiresonant part
+    # for nonTDA add the anti-resonant part
+    if Akcv.shape[1] == 2:
         supercell_latvecs,atom_nums,atom_pos,exe_wfc_real = \
             ex_wf2Real_kernel(Akcv[:,1], Qpt, wfcdb, bse_bnds, fixed_postion,
             fix_particle=fix_particle, supercell=supercell,
             wfcCutoffRy=wfcCutoffRy, block_size=block_size,
                               ares=True, out_res=exe_wfc_real)
-    else:
-        assert len(Akcv.shape) == 4, "wrong Akcv dimensions"
-        supercell_latvecs,atom_nums,atom_pos,exe_wfc_real = \
-            ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
-            fix_particle=fix_particle, supercell=supercell,
-            wfcCutoffRy=wfcCutoffRy, block_size=block_size,
-                              ares=False, out_res=None)
 
     return supercell_latvecs,atom_nums,atom_pos,exe_wfc_real
 
@@ -118,7 +110,7 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
         Note: For density, one must compute the absolute value squared.
 
     Args:
-        Akcv (numpy.ndarray): Exciton coefficients [nstates,nk,nc,nv]
+        Akcv (numpy.ndarray): Exciton coefficients [nstates,ns,nk,nc,nv]
         Qpt (numpy.ndarray): Q-point in crystal coordinates [3]
         wfcdb (YamboWFDB): Wavefunction database
         bse_bnds (list): BSE band range used in bse [nb1, nb2]. fortran indexing. i.e index starts from 1.
@@ -167,7 +159,8 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
         "%d is used in bse but not found in wfcdb, load more wfcs" %(wfcdb.min_bnd + wfcdb.nbands)
     bse_bnds = np.array(bse_bnds,dtype=int)-wfcdb.min_bnd
     
-    nstates, nk, nc, nv = Akcv.shape
+    # ns is number of collinear spin components
+    nstates, ns, nk, nc, nv = Akcv.shape
     
     kpt_idx = wfcdb.ydb.kpoints_indexes
     sym_idx = wfcdb.ydb.symmetry_indexes
@@ -183,11 +176,11 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     if ares:
         # if anti-resonant part, we swap the electron and hole bands
         # first transpose c,v dimensions
-        Akcv = Akcv.transpose(0,1,3,2)
+        Akcv = Akcv.transpose(0,1,2,4,3)
         tmp  = hole_bnds
         hole_bnds = elec_bnds
         elec_bnds = tmp
-        nstates, nk, nc, nv = Akcv.shape
+        nstates, ns, nk, nc, nv = Akcv.shape
 
     lat_vec = wfcdb.ydb.lat.T
     blat = np.linalg.inv(lat_vec)
@@ -234,12 +227,12 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     #
     nspinorr = wfcdb.nspinor
     if out_res is not None:
-        exe_wfc_real = out_res.reshape(nstates, nspinorr, nspinorr,
+        exe_wfc_real = out_res.reshape(nstates, ns, nspinorr, nspinorr,
                              supercell[0],fft_box[0],
                              supercell[1],fft_box[1],
                              supercell[2],fft_box[2])
     else:
-        exe_wfc_real = np.zeros((nstates, nspinorr, nspinorr,
+        exe_wfc_real = np.zeros((nstates, ns, nspinorr, nspinorr,
                              supercell[0],fft_box[0],
                              supercell[1],fft_box[1],
                              supercell[2],fft_box[2]),
@@ -260,7 +253,8 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     FFFboxs = np.zeros((fft_box[0],fft_box[1],fft_box[2],3))
     FFFboxs[...,0], FFFboxs[...,1], FFFboxs[...,2] = np.meshgrid(FFTxx,FFTyy,FFTzz,indexing='ij')
     #
-    exe_tmp_wf = np.zeros((nstates, nspinorr, nspinorr, min(nk,block_size) ,
+    # ns is nspin
+    exe_tmp_wf = np.zeros((nstates, ns, nspinorr, nspinorr, min(nk,block_size) ,
                            fft_box[0], fft_box[1], fft_box[2]),dtype=np.complex64)
     #
     exp_tmp_kL = np.zeros((min(nk,block_size) ,supercell[0],
@@ -343,11 +337,11 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
             ft_wfcr *= exp_kx_r[None,None,None,...]
             #
             if fix_particle == 'h':
-                np.einsum('ncv,vy,cxijk->nxyijk',Akcv[:,ik,...],fx_wfc[0],ft_wfcr[0],
-                          optimize=True,out=exe_tmp_wf[:,:,:,ik-ikstart])
+                np.einsum('nscv,svy,scxijk->nsxyijk',Akcv[:,:,ik,...],fx_wfc,ft_wfcr,
+                          optimize=True,out=exe_tmp_wf[:,:,:,:,ik-ikstart])
             else :
-                np.einsum('ncv,cx,vyijk->nxyijk',Akcv[:,ik,...],fx_wfc[0],ft_wfcr[0],
-                          optimize=True,out=exe_tmp_wf[:,:,:,ik-ikstart])
+                np.einsum('nscv,scx,svyijk->nsxyijk',Akcv[:,:,ik,...],fx_wfc,ft_wfcr,
+                          optimize=True,out=exe_tmp_wf[:,:,:,:,ik-ikstart])
             #
             #exe_tmp_wf[:,:,:,ik-ikstart] *= exp_kx_r[...].reshape(FFFboxs.shape[:3])[None,None,None]
             exp_tmp_kL[ik-ikstart] = np.exp(1j*2*np.pi*np.einsum('...x,x->...',Lsupercells,ft_kvec))
@@ -356,19 +350,19 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
             pbar.update(1)
             #
         ## perform gemm operation 
-        total_gemms_t = nstates*nspinorr**2
+        total_gemms_t = nstates*ns*nspinorr**2
         exp_tmp_kL_tmp = exp_tmp_kL.reshape(len(exp_tmp_kL),-1)[:(ikstop-ikstart)].T
-        exe_tmp_wf_tmp = exe_tmp_wf.reshape(nstates,nspinorr,nspinorr,-1,np.prod(fft_box))
+        exe_tmp_wf_tmp = exe_tmp_wf.reshape(nstates,ns,nspinorr,nspinorr,-1,np.prod(fft_box))
         exe_tmp_wf_tmp = exe_tmp_wf_tmp[...,:(ikstop-ikstart),:]
         #
         for igemms in range(total_gemms_t):
-            ii, jj, kk = np.unravel_index(igemms, (nstates,nspinorr,nspinorr))
-            Ctmp = (exp_tmp_kL_tmp @ exe_tmp_wf_tmp[ii, jj, kk ])
+            ii, iis, jj, kk = np.unravel_index(igemms, (nstates,ns,nspinorr,nspinorr))
+            Ctmp = (exp_tmp_kL_tmp @ exe_tmp_wf_tmp[ii, iis, jj, kk ])
             Ctmp = Ctmp.reshape(supercell[0], supercell[1], supercell[2],
                                 fft_box[0], fft_box[1], fft_box[2])
-            exe_wfc_real[ii, jj, kk ] += Ctmp.transpose(0,3,1,4,2,5)
+            exe_wfc_real[ii, iis, jj, kk ] += Ctmp.transpose(0,3,1,4,2,5)
     #
-    exe_wfc_real   = exe_wfc_real.reshape(nstates,nspinorr,nspinorr,
+    exe_wfc_real   = exe_wfc_real.reshape(nstates,ns,nspinorr,nspinorr,
                                             supercell[0]*fft_box[0],
                                             supercell[1]*fft_box[1],
                                             supercell[2]*fft_box[2])
