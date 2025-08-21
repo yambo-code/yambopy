@@ -337,7 +337,7 @@ class YamboExcitonDB(object):
             density *= phase
         #
         # sum over spinor indices and degenerate states
-        real_wfc = np.sum(density,axis=(0,1,2))
+        real_wfc = np.sum(density,axis=(0,1,2,3))
         # normalize with max value
         max_normalize_val = np.max(np.abs(real_wfc))
         print('Max Normalization value: ',max_normalize_val)
