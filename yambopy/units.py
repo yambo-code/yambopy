@@ -16,6 +16,7 @@ m_e = 0.510998950e+06 # electron mass in eV
 kb    = 8.617330337217213e-05
 kb2ha = 8.617330337217213e-05/ha2ev # Ha/K
 hbar = 6.582119569e-16 #eVs
+hbar_eVfs = 6.582119569e-1 #eVfs
 
 electron_charge_SI = 1.602176634e-19 #Coulomb
 electron_mass_SI = 9.1093837015E-31 #Kg

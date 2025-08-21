@@ -117,10 +117,4 @@ class YamboVbandsDB():
         s+="Number Kpt    : "+str(self.n_kpts)+"\n"
         s+="Number Vbands : "+str(self.n_vbands)+"\n"
         s+="Floquet order : "+str(self.fl_order)+"\n"
-        # for i,v in enumerate(self.tvecs):
-        #     s+="Time: "+str(self.times[i])+" au:\n"
-        #     s+='idx  bnd   c.real             c.imag\n'
-        #     for j in range(self.basis_size):
-        #         idx = self.basis_index[0] + j
-        #         s+=str(j)+"  "+str(idx)+"   "+str(v[j].real)+"   "+str(v[j].imag)+"\n"
         return s
