@@ -24,26 +24,33 @@ yamlfile_h = "./cdyna-hole/gaas_dynamics-run.yml"
 Debug=False
 # Debug=True
 
-def copy_occupation(yneighboars,occ_array,otype):
+def copy_occupation(yneighboars,occups,delta_f,otype):
     if otype!='e' and otype!='h':
         print("Error occupation can be only electron or hole ")
         sys.exit(0)
 
 #Copy Electron/Hole Occupation
-#    my_occ:
-#    for ylist in yneighboars:
-    
-
-#Copy Hole Occupation
-
-
+    n_bands=len(occups.pert_bands)
+    my_occ=np.zeros(n_bands,float)
+    for y_ikp,ylist in enumerate(yneighboars):
+        my_occ=0.0
+        for k_idx in ylist:
+            for idx,bnd in enumerate(occups.pert_bands):
+                my_occ[idx]=my_occ[idx]+occups[k_idx,bnd]
+                # I have to remove the bare occupation
+                if otype!='h':
+                    my_occ[idx]=my_occ[idx]-1.0
+        
+        #Copy occupation in a Yambo shape array delta_f
+        for idx,bnd in enumerate(occups.pert_bands):
+            delta_f[y_ikp,bnd]=delta_f[y_ikp,bnd]+my_occ[idx]
 
 def generate_grid(grid):
     dx=1.0/float(grid[0])
     dy=1.0/float(grid[1])
     dz=1.0/float(grid[2])
     nkpt=np.prod(grid)
-    k_grid=zeros([nkpt,3],float)
+    k_grid=np.zeros([nkpt,3],float)
     ic=0
     for kx in range(0, grid[0]):
         for ky in range(0, grid[1]):
@@ -190,7 +197,7 @@ elec_occups.get_files()
 
 # Copy bare occupation for all k-points
 # read Yambo DB
-#RT_db=YamboRT_Carriers_DB(calc=save_path+'/SAVE/',carriers_db='ndb.RT_carriers')
+RT_db=YamboRT_Carriers_DB(calc=save_path+'/SAVE/',carriers_db='ndb.RT_carriers')
 # RT_db.get_info()
 
 
@@ -199,6 +206,10 @@ carriers_path="CARRIERS"
 if not os.path.exists(carriers_path):
     os.makedirs(carriers_path)
 #Make a copy of the original RT carriers DB
+
+delta_f=np.zeros([RT_db.numkp,RT_db.numbnds],float)
+print("Dimensions ",RT_db.numkp,RT_db.numbnds)
+
 for key in elec_occups.occupation.keys():
     shutil.copyfile(save_path+'SAVE/ndb.RT_carriers',carriers_path+"/ndb.RT_carriers_"+str(key))
     RT_db=YamboRT_Carriers_DB(calc=carriers_path,carriers_db='ndb.RT_carriers_'+str(key),keep_open=True)
