@@ -1,14 +1,5 @@
-# Copyright (C) 2023, Claudio Attaccalite
+# Copyright (C) 2025, YamboPy project
 # All rights reserved.
 #
 # This file is part of yambopy
 #
-"""
-submodule with classes to handle post-processing observables related to spectroscopy
-"""
-
-from .base_optical import BaseOpticalProperties
-from .exciton_group_theory import ExcitonGroupTheory
-from .ex_dipole import ExcitonDipole
-from .ex_phonon import ExcitonPhonon
-from .luminescence import Luminescence
