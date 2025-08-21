@@ -213,23 +213,25 @@ class dynamic_occupations():
                     time_range.append(len(cdyna[f'dynamics_run_{run}'].keys())-2)
 
                 #loop over all snapshots
+                self.occupation = {}
                 for snapshot_t in tqdm(cdyna[f'dynamics_run_{run}'].keys()):
-                    print("In the loop ",snapshot_t)
                     
                     if snapshot_t == 'num_steps' or snapshot_t == 'time_step_fs':
-                                continue
+                        continue
                     
                     #get filenames to store the occupations
                     occupsfilename = os.path.join(self.tmp_out,f"dynamic_occups_run_{1}_snap_{snapshot_t}.pkl")
-                    print("occups file name ",occupsfilename)
+#                    print("occups file name ",occupsfilename)
                     
                     if reduced is True:
                         global red_occupsfilename
                         red_occupsfilename = os.path.join(self.tmp_out,f"dynamic_occups_run_{1}_snap_{snapshot_t}_redkpts.pkl")
                     
-                    print("Show occupations ")
-                    print(cdyna[f'dynamics_run_{run}'][snapshot_t][:,:])
+                    indx=int(snapshot_t.split('_')[-1])
+#                    print("Show occupations :",str(snapshot_t))
+#                    print(cdyna[f'dynamics_run_{run}'][snapshot_t][:,:])
                     #with open(red_occupsfilename, "ab") as red_occupspkl:
+                    self.occupation[indx]=cdyna[f'dynamics_run_{run}'][snapshot_t][:,:]
                     
                     with open(occupsfilename,"wb") as occupspkl:
                         snap = int(snapshot_t.split("_")[-1])
