@@ -5,6 +5,7 @@ from collections import defaultdict
 from tqdm import tqdm
 import h5py
 from itertools import product
+import shutil
 import pickle
 import yaml 
 from yambopy import *
@@ -22,6 +23,19 @@ yamlfile_h = "./cdyna-hole/gaas_dynamics-run.yml"
 
 Debug=False
 # Debug=True
+
+def copy_occupation(yneighboars,occ_array,otype):
+    if otype!='e' and otype!='h':
+        print("Error occupation can be only electron or hole ")
+        sys.exit(0)
+
+#Copy Electron/Hole Occupation
+#    my_occ:
+#    for ylist in yneighboars:
+    
+
+#Copy Hole Occupation
+
 
 
 def generate_grid(grid):
@@ -55,14 +69,16 @@ def periodic_dist(ikpt1,ikpt2,kgrid):
     return idist
 
 # read electrons
-# dynoccups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_e,cdynafile=cdyna_e,teth5file=teth5_e,ndbfile=save_path+'/SAVE/'+ndb)
+elec_occups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_e,cdynafile=cdyna_e,teth5file=teth5_e,ndbfile=save_path+'/SAVE/'+ndb)
 # read hole
-dynoccups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_h,cdynafile=cdyna_h,teth5file=teth5_h,ndbfile=save_path+'/SAVE/'+ndb)
-dynoccups.pert_grid_reduced()
+hole_occups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_h,cdynafile=cdyna_h,teth5file=teth5_h,ndbfile=save_path+'/SAVE/'+ndb)
+elec_occups.pert_grid_reduced()
+hole_occups.pert_grid_reduced()
+
 
 ylat = YamboLatticeDB.from_db_file(filename=save_path+'/SAVE/ns.db1')
 y_k_grid=ylat.k_grid
-p_k_grid=dynoccups.kpts_grid
+p_k_grid=elec_occups.kpts_grid
 
 ### Generate fake grids to check the code ##############
 if Debug:
@@ -90,11 +106,11 @@ if(any(grid_ratio%2 ==0)):
    print("Please use an odd grid ratio! ")
    sys.exit(0)
 
-dynoccups.read_pert_num_kpts()
+elec_occups.read_pert_num_kpts()
 if Debug:
     n_kpt_pert=np.prod(p_k_grid)
 else:
-    n_kpt_pert=dynoccups.num_pert_kpts
+    n_kpt_pert=elec_occups.num_pert_kpts
 print("Number of k-points in perturbo : ",n_kpt_pert)
 
 if Debug:
@@ -102,7 +118,7 @@ if Debug:
     yambo_kpts_bz=generate_grid(y_k_grid)
     yambo_kpts_ibz=generate_grid(y_k_grid)
 else:
-    pert_kpts     =dynoccups.read_perturbo_kpts()
+    pert_kpts     =elec_occups.read_perturbo_kpts()
     pert_kpts    =generate_grid(p_k_grid)
     yambo_kpts_bz =ylat.red_kpoints
     yambo_kpts_ibz=ylat.get_ibz_kpoints(units='red')
@@ -163,10 +179,32 @@ ave_n=ave_n/len(yambo_ikpt_ibz)
 print("Average number of neighboards : ",ave_n)
 print("Max/Min number of neighboards : ",max_n,min_n)
 
-dynoccups.get_vcb_indices()
-dynoccups.parse_bands_from_yaml()
-dynoccups.get_files()
+elec_occups.get_vcb_indices()
+elec_occups.parse_bands_from_yaml()
+hole_occups.get_vcb_indices()
+hole_occups.parse_bands_from_yaml()
+print("Electrons bands : ",elec_occups.pert_bands)
+print("Hole bands : ",hole_occups.pert_bands)
+hole_occups.get_files()
+elec_occups.get_files()
 
 # Copy bare occupation for all k-points
+# read Yambo DB
+#RT_db=YamboRT_Carriers_DB(calc=save_path+'/SAVE/',carriers_db='ndb.RT_carriers')
+# RT_db.get_info()
+
+
+
+carriers_path="CARRIERS" 
+if not os.path.exists(carriers_path):
+    os.makedirs(carriers_path)
+#Make a copy of the original RT carriers DB
+for key in elec_occups.occupation.keys():
+    shutil.copyfile(save_path+'SAVE/ndb.RT_carriers',carriers_path+"/ndb.RT_carriers_"+str(key))
+    RT_db=YamboRT_Carriers_DB(calc=carriers_path,carriers_db='ndb.RT_carriers_'+str(key),keep_open=True)
+
+    RT_db.closeDB()
+    
+
 
 # Update occupation only for the points included in the dynamics
