@@ -214,6 +214,7 @@ class dynamic_occupations():
 
                 #loop over all snapshots
                 self.occupation = {}
+                print("Reading occupations...")
                 for snapshot_t in tqdm(cdyna[f'dynamics_run_{run}'].keys()):
                     
                     if snapshot_t == 'num_steps' or snapshot_t == 'time_step_fs':
