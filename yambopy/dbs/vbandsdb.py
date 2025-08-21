@@ -29,8 +29,13 @@ class YamboVbandsDB():
         """
         ds=Dataset(self.vb_path+'/ndb.RT_V_bands_K_section')
         basis_size=int(ds.dimensions['RT_nbands'].size)
-        return basis_size
-    
+        n_vbands=int(ds.dimensions['nb_full'].size)
+        n_kpts=int(ds.dimensions['QP_nk'].size)
+        sp_pol = int(ds.dimensions['n_sp_pol'].size) # note all the rest is for spin unpolarised...
+        if sp_pol != 1:
+            raise Exception('Spin polarised case not yet implemented.')
+        return basis_size, n_vbands, n_kpts#, sp_pol
+
     def get_basis_idx(self):
         """gets the basis index
         """
@@ -40,19 +45,20 @@ class YamboVbandsDB():
         basis_idx[1] = int(ds['RT_bands_kpts'][1])   
         return basis_idx
     
-    def get_tvecs(self,kpt,band):
-        """kpt: type int from 1 to BZ
-           band: type int from 1 to E%nbf
+    def get_tvecs(self):
+        """ 
         """
         ds=Dataset(self.vb_path+'/ndb.RT_V_bands_K_section')
 
         list_of_evecs = []
         for it in range(1,self.n_timesteps):
-            evec=np.zeros(self.basis_size,dtype=complex)
+            evec=np.zeros((self.n_kpts,self.n_vbands,self.basis_size),dtype=complex)
 
-            for i in range(self.basis_size):
-                evec[i]=complex(
-                        ds['V_bands'][it,0,kpt-1,band-1,i,0],ds['V_bands'][it,0,kpt-1,band-1,i,1])
+            for kpt in range(self.n_kpts):
+                for band in range(self.n_vbands):
+                    for i in range(self.basis_size):
+                        evec[kpt,band,i]=complex(
+                        ds['V_bands'][it,0,kpt,band,i,0],ds['V_bands'][it,0,kpt,band,i,1])
 
             list_of_evecs.append(evec)
 
@@ -67,7 +73,13 @@ class YamboVbandsDB():
             time_fs=float(ds['IO_TIME_points'][i]) #should I do it here?
             list_of_times.append(time_fs)
         return list_of_times
-    
+
+    def get_frequency(self):
+        ds=Dataset(self.jobdir+'/ndb.Nonlinear')
+        freq = float(ds['Field_Freq_range_1'][0])
+        period = 2*np.pi / freq
+        return freq,period
+
     def get_florder(self):
         """get the Floquet order
         """
@@ -75,11 +87,9 @@ class YamboVbandsDB():
         floquet_order = int(ds['IO_Floquet_order'][0])
         return floquet_order
 
-    def __init__(self,folder=".",calc="SAVE",kpt,band):
+    def __init__(self,folder=".",calc="SAVE"):
         """folder: type string
            calc: type string
-           kpt: type int from 1 to BZ
-           band: type int from 1 to E%nbf
         """
         self.vb_path = '%s/%s/%s'%(folder,calc,nl_db)
         for ndb in ['/ndb.RT_V_bands','/ndb.RT_V_bands_K_section']:
@@ -91,11 +101,10 @@ class YamboVbandsDB():
         self.n_timesteps = self.get_ntimesteps()
         self.basis_size = self.get_basis_size()
         self.basis_index = self.get_basis_idx()
-        self.tvecs = self.get_tvecs(kpt,band)
+        self.tvecs = self.get_tvecs()
         self.times = self.get_times()
+        self.freq, self.period = self.get_frequency()
         self.fl_order = self.get_florder()
-        self.kpt = kpt
-        self.band = band
 
     def __str__(self):
         """
@@ -105,13 +114,13 @@ class YamboVbandsDB():
         s+="N timesteps   : "+str(self.n_timesteps)+"\n"
         s+="Basis size    : "+str(self.basis_size)+"\n"
         s+="Basis index   : "+str(self.basis_index)+"\n"
+        s+="Number Kpt    : "+str(self.n_kpts)+"\n"
+        s+="Number Vbands : "+str(self.n_vbands)+"\n"
         s+="Floquet order : "+str(self.fl_order)+"\n"
-        s+="Selected Kpt  : "+str(self.kpt)+"\n"
-        s+="Selected Band : "+str(self.band)+"\n"
-        for i,v in enumerate(self.tvecs):
-            s+="Time: "+str(self.times[i])+" au:\n"
-            s+='n   c.real             c.imag\n'
-            for j in range(self.basis_size):
-                idx = self.basis_index[0] + j
-                s+=str(idx)+"  "+str(v[j].real)+"  "+str(v[j].imag)+"\n"
+        # for i,v in enumerate(self.tvecs):
+        #     s+="Time: "+str(self.times[i])+" au:\n"
+        #     s+='idx  bnd   c.real             c.imag\n'
+        #     for j in range(self.basis_size):
+        #         idx = self.basis_index[0] + j
+        #         s+=str(j)+"  "+str(idx)+"   "+str(v[j].real)+"   "+str(v[j].imag)+"\n"
         return s
