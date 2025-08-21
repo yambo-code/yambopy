@@ -70,7 +70,7 @@ class YamboRT_Carriers_DB():
         self.k_weight = np.array(database.variables['RT_k_weight'])
         self.delta_E = ha2ev*np.array(database.variables['RT_carriers_delta_E'])
         self.delta_f = np.hstack(np.array(database.variables['RT_carriers_delta_f']))
-
+        
     def get_info(self):
         """
         Provide information on the attributes of the class
@@ -100,8 +100,6 @@ class YamboRT_Carriers_DB():
                 each kpoint
 
         """
-        numbnds = self.bands_kpts[1]-self.bands_kpts[0]
-        numkp = self.bands_kpts[2]
         Emin= min(self.E_bare)-10*eta
         Emax= max(max(self.E_bare*self.f_bare),max(self.E_bare*self.delta_f))+10*eta
         #
@@ -128,8 +126,6 @@ class YamboRT_Carriers_DB():
                 each kpoint
 
         """
-        numbnds = self.bands_kpts[1]-self.bands_kpts[0]
-        numkp = self.bands_kpts[2]
         Emin= min(self.E_bare)-10*eta
         Emax= max(max(self.E_bare*self.f_bare),max(self.E_bare*self.delta_f))+10*eta
         #
