@@ -13,6 +13,7 @@ autime2s= 2.418884326505e-17
 m_e = 0.510998950e+06 # electron mass in eV
 KB = 8.617330337217213e-05/ha2ev # Ha/K
 hbar = 6.582119569e-16 #eVs
+hbar_eVfs = 6.582119569e-1 #eVfs
 
 SVCMm12VMm1 =29.98*np.power(10,3,dtype=np.double) #  from [statV/cm] to [V/m]
 VMm12SVCMm1 =1.0/SVCMm12VMm1
