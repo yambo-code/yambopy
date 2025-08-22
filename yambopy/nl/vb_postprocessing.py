@@ -4,9 +4,13 @@
 # This file is part of the yambopy project
 # Floquet analysis of the time-dependent bands from real-time Berry phase 
 #
+from yambopy import *
+from yambopy.plot import *
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as pltcol
+#import matplotlib.pyplot as plt
+#import matplotlib.colors as pltcol
+import sys
+import os
 from datetime import datetime
 from yambopy.units import hbar_eVfs,ha2ev,fs2aut
 #
@@ -31,7 +35,7 @@ class VbPP():
         self.basis_index = vb_db.basis_index
         self.basis_size = vb_db.basis_size
         self.ks_ev = get_bands(kpt=kpt,band=band)
-        freq =  get_frequency(vb_db.jobdir)
+        freq =  get_frequency(vb_db.vb_path)
         self.freq  =freq*ha2ev 
         self.period = 2.0*np.pi/freq/fs2aut #in fs
         self.qe_thrs,self.err_thrs,self.step,self.max_iter,self.max_fl_mode = self.set_conv_parameters(vb_db,vb_pars=None)
