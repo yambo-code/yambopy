@@ -328,7 +328,6 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
             exp_fx = np.exp(2*np.pi*1j*((fx_gvec + fx_kvec[None,:])@fixed_postion))
             fx_wfc *= exp_fx[None,None,None,:]
             fx_wfc = np.sum(fx_wfc,axis=-1) #(spin,bnd,spinor)
-            ## for now only nspin = 1 works.
             ns1, nbndc, nspinorr, ng = ft_wfc.shape
             #if ft_ikpt not in prev_ikpts:
             ft_wfcr = wfcdb.to_real_space(ft_wfc.reshape(-1,nspinorr,ng),ft_gvec, grid=fft_box)
