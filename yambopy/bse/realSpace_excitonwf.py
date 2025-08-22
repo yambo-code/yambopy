@@ -75,8 +75,9 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
                - supercell_latvecs: Supercell lattice vectors (3,3)
                - atom_nums: Atomic numbers.
                - atom_pos: Atomic positions in cartisian units
-               - exe_wfc_real: Real-space exciton wavefunction (nstates, nspinor_electron, nspinor_hole,
+               - exe_wfc_real: Real-space exciton wavefunction (nstates, nspin, nspinor_electron, nspinor_hole,
                                                             Nx_grid, Ny_grid, Nz_grid)
+                 note if nspin =2, then nspinor = 1, similarly, if nspinor = 2, nspin = 1.
     """
     ## first the resonat part
     supercell_latvecs,atom_nums,atom_pos,exe_wfc_real = \
@@ -135,7 +136,8 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
         - atom_nums (numpy.ndarray): Atomic numbers [Natoms]
         - atom_pos (numpy.ndarray): Atomic positions in cartisian units [Natoms,3]
         - exe_wfc_real (numpy.ndarray): Wavefunction in real space
-          [nstates, nspinor_electron, nspinor_hole, FFTx, FFTy, FFTz]
+          [nstates, nspin, nspinor_electron, nspinor_hole, FFTx, FFTy, FFTz]
+          note if nspin =2, then nspinor = 1, similarly, if nspinor = 2, nspin = 1
     """
     #
     #
