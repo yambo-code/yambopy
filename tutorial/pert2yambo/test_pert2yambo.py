@@ -209,7 +209,7 @@ elec_occups.get_files()
 # Copy bare occupation for all k-points
 # read Yambo DB
 RT_db=YamboRT_Carriers_DB(calc=save_path+'/SAVE/',carriers_db='ndb.RT_carriers')
-# RT_db.get_info()
+RT_db.get_info()
 
 # Make a folder to store carrries files
 carriers_path="CARRIERS" 
@@ -217,15 +217,20 @@ if not os.path.exists(carriers_path):
     os.makedirs(carriers_path)
 
 #Array of the occupation variation
-delta_f=np.zeros([elec_occups.num_kpts,elec_occups.full_num_bands],float)
+delta_f=np.zeros([elec_occups.full_num_bands,elec_occups.num_kpts],float)
+delta_f[:,:]=5.0
 
 #Copy originak ndb.RT_carries in the folder and then modify it
 for key in elec_occups.occupation.keys():
     shutil.copyfile(save_path+'SAVE/ndb.RT_carriers',carriers_path+"/ndb.RT_carriers_"+str(key))
-    RT_db=YamboRT_Carriers_DB(calc=carriers_path,carriers_db='ndb.RT_carriers_'+str(key),keep_open=True)
+    # Open database without closing it "keep_open=True"
+    RT_db_new=YamboRT_Carriers_DB(calc=carriers_path,carriers_db='ndb.RT_carriers_'+str(key),keep_open=True)
+    RT_db_new.E_bare[:]=100
 
-    RT_db.closeDB()
+    # Update data in the database
+    RT_db_new.delta_f=np.reshape(delta_f,elec_occups.num_kpts*elec_occups.full_num_bands)
+    RT_db_new.updateDB()
+
+    # Close the database
+    RT_db_new.closeDB()
     
-
-
-# Update occupation only for the points included in the dynamics

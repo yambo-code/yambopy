@@ -46,9 +46,8 @@ class YamboRT_Carriers_DB():
             mode='r+'
         else:
             mode='r'
-
         try:
-                self.data_obs= Dataset(self.carriers_path,mode)
+            self.data_obs= Dataset(self.carriers_path,mode)
         except:
             raise ValueError("Error reading CARRIERS database at %s"%self.carriers_path)
 
@@ -79,13 +78,13 @@ class YamboRT_Carriers_DB():
         self.delta_f = np.hstack(np.array(database.variables['RT_carriers_delta_f']))
 
     def updateDB(self):
-#        self.data_obs.variables['RT_carriers_E_bare']=self.E_bare/ha2ev
-#        self.data_obs.variables['RT_carriers_f_bare']=self.f_bare
-#        self.data_obs.variables['RT_kpt']=self.kpoints.T
-#        self.data_obs.variables['RT_bands_kpts']=self.bands_kpts
-#        self.data_obs.variables['RT_k_weight']=self.k_weight
-#        self.data_obs.variables['RT_carriers_delta_E']=self.delta_E/ha2ev
-#        self.data_obs.variables['RT_carriers_delta_f']=100 #self.delta_f
+        self.data_obs.variables['RT_carriers_E_bare'][:]=self.E_bare/ha2ev
+        self.data_obs.variables['RT_carriers_f_bare'][:]=self.f_bare
+        self.data_obs.variables['RT_kpt'][:]=self.kpoints.T
+        self.data_obs.variables['RT_bands_kpts'][:]=self.bands_kpts
+        self.data_obs.variables['RT_k_weight'][:]=self.k_weight
+        self.data_obs.variables['RT_carriers_delta_E'][:]=self.delta_E/ha2ev
+        self.data_obs.variables['RT_carriers_delta_f'][:,:]=self.delta_f
         
     def get_info(self):
         """
