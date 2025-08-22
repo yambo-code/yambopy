@@ -58,8 +58,8 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
 
     Args:
         Akcv (numpy.ndarray): Exciton wavefunction coefficients with shape:
-                              - (Nstates,k,c,v) for TDA
-                              - (Nstates,2,k,c,v) for non-TDA (2 for resonant/anti-resonant)
+                              - (Nstates,1,ns,k,c,v) for TDA
+                              - (Nstates,2,ns,k,c,v) for non-TDA (2 for resonant/anti-resonant)
         Qpt (numpy.ndarray): Q-point of exciton in crystal coordinates
         wfcdb (YamboWFDB): Wavefunction database
         bse_bnds (list): Band range used in BSE [min_band, max_band] (python indexing)
