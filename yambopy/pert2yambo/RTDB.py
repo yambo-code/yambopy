@@ -147,6 +147,7 @@ class dynamic_occupations():
             self.cb_idx = min(np.where(occupations[0] == 0.0)[0])
             
             self.full_num_bands = num_bands   
+            self.num_kpts = num_kpts
 
             print("Number of Yambo k-points ",num_kpts)
             print("Number of Yambo bands    ",num_bands)
