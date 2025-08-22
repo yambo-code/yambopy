@@ -107,6 +107,7 @@ if any(p_k_grid%y_k_grid != 0):
 else:
     print("Compatible k-grids found")
     
+# This code works only for ratio%2
 grid_ratio=np.int32(p_k_grid/y_k_grid)
 print("Grid ratio ",grid_ratio)
 if(any(grid_ratio%2 ==0)):
@@ -133,15 +134,19 @@ else:
 
 pert_kpts=make_kpositive(pert_kpts.tolist())
 yambo_kpts_ibz=make_kpositive(yambo_kpts_ibz.tolist())
+
+# Find the smallest q-vector in crystal coordinates
 small_q=np.zeros(3,dtype=float)
 small_q=1.0/p_k_grid
 
+# Build integer k-points for perturbo (fine grid)
 pert_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in pert_kpts]
 with open('perturbo_ik_bz.pts', 'w') as f:
     f.write("#Perturbo ik-points in the BZ\n")
     for ikpt in pert_ikpt:
         f.write(str(ikpt)+'\n')
 
+# Bulkd integer BZ k-points for Yambo grid using the q-vector of perturbo
 yambo_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in yambo_kpts_bz]
 with open('yambo_ik_bz.pts', 'w') as f:
     f.write("#Yambo ik-points in the BZ\n")
@@ -150,13 +155,15 @@ with open('yambo_ik_bz.pts', 'w') as f:
 
 print("Number of IBZ k-points in Yabmo : ",len(yambo_kpts_ibz))
 
+
+# Bulkd integer IBZ k-points for Yambo (course grid)
 yambo_ikpt_ibz=[np.int32(np.rint(kpt/small_q)) for kpt in yambo_kpts_ibz]
 with open('yambo_ik_ibz.pts', 'w') as f:
     f.write("#Yambo ik-points in the IBZ\n")
     for ikpt in yambo_ikpt_ibz:
         f.write(str(ikpt)+'\n')
 
-#search perturbo neighboars for each yambo point
+#search perturbo neighboars for each yambo point in the IBZ
 yneighboars=[]
 for iyk in tqdm(range(len(yambo_ikpt_ibz))):
     ykpt=yambo_ikpt_ibz[iyk]
@@ -171,7 +178,7 @@ for iyk in tqdm(range(len(yambo_ikpt_ibz))):
     yneighboars.append(ylist)
 
 
-#Average number of neighboars for each y-kpts
+# Report the average number of neighboars for each y-kpts
 ave_n=0
 max_n=-1
 min_n=1000000
@@ -190,8 +197,12 @@ elec_occups.get_vcb_indices()
 elec_occups.parse_bands_from_yaml()
 hole_occups.get_vcb_indices()
 hole_occups.parse_bands_from_yaml()
+
+
 print("Electrons bands : ",elec_occups.pert_bands)
 print("Hole bands : ",hole_occups.pert_bands)
+
+# Read occupations
 hole_occups.get_files()
 elec_occups.get_files()
 
@@ -200,15 +211,15 @@ elec_occups.get_files()
 RT_db=YamboRT_Carriers_DB(calc=save_path+'/SAVE/',carriers_db='ndb.RT_carriers')
 # RT_db.get_info()
 
-
-
+# Make a folder to store carrries files
 carriers_path="CARRIERS" 
 if not os.path.exists(carriers_path):
     os.makedirs(carriers_path)
-#Make a copy of the original RT carriers DB
 
-delta_f=np.zeros([RT_db.numkp,RT_db.numbnds],float)
+#Array of the occupation variation
+delta_f=np.zeros([elec_occups.num_kpts,elec_occups.full_num_bands],float)
 
+#Copy originak ndb.RT_carries in the folder and then modify it
 for key in elec_occups.occupation.keys():
     shutil.copyfile(save_path+'SAVE/ndb.RT_carriers',carriers_path+"/ndb.RT_carriers_"+str(key))
     RT_db=YamboRT_Carriers_DB(calc=carriers_path,carriers_db='ndb.RT_carriers_'+str(key),keep_open=True)
