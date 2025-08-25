@@ -7,8 +7,8 @@
 from yambopy import *
 from yambopy.plot import *
 import numpy as np
-#import matplotlib.pyplot as plt
-#import matplotlib.colors as pltcol
+import matplotlib.pyplot as plt
+import matplotlib.colors as pltcol
 import sys
 import os
 from datetime import datetime
