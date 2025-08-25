@@ -191,7 +191,7 @@ class VbPP():
             evecs.nr_acc = self.qe_thrs
             return evecs
         # Iteration with step
-        evecs = self.run_nl2fl(qe_ev+self.step,tag=tag,iter_num=1)
+        evecs = self.run_nl2fl(qe_ev-self.step,tag=tag,iter_num=1)
         lof_qe.append(evecs.FL_qe)
         lof_err.append(evecs.err)
         _delta_qe = abs(lof_qe[-1]-lof_qe[-2])
