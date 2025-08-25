@@ -24,7 +24,7 @@ yamlfile_h = "./cdyna-hole/gaas_dynamics-run.yml"
 Debug=False
 # Debug=True
 
-def copy_occupation(yneighboars,occups,delta_f,otype):
+def copy_occupation(yneighboars,occups,occ_key,delta_f,otype):
     if otype!='e' and otype!='h':
         print("Error occupation can be only electron or hole ")
         sys.exit(0)
@@ -33,10 +33,10 @@ def copy_occupation(yneighboars,occups,delta_f,otype):
     n_bands=len(occups.pert_bands)
     my_occ=np.zeros(n_bands,float)
     for y_ikp,ylist in enumerate(yneighboars):
-        my_occ=0.0
+        my_occ[:]=0.0
         for k_idx in ylist:
             for idx,bnd in enumerate(occups.pert_bands):
-                my_occ[idx]=my_occ[idx]+occups[k_idx,bnd]
+                my_occ[idx]=my_occ[idx]+occups.occupation[occ_key][k_idx,idx]
                 # I have to remove the bare occupation
                 if otype!='h':
                     my_occ[idx]=my_occ[idx]-1.0
@@ -218,15 +218,16 @@ if not os.path.exists(carriers_path):
 
 #Array of the occupation variation
 delta_f=np.zeros([elec_occups.full_num_bands,elec_occups.num_kpts],float)
-delta_f[:,:]=5.0
 
 #Copy originak ndb.RT_carries in the folder and then modify it
-for key in elec_occups.occupation.keys():
-    shutil.copyfile(save_path+'SAVE/ndb.RT_carriers',carriers_path+"/ndb.RT_carriers_"+str(key))
+for occ_key in elec_occups.occupation.keys():
+    shutil.copyfile(save_path+'SAVE/ndb.RT_carriers',carriers_path+"/ndb.RT_carriers_"+str(occ_key))
     # Open database without closing it "keep_open=True"
-    RT_db_new=YamboRT_Carriers_DB(calc=carriers_path,carriers_db='ndb.RT_carriers_'+str(key),keep_open=True)
-    RT_db_new.E_bare[:]=100
+    RT_db_new=YamboRT_Carriers_DB(calc=carriers_path,carriers_db='ndb.RT_carriers_'+str(occ_key),keep_open=True)
 
+    copy_occupation(yneighboars,elec_occups,occ_key,delta_f,'e')
+#    copy_occupation(yneighboars,hole_occups,delta_f,'h')
+    
     # Update data in the database
     RT_db_new.delta_f=np.reshape(delta_f,elec_occups.num_kpts*elec_occups.full_num_bands)
     RT_db_new.updateDB()
