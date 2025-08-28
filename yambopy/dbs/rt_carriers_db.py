@@ -13,8 +13,10 @@ class YamboRT_Carriers_DB():
     ``ndb.RT_carriers`` database created by `yambo_rt`.
 
     Args:
-        file (:py:class:`string`) : string with the name of the database to be parsed
-        verbose (:py:class:`boolean`) : define the amount of information provided on terminal
+        folder (:py:class:`string`) : folder where calculations were done
+        calc (:py:class:`string`) : name of the SAVE folder
+        carriers_db (:py:class:`string`) : database name
+        keep_open (:py:class: `boolean`) : keep database open to modify its values
 
     Attributes:
         E_bare (:py:class:`np.array`) : Array that contains the bare bands energies.
@@ -57,6 +59,9 @@ class YamboRT_Carriers_DB():
             self.closeDB()
 
     def closeDB(self):
+        """
+        Close the database
+        """
         self.data_obs.close()
 
     def readDB(self,database):
@@ -66,9 +71,7 @@ class YamboRT_Carriers_DB():
 
         Args:
             verbose (:py:class:`boolean`) : define the amount of information provided on terminal
-
         """
-
         self.E_bare = ha2ev*np.array(database.variables['RT_carriers_E_bare'])
         self.f_bare = np.array(database.variables['RT_carriers_f_bare'])
         self.kpoints = np.array(database.variables['RT_kpt'][:].T)
@@ -78,6 +81,10 @@ class YamboRT_Carriers_DB():
         self.delta_f = np.hstack(np.array(database.variables['RT_carriers_delta_f']))
 
     def updateDB(self):
+        """
+        Update variable on the database.
+        Copy values from the class to the database class.
+        """
         self.data_obs.variables['RT_carriers_E_bare'][:]=self.E_bare/ha2ev
         self.data_obs.variables['RT_carriers_f_bare'][:]=self.f_bare
         self.data_obs.variables['RT_kpt'][:]=self.kpoints.T
