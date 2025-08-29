@@ -379,3 +379,111 @@ def get_bands(kpt=None,band=None):
     return (KSevalues - vbM)*ha2ev
   else:
     return (KSevalues[0,kpt-1,band-1] - vbM)*ha2ev
+
+##################################################################################
+### FLOQUET BAND/PLOT FUNCTIONS ###
+##################################################################################
+
+def findallk_qe(vbdb,report_file=None):
+    from contextlib import nullcontext
+    #
+    ks_evk = np.zeros([vbdb.n_kpts,vbdb.n_vbands])
+    fl_qek = np.zeros([vbdb.n_kpts,vbdb.n_vbands])
+    fl_eig = np.zeros([vbdb.n_kpts,vbdb.n_vbands,vbdb.fl_order*2+1,vbdb.basis_size],dtype=complex) # COMPLEX CHANGE IT
+
+    with open(report_file,'w') if report_file else nullcontext(sys.stdout) as f:
+        for _bnd in range(vbdb.n_vbands):
+            for _kpt in range(vbdb.n_kpts):
+                vbs = VbPP(vbdb,_kpt+1,_bnd+1)
+                opt_evecs = vbs.find_qe()
+                ks_evk[_kpt,_bnd] = vbs.ks_ev
+                fl_qek[_kpt,_bnd] = opt_evecs.FL_qe
+                fl_eig[_kpt,_bnd,:,:] = opt_evecs.FL_vecs[:,:]
+                f.write(f'Bnd {_bnd+1:2} @Kpt {_kpt+1:2}: KS eval [eV] = {ks_evk[_kpt,_bnd]:.6f} --- FL qe [eV] = {fl_qek[_kpt,_bnd]:.6f} -- Diff [eV] = {vbs.ks_ev-opt_evecs.FL_qe:.6f} -- It.: {opt_evecs.nr_it:2} -- err in period = {opt_evecs.err:.2e}\n')
+    return fl_eig, fl_qek, ks_evk  
+
+def get_qebands_path(lat,path,fl_qek,ks_evk): # see how to put kwargs into it...
+    from yambopy.plot.bandstructure import YambopyBandStructure
+    from yambopy.lattice import red_car
+    from yambopy.kpoints import get_path
+
+    bands_kpoints, bands_indexes, path_car = get_path(lat.car_kpoints,lat.rlat,lat.sym_car,path,debug=False) 
+
+    ks_bs = YambopyBandStructure(ks_evk[bands_indexes],bands_kpoints,kpath=path_car) 
+    fl_bs = YambopyBandStructure(fl_qek[bands_indexes],bands_kpoints,kpath=path_car)
+
+    return ks_bs, fl_bs
+    
+def get_qebands_interpolate(lat,path,fl_qek,ks_evk,lpratio=5,fermie=0,nelect = 0,verbose=1): 
+    
+    cell = (lat.lat, lat.red_atomic_positions, lat.atomic_numbers)
+    trev_for_interp = lat.time_rev
+    symrel = [sym for sym,trev in zip(lat.sym_rec_red,lat.time_rev_list) if trev==False ]
+    kpoints = lat.red_kpoints
+    _, _, path_car = get_path(lat.car_kpoints,lat.rlat,lat.sym_car,path,debug=False)
+    band_kpoints_rlu = path.get_klist()[:,:3]
+    band_kpoints = red_car(band_kpoints_rlu,lat.rlat) # why different from above???
+
+    fl_eigens = np.zeros([2,np.shape(fl_qek)[0], np.shape(fl_qek)[1]])
+    ks_eigens = np.zeros([2,np.shape(ks_evk)[0], np.shape(ks_evk)[1]])
+    for ik in range(np.shape(fl_qek)[0]):
+        fl_eigens[0,ik,:] = sorted(fl_qek[ik,:])
+        ks_eigens[0,ik,:] = sorted(ks_evk[ik,:])
+    skw_fl = SkwInterpolator(lpratio,kpoints,fl_eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
+    skw_ks = SkwInterpolator(lpratio,kpoints,fl_eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
+
+    fl_eigens_kpath = skw_fl.interp_kpts(band_kpoints_rlu).eigens[0]
+    fl_bs = YambopyBandStructure(fl_eigens_kpath,band_kpoints,kpath=path_car)
+    ks_eigens_kpath = skw_ks.interp_kpts(band_kpoints_rlu).eigens[0]
+    ks_bs = YambopyBandStructure(ks_eigens_kpath,band_kpoints,kpath=path_car)
+
+    return ks_bs, fl_bs
+
+@add_fig_kwargs
+def plot_2D_kdist(data,lat,nspin=-1,plt_cbar=False,shift_BZ=True,**kwargs):
+    """
+    2D scatterplot in the k-BZ of any real quantity which is a function of only the k-grid
+    
+    data:: real quantity function of k-grid
+        - if plt_cbar colorbar is shown
+        - if shift_BZ adjacent BZs are also plotted (default)
+        - kwargs example: marker='H', s=300, cmap='viridis', etc.
+        
+    NB: THIS IS A COPY OF PLOT_DIPOLE except it is out of the dipole class and some minor detail
+    """
+    from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz
+
+    kpts =lat.car_kpoints
+    rlat = lat.rlat
+
+    # Input check
+    if len(data)!=len(kpts):
+        raise ValueError('Something wrong in data dimensions (%d data vs %d kpts)'%(len(data),len(kpts)))
+
+    # Global plot stuff
+    fig, ax = plt.subplots(1, 1)
+    ax.add_patch(BZ_Wigner_Seitz(lat))
+
+    if plt_cbar:
+        if 'cmap' in kwargs.keys(): color_map = plt.get_cmap(kwargs['cmap'])
+        else:                       color_map = plt.get_cmap('viridis')
+    lim = 1.05*np.linalg.norm(rlat[0])
+    ax.set_xlim(-lim,lim)
+    ax.set_ylim(-lim,lim)
+
+    # Reproduce plot also in adjacent BZs
+    if shift_BZ:
+        BZs = shifted_grids_2D(kpts,rlat)
+        for kpts_s in BZs: plot=ax.scatter(kpts_s[:,0],kpts_s[:,1],c=data,**kwargs)
+    else:
+        plot=ax.scatter(kpts[:,0],kpts[:,1],c=data,**kwargs)
+
+    if plt_cbar: cbar = fig.colorbar(plot)
+
+    plt.gca().set_aspect('equal')
+
+    return ax
+
+    #if plt_show: plt.show()
+    #else: print_string = "Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc..."
+

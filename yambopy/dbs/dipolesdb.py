@@ -248,7 +248,8 @@ class YamboDipolesDB():
     def plot_dipoles(self,data,nspin=-1,plt_show=False,plt_cbar=False,shift_BZ=True,**kwargs):
         """
         2D scatterplot in the k-BZ of the quantity A_{k}(is,ik,idir,ic,iv).
-        TODO: this is the same function as plot_elph in elphondb. They should be merged.
+        TODO: this is the same function as plot_elph in elphondb. They should be merged. 
+        MG: Copying it as well for floquet analysis... can be just a general plotting tool taking data def on BZ?
 
         Any real quantity which is a function of only the k-grid may be supplied.
         The indices is,ik,idir,ic,iv are user-specified. 
