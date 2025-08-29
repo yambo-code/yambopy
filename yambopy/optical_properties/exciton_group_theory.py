@@ -127,8 +127,10 @@ class ExcitonGroupTheory(BaseOpticalProperties):
     def read(self, lelph_db=None, latdb=None, wfdb=None, bands_range=None):
         """Read databases and setup symmetry."""
         self.read_common_databases(latdb=latdb, wfdb=wfdb, bands_range=bands_range)
+        
+        # Read lelph database (gracefully handles missing files)
         self.lelph_db = read_lelph_database(self.LELPH_dir, lelph_db)
-        self.qpts = self.lelph_db.qpoints
+        self.qpts = self.lelph_db.qpoints if self.lelph_db else None
         
         # Setup k-point mapping and symmetry operations
         self._setup_kpoint_mapping()
@@ -139,8 +141,11 @@ class ExcitonGroupTheory(BaseOpticalProperties):
         # Build k-point tree
         if hasattr(self.wfdb, 'ktree'):
             self.kpt_tree = self.wfdb.ktree
-        else:
+        elif self.lelph_db:
             self._build_kpoint_tree(self.lelph_db.kpoints)
+        else:
+            # Fall back to geometry manager k-points
+            self._build_kpoint_tree(self.red_kpoints)
 
     def _setup_symmetry(self):
         """Setup symmetry using both spglib and Yambo matrices."""
@@ -192,9 +197,12 @@ class ExcitonGroupTheory(BaseOpticalProperties):
         """Compute D-matrices using Yambo's symmetries."""
         print("Computing D-matrices with Yambo symmetries...")
         
-        # Get band information from wavefunction database
-        nk = len(self.lelph_db.kpoints)
-        # Get total number of bands from the wavefunction database
+        # Get k-point information - prefer lelph, fall back to geometry manager
+        if self.lelph_db:
+            nk = len(self.lelph_db.kpoints)
+        else:
+            nk = len(self.red_kpoints)
+        
         total_bands = self.wfdb.nbands
         nsym = len(self.symm_mats)
         
@@ -239,7 +247,13 @@ class ExcitonGroupTheory(BaseOpticalProperties):
         bands_range, BS_eigs, BS_wfcs = self._read_bse_data(iQ, nstates)
         BS_eigs = BS_eigs * 27.2114  # Convert to eV
         
-        print(f"\nAnalyzing {nstates} exciton states at Q = {self.qpts[iQ-1]}")
+        # Get Q-point information if available
+        if self.qpts is not None:
+            qpt_info = f"Q = {self.qpts[iQ-1]}"
+        else:
+            qpt_info = f"Q-point index {iQ}"
+        
+        print(f"\nAnalyzing {nstates} exciton states at {qpt_info}")
         print(f"Energies: {BS_eigs.real} eV")
         print(f"Wavefunction shape: {BS_wfcs.shape}")
         

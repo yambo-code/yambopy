@@ -96,9 +96,9 @@ def process_bands_range(bands_range: Optional[List[int]] = None,
 
 
 def read_lelph_database(lelph_dir: str, 
-                       lelph_db: Optional[LetzElphElectronPhononDB] = None) -> LetzElphElectronPhononDB:
+                       lelph_db: Optional[LetzElphElectronPhononDB] = None) -> Optional[LetzElphElectronPhononDB]:
     """
-    Read LetzElPhC database with error handling.
+    Read LetzElPhC database with graceful error handling.
     
     Parameters
     ----------
@@ -109,13 +109,8 @@ def read_lelph_database(lelph_dir: str,
     
     Returns
     -------
-    LetzElphElectronPhononDB
-        Loaded database.
-    
-    Raises
-    ------
-    IOError
-        If database cannot be read.
+    LetzElphElectronPhononDB or None
+        Loaded database, or None if reading failed.
     """
     if lelph_db is not None:
         return lelph_db
@@ -124,7 +119,9 @@ def read_lelph_database(lelph_dir: str,
         ndb_lelph_fname = os.path.join(lelph_dir, 'ndb.elph')
         return LetzElphElectronPhononDB(filename=ndb_lelph_fname)
     except Exception as e:
-        raise IOError(f'Cannot read ndb.elph file: {e}')
+        print(f"Warning: Could not read LELPH database: {e}")
+        print("Continuing without LELPH data - some functionality may be limited")
+        return None
 
 
 def compute_symmetry_matrices(symm_mats: np.ndarray, 

@@ -90,12 +90,19 @@ class Luminescence(BaseOpticalProperties):
         # Read common databases using base class method
         self.read_common_databases(latdb=latdb, wfdb=wfdb, bands_range=bands_range)
         
-        # Read LetzElPhC database
+        # Read LetzElPhC database (gracefully handles missing files)
         self.lelph_db = read_lelph_database(self.LELPH_dir, lelph_db)
-        self.kpts = self.lelph_db.kpoints
-        self.qpts = self.lelph_db.qpoints
-        self.elph_bnds_range = self.lelph_db.bands
-        self.ph_freq = self.lelph_db.ph_energies / ha2ev  # Convert to Hartree
+        if self.lelph_db:
+            self.kpts = self.lelph_db.kpoints
+            self.qpts = self.lelph_db.qpoints
+            self.elph_bnds_range = self.lelph_db.bands
+            self.ph_freq = self.lelph_db.ph_energies / ha2ev  # Convert to Hartree
+        else:
+            # Fall back to geometry manager k-points
+            self.kpts = self.red_kpoints
+            self.qpts = None
+            self.elph_bnds_range = None
+            self.ph_freq = None
         
         # Read dipoles database
         self._read_dipoles_db(ydipdb, dip_dir=self.DIP_dir, bands_range=bands_range)
@@ -104,7 +111,10 @@ class Luminescence(BaseOpticalProperties):
         from yambopy.kpoints import build_ktree, find_kpt
         print('Building kD-tree for kpoints')
         self.kpt_tree = build_ktree(self.kpts)
-        self.qidx_in_kpts = find_kpt(self.kpt_tree, self.qpts)
+        if self.qpts is not None:
+            self.qidx_in_kpts = find_kpt(self.kpt_tree, self.qpts)
+        else:
+            self.qidx_in_kpts = None  # No q-points available
 
     def compute(self):
         """

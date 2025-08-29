@@ -144,12 +144,19 @@ class ExcitonPhonon(BaseOpticalProperties):
         self.read_common_databases(latdb=latdb, wfdb=wfdb, bands_range=bands_range)
         self.Dmats = self.wfdb.Dmat()[:,:,0,:,:]
         
-        # Read LetzElPhC database
+        # Read LetzElPhC database (gracefully handles missing files)
         self.lelph_db = read_lelph_database(self.LELPH_dir, lelph_db)
-        self.kpts = self.lelph_db.kpoints
-        self.qpts = self.lelph_db.qpoints
-        self.elph_bnds_range = self.lelph_db.bands
-        self.ph_freq = self.lelph_db.ph_energies / ha2ev  # Convert to Hartree
+        if self.lelph_db:
+            self.kpts = self.lelph_db.kpoints
+            self.qpts = self.lelph_db.qpoints
+            self.elph_bnds_range = self.lelph_db.bands
+            self.ph_freq = self.lelph_db.ph_energies / ha2ev  # Convert to Hartree
+        else:
+            # Fall back to geometry manager k-points
+            self.kpts = self.red_kpoints
+            self.qpts = None
+            self.elph_bnds_range = None
+            self.ph_freq = None
         
         # Read dipoles database if provided
         if ydipdb is not None:
@@ -202,6 +209,11 @@ class ExcitonPhonon(BaseOpticalProperties):
         Finally, the timings are printed.
 
         """
+        # Check if LELPH database is available
+        if not self.lelph_db:
+            raise RuntimeError("LELPH database is required for exciton-phonon calculations. "
+                             "Please ensure ndb.elph file is available in the LELPH directory.")
+        
         from time import time
 
         # Timing key/value
