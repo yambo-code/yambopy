@@ -38,7 +38,7 @@ def copy_occupation(yneighboars,occups,occ_key,delta_f,otype):
             for idx,bnd in enumerate(occups.pert_bands):
                 my_occ[idx]=my_occ[idx]+occups.occupation[occ_key][k_idx,idx]
                 # I have to remove the bare occupation
-                if otype!='h':
+                if otype=='h':
                     my_occ[idx]=my_occ[idx]-1.0
         
         #Copy occupation in a Yambo shape array delta_f
@@ -74,6 +74,42 @@ def periodic_dist(ikpt1,ikpt2,kgrid):
             if idist[idx]>=int(kgrid[idx]/2):
                 idist[idx]=idist[idx]-kgrid[idx]
     return idist
+
+
+def find_neighboars(y_ikpt,p_ikpt,p_kgrid,py_grid_ratio,Debug=False):
+    y_neighboars=[]
+    for iyk in tqdm(range(len(y_ikpt))):
+        ykpt=y_ikpt[iyk]
+        ylist=[]
+        if Debug:
+            i_nn=0
+        for ipk,pkpt in enumerate(p_ikpt):
+            dist=periodic_dist(ykpt,pkpt,p_kgrid)
+            if all(abs(dist)<=py_grid_ratio/2):
+                if Debug:
+                    i_nn=i_nn+1
+                ylist.append(ipk)
+        if Debug:
+            print("Number of ",iky,"  = ",i_nn)
+        y_neighboars.append(ylist)
+
+    # Report the average number of neighboars for each y-kpts
+    ave_n=0
+    max_n=-1
+    min_n=1000000
+    for ylist in y_neighboars:
+        y_n=len(ylist)
+        ave_n=ave_n+y_n
+        if max_n < y_n:
+            max_n=y_n
+        if min_n > y_n:
+            min_n=y_n
+    ave_n=ave_n/len(yambo_ikpt_ibz)
+    print("Average number of neighboards : ",ave_n)
+    print("Max/Min number of neighboards : ",max_n,min_n)
+    return y_neighboars
+
+
 
 # read electrons
 elec_occups = dynamic_occupations(tmp_out="./tmp",dyn_yamlfile=yamlfile_e,cdynafile=cdyna_e,teth5file=teth5_e,ndbfile=save_path+'/SAVE/'+ndb)
@@ -122,17 +158,22 @@ else:
 print("Number of k-points in perturbo : ",n_kpt_pert)
 
 if Debug:
-    pert_kpts    =generate_grid(p_k_grid)
+    elec_pert_kpts    =generate_grid(p_k_grid)
+    hole_pert_kpts    =generate_grid(p_k_grid)
     yambo_kpts_bz=generate_grid(y_k_grid)
     yambo_kpts_ibz=generate_grid(y_k_grid)
 else:
-    pert_kpts     =elec_occups.read_perturbo_kpts()
-    pert_kpts    =generate_grid(p_k_grid)
+    elec_pert_kpts    =elec_occups.read_perturbo_kpts()
+    hole_pert_kpts    =hole_occups.read_perturbo_kpts()
+#   elec_pert_kpts    =generate_grid(p_k_grid)
+#   hole_pert_kpts    =generate_grid(p_k_grid)
     yambo_kpts_bz =ylat.red_kpoints
     yambo_kpts_ibz=ylat.get_ibz_kpoints(units='red')
 
 
-pert_kpts=make_kpositive(pert_kpts.tolist())
+# Bring all k-points between [0,1)
+elec_pert_kpts=make_kpositive(elec_pert_kpts.tolist())
+hole_pert_kpts=make_kpositive(hole_pert_kpts.tolist())
 yambo_kpts_ibz=make_kpositive(yambo_kpts_ibz.tolist())
 
 # Find the smallest q-vector in crystal coordinates
@@ -140,10 +181,14 @@ small_q=np.zeros(3,dtype=float)
 small_q=1.0/p_k_grid
 
 # Build integer k-points for perturbo (fine grid)
-pert_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in pert_kpts]
+elec_pert_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in elec_pert_kpts]
+hole_pert_ikpt=[np.int32(np.rint(kpt/small_q)) for kpt in hole_pert_kpts]
 with open('perturbo_ik_bz.pts', 'w') as f:
-    f.write("#Perturbo ik-points in the BZ\n")
-    for ikpt in pert_ikpt:
+    f.write("#Perturbo elec ik-points in the BZ\n")
+    for ikpt in elec_pert_ikpt:
+        f.write(str(ikpt)+'\n')
+    f.write("#Perturbo hole ik-points in the BZ\n")
+    for ikpt in hole_pert_ikpt:
         f.write(str(ikpt)+'\n')
 
 # Bulkd integer BZ k-points for Yambo grid using the q-vector of perturbo
@@ -155,7 +200,6 @@ with open('yambo_ik_bz.pts', 'w') as f:
 
 print("Number of IBZ k-points in Yabmo : ",len(yambo_kpts_ibz))
 
-
 # Bulkd integer IBZ k-points for Yambo (course grid)
 yambo_ikpt_ibz=[np.int32(np.rint(kpt/small_q)) for kpt in yambo_kpts_ibz]
 with open('yambo_ik_ibz.pts', 'w') as f:
@@ -164,40 +208,16 @@ with open('yambo_ik_ibz.pts', 'w') as f:
         f.write(str(ikpt)+'\n')
 
 #search perturbo neighboars for each yambo point in the IBZ
-yneighboars=[]
-for iyk in tqdm(range(len(yambo_ikpt_ibz))):
-    ykpt=yambo_ikpt_ibz[iyk]
-    ylist=[]
-#    i_nn=0
-    for ipk,pkpt in enumerate(pert_ikpt):
-        dist=periodic_dist(ykpt,pkpt,p_k_grid)
-        if all(abs(dist)<=grid_ratio/2):
-#            i_nn=i_nn+1
-            ylist.append(ipk)
-#    print("Number of nn ",i_nn)
-    yneighboars.append(ylist)
+print("Find electron neighboars :")
+elec_yneighboars=find_neighboars(yambo_ikpt_ibz,elec_pert_ikpt,p_k_grid,grid_ratio,Debug)
+print("Find hole neighboars :")
+hole_yneighboars=find_neighboars(yambo_ikpt_ibz,hole_pert_ikpt,p_k_grid,grid_ratio,Debug)
 
-
-# Report the average number of neighboars for each y-kpts
-ave_n=0
-max_n=-1
-min_n=1000000
-for ylist in yneighboars:
-    y_n=len(ylist)
-    ave_n=ave_n+y_n
-    if max_n < y_n:
-        max_n=y_n
-    if min_n > y_n:
-        min_n=y_n
-ave_n=ave_n/len(yambo_ikpt_ibz)
-print("Average number of neighboards : ",ave_n)
-print("Max/Min number of neighboards : ",max_n,min_n)
-
+# Get bands indexes
 elec_occups.get_vcb_indices()
 elec_occups.parse_bands_from_yaml()
 hole_occups.get_vcb_indices()
 hole_occups.parse_bands_from_yaml()
-
 
 print("Electrons bands : ",elec_occups.pert_bands)
 print("Hole bands : ",hole_occups.pert_bands)
@@ -217,7 +237,7 @@ if not os.path.exists(carriers_path):
     os.makedirs(carriers_path)
 
 #Array of the occupation variation
-delta_f=np.zeros([elec_occups.full_num_bands,elec_occups.num_kpts],float)
+delta_f=np.zeros([elec_occups.num_kpts,elec_occups.full_num_bands],float)
 
 #Copy originak ndb.RT_carries in the folder and then modify it
 for occ_key in elec_occups.occupation.keys():
@@ -225,8 +245,8 @@ for occ_key in elec_occups.occupation.keys():
     # Open database without closing it "keep_open=True"
     RT_db_new=YamboRT_Carriers_DB(calc=carriers_path,carriers_db='ndb.RT_carriers_'+str(occ_key),keep_open=True)
 
-    copy_occupation(yneighboars,elec_occups,occ_key,delta_f,'e')
-#    copy_occupation(yneighboars,hole_occups,delta_f,'h')
+    copy_occupation(elec_yneighboars,elec_occups,occ_key,delta_f,'e')
+    copy_occupation(hole_yneighboars,hole_occups,occ_key,delta_f,'h')
     
     # Update data in the database
     RT_db_new.delta_f=np.reshape(delta_f,elec_occups.num_kpts*elec_occups.full_num_bands)
