@@ -402,6 +402,52 @@ def findallk_qe(vbdb,report_file=None):
                 f.write(f'Bnd {_bnd+1:2} @Kpt {_kpt+1:2}: KS eval [eV] = {ks_evk[_kpt,_bnd]:.6f} --- FL qe [eV] = {fl_qek[_kpt,_bnd]:.6f} -- Diff [eV] = {vbs.ks_ev-opt_evecs.FL_qe:.6f} -- It.: {opt_evecs.nr_it:2} -- err in period = {opt_evecs.err:.2e}\n')
     return fl_eig, fl_qek, ks_evk  
 
+def calc_rho(vbdb,fl_eig,order,harmonic,kpt,bnd_1,bnd_2):
+    '''
+    vbdb     :: databases with info on vbands as output by YanboVbandsDB
+    fl_eig   :: Floquet eigenvectors as output by findallk_qe
+    order    :: integer, perturbation order of the field, Gamma (positive) 
+    harmonic :: integer, harmonic order, gamma (non negative)
+    kpt,band1,band2 :: integers, k point, and band indexes of the element of the density matrix
+
+    RETURNS
+    rho(kpt,band1,band2,:) :: density matrix element contributing to harmonic order gamma 
+                              for perturbation order Gamma, for all possible combinations
+                              of harmonic orders eta, nu of the fl_eig 
+    '''
+    # dimension ckecks
+    args =locals()
+    val =list(args.values())
+    val.reverse()
+    key = list(args.keys())
+    key.reverse()
+    for i in range(2,len(val)):
+        if not(isinstance(val[i], int)):
+            raise ValueError("value for "+str(key[i])+" must be integer")        
+        if val[i] <0:
+            raise ValueError("value for "+str(key[i])+" must be nonnegative")
+    if not((order - harmonic)%2 == 0.and.((order - harmonic)>0)):
+        raise ValueError("Harmonic order gamma not compatible with perturbation order Gamma: Gamma = gamma + 2n, where n is integer")
+    if kpt >= vbdb.k_kpts:
+        raise ValueError("Value for kpt must be smaller than "+str(vbdb.k_kpts))
+    if any([i for i in val[-2:] if (val[i] <  vbdb.basis_index[0] or val[i] >   vbdb.basis_index[1])]):
+        raise ValueError("Basis indexes must be in range "+ str( vbdb.basis_index))
+    # basis index 
+    b_1 = bnd_1 -  vbdb.basis_index[0]
+    b_2 = bnd_2 -  vbdb.basis_index[0]
+    # determine possible eta,nu values 
+    if harmonic == order:
+        eta = list(range(-harmonic,1))
+    elif harmonic < order:
+        eta = [-int((harmonic+order)/2),int((order-harmonic)/2)]
+     nu = list(int(x + harmomic) for x in eta)
+     c_dim = len(eta)
+     rho = np.zeros(c_dim)
+     for ii in c_dim:
+         for n in vbdb.v_bands:
+             rho[ii] = rho[ii] + numpy.conj(fl_eig(kpt,n,eta[ii],b_2))*fl_eig(kpt,n,nu[ii],b_1)
+    return rho
+
 def get_qebands_path(lat,path,fl_qek,ks_evk): # see how to put kwargs into it...
     from yambopy.plot.bandstructure import YambopyBandStructure
     from yambopy.lattice import red_car
