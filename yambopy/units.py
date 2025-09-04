@@ -14,6 +14,13 @@ m_e = 0.510998950e+06 # electron mass in eV
 KB = 8.617330337217213e-05/ha2ev # Ha/K
 hbar = 6.582119569e-16 #eVs
 
+electron_charge_SI = 1.602176634e-19 #Coulomb
+electron_mass_SI = 9.1093837015E-31 #Kg
+amu_SI = 1.66053906660E-27 #Kg
+amu2au = amu_SI/electron_mass_SI
+amu2ry = amu2au/2. # used for quantum espresso consistency
+
+
 SVCMm12VMm1 =29.98*np.power(10,3,dtype=np.double) #  from [statV/cm] to [V/m]
 VMm12SVCMm1 =1.0/SVCMm12VMm1
 AU2VMm1     =5.14220632*np.power(10,11,dtype=np.double)
