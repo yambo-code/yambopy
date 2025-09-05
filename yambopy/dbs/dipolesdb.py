@@ -333,7 +333,7 @@ class YamboDipolesDB():
         self.field_dir  = self.field_dir/np.linalg.norm(self.field_dir)
 
         #get eigenvalues and weights of electrons
-        if electrons.EXPAND == False:
+        if electrons.expanded == False:
             print("[WARNING] Expanding the electrons database")
             electrons.expandEigenvalues()
         eiv = electrons.eigenvalues
@@ -380,7 +380,11 @@ class YamboDipolesDB():
         #dimensional factors
         if self.spin == 1 : spin_deg=2
         if self.spin == 2 : spin_deg=1
-        cofactor = spin_deg*8.*np.pi/(self.lattice.rlat_vol)
+        ##
+        ## THIS COFACTOR DOES NOT CORRESPOND TO THE YAMBO OUTPUT
+        ## There is a material-dependent scaling factor missing
+        ## (but not just rlat_vol) and possibly something else
+        cofactor = spin_deg*4.*np.pi/self.lattice.nkpoints#/self.lattice.rlat_vol
 
         na = np.newaxis
         epskres = np.zeros([esteps,nkpoints])
@@ -401,21 +405,21 @@ class YamboDipolesDB():
                 dip2a = dip2[na,:]
                 ecva  = ecv[na,:]
                 freqa = freq[:,na]
-                # rescale weight factors because we are in the expanded BZ
-                wa    = weights[na,:]*self.nk_ibz/nkpoints       
+                #wa    = weights[na,:]
 
                 if mode=='imag' or res_k: 
                     #calculate the lorentzians 
                     broadw = broadening(freqa,ecva,broad)
    
                     #scale broadening with dipoles and weights
-                    epsk =  wa*dip2a*broadw
+                    #epsk =  wa*dip2a*broadw
+                    epsk =  dip2a*broadw
 
                     #k-resolved absorption
                     if res_k: epskres+=epsk
 
                     #integrate over kpoints
-                    if mode=='imag': eps += np.sum(epsk,axis=1)
+                    eps += np.sum(epsk,axis=1)
 
                 if mode=='full':
                     #construct complex-valued response function
@@ -424,24 +428,16 @@ class YamboDipolesDB():
                     G2 = -1./(-freqa-ecva-broad*I)
 
                     # oscillators
-                    osc = wa*dip2a
+                    #osc = wa*dip2a
+                    osc = dip2a
 
                     # +=: sum over (c,v,s) ; np.sum(axis=1): sum over k                    
-                    eps += np.sum(osc*(G1+G2),axis=1)/np.pi
+                    eps +=  np.sum(osc*(G1+G2),axis=1)/np.pi
+                    
 
-        eps = eps*cofactor
-       
-        # Treat 2D case
-        # THERE IS STILL A FACTOR MISSING
-        #if system_2D:
-        #    if mode=='imag':
-        #        print("[2D system] Returning 2D polarizability instead of eps2 (bohr units)")
-        #        # assuming supercell direction to be the largest one
-        #        L = np.max(self.lattice.alat) 
-        #        eps = eps#*L/4./np.pi
-        #    if mode=='full':
-        #        print("[2D system] Remember that for spectra, the physical quantity is eps.imag*L/(2*pi), with L aperiodic direction in bohr")
-
+        eps = eps*cofactor 
+        if mode=='full': eps.real += 1.
+        
         if res_k: return freq, eps, epskres
         else:     return freq, eps
 
