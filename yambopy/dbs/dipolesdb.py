@@ -47,18 +47,31 @@ class YamboDipolesDB():
         # indexv is the maximum partially occupied band
         # indexc is the minimum partially empty band
         self.min_band, self.max_band, self.indexv, self.indexc = database.variables['PARS'][:4].astype(int)
+        # Compatibility check
+        # Standard dipoles: <c|p|v> between val and cond
+        # With dip_bands_ordered: <v|p|v'> and <c|p|c'> also present
+        self.dip_bands_ordered = database.variables['PARS'][8].astype(int)
         database.close()
 
         # determine the number of bands
         self.nbands  = self.max_band-self.min_band+1
-        self.nbandsv = self.indexv-self.min_band+1
-        self.nbandsc = self.max_band-self.indexc+1
-        self.indexv = self.indexv-1
-        self.indexc = self.indexc-1
+        if not self.dip_bands_ordered:
+            self.nbandsv = lattice.nbandsv-self.min_band+1
+            self.nbandsc = self.max_band-self.nbandsv
+            self.indexv  = self.nbandsv-1
+            self.indexc  = self.nbandsv
+        else:
+            self.nbandsv = self.indexv-self.min_band+1
+            self.nbandsc = self.max_band-self.indexc+1
+            self.indexv = self.indexv-1
+            self.indexc = self.indexc-1
         self.index_firstv = self.min_band-1
         self.open_shell = False
         d_n_el = self.nbandsv + self.nbandsc - self.nbands
         if d_n_el != 0:
+            if not self.dip_bands_ordered: 
+                raise NotImplementedError("[ERROR] You may be considering an open-shell system together with the 'DipBandsAll' option, which is not supported. Please rerun the calculation without 'DipBandsAll'.")
+
             # We assume the excess electron(s)/hole(s) are in the spin=0 channel
             print("[WARNING] You may be considering an open-shell system. Careful: optical absorption UNTESTED.")
             self.open_shell = True
@@ -72,7 +85,14 @@ class YamboDipolesDB():
         #read the database
         ## Note : Yambo stores dipoles are for light emission.
         ## In case of light absoption, conjugate it
-        self.dipoles = self.readDB(dip_type)
+        dipoles = self.readDB(dip_type)
+
+        if not self.dip_bands_ordered:
+            # use a slice of the full array
+            self.dipoles_full = dipoles # Here keep the vv' and cc' transitions
+            self.dipoles      = dipoles[...,self.nbandsv:,:self.nbandsv] # cv only
+        else:
+            self.dipoles = dipoles
 
         #expand the dipoles to the full brillouin zone 
         #and project them along field dir
@@ -119,11 +139,14 @@ class YamboDipolesDB():
         fragmentname = "%s_fragment_1"%(self.filename)
         if os.path.isfile(fragmentname): return self.readDB_oldformat(dip_type)
 
+        if not self.dip_bands_ordered: nbands1, nbands2 = [self.nbands,self.nbands]
+        else: nbands1, nbands2 = [self.nbandsc, self.nbandsv] # COND before VAL
+
         self.dip_type = dip_type
         if self.spin==1: 
-            dipoles = np.zeros([self.nk_ibz,3,self.nbandsc,self.nbandsv],dtype=np.complex64)
+            dipoles = np.zeros([self.nk_ibz,3,nbands1,nbands2],dtype=np.complex64)
         if self.spin==2:
-            dipoles = np.zeros([self.spin,self.nk_ibz,3,self.nbandsc,self.nbandsv],dtype=np.complex64)
+            dipoles = np.zeros([self.spin,self.nk_ibz,3,nbands1,nbands2],dtype=np.complex64)
         
         database = Dataset(self.filename)
         dip = database.variables['DIP_%s'%(dip_type)]
