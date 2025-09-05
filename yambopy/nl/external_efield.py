@@ -24,8 +24,8 @@ def Divide_by_the_Field(efield,order):
     elif efield['name'] == 'QSSIN':
         # Approximate relations/does not work yet
         sigma=efield['width']
-        T_0=10*sigma
-        W_0=efield['frequency'][0]
+        W_0=efield['freq_range'][0]
+        T_0= np.pi/W_0*float(round(W_0/np.pi*3.*sigma))
         T = 2*np.pi/W_0
         E_w= math.sqrt(np.pi/2)*sigma*np.exp(-1j*W_0*T_0)*(special.erf((T-T_0)/math.sqrt(2.0)/sigma)+special.erf(T_0/math.sqrt(2.0)/sigma))
         
