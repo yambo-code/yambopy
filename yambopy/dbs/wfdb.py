@@ -647,45 +647,9 @@ class YamboWFDB:
         G0 = G0_ket-G0_bra
         return wfc_inner_product(G0, w_rk_bra, g_rk_bra, np.array([0,0,0]), w_rk_ket, g_rk_ket)
 
-    #def OverlapUkkp(self, kpt_bra, kpt_ket):
-    #    """
-    #    Compute the following matrix elements : < k_bra | e^{i(k_bra-k_ket).r} | k_ket>
-    #    in other words, it computes overlap of periodic parts of k_bra an k_ket
-    #    """
-    #    kpt_bra = np.array(kpt_bra)
-    #    kpt_ket = np.array(kpt_ket)
+## end of class
 
-    #    ikpt_ket = find_kpt(self.ktree,kpt_ket)
-    #    ikpt_bra = find_kpt(self.ktree,kpt_bra)
-    #    #
-    #    kpt_idx = self.ydb.kpoints_indexes
-    #    sym_idx = self.ydb.symmetry_indexes
-    #    #
-    #    ibz_ket = kpt_idx[ikpt_ket]
-    #    isym_ket = sym_idx[ikpt_ket]
-    #    #
-    #    ibz_bra = kpt_idx[ikpt_bra]
-    #    isym_bra = sym_idx[ikpt_bra]
-    #    #
-    #    ## get the wfcs:
-    #    k_rk_ket, w_rk_ket, g_rk_ket = self.rotate_wfc(ibz_ket, isym_ket)
-    #    k_rk_bra, w_rk_bra, g_rk_bra = self.rotate_wfc(ibz_bra, isym_bra)
-
-    #    grid = [30,30,180]
-    #    wf_b = self.to_real_space(w_rk_bra[0], g_rk_bra, grid=grid)
-    #    wf_k = self.to_real_space(w_rk_ket[0], g_rk_ket, grid=grid)
-
-    #    cel_vol = abs(np.linalg.det(self.ydb.lat.T))
-    #    fft_r = np.meshgrid(np.arange(grid[0])/grid[0],np.arange(grid[1])/grid[1],np.arange(grid[2])/grid[2],indexing='ij')
-    #    rgrid = np.zeros((grid[0],grid[1],grid[2],3))
-    #    rgrid[...,0],rgrid[...,1],rgrid[...,2] = fft_r
-    #    kdotr = np.einsum('...x,x->...',rgrid,(kpt_bra-kpt_ket))
-    #    return np.einsum('m...,n...->mn',np.conj(wf_b),wf_k*np.exp(1j*2*np.pi*kdotr),optimize=True)*cel_vol/np.prod(grid)
-
-
-
-
-
+##
 @func_profile
 def wfc_inner_product(k_bra, wfc_bra, gvec_bra, k_ket, wfc_ket, gvec_ket, ket_Gtree=None):
     """
