@@ -365,13 +365,13 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
             Ctmp = (exp_tmp_kL_tmp @ exe_tmp_wf_tmp[ii, iis, jj, kk ])
             Ctmp = Ctmp.reshape(supercell[0], supercell[1], supercell[2],
                                 fft_box[0], fft_box[1], fft_box[2])
+            Ctmp *= (1.0/np.prod(supercell))
             exe_wfc_real[ii, iis, jj, kk ] += Ctmp.transpose(0,3,1,4,2,5)
     #
     exe_wfc_real   = exe_wfc_real.reshape(nstates,ns,nspinorr,nspinorr,
                                             supercell[0]*fft_box[0],
                                             supercell[1]*fft_box[1],
                                             supercell[2]*fft_box[2])
-    exe_wfc_real *= (1.0/np.prod(supercell))
     #
     # compute postioon of fixed particle in cart units 
     fixed_postion_cc = lat_vec@fixed_postion
