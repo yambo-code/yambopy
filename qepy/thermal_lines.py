@@ -10,11 +10,9 @@
 # Added a threshold in phonon frequencies to discard the negative and zero frequencies
 # (replaces the excluded_freq argument in the previous version)
 
-from QEplayground.pwscf  import *
-from QEplayground.matdyn import *
-from QEplayground.pwout  import *
-from QEplayground.units  import autime2s,amu2au,thz2cm1,au2kelvin,default_freq_thr
-from QEplayground.utilities import bose
+from qepy import *
+from .units  import autime2s,amu2au,thz2cm1,au2kelvin,default_freq_thr
+from yambopy.tools.funcs import bose
 from itertools import *
 import math
 import random
