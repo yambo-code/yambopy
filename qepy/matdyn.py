@@ -277,7 +277,7 @@ class Matdyn(object):
                     e = self.eiv[nq,n,a*3:(a+1)*3]
                     #get normalization constant
                     s += masses[a]*np.vdot(e,e).real
-                self.eiv[nq,n] *= 1/sqrt(s)
+                self.eiv[nq,n] *= 1.0/sqrt(s)
     
     def check_orthogonality(self,atol=1e-5):
         """
@@ -328,4 +328,17 @@ class Matdyn(object):
                 for a in range(self.natoms):
                     s += ("%12.8lf "*3+'\n')%tuple(mode[a*3:(a+1)*3].real)
         return s
+
+    def print_atoms_sigma(self, masses, iq, imode, delta=1.0):
+        #
+        # Print atoms sigma for a given phonon mode
+        # in a.u.
+        #
+        masses = np.array(masses)
+        for a in range(self.natoms):
+            e = self.eiv[iq,imode,a*3:(a+1)*3]
+            norm  = np.sqrt(np.vdot(e,e).real)
+            sigma = float(norm*delta/np.sqrt(masses[a]*amu2au))
+            print("Atom %d  mass %12.8f sigma %12.8f" % (a,masses[a], sigma))
+
 
