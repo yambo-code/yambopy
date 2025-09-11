@@ -48,7 +48,7 @@ def generate_nondiagonal_supercell(uc,Q,kpoints=None):
 
     print('Nondiagonal supercell written to file.')   
 
-def generate_displaced_supercells(uc,Q,eivs,kpoints=None):
+def generate_displaced_supercells(uc,Q,modes_file,kpoints=None):
     """
     Third case: displaced supercells along phonon modes at Q
     """
@@ -61,7 +61,7 @@ def generate_displaced_supercells(uc,Q,eivs,kpoints=None):
     # Displace atoms.
     # Intensity is Temp (in bohr)
     # Sign and direction (standing wave at Q) given by modes_file
-    sc.displace(eivs,nd_atom_positions,Temp=0.1) # Generate list of displaced supercells as PwIn objects called 'modes_qe'
+    sc.displace(modes_file,nd_atom_positions,Temp=0.1) # Generate list of displaced supercells as PwIn objects called 'modes_qe'
     N_modes = len(sc.modes_qe)
 
     #name of output file
@@ -73,7 +73,7 @@ def generate_displaced_supercells(uc,Q,eivs,kpoints=None):
 
     print('Displaced supercells written to file.')
 
-def generate_displaced_unitcell(uc,eivs):
+def generate_displaced_unitcell(uc,modes_file):
     """
     Fourth case: displaced cell at Q=0
     """
@@ -85,7 +85,7 @@ def generate_displaced_unitcell(uc,eivs):
     # Displace atoms.
     # Intensity is Temp (in bohr)
     # Sign and direction (standing wave at Q) given by modes_file
-    sc.displace(eivs,atom_positions,Temp=0.1) # Generate list of displaced supercells as PwIn objects called 'modes_qe'
+    sc.displace(modes_file,atom_positions,Temp=0.1) # Generate list of displaced supercells as PwIn objects called 'modes_qe'
     N_modes = len(sc.modes_qe)
 
     #name of output file
