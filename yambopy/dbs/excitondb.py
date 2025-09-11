@@ -1429,10 +1429,10 @@ class YamboExcitonDB(object):
         for var in cleanup_vars: kwargs.pop(var,None)
         if 're' in reim: 
             ax.plot(w,chi.real,**kwargs)
-            ax.set_ylabel('$Re(\epsilon_2(\omega))$')
+            ax.set_ylabel(r'$Re(\epsilon_2(\omega))$')
         if 'im' in reim:
             ax.plot(w,chi.imag,**kwargs)
-            ax.set_ylabel('$Im(\epsilon_2(\omega))$')
+            ax.set_ylabel(r'$Im(\epsilon_2(\omega))$')
         ax.set_xlabel('Energy (eV)')
         #plot vertical bar on the brightest excitons
         if n_brightest>-1:
