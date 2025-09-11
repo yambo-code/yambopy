@@ -27,4 +27,5 @@ Project Authors
 * Marco D'Alessandro
 * Daniel Santos Stone
 * Ignacio Alliati 
+* Pierre Lechifflart
 

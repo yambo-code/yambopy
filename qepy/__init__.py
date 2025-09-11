@@ -32,3 +32,4 @@ from qepy.unfolding import *
 from qepy.supercell import *
 from qepy.upf_interface.ppupf import *
 from qepy.spin_texture import *
+from qepy.thermal_lines import *
