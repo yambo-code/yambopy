@@ -317,7 +317,7 @@ class YamboExcitonDB(object):
         if fix_particle == 'h': name_file = 'electron'
         else: name_file = 'hole'
 
-        if phase and real_wfc.shape[1] != 1:
+        if phase and wfdb.wf.shape[1] != 1 and wfdb.wf.shape[3] != 1:
             print("phase plot only works for nspin = 1 and nspinor == 1")
             phase = False
         if phase and len(iexe_degen_states) > 1:
