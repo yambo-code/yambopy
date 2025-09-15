@@ -93,7 +93,7 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
         #
         # Compute the hole contribution and subtract from the electron contribution
         if contribution == 'h' or contribution == 'b':
-            tmp_h = -Ak @ Ovv[il][None, ...]
+            tmp_h = -Ak[:,0] @ Ovv[il][None, ...]
             if contribution == 'b':
                 tmp_wfc += tmp_h
             else:

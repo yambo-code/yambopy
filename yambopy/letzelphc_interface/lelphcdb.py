@@ -48,7 +48,9 @@ class LetzElphElectronPhononDB():
         self.nq = database.dimensions['nq'].size
         self.ns = database.dimensions['nspin'].size
         self.nsym = database.dimensions['nsym_ph'].size
-
+        self.div_by_energies = div_by_energies # if true, the elph store are normalized with 1/(2*w_ph)
+        #
+        #
         conv = database['convention'][...].data
         if isinstance(conv, np.ndarray):
             if conv.dtype.kind == 'S':  # Byte strings (C chars)
@@ -59,12 +61,14 @@ class LetzElphElectronPhononDB():
             conv = conv.decode('utf-8').strip()
         else:
             conv = str(conv).strip()
-        stard_conv = False
-        if conv.strip() == 'standard':
+        conv = conv.strip().replace('\0', '')
+        #
+        #
+        if conv == 'standard':
             print("Convention used in Letzelphc : k -> k+q (standard)")
         else:
             print("Convention used in Letzelphc : k-q -> k (yambo)")
-        self.convention = conv.strip()
+        self.convention = conv
         #
         # Read DB
         self.kpoints = database.variables['kpoints'][:]
@@ -182,6 +186,7 @@ class LetzElphElectronPhononDB():
                 The phonon eigenvectors.
             - ph_elph_me : ndarray
                 The electron-phonon matrix elements with the specified convention.
+                ( nk, nm, nspin, initial bnd, final bnd)
         """
         #
         if len(bands_range) == 0:
@@ -209,7 +214,20 @@ class LetzElphElectronPhononDB():
             ph_eigs = database['POLARIZATION_VECTORS'][iq,...].data
             eph_mat = eph_mat[...,0] + 1j*eph_mat[...,1]
             ph_eigs = ph_eigs[...,0] + 1j*ph_eigs[...,1]
+            ## normalize with ph_freq
+            if self.div_by_energies:
+                ph_freq_iq = np.sqrt(2.0*np.abs(self.ph_energies[iq])/(ha2ev/2.))
+                if iq >0:
+                    ph_freq_iq = 1.0/ph_freq_iq
+                    eph_mat *= ph_freq_iq[None,:,None,None,None]
+                else:
+                    eph_mat[:,:3] = 0.0
+                    ph_freq_iq = 1.0/ph_freq_iq[3:]
+                    eph_mat[:,3:] *= ph_freq_iq[None,:,None,None,None]
+
             if close_file :database.close()
+        ## output elph matrix elements unit (Ry if div_by_energies else Ry^1.5)
+        # ( nk, nm, nspin, initial bnd, final bnd)
         return [ph_eigs, self.change_convention(self.qpoints[iq],eph_mat, convention)]
 
     def change_convention(self, qpt, elph_iq, convention='yambo'):
