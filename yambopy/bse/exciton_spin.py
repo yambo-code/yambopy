@@ -76,43 +76,8 @@ def compute_exc_spin_iqpt(path='.', bse_dir='SAVE', iqpt=1,
                           sz=0.5 * np.array([[1, 0], [0, -1]]),
                           return_dbs_and_spin=True):
     """
-    Compute the spin matrix elements ⟨S'|S_z|S⟩ for excitons.
-
-    This function calculates the spin matrix elements for excitons using 
-    wavefunctions and spin operators. Easy to use interface. Use 
-    compute_exciton_spin() incase you already have those db's
-
-    Parameters
-    ----------
-    path : str, optional
-        Path to the directory containing the `SAVE` folder. Default is `.`.
-    bse_dir : str, optional
-        Directory containing the BSE (Bethe-Salpeter Equation) data. Default is `'SAVE'`.
-    iqpt : int or list/array of ints, optional
-        Index or indices of the q-point(s) for which the exciton spin is computed. 
-        Default is `1` (Gamma point).
-    nstates : int, optional
-        Number of exciton states to consider. If `-1`, all states are included. Default is `-1`.
-    contribution : {'b', 'e', 'h'}, optional
-        Specifies which contribution to compute:
-        - `'b'`: Total exciton spin (default).
-        - `'e'`: Electron spin only.
-        - `'h'`: Hole spin only.
-    degen_tol : float, optional
-        Degeneracy tolerance for excitons in eV. Default is `1e-2` eV.
-    sz : ndarray, optional
-        Spin-z operator matrix in the basis of spinor wavefunctions.
-        Default is `0.5 * np.array([[1, 0], [0, -1]])`.
-    return_dbs_and_spin : bool, optional
-        return [latticedb, wfdb, excdb (s), elec_spin_matrix]
-        Default is True
-    Returns
-    -------
-    exe_Sz : ndarray
-        Spin matrix elements for excitons with shape `(niq, nstates, nstates)`, 
-        where `niq` is the number of q-points.
-    if return_dbs_and_spin is True, will also return
-        [latticedb, wfdb, excdb (s), elec_spin_matrix]
+    Compute expectation value of S_z operator for excitons.
+    
     Examples
     --------
     Compute the total spin matrix elements for excitons:
