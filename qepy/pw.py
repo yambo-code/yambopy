@@ -233,7 +233,7 @@ class PwIn(object):
                 red_atoms.append( [atype,car_red([apos],self.cell_parameters)[0]] )
             self._atoms = red_atoms 
 
-     def get_atoms(self, units=None):
+    def get_atoms(self, units=None):
         from .units     import ang2au,au2ang
         from .lattice   import red_car,car_red
 

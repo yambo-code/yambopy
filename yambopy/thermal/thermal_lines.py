@@ -22,10 +22,6 @@ def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_fr
     print("\n\n * * * Special Displacement Generation * * * \n\n")
 
     masses     = qe_input.get_masses()
-    atoms_arr  = qe_input.get_atoms_array(units="bohr")
-    new_atoms  = np.empty_like(atoms_arr)
-    np.copyto(new_atoms,atoms_arr)
-
 
     # Check ortogonaly of the phonon eigenvectors
     # 
@@ -49,7 +45,10 @@ def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_fr
     qe_new =qe_input.copy()
 
     masses=qe_input.get_masses()
-    qe_dyn.normalize_with_masses(masses)
+    # qe_dyn.normalize_with_masses(masses) 
+    # Not need anymore
+    # already included in qe.displace
+    #
     # Fix Gauge sign of eigenvalues   
     # see page 075125-3 of PRB 94, 075125 (2006)
     #
@@ -89,14 +88,16 @@ def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_fr
     
        for a in range(qe_dyn.natoms):
            e = qe_dyn.eiv[0,im,a*3:(a+1)*3]
-           new_atoms[a][:]=new_atoms[a][:]+e.real*delta/math.sqrt(amu2au) #/np.sqrt(masses[a]*amu2au)
-        
-    qe_new.control['prefix']=qe_input.control['prefix'].strip("'")+"_ZG"
+           cart_mode[a][:]=cart_mode[a][:]+e.real*delta/math.sqrt(amu2au) #/np.sqrt(masses[a]*amu2au)
 
-    qe_new.set_atoms_array(new_atoms,units="bohr")
+    qe_new.displace(cart_mode,1.0)
+
+    qe_new.control['prefix']=qe_input.control['prefix'].strip("'")+"_ZG"
+    if minus_sign:
+        qe_new.control['prefix']=qe_input.control['prefix']+"m"
+
     if not debug:
         qe_new.write(str(new_filename)+"_ZG",folder)
     else:
         print("ZG line: ")
         print(qe_new.get_atoms())
-
