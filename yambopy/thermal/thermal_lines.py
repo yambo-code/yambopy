@@ -14,11 +14,13 @@ import numpy as np
 import math
 
 from yambopy.zeros import default_freq_thr
+from yambopy.tools.funcs import bose
+from yambopy.units import au2kelvin,amu2au
 
 def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_freq_thr, modes=None, debug=None,skip_ortho_check=True, minus_sign=False):
 
-    atoms      = qe_input.get_atoms("bohr")
-    new_atoms  = np.empty_like(atoms)
+    print("\n\n * * * Special Displacement Generation * * * \n\n")
+
     masses     = qe_input.get_masses()
 
     # Check ortogonaly of the phonon eigenvectors
@@ -40,7 +42,8 @@ def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_fr
 
     new_filename = qe_input.filename  # default file name
 
-    qe_new=qe_input.copy()
+    qe_plus =qe_input.copy()
+    qe_minus=qe_input.copy()
 
     masses=qe_input.get_masses()
     qe_dyn.normalize_with_masses(masses)
@@ -51,7 +54,7 @@ def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_fr
         if  qe_dyn.eiv[0,im,0] < 0.0:
             qe_dyn.eiv[0,im,:] *= -1.0
     #
-    np.copyto(new_atoms, atoms)
+    cart_mode=np.zeros([qe_dyn.natoms,3],float)
     for im in modes:
        #
        # Gaussian width
@@ -61,9 +64,32 @@ def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_fr
        w_au = qe_dyn.get_phonon_freq(0,im+1,unit='Ha')
        if w_au > freq_thr:
            q_0  = 1.0/math.sqrt(2.0*w_au)
-#           q_T  = q_0*math.sqrt(1.0+2.0*bose(w_au,T/au2kelvin))
+           q_T  = q_0*math.sqrt(1.0+2.0*bose(w_au,T/au2kelvin))
        else:
            continue
+       
+       if debug is not None:
+           print("Mode: "+str(im))
+           print("W and T atomic units : %14.10f, %14.10f " % (w_au,T/au2kelvin))
+           print("W in cm-1 %14.10f " % qe_dyn.get_phonon_freq(0,im+1,unit='cm-1'))
+           print("Amplitude at T=0     : %14.10f " % q_0)
+           print("Amplitude at finite T: %14.10f " % q_T)
 
+       #
+       if (im % 2 ) ==0:
+           delta =  q_T
+       else:
+           delta = -q_T
+    
+       for ia in range(qe_dyn.natoms):
+           cart_mode[ia,:]=qe_dyn.eiv[0,im,ia*3:(ia+1)*3].real
+       cart_mode=cart_mode*1.0/math.sqrt(amu2au) #/np.sqrt(masses[a]*amu2au)
+
+       qe_plus.displace(cart_mode,delta,masses=None):
+       qe_minus.displace(cart_mode,-delta,masses=None):
+        
+
+    
+        
 
 
