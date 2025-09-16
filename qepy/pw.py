@@ -233,7 +233,7 @@ class PwIn(object):
                 red_atoms.append( [atype,car_red([apos],self.cell_parameters)[0]] )
             self._atoms = red_atoms 
 
-    def get_atoms_array(self, units=None):
+     def get_atoms(self, units=None):
         from .units     import ang2au,au2ang
         from .lattice   import red_car,car_red
 
@@ -241,7 +241,7 @@ class PwIn(object):
         units = units if units is not None else self.atomic_pos_type   #self.atomic_pos_type = crystal in my case
 
         if units == self.atomic_pos_type:
-            return atoms_arr
+            return self.atoms
 
         scale_in =1.0
         if self.atomic_pos_type == "angstrom":
@@ -268,13 +268,6 @@ class PwIn(object):
             atoms_arr = car_red(atoms, np.array(self.cell_parameters))
 
         atoms_arr*=scale_out # transform in bohr
-        return atoms_arr
-
-    def get_atoms(self, units=None):
-        from .units     import ang2au,au2ang
-        from .lattice   import red_car,car_red
- 
-        self.get_atoms_arr(units=units)
         atoms_string=""
         for atom,arr in zip(self.atoms,atoms_arr):
             atoms_string+="%3s %14.10lf %14.10lf %14.10lf \n" % (atom[0], arr[0], arr[1], arr[2])
