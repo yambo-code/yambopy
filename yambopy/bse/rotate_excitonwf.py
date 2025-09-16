@@ -23,7 +23,7 @@ def rotate_exc_wf(Ak, symm_mat_red, kpoints, exe_qpt, dmats, time_rev, ktree=Non
     kpoints : array_like
         K-points in the full Brillouin zone (crystal coordinates) with shape (nk, 3).
     exe_qpt : array_like
-        Momentum of the exciton (q-point) in crystal coordinates with shape (3,).
+        Momentum of the given exciton (q-point) in crystal coordinates with shape (3,).
     dmats : array_like
         Representation matrices for the symmetry operation with shape (nk, nspin, Rk_band, k_band).
     time_rev : bool

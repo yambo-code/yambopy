@@ -76,8 +76,42 @@ def compute_exc_spin_iqpt(path='.', bse_dir='SAVE', iqpt=1,
                           sz=0.5 * np.array([[1, 0], [0, -1]]),
                           return_dbs_and_spin=True):
     """
-    Compute expectation value of S_z operator for excitons.
     
+    
+    Description
+    -----------
+    Compute expectation value of S_z operator for excitons.
+
+    Parameters
+    ----------
+    path : str, optional
+        Path to the directory containing calculation SAVE and BSE folder.
+        Default: '.' (current directory)
+    bse_dir : str, optional
+        Directory containing BSE calculation data. Default: 'SAVE'
+    iqpt : int or array-like, optional
+        Q-point index or list of Q-point indices to analyze. Default: 1
+        (Fortran indexing)
+    nstates : int, optional
+        Number of excitonic states to consider. Use -1 for all states. Default: -1
+    contribution : str, optional
+        Which contribution to compute:
+        - 'b': both electron and hole (default)
+        - 'e': electron only
+        - 'h': hole only
+    degen_tol : float, optional
+        Tolerance for detecting degenerate states. Default: 1e-2
+    sz : ndarray, optional
+        S_z operator matrix representation. Default: 0.5 * np.array([[1, 0], [0, -1]])
+    return_dbs_and_spin : bool, optional
+        If True, returns both spin values and database objects. Default: True
+
+    Returns
+    -------
+    exe_Sz : ndarray
+        Array containing S_z expectation values for excitonic states
+    dbs_objects : list, optional
+        If return_dbs_and_spin=True, returns [lattice, wfdb, excdb, elec_sz] database objects
     Examples
     --------
     Compute the total spin matrix elements for excitons:

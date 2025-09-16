@@ -22,9 +22,9 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     Parameters
     ----------
     exe_kvec : array_like
-        Exciton k-vector in crystal coordinates.
+        Exciton k-vector in crystal coordinates (k).
     O_qvec : array_like
-        Momentum transfer vector q in crystal coordinates.
+        Momentum transfer vector q in crystal coordinates (q).
     Akq : array_like
         Wavefunction coefficients for k+q (bra wfc) with shape (n_exe_states, 1, ns, nk, nc, nv).
     Ak : array_like
