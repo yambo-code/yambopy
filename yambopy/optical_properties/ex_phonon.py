@@ -82,7 +82,7 @@ class ExcitonPhonon(object):
     """
     def __init__(self, path=None, save='SAVE', lelph_db=None, latdb=None, wfdb=None, \
                  ydipdb=None, bands_range=[], BSE_dir='bse', LELPH_dir='lelph', \
-                 DIP_dir='gw',save_files=True):
+                 DIP_dir='gw',save_files=True,neig=-1):
         if path is None:
             path = os.getcwd()        
         self.path = path
@@ -94,6 +94,7 @@ class ExcitonPhonon(object):
         self.lelph_db = lelph_db
         self.wfdb = wfdb
         self.ydipdb = ydipdb
+        self.neig = neig
         
         self.read(lelph_db=lelph_db, latdb=latdb, wfdb=wfdb, \
                   ydipdb=ydipdb, bands_range=bands_range)
@@ -150,7 +151,7 @@ class ExcitonPhonon(object):
         try:
             ns_wfdb_fname = os.path.join(SAVE_dir, 'ns.wf')
             if wfdb :
-                if not hasattr(latdb,'save_Dmat'): wfdb.Dmat()
+                if not hasattr(wfdb,'save_Dmat'): wfdb.Dmat()
                 self.wfdb = wfdb
             else :
                 self.wfdb = YamboWFDB(filename = ns_wfdb_fname, latdb=self.ydb, bands_range=bands_range)  
@@ -176,7 +177,7 @@ class ExcitonPhonon(object):
         kmap[:,1]=self.ydb.symmetry_indexes
         self.kmap=kmap
         # read exciton database
-        self.bs_bands, self.BS_eigs, self.BS_wfcs, self.excQpt = self.read_excdb(self.BSE_dir)
+        self.bs_bands, self.BS_eigs, self.BS_wfcs, self.excQpt = self.read_excdb(self.BSE_dir, self.neig)
 
         #read LetzElPhC
         try:
@@ -224,7 +225,7 @@ class ExcitonPhonon(object):
         sym_red = np.matmul(self.lat_vecs[None, :, :], temp)  # result (n, i, l)
         self.sym_red = np.rint(sym_red).astype(int)
 
-    def read_excdb(self, BSE_dir):
+    def read_excdb(self, BSE_dir, neig):
         """
         Read yambo exciton database for each Q-point from the specified BSE directory.
 
@@ -256,7 +257,7 @@ class ExcitonPhonon(object):
         excQpt  = [] #Q-point of BSE -> The q o A^{\lambda Q}_{cvk}
         for iq in tqdm(range(self.nibz), desc="Loading Ex-wfcs "):
             try:
-                bse_db_iq = YamboExcitonDB.from_db_file(self.ydb, folder=BSE_dir,filename=f'ndb.BS_diago_Q{iq+1}')
+                bse_db_iq = YamboExcitonDB.from_db_file(self.ydb, folder=BSE_dir,filename=f'ndb.BS_diago_Q{iq+1}',neigs=neig)
             except Exception as e:
                 raise IOError(f'Cannot read ndb.BS_diago_Q{iq} file: {e}')
             bs_bands=bse_db_iq.nbands
@@ -301,7 +302,7 @@ class ExcitonPhonon(object):
         """
         from time import time
 
-        # Timing key/value
+        # Timing key/values
         self.timings = {
         'elph_io': 0,
         'ex_rot': 0,
@@ -393,16 +394,16 @@ class ExcitonPhonon(object):
 
             # Rotate exciton wavefunctions
             t0 = time()
-            Ak, Akq = self._rotate_exciton_pair(iq, iQ=0)
+            _, Akq = self._rotate_exciton_pair(iq, iQ=0)
             self.timings['ex_rot'] += time() - t0
-
+            Ak0,_ = self._rotate_exciton_pair(0,0)
             # Compute ex-ph element
             t0 = time()
-            ex_ph[0, iq] = exciton_X_matelem(
+            ex_ph[0,iq] = exciton_X_matelem(
                                     self.excQpt[0],         # Q
-                                    self.kpts[self.qidx_in_kpts[iq]],  # q
-                                    Akq, Ak, eph_mat_iq, self.kpts,
-                                    contribution='b'
+                                    self.lelph_db.qpoints[iq],
+                                    Akq, Ak0 ,eph_mat_iq, self.wfdb.kBZ,
+                                    contribution='b', diagonal_only=False, ktree=self.wfdb.ktree,
                                     )
             self.timings['exph'] += time() - t0
 
@@ -445,6 +446,8 @@ class ExcitonPhonon(object):
                 # Rotate exciton wavefunctions
                 t0 = time()
                 Ak, Akq = self._rotate_exciton_pair(iq, iQ)
+                Ak0, Akq0 = self._rotate_exciton_pair(iq=0, iQ = iQ)
+
                 self.timings['ex_rot'] += time() - t0
 
                 # Compute ex-ph element
@@ -452,9 +455,9 @@ class ExcitonPhonon(object):
                 #Evaluate the exciton-phonon matrix element ⟨Akq|g(q)|Ak⟩.
                 ex_ph[iQ, iq] = exciton_X_matelem(
                                     self.excQpt[iQ],         # Q
-                                    self.kpts[self.qidx_in_kpts[iq]],  # q
-                                    Akq, Ak, eph_mat_iq, self.kpts,
-                                    contribution='b'
+                                    self.lelph_db.qpoints[iq],  # q
+                                    Akq, Ak0, eph_mat_iq, self.wfdb.kBZ,
+                                    contribution='b', diagonal_only=False, ktree=self.wfdb.ktree
                                     )
                 self.timings['exph'] += time() - t0
 
@@ -481,7 +484,7 @@ class ExcitonPhonon(object):
         if iq in self._eph_mat_cache:
             return self._eph_mat_cache[iq]
 
-        _, eph_mat_iq = self.lelph_db.read_iq(iq, bands_range=self.bands_range, convention='standard')
+        _, eph_mat_iq = self.lelph_db.read_iq(iq, convention='standard')
         self._eph_mat_cache[iq] = eph_mat_iq[:, :, 0, :, :].transpose(1, 0, 3, 2)
         # Select spin 0 and transpose axes: (spin, mode, m, n) → (mode, m, n)
         # Original shape: (nb1, nb2, 2 spins, nm, nk) → we keep only spin 0 and swap bands for compatibility

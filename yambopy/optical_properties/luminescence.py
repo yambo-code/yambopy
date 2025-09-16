@@ -114,7 +114,7 @@ class Luminescence(object):
         try:
             ns_wfdb_fname = os.path.join(SAVE_dir, 'ns.wf')
             if wfdb :
-                if not hasattr(latdb,'save_Dmat'): wfdb.Dmat()
+                if not hasattr(wfdb,'save_Dmat'): wfdb.Dmat()
                 self.wfdb = wfdb
             else :
                 self.wfdb = YamboWFDB(filename = ns_wfdb_fname, latdb=self.ydb, bands_range=bands_range)  
