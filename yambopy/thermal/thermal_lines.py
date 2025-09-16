@@ -24,6 +24,7 @@ def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_fr
     masses     = qe_input.get_masses()
     atoms_arr  = qe_input.get_atoms_array(units="bohr")
     new_atoms  = np.empty_like(atoms_arr)
+    np.copyto(new_atoms,atoms_arr)
 
 
     # Check ortogonaly of the phonon eigenvectors
@@ -90,3 +91,12 @@ def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_fr
            e = qe_dyn.eiv[0,im,a*3:(a+1)*3]
            new_atoms[a][:]=new_atoms[a][:]+e.real*delta/math.sqrt(amu2au) #/np.sqrt(masses[a]*amu2au)
         
+    qe_new.control['prefix']=qe_input.control['prefix'].strip("'")+"_ZG"
+
+    qe_new.set_atoms_array(new_atoms,units="bohr")
+    if not debug:
+        qe_new.write(str(new_filename)+"_ZG",folder)
+    else:
+        print("ZG line: ")
+        print(qe_new.get_atoms())
+
