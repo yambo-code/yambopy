@@ -221,7 +221,7 @@ class Matdyn(object):
         if   unit == "eV":
             factor = cm1toeV
         elif unit == "Ha":
-            factor = cm1toeV*eV2ha
+            factor = cm1toeV*ev2ha
         elif unit == "THz":
             factor = cm12Thz
         elif unit == "cm-1":
