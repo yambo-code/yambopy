@@ -22,6 +22,9 @@ def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_fr
     print("\n\n * * * Special Displacement Generation * * * \n\n")
 
     masses     = qe_input.get_masses()
+    atoms_arr  = qe_input.get_atoms_array(units="bohr")
+    new_atoms  = np.empty_like(atoms_arr)
+
 
     # Check ortogonaly of the phonon eigenvectors
     # 
@@ -42,8 +45,7 @@ def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_fr
 
     new_filename = qe_input.filename  # default file name
 
-    qe_plus =qe_input.copy()
-    qe_minus=qe_input.copy()
+    qe_new =qe_input.copy()
 
     masses=qe_input.get_masses()
     qe_dyn.normalize_with_masses(masses)
@@ -76,20 +78,15 @@ def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_fr
            print("Amplitude at finite T: %14.10f " % q_T)
 
        #
+       i_sign=1.0
+       if minus_sign:
+           i_sign=-1.0
        if (im % 2 ) ==0:
-           delta =  q_T
+           delta =  i_sign*q_T
        else:
-           delta = -q_T
+           delta = -i_sign*q_T
     
-       for ia in range(qe_dyn.natoms):
-           cart_mode[ia,:]=qe_dyn.eiv[0,im,ia*3:(ia+1)*3].real
-       cart_mode=cart_mode*1.0/math.sqrt(amu2au) #/np.sqrt(masses[a]*amu2au)
-
-       qe_plus.displace(cart_mode,delta,masses=None):
-       qe_minus.displace(cart_mode,-delta,masses=None):
+       for a in range(qe_dyn.natoms):
+           e = qe_dyn.eiv[0,im,a*3:(a+1)*3]
+           new_atoms[a][:]=new_atoms[a][:]+e.real*delta/math.sqrt(amu2au) #/np.sqrt(masses[a]*amu2au)
         
-
-    
-        
-
-
