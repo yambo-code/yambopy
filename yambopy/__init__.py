@@ -45,6 +45,7 @@ import numpy as np
 from yambopy.tools.jsonencoder import *
 from yambopy.tools.types import *
 from yambopy.units import *
+from yambopy.zeros import *
 
 #lattice-related operations
 from yambopy.lattice import *
@@ -122,6 +123,9 @@ from yambopy.nl.hhg_tools import *
 
 #doublegrid files
 from yambopy.double_grid.dg_convergence import *
+
+#thermal lines and special displacements
+from yambopy.thermal.thermal_lines import *
 
 #gkkp files
 from yambopy.gkkp.compute_gkkp import *

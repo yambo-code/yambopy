@@ -65,6 +65,7 @@ class PwIn(object):
     def __init__(self):
         """ TODO: specify the required parameters """
         #kpoints
+        self.filename="pwscf.in"
         self.ktype = "automatic"
         self.kpoints = [1,1,1]
         self.shiftk = [0,0,0]
@@ -86,6 +87,7 @@ class PwIn(object):
         new = cls()
 
         with open(filename,"r") as f:
+            new.filename=filename
             new.file_lines = f.readlines() #set file lines
             new.store(new.control,"control")     #read &control
             new.store(new.system,"system")      #read &system
