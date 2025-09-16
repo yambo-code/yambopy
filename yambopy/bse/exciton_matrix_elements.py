@@ -1,4 +1,5 @@
 ###
+# Authors: MN
 ###
 # This file contains a genenal functions to compute
 # < S | O | S'>, where O is an operator.
@@ -34,7 +35,7 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
         ie Omn = < k+q, m, s | O(q) | n, k, s>, where m_bnd and n_bnd are final and initial bands, respectively.
         s is spin index
     kpts : array_like
-        K-points used to construct the BSE with shape (nk, 3).
+        K-points used to construct the BSE with shape (nk, 3) in crystal coordinates.
     contribution : str, optional
         Specifies the contribution to include in the calculation:
         - 'e' : Only electronic contribution.

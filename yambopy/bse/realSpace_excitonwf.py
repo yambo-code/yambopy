@@ -1,3 +1,6 @@
+##
+# Authors: MN
+##
 ### Compute real space exction wavefunction when hole/electron is fixed.
 import numpy as np
 from yambopy.kpoints import build_ktree, find_kpt

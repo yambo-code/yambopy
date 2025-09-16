@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2024 The Yambo Team
 #
-# Authors: HPC, AMS, FP, RR
+# Authors: HPC, AMS, FP, RR, MN
 #
 # This file is part of the yambopy project
 #
@@ -134,9 +134,11 @@ class YamboExcitonDB(object):
                 r_residual = rer+imr*I
 
             car_qpoint = None
-            if 'Q-point' in list(database.variables.keys()):
-                # Finite momentum
-                car_qpoint = database.variables['Q-point'][:]/lattice.alat
+            # Finite momentum
+            if 'BS_Q' in list(database.variables.keys()):                         # Lumen compatibility
+                car_qpoint = database.variables['BS_Q'][...].data/lattice.alat
+            elif 'Q-point' in list(database.variables.keys()):
+                car_qpoint = database.variables['Q-point'][...].data/lattice.alat # Yambo compatibility
             if Qpt=="1": car_qpoint = np.zeros(3)
 
             #eigenvectors
@@ -329,7 +331,7 @@ class YamboExcitonDB(object):
             phase = False
         if phase and len(iexe_degen_states) > 1:
             phase = False
-            print("Warning: phase plots donot work for degenerate states")
+            print("Warning: phase plots do not work for degenerate states")
 
         print('Computing exciton wavefunction (%s density) to real space.' %(name_file))
         sc_latvecs, atom_nums, atom_pos, real_wfc = ex_wf2Real(Akcv, Qpt, wfdb, [np.min(self.table[:, 1]),
@@ -351,10 +353,9 @@ class YamboExcitonDB(object):
         real_wfc *= (1.0/max_normalize_val)
         # write to cube file 
         print('Writing to .cube file')
-        write_cube('exe_wf_%s_%d.cube' %(name_file,iexe+1),
+        write_cube('exe_wf_%s_Qpt%s_state%d.cube' %(name_file,self.Qpt,iexe+1),
                    real_wfc, sc_latvecs, atom_pos, atom_nums,
                    header='Real space exciton wavefunction')
-
 
     def get_nondegenerate(self,eps=1e-4):
         """

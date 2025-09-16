@@ -253,7 +253,7 @@ class LetzElphElectronPhononDB():
         if convention.strip() != 'yambo': convention = 'standard'
         if self.convention == convention: return elph_iq
         if convention == 'standard': factor = 1.0
-        else :factor = -1.0
+        else: factor = -1.0
         idx_q = find_kpt(self.ktree, factor*qpt[None, :] + self.kpoints)
         return elph_iq[idx_q, ...]
 
@@ -267,7 +267,8 @@ class LetzElphElectronPhononDB():
         app('nmodes: %d'%self.nm)
         app('natoms: %d'%self.nat)
         app('nbands: %d %d'%(self.nb1,self.nb2))
- 
+        app('convention: %s'%self.convention)
+
         if self.verbose:
 
             if hasattr(self, 'ph_eigenvectors'):                 
