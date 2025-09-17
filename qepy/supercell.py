@@ -197,6 +197,7 @@ class Supercell():
     def force_gauge(self,eig):
         """ 
         for each normal mode, the first nonzero element is set to be positive
+        see page 075125-3 of PRB 94, 075125 (2006)
         """
         modes=3*self.basis
         for i in range(modes):

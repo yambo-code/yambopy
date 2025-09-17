@@ -3,16 +3,24 @@
 from qepy.supercell import Supercell
 import numpy as np
 
-def Map_Phonons(qe_input, qe_dyn, R, sc_fname=None, dyn_fname=None, debug=None):           # R is the supercell
+"""
+Map phonon in a supercell
+no_invar_ph = remove phonon modes invariant under inversion symmetry
+                  modulo a reciprocal lattice vector
+"""
+
+def Map_Phonons(qe_input, qe_dyn, R, no_invar_ph=None, sc_fname=None, dyn_fname=None, debug=None):           # R is the supercell
     
     print(" \n\n\n * * * Map phonons in a supercell * * *\n")
     print(" This code works only without symmetries!!! \n")
 
-    #Check and map phonons
-    if qe_dyn.nqpoints == np.prod(R):
-        print("Error: number of q-points not compatible with supercell ") 
-    
+    if debug:
+        print(" Supercell : ",str(R))
 
+    #Check and map phonons
+    if qe_dyn.nqpoints != np.prod(R):
+        print("Error: number of q-points not compatible with supercell ") 
+        # Better check can be implemented
 
     sc=Supercell(qe_input)
     sc.d_sup(R)
