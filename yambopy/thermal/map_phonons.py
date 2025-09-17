@@ -2,7 +2,7 @@
 #
 from qepy.supercell import Supercell
 
-def map_phonons(self,qe_input, qe_dyn, R, supercell_name=None, dynmat_name=None):           # R is the supercell
+def Map_Phonons(self,qe_input, qe_dyn, R, supercell_name=None, dynmat_name=None):           # R is the supercell
     
     print(" \n\n\n * * * Map phonons in a supercell * * *\n")
     print(" This code works only without symmetries!!! \n")
