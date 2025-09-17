@@ -341,4 +341,21 @@ class Matdyn(object):
             sigma = float(norm*delta/np.sqrt(masses[a]*amu2au))
             print("Atom %d  mass %12.8f sigma %12.8f" % (a,masses[a], sigma))
 
+    def expand_in_supercell(qe_sc):
+        #empty stuff
+        eig = []
+        eiv = []
+        qpoints = []
+
+        #only gamma point in the new SC
+        qpoints.append([0.0,0.0,0.0])
+
+        for iq in range(nqpoints):
+            q=self.qpoints[iq]
+            arg = q[0]*qe_sc.T[:,0]+q[1]*qe_sc.T[:,1]+q[2]*qe_sc.T[:,2]
+            phases = np.exp(1j*2.*np.pi*arg)
+            expand_eigs=np.array([phases[i]*self.eigs for i in range(qe_sc.sup_size)])
+            for cell in range(self.sup_size): expand_eigs[cell]= self.take_real(expand_eigs[cell])
+
+        return cls(qpoints,eig,eiv)
 
