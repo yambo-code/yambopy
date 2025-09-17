@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 #build-backend = "flit_core.buildapi"
 [project]
 name = "yambopy"
-version = "0.4.6"
+version = "0.5"
 authors = [
   { name="Fulvio Paleari", email="fulvio.paleari@nano.cnr.it" },
   { name="Alejandro Molina-Sanchez", email="alejandro.molina@uv.es" },
@@ -13,14 +13,14 @@ authors = [
 ]
 description = "Yambopy: a pre/post-processing tool for Yambo"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
     "Operating System :: OS Independent",
     "Development Status :: 3 - Alpha",
 ]
-dependencies = [ "numpy", "scipy", "netCDF4", "h5py", "matplotlib", "pyyaml", "lxml", "monty","scikit-learn","tqdm"]
+dependencies = [ "numpy", "scipy", "netCDF4", "h5py", "matplotlib", "pyyaml", "lxml", "monty","scikit-learn","tqdm", "spglib", "spgrep", "numba", "pykdtree"]
 [project.urls]
 "Homepage" = "https://github.com/yambo-code/yambopy"
 "Documentation" = "https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy"

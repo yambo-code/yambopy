@@ -33,7 +33,7 @@ def read_frequencies(modes_file,units='Tera'):
             if line.strip()[0:4]=='freq':
                 w=re.findall(r"[-+]?\d*\.\d+|d+", line)
                 Omega.append(w)
-    Omega = np.float_(Omega)
+    Omega = np.float64(Omega)
     if units=='Tera': Omega= Omega[:,0]
     else:             Omega= Omega[:,1]
     return Omega
