@@ -92,12 +92,14 @@ def generate_ZG_conf(qe_input, qe_dyn, T=0.0, folder="ZG", freq_thr = default_fr
 
     qe_new.displace(cart_mode,1.0)
 
-    qe_new.control['prefix']=qe_input.control['prefix'].strip("'")+"_ZG"
+    suffix="_ZG" 
     if minus_sign:
-        qe_new.control['prefix']=qe_input.control['prefix']+"m"
+        suffix=suffix+"m"
+
+    qe_new.control['prefix']=qe_input.control['prefix'].strip("'")+suffix
 
     if not debug:
-        qe_new.write(str(new_filename)+"_ZG",folder)
+        qe_new.write(str(new_filename)+suffix)
     else:
         print("ZG line: ")
         print(qe_new.get_atoms())
