@@ -343,19 +343,25 @@ class Matdyn(object):
 
     def expand_in_supercell(qe_sc):
         #empty stuff
-        eig = []
-        eiv = []
+        expand_eig = []
+        expand_eiv = []
         qpoints = []
 
         #only gamma point in the new SC
         qpoints.append([0.0,0.0,0.0])
 
+        freq_arr=np.zeros([nqpoints,nmodes],dtype=float64)
+
+        #expand eigenvectors
         for iq in range(nqpoints):
             q=self.qpoints[iq]
             arg = q[0]*qe_sc.T[:,0]+q[1]*qe_sc.T[:,1]+q[2]*qe_sc.T[:,2]
             phases = np.exp(1j*2.*np.pi*arg)
-            expand_eigs=np.array([phases[i]*self.eigs for i in range(qe_sc.sup_size)])
-            for cell in range(self.sup_size): expand_eigs[cell]= self.take_real(expand_eigs[cell])
-
-        return cls(qpoints,eig,eiv)
-
+            q_eigs=np.array([phases[i]*self.eig[iq,:] for i in range(qe_sc.sup_size)])
+            for cell in range(self.sup_size): q_eigs[cell]= self.take_real(q_eigs[cell])
+            expand_eig.append(q_eigs)
+        
+        # expand all eigenvalues
+        expand_eiv.append(np.reshape(self.eiv, nqpoints*nmodes))
+        
+        return cls(qpoints,expand_eig,expand_eiv)
