@@ -212,7 +212,7 @@ class Matdyn(object):
            plt.plot(range(self.nqpoints),eig[:,ib], 'r-', lw=2)
         plt.show()
 
-    def get_phonon_freq(self,nq,n,unit="eV"):
+    def get_phonon_freq(self,iq,n,unit="eV"):
         """
         Get the value of the phonon frequency
         nq -> q-point from where to get the frequency from
@@ -229,7 +229,7 @@ class Matdyn(object):
         else:
             raise ValueError('Unit %s not known'%unit)
 
-        return self.eig[nq][n-1]*factor
+        return self.eig[iq][n-1]*factor
 
     def normalize(self):
         """
