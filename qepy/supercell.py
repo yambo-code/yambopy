@@ -24,7 +24,7 @@ cMp=Mp*1.660539*6.241509e-29 # Conversion of Mp in eV*\AA^{-2}*s^2
    (iv)  In nondiagonal supercells: the suggested kpoint mesh must be CONSISTENT and UNIFORM --> to fix
 """
 ## These two functions read phonons from qe output
-def read_frequencies(modes_file,units='Tera'):
+def read_frequencies(modes_file,units='THz'):
     """Read phonon frequencies from QE output phonon modes file
     """
     Omega=[]
@@ -34,7 +34,7 @@ def read_frequencies(modes_file,units='Tera'):
                 w=re.findall(r"[-+]?\d*\.\d+|d+", line)
                 Omega.append(w)
     Omega = np.float64(Omega)
-    if units=='Tera': Omega= Omega[:,0]
+    if units=='THz' : Omega= Omega[:,0]
     else:             Omega= Omega[:,1]
     return Omega
 
@@ -106,18 +106,20 @@ class Supercell():
 
         print('Applying displacements according to phonon modes...')
         self.use_temp = use_temp
-        self.qe_dyn   = qe_dyn
+        self.Temp     = Temp
+        self.qe_dyn   = qe_dyn.eig[iq]*Tera
         self.iq       = iq
 #        self.initialize_phonons(modes_file,self.atypes,Temp)
+        eiv = np.reshape(self.qe_dyn.eiv, (self.qe_dyn.nmodes,self.basis,3))
         
         if GAMMA: #No phases and take only optical modes
             phases = np.ones(self.sup_size)
-            expand_eigs = np.array([phases[i]*self.qe_dyn.eig for i in range(self.sup_size)])
+            expand_eigs = np.array([phases[i]*eiv for i in range(self.sup_size)])
 #            self.print_expanded_eigs(expand_eigs,modes_file,GAMMA=GAMMA)
             self.print_expanded_eigs_new(expand_eigs,GAMMA=GAMMA)
         else: 
             phases = self.getPhases()                
-            expand_eigs = np.array([phases[i]*self.qe_dyn.eig for i in range(self.sup_size)])
+            expand_eigs = np.array([phases[i]*eiv for i in range(self.sup_size)])
             self.print_expanded_eigs_new(expand_eigs,GAMMA=GAMMA) #Print expanded eigs
 #            self.print_expanded_eigs(expand_eigs,modes_file,GAMMA=GAMMA) #Print expanded eigs
             #Take real part
@@ -157,11 +159,11 @@ class Supercell():
         
         if GAMMA: #No phases and take only optical modes
             phases = np.ones(self.sup_size)
-            expand_eigs = np.array([phases[i]*self.eigs for i in range(self.sup_size)])
+            expand_eigs = np.array([phases[i]*self.eiv[self.iq] for i in range(self.sup_size)])
             self.print_expanded_eigs(expand_eigs,modes_file,GAMMA=GAMMA)
         else: 
             phases = self.getPhases()                
-            expand_eigs = np.array([phases[i]*self.eigs for i in range(self.sup_size)])
+            expand_eigs = np.array([phases[i]*self.eiv[self.iq] for i in range(self.sup_size)])
             self.print_expanded_eigs(expand_eigs,modes_file,GAMMA=GAMMA) #Print expanded eigs
             #Take real part
             for cell in range(self.sup_size): expand_eigs[cell]= self.take_real(expand_eigs[cell])            
@@ -233,7 +235,7 @@ class Supercell():
             mode_start = 0
         
         sc_basis = self.basis*ncells
-        freq_THz,freq_cmm1=read_frequencies(modes_file,units='Tera'),read_frequencies(modes_file,units='cmm1')
+        freq_THz,freq_cmm1=read_frequencies(modes_file,units='THz'),read_frequencies(modes_file,units='cmm1')
         exp_eigs = exp_eigs.swapaxes(0,1) #[mode][cell][basis][direction]
         if GAMMA: filename = self.qe_input.control['prefix'][1:-1]+"_s.modes_GAMMA"
         else: filename = self.qe_input.control['prefix'][1:-1]+"_s.modes_expanded"
