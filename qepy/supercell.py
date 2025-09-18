@@ -6,10 +6,11 @@ import os
 import re
 import numpy as np
 from qepy import PwIn
-from yambopy.lattice import *
+from yambopy.lattice import rec_lat, car_red,red_car
 from itertools import product
 import copy
 from math import *
+
 # Dimensional constants for reference (actually only b2a is really used in the code for now)
 cm1_2_Tera=0.0299793         # Conversion from cm-1 to THz with 2pi factor included
 Tera=1.e12                   
@@ -23,32 +24,6 @@ cMp=Mp*1.660539*6.241509e-29 # Conversion of Mp in eV*\AA^{-2}*s^2
 """(iii) Small issue in nondiagonal supercell matrices for certain q-vectors
    (iv)  In nondiagonal supercells: the suggested kpoint mesh must be CONSISTENT and UNIFORM --> to fix
 """
-## These two functions read phonons from qe output
-def read_frequencies(modes_file,units='THz'):
-    """Read phonon frequencies from QE output phonon modes file
-    """
-    Omega=[]
-    with open (modes_file) as fp:
-        for line in fp:
-            if line.strip()[0:4]=='freq':
-                w=re.findall(r"[-+]?\d*\.\d+|d+", line)
-                Omega.append(w)
-    Omega = np.float64(Omega)
-    if units=='THz' : Omega= Omega[:,0]
-    else:             Omega= Omega[:,1]
-    return Omega
-
-def read_eig(modes_file,basis):
-    """ Read phonon modes from QE output file
-    """
-    modes=3*basis
-    eig = np.genfromtxt(modes_file, autostrip=True, comments='freq', skip_header=4, skip_footer=1, usecols=(1,2,3,4,5,6))
-    # Reshape data from quantum espresso output
-    eig = np.array([eig[:,0]+1j*eig[:,1], eig[:,2]+1j*eig[:,3], eig[:,4]+1j*eig[:,5]])
-    eig = eig.T
-    eig = np.reshape(eig, (modes,basis,3))
-    # eig[mode][atom][direction]
-    return eig
 
 ## Start of the proper supercell class
 class Supercell():
@@ -90,6 +65,8 @@ class Supercell():
         self.uc_kpts  = qe_input.kpoints
         self.atypes   = qe_input.atypes
         self.aunits   = qe_input.atomic_pos_type
+        #Atomic masses (in u)
+        self.m_at = np.array( [ float( self.atypes.get( self.atoms[i][0] )[0] ) for i in range(self.basis) ] )
 
 
     """
@@ -104,24 +81,39 @@ class Supercell():
         try: self.Q
         except AttributeError: GAMMA = True
 
+        if GAMMA and not np.allclose(qe_dyn.qpoints[iq],[0.0, 0.0, 0.0]):
+            print("Error q point in matdyn file different from the q used to generate supercell")
+            exit()
+        if not GAMMA:
+            rlat=rec_lat(self.latvec)
+            q = []
+            q.append(qe_dyn.qpoints[iq]*2.0*pi/self.qe_input.alat[0])
+            q_vec = np.array([float(self.Q[0,i])/float(self.Q[1,i]) for i in range(3)])
+            Q_red=car_red(q,rlat)
+            print(q_vec)
+            print(qe_dyn.qpoints[iq])
+            print(Q_red)
+            if not np.allclose(qe_dyn.qpoints[iq],Q_red):
+                print("Error q point in matdyn file different from the q used to generate supercell ")
+                exit()
+
+
         print('Applying displacements according to phonon modes...')
         self.use_temp = use_temp
         self.Temp     = Temp
-        self.qe_dyn   = qe_dyn.eig[iq]*Tera
+        self.qe_dyn   = qe_dyn
+        self.Omega    = qe_dyn.eig[iq]*Tera
         self.iq       = iq
-#        self.initialize_phonons(modes_file,self.atypes,Temp)
-        eiv = np.reshape(self.qe_dyn.eiv, (self.qe_dyn.nmodes,self.basis,3))
+        eiv = np.reshape(self.qe_dyn.eiv,(self.qe_dyn.nmodes,self.basis,3))
         
         if GAMMA: #No phases and take only optical modes
             phases = np.ones(self.sup_size)
             expand_eigs = np.array([phases[i]*eiv for i in range(self.sup_size)])
-#            self.print_expanded_eigs(expand_eigs,modes_file,GAMMA=GAMMA)
             self.print_expanded_eigs_new(expand_eigs,GAMMA=GAMMA)
         else: 
             phases = self.getPhases()                
             expand_eigs = np.array([phases[i]*eiv for i in range(self.sup_size)])
             self.print_expanded_eigs_new(expand_eigs,GAMMA=GAMMA) #Print expanded eigs
-#            self.print_expanded_eigs(expand_eigs,modes_file,GAMMA=GAMMA) #Print expanded eigs
             #Take real part
             for cell in range(self.sup_size): expand_eigs[cell]= self.take_real(expand_eigs[cell])            
 
@@ -264,8 +256,6 @@ class Supercell():
         self.eigs = read_eig(modes_file,self.basis)
         #Temperature/displacement
         self.Temp = Temp
-        #Atomic masses (in u)
-        self.m_at = np.array( [ float( atypes.get( self.atoms[i][0] )[0] ) for i in range(self.basis) ] )
 
     def getPhases(self):
         q = np.array([float(self.Q[0,i])/float(self.Q[1,i]) for i in range(3)])

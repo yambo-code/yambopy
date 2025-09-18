@@ -28,6 +28,7 @@ class Matdyn(object):
     """
 
     def __init__(self,qpoints,eig,eiv):
+        # Notice that q-points are in cartesian units of 2pi/a_0
         self.qpoints  = np.array(qpoints)
         self.eig      = np.array(eig)
         self.eiv      = np.array(eiv)
