@@ -233,6 +233,14 @@ class PwIn(object):
                 red_atoms.append( [atype,car_red([apos],self.cell_parameters)[0]] )
             self._atoms = red_atoms 
 
+    def get_alat0(self):
+        if self.system['celldm(1)'] == None:
+            alat0 = np.linalg.norm(self.cell_parameters[0])
+        else:
+            alat0 = float(self.system['celldm(1)'])
+        return alat0
+
+
     def get_atoms(self, units=None):
         from .units     import ang2au,au2ang
         from .lattice   import red_car,car_red
