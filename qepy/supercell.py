@@ -85,9 +85,10 @@ class Supercell():
             print("Error q point in matdyn file different from the q used to generate supercell")
             exit()
         if not GAMMA:
-            rlat=rec_lat(self.latvec)
+            rlat =rec_lat(self.latvec)
+            alat0=self.qe_input.get_alat0()
             q = []
-            q.append(qe_dyn.qpoints[iq]*2.0*pi/self.qe_input.alat[0])
+            q.append(qe_dyn.qpoints[iq]) #*2.0*pi/alat0)
             q_vec = np.array([float(self.Q[0,i])/float(self.Q[1,i]) for i in range(3)])
             Q_red=car_red(q,rlat)
             print(q_vec)
