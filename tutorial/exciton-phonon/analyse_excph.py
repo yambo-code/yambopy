@@ -35,7 +35,7 @@ def plot2D(excph,exc_in,exc_out,ph_in,plt_cbar=False,**kwargs):
     F_q = np.sqrt( G_squared )*ha2ev # Switch from Ha to eV
 
     # Do plot
-    excph.plot_excph(G2plt,plt_cbar=plt_cbar,**kwargs)
+    excph.plot_excph(F_q,plt_cbar=plt_cbar,**kwargs)
     lim = np.linalg.norm(excph.rlat[1])
     lim = 0.85*np.linalg.norm(excph.rlat[0])
     excph.ax.set_xticks([])
