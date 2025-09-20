@@ -9,7 +9,7 @@ no_invar_ph = remove phonon modes invariant under inversion symmetry
                   modulo a reciprocal lattice vector
 """
 
-def Map_Phonons(qe_input, qe_dyn, R, no_invar_ph=None, sc_fname=None, dyn_fname=None, debug=None):           # R is the supercell
+def Map_Phonons(qe_input, qe_dyn, R, no_invar_ph=None, sc_fname=None, dyn_fname=None, debug=None):           # R is the diagonal supercell
     
     print(" \n\n\n * * * Map phonons in a supercell * * *\n")
     print(" This code works only without symmetries!!! \n")
@@ -27,6 +27,3 @@ def Map_Phonons(qe_input, qe_dyn, R, no_invar_ph=None, sc_fname=None, dyn_fname=
 
     #write supercell to file
     sc.qe_d.write(sc.qe_d.filename+'_sc')
-
-    
-

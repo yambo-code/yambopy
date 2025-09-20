@@ -82,22 +82,23 @@ class Supercell():
         except AttributeError: GAMMA = True
 
         if GAMMA and not np.allclose(qe_dyn.qpoints[iq],[0.0, 0.0, 0.0]):
-            print("Error q point in matdyn file different from the q used to generate supercell")
-            exit()
+            print("WARNING: Q-point in matdyn file different from the q used to generate supercell")
         if not GAMMA:
+            # Transform all q-point in reduced coordinates
             rlat =rec_lat(self.latvec)
             alat0=self.qe_input.get_alat0()
             q = []
-            q.append(qe_dyn.qpoints[iq]) #*2.0*pi/alat0)
-            q_vec = np.array([float(self.Q[0,i])/float(self.Q[1,i]) for i in range(3)])
-            Q_red=car_red(q,rlat)
-            print(q_vec)
-            print(qe_dyn.qpoints[iq])
-            print(Q_red)
-            if not np.allclose(qe_dyn.qpoints[iq],Q_red):
-                print("Error q point in matdyn file different from the q used to generate supercell ")
-                exit()
+            q.append(qe_dyn.qpoints[iq]/alat0)
+            q_matdyn=car_red(q,rlat)
+            q_in = np.array([float(self.Q[0,i])/float(self.Q[1,i]) for i in range(3)])
 
+            # Bring in the BZ [0,1)
+            q_in = q_in-np.floor(q_in)
+            q_matdyn = q_matdyn-np.floor(q_matdyn)
+            if not np.allclose(q_matdyn,q_in,rtol=0.0,atol=1e-4):  # precision due to the QE output file
+                print("WARNING: Q-point in matdyn file different from the q used to generate supercell")
+                print("Q-in     : ",q_in, " [red] ")
+                print("Q-matdyn : ",q_matdyn[0], " [red] ")
 
         print('Applying displacements according to phonon modes...')
         self.use_temp = use_temp
@@ -190,7 +191,6 @@ class Supercell():
             mode_start = 0
         
         sc_basis = self.basis*ncells
-        print(self.qe_dyn.modes)
         freq_THz =[self.qe_dyn.get_phonon_freq(self.iq,im,unit='THz')  for im in range(self.qe_dyn.nmodes) ]
         freq_cmm1=[self.qe_dyn.get_phonon_freq(self.iq,im,unit='cm-1') for im in range(self.qe_dyn.nmodes) ]
         exp_eigs = exp_eigs.swapaxes(0,1) #[mode][cell][basis][direction]
