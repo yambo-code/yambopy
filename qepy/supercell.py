@@ -76,13 +76,16 @@ class Supercell():
         """
         Case of displaced supercell
         """
+        # precision due to the QE output file
+        qe_atol=1e-4
+
         #Check if we are displacing the unit cell (i.e., gamma modes)
         GAMMA = False
         try: self.Q
         except AttributeError: GAMMA = True
 
-        if GAMMA and not np.allclose(qe_dyn.qpoints[iq],[0.0, 0.0, 0.0]):
-            print("WARNING: Q-point in matdyn file different from the q used to generate supercell")
+        if GAMMA and np.linalg.norm(qe_dyn.qpoints[iq])>qe_atol:
+            print("WARNING: Q-point in matdyn file different from the one used to generate supercell")
         if not GAMMA:
             # Transform all q-point in reduced coordinates
             rlat =rec_lat(self.latvec)
@@ -95,8 +98,8 @@ class Supercell():
             # Bring in the BZ [0,1)
             q_in = q_in-np.floor(q_in)
             q_matdyn = q_matdyn-np.floor(q_matdyn)
-            if not np.allclose(q_matdyn,q_in,rtol=0.0,atol=1e-4):  # precision due to the QE output file
-                print("WARNING: Q-point in matdyn file different from the q used to generate supercell")
+            if not np.allclose(q_matdyn,q_in,rtol=0.0,atol=qe_atol):
+                print("WARNING: Q-point in matdyn file different from the one used to generate supercell")
                 print("Q-in     : ",q_in, " [red] ")
                 print("Q-matdyn : ",q_matdyn[0], " [red] ")
 

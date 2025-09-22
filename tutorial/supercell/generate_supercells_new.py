@@ -87,10 +87,13 @@ def generate_displaced_unitcell(uc,modes_file):
     sc = Supercell(qe) # initialize class
     atom_positions = sc.d_sup([1,1,1]) # Generate "supercell" with size 1 as PwIn object called 'qe_d' getting atomic positions
     
+    #Read the matdyn file
+    qe_dyn=Matdyn.from_modes_file(filename=modes_file)
+
     # Displace atoms.
     # Intensity is Temp (in bohr)
     # Sign and direction (standing wave at Q) given by modes_file
-    sc.displace(modes_file,atom_positions,Temp=0.1) # Generate list of displaced supercells as PwIn objects called 'modes_qe'
+    sc.displace_new(qe_dyn,atom_positions,Temp=0.1) # Generate list of displaced supercells as PwIn objects called 'modes_qe'
     N_modes = len(sc.modes_qe)
 
     #name of output file
