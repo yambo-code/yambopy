@@ -260,7 +260,7 @@ class YamboLatticeDB(object):
         if (self.spinor_components==2): return int(self.nelectrons)
         else:                           return int(self.nelectrons/2)
 
-    def expand_kpoints(self,verbose=1,atol=1.e-6):
+    def expand_kpoints(self,verbose=0,atol=1.e-6):
         """
         Wrapper for expand_kpoints in kpoints module
 
@@ -271,15 +271,21 @@ class YamboLatticeDB(object):
         # Store original kpoints in iku coordinates
         self.ibz_kpoints = self.iku_kpoints
 
-        weights, kpoints_indexes, symmetry_indexes, kpoints_full = expand_kpoints(self.car_kpoints,self.sym_car,self.rlat,atol=atol)
+        weights, BZ_to_IBZ_indexes, symmetry_indexes, kpoints_full = expand_kpoints(self.car_kpoints,self.sym_car,self.rlat,atol=atol)
 
         if verbose: print("%d kpoints expanded to %d"%(len(self.car_kpoints),len(kpoints_full)))
 
         #set the variables
         self.weights_ibz      = weights
-        self.kpoints_indexes  = kpoints_indexes
         self.symmetry_indexes = symmetry_indexes
         self.iku_kpoints      = [k*self.alat for k in kpoints_full]
+        # BZ_to_IBZ_indexes[ik_bz] = ik_ibz in the original unexpanded list
+        self.BZ_to_IBZ_indexes = BZ_to_IBZ_indexes # for clarity for users
+        self.kpoints_indexes   = BZ_to_IBZ_indexes # for compatibility
+        # IBZ_to_BZ_indexes[ik_ibz] = {ik_bz} in the star (first element is identity)
+        self.IBZ_to_BZ_indexes = {}
+        for ibz_index in np.unique(BZ_to_IBZ_indexes):
+            self.IBZ_to_BZ_indexes[ibz_index] = np.where(BZ_to_IBZ_indexes == ibz_index)[0]
 
     def get_units_info(self):
 
