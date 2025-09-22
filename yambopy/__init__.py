@@ -45,6 +45,7 @@ import numpy as np
 from yambopy.tools.jsonencoder import *
 from yambopy.tools.types import *
 from yambopy.units import *
+from yambopy.zeros import *
 
 #lattice-related operations
 from yambopy.lattice import *
