@@ -28,6 +28,7 @@ class Matdyn(object):
     """
 
     def __init__(self,qpoints,eig,eiv):
+        # Notice that q-points are in cartesian units of 2pi/a_0
         self.qpoints  = np.array(qpoints)
         self.eig      = np.array(eig)
         self.eiv      = np.array(eiv)
@@ -212,7 +213,7 @@ class Matdyn(object):
            plt.plot(range(self.nqpoints),eig[:,ib], 'r-', lw=2)
         plt.show()
 
-    def get_phonon_freq(self,nq,n,unit="eV"):
+    def get_phonon_freq(self,iq,n,unit="eV"):
         """
         Get the value of the phonon frequency
         nq -> q-point from where to get the frequency from
@@ -229,7 +230,7 @@ class Matdyn(object):
         else:
             raise ValueError('Unit %s not known'%unit)
 
-        return self.eig[nq][n-1]*factor
+        return self.eig[iq][n-1]*factor
 
     def normalize(self):
         """
@@ -277,7 +278,7 @@ class Matdyn(object):
                     e = self.eiv[nq,n,a*3:(a+1)*3]
                     #get normalization constant
                     s += masses[a]*np.vdot(e,e).real
-                self.eiv[nq,n] *= 1/sqrt(s)
+                self.eiv[nq,n] *= 1.0/sqrt(s)
     
     def check_orthogonality(self,atol=1e-5):
         """
@@ -328,4 +329,3 @@ class Matdyn(object):
                 for a in range(self.natoms):
                     s += ("%12.8lf "*3+'\n')%tuple(mode[a*3:(a+1)*3].real)
         return s
-

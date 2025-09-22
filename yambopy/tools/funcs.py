@@ -42,3 +42,12 @@ def fermi_array(e_array,ef,invsmear):
     """
     e_array = (e_array-ef)/invsmear
     return [ fermi(e) for e in e_array]
+
+def bose(Eb,Bose_Temp):
+    #
+    # Bose function
+    if Bose_Temp < 1e-10:
+        return 0.0
+    else:
+        return 1.0/(math.exp(Eb/Bose_Temp)-1.0)
+
