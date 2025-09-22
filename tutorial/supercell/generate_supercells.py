@@ -1,5 +1,4 @@
 from qepy import *
-#from yambopy.lattice import *
 import sys
 import argparse
 """
