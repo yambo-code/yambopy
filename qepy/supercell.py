@@ -72,7 +72,7 @@ class Supercell():
     """
     [START] Displacement-related functions                          
     """
-    def displace_new(self,qe_dyn,new_atoms,iq=0,Temp=0.1,use_temp='no',write=True):
+    def displace(self,qe_dyn,new_atoms,iq=0,Temp=0.1,use_temp='no',write=True):
         """
         Case of displaced supercell
         """
@@ -83,6 +83,10 @@ class Supercell():
         GAMMA = False
         try: self.Q
         except AttributeError: GAMMA = True
+        
+        print('Applying displacements according to phonon modes...')
+        self.use_temp = use_temp
+        self.initialize_phonons(iq,qe_dyn,Temp)
 
         if GAMMA and np.linalg.norm(qe_dyn.qpoints[iq])>qe_atol:
             print("WARNING: Q-point in matdyn file different from the one used to generate supercell")
@@ -103,22 +107,14 @@ class Supercell():
                 print("Q-in     : ",q_in, " [red] ")
                 print("Q-matdyn : ",q_matdyn[0], " [red] ")
 
-        print('Applying displacements according to phonon modes...')
-        self.use_temp = use_temp
-        self.Temp     = Temp
-        self.qe_dyn   = qe_dyn
-        self.Omega    = qe_dyn.eig[iq]*Tera
-        self.iq       = iq
-        eiv = np.reshape(self.qe_dyn.eiv,(self.qe_dyn.nmodes,self.basis,3))
-        
         if GAMMA: #No phases and take only optical modes
             phases = np.ones(self.sup_size)
-            expand_eigs = np.array([phases[i]*eiv for i in range(self.sup_size)])
-            self.print_expanded_eigs_new(expand_eigs,GAMMA=GAMMA)
+            expand_eigs = np.array([phases[i]*self.eiv for i in range(self.sup_size)])
+            self.print_expanded_eigs(expand_eigs,GAMMA=GAMMA)
         else: 
             phases = self.getPhases()                
-            expand_eigs = np.array([phases[i]*eiv for i in range(self.sup_size)])
-            self.print_expanded_eigs_new(expand_eigs,GAMMA=GAMMA) #Print expanded eigs
+            expand_eigs = np.array([phases[i]*self.eiv for i in range(self.sup_size)])
+            self.print_expanded_eigs(expand_eigs,GAMMA=GAMMA) #Print expanded eigs
             #Take real part
             for cell in range(self.sup_size): expand_eigs[cell]= self.take_real(expand_eigs[cell])            
 
@@ -138,49 +134,7 @@ class Supercell():
             self.modes_qe = [self.write(new_atoms,mode,phonon=disps_slice) for disps_slice in self.disps]
 
  
-    """
-    [START] Displacement-related functions                          
-    """
-    def displace(self,modes_file,new_atoms,Temp=0.1,use_temp='no',write=True):
-        """
-        Case of displaced supercell
-        """
-        #Check if we are displacing the unit cell (i.e., gamma modes)
-        GAMMA = False
-        try: self.Q
-        except AttributeError: GAMMA = True
-
-        print('Applying displacements according to phonon modes...')
-        self.use_temp = use_temp
-        self.initialize_phonons(modes_file,self.atypes,Temp)
-        
-        if GAMMA: #No phases and take only optical modes
-            phases = np.ones(self.sup_size)
-            expand_eigs = np.array([phases[i]*self.eiv[self.iq] for i in range(self.sup_size)])
-            self.print_expanded_eigs(expand_eigs,modes_file,GAMMA=GAMMA)
-        else: 
-            phases = self.getPhases()                
-            expand_eigs = np.array([phases[i]*self.eiv[self.iq] for i in range(self.sup_size)])
-            self.print_expanded_eigs(expand_eigs,modes_file,GAMMA=GAMMA) #Print expanded eigs
-            #Take real part
-            for cell in range(self.sup_size): expand_eigs[cell]= self.take_real(expand_eigs[cell])            
-
-        disps = expand_eigs.real.astype(float)
-        #Force same gauge choice
-        #for cell in range(self.sup_size): disps[cell]= self.force_gauge(disps[cell])
-        #Transform eigenmodes in displacements
-        #disps[cell][mode][basis][direction]
-        disps = np.array([self.osc_length(disp_slice,GAMMA=GAMMA) for disp_slice in disps])
-        #disps[mode][cell][basis][direction]
-        self.disps = disps.swapaxes(0,1)
-        if GAMMA: self.disps = self.disps[3:]    
-        if write:
-            #A list of PwIn() objects (one for each phonon mode) that can be printed, written to file, etc.
-            if 'Q' in globals(): mode='nd'
-            else: mode='diagonal'
-            self.modes_qe = [self.write(new_atoms,mode,phonon=disps_slice) for disps_slice in self.disps]
-
-    def print_expanded_eigs_new(self,exp_eigs,GAMMA=False):
+    def print_expanded_eigs(self,exp_eigs,GAMMA=False):
         """
         Print expanded modes in QE-style, to compare and for reference
         """
@@ -217,49 +171,12 @@ class Supercell():
         exp_eigs_file.close()
 
     
-    def print_expanded_eigs(self,exp_eigs,modes_file,GAMMA=False):
-        """
-        Print expanded modes in QE-style, to compare and for reference
-        """
-        if GAMMA:
-            q = np.array([0.,0.,0.])
-            ncells = 1
-            mode_start = 3
-        else:
-            q = np.array([float(self.Q[0,i])/float(self.Q[1,i]) for i in range(3)])
-            ncells = int(np.max(np.array(self.Q[1])))
-            mode_start = 0
-        
-        sc_basis = self.basis*ncells
-        freq_THz,freq_cmm1=read_frequencies(modes_file,units='THz'),read_frequencies(modes_file,units='cmm1')
-        exp_eigs = exp_eigs.swapaxes(0,1) #[mode][cell][basis][direction]
-        if GAMMA: filename = self.qe_input.control['prefix'][1:-1]+"_s.modes_GAMMA"
-        else: filename = self.qe_input.control['prefix'][1:-1]+"_s.modes_expanded"
-        exp_eigs_file = open(filename,"w")
-        exp_eigs_file.write("     diagonalizing the dynamical matrix ...\n")
-        exp_eigs_file.write("\n")
-        exp_eigs_file.write(" q =     %2.5f   %2.5f   %2.5f\n"%(q[0],q[1],q[2]))
-        exp_eigs_file.write(" **************************************************************************\n") 
-        for m in range(mode_start,3*self.basis):
-            exp_eigs_file.write("     freq (   %d) =       %2.6f [THz] =       %2.6f [cm-1]\n" \
-                                %(m+1,freq_THz[m],freq_cmm1[m]))
-            for c in range(ncells):
-                for a in range(self.basis):
-                    exp_eigs_file.write("( %2.6f  %2.6f  %2.6f  %2.6f  %2.6f  %2.6f )\n" \
-                                        %(exp_eigs[m,c,a,0].real,exp_eigs[m,c,a,0].imag, \
-                                          exp_eigs[m,c,a,1].real,exp_eigs[m,c,a,1].imag, \
-                                          exp_eigs[m,c,a,2].real,exp_eigs[m,c,a,2].imag))
-        exp_eigs_file.write(" **************************************************************************")
-        exp_eigs_file.close()
-
-    def initialize_phonons(self,modes_file,atypes,Temp):
-        #Read frequencies
-        Omega = read_frequencies(modes_file)
-        self.Omega = Omega*Tera #in hertz
-        #Read phonon eigenmodes
-        self.eigs = read_eig(modes_file,self.basis)
-        #Temperature/displacement
-        self.Temp = Temp
+    def initialize_phonons(self,iq,qe_dyn,Temp):
+        self.Temp     = Temp
+        self.qe_dyn   = qe_dyn
+        self.iq       = iq
+        self.Omega    = qe_dyn.eig[iq]*Tera
+        self.eiv = np.reshape(self.qe_dyn.eiv[iq],(self.qe_dyn.nmodes,self.basis,3))
 
     def getPhases(self):
         q = np.array([float(self.Q[0,i])/float(self.Q[1,i]) for i in range(3)])
