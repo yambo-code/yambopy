@@ -62,6 +62,7 @@ exc_out = [0,1,2,3] # first 4 states (dispersion of triplet state and A)
 ph_in  = 'all' 
 
 # Paths of databases
+path='.'
 ns_db1 =f'{path}/SAVE/ns.db1'
 ndb_exc=f'{path}/excph'
 
@@ -85,7 +86,7 @@ print(X)
 #
 # Plot
 #
-plot2D(X,exc_in,exc_out,ph_in,plot_cbar=True,\
+plot2D(X,exc_in,exc_out,ph_in,plt_cbar=True,\
        marker='H',s=size,cmap='magma')
 plt.title(plt_title,fontsize=8)
 plt.savefig(plt_fl,dpi=200)
