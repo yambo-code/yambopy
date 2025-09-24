@@ -19,6 +19,7 @@ electron_mass_SI = 9.1093837015E-31 #Kg
 amu_SI = 1.66053906660E-27 #Kg
 amu2au = amu_SI/electron_mass_SI
 amu2ry = amu2au/2. # used for quantum espresso consistency
+au2kelvin = 3.1577513e5
 
 
 SVCMm12VMm1 =29.98*np.power(10,3,dtype=np.double) #  from [statV/cm] to [V/m]

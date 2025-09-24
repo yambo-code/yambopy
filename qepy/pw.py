@@ -65,6 +65,7 @@ class PwIn(object):
     def __init__(self):
         """ TODO: specify the required parameters """
         #kpoints
+        self.filename="pwscf.in"
         self.ktype = "automatic"
         self.kpoints = [1,1,1]
         self.shiftk = [0,0,0]
@@ -86,6 +87,7 @@ class PwIn(object):
         new = cls()
 
         with open(filename,"r") as f:
+            new.filename=filename
             new.file_lines = f.readlines() #set file lines
             new.store(new.control,"control")     #read &control
             new.store(new.system,"system")      #read &system
@@ -230,6 +232,13 @@ class PwIn(object):
             for atype,apos in atoms:
                 red_atoms.append( [atype,car_red([apos],self.cell_parameters)[0]] )
             self._atoms = red_atoms 
+
+    def get_alat0(self):
+        if self.system['celldm(1)'] == None:
+            alat0 = np.linalg.norm(self.cell_parameters[0])
+        else:
+            alat0 = float(self.system['celldm(1)'])
+        return alat0
 
 
     def get_atoms(self, units=None):
@@ -688,7 +697,7 @@ class PwIn(object):
         """
         Save the variables specified in each of the groups on the structure
         """
-        group_regexp = '([a-zA-Z_0-9_\(\)]+)(?:\s+)?=(?:\s+)?([a-zA-Z\'"0-9_.+-]+)' 
+        group_regexp = r'([a-zA-Z_0-9_\(\)]+)(?:\s+)?=(?:\s+)?([a-zA-Z\'"0-9_.+-]+)' 
         for file_slice in self.slicefile(name):
             for keyword, value in re.findall(group_regexp,file_slice):
                 group[keyword.strip()]=value.strip()

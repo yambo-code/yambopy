@@ -12,7 +12,7 @@ import numpy as np
 from netCDF4 import Dataset
 from yambopy.tools.jsonencoder import JsonDumper, JsonLoader
 from yambopy.lattice import vol_lat, rec_lat, car_red
-from yambopy.kpoints import expand_kpoints
+from yambopy.kpoints import expand_kpoints,make_kpositive
 from yambopy.tools.string import marquee
 
 class YamboLatticeDB(object):
@@ -173,6 +173,46 @@ class YamboLatticeDB(object):
         if not hasattr(self,"_red_kpoints"):
             self._red_kpoints = car_red(self.car_kpoints,self.rlat)
         return self._red_kpoints
+
+    @property
+    def k_grid(self,atol=1.e-6):
+        """Return the k-points grid dimensions """
+        if hasattr(self,"_kgrid"):
+            return self._kgrid
+        if not hasattr(self,"_red_kpoints"):
+            self._red_kpoints = car_red(self.car_kpoints,self.rlat)
+        self._kgrid =np.zeros(3,dtype=int)
+        self._small_q=np.full(3,1e4,dtype=float)
+        for idx in range(3): 
+            for kpt in self._red_kpoints:
+                val = abs(kpt[idx])
+                if atol < val < self._small_q[idx]:
+                    self._small_q[idx]=val
+        self._red_kpoints=make_kpositive(self._red_kpoints)
+        for idx in range(3): 
+            for kpt in self._red_kpoints:
+                n_grid = np.rint(kpt[idx]/self._small_q[idx])+1
+                if self._kgrid[idx]< n_grid:
+                    self._kgrid[idx]=n_grid
+        return self._kgrid
+
+    def get_ibz_kpoints(self,units='iku'):
+        if hasattr(self,"ibz_kpoints"):
+            kpts=self.ibz_kpoints
+        else:
+            kpts=self.iku_kpoints
+
+        if units.lower()=='iku':
+            return kpts
+        elif units.lower()=='red':
+            red_kpts=np.array([ k/self.alat for k in kpts ])
+            return car_red(red_kpts,self.rlat)
+        elif units.lower()=='car':
+            return np.array([ k/self.alat for k in kpts ])
+        else:
+            raise Exception("Sorry, wrong k-points units, use: iku, red or car") 
+
+
   
     @property
     def sym_red(self):
