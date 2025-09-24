@@ -151,7 +151,7 @@ class ExcitonPhonon(BaseOpticalProperties):
         """
         # Read common databases using base class method
         self.read_common_databases(latdb=latdb, wfdb=wfdb, bands_range=bands_range, neigs=self.neigs)
-        self.Dmats = self.wfdb.Dmat()[:,:,0,:,:]
+        self.Dmats = self.wfdb.Dmat()
         
         # Read LetzElPhC database (gracefully handles missing files)
         self.lelph_db = read_lelph_database(self.LELPH_dir, lelph_db)
@@ -409,10 +409,10 @@ class ExcitonPhonon(BaseOpticalProperties):
 
         _, eph_mat_iq = self.lelph_db.read_iq(iq, convention='standard')
         if unit == 'Hartree': eph_mat_iq * 0.5        
-        self._eph_mat_cache[iq] = eph_mat_iq[:, :, 0, :, :].transpose(1, 0, 3, 2)
+        self._eph_mat_cache[iq] = eph_mat_iq.transpose(1, 0, 2, 4, 3)
         # Select spin 0 and transpose axes: (spin, mode, m, n) → (mode, m, n)
         # Original shape: (nb1, nb2, 2 spins, nm, nk) → we keep only spin 0 and swap bands for compatibility
-        return eph_mat_iq[:, :, 0, :, :].transpose(1, 0, 3, 2)
+        return eph_mat_iq.transpose(1,0,2,4,3)
     
     def _rotate_exciton_pair(self, iq, iQ):
         """
