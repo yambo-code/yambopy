@@ -222,12 +222,10 @@ class StandardGeometryManager(BaseGeometryManager):
         sym_red = np.matmul(self.lat_vecs[None, :, :], temp)
         self.sym_red = np.rint(sym_red).astype(int)
         
-        # Set kmap if we have the necessary information
-        if hasattr(self.ydb, 'nkBZ') and hasattr(self.ydb, 'kpoints_indexes'):
-            kmap = np.zeros((self.ydb.nkBZ, 2), dtype=int)
-            kmap[:, 0] = self.ydb.kpoints_indexes
-            kmap[:, 1] = self.ydb.symmetry_indexes
-            self.kmap = kmap
+        kmap = np.zeros((self.ydb.nkpoints, 2), dtype=int)
+        kmap[:, 0] = self.ydb.kpoints_indexes
+        kmap[:, 1] = self.ydb.symmetry_indexes
+        self.kmap = kmap
     
     def _build_kpoint_tree(self, kpts: Optional[np.ndarray] = None):
         """

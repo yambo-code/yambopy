@@ -438,7 +438,7 @@ class BaseOpticalProperties(ABC):
         self._setup_kpoint_mapping()
         
         # Read exciton database
-        self.bs_bands, self.BS_eigs, self.BS_wfcs, self.excQpt = self.read_excdb(neigs)
+        self.bs_bands, self.BS_eigs, self.BS_wfcs, self.excQpt = self.read_excdb(self.BSE_dir,neigs)
         
         # Build k-point tree
         self._build_kpoint_tree()
