@@ -29,5 +29,5 @@ def Map_Phonons(qe_input, qe_dyn, R, no_invar_ph=None, sc_fname=None, dyn_fname=
     sc.qe_d.write(sc.qe_d.filename+'_sc')
     
     #map_phonons
-    qe_mapped=qe_dyn(sc)
+    qe_mapped=qe_dyn.expand_in_supercell(sc)
     qe_mapped.write_modes(filename="matdyn_sc.modes")

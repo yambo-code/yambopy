@@ -342,7 +342,7 @@ class Matdyn(object):
             sigma = float(norm*delta/np.sqrt(masses[a]*amu2au))
             print("Atom %d  mass %12.8f sigma %12.8f" % (a,masses[a], sigma))
 
-    def expand_in_supercell(qe_sc):
+    def expand_in_supercell(self, qe_sc):
         #empty stuff
         expand_eig = []
         expand_eiv = []
@@ -351,18 +351,20 @@ class Matdyn(object):
         #only gamma point in the new SC
         qpoints.append([0.0,0.0,0.0])
 
-        freq_arr=np.zeros([nqpoints,nmodes],dtype=float64)
+        freq_arr=np.zeros([self.nqpoints,self.nmodes],dtype=float)
 
         #expand eigenvectors
-        for iq in range(nqpoints):
+        for iq in range(self.nqpoints):
             q=self.qpoints[iq]
             arg = q[0]*qe_sc.T[:,0]+q[1]*qe_sc.T[:,1]+q[2]*qe_sc.T[:,2]
             phases = np.exp(1j*2.*np.pi*arg)
             q_eigs=np.array([phases[i]*self.eig[iq,:] for i in range(qe_sc.sup_size)])
-            for cell in range(self.sup_size): q_eigs[cell]= self.take_real(q_eigs[cell])
-            expand_eig.append(q_eigs)
+            for cell in range(qe_sc.sup_size): q_eigs[cell]= qe_sc.take_real(q_eigs[cell])
+            expand_eiv.append(q_eigs)
+            expand_eig.append(self.eig[iq])
         
         # expand all eigenvalues
-        expand_eiv.append(np.reshape(self.eiv, nqpoints*nmodes))
+        np.reshape(expand_eig, self.nqpoints*self.nmodes))
+        #np.reshape(expand_eiv, self.nqpoints*self.nmodes,qe_sc.basis*qe_sc.sup_size))
         
-        return cls(qpoints,expand_eig,expand_eiv)
+        #return cls(qpoints,expand_eig,expand_eiv)
