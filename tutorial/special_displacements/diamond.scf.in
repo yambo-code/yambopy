@@ -1,0 +1,29 @@
+ &control
+    calculation = 'scf',
+    prefix='diamond', 
+    pseudo_dir = './',
+    wf_collect=.true.,
+    verbosity ='high'
+ /
+ &system
+    ibrav=  0, 
+    celldm(1) = 6.675
+    nat=  2, 
+    ntyp= 1, 
+    ecutwfc = 70
+     
+ /
+ &electrons
+   conv_thr = 1.0d-12
+ /
+CELL_PARAMETERS { alat }
+  0.5000000000   0.0000000000   0.5000000000 
+  0.5000000000   0.5000000000   0.0000000000 
+  0.0000000000   0.5000000000   0.5000000000 
+ATOMIC_SPECIES
+ C 12.0107 C.pz-vbc.UPF
+ATOMIC_POSITIONS {alat}
+ C 0 0  0 
+ C 0.25 0.25  0.25 
+K_POINTS {automatic}
+  4 4 4 0 0 0

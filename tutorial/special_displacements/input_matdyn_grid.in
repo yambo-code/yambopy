@@ -1,0 +1,10 @@
+&input
+    asr='simple'
+    flfrc='diamond.fc', 
+    flfrq='diamond.freq',
+    dos=.true.
+    nosym=.true.
+    fldos='diamond.dos',
+    deltaE=1.d0,
+    nk1=2, nk2=2, nk3=2
+ /
