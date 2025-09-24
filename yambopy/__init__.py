@@ -124,9 +124,6 @@ from yambopy.nl.hhg_tools import *
 #doublegrid files
 from yambopy.double_grid.dg_convergence import *
 
-#thermal lines and special displacements
-from yambopy.thermal.thermal_lines import *
-
 #gkkp files
 from yambopy.gkkp.compute_gkkp import *
 from yambopy.gkkp.refine_gkkp import *
