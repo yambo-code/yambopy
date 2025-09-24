@@ -408,7 +408,7 @@ class ExcitonPhonon(BaseOpticalProperties):
             return self._eph_mat_cache[iq]
 
         _, eph_mat_iq = self.lelph_db.read_iq(iq, convention='standard')
-        if unit == 'Hartree': eph_mat_iq * 0.5**1.5        
+        if unit == 'Hartree': eph_mat_iq * 0.5        
         self._eph_mat_cache[iq] = eph_mat_iq[:, :, 0, :, :].transpose(1, 0, 3, 2)
         # Select spin 0 and transpose axes: (spin, mode, m, n) → (mode, m, n)
         # Original shape: (nb1, nb2, 2 spins, nm, nk) → we keep only spin 0 and swap bands for compatibility
