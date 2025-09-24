@@ -1,0 +1,36 @@
+&control
+    calculation='scf',
+    prefix='hBN',
+    restart_mode='from_scratch'
+    pseudo_dir = '/home/fpaleari/Pseudos'
+    outdir = './tmp'
+    verbosity = 'high'
+    wf_collect=.true.
+/
+&system
+    ibrav = 4,
+    celldm(1) = 4.703675849
+    celldm(3) = 2.603711434
+    nat= 4,
+    ntyp= 2,
+    force_symmorphic=.true.
+    ecutwfc = 100,
+/
+&electrons
+  diago_david_ndim = 2
+  diago_full_acc=.true.
+  diago_thr_init=5.0e-6
+  mixing_mode = 'plain'
+  mixing_beta = 0.7
+  conv_thr =  1.0d-16
+/
+ATOMIC_SPECIES
+ B 10.81100  B_LDA_dojo.UPF
+ N 14.00674  N_LDA_dojo.UPF
+ATOMIC_POSITIONS {crystal}
+N             0.6666666670        0.3333333330        -0.250000000000
+B             0.3333333330        0.6666666670        -0.250000000000
+B             0.6666666670        0.3333333330        0.25000000000
+N             0.3333333330        0.6666666670        0.25000000000
+K_POINTS {automatic}
+6 6 2 0 0 0
