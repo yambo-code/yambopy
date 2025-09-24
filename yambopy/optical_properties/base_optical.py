@@ -372,7 +372,7 @@ class BaseOpticalProperties(ABC):
         elif self.ydipdb.spin == 1:
             self.ele_dips = self.ydipdb.dipoles.conjugate().transpose(0, 2, 3, 1)
     
-    def read_excdb(self, BSE_dir=None):
+    def read_excdb(self, BSE_dir=None, neigs=-1):
         """
         Read yambo exciton database for each Q-point.
         
@@ -397,7 +397,7 @@ class BaseOpticalProperties(ABC):
         for iq in tqdm(range(self.nibz), desc="Loading Ex-wfcs "):
             try:
                 bse_db_iq = YamboExcitonDB.from_db_file(
-                    self.ydb, folder=BSE_dir, filename=f'ndb.BS_diago_Q{iq+1}'
+                    self.ydb, folder=BSE_dir, filename=f'ndb.BS_diago_Q{iq+1}', neigs=neigs
                 )
             except Exception as e:
                 raise IOError(f'Cannot read ndb.BS_diago_Q{iq+1} file: {e}')
@@ -406,7 +406,6 @@ class BaseOpticalProperties(ABC):
             tmp_eigs = bse_db_iq.eigenvalues
             tmp_wfcs = bse_db_iq.get_Akcv()
             tmp_qpt = self.ydb.lat @ bse_db_iq.car_qpoint
-            
             BS_eigs.append(tmp_eigs)
             BS_wfcs.append(tmp_wfcs)
             excQpt.append(tmp_qpt)
@@ -416,7 +415,7 @@ class BaseOpticalProperties(ABC):
                 np.array(BS_wfcs).astype(self.wfdb.wf.dtype), 
                 excQpt)
     
-    def read_common_databases(self, latdb=None, wfdb=None, bands_range=None):
+    def read_common_databases(self, latdb=None, wfdb=None, bands_range=None, neigs=-1):
         """
         Read common databases used by most optical properties calculations.
         
@@ -439,7 +438,7 @@ class BaseOpticalProperties(ABC):
         self._setup_kpoint_mapping()
         
         # Read exciton database
-        self.bs_bands, self.BS_eigs, self.BS_wfcs, self.excQpt = self.read_excdb()
+        self.bs_bands, self.BS_eigs, self.BS_wfcs, self.excQpt = self.read_excdb(neigs)
         
         # Build k-point tree
         self._build_kpoint_tree()
