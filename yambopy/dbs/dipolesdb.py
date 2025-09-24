@@ -29,7 +29,7 @@ class YamboDipolesDB():
     If the calculation is spin-polarised (nk->nks), then they are stored with indices [s,k,r_i,c,v]
     """
     def __init__(self,lattice,save='SAVE',filename='ndb.dipoles',dip_type='iR',field_dir=[1,1,1],\
-                 project=True, polarization_mode=None, expand=False, bands_range=[]):
+                 project=True, polarization_mode=None, expand=True):
         """
         Initialize the YamboDipolesDB
         
@@ -44,21 +44,22 @@ class YamboDipolesDB():
         dip_type: str, optional
             Type of dipole matrix elements to read, can be 'iR', 'v', 'P', default is 'iR'
         field_dir: list of 3 floats, optional
-            Direction of the electric field, default is [1,1,1]
+            Direction of the electric field, default is [1,1,1]. Used if no polarization_mode is set. If project is True, applied already during k-expansion of dipoles.
         project: bool, optional
-            Whether to project the dipoles along the field direction, default is True
+            Whether to project the dipoles along the field direction during k-expansion, default is True
         polarization_mode: str, optional
-            Polarization mode, can be 'linear', 'circular', default is 'linear'
-        bands_range : array, optional
-            select bands_range for computation of dipoles (Fortran indexing). Negative numbers -> all bands
-            example: [7,10]  you consider from 7th (v) to the 10 (c) bands            
+            Polarization mode, can be 'linear', 'circular', 'dichroism', etc (check the docstring of related function; if set, `project` is turned to False and the chosen field polarization is applied for the epsilon calculation; field_dir is only used with the 'linear' option
+        expand : k-expansion of dipoles (needed for eps). Default is True.
         """        
+
         self.lattice   = lattice
         self.filename  = "%s/%s"%(save,filename)
         self.field_dir = field_dir
         self.project   = project
         self.expand    = expand
         self.polarization_mode = polarization_mode
+        if self.polarization_mode is not None: self.project = False
+
         #read dipoles
         try:
             database = Dataset(self.filename, 'r')
@@ -71,6 +72,10 @@ class YamboDipolesDB():
         # indexv is the maximum partially occupied band
         # indexc is the minimum partially empty band
         self.min_band, self.max_band, self.indexv, self.indexc = database.variables['PARS'][:4].astype(int)
+
+        # Standard dipoles: <c|p|v> between val and cond
+        # Without dip_bands_ordered: <v|p|v'> and <c|p|c'> also present
+        self.dip_bands_ordered = database.variables['PARS'][8].astype(int)
         database.close()
         #self.min_band = nvmin
         #self.max_band = ncmmax
@@ -78,41 +83,26 @@ class YamboDipolesDB():
         #self.indexc ncmin
         # determine the number of bands
         self.nbands  = self.max_band-self.min_band+1
-        self.nbandsv = self.indexv-self.min_band+1
-        self.nbandsc = self.max_band-self.indexc+1
-        # indexv is for python counting
-        self.indexv = self.indexv-1
-        self.indexc = self.indexc-1
-        
-        if len(bands_range) == 0:
-            bands_range = [self.min_band-1,self.max_band]
-        elif min(bands_range) < 0 or max(bands_range) > self.max_band:
-            Warning("Invalid bands_range, loading all bands.")
-            bands_range = [self.min_band-1,self.max_band]
-        
-        self.bands_range = bands_range
-        self.min_bnd_range = min(self.bands_range) 
-        self.max_bnd_range = max(self.bands_range)
-        self.nbnds_range = self.max_bnd_range-self.min_bnd_range
-        assert (self.bands_range[0] >= self.min_band-1)
-        assert (self.bands_range[1] <= self.max_band)
-        if (self.indexv+1) == self.max_band and (self.indexc+1) == self.min_band:
-            self.start_bnd_idx = 1 + self.min_bnd_range - self.min_band
-            self.end_bnd = self.start_bnd_idx + self.nbnds_range
-            self.nval_bands = self.indexc - self.start_bnd_idx
-            self.val_bnd_idx = self.start_bnd_idx + self.nval_bands
+        if not self.dip_bands_ordered:
+            self.nbandsv = lattice.nbandsv-self.min_band+1
+            self.nbandsc = self.max_band-self.nbandsv
+            self.indexv  = self.nbandsv-1
+            self.indexc  = self.nbandsv
         else:
-            assert (self.min_bnd_range <= (self.indexv+1))
-            assert (self.max_bnd_range >= (self.indexc+1))
-            self.v_start_bnd = self.min_bnd_range - self.min_band+1
-            self.nval_bands = self.indexc - self.v_start_bnd  # for range
-            self.c_end_bnd = self.max_bnd_range - (self.indexc)
-        self.ncon_bands = self.nbnds_range - self.nval_bands  
+            self.nbandsv = self.indexv-self.min_band+1
+            self.nbandsc = self.max_band-self.indexc+1
+            self.indexv = self.indexv-1
+            self.indexc = self.indexc-1
 
-        self.index_firstv = self.min_band-1        
+        # This part is needed if dealing with open-shell systems
+        self.index_firstv = self.min_band-1
         self.open_shell = False
         d_n_el = self.nbandsv + self.nbandsc - self.nbands
         if d_n_el != 0:
+
+            if not self.dip_bands_ordered: 
+                raise NotImplementedError("[ERROR] You may be considering an open-shell system together with the 'DipBandsAll' option, which is not supported. Please rerun the calculation without 'DipBandsAll'.")
+
             # We assume the excess electron(s)/hole(s) are in the spin=0 channel
             print("[WARNING] You may be considering an open-shell system. Careful: optical absorption UNTESTED.")
             self.open_shell = True
@@ -122,11 +112,19 @@ class YamboDipolesDB():
             self.indexc_os  = [self.indexc+d_n_el, self.indexc]
             self.nbandsv_os = [self.nbandsv, self.nbandsv-d_n_el ] 
             self.nbandsc_os = [self.nbandsc-d_n_el, self.nbandsc ]
+        # End open-shell part
 
         #read the database
         ## Note : Yambo stores dipoles are for light emission.
         ## In case of light absoption, conjugate it
-        self.dipoles = self.readDB(dip_type)
+        dipoles = self.readDB(dip_type)
+
+        if not self.dip_bands_ordered:
+            # use a slice of the full array
+            self.dipoles_full = dipoles # Here keep the vv' and cc' transitions
+            self.dipoles = dipoles[...,self.nbandsv:,:self.nbandsv] # cv only
+        else:
+            self.dipoles = dipoles
 
         #expand the dipoles to the full brillouin zone 
         #and project them along field dir
@@ -174,11 +172,14 @@ class YamboDipolesDB():
         fragmentname = "%s_fragment_1"%(self.filename)
         if os.path.isfile(fragmentname): return self.readDB_oldformat(dip_type)
 
+        if not self.dip_bands_ordered: nbands1, nbands2 = [self.nbands,self.nbands]
+        else: nbands1, nbands2 = [self.nbandsc, self.nbandsv] # COND before VAL
+
         self.dip_type = dip_type
         if self.spin==1: 
-            dipoles = np.zeros([self.nk_ibz,3,self.ncon_bands,self.nval_bands],dtype=np.complex64)
+            dipoles = np.zeros([self.nk_ibz,3,nbands1,nbands2],dtype=np.complex64)
         if self.spin==2:
-            dipoles = np.zeros([self.spin,self.nk_ibz,3,self.ncon_bands,self.nval_bands],dtype=np.complex64)
+            dipoles = np.zeros([self.spin,self.nk_ibz,3,nbands1,nbands2],dtype=np.complex64)
         
         database = Dataset(self.filename)
         dip = database.variables['DIP_%s'%(dip_type)]
@@ -400,7 +401,7 @@ class YamboDipolesDB():
         self.field_dir  = self.field_dir/np.linalg.norm(self.field_dir)
 
         #get eigenvalues and weights of electrons
-        if electrons.EXPAND == False:
+        if electrons.expanded == False:
             print("[WARNING] Expanding the electrons database")
             electrons.expandEigenvalues()
         eiv = electrons.eigenvalues
@@ -447,7 +448,11 @@ class YamboDipolesDB():
         #dimensional factors
         if self.spin == 1 : spin_deg=2
         if self.spin == 2 : spin_deg=1
-        cofactor = spin_deg*8.*np.pi/(self.lattice.rlat_vol)
+        ##
+        ## THIS COFACTOR DOES NOT CORRESPOND TO THE YAMBO OUTPUT
+        ## There is a material-dependent scaling factor missing
+        ## (but not just rlat_vol) and possibly something else
+        cofactor = spin_deg*4.*np.pi/self.lattice.nkpoints#/self.lattice.rlat_vol
 
         na = np.newaxis
         epskres = np.zeros([esteps,nkpoints])
@@ -455,48 +460,43 @@ class YamboDipolesDB():
         for c,v,s in product(range(nv,lc),range(iv,nv),range(sp_pol)):
 
                 #get electron-hole energy and dipoles
-                #(sum over pol directions if needed)
                 eivs = eiv[s]
                 ecv  = eivs[:,c]-eivs[:,v]
-
-                # these are the expanded+projected dipoles already
                 dips = dipoles[s]
-                
-                # Initialize dip2 to accumulate contributions from all polarization vectors
-                dip2 = np.zeros(nkpoints, dtype=np.float64)
-                #RR: I believe the class should work without projecting but only via polarization_mode.
-                #This series of if is there only to prevent back-compatibility problems.
-                if self.project and self.polarization_mode is None:
-                    dip2= np.abs( np.sum( dips[:,:,c,v], axis=1) )**2.
-                
-                elif not self.project and self.polarization_mode is None:
-                    dip2 = np.abs( np.einsum('j,ij->i', self.field_dir , dips[:,:,c,v]) )**2
 
-                if self.polarization_mode is not None: 
-                    for e_vec, w in self._polarization_vectors():           # ⇐ NEW
+                # Sum over polarization directions
+                if self.polarization_mode is not None:
+                    for e_vec, w in self._polarization_vectors():
                         #  ┌──── e_vec (3,) , dips_slice (nk,3)  ─────┐
-                        proj = np.einsum('d,kd->k', e_vec, dips[:,:,c,v])   # shape (nk,)
+                        proj = np.einsum('d,kd->k', e_vec, dips[:,:,c,v])
                         dip2 += w*np.abs(proj)**2
+
+                # no mode explicitly selected defaults to linear field
+                else: 
+                    # field_dir projection was done during dipole expansion
+                    if self.project: dip2= np.abs( np.sum( dips[:,:,c,v], axis=1) )**2.
+                    # field_dir projection must be done now
+                    else: dip2 = np.abs( np.einsum('j,ij->i', self.field_dir , dips[:,:,c,v]) )**2
 
                 #make dimensions match
                 dip2a = dip2[na,:]
                 ecva  = ecv[na,:]
                 freqa = freq[:,na]
-                # rescale weight factors because we are in the expanded BZ
-                wa    = weights[na,:]*self.nk_ibz/nkpoints       
+                #wa    = weights[na,:]
 
                 if mode=='imag' or res_k: 
                     #calculate the lorentzians 
                     broadw = broadening(freqa,ecva,broad)
    
                     #scale broadening with dipoles and weights
-                    epsk =  wa*dip2a*broadw
+                    #epsk =  wa*dip2a*broadw
+                    epsk =  dip2a*broadw
 
                     #k-resolved absorption
                     if res_k: epskres+=epsk
 
                     #integrate over kpoints
-                    if mode=='imag': eps += np.sum(epsk,axis=1)
+                    eps += np.sum(epsk,axis=1)
 
                 if mode=='full':
                     #construct complex-valued response function
@@ -505,24 +505,15 @@ class YamboDipolesDB():
                     G2 = -1./(-freqa-ecva-broad*I)
 
                     # oscillators
-                    osc = wa*dip2a
+                    #osc = wa*dip2a
+                    osc = dip2a
 
-                    # +=: sum over (c,v,s) ; np.sum(axis=1): sum over k                    
-                    eps += np.sum(osc*(G1+G2),axis=1)/np.pi
-
-        eps = eps*cofactor
-       
-        # Treat 2D case
-        # THERE IS STILL A FACTOR MISSING
-        #if system_2D:
-        #    if mode=='imag':
-        #        print("[2D system] Returning 2D polarizability instead of eps2 (bohr units)")
-        #        # assuming supercell direction to be the largest one
-        #        L = np.max(self.lattice.alat) 
-        #        eps = eps#*L/4./np.pi
-        #    if mode=='full':
-        #        print("[2D system] Remember that for spectra, the physical quantity is eps.imag*L/(2*pi), with L aperiodic direction in bohr")
-
+                    # +=: sum over (c,v,s) ; np.sum(axis=1): sum over k
+                    eps +=  np.sum(osc*(G1+G2),axis=1)/np.pi
+                    
+        eps = eps*cofactor 
+        if mode=='full': eps.real += 1.
+        
         if res_k: return freq, eps, epskres
         else:     return freq, eps
 
@@ -575,7 +566,7 @@ class YamboDipolesDB():
         """
         mode = self.polarization_mode.lower()
 
-        if mode == 'linear':                   # ✱ ê set by user
+        if mode == 'linear':                   # ✱ ê set by user
             e = np.asarray(self.field_dir, dtype=np.complex64)
             e /= np.linalg.norm(e)
             return [(e, 1.0)]
@@ -624,6 +615,7 @@ class YamboDipolesDB():
                     (e_m, -1.0)]              # subtract σ⁻ 
 
         raise ValueError(f'Unknown polarization mode: {mode}')
+
     def __str__(self):
         lines = []; app = lines.append
         app(marquee(self.__class__.__name__))

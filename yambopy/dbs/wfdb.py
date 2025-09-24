@@ -617,6 +617,39 @@ class YamboWFDB:
         #
         return Dmat
 
+    def OverlapUkkp(self, kpt_bra, kpt_ket):
+        """
+        Compute the following matrix elements : < k_bra | e^{i(k_bra-k_ket).r} | k_ket>
+        in other words, it computes overlap of periodic parts of k_bra an k_ket
+        """
+        kpt_bra = np.array(kpt_bra)
+        kpt_ket = np.array(kpt_ket)
+
+        ikpt_ket = find_kpt(self.ktree,kpt_ket)
+        ikpt_bra = find_kpt(self.ktree,kpt_bra)
+        #
+        kpt_idx = self.ydb.kpoints_indexes
+        sym_idx = self.ydb.symmetry_indexes
+        #
+        ibz_ket = kpt_idx[ikpt_ket]
+        isym_ket = sym_idx[ikpt_ket]
+        #
+        ibz_bra = kpt_idx[ikpt_bra]
+        isym_bra = sym_idx[ikpt_bra]
+        #
+        ## get the wfcs:
+        k_rk_ket, w_rk_ket, g_rk_ket = self.rotate_wfc(ibz_ket, isym_ket)
+        k_rk_bra, w_rk_bra, g_rk_bra = self.rotate_wfc(ibz_bra, isym_bra)
+
+        G0_ket = kpt_ket-k_rk_ket
+        G0_bra = kpt_bra-k_rk_bra
+        #
+        G0 = G0_ket-G0_bra
+        return wfc_inner_product(G0, w_rk_bra, g_rk_bra, np.array([0,0,0]), w_rk_ket, g_rk_ket)
+
+## end of class
+
+##
 @func_profile
 def wfc_inner_product(k_bra, wfc_bra, gvec_bra, k_ket, wfc_ket, gvec_ket, ket_Gtree=None):
     """

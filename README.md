@@ -52,7 +52,7 @@ Installation
 
 Make sure that you have a suitable python environment (created for example with [conda](https://docs.conda.io/projects/miniconda/en/latest/) or [venv](https://docs.python.org/3/library/venv.html)).
 
-Use python version >=3.10.
+Use python version >=3.8.
 
 If you never used an environment just type
 `python -m venv MYPATH/yamboenv/`       (you can replace `MYPATH` with any path you prefer, e.g. `~/`)
@@ -85,6 +85,11 @@ Requirements
 - monty: https://pypi.org/project/monty/
 - scikit-learn: https://pypi.org/project/scikit-learn/
 - tqdm: https://pypi.org/project/tqdm/
+- spglib: https://spglib.readthedocs.io/en/latest/python-interface.html
+- spgrep: https://pypi.org/project/spgrep/
+- pykdtree: https://pypi.org/project/pykdtree/
+- numba: https://numba.pydata.org/
+
 
 Yambopy works for the following DFT/MBPT codes:
 - yambo (>=5.0): https://www.yambo-code.eu/
@@ -121,6 +126,7 @@ Active contributors:
 - Muralidhar Nalabothula
 - Riccardo Reho
 - Michele Re Fiorentin
+- Ali Esquembre-Kucukalic
 - Mike Nico Pionteck
 - Yuncheng Mao
 - Martino Silvetti

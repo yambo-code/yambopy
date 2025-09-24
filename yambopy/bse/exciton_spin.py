@@ -62,7 +62,7 @@ def compute_exciton_spin(lattice, excdb, wfdb, elec_sz, contribution='b',diagona
     #
     # Compute the exciton spin matrix elements <S'|S_z|S>
     exe_Sz = exciton_X_matelem(excQpt, np.array([0, 0, 0]), Akcv,
-                               Akcv, elec_sz[None, ...], wfdb.kBZ,
+                               Akcv, elec_sz[None,:,None,...], wfdb.kBZ,
                                diagonal_only=diagonal,contribution=contribution)
     #
     return exe_Sz[0]
@@ -76,43 +76,42 @@ def compute_exc_spin_iqpt(path='.', bse_dir='SAVE', iqpt=1,
                           sz=0.5 * np.array([[1, 0], [0, -1]]),
                           return_dbs_and_spin=True):
     """
-    Compute the spin matrix elements ⟨S'|S_z|S⟩ for excitons.
-
-    This function calculates the spin matrix elements for excitons using 
-    wavefunctions and spin operators. Easy to use interface. Use 
-    compute_exciton_spin() incase you already have those db's
+    
+    
+    Description
+    -----------
+    Compute expectation value of S_z operator for excitons.
 
     Parameters
     ----------
     path : str, optional
-        Path to the directory containing the `SAVE` folder. Default is `.`.
+        Path to the directory containing calculation SAVE and BSE folder.
+        Default: '.' (current directory)
     bse_dir : str, optional
-        Directory containing the BSE (Bethe-Salpeter Equation) data. Default is `'SAVE'`.
-    iqpt : int or list/array of ints, optional
-        Index or indices of the q-point(s) for which the exciton spin is computed. 
-        Default is `1` (Gamma point).
+        Directory containing BSE calculation data. Default: 'SAVE'
+    iqpt : int or array-like, optional
+        Q-point index or list of Q-point indices to analyze. Default: 1
+        (Fortran indexing)
     nstates : int, optional
-        Number of exciton states to consider. If `-1`, all states are included. Default is `-1`.
-    contribution : {'b', 'e', 'h'}, optional
-        Specifies which contribution to compute:
-        - `'b'`: Total exciton spin (default).
-        - `'e'`: Electron spin only.
-        - `'h'`: Hole spin only.
+        Number of excitonic states to consider. Use -1 for all states. Default: -1
+    contribution : str, optional
+        Which contribution to compute:
+        - 'b': both electron and hole (default)
+        - 'e': electron only
+        - 'h': hole only
     degen_tol : float, optional
-        Degeneracy tolerance for excitons in eV. Default is `1e-2` eV.
+        Tolerance for detecting degenerate states. Default: 1e-2
     sz : ndarray, optional
-        Spin-z operator matrix in the basis of spinor wavefunctions.
-        Default is `0.5 * np.array([[1, 0], [0, -1]])`.
+        S_z operator matrix representation. Default: 0.5 * np.array([[1, 0], [0, -1]])
     return_dbs_and_spin : bool, optional
-        return [latticedb, wfdb, excdb (s), elec_spin_matrix]
-        Default is True
+        If True, returns both spin values and database objects. Default: True
+
     Returns
     -------
     exe_Sz : ndarray
-        Spin matrix elements for excitons with shape `(niq, nstates, nstates)`, 
-        where `niq` is the number of q-points.
-    if return_dbs_and_spin is True, will also return
-        [latticedb, wfdb, excdb (s), elec_spin_matrix]
+        Array containing S_z expectation values for excitonic states
+    dbs_objects : list, optional
+        If return_dbs_and_spin=True, returns [lattice, wfdb, excdb, elec_sz] database objects
     Examples
     --------
     Compute the total spin matrix elements for excitons:

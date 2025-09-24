@@ -1,0 +1,50 @@
+#                                                                     
+#  **    **    **     ****     ****  ******     *******               
+# //**  **    ****   /**/**   **/** /*////**   **/////**              
+#  //****    **//**  /**//** ** /** /*   /**  **     //**             
+#   //**    **  //** /** //***  /** /******  /**      /**             
+#    /**   **********/**  //*   /** /*//// **/**      /**             
+#    /**  /**//////**/**   /    /** /*    /**//**     **              
+#    /**  /**     /**/**        /** /*******  //*******               
+#    //   //      // //         //  ///////    ///////                
+#                                                                     
+# Version 5.2.0 Revision 22930 Hash (prev commit) cf573729b0          
+#                  Branch is phys-excph                               
+#              MPI+OpenMP+HDF5_MPI_IO Build                           
+#                http://www.yambo-code.eu                             
+#
+excph                            # [R] Exction-phonon
+ExcGkkp                          # [R][EXCPH] Exciton-Phonon Matrix Elelements
+ExcPhOptics                      # [R][EXCPH] Exciton-Phonon Optics
+BoseTemp=10.000000         Kn    # Bosonic Temperature
+% ELPhExcStates
+ 1 | 4 |                             # [EXCPH] Incoming (external) exciton states
+%
+% ELPhExcSum
+ 1 | 12 |                             # [EXCPH] Outgoing (virtual) exciton states
+%
+LoutPath= "./bse-allq_full"                 # [EXCPH] Path of the outgoing L
+FANdEtresh= 0.100000E-5    eV    # [ELPH] Energy treshold for Fan denominator
+LDamping= 0.500000E-3      eV    # [EXCPH] Damping of exc-ph self-energy
+#ConstElph                     # [EXCPH] Set all electron-phonon matrix elements to one (for testing purpose)
+#AbsElph                       # [EXCPH] Module of elph matrix elements (for testing purpose)
+#AbsExc                        # [EXCPH] Module of excitonic WFs (for testing purpose)
+#HoleContributionOnly          # [EXCPH] Hole channel only (for testing purpose)
+#ElectronContributionOnly      # [EXCPH] Elec channel only (for testing purpose)
+EXCTemp= 50.000000          Kn    # [EXCPH] Excitonic Temperature (for luminescence spectra)
+AlphaQ= 0.000000                 # [EXCPH] Excitonic band structure 2D distortion
+% ElPhModes
+  1 | 9 |                           # [ELPH] Phonon modes included
+%
+#PLqres                        # [EXCPH] Write contribution from each q-point
+#DbGdOnlyPh                    # [EXCPH] Use Double-Grid only for phonon energies (do not interpolate excitons)
+#DbGdWEIGHTs                   # [EXCPH] Use Double-grid also for satellite weights and renormalization
+#NoMatrxEl                     # [EXCPH] Set all  exciton-phonon matrix elements to one (for testing purpose)
+% EnRngeXd
+  0.00000 | 4.00000 |         eV    # [Xd] Energy range
+%
+% DmRngeXd
+ 0.0100000 | 0.0100000 |         eV    # [Xd] Damping range
+%
+ETStpsXd= 2000                    # [Xd] Total Energy steps
+EXCPHdEtresh= 0.100000E-5  eV    # [ELPH] Energy treshold for exc-ph denominator

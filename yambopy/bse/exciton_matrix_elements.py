@@ -1,4 +1,5 @@
 ###
+# Authors: MN
 ###
 # This file contains a genenal functions to compute
 # < S | O | S'>, where O is an operator.
@@ -22,18 +23,19 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     Parameters
     ----------
     exe_kvec : array_like
-        Exciton k-vector in crystal coordinates.
+        Exciton k-vector in crystal coordinates (k).
     O_qvec : array_like
-        Momentum transfer vector q in crystal coordinates.
+        Momentum transfer vector q in crystal coordinates (q).
     Akq : array_like
-        Wavefunction coefficients for k+q (bra wfc) with shape (n_exe_states, nk, nc, nv).
+        Wavefunction coefficients for k+q (bra wfc) with shape (n_exe_states, 1, ns, nk, nc, nv).
     Ak : array_like
-        Wavefunction coefficients for k (ket wfc) with shape (n_exe_states, nk, nc, nv).
+        Wavefunction coefficients for k (ket wfc) with shape (n_exe_states, 1, ns, nk, nc, nv).
     Omn : array_like
-        Matrix elements of the operator O in the basis of electronic states with shape (nlambda, nk, m_bnd, n_bnd).
-        ie Omn = < k+q, m | O(q) | n, k>, where m_bnd and n_bnd are final and initial bands, respectively.
+        Matrix elements of the operator O in the basis of electronic states with shape (nlambda, nk, nspin, m_bnd, n_bnd).
+        ie Omn = < k+q, m, s | O(q) | n, k, s>, where m_bnd and n_bnd are final and initial bands, respectively.
+        s is spin index
     kpts : array_like
-        K-points used to construct the BSE with shape (nk, 3).
+        K-points used to construct the BSE with shape (nk, 3) in crystal coordinates.
     contribution : str, optional
         Specifies the contribution to include in the calculation:
         - 'e' : Only electronic contribution.
@@ -53,9 +55,9 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     # Number of arbitrary parameters (lambda) in the Omn matrix
     nlambda = Omn.shape[0]
     #
-    assert len(Akq.shape) == 4, "Works only with TDA."
+    assert Akq.shape[1] == 1, "Works only with TDA."
     # Shape of the wavefunction coefficients
-    n_exe_states, nk, nc, nv = Akq.shape
+    n_exe_states, bse_calc, ns, nk, nc, nv = Akq.shape
     #
     # Ensure that the shapes of Akq and Ak match
     assert Akq.shape == Ak.shape, "Wavefunction coefficient mismatch"
@@ -64,19 +66,19 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     assert contribution in ['b', 'e', 'h'], "Allowed values for contribution are 'b', 'e', 'h'"
     #
     # Build a k-point tree for efficient k-point searching
-    if not ktree : ktree = build_ktree(kpts)
+    if ktree is None : ktree = build_ktree(kpts)
     #
     # Find the indices of k-Q-q and k-q in the k-point tree
     idx_k_minus_Q_minus_q = find_kpt(ktree, kpts - O_qvec[None, :] - exe_kvec[None, :])  # k-q-Q
     idx_k_minus_q = find_kpt(ktree, kpts - O_qvec[None, :])  # k-q
     #
     # Extract the occupied and unoccupied parts of the Omn matrix
-    Occ = Omn[:, idx_k_minus_q, nv:, nv:]  # Occupied part, g(k-q,q)
-    Ovv = Omn[:, idx_k_minus_Q_minus_q, :nv, :nv]  # conduction part g(k-q-Q)
+    Occ = Omn[:, idx_k_minus_q, :, nv:, nv:].transpose(0,2,1,3,4)  # Occupied part
+    Ovv = Omn[:, idx_k_minus_Q_minus_q, :, :nv, :nv].transpose(0,2,1,3,4)  # conduction part
     #
     # Ensure the arrays are C-contiguous to reduce cache misses
-    Ak_electron = np.ascontiguousarray(Ak[:, idx_k_minus_q, ...]) # A^{Q}_{k-q}
-    Akq_conj = Akq.reshape(n_exe_states, -1).conj()# A^{Q+q,*}_{k}
+    Ak_electron = np.ascontiguousarray(Ak[:,0][:,:,idx_k_minus_q, ...])
+    Akq_conj = Akq[:,0].reshape(n_exe_states, -1).conj()
     #
     # Initialize the output matrix
     if diagonal_only:
@@ -88,13 +90,13 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     for il in range(nlambda):
         # Compute the electron contribution
         if contribution == 'e' or contribution == 'b':
-            tmp_wfc = Occ[il][None, :, :, :] @ Ak_electron # g(k-q,q)*A^{Q}_{k-q}
+            tmp_wfc = Occ[il][None, ...] @ Ak_electron
         #
         # Compute the hole contribution and subtract from the electron contribution
         if contribution == 'h' or contribution == 'b':
-            tmp_h = -Ak @ Ovv[il][None, ...] #g(k-q-Q,q)*A^{Q}_{k}
-            if contribution == 'b': 
-                tmp_wfc += tmp_h # add g(k-q-Q,q)*A^{Q}_{k}
+            tmp_h = -Ak[:,0] @ Ovv[il][None, ...]
+            if contribution == 'b':
+                tmp_wfc += tmp_h
             else:
                 tmp_wfc = tmp_h
         #

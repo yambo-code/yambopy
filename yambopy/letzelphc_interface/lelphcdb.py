@@ -48,7 +48,9 @@ class LetzElphElectronPhononDB():
         self.nq = database.dimensions['nq'].size
         self.ns = database.dimensions['nspin'].size
         self.nsym = database.dimensions['nsym_ph'].size
-
+        self.div_by_energies = div_by_energies # if true, the elph store are normalized with 1/(2*w_ph)
+        #
+        #
         conv = database['convention'][...].data
         if isinstance(conv, np.ndarray):
             if conv.dtype.kind == 'S':  # Byte strings (C chars)
@@ -59,12 +61,14 @@ class LetzElphElectronPhononDB():
             conv = conv.decode('utf-8').strip()
         else:
             conv = str(conv).strip()
-        stard_conv = False
-        if conv.strip() == 'standard':
+        conv = conv.strip().replace('\0', '')
+        #
+        #
+        if conv == 'standard':
             print("Convention used in Letzelphc : k -> k+q (standard)")
         else:
             print("Convention used in Letzelphc : k-q -> k (yambo)")
-        self.convention = conv.strip()
+        self.convention = conv
         #
         # Read DB
         #For developes: Do not use database.variables['x'][:]
@@ -185,7 +189,7 @@ class LetzElphElectronPhononDB():
             - ph_eigenvectors : ndarray
                 The phonon eigenvectors.
             - ph_elph_me : ndarray
-                The electron-phonon matrix elements with the QE convention [!!Ry!!].
+                The electron-phonon matrix elements with the specified convention [QE convention Ry].
         """
         #
         if len(bands_range) == 0:
@@ -204,22 +208,23 @@ class LetzElphElectronPhononDB():
         else :
             ## else we load from the file
             close_file = False
-        if not database :
-            close_file = True
-            database = Dataset(self.filename,'r')
-        eph_mat = database['elph_mat'][iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd, :].data #
-        # ( nk, nm, nspin, initial bnd, final bnd,2) -> (nk,nm,nspin,initial bnd, final bnd,2)
-        ph_eigs = database['POLARIZATION_VECTORS'][iq,...].data
-        eph_mat = eph_mat[...,0] + 1j*eph_mat[...,1] # (nk,nm, nspin,initial bnd, final bnd)            
-        ph_eigs = ph_eigs[...,0] + 1j*ph_eigs[...,1]
-        sqrt_EPh = 1.0 / np.sqrt(2 * self.ph_energies[iq]/ha2ev) # energies [eV]->[Ry]
-        sqrt_EPh[np.isnan(sqrt_EPh)] = 0 # Ry
-        sqrt_EPh=(0.5)**1.5 * sqrt_EPh 
-        if(iq==0): sqrt_EPh[:3]=0 # ensure acoustic modes are zero
-        eph_mat = np.einsum('kvslm,v->kvslm', eph_mat, sqrt_EPh)
-        if close_file :database.close()
+            if not database :
+                close_file = True
+                database = Dataset(self.filename,'r')
+            eph_mat = database['elph_mat'][iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd, :].data
+            # ( nk, nm, nspin, initial bnd, final bnd)
+            ph_eigs = database['POLARIZATION_VECTORS'][iq,...].data
+            eph_mat = eph_mat[...,0] + 1j*eph_mat[...,1]
+            ph_eigs = ph_eigs[...,0] + 1j*ph_eigs[...,1]
+            if self.div_by_energies:
+                ph_freq_iq = np.sqrt(2.0*np.abs(self.ph_energies[iq]/(ha2ev/2.)))
+                if iq > 0:
+                    ph_freq_iq = 1.0/ph_freq_iq
+                    eph_mat[:, 3:] *= ph_freq_iq[None,:,None,None,None]
+            if close_file :database.close()
         return [ph_eigs, self.change_convention(self.qpoints[iq],eph_mat, convention).astype(eph_mat.dtype)]
-
+        ## output elph matrix elements unit (Ry if div_by_energies else Ry^1.5)
+        # ( nk, nm, nspin, initial bnd, final bnd)
     def change_convention(self, qpt, elph_iq, convention='yambo'):
         """
         Adjusts the convention of the electron-phonon matrix elements.
@@ -243,7 +248,7 @@ class LetzElphElectronPhononDB():
         if convention.strip() != 'yambo': convention = 'standard'
         if self.convention == convention: return elph_iq
         if convention == 'standard': factor = 1.0
-        else :factor = -1.0
+        else: factor = -1.0
         idx_q = find_kpt(self.ktree, factor*qpt[None, :] + self.kpoints)
         return elph_iq[idx_q,:, ...]
 
@@ -257,7 +262,8 @@ class LetzElphElectronPhononDB():
         app('nmodes: %d'%self.nm)
         app('natoms: %d'%self.nat)
         app('nbands: %d %d'%(self.nb1,self.nb2))
- 
+        app('convention: %s'%self.convention)
+
         if self.verbose:
 
             if hasattr(self, 'ph_eigenvectors'):                 
