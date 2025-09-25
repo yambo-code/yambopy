@@ -21,7 +21,8 @@ class YamboLatticeDB(object):
     """
     def __init__(self,lat=None,alat=None,sym_car=None,iku_kpoints=None,
                       car_atomic_positions=None,atomic_numbers=None,
-                      time_rev=None,mag_syms=None):
+                      time_rev=None,nelectrons=None,spinor_components=None,
+                      mag_syms=None):
         self.lat                  = np.array(lat)
         self.alat                 = np.array(alat)
         self.sym_car              = np.array(sym_car)
@@ -29,6 +30,8 @@ class YamboLatticeDB(object):
         self.car_atomic_positions = np.array(car_atomic_positions)
         self.atomic_numbers       = np.array(atomic_numbers)
         self.time_rev             = time_rev
+        self.spinor_components    = spinor_components
+        self.nelectrons           = nelectrons
         self.mag_syms             = mag_syms
         self.ibz_nkpoints         = len(iku_kpoints)
 
@@ -46,7 +49,9 @@ class YamboLatticeDB(object):
         with Dataset(filename) as database:
 
             dimensions = database.variables['DIMENSIONS'][:]
-            time_rev = dimensions[9].astype(int)
+            time_rev   = dimensions[9].astype(int)
+            spinor_components = dimensions[11].astype(int)
+            nelectrons = dimensions[14].astype(int)
             mag_syms   = database.variables['mag_syms'][:].astype(int)[0]
 
             natoms_a = database.variables['N_ATOMS'][:].astype(int).T
@@ -70,10 +75,12 @@ class YamboLatticeDB(object):
                          lat                  = database.variables['LATTICE_VECTORS'][:].T,
                          alat                 = database.variables['LATTICE_PARAMETER'][:].T,
                          time_rev             = time_rev,
+                         spinor_components    = spinor_components,
+                         nelectrons           = nelectrons,
                          mag_syms             = mag_syms)
 
         y = cls(**args)
-        if Expand: y.expand_kpoints(atol=atol)
+        if Expand: y.expand_kpoints(atol=atol,verbose=0)
         return y
  
     @classmethod    
@@ -245,7 +252,15 @@ class YamboLatticeDB(object):
             time_rev_list[i] = ( i >= self.nsym/(self.time_rev+1) )
         return time_rev_list
 
-    def expand_kpoints(self,verbose=1,atol=1.e-6):
+    @property
+    def nbandsv(self):
+        """
+        number of occupied bands
+        """
+        if (self.spinor_components==2): return int(self.nelectrons)
+        else:                           return int(self.nelectrons/2)
+
+    def expand_kpoints(self,verbose=0,atol=1.e-6):
         """
         Wrapper for expand_kpoints in kpoints module
 
@@ -256,15 +271,21 @@ class YamboLatticeDB(object):
         # Store original kpoints in iku coordinates
         self.ibz_kpoints = self.iku_kpoints
 
-        weights, kpoints_indexes, symmetry_indexes, kpoints_full = expand_kpoints(self.car_kpoints,self.sym_car,self.rlat,atol=atol)
+        weights, BZ_to_IBZ_indexes, symmetry_indexes, kpoints_full = expand_kpoints(self.car_kpoints,self.sym_car,self.rlat,atol=atol)
 
         if verbose: print("%d kpoints expanded to %d"%(len(self.car_kpoints),len(kpoints_full)))
 
         #set the variables
         self.weights_ibz      = weights
-        self.kpoints_indexes  = kpoints_indexes
         self.symmetry_indexes = symmetry_indexes
         self.iku_kpoints      = [k*self.alat for k in kpoints_full]
+        # BZ_to_IBZ_indexes[ik_bz] = ik_ibz in the original unexpanded list
+        self.BZ_to_IBZ_indexes = BZ_to_IBZ_indexes # for clarity for users
+        self.kpoints_indexes   = BZ_to_IBZ_indexes # for compatibility
+        # IBZ_to_BZ_indexes[ik_ibz] = {ik_bz} in the star (first element is identity)
+        self.IBZ_to_BZ_indexes = {}
+        for ibz_index in np.unique(BZ_to_IBZ_indexes):
+            self.IBZ_to_BZ_indexes[ibz_index] = np.where(BZ_to_IBZ_indexes == ibz_index)[0]
 
     def get_units_info(self):
 
