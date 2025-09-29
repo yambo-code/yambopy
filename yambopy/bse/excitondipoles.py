@@ -36,8 +36,8 @@ def exciton_dipoles(blongdir,lattice_path,dipoles_path=None,bse_path=None,kplot=
     * check [default=False]: compare with BSE residuals
 
     Output:
-    * Values of |D|^2 in bohr^{-2}
-    * [if kplot=True] Value of D(k) in bohr^{-1} (cmplx)
+    * Values of |D|^2 in bohr^2
+    * [if kplot=True] Value of D(k) in bohr (cmplx)
     """
     if bse_path is None:     bse_path = lattice_path
     if dipoles_path is None: dipoles_path = lattice_path
@@ -48,7 +48,7 @@ def exciton_dipoles(blongdir,lattice_path,dipoles_path=None,bse_path=None,kplot=
     # Load full BSE database
     yexc = YamboExcitonDB.from_db_file(ylat,filename=bse_path+'/ndb.BS_diago_Q1')
     # Turn off default [1,1,1] dipole projection upon expansion
-    ydip = YamboDipolesDB(ylat,save=dipoles_path,filename='ndb.dipoles',project=False)
+    ydip = YamboDipolesDB.from_db_file(ylat,filename=f'{dipoles_path}/ndb.dipoles',project=False)
 
     # Dipoles are dimensioned as (k,c,v) not (k,v,c) so we switch the table
     table_kcv = yexc.table

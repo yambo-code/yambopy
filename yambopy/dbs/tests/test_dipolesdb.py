@@ -25,7 +25,7 @@ class TestYamboDipolesDB(unittest.TestCase):
         #read dipoles
         # P  -> the velocity matrix elements
         # iR -> from the velocity matrix elements using r = [H,r]
-        dipoles = YamboDipolesDB(lat,save=test_path,dip_type='P')
+        dipoles = YamboDipolesDB.from_db_file(lat,filename=f'{test_path}/ndb.dipoles',dip_type='P')
 
         #calculate epsilon
         dipoles.ip_eps2(electrons)
