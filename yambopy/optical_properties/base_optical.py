@@ -333,7 +333,9 @@ class BaseOpticalProperties(ABC):
             self.kpt_tree = build_ktree(kpts)
             self.qidx_in_kpts = find_kpt(self.kpt_tree, kpts)
     
-    def _read_dipoles_db(self, ydipdb=None, dip_dir='gw', bands_range=None):
+    def _read_dipoles_db(self, dip_type = 'iR', field_dir = [1,1,1],
+                         bands_range = None, expand=False, project=False, polarization_mode=None, debug=False,
+                         ydipdb=None, DIP_dir=''):
         """
         Read Yambo dipoles database.
         
@@ -347,18 +349,18 @@ class BaseOpticalProperties(ABC):
             Range of bands to load.
         """
         bands_range = bands_range or self.bands_range
-        dip_dir_path = os.path.join(self.path, dip_dir)
-        
+        if DIP_dir == '':
+            DIP_dir = self.BSE_dir
+        dip_dir_path = os.path.join(self.path, DIP_dir)
+
         try:
             ndb_dipoles_fname = os.path.join(dip_dir_path, 'ndb.dipoles')
             if ydipdb:
                 self.ydipdb = ydipdb
             else:
-                self.ydipdb = YamboDipolesDB(
-                    self.ydb, save='', filename=ndb_dipoles_fname, 
-                    dip_type='iR', field_dir=[1, 1, 1], project=False, 
-                    expand=False, bands_range=bands_range
-                )
+                self.ydipdb = YamboDipolesDB.from_db_file(self.ydb, ndb_dipoles_fname, dip_type, field_dir, bands_range, expand, 
+                                                          project, polarization_mode, debug
+                                                          )
         except Exception as e:
             print(f"Warning: Could not read dipoles database: {e}")
             print("Continuing without dipoles data - some functionality may be limited")

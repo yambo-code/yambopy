@@ -6,7 +6,7 @@ import os
 from netCDF4 import Dataset
 import numpy as np
 from itertools import product
-from yambopy import YamboLatticeDB
+from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.tools.string import marquee
 from yambopy.units import I
 

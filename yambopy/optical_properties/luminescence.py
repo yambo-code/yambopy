@@ -26,7 +26,7 @@ warnings.filterwarnings('ignore')
 class Luminescence(BaseOpticalProperties):
     def __init__(self, path=None, save='SAVE', lelph_db=None, latdb=None, wfdb=None, 
                  ydipdb=None, bands_range=None, BSE_dir='bse', LELPH_dir='lelph', 
-                 DIP_dir='gw', save_files=True):
+                 DIP_dir='gw', save_files=True, field_dir = [1,1,1]):
         """
         Initialize the Luminescence class.
 
@@ -54,6 +54,8 @@ class Luminescence(BaseOpticalProperties):
             Dipoles directory name. Defaults to 'gw'.
         save_files : bool, optional
             Whether to save files in .npy database. Defaults to True.
+        field_dir : list, optional
+            Direction of the electric field. Defaults to [1,1,1].            
         """
         # Initialize base class
         super().__init__(path=path, save=save, latdb=latdb, wfdb=wfdb, 
@@ -65,6 +67,7 @@ class Luminescence(BaseOpticalProperties):
         # Store specific parameters
         self.lelph_db = lelph_db
         self.ydipdb = ydipdb
+        self.field_dir = field_dir
         
         # Read all necessary databases
         self.read(lelph_db=lelph_db, latdb=latdb, wfdb=wfdb, 
@@ -105,7 +108,7 @@ class Luminescence(BaseOpticalProperties):
             self.ph_freq = None
         
         # Read dipoles database
-        self._read_dipoles_db(ydipdb, dip_dir=self.DIP_dir, bands_range=bands_range)
+        self._read_dipoles_db(ydipdb = ydipdb, dip_dir=self.DIP_dir, bands_range=bands_range)
         
         # Build k-point tree and find q-point indices (needed for luminescence)
         from yambopy.kpoints import build_ktree, find_kpt

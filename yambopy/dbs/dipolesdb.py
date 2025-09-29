@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 from itertools import product 
 import matplotlib.pyplot as plt
-from yambopy import YamboLatticeDB
+from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.units import I
 from yambopy.tools.types import CmplxType
 from yambopy.tools.string import marquee

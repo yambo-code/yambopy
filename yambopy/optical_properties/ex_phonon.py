@@ -35,9 +35,6 @@ class ExcitonPhonon(BaseOpticalProperties):
     wfdb : YamboWFDB, optional
         The YamboWFDB object which contains the wavefunction information. If not
         provided, it will be read from the ns.wf file.
-    ydipdb : YamboDipolesDB, optional
-        The YamboDipolesDB object which contains the dipole information. If not
-        provided, it will be read from the dipoles database.
     bands_range : list or tuple, optional
         The range of bands for which the exciton-phonon matrix elements will be
         computed. Default is all bands.
@@ -68,13 +65,11 @@ class ExcitonPhonon(BaseOpticalProperties):
         elements.
     wfdb : YamboWFDB
         The YamboWFDB object which contains the wavefunction information.
-    ydipdb : YamboDipolesDB
-        The YamboDipolesDB object which contains the dipole information.
     save_files : bool
         If True, the matrix elements will be saved in .npy files.
     """
     def __init__(self, path=None, save='SAVE', lelph_db=None, latdb=None, wfdb=None, \
-                 ydipdb=None, bands_range=[], BSE_dir='bse', LELPH_dir='lelph', \
+                 bands_range=[], BSE_dir='bse', LELPH_dir='lelph', \
                  DIP_dir='gw',save_files=True, neigs=-1):
         """
             Initialize ExcitonPhonon class.
@@ -91,8 +86,6 @@ class ExcitonPhonon(BaseOpticalProperties):
                 Pre-loaded lattice database.
             wfdb : YamboWFDB, optional
                 Pre-loaded wavefunction database.
-            ydipdb : YamboDipolesDB, optional
-                Pre-loaded dipoles database.
             bands_range : list, optional
                 Range of bands to load.
             BSE_dir : str, optional
@@ -121,7 +114,6 @@ class ExcitonPhonon(BaseOpticalProperties):
         self.DIP_dir   = os.path.join(path,DIP_dir) # usually dip_dir is in gw run
         self.latdb = latdb
         self.lelph_db = lelph_db
-        self.ydipdb = ydipdb
         self.neigs = neigs
         
         # Initialize caching
@@ -130,9 +122,9 @@ class ExcitonPhonon(BaseOpticalProperties):
         
         # Read all necessary databases
         self.read(lelph_db=lelph_db, latdb=latdb, wfdb=wfdb, 
-                  ydipdb=ydipdb, bands_range=bands_range)
+                  bands_range=bands_range)
 
-    def read(self, lelph_db=None, latdb=None, wfdb=None, ydipdb=None, bands_range=None):
+    def read(self, lelph_db=None, latdb=None, wfdb=None, bands_range=None):
         """
         Read all necessary databases for exciton-phonon calculations.
         
@@ -144,8 +136,6 @@ class ExcitonPhonon(BaseOpticalProperties):
             Pre-loaded lattice database.
         wfdb : YamboWFDB, optional
             Pre-loaded wavefunction database.
-        ydipdb : YamboDipolesDB, optional
-            Pre-loaded dipoles database.
         bands_range : list, optional
             Range of bands to load.
         """
@@ -167,9 +157,9 @@ class ExcitonPhonon(BaseOpticalProperties):
             self.elph_bnds_range = None
             self.ph_freq = None
         
-        # Read dipoles database if provided
-        if ydipdb is not None:
-            self._read_dipoles_db(ydipdb, dip_dir=self.BSE_dir, bands_range=bands_range)
+        # # Read dipoles database if provided
+        # if ydipdb is not None:
+        #     self._read_dipoles_db(ydipdb, dip_dir=self.BSE_dir, bands_range=bands_range)
 
     def compute(self, gamma_only=True):
         """
