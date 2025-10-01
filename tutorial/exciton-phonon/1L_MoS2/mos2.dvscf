@@ -1,0 +1,17 @@
+mos2_dvscf
+&inputph
+  tr2_ph=1.0d-12,
+  verbosity='high'
+  prefix='mos2',
+  fildvscf = 'mos2-dvscf',
+  electron_phonon = 'dvscf',
+  fildyn='mos2.dyn',
+  epsil=.false.,
+  !trans=.true.,
+  ldisp=.true.,
+  !qplot=.true.,
+  recover=.true.,
+  nq1=6,
+  nq2=6,
+  nq3=1
+/

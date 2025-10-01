@@ -11,6 +11,7 @@ Do pre/post-processing, data analysis and plotting for yambo and quantum espress
 - Yambo wiki: http://wiki.yambo-code.eu/
 - Yambo Github page [download yambo & yambopy]: https://github.com/yambo-code/
 
+Yambopy is distributed under the GPL 2.0 license (same as the Yambo code).
 
 Documentation
 -------------
@@ -51,7 +52,7 @@ Installation
 
 Make sure that you have a suitable python environment (created for example with [conda](https://docs.conda.io/projects/miniconda/en/latest/) or [venv](https://docs.python.org/3/library/venv.html)).
 
-Use python version >=3.10.
+Use python version >=3.8.
 
 If you never used an environment just type
 `python -m venv MYPATH/yamboenv/`       (you can replace `MYPATH` with any path you prefer, e.g. `~/`)
@@ -72,13 +73,20 @@ Requirements
 - scipy: https://www.scipy.org/
 - matplotlib: http://matplotlib.org/
 - netCDF4: http://unidata.github.io/netcdf4-python/
+- h5py: https://www.h5py.org/
 - lxml: https://lxml.de/
 - pyyaml: https://pyyaml.org/
 - monty: https://pypi.org/project/monty/
 - scikit-learn: https://pypi.org/project/scikit-learn/
+- tqdm: https://pypi.org/project/tqdm/
+- spglib: https://spglib.readthedocs.io/en/latest/python-interface.html
+- spgrep: https://pypi.org/project/spgrep/
+- pykdtree: https://pypi.org/project/pykdtree/
+- numba: https://numba.pydata.org/
+
 
 Yambopy works for the following DFT/MBPT codes:
-- yambo (>5.0.0): https://www.yambo-code.eu/
+- yambo (>=5.0): https://www.yambo-code.eu/
 - Quantum Espresso (optional): http://www.quantum-espresso.org/
 
 Troubleshooting, bugs and questions
@@ -112,6 +120,10 @@ Active contributors:
 - Muralidhar Nalabothula
 - Riccardo Reho
 - Michele Re Fiorentin
+- Ali Esquembre-Kucukalic
+- Mike Nico Pionteck
+- Yuncheng Mao
+- Martino Silvetti
 - You if you want to share your scripts!
 
 Past contributors:
@@ -128,6 +140,24 @@ If you want to contribute, we suggest the following steps:
 1. Fork this repository
 2. Implement and test your new feature(s) in the forked repo
 3. Create a pull request in order to include your development in the official code
+
+How to cite
+-----------
+If yambopy helped you with your data analysis, workflow management of figure preparation, you can consider citing us.
+
+The way to do so in BibTeX format is the following (or simply type `yambopy cite`):
+
+```
+@misc{yambopy, 
+      author = {Paleari, Fulvio and Molina-Sánchez, Alejandro and Nalabothula, Muralidhar and Reho, Riccardo and Bonacci, Miki and Castelo, José M. and Cervantes-Villanueva, Jorge and Pionteck, Mike and Silvetti, Martino and Attaccalite, Claudio and Pereira Coutada Miranda, Henrique},
+      title = {Yambopy},
+      month = mar,
+      year = 2025,
+      publisher = {Zenodo},
+      version = {0.4.0}, 
+      doi = {10.5281/zenodo.15012962},
+      url = {https://doi.org/10.5281/zenodo.15012962}, }
+```
 
 Acknowledgements
 ----------------

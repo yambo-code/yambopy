@@ -86,9 +86,9 @@ class YamboQPDB():
         """
         #start arrays
 
-        # AMS: I changed the way we define the arrays. Hope is not breaking other things
+        # If spin polarisation is present, arrays have one additional dimension
 
-        # I have shifted 
+        # shift
         ncalculatedkpoints = self.max_kpoint - self.min_kpoint + 1
         if self.spin is True:
            eigenvalues_dft = np.zeros([ncalculatedkpoints,self.nbands,2])
@@ -307,8 +307,13 @@ class YamboQPDB():
         #interpolate the dft eigenvalues
         kpoints = lattice.red_kpoints
         sym_rec  = lattice.sym_rec
-        symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
-        time_rev = True
+        if not lattice.mag_syms:
+            symrel = [sym for sym,trev in zip(lattice.sym_rec_red,lattice.time_rev_list) if trev==False ]
+            trev_for_interp = lattice.time_rev
+        # Handle special case of mag_sys + trev (e.g. SOC + ferromagnet, etc)
+        elif lattice.time_rev:
+            symrel = lattice.sym_rec_red
+            trev_for_interp=False
         
         band_kpoints_rlu = path.get_klist()[:,:3]
 
@@ -323,8 +328,8 @@ class YamboQPDB():
               print('Spin-polarized bands DFT')
               eigens_up = self.eigenvalues_dft[np.newaxis,:,:,0]
               eigens_dw = self.eigenvalues_dft[np.newaxis,:,:,1]
-              skw_up = SkwInterpolator(lpratio,kpoints,eigens_up,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-              skw_dw = SkwInterpolator(lpratio,kpoints,eigens_dw,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+              skw_up = SkwInterpolator(lpratio,kpoints,eigens_up,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
+              skw_dw = SkwInterpolator(lpratio,kpoints,eigens_dw,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
               dft_eigens_up_kpath = skw_up.interp_kpts(band_kpoints_rlu).eigens[0]
               dft_eigens_dw_kpath = skw_dw.interp_kpts(band_kpoints_rlu).eigens[0]
 
@@ -336,7 +341,7 @@ class YamboQPDB():
            else:
               print('No spin-polarized bands DFT')
               eigens  = self.eigenvalues_dft[np.newaxis,:]
-              skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+              skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
               #kpoints_path = path.get_klist()[:,:3]
               dft_eigens_kpath = skw.interp_kpts(band_kpoints_rlu).eigens[0]
               if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
@@ -355,8 +360,8 @@ class YamboQPDB():
                    eigens_up[0,ik,:], eigens_dw[0,ik,:] = sorted(aux_up[0,ik,:]), sorted(aux_dw[0,ik,:])
                #end sorting
 
-               skw_up = SkwInterpolator(lpratio,kpoints,eigens_up,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-               skw_dw = SkwInterpolator(lpratio,kpoints,eigens_dw,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+               skw_up = SkwInterpolator(lpratio,kpoints,eigens_up,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
+               skw_dw = SkwInterpolator(lpratio,kpoints,eigens_dw,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
                #kpoints_path = path.get_klist()[:,:3]
                qp_eigens_up_kpath = skw_up.interp_kpts(band_kpoints_rlu).eigens[0]
                qp_eigens_dw_kpath = skw_dw.interp_kpts(band_kpoints_rlu).eigens[0]
@@ -373,7 +378,7 @@ class YamboQPDB():
                for ik in range(self.nkpoints):
                    eigens[0,ik,:] = sorted(aux[0,ik,:])
                #end sorting
-               skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+               skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
                #kpoints_path = path.get_klist()[:,:3]
                qp_eigens_kpath = skw.interp_kpts(band_kpoints_rlu).eigens[0]
                if valence: kwargs['fermie'] = np.max(qp_eigens_kpath[:,:valence])
@@ -384,7 +389,7 @@ class YamboQPDB():
             qp_z_kpath = None
             if 'Z' in what:
                 eigens = self.z[np.newaxis,:]
-                skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+                skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
                 #kpoints_path = path.get_klist()[:,:3]
                 qp_z_kpath = skw.interp_kpts(band_kpoints_rlu).eigens[0]
                 
@@ -394,15 +399,20 @@ class YamboQPDB():
         else: 
            return ks_ebands, qp_ebands
 
-    def expand_eigenvalues(self,lattice):
+    def expand_eigenvalues(self,lattice,data=None):
         """ Expand QP values in full BZ
             - Input: YamboLatticeDB object with expanded kpts
+            - Input: data as eigenvalues to expand with correct dimensions. If None, expand QP eigenvalues
         """
         nkbz   = lattice.nkpoints
         bz2ibz = lattice.kpoints_indexes
 
-        eigenvalues_qp_expanded = np.zeros((nkbz,self.nbands))
-        for ikbz in range(nkbz): eigenvalues_qp_expanded[ikbz,:] = self.eigenvalues_qp[bz2ibz[ikbz],:] 
+        if data is None: data = self.eigenvalues_qp
+
+        if self.spin: eigenvalues_qp_expanded = np.zeros((nkbz,self.nbands,2))
+        else:         eigenvalues_qp_expanded = np.zeros((nkbz,self.nbands))
+
+        for ikbz in range(nkbz): eigenvalues_qp_expanded[ikbz,:] = data[bz2ibz[ikbz],:] 
         return eigenvalues_qp_expanded
 
 
@@ -446,10 +456,11 @@ class YamboQPDB():
     def __str__(self):
         lines = []; app = lines.append
         app(marquee(self.__class__.__name__))
-        app("nqps:     %d"%self.nqps)
-        app("nkpoints: %d"%self.nkpoints)
-        app("nbands:   %d"%self.nbands)
-        app("min_band: %d"%self.min_band)
-        app("max_band: %d"%self.max_band)
+        app( "nqps:     %d"%self.nqps)
+        app( "nkpoints: %d"%self.nkpoints)
+        app( "nbands:   %d"%self.nbands)
+        app( "min_band: %d"%self.min_band)
+        app( "max_band: %d"%self.max_band)
+        if self.spin: app("Spin-polarized system.")
         return "\n".join(lines)
 

@@ -93,9 +93,13 @@ class YamboElectronPhononDB():
             self.b_in, self.b_out = [b_1-1,b_2-1]
             self.nbands = b_2-b_1+1
         self.natoms = int(self.nmodes/3)
-        # read IBZ k-points
-        self.ibz_kpoints_elph = database.variables['HEAD_KPT'][:].T
-        self.ibz_car_kpoints = np.array([ k/self.alat for k in self.ibz_kpoints_elph ])
+
+        try: #check if IBZ K-point list is provided
+            self.ibz_kpoints_elph = database.variables['HEAD_KPT'][:].T
+            self.ibz_car_kpoints = np.array([ k/self.alat for k in self.ibz_kpoints_elph ])
+        except KeyError: 
+            pass
+
         try: # Check if full K-point list is provided (upon expansion), otherwise use the one from ns.db1
             self.kpoints_elph = database.variables['PH_K'][:].T
             self.car_kpoints = np.array([ k/self.alat for k in self.kpoints_elph ])

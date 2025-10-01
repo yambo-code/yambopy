@@ -6,10 +6,12 @@ import os
 import re
 import numpy as np
 from qepy import PwIn
-from yambopy.lattice import *
+from yambopy.lattice import rec_lat, car_red,red_car
+from yambopy.zeros import matdyn_q_atol 
 from itertools import product
 import copy
 from math import *
+
 # Dimensional constants for reference (actually only b2a is really used in the code for now)
 cm1_2_Tera=0.0299793         # Conversion from cm-1 to THz with 2pi factor included
 Tera=1.e12                   
@@ -23,32 +25,6 @@ cMp=Mp*1.660539*6.241509e-29 # Conversion of Mp in eV*\AA^{-2}*s^2
 """(iii) Small issue in nondiagonal supercell matrices for certain q-vectors
    (iv)  In nondiagonal supercells: the suggested kpoint mesh must be CONSISTENT and UNIFORM --> to fix
 """
-## These two functions read phonons from qe output
-def read_frequencies(modes_file,units='Tera'):
-    """Read phonon frequencies from QE output phonon modes file
-    """
-    Omega=[]
-    with open (modes_file) as fp:
-        for line in fp:
-            if line.strip()[0:4]=='freq':
-                w=re.findall(r"[-+]?\d*\.\d+|d+", line)
-                Omega.append(w)
-    Omega = np.float_(Omega)
-    if units=='Tera': Omega= Omega[:,0]
-    else:             Omega= Omega[:,1]
-    return Omega
-
-def read_eig(modes_file,basis):
-    """ Read phonon modes from QE output file
-    """
-    modes=3*basis
-    eig = np.genfromtxt(modes_file, autostrip=True, comments='freq', skip_header=4, skip_footer=1, usecols=(1,2,3,4,5,6))
-    # Reshape data from quantum espresso output
-    eig = np.array([eig[:,0]+1j*eig[:,1], eig[:,2]+1j*eig[:,3], eig[:,4]+1j*eig[:,5]])
-    eig = eig.T
-    eig = np.reshape(eig, (modes,basis,3))
-    # eig[mode][atom][direction]
-    return eig
 
 ## Start of the proper supercell class
 class Supercell():
@@ -90,11 +66,14 @@ class Supercell():
         self.uc_kpts  = qe_input.kpoints
         self.atypes   = qe_input.atypes
         self.aunits   = qe_input.atomic_pos_type
- 
+        #Atomic masses (in u)
+        self.m_at = np.array( [ float( self.atypes.get( self.atoms[i][0] )[0] ) for i in range(self.basis) ] )
+
+
     """
     [START] Displacement-related functions                          
     """
-    def displace(self,modes_file,new_atoms,Temp=0.1,use_temp='no',write=True):
+    def displace(self,qe_dyn,new_atoms,iq=0,Temp=0.1,use_temp='no',write=True):
         """
         Case of displaced supercell
         """
@@ -102,19 +81,38 @@ class Supercell():
         GAMMA = False
         try: self.Q
         except AttributeError: GAMMA = True
-
+        
         print('Applying displacements according to phonon modes...')
         self.use_temp = use_temp
-        self.initialize_phonons(modes_file,self.atypes,Temp)
-        
+        self.initialize_phonons(iq,qe_dyn,Temp)
+
+        if GAMMA and np.linalg.norm(qe_dyn.qpoints[iq])>matdyn_q_atol:
+            print("WARNING: Q-point in matdyn file different from the one used to generate supercell")
+        if not GAMMA:
+            # Transform all q-point in reduced coordinates
+            rlat =rec_lat(self.latvec)
+            alat0=self.qe_input.get_alat0()
+            q = []
+            q.append(qe_dyn.qpoints[iq]/alat0)
+            q_matdyn=car_red(q,rlat)
+            q_in = np.array([float(self.Q[0,i])/float(self.Q[1,i]) for i in range(3)])
+
+            # Bring in the BZ [0,1)
+            q_in = q_in-np.floor(q_in)
+            q_matdyn = q_matdyn-np.floor(q_matdyn)
+            if not np.allclose(q_matdyn,q_in,rtol=0.0,atol=matdyn_q_atol):
+                print("WARNING: Q-point in matdyn file different from the one used to generate supercell")
+                print("Q-in     : ",q_in, " [red] ")
+                print("Q-matdyn : ",q_matdyn[0], " [red] ")
+
         if GAMMA: #No phases and take only optical modes
             phases = np.ones(self.sup_size)
-            expand_eigs = np.array([phases[i]*self.eigs for i in range(self.sup_size)])
-            self.print_expanded_eigs(expand_eigs,modes_file,GAMMA=GAMMA)
+            expand_eigs = np.array([phases[i]*self.eiv for i in range(self.sup_size)])
+            self.print_expanded_eigs(expand_eigs,GAMMA=GAMMA)
         else: 
             phases = self.getPhases()                
-            expand_eigs = np.array([phases[i]*self.eigs for i in range(self.sup_size)])
-            self.print_expanded_eigs(expand_eigs,modes_file,GAMMA=GAMMA) #Print expanded eigs
+            expand_eigs = np.array([phases[i]*self.eiv for i in range(self.sup_size)])
+            self.print_expanded_eigs(expand_eigs,GAMMA=GAMMA) #Print expanded eigs
             #Take real part
             for cell in range(self.sup_size): expand_eigs[cell]= self.take_real(expand_eigs[cell])            
 
@@ -132,8 +130,9 @@ class Supercell():
             if 'Q' in globals(): mode='nd'
             else: mode='diagonal'
             self.modes_qe = [self.write(new_atoms,mode,phonon=disps_slice) for disps_slice in self.disps]
-    
-    def print_expanded_eigs(self,exp_eigs,modes_file,GAMMA=False):
+
+ 
+    def print_expanded_eigs(self,exp_eigs,GAMMA=False):
         """
         Print expanded modes in QE-style, to compare and for reference
         """
@@ -147,7 +146,8 @@ class Supercell():
             mode_start = 0
         
         sc_basis = self.basis*ncells
-        freq_THz,freq_cmm1=read_frequencies(modes_file,units='Tera'),read_frequencies(modes_file,units='cmm1')
+        freq_THz =[self.qe_dyn.get_phonon_freq(self.iq,im+1,unit='THz')  for im in range(self.qe_dyn.nmodes) ]
+        freq_cmm1=[self.qe_dyn.get_phonon_freq(self.iq,im+1,unit='cm-1') for im in range(self.qe_dyn.nmodes) ]
         exp_eigs = exp_eigs.swapaxes(0,1) #[mode][cell][basis][direction]
         if GAMMA: filename = self.qe_input.control['prefix'][1:-1]+"_s.modes_GAMMA"
         else: filename = self.qe_input.control['prefix'][1:-1]+"_s.modes_expanded"
@@ -168,16 +168,13 @@ class Supercell():
         exp_eigs_file.write(" **************************************************************************")
         exp_eigs_file.close()
 
-    def initialize_phonons(self,modes_file,atypes,Temp):
-        #Read frequencies
-        Omega = read_frequencies(modes_file)
-        self.Omega = Omega*Tera #in hertz
-        #Read phonon eigenmodes
-        self.eigs = read_eig(modes_file,self.basis)
-        #Temperature/displacement
-        self.Temp = Temp
-        #Atomic masses (in u)
-        self.m_at = np.array( [ float( atypes.get( self.atoms[i][0] )[0] ) for i in range(self.basis) ] )
+    
+    def initialize_phonons(self,iq,qe_dyn,Temp):
+        self.Temp     = Temp
+        self.qe_dyn   = qe_dyn
+        self.iq       = iq
+        self.Omega    = qe_dyn.eig[iq]*Tera
+        self.eiv = np.reshape(self.qe_dyn.eiv[iq],(self.qe_dyn.nmodes,self.basis,3))
 
     def getPhases(self):
         q = np.array([float(self.Q[0,i])/float(self.Q[1,i]) for i in range(3)])
@@ -197,6 +194,7 @@ class Supercell():
     def force_gauge(self,eig):
         """ 
         for each normal mode, the first nonzero element is set to be positive
+        see page 075125-3 of PRB 94, 075125 (2006)
         """
         modes=3*self.basis
         for i in range(modes):
@@ -327,7 +325,7 @@ class Supercell():
             z = g23*nums[0]/g12+g31*q*nums[1]/g12
             if gg_r == 1: r = 0
             else:
-                for i in range(1,gg_r):
+                for i in range(1,round(gg_r)):
                     if (z+i*nums[2]) % gg_r == 0:
                         r=i
                         break

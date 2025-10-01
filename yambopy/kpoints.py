@@ -225,8 +225,42 @@ def regular_grid(nk1,nk2,nk3):
     ])
     return xkg
 
+def find_kpatch(kpts, kcentre, kdist, lat_vecs):
+    """
+    find set of kpoints around the kcentre with in kdist
 
-def kpoint_grid(nk1,nk2,nk3,sym_and_trev,IBZ=True,eps=1.0e-5):
+    Parameters
+    ----------
+    kpts : kpoints in crystal coordinates (nk,3)
+    kcentre : kpoint centre in crystal coordinates (3)
+    kdist : distance around kcentre to be considered in atomic units 
+            i.e 1/bohr.
+    lat_vecs: lattice vectors. ith lattice vector is ai = a[:,i]
+    Returns
+    -------
+    int array
+        Indices of kpoints in kpts array which satify the given condition i.e
+        | k - kcentre + G0| <= kdist, where G0 is reciprocal lattice vector to bring to BZ
+    """
+    #
+    blat = 2*np.pi*np.linalg.inv(lat_vecs)
+    kdiff = kpts-kcentre[None,:]
+    kdiff = kdiff-np.floor(kdiff)
+    #
+    tmp_arr = np.array([-3, -2, -1, 0, 1, 2, 3])
+    nG0 = len(tmp_arr)
+    G0 = np.zeros((nG0,nG0,nG0,3))
+    G0[...,0], G0[...,1], G0[...,2] = np.meshgrid(tmp_arr, tmp_arr,
+                                                  tmp_arr, indexing='ij')
+    G0 = G0.reshape(-1,3)
+    kdiff = kdiff[:,None,:]-G0[None,:,:]
+    kdiff = kdiff.reshape(-1,3)@blat
+    kdiff = np.linalg.norm(kdiff,axis=-1).reshape(len(kpts),-1)
+    kdiff = np.min(kdiff,axis=-1)
+    return np.where(kdiff <= kdist)[0]
+
+    
+def generate_kpoint_grid(nk1,nk2,nk3,sym_and_trev,IBZ=True,eps=1.0e-5):
     """
     Generation of gamma-centered Monkhorst-Pack grid.
 
@@ -241,16 +275,14 @@ def kpoint_grid(nk1,nk2,nk3,sym_and_trev,IBZ=True,eps=1.0e-5):
 
         IBZ [True]    -> grid is reduced to IBZ by checking equivalent points
             [False]   -> grid is generated with symmetries turned off
-                         (i.e. NOT in BZ - the Wigner-Seitz cell - but in the
-                          primitive reciprocal unit cell)
+                         (i.e. NOT in BZ - the Wigner-Seitz cell - but in the primitive reciprocal unit cell)
         epes [1e-5]   -> numerical error for equivalent points
 
-        In order to obtain a list of kpoints in the full BZ, use IBZ==True and then
-        expand_kpoints().
+        In order to obtain a list of kpoints in the full BZ, use IBZ==True and then expand_kpoints().
 
     Output:
         xks -> Number of kpoints in IBZ
-        xk  -> kpoints in IBZ in CRYSTAL coordinates (convert to cc with red_car())
+        xk  -> kpoints in IBZ/BZ in CRYSTAL coordinates (convert to cc with red_car())
         wk  -> kpoints weights
     """
     Nk    = nk1*nk2*nk3
