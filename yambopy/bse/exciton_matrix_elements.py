@@ -52,7 +52,7 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
         The computed exciton matrix elements with shape (nlambda, n_exe_states) if diagonal_only is True,
         or (nlambda, n_exe_states (final), n_exe_states (initial)) if diagonal_only is False.
     """
-    # Number of arbitrary parameters (lambda) in the Omn matrix
+    # Number of arbitrary parameters (lambda) in the Omn matrix (e.g., phonon modes)
     nlambda = Omn.shape[0]
     #
     assert Akq.shape[1] == 1, "Works only with TDA."
@@ -73,8 +73,8 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     idx_k_minus_q = find_kpt(ktree, kpts - O_qvec[None, :])  # k-q
     #
     # Extract the occupied and unoccupied parts of the Omn matrix
-    Occ = Omn[:, idx_k_minus_q, :, nv:, nv:].transpose(0,2,1,3,4)  # Occupied part
-    Ovv = Omn[:, idx_k_minus_Q_minus_q, :, :nv, :nv].transpose(0,2,1,3,4)  # conduction part
+    Occ = Omn[:, idx_k_minus_q, :, nv:, nv:].transpose(0,2,1,3,4)  # conduction (electron) part
+    Ovv = Omn[:, idx_k_minus_Q_minus_q, :, :nv, :nv].transpose(0,2,1,3,4)  # valence (hole) part
     #
     # Ensure the arrays are C-contiguous to reduce cache misses
     Ak_electron = np.ascontiguousarray(Ak[:,0][:,:,idx_k_minus_q, ...])
