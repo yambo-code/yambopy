@@ -194,7 +194,7 @@ class Luminescence(BaseOpticalProperties):
                                      broadening=0.00124, 
                                      npol=2, 
                                      ph_thr=1e-9,
-                                     ph_ass_only = True
+                                     direct_pl = False,
                                      ):   
         """
         Compute luminescence spectrum intensities.
@@ -259,7 +259,11 @@ class Luminescence(BaseOpticalProperties):
             raise IOError(f'Cannot compute exciton-phonon matrix elements: {e}')
         for i in tqdm(range(ome_range.shape[0]), desc="Luminescence "):
             inte_tmp = compute_luminescence_per_freq(ome_range[i], self.ph_freq, exe_ene, \
-                Exe_min, self.ex_dip, self.ex_ph, npol=npol, ph_thr=ph_thr,broadening=broadening, temp=temp, ph_ass_only=ph_ass_only)
+                Exe_min, self.ex_dip, self.ex_ph, npol=npol, ph_thr=ph_thr,broadening=broadening, temp=temp)
+            if direct_pl == True :
+                inte_direct = compute_dir_luminescence_per_freq(ome_range[i], self.ph_freq, exe_ene, \
+                    Exe_min, self.ex_dip, self.ex_ph, npol=npol, ph_thr=ph_thr,broadening=broadening,temp=temp)
+                inte_tmp += inte_direct  # Add direct PL contribution
             self_inten.append(inte_tmp)
         ## save intensties
         if self.save_files:
@@ -279,7 +283,117 @@ def compute_luminescence_per_freq(ome_light,
                         broadening=0.00124,
                         npol=2,
                         ph_thr=1e-9,
-                        ph_ass_only = True                        
+                        ):
+    ## We need exciton dipoles for light emission (<0|r|S>)
+    ## and exciton phonon matrix elements for phonon absorption <S',Q|dV_Q|S,0>
+    ## energy of the lowest energy energy exe_low_energy
+    """
+    Compute the luminescence intensity per frequency.
+
+    Parameters
+    ----------
+    ome_light : float
+        Photon energy in eV
+    ph_freq : array_like
+        Phonon frequencies in Ha
+    ex_ene : array_like
+        Exciton energies in Ha
+    exe_low_energy : float
+        Lowest energy of the exciton in Ha
+    ex_dip : array_like
+        Exciton-photon matrix elements in a.u.
+    ex_ph : array_like
+        Exciton-phonon matrix elements in a.u.
+    temp : float, optional
+        Temperature in Kelvin
+    broadening : float, optional
+        Broadening in eV
+    npol : int, optional
+        Number of polarizations
+    ph_thr : float, optional
+        Threshold for negative frequencies
+
+    Returns
+    -------
+    luminescence : float
+        Luminescence intensity per frequency
+    """
+    # Extract shape information
+    Nqpts = ex_ph.shape[0]
+    nmode = ex_ph.shape[1]
+    nbnd_i = ex_ph.shape[2]
+    nbnd_f = ex_ph.shape[3]
+    
+    # Convert units and compute constants
+    broadening_Ha = broadening / 27.211 / 2.0
+    ome_light_Ha = ome_light / 27.211
+    KbT = 3.1726919127302026e-06 * temp  ## Ha
+    
+    # Compute Boltzmann factors
+    bolt_man_fac = np.exp(-(ex_ene - exe_low_energy) / KbT)  ##(iq,nexe)
+        
+    # Initialize output array for parallel reduction
+    sum_array = np.zeros(Nqpts, dtype=np.float64)
+    
+    for iq in prange(Nqpts):
+        local_sum = 0.0
+        for iv in range(nmode):  # mu
+            # Compute frequency factor
+            ome_fac = ome_light_Ha * (ome_light_Ha - 2.0 * ph_freq[iq, iv])**2
+            
+            # Compute Bose-Einstein factors
+            if ph_freq[iq, iv] < ph_thr:
+                bose_ph_fac = 1.0
+                bos_occ = 1.0
+                # Note: Warning removed - not compatible with numba
+            else:
+                bos_occ = 1.0 / (np.exp(ph_freq[iq, iv] / KbT) - 1.0)
+                bose_ph_fac = 1.0 + bos_occ
+            
+            # Compute final state energy
+            E_f_omega = ex_ene[iq, :] - ph_freq[iq, iv]
+            
+            # Initialize scattering matrix
+            Tmu = np.zeros((npol, nbnd_f), dtype=np.complex128)  # D*G
+            
+            ## Compute scattering matrix
+            for ipol in range(npol): 
+                for ii in range(nbnd_i):  # lambda
+                    # Compute denominator with complex broadening
+                    denom = ex_ene[0, ii] - E_f_omega + 1j * broadening_Ha
+                    # Compute contribution
+                    contrib = np.conj(ex_ph[iq, iv, ii, :]) * ex_dip[ipol, ii] / denom
+                    Tmu[ipol, :] = Tmu[ipol, :] + contrib
+            
+            ## Compute Gamma_mu: abs and sum over initial states and pols
+            Tmu_abs_sq = np.abs(Tmu)**2
+            Tmu_sum = np.sum(Tmu_abs_sq, axis=0)
+            
+            # Compute denominator for Gamma_mu
+            denom_gamma = E_f_omega * ((ome_light_Ha - E_f_omega)**2 + broadening_Ha**2)
+            
+            Gamma_mu = bose_ph_fac * Tmu_sum * ome_fac * bolt_man_fac[iq, :] / denom_gamma
+            
+            # Compute direct contribution
+            # Use squared denominator to match Lorentzian form
+            local_sum = local_sum + np.sum(Gamma_mu).real
+        
+        sum_array[iq] = local_sum
+    
+    sum_out = np.sum(sum_array)
+    return sum_out * broadening_Ha / np.pi / Nqpts
+
+@njit(cache=True, nogil=True, parallel=True)
+def compute_dir_luminescence_per_freq(ome_light,
+                        ph_freq,
+                        ex_ene,
+                        exe_low_energy,
+                        ex_dip,
+                        ex_ph,
+                        temp=20.0,
+                        broadening=0.00124,
+                        npol=2,
+                        ph_thr=1e-9,
                         ):
     ## We need exciton dipoles for light emission (<0|r|S>)
     ## and exciton phonon matrix elements for phonon absorption <S',Q|dV_Q|S,0>
@@ -330,79 +444,55 @@ def compute_luminescence_per_freq(ome_light,
     bolt_man_fac = np.exp(-(ex_ene - exe_low_energy) / KbT)  ##(iq,nexe)
     
     # Pre-compute ex_dip absolute square sum (independent of q-point loop)
-    ex_dip_abs_sq = np.abs(ex_dip)**2
-    ex_dip_sum = np.sum(ex_dip_abs_sq)  # Sum over all polarizations and bands
+    ex_dip_pol_sum = np.sum(ex_dip,axis=0)
+    ex_dip_sum = np.abs(ex_dip_pol_sum)**2  # Sum over all polarizations and bands
     
-    # Initialize output array for parallel reduction
-    sum_array = np.zeros(Nqpts, dtype=np.float64)
+    # Step 1: Compute R_lambda by summing over all q, mu, beta
+    # R_lambda has shape (nbnd_f,) representing the scattering rate for each final state lambda
+    R_lambda_array = np.zeros((Nqpts, nbnd_f), dtype=np.complex128)
     
     for iq in prange(Nqpts):
-        local_sum = 0.0
-        for iv in range(nmode):  # mu
-            # Compute frequency factor
-            ome_fac = ome_light_Ha * (ome_light_Ha - 2.0 * ph_freq[iq, iv])**2
-            
-            # Compute Bose-Einstein factors
+        R_lambda_local = np.zeros(nbnd_f, dtype=np.complex128)
+        
+        for iv in range(nmode):  # mu (phonon modes)
             if ph_freq[iq, iv] < ph_thr:
                 bose_ph_fac = 1.0
                 bos_occ = 1.0
-                # Note: Warning removed - not compatible with numba
             else:
                 bos_occ = 1.0 / (np.exp(ph_freq[iq, iv] / KbT) - 1.0)
                 bose_ph_fac = 1.0 + bos_occ
-            
-            # Compute final state energy
-            E_f_omega = ex_ene[iq, :] - ph_freq[iq, iv]
-            
-            # Compute Rmu factor with regularization to avoid division by zero
-            # Add broadening^2 to denominators to prevent singularities (physical regularization)
-            reg = broadening_Ha**2  # Use broadening as regularization (physical)
-            denom1 = np.abs(ex_ene[iq, 0] - ex_ene[iq, :] + ph_freq[iq, iv])**2 + reg
-            denom2 = np.abs(ex_ene[iq, 0] - ex_ene[iq, :] - ph_freq[iq, iv])**2 + reg
-            term1 = bose_ph_fac / denom1
-            term2 = bos_occ / denom2
-            Rmu_local = term1 + term2
-            
-            # Initialize scattering matrix
-            Tmu = np.zeros((npol, nbnd_f), dtype=np.complex128)  # D*G
-            
-            ## Compute scattering matrix
+                     
+            reg = broadening_Ha**2  # Use broadening as regularization 
+                   
+            ## Sum over beta (initial bands) and polarizations
             for ipol in range(npol): 
-                for ii in range(nbnd_i):  # lambda
-                    # Compute denominator with complex broadening
-                    denom = ex_ene[0, ii] - E_f_omega + 1j * broadening_Ha
-                    # Compute contribution
-                    contrib = np.conj(ex_ph[iq, iv, ii, :]) * ex_dip[ipol, ii] / denom
-                    Tmu[ipol, :] = Tmu[ipol, :] + contrib
-            
-            ## Compute Gamma_mu: abs and sum over initial states and pols
-            Tmu_abs_sq = np.abs(Tmu)**2
-            Tmu_sum = np.sum(Tmu_abs_sq, axis=0)
-            
-            # Compute denominator for Gamma_mu
-            denom_gamma = E_f_omega * ((ome_light_Ha - E_f_omega)**2 + broadening_Ha**2)
-            
-            Gamma_mu = bose_ph_fac * Tmu_sum * ome_fac * bolt_man_fac[iq, :] / denom_gamma
-            
-            # Compute direct contribution
-            # Use squared denominator to match Lorentzian form
-            denom_direct = (ome_light_Ha - ex_ene[iq, 0])**2 + broadening_Ha**2
-            
-            # Avoid division by zero - check if denominator is too small
-            if np.abs(denom_direct) > 1e-15:
-                # Use Hartree units consistently (ome_light_Ha instead of ome_light)
-                # ex_dip_sum is real (sum of absolute squares), so result is real
-                # Take .real to ensure float64 type for numba
-                Direct_mu = (ex_dip_sum * ome_light_Ha**3 * (1.0 - Rmu_local) / denom_direct * bolt_man_fac[iq, 0]).real
-            else:
-                # Create zeros with same shape and dtype
-                Direct_mu = np.zeros(Rmu_local.shape[0], dtype=np.float64)
-            
-            # Sum contributions (take real part to ensure float type)
-            if ph_ass_only : Direct_mu *= 0.0
-            local_sum = local_sum + np.sum(Gamma_mu).real + np.sum(Direct_mu)
+                for ii in range(nbnd_i):  # beta (initial exciton states)
+                    # |G|^2 term
+                    G_squared = np.abs(ex_ph[iq, iv, ii, :])**2
+                    
+                    # Compute denominators: (E_lambda - E_beta +/- omega_q,mu)^2
+                    denom1 = (ex_ene[0, :] - ex_ene[iq, ii] + ph_freq[iq, iv])**2 + reg
+                    denom2 = (ex_ene[0, :] - ex_ene[iq, ii] - ph_freq[iq, iv])**2 + reg
+                    
+                    # Bose factors: (n+1)/denom1 + n/denom2
+                    term1 = bose_ph_fac / denom1
+                    term2 = bos_occ / denom2
+                    
+                    # Accumulate R_lambda
+                    R_lambda_local[:] += G_squared * (term1 + term2)
         
-        sum_array[iq] = local_sum
+        R_lambda_array[iq, :] = R_lambda_local
     
-    sum_out = np.sum(sum_array)
+    # Step 2: Sum R_lambda over all q-points
+    R_lambda = np.sum(R_lambda_array, axis=0)
+    
+    # Step 3: Compute I^PL(omega) = sum over lambda
+    # Denominator: (omega - E_lambda + i*eta)
+    denom_direct = (ome_light_Ha - ex_ene[0, :])**2 + broadening_Ha**2
+    
+    # Direct PL intensity: |T_lambda|^2 * omega^3 * (1 - R_lambda) / (omega - E_lambda + i*eta) * exp(...)
+    Direct_lambda = (ex_dip_sum * ome_light_Ha**3 * (1.0 - R_lambda) / denom_direct * bolt_man_fac[0, :]).real
+    
+    # Sum over all lambda states
+    sum_out = np.sum(Direct_lambda).real
     return sum_out * broadening_Ha / np.pi / Nqpts
