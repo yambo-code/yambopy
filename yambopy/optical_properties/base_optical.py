@@ -357,7 +357,7 @@ class BaseOpticalProperties(ABC):
         if ydipdb:
             self.ydipdb = ydipdb
         else:
-            self.ydipdb = YamboDipolesDB.from_db_file(self.ydb,filename=f'{self.BSE_dir}/ndb.dipoles',dip_type='iR',field_dir=[1,1,1],project=False,bands_range=[7,10],expand=False)
+            self.ydipdb = YamboDipolesDB.from_db_file(self.ydb,filename=f'{self.BSE_dir}/ndb.dipoles',dip_type='iR',field_dir=[1,1,1],project=False,bands_range=bands_range,expand=False)
  
         # Process dipoles based on spin
         if self.ydipdb.spin == 2:
