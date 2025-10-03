@@ -48,7 +48,7 @@ class YamboDipolesDB():
         self.max_band  = max_band # last band included in dipole calculation
         self.indexv    = indexv   # index of maximum (partially) occupied band
         self.indexc    = indexc   # index of minimum (partially) empty band
-        self.bands_range = bands_range # bands range in FORTRAN indexing 
+        self.bands_range = bands_range # bands range in Python indexing (0-based)
         self.nbands    = nbands   # no. of bands in dipole calculation
         self.nbandsc   = nbandsc  # no. of conduction bands in dipole calculation
         self.nbandsv   = nbandsv  # no. of valence bands in dipole calculation
@@ -128,8 +128,8 @@ class YamboDipolesDB():
             Direction of the electric field, default is [1,1,1]. Used if no polarization_mode is set. If project is True, applied already during k-expansion of dipoles.
 
         bands_range : array, optional
-            select bands_range for computation of dipoles (Fortran indexing). Default: empty list []
-            example: [7,10]  you consider from 7th (v) to the 10th (c) bands
+            select bands_range for computation of dipoles (Python 0-based indexing). Default: empty list []
+            example: [6,9]  you consider from band index 6 (v) to band index 9 (c) - corresponding to 7,8,9 bands in Fortran
 
         expand : k-expansion of dipoles (needed for eps). Default is True.
 
@@ -167,11 +167,13 @@ class YamboDipolesDB():
 
             # Cases 3. and 4.
             if len(bands_range) != 0:  # Custom selection of bands range
-                if bands_range[0] not in range(min_band,indexv+1) or bands_range[1] not in range(indexc,max_band+1):
-                    raise ValueError(f"[ERROR] invalid bands_range, db contains [{min_band},{max_band}]")
+                # Convert user's Python indexing (0-based) to Fortran indexing (1-based) for validation
+                bands_range_fortran = [bands_range[0]+1, bands_range[1]+1]
+                if bands_range_fortran[0] not in range(min_band,indexv+1) or bands_range_fortran[1] not in range(indexc,max_band+1):
+                    raise ValueError(f"[ERROR] invalid bands_range, db contains [{min_band-1},{max_band-1}] in Python indexing")
                 
-                min_band = min(bands_range)
-                max_band = max(bands_range)
+                min_band = min(bands_range_fortran)
+                max_band = max(bands_range_fortran)
                 nbands   = max_band-min_band+1  
 
                 if dip_bands_ordered: # Standard case  
@@ -180,7 +182,7 @@ class YamboDipolesDB():
                     indexv = indexv-1
                     indexc = indexc-1 
                     nbands1, nbands2 = [nbandsv, nbandsc]
-                    start_idx_v, start_idx_c = [bands_range[0]-1,0]
+                    start_idx_v, start_idx_c = [bands_range[0],0]  # bands_range is already 0-based
                     end_idx_v, end_idx_c = [indexv+1, nbandsc]
 
                 if not dip_bands_ordered: # Yambo calculation with DipBandsALl
@@ -189,12 +191,12 @@ class YamboDipolesDB():
                     indexv  = nbandsv-1
                     indexc  = nbandsv
                     nbands1, nbands2 = [nbands, nbands]
-                    start_idx_v, start_idx_c = [bands_range[0]-1,bands_range[0]-1]
-                    end_idx_v, end_idx_c = [bands_range[1], bands_range[1]]
+                    start_idx_v, start_idx_c = [bands_range[0],bands_range[0]]  # bands_range is already 0-based
+                    end_idx_v, end_idx_c = [bands_range[1]+1, bands_range[1]+1]  # +1 for Python slicing (exclusive end)
 
             # Cases 1. and 2.
             if len(bands_range) == 0:    # Read full database
-                bands_range = [min_band,max_band]
+                bands_range = [min_band-1,max_band-1]  # Store in Python indexing (0-based)
                 nbands      = max_band-min_band+1           
                 
                 if dip_bands_ordered: # Standard case
