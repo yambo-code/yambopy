@@ -193,7 +193,9 @@ class Luminescence(BaseOpticalProperties):
                                      temp=20,
                                      broadening=0.00124, 
                                      npol=2, 
-                                     ph_thr=1e-9):   
+                                     ph_thr=1e-9,
+                                     ph_ass_only = True
+                                     ):   
         """
         Compute luminescence spectrum intensities.
 
@@ -257,7 +259,7 @@ class Luminescence(BaseOpticalProperties):
             raise IOError(f'Cannot compute exciton-phonon matrix elements: {e}')
         for i in tqdm(range(ome_range.shape[0]), desc="Luminescence "):
             inte_tmp = compute_luminescence_per_freq(ome_range[i], self.ph_freq, exe_ene, \
-                Exe_min, self.ex_dip, self.ex_ph, npol=npol, ph_thr=ph_thr,broadening=broadening, temp=temp)
+                Exe_min, self.ex_dip, self.ex_ph, npol=npol, ph_thr=ph_thr,broadening=broadening, temp=temp, ph_ass_only=ph_ass_only)
             self_inten.append(inte_tmp)
         ## save intensties
         if self.save_files:
