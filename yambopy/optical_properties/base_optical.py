@@ -353,21 +353,12 @@ class BaseOpticalProperties(ABC):
             DIP_dir = self.BSE_dir
         dip_dir_path = os.path.join(self.path, DIP_dir)
 
-        try:
-            ndb_dipoles_fname = os.path.join(dip_dir_path, 'ndb.dipoles')
-            if ydipdb:
-                self.ydipdb = ydipdb
-            else:
-                self.ydipdb = YamboDipolesDB.from_db_file(self.ydb, ndb_dipoles_fname, dip_type, field_dir, bands_range, expand, 
-                                                          project, polarization_mode, debug
-                                                          )
-        except Exception as e:
-            print(f"Warning: Could not read dipoles database: {e}")
-            print("Continuing without dipoles data - some functionality may be limited")
-            self.ydipdb = None
-            self.ele_dips = None
-            return
-        
+        ndb_dipoles_fname = os.path.join(dip_dir_path, 'ndb.dipoles')
+        if ydipdb:
+            self.ydipdb = ydipdb
+        else:
+            self.ydipdb = YamboDipolesDB.from_db_file(self.ydb,filename=f'{self.BSE_dir}/ndb.dipoles',dip_type='iR',field_dir=[1,1,1],project=False,bands_range=[7,10],expand=False)
+ 
         # Process dipoles based on spin
         if self.ydipdb.spin == 2:
             self.ele_dips = self.ydipdb.dipoles.conjugate().transpose(1, 2, 3, 4, 0)

@@ -72,7 +72,7 @@ class ExcitonDipole(BaseOpticalProperties):
         self.read_common_databases(latdb=latdb, wfdb=wfdb, bands_range=bands_range)
         
         # Read dipoles database
-        self._read_dipoles_db(ydipdb, dip_dir=self.DIP_dir, bands_range=bands_range)
+        self._read_dipoles_db(ydipdb, DIP_dir=self.DIP_dir, bands_range=[7,10])
 
     def compute(self):
         """
@@ -98,10 +98,9 @@ class ExcitonDipole(BaseOpticalProperties):
         
         start_time = time()
         print('Computing Exciton-photon matrix elements')
-        
         # Compute exciton-dipole matrix elements
         self.ex_dip = self.exe_dipoles(
-            self.ele_dips, self.BS_wfcs[0],
+            self.ele_dips, self.BS_wfcs[0,:,0,0,:,:], # shape BSE wfc (ntransition,nblks,nspin, nk,nc,nv)
             self.kmap, self.symm_mats, self.ele_time_rev
         )
         
@@ -124,6 +123,7 @@ class ExcitonDipole(BaseOpticalProperties):
                                                                         ...])
         time_rev_s = (kmap[:, 1] >= symm_mats.shape[0] / (int(time_rev) + 1))
         dip_expanded[time_rev_s] = dip_expanded[time_rev_s].conj()
+        print(exe_wfc_gamma.conj().shape, dip_expanded.shape, ele_dipoles.shape)
         return np.einsum('nkcv,kcvi->in',
                         exe_wfc_gamma.conj(),
                         dip_expanded,
