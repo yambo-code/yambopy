@@ -364,7 +364,7 @@ class Matdyn(object):
             expand_eig.append(self.eig[iq])
         
         # expand all eigenvalues
-        np.reshape(expand_eig, self.nqpoints*self.nmodes))
+        np.reshape(expand_eig, self.nqpoints*self.nmodes)
         #np.reshape(expand_eiv, self.nqpoints*self.nmodes,qe_sc.basis*qe_sc.sup_size))
         
         #return cls(qpoints,expand_eig,expand_eiv)
