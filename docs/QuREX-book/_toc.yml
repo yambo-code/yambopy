@@ -1,0 +1,57 @@
+format: jb-book
+root: intro
+options:
+  numbered: true
+
+parts:
+- caption: Theoretical Foundation
+  numbered: true
+  chapters:
+    - file: content/theory/theoretical_background
+      sections:
+        - file: content/theory/GW
+        - file: content/theory/bse_equation
+        - file: content/theory/model_hamiltonian
+        - file: content/theory/coulomb_potential
+        - file: content/theory/wannier_basis
+        - file: content/theory/wannier_exciton
+        - file: content/theory/h2p
+        - file: content/theory/quantum_well
+        - file: content/theory/exciton_phonon_coupling
+        - file: content/theory/exciton_group_theory
+        - file: content/theory/wannier_chern
+
+- caption: Software Implementation
+  numbered: true
+  chapters:
+    - file: content/software/software
+      sections:
+        - file: content/software/yambo/yambo
+        - file: content/software/yambo/yambo_input_flags
+        - file: content/software/optical_properties_api
+        - file: content/software/exciton_group_theory_api_auto
+        - file: content/software/exciton_group_theory_summary
+        - file: content/software/yambopy_improvements_2024
+
+- caption: API Documentation
+  numbered: false
+  chapters:
+    - file: content/api/index
+      sections:
+        - file: content/api/baseopticalproperties_api.rst
+        - file: content/api/excitongrouptheory_api.rst
+        - file: content/api/excitondipole_api.rst
+        - file: content/api/excitonphonon_api.rst
+        - file: content/api/luminescence_api.rst
+        - file: content/api/letzelphelectronphonondb_api.rst
+        - file: content/api/spgrep_point_group_ops_api.rst
+        - file: content/api/utils_api.rst
+        - file: content/api/lelph2y_api.rst
+
+- caption: Interactive Examples
+  numbered: false
+  chapters:
+    - file: notebooks/notebooks
+      sections:
+        - file: notebooks/exciton_phonon
+        - file: notebooks/exciton_group_theory_example

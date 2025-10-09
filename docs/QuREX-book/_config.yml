@@ -1,0 +1,37 @@
+title: "QuREX Documentation"
+author: "Riccardo Reho"
+
+sphinx:
+  config:
+    bibtex_reference_style: author_year
+
+    # Enable equation numbering and styling like LaTeX
+    mathjax3_config:
+      tex:
+        tags: "none"            # Number all displayed equations
+        tagSide: "right"       # Equation numbers on the right
+        tagIndent: "0.8em"     # Spacing before equation numbers
+
+    # Enable MyST extensions for advanced math and referencing
+    myst_enable_extensions:
+      - amsmath               # Enables environments like align, gather
+      - dollarmath            # Inline and block LaTeX with $...$ or $$...$$
+      - deflist               # (Optional) Definition lists
+      - linkify               # Auto-detect links
+      - substitution          # Enable |substitution| syntax (fixed name)
+      - colon_fence           # For ::: fenced blocks (like admonitions)
+      - smartquotes           # Typographic quotes
+
+  extra_extensions:
+    - sphinxcontrib.bibtex    # For citations and references
+
+bibtex_bibfiles:
+  - references.bib            # Your BibTeX file
+
+# Notebook execution settings
+execute:
+  execute_notebooks: false     # Disable notebook execution during build
+  cache: ""                   # Disable caching
+  exclude_patterns: []        # Patterns to exclude from execution
+  timeout: 30                 # Timeout for notebook execution (not used when disabled)
+  run_in_temp: false         # Don't run in temporary directory

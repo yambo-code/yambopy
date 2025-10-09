@@ -69,7 +69,7 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     if ktree is None : ktree = build_ktree(kpts)
     #
     # Find the indices of k-Q-q and k-q in the k-point tree
-    idx_k_minus_Q_minus_q = find_kpt(ktree, kpts - O_qvec[None, :] - exe_kvec[None, :])  # k-Q-q
+    idx_k_minus_Q_minus_q = find_kpt(ktree, kpts - O_qvec[None, :] - exe_kvec[None, :])  # k-q-Q
     idx_k_minus_q = find_kpt(ktree, kpts - O_qvec[None, :])  # k-q
     #
     # Extract the occupied and unoccupied parts of the Omn matrix
@@ -107,7 +107,7 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
         if diagonal_only:
             ex_O_mat[il] = np.sum(Akq_conj * tmp_wfc, axis=-1)
         else:
-            np.matmul(Akq_conj, tmp_wfc.T, out=ex_O_mat[il])
+            np.matmul(Akq_conj, tmp_wfc.T, out=ex_O_mat[il]) #A^{Q+q,*}_{k}*(electron-hole)
     #
     # Return the computed exciton matrix elements
     return ex_O_mat

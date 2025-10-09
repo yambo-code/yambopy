@@ -22,7 +22,7 @@ class LetzElphElectronPhononDB():
     
       :: lph.kpoints         #kpoints in cryst. coords. (BZ)
       :: lph.qpoints         #qpoints in crist. coords. (BZ)
-      :: lph.ph_energies     #Phonon energies (eV)      
+      :: lph.ph_energies     #Phonon energies (eV), energies in LetzElPhCode [Ry]      
       :: lph.ph_eigenvectors #Phonon modes
       :: lph.gkkp            #El-ph matrix elements (by default normalised with ph. energies) [!!!! RYDBERG UNITS !!!!]:
       :: lph.gkkp_sq         #Couplings (square)
@@ -71,13 +71,16 @@ class LetzElphElectronPhononDB():
         self.convention = conv
         #
         # Read DB
-        self.kpoints = database.variables['kpoints'][:]
-        self.qpoints = database.variables['qpoints'][:]
-        self.bands   = database.variables['bands'][:]
+        #For developes: Do not use database.variables['x'][:]
+        #prefer to use : databaase.variables['x'][...].data to preserve precision
+        self.kpoints = database.variables['kpoints'][...].data
+        self.qpoints = database.variables['qpoints'][...].data
+        self.bands   = database.variables['bands'][...].data
         self.ktree   = build_ktree(self.kpoints)
         self.qtree   = build_ktree(self.qpoints)
+        self.kmap = database.variables['kmap'][...].data
         
-        self.ph_energies = database.variables['FREQ'][:]*(ha2ev/2.) # Energy units are in Rydberg
+        self.ph_energies = database.variables['FREQ'][...].data*(ha2ev/2.) # From [Ry] to [eV]
         self.check_energies()
 
         if read_all: 
@@ -101,7 +104,8 @@ class LetzElphElectronPhononDB():
         for Q in indices[0]:
             for M in indices[1]:
                 if Q==0 and M in [0,1,2]: 
-                    self.ph_energies[Q,M]=0.
+                    print('Acoustic modes have been set to zero')
+                    self.ph_energies[Q,M]= 0 #np.abs(self.ph_energies[Q,M])#self.ph_energies[Q,M]=0.
                 else:
                     warn = True
                     self.ph_energies[Q,M]=np.abs(self.ph_energies[Q,M])
@@ -112,9 +116,8 @@ class LetzElphElectronPhononDB():
         Read phonon eigenmodes
         """
 
-        self.ph_eigenvectors = np.zeros([self.nq,self.nm,self.nat,3],dtype=np.complex64)
-        #eivs_tmp[qpt][mode][atom][coord][cmplx]
-        eivs_tmp = database.variables['POLARIZATION_VECTORS'][:]
+        eivs_tmp = database.variables['POLARIZATION_VECTORS'][...].data
+        self.ph_eigenvectors = np.zeros([self.nq,self.nm,self.nat,3],dtype=eivs_tmp.dtype)
         self.ph_eigenvectors = eivs_tmp[:,:,:,:,0] + 1j*eivs_tmp[:,:,:,:,1]
 
     def read_elph(self,database,scale_g_with_ph_energies=True):
@@ -123,8 +126,8 @@ class LetzElphElectronPhononDB():
         
         - If scale_g_with_ph_energies they are divided by sqrt(2*ph_E)
         """    
-        gkkp_full = np.zeros([self.nq,self.nk,self.nm,self.ns,self.nb1,self.nb2],dtype=np.complex64)
-        gkkp_tmp  = database.variables['elph_mat'][:]
+        gkkp_tmp  = database.variables['elph_mat'][...].data
+        gkkp_full = np.zeros([self.nq,self.nk,self.nm,self.ns,self.nb1,self.nb2],dtype=gkkp_tmp.dtype)
         gkkp_full = gkkp_tmp[:,:,:,:,:,:,0]+1j*gkkp_tmp[:,:,:,:,:,:,1]
        
         # Check integrity of elph values
@@ -143,7 +146,7 @@ class LetzElphElectronPhononDB():
         g_qnu = dvscf_qnu/sqrt(2*w_qnu)
         """
         
-        g = np.zeros([self.nq,self.nk,self.nm,self.ns,self.nb1,self.nb2],dtype=np.complex64)
+        g = np.zeros([self.nq,self.nk,self.nm,self.ns,self.nb1,self.nb2],dtype=self.ph_eigenvectors.dtype)
         for iq in range(self.nq):
             for inu in range(self.nm): 
                 if iq==0 and inu in [0,1,2]: 
@@ -156,6 +159,7 @@ class LetzElphElectronPhononDB():
 
     def read_iq(self,iq, bands_range=[], database=None, convention='yambo'):
         """
+        !!!! This method works in Ry !!!!
         Reads the electron-phonon matrix elements and phonon eigenvectors for a specific q-point index.
 
         If the data is already loaded in memory, it returns the corresponding array slice. Otherwise,
@@ -185,8 +189,7 @@ class LetzElphElectronPhononDB():
             - ph_eigenvectors : ndarray
                 The phonon eigenvectors.
             - ph_elph_me : ndarray
-                The electron-phonon matrix elements with the specified convention.
-                ( nk, nm, nspin, initial bnd, final bnd)
+                The electron-phonon matrix elements with the specified convention [QE convention Ry].
         """
         #
         if len(bands_range) == 0:
@@ -198,8 +201,7 @@ class LetzElphElectronPhononDB():
         assert (max_bnd <= max(self.bands))
         start_bnd_idx = 1+min_bnd - min(self.bands)
         end_bnd = start_bnd_idx + nbnds
-
-        # self.ph_eigenvectors , self.gkkp
+        
         if hasattr(self, 'ph_eigenvectors'):
             ph_eigs = self.ph_eigenvectors[iq]
             eph_mat = self.gkkp[iq, :, :, :, start_bnd_idx:end_bnd, start_bnd_idx:end_bnd ]
@@ -214,22 +216,15 @@ class LetzElphElectronPhononDB():
             ph_eigs = database['POLARIZATION_VECTORS'][iq,...].data
             eph_mat = eph_mat[...,0] + 1j*eph_mat[...,1]
             ph_eigs = ph_eigs[...,0] + 1j*ph_eigs[...,1]
-            ## normalize with ph_freq
             if self.div_by_energies:
-                ph_freq_iq = np.sqrt(2.0*np.abs(self.ph_energies[iq])/(ha2ev/2.))
-                if iq >0:
+                ph_freq_iq = np.sqrt(2.0*np.abs(self.ph_energies[iq]/(ha2ev/2.)))
+                if iq > 0:
                     ph_freq_iq = 1.0/ph_freq_iq
-                    eph_mat *= ph_freq_iq[None,:,None,None,None]
-                else:
-                    eph_mat[:,:3] = 0.0
-                    ph_freq_iq = 1.0/ph_freq_iq[3:]
-                    eph_mat[:,3:] *= ph_freq_iq[None,:,None,None,None]
-
+                    eph_mat[:, 3:] *= ph_freq_iq[None,:,None,None,None]
             if close_file :database.close()
+        return [ph_eigs, self.change_convention(self.qpoints[iq],eph_mat, convention).astype(eph_mat.dtype)]
         ## output elph matrix elements unit (Ry if div_by_energies else Ry^1.5)
         # ( nk, nm, nspin, initial bnd, final bnd)
-        return [ph_eigs, self.change_convention(self.qpoints[iq],eph_mat, convention)]
-
     def change_convention(self, qpt, elph_iq, convention='yambo'):
         """
         Adjusts the convention of the electron-phonon matrix elements.
@@ -255,7 +250,7 @@ class LetzElphElectronPhononDB():
         if convention == 'standard': factor = 1.0
         else: factor = -1.0
         idx_q = find_kpt(self.ktree, factor*qpt[None, :] + self.kpoints)
-        return elph_iq[idx_q, ...]
+        return elph_iq[idx_q,:, ...]
 
     def __str__(self):
 

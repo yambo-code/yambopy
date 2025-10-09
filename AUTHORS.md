@@ -6,7 +6,7 @@ Project Authors
 * Paleari, Fulvio, Istituto Nanoscienze (Italy)
 * Molina-Sánchez, Alejandro, Universitat de València (Spain)
 * Nalabothula, Muralidhar, University of Luxembourg (Luxembourg)
-* Reho, Riccardo, Utrecht University (Netherlands)
+* Reho, Riccardo, University of Luxembourg (Luxembourg)
 * Bonacci, Miki, Paul Scherrer Institute (Switzerland)
 * Castelo, José, Universitat de València (Spain)
 * Cervantes-Villanueva, Jorge, Universitat de València (Spain)

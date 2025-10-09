@@ -3,4 +3,5 @@ build
 *.egg-info
 dist
 .DS_store
-git.sh
+docs/QuREX-book/_build/
+.vscode/

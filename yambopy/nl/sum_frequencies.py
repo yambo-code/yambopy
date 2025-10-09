@@ -185,7 +185,8 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
 
     if T_range[1] <= 0.0: T_range[1]=time[-1]
     
-    T_range_initial=np.copy(T_range)
+    # Avoid unnecessary copy - use array constructor for clarity
+    T_range_initial = np.array(T_range)
 
     print("Initial time range : ",str(T_range[0]/fs2aut),'-',str(T_range[1]/fs2aut)," [fs] ")
     print("Pump frequency : ",str(pump_freq*ha2ev),' [eV] ')
@@ -367,7 +368,8 @@ def update_T_range(T_range_initial,pump_freq, probe_freq):
     r = a*b
     c = a*10**dec
     d = b*10**dec
-    T_range=np.copy(T_range_initial)
+    # Avoid unnecessary copy - use array constructor
+    T_range = np.array(T_range_initial)
     T_test=lcm(c,d)/r*ha2ev*2.0*np.pi+T_range[0]
     if T_test<T_range[1]:
         if round(a/b,3)==round(pump_freq/probe_freq,3):

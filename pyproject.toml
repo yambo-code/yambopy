@@ -21,6 +21,24 @@ classifiers = [
     "Development Status :: 3 - Alpha",
 ]
 dependencies = [ "numpy", "scipy", "netCDF4", "h5py", "matplotlib", "pyyaml", "lxml", "monty","scikit-learn","tqdm", "spglib", "spgrep", "numba", "pykdtree"]
+[project.optional-dependencies]
+docs = [
+    "sphinx>=4.0",
+    "sphinx-book-theme",
+    "sphinx-proof", 
+    "jupyter-book>=0.13",
+    "sphinxcontrib-bibtex",
+    "myst-parser"
+]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black",
+    "flake8"
+]
+all = [
+    "yambopy[docs,dev]"
+]
 [project.urls]
 "Homepage" = "https://github.com/yambo-code/yambopy"
 "Documentation" = "https://www.yambo-code.eu/wiki/index.php/First_steps_in_Yambopy"
@@ -42,6 +60,7 @@ packages = ['yambopy',
             'yambopy.gkkp',
             'yambopy.flow',
             'yambopy.nl',
+            'yambopy.optical_properties',
             'yambopy.quasiparticles',
             'yambopy.letzelphc_interface',
             'qepy',
@@ -51,4 +70,3 @@ packages = ['yambopy',
             'yamboparser',
             'yambocommandline',
             'yambocommandline.commands',]
-
