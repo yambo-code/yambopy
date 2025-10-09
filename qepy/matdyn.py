@@ -342,6 +342,7 @@ class Matdyn(object):
             sigma = float(norm*delta/np.sqrt(masses[a]*amu2au))
             print("Atom %d  mass %12.8f sigma %12.8f" % (a,masses[a], sigma))
 
+    @classmethod
     def expand_in_supercell(self, qe_sc):
         #empty stuff
         expand_eig = []
@@ -367,4 +368,4 @@ class Matdyn(object):
         np.reshape(expand_eig, self.nqpoints*self.nmodes)
         #np.reshape(expand_eiv, self.nqpoints*self.nmodes,qe_sc.basis*qe_sc.sup_size))
         
-        #return cls(qpoints,expand_eig,expand_eiv)
+        return cls(qpoints,expand_eig,expand_eiv)
