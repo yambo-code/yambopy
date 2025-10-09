@@ -2,6 +2,7 @@
 #
 from qepy.supercell import Supercell
 import numpy as np
+import sys
 
 """
 Map phonon in a supercell
@@ -20,6 +21,8 @@ def Map_Phonons(qe_input, qe_dyn, R, no_invar_ph=None, sc_fname=None, dyn_fname=
     #Check and map phonons
     if qe_dyn.nqpoints != np.prod(R):
         print("Error: number of q-points not compatible with supercell ") 
+        print("      ",str(qe_dyn.nqpoints),"  vs ",str(np.prod(R)))
+        sys.exit(0)
         # Better check can be implemented
 
     sc=Supercell(qe_input)
@@ -30,4 +33,4 @@ def Map_Phonons(qe_input, qe_dyn, R, no_invar_ph=None, sc_fname=None, dyn_fname=
     
     #map_phonons
     qe_mapped=qe_dyn.expand_in_supercell(sc)
-    qe_mapped.write_modes(filename="matdyn_sc.modes")
+#    qe_mapped.write_modes(filename="matdyn_sc.modes")
