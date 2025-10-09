@@ -356,7 +356,7 @@ class YamboStaticScreeningDB(object):
 
         ax.plot(x,(1+vX).real,**kwargs)
         ax.set_xlabel('$|q|$')
-        ax.set_ylabel('$\epsilon^{-1}_{%d%d}(\omega=0)$'%(ng1,ng2))
+        ax.set_ylabel(r'$\epsilon^{-1}_{%d%d}(\omega=0)$'%(ng1,ng2))
 
      
     def plot_eps(self,ax,ng1=0,ng2=0,volume=False,use_trueX=False,**kwargs):
@@ -366,7 +366,7 @@ class YamboStaticScreeningDB(object):
         x,y = self._getepsq(volume=volume)
         ax.plot(x,y.real,**kwargs)
         ax.set_xlabel('$|q|$')
-        ax.set_ylabel('$\epsilon_{%d%d}(\omega=0)$'%(ng1,ng2))
+        ax.set_ylabel(r'$\epsilon_{%d%d}(\omega=0)$'%(ng1,ng2))
 
     def plot_v(self,ax,ng1=0,**kwargs):
         """
