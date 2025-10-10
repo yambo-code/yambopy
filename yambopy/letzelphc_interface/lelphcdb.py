@@ -74,6 +74,7 @@ class LetzElphElectronPhononDB():
         self.kpoints = database.variables['kpoints'][:]
         self.qpoints = database.variables['qpoints'][:]
         self.bands   = database.variables['bands'][:]
+        self.kmap    = database.variables['kmap'][:]
         self.ktree   = build_ktree(self.kpoints)
         self.qtree   = build_ktree(self.qpoints)
         

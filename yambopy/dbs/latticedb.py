@@ -293,7 +293,7 @@ class YamboLatticeDB(object):
         "          bohr^-1 | Yambo cartesian units [cc in yambo]: \n\
                 ::   self.car_kpoints*2.*pi\n\
          \n\
-          QE cartesian unists [cart. coord. in units 2pi/alat] in QE: \n\
+          QE cartesian units [cart. coord. in units 2pi/alat] in QE: \n\
                 ::   self.car_kpoints*self.alat[0]\n\
          \n\
           Internal yambo units [iku]: \n\

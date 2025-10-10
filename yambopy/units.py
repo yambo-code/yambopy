@@ -11,7 +11,8 @@ ps2aut    =100000.0/core_cnst
 speed_of_light=137.03599911
 autime2s= 2.418884326505e-17
 m_e = 0.510998950e+06 # electron mass in eV
-KB = 8.617330337217213e-05/ha2ev # Ha/K
+kb    = 8.617330337217213e-05
+kb2ha = 8.617330337217213e-05/ha2ev # Ha/K
 hbar = 6.582119569e-16 #eVs
 
 electron_charge_SI = 1.602176634e-19 #Coulomb

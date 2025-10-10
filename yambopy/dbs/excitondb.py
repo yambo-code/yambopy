@@ -82,7 +82,8 @@ class YamboExcitonDB(object):
         self.car_qpoint = car_qpoint
         self.q_cutoff = q_cutoff
         self.table = table
-        self.bs_bands = np.array([np.min(self.table[:,1]),np.max(self.table[:,2])]) # set range of bse bands
+        if table is not None:
+            self.bs_bands = np.array([np.min(self.table[:,1]),np.max(self.table[:,2])]) # set range of bse bands
         self.eigenvectors = eigenvectors
         self.spin_pol = spin_pol
 

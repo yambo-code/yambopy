@@ -8,6 +8,7 @@
 # This file is part of the yambopy project
 #
 import numpy as np
+from yambopy.units import kb
 
 def abs2(x):
     return x.real**2 + x.imag**2
@@ -24,7 +25,6 @@ def gaussian(x,x0,s,max_exp=50.,min_exp=-100.):
     return height*np.exp(argument)
 
 def boltzman_f(Eb, Bose_Temp):
-    kb = 8.61733326*10**-5
     return np.exp(-Eb/(kb*Bose_Temp))
 
 def fermi(e,max_exp=50,min_exp=-100):
@@ -44,10 +44,10 @@ def fermi_array(e_array,ef,invsmear):
     return [ fermi(e) for e in e_array]
 
 def bose(Eb,Bose_Temp):
-    #
-    # Bose function
+    """ bose einstein function
+    """
     if Bose_Temp < 1e-10:
         return 0.0
     else:
-        return 1.0/(math.exp(Eb/Bose_Temp)-1.0)
+        return 1.0/(np.exp(Eb/(kb*Bose_Temp))-1.0)
 
