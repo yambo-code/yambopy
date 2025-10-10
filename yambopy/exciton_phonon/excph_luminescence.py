@@ -5,6 +5,7 @@
 import numpy as np
 from yambopy.units import ha2ev
 from yambopy.tools.funcs import bose,boltzman_f
+from tqdm import tqdm
 
 def exc_ph_luminescence(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_el,\
                         exc_energies_in=None,exc_temp=None,ph_channels='b',\
@@ -22,6 +23,11 @@ def exc_ph_luminescence(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_
     See:
     - Phys. Rev. Materials 7, 024006 (2023)
     - Phys. Rev. Letters 131, 206902 (2023) Equations from (1) to (4)
+
+    Returns:
+    ----------
+    * Energy axis in specified range (in eV)
+    * Luminescence intensity
 
     Parameters
     ----------
@@ -61,43 +67,50 @@ def exc_ph_luminescence(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_
     broad_0 : float
         Broadening parameter used inside satellite oscillator strengths in eV. Default is broad.
     """
-    def get_PL_phonon_channel():
-        """ Actual calculation of PL satellites.
+    def get_PL_satellite(W,ph_sign=-1):
+        """ Actual calculation of PL satellites at each frequency.
             Uses the same variables as main function.
-        """
 
-        # Energy differences [nqpts,nmodes,nexc_out,nfreq]
-        pole_energy = exc_energies[:,None,:]+ph_sign*ph_energies[:,:,None]
-        pole_energy_Ha = pole_energy[:,:,:,None]/ha2ev
-    
+            W --> laser energy value in hartree
+            ph_sign -->
+                * -1 : phonon emission
+                * +1 : phonon absorption
+        """
         # Satellite oscillator strenghts
         ## Dimensions: [nqpts, nmodes, nexc_in, nexc_out]
         satellite_energy = exc_energies[:,None,None,:]-exc_energies_in[None,None,:,None] \
                             + ph_sign*ph_energies[:,:,None,None] + 1j*broad_0
         satellite_energy_Ha = satellite_energy/ha2ev
-        satellite_weight = exc_dipoles[None,None,:,None]*exc_ph_mat_el/satellite_energy_Ha
+        satellite_weight = exc_ph_mat_el/satellite_energy_Ha
     
         # Phonon emission/absorption factor: if em --> ph_occ+1, if abs --> ph_occ
         ph_fac = ph_occ - (ph_sign-1)/2.
     
         # Sum over exc_in and then square (this includes off-diagonal excph SE terms)
-        T = np.abs(np.sum(satellite_weight,axis=2))**2*exc_occ[:,None,:]*ph_fac[:,:,None]
-    
+        T = np.einsum('i,qmio->qmo',exc_dipoles,satellite_weight,optimize=True)
+        # Include occupation factors
+        T = np.abs(T)**2 * exc_occ[:,None,:]*ph_fac[:,:,None]
+
+        # Energy differences [nqpts,nmodes,nexc_out]
+        pole_energy = exc_energies[:,None,:]+ph_sign*ph_energies[:,:,None]
+        pole_energy_Ha = pole_energy[:,:,:]/ha2ev
+        
         # PL energy prefactors
+        # Note: with 'PT+RS' as argument both will be considered
         light_fac = 1.
-        if 'PT' in PL_energy_prefactor: # [nqpts,nmodes,nexc_out,nfreqs]
+        if 'PT' in PL_energy_prefactor: # [nqpts,nmodes,nexc_out]
             light_fac = light_fac * 1./pole_energy_Ha
-        if 'RS' in PL_energy_prefactor: # [nqpts,nmodes,nexc_out,nfreqs]
-            light_fac = light_fac * light_energies_Ha * (light_energies_Ha-ph_sign*ph_energies[:,:,None,None])**2.
+        if 'RS' in PL_energy_prefactor: # [nqpts,nmodes,nexc_out]
+            light_fac = light_fac * W * (W-ph_sign*ph_energies[:,:,None])**2.
 
         # Energy conservation
-        delta_funct = 1./((light_energies_Ha-pole_energy_Ha)**2.+ broad_Ha**2.)
-        Energy_fac = light_fac*delta_funct
+        delta_funct = 1./((W-pole_energy_Ha)**2.+ broad_Ha**2.)
+        E = light_fac*delta_funct
         # Dimensions
-        Energy_fac = Energy_fac * broad_Ha/np.pi/Nqpts * ha2ev**2
+        E = E * broad_Ha/np.pi/Nqpts * ha2ev**2
 
         # Putting everything together
-        return np.einsum('qmof->f', Energy_fac*T, optimize=True) 
+        return np.einsum('qmo,qmo->', E, T, optimize=True) 
 
     # Checks
     assert exc_energies.shape[0]==ph_energies.shape[0], "Q-point mismatch between excitons and phonons"
@@ -116,6 +129,8 @@ def exc_ph_luminescence(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_
     exc_energies_in = exc_energies_in[:nexc_in]
     # We conj because we need it for photon emission
     exc_ph_mat_el = np.conj( exc_ph_mat_el[...,:nexc_in,:nexc_out] ) 
+    assert ph_energies.shape[1]==exc_ph_mat_el.shape[1], "number of modes mismatch between phonon energies and matrix elements"
+    broad = broad/2
     if broad_0 is None: broad_0 = broad
     if exc_temp is None: exc_temp = ph_temp
     
@@ -124,22 +139,22 @@ def exc_ph_luminescence(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_
     exc_occ = boltzman_f(exc_energies-exc_min_energy,exc_temp)
     ph_occ  = bose(ph_energies,ph_temp)
 
-    # Laser energies (x axis)
+    # Laser energies
     light_energies = np.arange(emin,emax,estep,dtype=np.float32)
-    light_energies_Ha = light_energies[None,None,None,:]/ha2ev
+    nfreqs = len(light_energies)
+    light_energies_Ha = light_energies/ha2ev#light_energies[None,None,None,:]/ha2ev
     broad_Ha = broad/ha2ev
 
-    PL_satellites = np.zeros(len(light_energies))
+    # Calculation
+    PL_satellites = np.zeros(nfreqs)
+    for w in tqdm(range(nfreqs)):
+        # Accumulate phonon emission satellites
+        if ph_channels=='e' or 'b': 
+            PL_satellites[w] += get_PL_satellite(light_energies_Ha[w],ph_sign=-1)
+        # Accumulate phonon absorption satellites
+        if ph_channels=='a' or 'b': 
+            PL_satellites[w] += get_PL_satellite(light_energies_Ha[w],ph_sign=+1)
 
-    # Accumulate phonon emission satellites
-    if ph_channels=='e' or 'b': 
-        ph_sign = -1
-        PL_satellites += get_PL_phonon_channel()
-    # Accumulate phonon absorption satellites
-    if ph_channels=='a' or 'b': 
-        ph_sign = +1
-        PL_satellites += get_PL_phonon_channel()
-
-    return PL_satellites
+    return light_energies, PL_satellites
 
 
