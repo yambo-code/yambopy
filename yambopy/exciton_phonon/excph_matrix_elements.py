@@ -8,7 +8,8 @@ from yambopy.bse.exciton_matrix_elements import exciton_X_matelem
 from yambopy.bse.rotate_excitonwf import rotate_exc_wf
 from tqdm import tqdm
 
-def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,0],BSE_dir='bse',BSE_Lin_dir=None,neigs=-1,dmat_mode='run',save_files=True,exph_file='Ex-ph.npy',overwrite=False):
+def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,0],BSE_dir='bse',BSE_Lin_dir=None,
+                           neigs=-1,dmat_mode='run',save_files=True,exph_file='Ex-ph.npy',overwrite=False):
     """
     This function calculates the exciton-phonon matrix elements
 
@@ -32,6 +33,7 @@ def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,0],BSE_dir='bse',BSE_Lin_
         The name of the folder which contains the BSE Q=0 calculation (for optical spectra). Default is BSE_dir.
     Qrange : int list, optional
         Exciton Qpoint index range [iQ_initial, iQ_final] (python counting). Default is [0,0] (Gamma point only).
+        Note that the indexing is in full BZ and not in iBZ. See wfc.kBZ to see the kpoints in full BZ
     neigs : int, optional
         Number of excitonic states included in calculation. Default is -1 (all).
     dmat_mode : str, optional
@@ -63,8 +65,9 @@ def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,0],BSE_dir='bse',BSE_Lin_
     print('Calculating EXCPH matrix elements...')
     exph_mat = []
     for iQ in tqdm(range(Qrange[0],Qrange[1]+1)):
-        exph_mat.append( exciton_phonon_matelem_iQ(latdb,elphdb,wfdb,exdbs,Dmats,\
-                                                   BSE_Lin_dir=BSE_Lin_dir,Qexc=iQ,neigs=neigs) )
+        Q_in = wfdb.kBZ[iQ]
+        exph_mat.append( exciton_phonon_matelem_iQ(elphdb,wfdb,exdbs,Dmats,\
+                                                   BSE_Lin_dir=BSE_Lin_dir,Q_in=Q_in,neigs=neigs) )
     # IO
     if len(exph_mat)<2: exph_mat = exph_mat[0] # single Q-point calculation (suppress axis)
     else:               exph_mat = np.array(excph_mat) #[nQ,nq,nmodes,nexc_in (Qexc),nexc_out (Qexc+q)]
@@ -74,7 +77,8 @@ def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,0],BSE_dir='bse',BSE_Lin_
         print(f'Excph coupling file saved to {exph_file}')
         np.save(exph_file,exph_mat)
 
-def exciton_phonon_matelem_iQ(latdb,elphdb,wfdb,exdbs,Dmats,BSE_Lin_dir=None,Qexc=0,neigs=-1,dmat_mode='run'): 
+def exciton_phonon_matelem_iQ(elphdb,wfdb,exdbs,Dmats,BSE_Lin_dir=None,
+                              Q_in=np.zeros(3),neigs=-1,dmat_mode='run'): 
     """
     This function calculates the exciton-phonon matrix element per Q 
 
@@ -85,8 +89,6 @@ def exciton_phonon_matelem_iQ(latdb,elphdb,wfdb,exdbs,Dmats,BSE_Lin_dir=None,Qex
 
     Parameters
     ----------
-    latdb : YamboLatticeDB
-        The YamboLatticeDB object which contains the lattice information.
     elphdb : LetzElphElectronPhononDB
         The LetzElphElectronPhononDB object which contains the electron-phonon matrix
         elements.
@@ -96,31 +98,20 @@ def exciton_phonon_matelem_iQ(latdb,elphdb,wfdb,exdbs,Dmats,BSE_Lin_dir=None,Qex
         List of Q+q YamboExcitonDB objects containing the BSE calculation
     BSE_Lin_dir : str, optional
         The name of the folder which contains the BSE q=0 calculation (for optical spectra). Default is exdbs[Q].
-    Qexc : int, optional
-        Excitonic momentum index (python counting). Default is 0, i.e. Gamma point.
+    Q_in : np.ndarray, optional
+        Excitonic momentum in reduced units. Default np.array([0.0,0.0,0.0]) 
     neigs : int, optional
         Number of excitonic states included in calculation. Default is -1 (all).
     """
-    
-    # Exc(in) momentum
-    Q_in = wfdb.kpts_iBZ[Qexc]
-
+    latdb = wfdb.ydb
     # Determine Lkind(in)
-    if BSE_Lin_dir is None: 
-        Ak = exdbs[Qexc].get_Akcv()
-    else:
-        filename = 'ndb.BS_diago_Q%d' % (Qexc+1)
-        excdbin = YamboExcitonDB.from_db_file(latdb,filename=filename,folder=BSE_Lin_dir,\
-                                              Load_WF=True, neigs=neigs)
-        Ak = excdbin.get_Akcv()
-    
+    Ak = rotate_Akcv_Q(wfdb, exdbs, Qpt, folder=BSE_Lin_dir):
     # Compute ex-ph
     exph_mat = []
     for iq in range(elphdb.nq):
         ph_eig, elph_mat = elphdb.read_iq(iq,convention='standard')
         elph_mat = elph_mat.transpose(1,0,2,4,3)
         #
-
         Akq = rotate_Akcv_Q(wfdb, exdbs, Q_in + elphdb.qpoints[iq]) # q+Q
         tmp_exph = exciton_X_matelem(Q_in, elphdb.qpoints[iq], \
                                      Akq, Ak, elph_mat, wfdb.kBZ, \
@@ -156,9 +147,9 @@ def save_or_load_dmat(wfdb, mode='run', dmat_file='Dmats.npy'):
         return wfdb.Dmat()
 
 
-def rotate_Akcv_Q(wfdb, exdbs, Qpt):
+def rotate_Akcv_Q(wfdb, exdbs, Qpt, folder=None):
     '''
-    Qpt reduced coordinates
+    Qpt reduced coordinates in BZ or whatever
     '''
     latdb = wfdb.ydb
     idx_BZQ = wfdb.kptBZidx(Qpt)
@@ -167,7 +158,15 @@ def rotate_Akcv_Q(wfdb, exdbs, Qpt):
     trev  = (iQ_isymm >= len(latdb.sym_car) / (1 + int(np.rint(latdb.time_rev))))
     symm_mat_red = latdb.lat@latdb.sym_car[iQ_isymm]@np.linalg.inv(latdb.lat)
     exe_iQIBZ = wfdb.kpts_iBZ[iQ_iBZ]
+    #
+    if folder is not None:
+        neigs = len(exdbs[0].eigenvalues)
+        filename = 'ndb.BS_diago_Q%d' % (iQ_iBZ+1)
+        excdbin = YamboExcitonDB.from_db_file(latdb,filename=filename,folder=folder,\
+                                              Load_WF=True, neigs=neigs)
+        AQibz = excdbin.get_Akcv()
+    else : AQibz = exdbs[iQ_iBZ].get_Akcv()
+    #
+    AQ_rot = rotate_exc_wf(AQibz,symm_mat_red,wfdb.kBZ,exe_iQIBZ,wfdb.Dmats[iQ_isymm],trev,wfdb.ktree)
     
-    Akcv_Qrot = rotate_exc_wf(exdbs[iQ_iBZ].get_Akcv(),symm_mat_red,wfdb.kBZ,exe_iQIBZ,wfdb.Dmats[iQ_isymm],trev,wfdb.ktree)
-    
-    return Akcv_Qrot
+    return AQ_rot
