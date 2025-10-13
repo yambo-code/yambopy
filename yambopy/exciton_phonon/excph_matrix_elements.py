@@ -122,18 +122,8 @@ def exciton_phonon_matelem_iQ(latdb,elphdb,wfdb,exdbs,Dmats,BSE_Lin_dir=None,Qex
         #
 
         Akq = rotate_Akcv_Q(wfdb, exdbs, Q_in + elphdb.qpoints[iq]) # q+Q
-        idx_BZq = wfdb.kptBZidx(elphdb.qpoints[iq])
-        iq_isymm = latdb.symmetry_indexes[idx_BZq]
-        iq_iBZ = latdb.kpoints_indexes[idx_BZq]
-        trev  = (iq_isymm >= len(latdb.sym_car) / (1 + int(np.rint(latdb.time_rev))))
-        symm_mat_red = latdb.lat@latdb.sym_car[iq_isymm]@np.linalg.inv(latdb.lat)
-        #
-        exe_iqvec = wfdb.kpts_iBZ[iq_iBZ]
-        #
-        Akq = rotate_exc_wf(exdbs[iq_iBZ].get_Akcv(),symm_mat_red,wfdb.kBZ,exe_iqvec,Dmats[iq_isymm],trev,wfdb.ktree)
-        #
         tmp_exph = exciton_X_matelem(Q_in, elphdb.qpoints[iq], \
-                                     Akq, exdbs[0].get_Akcv(), elph_mat, wfdb.kBZ, \
+                                     Akq, Ak, elph_mat, wfdb.kBZ, \
                                      contribution='b', diagonal_only=False, ktree=wfdb.ktree)
         exph_mat.append(tmp_exph)
 
