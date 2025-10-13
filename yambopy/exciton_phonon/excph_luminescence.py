@@ -6,8 +6,9 @@ import numpy as np
 from yambopy.units import ha2ev
 from yambopy.tools.funcs import bose,boltzman_f
 from tqdm import tqdm
-from numba import prange
+from numba import njit,prange
 
+@njit(cache=True, nogil=True, parallel=True)
 def exc_ph_luminescence(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_el,\
                         exc_energies_in=None,exc_temp=None,ph_channels='b',\
                         PL_energy_prefactor='PT',nexc_out='all',nexc_in='all',\
@@ -157,5 +158,3 @@ def exc_ph_luminescence(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_
             PL_satellites[w] += get_PL_satellite(light_energies_Ha[w],ph_sign=+1)
 
     return light_energies, PL_satellites
-
-

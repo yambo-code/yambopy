@@ -120,6 +120,8 @@ def exciton_phonon_matelem_iQ(latdb,elphdb,wfdb,exdbs,Dmats,BSE_Lin_dir=None,Qex
         ph_eig, elph_mat = elphdb.read_iq(iq,convention='standard')
         elph_mat = elph_mat.transpose(1,0,2,4,3)
         #
+
+        Akq = rotate_Akcv_Q(wfdb, exdbs, Q_in + elphdb.qpoints[iq]) # q+Q
         idx_BZq = wfdb.kptBZidx(elphdb.qpoints[iq])
         iq_isymm = latdb.symmetry_indexes[idx_BZq]
         iq_iBZ = latdb.kpoints_indexes[idx_BZq]
@@ -163,3 +165,19 @@ def save_or_load_dmat(wfdb, mode='run', dmat_file='Dmats.npy'):
     else:
         return wfdb.Dmat()
 
+
+def rotate_Akcv_Q(wfdb, exdbs, Qpt):
+    '''
+    Qpt reduced coordinates
+    '''
+    latdb = wfdb.ydb
+    idx_BZQ = wfdb.kptBZidx(Qpt)
+    iQ_isymm = latdb.symmetry_indexes[idx_BZQ]
+    iQ_iBZ = latdb.kpoints_indexes[idx_BZQ]
+    trev  = (iQ_isymm >= len(latdb.sym_car) / (1 + int(np.rint(latdb.time_rev))))
+    symm_mat_red = latdb.lat@latdb.sym_car[iQ_isymm]@np.linalg.inv(latdb.lat)
+    exe_iQIBZ = wfdb.kpts_iBZ[iQ_iBZ]
+    
+    Akcv_Qrot = rotate_exc_wf(exdbs[iQ_iBZ].get_Akcv(),symm_mat_red,wfdb.kBZ,exe_iQIBZ,wfdb.Dmats[iQ_isymm],trev,wfdb.ktree)
+    
+    return Akcv_Qrot
