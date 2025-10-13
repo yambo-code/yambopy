@@ -105,14 +105,14 @@ def exciton_phonon_matelem_iQ(elphdb,wfdb,exdbs,Dmats,BSE_Lin_dir=None,
     """
     latdb = wfdb.ydb
     # Determine Lkind(in)
-    Ak = rotate_Akcv_Q(wfdb, exdbs, Q_in, folder=BSE_Lin_dir)
+    Ak = rotate_Akcv_Q(wfdb, exdbs, Q_in, Dmats, folder=BSE_Lin_dir)
     # Compute ex-ph
     exph_mat = []
     for iq in range(elphdb.nq):
         ph_eig, elph_mat = elphdb.read_iq(iq,convention='standard')
         elph_mat = elph_mat.transpose(1,0,2,4,3)
         #
-        Akq = rotate_Akcv_Q(wfdb, exdbs, Q_in + elphdb.qpoints[iq]) # q+Q
+        Akq = rotate_Akcv_Q(wfdb, exdbs, Q_in + elphdb.qpoints[iq], Dmats) # q+Q
         tmp_exph = exciton_X_matelem(Q_in, elphdb.qpoints[iq], \
                                      Akq, Ak, elph_mat, wfdb.kBZ, \
                                      contribution='b', diagonal_only=False, ktree=wfdb.ktree)
@@ -147,7 +147,7 @@ def save_or_load_dmat(wfdb, mode='run', dmat_file='Dmats.npy'):
         return wfdb.Dmat()
 
 
-def rotate_Akcv_Q(wfdb, exdbs, Qpt, folder=None):
+def rotate_Akcv_Q(wfdb, exdbs, Qpt, Dmats, folder=None):
     '''
     Qpt reduced coordinates in BZ or whatever
     '''
@@ -167,6 +167,6 @@ def rotate_Akcv_Q(wfdb, exdbs, Qpt, folder=None):
         AQibz = excdbin.get_Akcv()
     else : AQibz = exdbs[iQ_iBZ].get_Akcv()
     #
-    AQ_rot = rotate_exc_wf(AQibz,symm_mat_red,wfdb.kBZ,exe_iQIBZ,wfdb.Dmats[iQ_isymm],trev,wfdb.ktree)
+    AQ_rot = rotate_exc_wf(AQibz,symm_mat_red,wfdb.kBZ,exe_iQIBZ,Dmats[iQ_isymm],trev,wfdb.ktree)
     
     return AQ_rot
