@@ -8,7 +8,7 @@ from yambopy.bse.exciton_matrix_elements import exciton_X_matelem
 from yambopy.bse.rotate_excitonwf import rotate_exc_wf
 from tqdm import tqdm
 
-def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,0],BSE_dir='bse',BSE_Lin_dir=None,
+def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,1],BSE_dir='bse',BSE_Lin_dir=None,
                            neigs=-1,dmat_mode='run',save_files=True,exph_file='Ex-ph.npy',overwrite=False):
     """
     This function calculates the exciton-phonon matrix elements
@@ -64,7 +64,7 @@ def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,0],BSE_dir='bse',BSE_Lin_
     # Calculation
     print('Calculating EXCPH matrix elements...')
     exph_mat = []
-    for iQ in tqdm(range(Qrange[0],Qrange[1]+1)):
+    for iQ in tqdm(range(Qrange[0],Qrange[1])):
         Q_in = wfdb.kBZ[iQ]
         exph_mat.append( exciton_phonon_matelem_iQ(elphdb,wfdb,exdbs,Dmats,\
                                                    BSE_Lin_dir=BSE_Lin_dir,Q_in=Q_in,neigs=neigs) )
@@ -105,7 +105,7 @@ def exciton_phonon_matelem_iQ(elphdb,wfdb,exdbs,Dmats,BSE_Lin_dir=None,
     """
     latdb = wfdb.ydb
     # Determine Lkind(in)
-    Ak = rotate_Akcv_Q(wfdb, exdbs, Qpt, folder=BSE_Lin_dir)
+    Ak = rotate_Akcv_Q(wfdb, exdbs, Q_in, folder=BSE_Lin_dir)
     # Compute ex-ph
     exph_mat = []
     for iq in range(elphdb.nq):
