@@ -105,7 +105,7 @@ def exciton_phonon_matelem_iQ(elphdb,wfdb,exdbs,Dmats,BSE_Lin_dir=None,
     """
     latdb = wfdb.ydb
     # Determine Lkind(in)
-    Ak = rotate_Akcv_Q(wfdb, exdbs, Qpt, folder=BSE_Lin_dir):
+    Ak = rotate_Akcv_Q(wfdb, exdbs, Qpt, folder=BSE_Lin_dir)
     # Compute ex-ph
     exph_mat = []
     for iq in range(elphdb.nq):
