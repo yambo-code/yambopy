@@ -77,8 +77,10 @@ class LetzElphElectronPhononDB():
         self.kmap    = database.variables['kmap'][:]
         self.ktree   = build_ktree(self.kpoints)
         self.qtree   = build_ktree(self.qpoints)
-        
-        self.ph_energies = database.variables['FREQ'][:]*(ha2ev/2.) # Energy units are in Rydberg
+
+        # Energy units are in rydberg 
+        self.ph_energies = database.variables['FREQ'][...].data*(ha2ev/2.)
+
         self.check_energies()
 
         if read_all: 
