@@ -411,26 +411,24 @@ def calc_rho(vbdb,fl_eig,order,harmonic,kpt,bnd_1,bnd_2):
     kpt,band1,band2 :: integers, k point, and band indexes of the element of the density matrix
 
     RETURNS
-    rho(kpt,band1,band2,:) :: density matrix element contributing to harmonic order gamma 
-                              for perturbation order Gamma, for all possible combinations
-                              of harmonic orders eta, nu of the fl_eig 
+    rho :: density matrix element (kpt,band1,band2) contributing to harmonic order gamma 
+           for perturbation order Gamma, for all possible combinations of harmonic orders eta, nu of the fl_eig 
     '''
     # dimension ckecks
     args =locals()
     val =list(args.values())
-    val.reverse()
     key = list(args.keys())
-    key.reverse()
-    for i in range(2,len(val)):
-        if not(isinstance(val[i], int)):
-            raise ValueError("value for "+str(key[i])+" must be integer")        
-        if val[i] <0:
-            raise ValueError("value for "+str(key[i])+" must be nonnegative")
-    if not((order - harmonic)%2 == 0.and.((order - harmonic)>0)):
-        raise ValueError("Harmonic order gamma not compatible with perturbation order Gamma: Gamma = gamma + 2n, where n is integer")
-    if kpt >= vbdb.k_kpts:
-        raise ValueError("Value for kpt must be smaller than "+str(vbdb.k_kpts))
-    if any([i for i in val[-2:] if (val[i] <  vbdb.basis_index[0] or val[i] >   vbdb.basis_index[1])]):
+    for i in range(len(val)):
+        if not(any([str(key[i]) == 'vbdb', str(key[i]) == 'fl_eig'])): 
+            if not(isinstance(val[i], int)):
+                raise ValueError("value for "+str(key[i])+" must be integer")        
+            if val[i] <0:
+                raise ValueError("value for "+str(key[i])+" must be nonnegative")
+    if not((order - harmonic)%2 == 0 and ((order - harmonic)>=0)):
+        raise ValueError("Harmonic order gamma not compatible with perturbation order Gamma: Gamma = gamma + 2n, where n is 0,1,...")
+    if kpt >= vbdb.n_kpts:
+        raise ValueError("Value for kpt must be smaller than "+str(vbdb.n_kpts))
+    if any([bnd_1 < vbdb.basis_index[0], bnd_1 > vbdb.basis_index[1], bnd_2 < vbdb.basis_index[0], bnd_2 > vbdb.basis_index[1] ]):
         raise ValueError("Basis indexes must be in range "+ str( vbdb.basis_index))
     # basis index 
     b_1 = bnd_1 -  vbdb.basis_index[0]
@@ -440,13 +438,15 @@ def calc_rho(vbdb,fl_eig,order,harmonic,kpt,bnd_1,bnd_2):
         eta = list(range(-harmonic,1))
     elif harmonic < order:
         eta = [-int((harmonic+order)/2),int((order-harmonic)/2)]
-     nu = list(int(x + harmomic) for x in eta)
-     c_dim = len(eta)
-     rho = np.zeros(c_dim)
-     for ii in c_dim:
-         for n in vbdb.v_bands:
-             rho[ii] = rho[ii] + numpy.conj(fl_eig(kpt,n,eta[ii],b_2))*fl_eig(kpt,n,nu[ii],b_1)
-    return rho
+    nu = list(int(x + harmonic) for x in eta)
+    c_dim = len(eta)
+    rho = np.zeros(c_dim,dtype=complex)
+    path = []
+    for ii in range(c_dim):
+         for n in range(vbdb.n_vbands):
+             rho[ii] = rho[ii] + np.conj(fl_eig[kpt,n,eta[ii],b_2])*fl_eig[kpt,n,nu[ii],b_1]
+         path.append([eta[ii],nu[ii]])
+    return rho, path
 
 def get_qebands_path(lat,path,fl_qek,ks_evk): # see how to put kwargs into it...
     from yambopy.plot.bandstructure import YambopyBandStructure
