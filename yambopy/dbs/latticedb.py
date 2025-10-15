@@ -286,6 +286,10 @@ class YamboLatticeDB(object):
         self.IBZ_to_BZ_indexes = {}
         for ibz_index in np.unique(BZ_to_IBZ_indexes):
             self.IBZ_to_BZ_indexes[ibz_index] = np.where(BZ_to_IBZ_indexes == ibz_index)[0]
+        kmap = np.zeros((self.nkpoints, 2), dtype=int)
+        kmap[:, 0] = self.kpoints_indexes
+        kmap[:, 1] = self.symmetry_indexes
+        self.kmap  = kmap
 
     def get_units_info(self):
 
