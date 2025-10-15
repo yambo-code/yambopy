@@ -223,7 +223,7 @@ def regular_grid(nk1,nk2,nk3):
         j.flatten() / nk2,
         k.flatten() / nk3,
     ])
-    return xkg
+    return xkg.T # shape [nk,3]
 
 def find_kpatch(kpts, kcentre, kdist, lat_vecs):
     """
