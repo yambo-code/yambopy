@@ -55,6 +55,9 @@ def bose(Eb,Bose_Temp,max_exp=50,thr=1e-10):
     """
     if Bose_Temp < thr: return np.zeros(Eb.shape) # zero temperature: no occupation
     e = Eb/(kb*Bose_Temp)
-    # Ignore overflow and return zero if energy is zero (e.g. acoustic modes at q=0)
-    with np.errstate(over='ignore'): n_be = np.where(e==0., 0.0, 1.0/(np.exp(e)-1.0))
+    # Ignore overflow div by zero and return zero if energy is zero 
+    # (e.g. acoustic modes at q=0). 
+    # THIS DOES NOT REPLACE HANDLING THE ZERO CASE EXPLICITLY IN YOUR APPLICATION
+    with np.errstate(over='ignore',divide='ignore', invalid='ignore'): 
+        n_be = np.where(e==0., 0.0, 1.0/(np.exp(e)-1.0))
     return n_be

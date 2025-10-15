@@ -62,12 +62,7 @@ class LetzElphElectronPhononDB():
         else:
             conv = str(conv).strip()
         conv = conv.strip().replace('\0', '')
-        #
-        #
-        if conv == 'standard':
-            print("Convention used in Letzelphc : k -> k+q (standard)")
-        else:
-            print("Convention used in Letzelphc : k-q -> k (yambo)")
+
         self.convention = conv
         #
         # Read DB
@@ -94,6 +89,12 @@ class LetzElphElectronPhononDB():
         database.close()
         
         self.verbose = verbose
+
+        if self.verbose:
+            if conv == 'standard':
+                print("Convention used in Letzelphc : k -> k+q (standard)")
+            else:
+                print("Convention used in Letzelphc : k-q -> k (yambo)")
 
     def check_energies(self):
         """

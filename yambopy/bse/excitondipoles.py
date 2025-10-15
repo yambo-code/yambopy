@@ -111,7 +111,7 @@ def exc_dipoles_pol(lattice_path,dipoles_path=None,bse_path=None,save_files=True
     # Load full BSE database at Q=0
     yexc = YamboExcitonDB.from_db_file(ylat,filename=bse_path+'/ndb.BS_diago_Q1')
     # Read dipoles in bands range | don't project | don't expand
-    # bands range is fixed by BSE calculation
+    # bands range is fixed by BSE calculation | these are dipoles for EMISSION
     ydip = YamboDipolesDB.from_db_file(ylat,filename=f'{dipoles_path}/ndb.dipoles',\
                                          bands_range=yexc.bs_bands,project=False,expand=False)
  
@@ -124,6 +124,8 @@ def exc_dipoles_pol(lattice_path,dipoles_path=None,bse_path=None,save_files=True
 
     # Rotate dipoles in exc. basis [n,nblks,nspin,k,c,v] -> [n,k,c,v]
     BS_wfc = np.squeeze( yexc.get_Akcv() ) # Works in TDA and no spin pol
+    # Since we have dipoles for emission, we do not conjugate BS_wfc
+    # Then the results are directly the exciton dipoles for emission
     dip_exc = np.einsum('nkcv,kicv->in',BS_wfc,dip_expanded,
                         optimize=True).astype(dtype=ydip.dipoles.dtype)
 

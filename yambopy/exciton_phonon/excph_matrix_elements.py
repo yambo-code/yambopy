@@ -76,6 +76,8 @@ def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,1],BSE_dir='bse',BSE_Lin_
         if exph_file[-4:]!='.npy': exph_file = exph_file+'.npy'
         print(f'Excph coupling file saved to {exph_file}')
         np.save(exph_file,exph_mat)
+    
+    return exph_mat
 
 def exciton_phonon_matelem_iQ(elphdb,wfdb,exdbs,Dmats,BSE_Lin_dir=None,
                               Q_in=np.zeros(3),neigs=-1,dmat_mode='run'): 

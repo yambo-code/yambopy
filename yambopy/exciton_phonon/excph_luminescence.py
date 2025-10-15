@@ -41,8 +41,9 @@ def exc_ph_luminescence(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_
         Exciton energies in eV [nqpts,nexc_out] 
         Typically, YamboExcitonDB.eigenvalues are used
     exc_dipoles : cmplx ndarray
-        Exciton dipole matrix elements in a.u. (bohr) [nexc_in]
-        Typically, YamboExcitonDB.l_residuals are used.
+        Exciton dipole matrix elements in a.u. (bohr) 
+        * If shape is [nexc_in], assume projected dipoles: typically, YamboExcitonDB.r_residuals are used.
+        * If shape is [pol,nexc_in], perform polarization average. This can be produced with exc_dip_pol function in yambopy.bse.excitondipoles
     exc_ph_mat_el : cmplx ndarray
         Exciton-phonon coupling matrix elements in a.u. (hartree) [nqpts,nmodes,nexc_in,nexc_out]
         Typically, computed via exciton_phonon_matelem
@@ -89,9 +90,10 @@ def exc_ph_luminescence(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_
         ph_fac = ph_occ - (ph_sign-1)/2.
     
         # Sum over exc_in and then square (this includes off-diagonal excph SE terms)
-        T = np.einsum('i,qmio->qmo',exc_dipoles,satellite_weight,optimize=True)
+        T = np.einsum('ri,qmio->rqmo',exc_dipoles,satellite_weight,optimize=True)
+        T = np.sum( np.abs(T)**2, axis=0)/3. # Average over pol. directions as well
         # Include occupation factors
-        T = np.abs(T)**2 * exc_occ[:,None,:]*ph_fac[:,:,None]
+        T = T * exc_occ[:,None,:]*ph_fac[:,:,None]
 
         # Energy differences [nqpts,nmodes,nexc_out]
         pole_energy = exc_energies[:,None,:]+ph_sign*ph_energies[:,:,None]
@@ -122,20 +124,25 @@ def exc_ph_luminescence(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_
     if np.iscomplexobj(exc_energies_in): exc_energies_in = exc_energies_in.real
     assert ph_channels in ['b', 'e', 'a'], "Allowed values for phonon channels are 'b', 'e', 'a'"
     nexc_out_avail = min(exc_energies.shape[1],exc_ph_mat_el.shape[3])
-    nexc_in_avail  = min(len(exc_energies_in),len(exc_dipoles),exc_ph_mat_el.shape[2])
+    nexc_in_avail  = min(len(exc_energies_in),exc_dipoles.shape[-1],exc_ph_mat_el.shape[2])
     assert nexc_out <= nexc_out_avail, "less exciton states than requested (nexc_out)"
     assert nexc_in  <= nexc_in_avail,  "less exciton states than requested (nexc_in)"
     if nexc_out =='all': nexc_out = nexc_out_avail
     if nexc_in  =='all': nexc_in  = nexc_in_avail
     exc_energies    = exc_energies[:,:nexc_out]
     exc_energies_in = exc_energies_in[:nexc_in]
+    exc_dipoles     = exc_dipoles[...,:nexc_in]
     # We conj because we need it for photon emission
     exc_ph_mat_el = np.conj( exc_ph_mat_el[...,:nexc_in,:nexc_out] ) 
     assert ph_energies.shape[1]==exc_ph_mat_el.shape[1], "number of modes mismatch between phonon energies and matrix elements"
-    broad = broad/2
-    if broad_0 is None: broad_0 = broad
+    if broad_0 is None: broad_0 = broad # This goes in |E1-E2+i*broad_0|^(-2)
+    broad = broad/2 # We are using explicit Lorentzian shape
     if exc_temp is None: exc_temp = ph_temp
-    
+    # We expect the dipoles to be unpolarized (3,nexc_in). If not, we expect projected dipoles
+    # We extend the projected dipoles for compatibility
+    if exc_dipoles.ndim==1: exc_dipoles = np.broadcast_to(exc_dipoles, (3, nexc_in)) 
+    # Acoustic phonons at q=0: they are already excluded as exc_ph_mat_el[0,0:3,...]=czero
+
     # Occupation functions
     exc_min_energy = np.min(exc_energies)
     exc_occ = boltzman_f(exc_energies-exc_min_energy,exc_temp)
