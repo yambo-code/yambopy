@@ -53,7 +53,6 @@ def exc_ph_get_inputs(lat_path,elph_path,bse_path1,mode='PL',bse_path2=None,wf_p
     dmat_file, exph_file, dip_file : strings, optional
         Name of .npy auxiliary output files for dmats, exc-ph couplings, and unprojected dipoles
     """
-    if bse_path2 is None: bse_path2 = bse_path1
     if wf_path is None:   wf_path = lat_path
     if mode=='PL' and dipoles_path is None:
         raise ValueError('Please specify `dipoles_path` to ndb.dipoles directory')
@@ -86,6 +85,8 @@ def exc_ph_get_inputs(lat_path,elph_path,bse_path1,mode='PL',bse_path2=None,wf_p
     else:
         exc_energies_in = exc_energies[0]
 
+    if bse_path2 is None: bse_path2 = bse_path1
+    
     # Read wavefunctions (this is not needed if exc-ph are already computed)
     wfcs = YamboWFDB(filename='ns.wf',save=wf_path,latdb=lattice,bands_range=bands_range)
 

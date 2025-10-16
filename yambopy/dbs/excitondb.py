@@ -105,7 +105,7 @@ class YamboExcitonDB(object):
 
         with Dataset(path_filename) as database:
             #energies
-            eig =  database.variables['BS_Energies'][:]*ha2ev
+            eig =  database.variables['BS_Energies'][...].data*ha2ev
             eigenvalues = eig[:,0]+eig[:,1]*I
             neig_full = len(eigenvalues)
             if neigs < 0 or neigs > neig_full: neigs = neig_full
