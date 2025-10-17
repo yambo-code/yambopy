@@ -62,22 +62,20 @@ class LetzElphElectronPhononDB():
         else:
             conv = str(conv).strip()
         conv = conv.strip().replace('\0', '')
-        #
-        #
-        if conv == 'standard':
-            print("Convention used in Letzelphc : k -> k+q (standard)")
-        else:
-            print("Convention used in Letzelphc : k-q -> k (yambo)")
+
         self.convention = conv
         #
         # Read DB
         self.kpoints = database.variables['kpoints'][:]
         self.qpoints = database.variables['qpoints'][:]
         self.bands   = database.variables['bands'][:]
+        self.kmap    = database.variables['kmap'][:]
         self.ktree   = build_ktree(self.kpoints)
         self.qtree   = build_ktree(self.qpoints)
-        
-        self.ph_energies = database.variables['FREQ'][:]*(ha2ev/2.) # Energy units are in Rydberg
+
+        # Energy units are in rydberg 
+        self.ph_energies = database.variables['FREQ'][...].data*(ha2ev/2.)
+
         self.check_energies()
 
         if read_all: 
@@ -91,6 +89,12 @@ class LetzElphElectronPhononDB():
         database.close()
         
         self.verbose = verbose
+
+        if self.verbose:
+            if conv == 'standard':
+                print("Convention used in Letzelphc : k -> k+q (standard)")
+            else:
+                print("Convention used in Letzelphc : k-q -> k (yambo)")
 
     def check_energies(self):
         """

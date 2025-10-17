@@ -82,7 +82,8 @@ class YamboExcitonDB(object):
         self.car_qpoint = car_qpoint
         self.q_cutoff = q_cutoff
         self.table = table
-        self.bs_bands = np.array([np.min(self.table[:,1]),np.max(self.table[:,2])]) # set range of bse bands
+        if table is not None:
+            self.bs_bands = np.array([np.min(self.table[:,1]),np.max(self.table[:,2])]) # set range of bse bands
         self.eigenvectors = eigenvectors
         self.spin_pol = spin_pol
 
@@ -104,7 +105,7 @@ class YamboExcitonDB(object):
 
         with Dataset(path_filename) as database:
             #energies
-            eig =  database.variables['BS_Energies'][:]*ha2ev
+            eig =  database.variables['BS_Energies'][...].data*ha2ev
             eigenvalues = eig[:,0]+eig[:,1]*I
             neig_full = len(eigenvalues)
             if neigs < 0 or neigs > neig_full: neigs = neig_full

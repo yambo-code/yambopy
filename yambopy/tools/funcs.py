@@ -8,6 +8,7 @@
 # This file is part of the yambopy project
 #
 import numpy as np
+from yambopy.units import kb
 
 def abs2(x):
     return x.real**2 + x.imag**2
@@ -24,7 +25,6 @@ def gaussian(x,x0,s,max_exp=50.,min_exp=-100.):
     return height*np.exp(argument)
 
 def boltzman_f(Eb, Bose_Temp):
-    kb = 8.61733326*10**-5
     return np.exp(-Eb/(kb*Bose_Temp))
 
 def fermi(e,max_exp=50,min_exp=-100):
@@ -32,7 +32,7 @@ def fermi(e,max_exp=50,min_exp=-100):
     """
     if e > max_exp:
         return 0
-    elif e < -max_exp:
+    elif e < min_exp:
         return 1
     return 1/(np.exp(e)+1)
 
@@ -43,11 +43,21 @@ def fermi_array(e_array,ef,invsmear):
     e_array = (e_array-ef)/invsmear
     return [ fermi(e) for e in e_array]
 
-def bose(Eb,Bose_Temp):
-    #
-    # Bose function
-    if Bose_Temp < 1e-10:
-        return 0.0
-    else:
-        return 1.0/(math.exp(Eb/Bose_Temp)-1.0)
+def bose(Eb,Bose_Temp,max_exp=50,thr=1e-10):
+    """ 
+    Bose-Einstein function (accepts ndarray)
 
+    Eb --> in eV (should be positive)
+    Bose_Temp --> in K
+
+    If Eb=0 (e.g. phonon acoustic modes at q=0) it returns zero to avoid
+    divide by zero errors: these states should be excluded from loops/calculations!
+    """
+    if Bose_Temp < thr: return np.zeros(Eb.shape) # zero temperature: no occupation
+    e = Eb/(kb*Bose_Temp)
+    # Ignore overflow div by zero and return zero if energy is zero 
+    # (e.g. acoustic modes at q=0). 
+    # THIS DOES NOT REPLACE HANDLING THE ZERO CASE EXPLICITLY IN YOUR APPLICATION
+    with np.errstate(over='ignore',divide='ignore', invalid='ignore'): 
+        n_be = np.where(e==0., 0.0, 1.0/(np.exp(e)-1.0))
+    return n_be
