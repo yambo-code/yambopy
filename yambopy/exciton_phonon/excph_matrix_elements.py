@@ -70,7 +70,7 @@ def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,1],BSE_dir='bse',BSE_Lin_
                                                    BSE_Lin_dir=BSE_Lin_dir,Q_in=Q_in,neigs=neigs) )
     # IO
     if len(exph_mat)<2: exph_mat = exph_mat[0] # single Q-point calculation (suppress axis)
-    else:               exph_mat = np.array(excph_mat) #[nQ,nq,nmodes,nexc_in (Qexc),nexc_out (Qexc+q)]
+    else:               exph_mat = np.array(exph_mat) #[nQ,nq,nmodes,nexc_in (Qexc),nexc_out (Qexc+q)]
     
     if save_files: 
         if exph_file[-4:]!='.npy': exph_file = exph_file+'.npy'
