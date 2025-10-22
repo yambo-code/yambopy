@@ -150,8 +150,8 @@ class YamboExcitonDB(object):
                 #eiv = eiv[:,:,0] + eiv[:,:,1]*I
                 #eigenvectors = eiv
                 eigenvectors = eiv.view(dtype=CmplxType(eiv)).reshape(eiv.shape[:-1])
-                table = np.rint(database.variables['BS_TABLE'][:].T).astype(int)
 
+            table = np.rint(database.variables['BS_TABLE'][:].T).astype(int)
             spin_vars = [int(database.variables['SPIN_VARS'][:][0]), int(database.variables['SPIN_VARS'][:][1])]
             if spin_vars[0] == 2 and spin_vars[1] == 1:
                spin_pol = 'pol'
