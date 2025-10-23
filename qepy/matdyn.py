@@ -351,6 +351,8 @@ class Matdyn(object):
 
         #only gamma point in the new SC
         qpoints.append([0.0,0.0,0.0])
+        print(self.nqpoints)
+        print(self.nmodes)
 
         freq_arr=np.zeros([self.nqpoints,self.nmodes],dtype=float)
 
