@@ -82,7 +82,8 @@ class YamboExcitonDB(object):
         self.car_qpoint = car_qpoint
         self.q_cutoff = q_cutoff
         self.table = table
-        self.bs_bands = np.array([np.min(self.table[:,1]),np.max(self.table[:,2])]) # set range of bse bands
+        if table is not None:
+            self.bs_bands = np.array([np.min(self.table[:,1]),np.max(self.table[:,2])]) # set range of bse bands
         self.eigenvectors = eigenvectors
         self.spin_pol = spin_pol
 
@@ -104,7 +105,7 @@ class YamboExcitonDB(object):
 
         with Dataset(path_filename) as database:
             #energies
-            eig =  database.variables['BS_Energies'][:]*ha2ev
+            eig =  database.variables['BS_Energies'][...].data*ha2ev
             eigenvalues = eig[:,0]+eig[:,1]*I
             neig_full = len(eigenvalues)
             if neigs < 0 or neigs > neig_full: neigs = neig_full
@@ -149,8 +150,8 @@ class YamboExcitonDB(object):
                 #eiv = eiv[:,:,0] + eiv[:,:,1]*I
                 #eigenvectors = eiv
                 eigenvectors = eiv.view(dtype=CmplxType(eiv)).reshape(eiv.shape[:-1])
-                table = np.rint(database.variables['BS_TABLE'][:].T).astype(int)
 
+            table = np.rint(database.variables['BS_TABLE'][:].T).astype(int)
             spin_vars = [int(database.variables['SPIN_VARS'][:][0]), int(database.variables['SPIN_VARS'][:][1])]
             if spin_vars[0] == 2 and spin_vars[1] == 1:
                spin_pol = 'pol'

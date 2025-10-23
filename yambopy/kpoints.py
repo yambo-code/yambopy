@@ -212,6 +212,18 @@ def find_kpt(tree, kpt_search, tol=1e-5):
     assert np.max(dist) < tol, "Kpoint not found"
     return idx  # Return the index of the found k-point
 
+def regular_grid(nk1,nk2,nk3):
+    """
+    Generation of positive-coordinate full 'square' grid starting from zero
+    Shifted grids not allowed for now
+    """
+    i, j, k = np.meshgrid(np.arange(nk1), np.arange(nk2), np.arange(nk3), indexing='ij')
+    xkg = np.array([
+        i.flatten() / nk1,
+        j.flatten() / nk2,
+        k.flatten() / nk3,
+    ])
+    return xkg.T # shape [nk,3]
 
 def find_kpatch(kpts, kcentre, kdist, lat_vecs):
     """
