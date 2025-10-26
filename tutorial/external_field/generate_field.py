@@ -1,6 +1,7 @@
 import sys
 import argparse
-from yambopy.units import ha2ev
+import numpy as np
+from yambopy.units import ha2ev,fs2aut
 """
 In this example we show how to generate and external field
 in a format that readable from yambo_rt and yambo_nl.
@@ -13,24 +14,24 @@ We give two example SIN and QSSIN functions
 # If you are not able to compute analitically f(w) you can use FFT
 #
 
-def sin_field(t_steps,w_steps):
+def sin_field(t_start,t_steps): #,w_steps):
     # In this example we generate a field with frequency 2.0 eV
     freq=2.0/ha2ev 
-    f_t   =1.0/freq*cos(freq*t_steps)   # A(t) 
-    fp_t  =sin(freq*t_steps)            # A'(t)
-    fpp_t =-freq*sin(freq*t_steps)      # A''(t)
-    f_w   =0
-    return f_t,fp_t,fpp_t,f_w
+    f_t   =-1.0/freq*(np.cos(freq*(t_start-t_steps))-1.0)   # A(t) 
+    fp_t  = np.sin(freq*(t_start-t_steps))                  # A'(t)
+    fpp_t = freq*np.cos(freq*(t_start-t_steps))             # A''(t)
+    f_w   = 0
+    return  f_t,fp_t,fpp_t #,f_w
 
 
-def qsin_field(t_steps,w_steps):
-    # In this example we generate a field with frequency 2.0 eV
-    freq=2.0/ha2ev 
-    f_t   =1.0/freq*cos(freq*t_steps)   # A(t) 
-    fp_t  =sin(freq*t_steps)            # A'(t)
-    fpp_t =-freq*sin(freq*t_steps)      # A''(t)
-    f_w   =0
-    return f_t,fp_t,fpp_t,f_w
+#def qsin_field(t_start,t_steps,w_steps):
+#    # In this example we generate a field with frequency 2.0 eV
+#    freq=2.0/ha2ev ddd
+#    f_t   =1.0/freq*cos(freq*(t_steps-t_start))   # A(t) 
+#    fp_t  =sin(freq*(t_steps-t_start))            # A'(t)
+#    fpp_t =-freq*sin(freq*(t_steps-t_start))      # A''(t)
+#    f_w   =0
+#    return f_t,fp_t,fpp_t,f_w
     
 
 if __name__ == "__main__":
@@ -39,10 +40,28 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--trange', type=float, nargs=2, default=[0.0,80.0],help='Time range (fs)')
     parser.add_argument('-s', '--tstart', type=float, default=0.01,      help='Initial time (fs)')
     parser.add_argument('-v', '--versor', type=float, nargs=3, default=[1.0,0.0,0.0],help='Field versor')
-    parser.add_argument('-f', '--fname',  type=str, default='SIN', help='Field name (SIN | QSIN) ')
+    parser.add_argument('-f', '--fname',  type=str, help='Field name (SIN | QSIN) ')
     args = parser.parse_args()
 
     if len(sys.argv)==1:
         parser.print_help()
         sys.exit(1)
+
+    if args.fname == None:
+        print("You have to specify the field name ")
+        sys.exit(1)
+
+    t_start=args.tstart*fs2aut
+    t_range=np.arange(args.trange[0]*fs2aut,args.trange[1]*fs2aut,args.tstep*fs2aut)
+    
+    print("\n\n * * * Generate and external field for yambo_rt/yambo_nl * * * \n\n")
+    print("Field name : ",args.fname)
+    print("Time range : ",args.trange,"[fs]")
+    print("Time step  : ",args.tstep, "[fs]")
+    print("Start time : ",args.tstart,"[fs]")
+
+    if args.fname == "SIN":
+        a_pot=sin_field(t_start,t_range)
+    elif args.fname == "QSIN":
+        a_pot=qsin_field(t_start,t_range)
 
