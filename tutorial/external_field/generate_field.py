@@ -1,7 +1,7 @@
 import sys
 import argparse
 import numpy as np
-from yambopy.units import ha2ev,fs2aut
+from yambopy.units import ha2ev,fs2aut,AU2KWCMm2
 from yambopy.nl.compose_field   import Compose_Field,Efield_strength
 """
 In this example we show how to generate and external field
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     t_start=args.tstart*fs2aut
     t_step =args.tstep*fs2aut
     t_range=np.arange(args.trange[0]*fs2aut,args.trange[1]*fs2aut,t_step)
-    e_amp  =Efield_strength(args.fint,'AU')
+    e_amp  =Efield_strength(args.fint/AU2KWCMm2,'AU')
     
     print("\n\n * * * Generate and external field for yambo_rt/yambo_nl * * * \n\n")
     print("Field name : ",args.fname)

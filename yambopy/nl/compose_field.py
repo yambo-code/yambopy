@@ -6,7 +6,7 @@
 #
 import math
 import numpy as np
-from yambopy.units import speed_of_light,speed_of_light_SI,WMm22kWCMm2,WMm22ERGCMm2SECm1,AU2KWCMm2,FREE_SPACE_PERM,SEC2AU
+from yambopy.units import speed_of_light,speed_of_light_SI,WMm22kWCMm2,WMm22ERGCMm2SECm1,AU2KWCMm2,FREE_SPACE_PERM,SEC2AU,fs2aut
 
 def Efield_strength(Intensity, unit_system):
     """
@@ -168,3 +168,8 @@ def Compose_Field(a_pot,t_start,t_step,t_range,e_amp,field_fname):
     A_vecpot     = A_coeff*(a_pot[0]*theta)
     A_vecpot_vel = A_coeff*(a_pot[1]*theta +a_pot[0]*delta)
     A_vecpot_acc = A_coeff*(a_pot[2]*theta +a_pot[1]*delta+a_pot[0]*signf)
+
+    data = np.column_stack((t_range/fs2aut,A_vecpot, A_vecpot_vel, A_vecpot_acc))
+    with open(field_fname, "w") as f:
+        f.write(str(t_range.size)+" \n")
+        np.savetxt(f, data, fmt="%4.8e", delimiter="\t")
