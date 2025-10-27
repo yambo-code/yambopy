@@ -1,37 +1,42 @@
 import sys
 import argparse
 import numpy as np
+import math
+from scipy import special
 from yambopy.units import ha2ev,fs2aut,AU2KWCMm2
-from yambopy.nl.compose_field   import Compose_Field,Efield_strength
+
 """
 In this example we show how to generate and external field
 in a format that readable from yambo_rt and yambo_nl.
-We give two example SIN and QSSIN functions
+We give two example SIN and GAUSS functions
+
+An external field should provide f(t), f'(t), f''(t) 
+I put all paramters of the field inside their repecitve functions
+
+*** IMPORTANT ***
+The field is save without field intensity(amplitude) this is read
+from the yambo_nl/yambo_rt input
 """
 
-#
-# An external field should provide f(t), f'(t), f''(t) 
-# I put all paramters of the field inside their repecitve functions
-#
-
-def sin_field(t_start,t_steps):
+def sin_field(t_steps):
     # In this example we generate a field with frequency 2.0 eV
     freq=2.0/ha2ev 
-    f_t   =-1.0/freq*(np.cos(freq*(t_start-t_steps))-1.0)   # A(t) 
-    fp_t  = np.sin(freq*(t_start-t_steps))                  # A'(t)
-    fpp_t = freq*np.cos(freq*(t_start-t_steps))             # A''(t)
-    f_w   = 0
+    f_t   = -1.0/freq*(np.cos(freq*t_steps)-1.0)   # A(t) 
+    fp_t  = np.sin(freq*t_steps)                  # A'(t)
+    fpp_t = freq*np.cos(freq*t_steps)             # A''(t)
     return  f_t,fp_t,fpp_t 
 
 
-#def qsin_field(t_start,t_steps,w_steps):
-#    # In this example we generate a field with frequency 2.0 eV
-#    freq=2.0/ha2ev ddd
-#    f_t   =1.0/freq*cos(freq*(t_steps-t_start))   # A(t) 
-#    fp_t  =sin(freq*(t_steps-t_start))            # A'(t)
-#    fpp_t =-freq*sin(freq*(t_steps-t_start))      # A''(t)
-#    f_w   =0
-#    return f_t,fp_t,fpp_t,f_w
+def gauss_field(t_steps):
+    # In this example we generate a guassian external field
+    sigma=5.0*fs2aut # Field width
+    T_0  =3.0*sigma  
+    Expf =np.exp(-(t_steps-T_0)**2/(2.0*sigma**2) )
+    f_t  =sigma*np.sqrt(math.pi/2.0)*(special.erf((t_steps-T_0)/(sigma*np.sqrt(2.0)))+1.0)
+    fp_t =Expf
+    fpp_t=-Expf*(t_steps-T_0)/sigma**2
+    return  f_t,fp_t,fpp_t 
+
     
 
 if __name__ == "__main__":
@@ -40,8 +45,8 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--trange', type=float, nargs=2, default=[0.0,80.0],help='Time range (fs)')
     parser.add_argument('-s', '--tstart', type=float, default=0.01,      help='Initial time (fs)')
     parser.add_argument('-v', '--versor', type=float, nargs=3, default=[1.0,0.0,0.0],help='Field versor')
-    parser.add_argument('-i', '--fint',   type=float, default=1000.0,      help='Field Intensity [kW/cm^2]')
-    parser.add_argument('-f', '--fname',  type=str, help='Field name (SIN | QSIN) ')
+    parser.add_argument('-f', '--fname',  type=str, help='Field name (SIN | GAUSS) ')
+    parser.add_argument('-o', '--fout',  type=str, default="ext_field.txt",help='External field file name')
     args = parser.parse_args()
 
     if len(sys.argv)==1:
@@ -54,21 +59,23 @@ if __name__ == "__main__":
 
     t_start=args.tstart*fs2aut
     t_step =args.tstep*fs2aut
-    t_range=np.arange(args.trange[0]*fs2aut,args.trange[1]*fs2aut,t_step)
-    e_amp  =Efield_strength(args.fint/AU2KWCMm2,'AU')
+    t_range=np.arange(args.trange[0]*fs2aut,args.trange[1]*fs2aut+t_step/2.0,t_step)
     
     print("\n\n * * * Generate and external field for yambo_rt/yambo_nl * * * \n\n")
     print("Field name : ",args.fname)
     print("Time range : ",args.trange,"[fs]")
     print("Time step  : ",args.tstep, "[fs]")
     print("Start time : ",args.tstart,"[fs]")
-    print("Field amplitude :",e_amp,"[au]")
 
     if args.fname == "SIN":
-        a_pot=sin_field(t_start,t_range)
-    elif args.fname == "QSIN":
-        a_pot=qsin_field(t_start,t_range)
+        a_pot=sin_field(t_range-t_start)
+    elif args.fname == "GAUSS":
+        a_pot=gauss_field(t_range-t_start)
+    else:
+        print("Unknown external field ")
+        sys.exit(1)
 
-    field_fname="ext_field.txt"
-    Compose_Field(a_pot,t_start,t_step,t_range,e_amp,field_fname)
-
+    data = np.column_stack((t_range/fs2aut,a_pot[0],a_pot[1],a_pot[2]))
+    with open(args.fout, "w") as f:
+        f.write(str(t_range.size)+" \n")
+        np.savetxt(f, data, fmt="%4.8e", delimiter="\t")
