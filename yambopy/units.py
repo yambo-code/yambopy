@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 I = complex(0,1)
 ha2ev  = 27.2113834 
@@ -8,7 +9,8 @@ core_cnst =2.418884326505
 fs2aut    =100.0/core_cnst 
 as2aut    =0.1/core_cnst
 ps2aut    =100000.0/core_cnst
-speed_of_light=137.03599911
+speed_of_light   =137.03599911  # a.u.
+speed_of_light_SI=2.99792458E8  # m/sec
 autime2s= 2.418884326505e-17
 m_e = 0.510998950e+06 # electron mass in eV
 kb    = 8.617330337217213e-05
@@ -26,6 +28,19 @@ au2kelvin = 3.1577513e5
 SVCMm12VMm1 =29.98*np.power(10,3,dtype=np.double) #  from [statV/cm] to [V/m]
 VMm12SVCMm1 =1.0/SVCMm12VMm1
 AU2VMm1     =5.14220632*np.power(10,11,dtype=np.double)
+
+AU2M   =5.2917720859e-11                   # Bohr = AU2M m
+M2AU   =1.0/AU2M                           # m    = M2AU Bohr
+AU2J   =4.3597482e-18                      # Ha = AU2J Joule
+J2AU   =1.0/AU2J                           # J  = J2AU Ha
+SEC2AU =1.0/autime2s                         # sec = SEC2AU Tau
+kWCMm22AU   =1.0e7*J2AU/(M2AU**2*SEC2AU)   # kW/cm^2 = kWCMm22AU * AU
+AU2KWCMm2   =1.0/kWCMm22AU                 # AU      = AU2KWCMm2 kW/cm^2
+WMm22kWCMm2 =1.0e-7                                   # W/m^2 = WMm22kWCMm2 kW/cm^2
+WMm22ERGCMm2SECm1 = 1.0e-3                            # W/m^2 = WMm22ERGCMm2SECm1 erg/cm^2/sec
+FREE_SPACE_PERM   = 1.0e7/4.0/math.pi/speed_of_light_SI**2 # Farad=Coulomb/Volt
+
+
 
 Eh = 4.359744e-18 # Hartree in Joule
 e = 1.602e-19 # Coulomb
