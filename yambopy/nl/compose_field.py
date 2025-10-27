@@ -6,7 +6,7 @@
 #
 import math
 import numpy as np
-from yambopy.units import speed_of_light,speed_of_light_SI
+from yambopy.units import speed_of_light,speed_of_light_SI,WMm22kWCMm2,WMm22ERGCMm2SECm1,AU2KWCMm2,FREE_SPACE_PERM,SEC2AU
 
 def Efield_strength(Intensity, unit_system):
     """
@@ -58,7 +58,7 @@ def Efield_strength(Intensity, unit_system):
     elif unit_system == "AU":
         # In atomic units, use direct formula
         I = Intensity
-        SPEED = SPEED_OF_LIGHT
+        SPEED = speed_of_light
 
         # I = SPEED_OF_LIGHT / (4π) * |E|^2 
         Efield_strength = math.sqrt(I * 4.0 * math.pi / SPEED)

@@ -29,13 +29,17 @@ SVCMm12VMm1 =29.98*np.power(10,3,dtype=np.double) #  from [statV/cm] to [V/m]
 VMm12SVCMm1 =1.0/SVCMm12VMm1
 AU2VMm1     =5.14220632*np.power(10,11,dtype=np.double)
 
+AU2M   =5.2917720859e-11                   # Bohr = AU2M m
+M2AU   =1.0/AU2M                           # m    = M2AU Bohr
 AU2J   =4.3597482e-18                      # Ha = AU2J Joule
 J2AU   =1.0/AU2J                           # J  = J2AU Ha
+SEC2AU =1.0/autime2s                         # sec = SEC2AU Tau
 kWCMm22AU   =1.0e7*J2AU/(M2AU**2*SEC2AU)   # kW/cm^2 = kWCMm22AU * AU
 AU2KWCMm2   =1.0/kWCMm22AU                 # AU      = AU2KWCMm2 kW/cm^2
 WMm22kWCMm2 =1.0e-7                                   # W/m^2 = WMm22kWCMm2 kW/cm^2
 WMm22ERGCMm2SECm1 = 1.0e-3                            # W/m^2 = WMm22ERGCMm2SECm1 erg/cm^2/sec
 FREE_SPACE_PERM   = 1.0e7/4.0/math.pi/speed_of_light_SI**2 # Farad=Coulomb/Volt
+
 
 
 Eh = 4.359744e-18 # Hartree in Joule

@@ -2,7 +2,7 @@ import sys
 import argparse
 import numpy as np
 from yambopy.units import ha2ev,fs2aut
-from yambopy.nl.compose_field   import Compose_Field
+from yambopy.nl.compose_field   import Compose_Field,Efield_strength
 """
 In this example we show how to generate and external field
 in a format that readable from yambo_rt and yambo_nl.
@@ -55,13 +55,14 @@ if __name__ == "__main__":
     t_start=args.tstart*fs2aut
     t_step =args.tstep*fs2aut
     t_range=np.arange(args.trange[0]*fs2aut,args.trange[1]*fs2aut,t_step)
-    f_amp  =
+    e_amp  =Efield_strength(args.fint,'AU')
     
     print("\n\n * * * Generate and external field for yambo_rt/yambo_nl * * * \n\n")
     print("Field name : ",args.fname)
     print("Time range : ",args.trange,"[fs]")
     print("Time step  : ",args.tstep, "[fs]")
     print("Start time : ",args.tstart,"[fs]")
+    print("Field amplitude :",e_amp,"[au]")
 
     if args.fname == "SIN":
         a_pot=sin_field(t_start,t_range)
@@ -69,5 +70,5 @@ if __name__ == "__main__":
         a_pot=qsin_field(t_start,t_range)
 
     field_fname="ext_field.txt"
-    Compose_Field(a_pot,t_start,t_step,t_range,field_fname)
+    Compose_Field(a_pot,t_start,t_step,t_range,e_amp,field_fname)
 
