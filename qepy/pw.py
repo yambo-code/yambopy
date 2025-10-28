@@ -689,7 +689,7 @@ class PwIn(object):
                     self.klist = [ [a,b,c,int(d)] for a,b,c,d in self.klist ]
 
     def slicefile(self, keyword):
-        file_slice_regexp = r'&{keyword}(?:.?)+\n((?:.+\n)+?)(?:\s+)?[\/&]'
+        file_slice_regexp = f'&{keyword}(?:.?)+\n((?:.+\n)+?)(?:\s+)?[\/&]'
         lines = re.findall(file_slice_regexp,"".join(self.file_lines),re.MULTILINE | re.IGNORECASE)
         return lines
 
