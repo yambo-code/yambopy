@@ -19,7 +19,7 @@ def Map_Phonons(qe_input, qe_dyn, R, no_invar_ph=None, sc_fname=None, dyn_fname=
         print(" Supercell : ",str(R))
 
     #Check and map phonons
-    if qe_dyn.nqpoints != np.prod(R):
+    if qe_dyn._nqpoints != np.prod(R):
         print("Error: number of q-points not compatible with supercell ") 
         print("      ",str(qe_dyn.nqpoints),"  vs ",str(np.prod(R)))
         sys.exit(0)

@@ -5,6 +5,8 @@ eigv_filename ="matdyn.modes"
 qe_input = PwIn.from_file(uc)
 qe_dyn   = Matdyn.from_modes_file(filename=eigv_filename)
 
+print(qe_dyn.nqpoints)
+
 R=[2,2,2]
 
 Map_Phonons(qe_input, qe_dyn, R)

@@ -6,6 +6,7 @@
 from __future__ import print_function, division
 import os
 import re
+import sys
 from math import sqrt
 import numpy as np
 from .lattice import *
@@ -32,6 +33,7 @@ class Matdyn(object):
         self.qpoints  = np.array(qpoints)
         self.eig      = np.array(eig)
         self.eiv      = np.array(eiv)
+        self._nqpoints= len(self.qpoints)
 
     @classmethod
     def from_modes_file(cls,folder='.',filename='matdyn.modes'):
@@ -85,9 +87,6 @@ class Matdyn(object):
             eiv.append(v_frec)
 
         #store info
-        natoms  = natoms
-        nmodes  = nmodes
-        nqpoints= nqpoints
         qpoints = np.array(qpoints)
         eig     = np.array(eig)
         eiv     = np.array(eiv).reshape(nqpoints,nmodes,nmodes)
@@ -351,9 +350,6 @@ class Matdyn(object):
 
         #only gamma point in the new SC
         qpoints.append([0.0,0.0,0.0])
-        print(self.nqpoints)
-        print(self.nmodes)
-
         freq_arr=np.zeros([self.nqpoints,self.nmodes],dtype=float)
 
         #expand eigenvectors
@@ -370,4 +366,4 @@ class Matdyn(object):
         np.reshape(expand_eig, self.nqpoints*self.nmodes)
         #np.reshape(expand_eiv, self.nqpoints*self.nmodes,qe_sc.basis*qe_sc.sup_size))
         
-        return cls(qpoints,expand_eig,expand_eiv)
+        return Matdyn(qpoints,expand_eig,expand_eiv)
