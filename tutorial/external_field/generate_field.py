@@ -77,5 +77,5 @@ if __name__ == "__main__":
 
     data = np.column_stack((t_range/fs2aut,a_pot[0],a_pot[1],a_pot[2]))
     with open(args.fout, "w") as f:
-        f.write(str(t_range.size)+" \n")
+        f.write(str(t_range.size)+"     "+str(t_step)+" \n")
         np.savetxt(f, data, fmt="%4.8e", delimiter="\t")
