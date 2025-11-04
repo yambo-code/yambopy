@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--tstart', type=float, default=0.01,      help='Initial time (fs)')
     parser.add_argument('-v', '--versor', type=float, nargs=3, default=[1.0,0.0,0.0],help='Field versor')
     parser.add_argument('-f', '--fname',  type=str, help='Field name (SIN | GAUSS) ')
-    parser.add_argument('-o', '--fout',  type=str, default="ext_field.txt",help='External field file name')
+    parser.add_argument('-o', '--fout',  type=str, default="EXTFIELD1_P1.time",help='External field file name')
     args = parser.parse_args()
 
     if len(sys.argv)==1:
