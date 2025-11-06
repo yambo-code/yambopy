@@ -33,7 +33,6 @@ class Matdyn(object):
         self.qpoints  = np.array(qpoints)
         self.eig      = np.array(eig)
         self.eiv      = np.array(eiv)
-        self._nqpoints= len(self.qpoints)
 
     @classmethod
     def from_modes_file(cls,folder='.',filename='matdyn.modes'):
@@ -350,10 +349,11 @@ class Matdyn(object):
 
         #only gamma point in the new SC
         qpoints.append([0.0,0.0,0.0])
-        freq_arr=np.zeros([self.nqpoints,self.nmodes],dtype=float)
+        nqpoints= len(self.qpoints)
+        freq_arr=np.zeros([nqpoints,self.nmodes],dtype=float)
 
         #expand eigenvectors
-        for iq in range(self.nqpoints):
+        for iq in range(nqpoints):
             q=self.qpoints[iq]
             arg = q[0]*qe_sc.T[:,0]+q[1]*qe_sc.T[:,1]+q[2]*qe_sc.T[:,2]
             phases = np.exp(1j*2.*np.pi*arg)

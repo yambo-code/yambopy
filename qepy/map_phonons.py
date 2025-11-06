@@ -19,7 +19,7 @@ def Map_Phonons(qe_input, qe_dyn, R, no_invar_ph=None, sc_fname=None, dyn_fname=
         print(" Supercell : ",str(R))
 
     #Check and map phonons
-    if qe_dyn._nqpoints != np.prod(R):
+    if qe_dyn.nqpoints != np.prod(R):
         print("Error: number of q-points not compatible with supercell ") 
         print("      ",str(qe_dyn.nqpoints),"  vs ",str(np.prod(R)))
         sys.exit(0)
@@ -30,7 +30,7 @@ def Map_Phonons(qe_input, qe_dyn, R, no_invar_ph=None, sc_fname=None, dyn_fname=
 
     #write supercell to file
     sc.qe_d.write(sc.qe_d.filename+'_sc')
-    
+
     #map_phonons
-    qe_mapped=qe_dyn.expand_in_supercell(sc)
+    qe_mapped=qe_dyn.expand_in_supercell(sc.qe_d)
     qe_mapped.write_modes(filename="matdyn_sc.modes")
