@@ -4,6 +4,21 @@ from yambopy.tools.string import marquee
 from yambopy.units import ha2ev
 from yambopy.kpoints import build_ktree, find_kpt
 
+def get_string_nc(nc_char):
+    """
+    Convert nc data type to plain string
+    """
+    if isinstance(nc_char, np.ndarray):
+        if nc_char.dtype.kind == 'S':  # Byte strings (C chars)
+            nc_char = nc_char.tobytes().decode('utf-8').strip()
+        else:
+            nc_char = str(nc_char)  # Fallback for non-string arrays
+    elif isinstance(nc_char, bytes):
+        nc_char = nc_char.decode('utf-8').strip()
+    else:
+        nc_char = str(nc_char).strip()
+    return nc_char.strip().replace('\0', '')
+
 class LetzElphElectronPhononDB():
     """
     Python class to read the electron-phonon matrix elements from LetzElPhC.
@@ -51,19 +66,11 @@ class LetzElphElectronPhononDB():
         self.div_by_energies = div_by_energies # if true, the elph store are normalized with 1/(2*w_ph)
         #
         #
-        conv = database['convention'][...].data
-        if isinstance(conv, np.ndarray):
-            if conv.dtype.kind == 'S':  # Byte strings (C chars)
-                conv = conv.tobytes().decode('utf-8').strip()
-            else:
-                conv = str(conv)  # Fallback for non-string arrays
-        elif isinstance(conv, bytes):
-            conv = conv.decode('utf-8').strip()
-        else:
-            conv = str(conv).strip()
-        conv = conv.strip().replace('\0', '')
+        conv   = database['convention'][...].data
+        self.convention = get_string_nc(conv)
+        kernel = database['kernel'][...].data
+        self.kernel     = get_string_nc(kernel)
 
-        self.convention = conv
         #
         # Read DB
         self.kpoints = database.variables['kpoints'][:]
@@ -261,6 +268,26 @@ class LetzElphElectronPhononDB():
         idx_q = find_kpt(self.ktree, factor*qpt[None, :] + self.kpoints)
         return elph_iq[idx_q, ...]
 
+    def descreen(self,Z,Zval,atomic_masses):
+        """
+        Obtain approximate "true" bare matrix elements, removing
+        the core electron screening. 
+
+        If using pseudopotentials,
+        "bare" nuclei are actually still partially screened by
+        core frozen core electrons.
+
+        - Read the docstring of descreen_el_ph for information.
+
+        NOTE: Only works with kernel='bare'.
+        """
+        if self.kernel.strip()!='bare':
+            raise ValueError("[ERROR] descreening can only be applied \
+                              to mat. el. computed with kernel='bare'")
+
+        ry2ev = ha2ev/2.
+        self.gkkp_bare = descreen_el_ph(self.gkkp,self.ph_energies/ry2ev,self.ph_eigenvectors,Z,Zval,masses=atomic_masses)
+
     def __str__(self):
 
         lines = []; app = lines.append
@@ -272,6 +299,7 @@ class LetzElphElectronPhononDB():
         app('natoms: %d'%self.nat)
         app('nbands: %d %d'%(self.nb1,self.nb2))
         app('convention: %s'%self.convention)
+        app('kernel: %s'%self.kernel)
 
         if self.verbose:
 
