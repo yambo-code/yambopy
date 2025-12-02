@@ -15,10 +15,10 @@ import os
 
 def get_exciton_dipole(state,blongdir,ylat,ydip,yexc):
     """
-    This function computes the dipoles D in the excitonic basis
+    This function computes the dipole D of exciton state `state`
     at Q=0 starting from the transition-space expression:
 
-    D_{a} = \sum_{cvk} A^{a}_{cvk} Efield \cdot r_cvk 
+    D_{state} = \sum_{cvk} A^{state}_{cvk} Efield \cdot r_cvk 
 
     :: A      --> BSE eigenvectors
     :: Efield --> electric field
@@ -71,7 +71,7 @@ def get_radiative_lifetime_3D_iso(T,state,ylat,ydip,yexc,Meff,eps):
             * ylat:     lattice database, YamboLatticeDB
             * ydip:     dipoles database, YamboDipolesDB
             * yexc:     BSE database, YamboExcitonDB
-            * Meff:     exciton effective mass in eV. 
+            * Meff:     exciton effective mass in electron rest mass (m_e) units. 
             * eps:      material's relative optical dielectric constant
 
         Output
@@ -105,7 +105,7 @@ def get_radiative_lifetime_3D_aniso(T,state,ylat,ydip,yexc,Meff,eps):
             * ylat:     lattice database, YamboLatticeDB
             * ydip:     dipoles database, YamboDipolesDB
             * yexc:     BSE database, YamboExcitonDB
-            * Meff:     2 element list: exciton effective masses in eV in-plane, out-of-plane: [Meff_xy, Meff_z]
+            * Meff:     2 element list: exciton effective masses in electron rest mass (m_e) units in-plane, out-of-plane: [Meff_xy, Meff_z]
             * eps:      2 element list: material's relative optical dielectric constants in-plane, out-of-plane: [eps_xy, eps_z]
 
         Output
@@ -147,7 +147,7 @@ def get_radiative_lifetime_2D(T,state,ylat,ydip,yexc,Meff,eps=1):
             * ylat:     lattice database, YamboLatticeDB
             * ydip:     dipoles database, YamboDipolesDB
             * yexc:     BSE database, YamboExcitonDB
-            * Meff:     exciton effective mass in eV. 
+            * Meff:     exciton effective mass in electron rest mass (m_e) units. 
             * eps:      environment dielectric constant. Default: eps=1, vacuum
 
         Output
@@ -182,7 +182,7 @@ def get_radiative_lifetime_1D(T,state,ylat,ydip,yexc,Meff,eps=1):
             * ylat:     lattice database, YamboLatticeDB
             * ydip:     dipoles database, YamboDipolesDB
             * yexc:     BSE database, YamboExcitonDB
-            * Meff:     exciton effective mass in eV. 
+            * Meff:     exciton effective mass in electron rest mass (m_e) units. 
             * eps:      environment dielectric constant. Default: eps=1, vacuum
 
         Output
