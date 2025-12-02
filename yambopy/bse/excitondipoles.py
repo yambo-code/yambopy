@@ -50,7 +50,7 @@ def exciton_dipoles(blongdir,lattice_path,dipoles_path=None,bse_path=None,kplot=
     ydip = YamboDipolesDB.from_db_file(ylat,filename=f'{dipoles_path}/ndb.dipoles',project=False)
 
     # Dipoles are dimensioned as (k,c,v) not (k,v,c) so we switch the table
-    table_kcv = yexc.table
+    table_kcv = yexc.table.copy()
     table_kcv[:,[1,2]] = yexc.table[:,[2,1]]
 
     # Field direction
