@@ -79,8 +79,10 @@ def exciton_dipoles(blongdir,lattice_path,dipoles_path=None,bse_path=None,kplot=
         print(f"Selected field_dir: {blongdir}")
         print(f"Total Average | Max errors: {av_err} | {max_err}")
 
-    if not kplot: return dip_exc_squared
-    else:         return dip_exc_squared, dip_exc_k
+    Nk = ylat.nkpoints
+
+    if not kplot: return dip_exc_squared/Nk
+    else:         return dip_exc_squared/Nk, dip_exc_k/Nk
 
 def exc_dipoles_pol(lattice_path,dipoles_path=None,bse_path=None,save_files=True,dip_file="exc_dipoles.npy",overwrite=False):
     """
