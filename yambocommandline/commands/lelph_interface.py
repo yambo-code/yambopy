@@ -18,6 +18,7 @@ Calculate gauge-invariant electron-phonon matrix elements with LetzElPhC and con
 	--lelphc [OPT]        : path to lelphc executable, default 'lelphc', code will prompt
 	--no_lelphc_dbs [OPT] : will remove LetzElPhC input and outputs
     --no_gkkp [OPT]       : do not generate the gkkp databases for Yambo/Lumen
+    --old_gkkp [OPT]      : generate the gkkp databases for Yambo 5.1 or less
  
 - Prerequisites:
 
@@ -158,6 +159,8 @@ if __name__=="__main__":
 	parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)")
 	parser.add_argument('-nl','--no_lelphc_dbs', action="store_true", help="Remove lelphc databases (False if not given)")
 	parser.add_argument('-ng','--no_gkkp', action="store_true", help="Do not generate gkkp dbs (False if not given)")
+	parser.add_argument('-od','--old_gkkp',action="store_true", help="Generate gkkp dbs for Yambo<=5.1 (False if not given)")
+	parser.add_argument('-gi','--gkkp_ibz',action="store_true", help="Generate gkkp in the q-IBZ (False if not given)")
 	args = parser.parse_args()
 
 	phinp     = args.ph_inp_path
@@ -167,6 +170,8 @@ if __name__=="__main__":
 	lelphc    = args.lelphc
 	no_lelphc = args.no_lelphc_dbs
 	no_gkkp   = args.no_gkkp
+	old_gkkp  = args.old_gkkp
+	gkkp_ibz  = args.gkkp_ibz
 
 	# Check inputs
 	lelphc,ph_path,inp_ph,inp_lelphc,inp_name = checks(phinp,lelphc,bands,kernel,pools)
@@ -178,7 +183,7 @@ if __name__=="__main__":
 	run_elph(lelphc,inp_lelphc,inp_name,pools)
 
 	# load database and convert to yambo format
-	if not no_gkkp: letzelph_to_yambo()
+	if not no_gkkp: letzelph_to_yambo(old_gkkp,gkkp_ibz)
 
 	# clean
 	clean_lelphc(no_lelphc_dbs,inp_name,ph_path)	
