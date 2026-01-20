@@ -50,8 +50,6 @@ from yambopy.zeros import *
 #lattice-related operations
 from yambopy.lattice import *
 
-#kpoint mesh operations
-from yambopy.kpoints import *
 
 #skw interpolator (adapted from abipy version)
 from yambopy.tools.skw import *
@@ -73,6 +71,9 @@ from yambopy.dbs.elphondb import *
 from yambopy.dbs.bsekerneldb import *
 from yambopy.dbs.excphondb import *
 from yambopy.dbs.kqgridsdb import *
+
+#kpoint mesh operations
+from yambopy.kpoints import *
 
 #input/output files
 from yambopy.io.inputfile import *

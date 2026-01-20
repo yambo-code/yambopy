@@ -3,13 +3,11 @@
 #
 # This file is part of the yambopy project
 #
-from yambopy import *
-from yambopy.plot import *
+from netCDF4 import Dataset
 from yambopy.units import ha2ev,fs2aut,speed_of_light
 import numpy as np
 import sys
 import os
-
 #
 # This class reads all data from the ndb.Nonlinear database
 # and its fragment ndb.Nonlinear_fragment_xxx
@@ -44,9 +42,18 @@ class YamboNLDB(object):
          efield["versor"]     =database.variables['Field_Versor_'+str(n)][:].astype(np.double)
          efield["intensity"]  =database.variables['Field_Intensity_'+str(n)][0].astype(np.double)
          efield["damping"]    =database.variables['Field_Damping_'+str(n)][0].astype(np.double)
-         efield["freq_range"] =database.variables['Field_Freq_range_'+str(n)][:].astype(np.double)
-         efield["freq_steps"] =database.variables['Field_Freq_steps_'+str(n)][:].astype(np.double)
-         efield["freq_step"]  =database.variables['Field_Freq_step_'+str(n)][0].astype(np.double)
+         try:
+             efield["freq_range"] =database.variables['Field_Freq_range_'+str(n)][:].astype(np.double)
+         except:
+             efield["freq_range"] =database.variables['Field_Freq_'+str(n)][:].astype(np.double)
+         try:
+             efield["freq_steps"] =database.variables['Field_Freq_steps_'+str(n)][:].astype(np.double)
+         except:
+             efield["freq_steps"] =1.0
+         try:
+             efield["freq_step"]  =database.variables['Field_Freq_step_'+str(n)][0].astype(np.double)
+         except:
+             efield["freq_step"]  =0.0
          efield["initial_time"]  =database.variables['Field_Initial_time_'+str(n)][0].astype(np.double)
          #
          # set t_initial according to Yambo 

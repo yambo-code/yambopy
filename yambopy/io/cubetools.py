@@ -1,3 +1,6 @@
+#
+# Authors: MN
+#
 import numpy as np
 
 def write_cube(filename, data, lat_vec, atom_pos, atomic_num, origin=np.zeros(3), header=''):

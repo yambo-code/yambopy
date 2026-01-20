@@ -57,6 +57,15 @@ def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,1],BSE_dir='bse',BSE_Lin_
         excdb = YamboExcitonDB.from_db_file(latdb,filename=filename,folder=BSE_dir,\
                                             Load_WF=True, neigs=neigs)
         exdbs.append(excdb)
+        #
+        # NM : Add a sanity check to avoid a disasterous consequence
+        # if the user gives wrong bse band indices.
+        min_bnd_bse = np.min(excdb.unique_vbands)
+        max_bnd_bse = np.max(excdb.unique_cbands)+1
+        assert (wfdb.min_bnd == min_bnd_bse) and ((wfdb.min_bnd + wfdb.nbands) == max_bnd_bse), \
+            print("Error: BSE bands mismatch. Given bands range : [%d, %d]. " %(
+                wfdb.min_bnd,wfdb.min_bnd + wfdb.nbands) +
+                "Bse band range found (expected) : [%d %d]" %( min_bnd_bse,max_bnd_bse))
 
     # get D matrices
     Dmats = save_or_load_dmat(wfdb,mode=dmat_mode,dmat_file='Dmats.npy')
@@ -110,8 +119,9 @@ def exciton_phonon_matelem_iQ(elphdb,wfdb,exdbs,Dmats,BSE_Lin_dir=None,
     Ak = rotate_Akcv_Q(wfdb, exdbs, Q_in, Dmats, folder=BSE_Lin_dir)
     # Compute ex-ph
     exph_mat = []
+    bse_bnds_range = [wfdb.min_bnd,wfdb.min_bnd + wfdb.nbands]
     for iq in range(elphdb.nq):
-        ph_eig, elph_mat = elphdb.read_iq(iq,convention='standard')
+        ph_eig, elph_mat = elphdb.read_iq(iq,bands_range=bse_bnds_range,convention='standard')
         elph_mat = elph_mat.transpose(1,0,2,4,3)
         #
         Akq = rotate_Akcv_Q(wfdb, exdbs, Q_in + elphdb.qpoints[iq], Dmats) # q+Q

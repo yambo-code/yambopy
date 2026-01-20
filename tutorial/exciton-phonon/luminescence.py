@@ -38,8 +38,8 @@ broad = 0.005 # Broadening parameter for peak width (in eV)
 # * We specify bse_path2=bseBARpath meaning we use Lbar calculation for Q=0 excitons
 input_data = exc_ph_get_inputs(savepath,elphpath,bsepath,\
                                bse_path2=bseBARpath,dipoles_path=dipolespath,\
-                               nexc_in=12,nexc_out=12,\
-                               bands_range=[6,10],phonons_range=[0,12])
+                               nexc_in=nexc_in,nexc_out=nexc_out,\
+                               bands_range=bands_range,phonons_range=phonons_range)
 
 ph_energies, exc_energies, exc_energies_in, G, exc_dipoles = input_data
 

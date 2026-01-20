@@ -20,7 +20,7 @@ def Divide_by_the_Field(efield,order):
         if order !=0:
             divide_by_field=np.power(-2.0*1.0j/efield['amplitude'],order,dtype=np.cdouble)
         elif order==0:
-            divide_by_field=4.0/np.power(efield['amplitude'],2.0,dtype=np.cdouble)
+            divide_by_field=-4.0/np.power(efield['amplitude'],2.0,dtype=np.cdouble)
 
     elif efield['name'] == 'QSSIN':
         # Approximate relations/does not work yet

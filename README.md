@@ -106,31 +106,32 @@ Current development goals
 Authors
 ------
 Original author:
-- [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/).
+- [Henrique Pereira Coutada Miranda](http://henriquemiranda.github.io/)
 
-Current developers and maintainers:
-- [Fulvio Paleari](http://palful.github.io) (CNR - Nanoscience institute, Modena)
-- [Alejandro Molina Sanchez](http://alexmoratalla.github.io/) (University of Valencia)
+Mantainer:
+- Fulvio Paleari (CNR - Nanoscience institute, Modena)
 
 Active contributors:
 - Claudio Attaccalite
 - Miki Bonacci
 - José Castelo
 - Jorge Cervantes-Villanueva
-- Muralidhar Nalabothula
+- Myrta Grüning
 - Riccardo Reho
 - Michele Re Fiorentin
 - Ali Esquembre-Kucukalic
-- Mike Nico Pionteck
-- Yuncheng Mao
-- Martino Silvetti
+- Alejandro Molina-Sanchez
 - You if you want to share your scripts!
 
 Past contributors:
-- Matteo Zanfrognini
 - Alexandre Morlet
 - Davide Romanin
 - Daniel Murphy
+- Muralidhar Nalabothula
+- Mike Nico Pionteck
+- Yuncheng Mao
+- Martino Silvetti
+- Matteo Zanfrognini
 
 The code is at an ongoing stage of development, help us by sending bug reports, patches and suggestions!
 
@@ -154,18 +155,20 @@ The way to do so in BibTeX format is the following (or simply type `yambopy cite
       month = mar,
       year = 2025,
       publisher = {Zenodo},
-      version = {0.4.0}, 
+      version = {0.7.0}, 
       doi = {10.5281/zenodo.15012962},
       url = {https://doi.org/10.5281/zenodo.15012962}, }
 ```
 
 Acknowledgements
 ----------------
-- The [Abipy](https://abinit.github.io/abipy/) library developed for the Abinit code was the original inspiration for Yambopy. In particular, abipy's `SkwInterpolator` module for band structure interpolations has been directly imported into yambopy. 
+- The [AbiPy](https://abinit.github.io/abipy/) library developed for the Abinit code was the original inspiration for Yambopy. In particular, AbiPy's `SkwInterpolator` module for band structure interpolations has been directly imported into yambopy. 
+- The feature for the recognition of lattice point groups is based on the [MolSym](https://doi.org/10.1063/5.0216738) package.
 - Yambopy logos by Claudia Cardoso
 - University of Luxembourg
 - University of Valencia
 - Nanoscience Institute of the Italian National Research Council
 - [MaX](https://www.max-centre.eu/): Materials at the eXascale EU center of excellence
+- [ICSC Spoke 7](https://www.supercomputing-icsc.it/spoke-7-materials-molecular-sciences/): Centro Nazionale di Ricerca in High Performance Computing, Big Data and Quantum Computing (Materials & Molecular Sciences)
 
 ![yambopy_logo](docs/logos/yambopy_square.png)

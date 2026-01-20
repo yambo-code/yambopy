@@ -23,7 +23,7 @@ class LetzElphElectronPhononDB():
     """
     Python class to read the electron-phonon matrix elements from LetzElPhC.
 
-    About LetzElPhC: https://gitlab.com/lumen-code/LetzElPhC
+    About LetzElPhC: https://github.com/yambo-code/LetzElPhC
     
     By default it reads the full database g(q,k,m,s,b1,b2) including phonon energies.
     
@@ -37,14 +37,14 @@ class LetzElphElectronPhononDB():
     
       :: lph.kpoints         #kpoints in cryst. coords. (BZ)
       :: lph.qpoints         #qpoints in crist. coords. (BZ)
-      :: lph.ph_energies     #Phonon energies (eV)      
+      :: lph.ph_energies     #Phonon energies (eV)
       :: lph.ph_eigenvectors #Phonon modes
       :: lph.gkkp            #El-ph matrix elements (by default normalised with ph. energies) [!!!! RYDBERG UNITS !!!!]:
       :: lph.gkkp_sq         #Couplings (square)
 
     Formats:
     - modes[iq][il][iat][ix]
-    - gkkp[iq][ik][il][is][ib1][ib2]              
+    - gkkp[iq][ik][il][is][ib1][ib2]
     """
 
     def __init__(self,filename,read_all=True,div_by_energies=True,verbose=False):
@@ -111,7 +111,7 @@ class LetzElphElectronPhononDB():
         warn = False
         for Q in indices[0]:
             for M in indices[1]:
-                if Q==0 and M in [0,1,2]: 
+                if Q==0 and M in [0,1,2]:
                     self.ph_energies[Q,M]=0.
                 else:
                     warn = True
@@ -182,6 +182,7 @@ class LetzElphElectronPhononDB():
         bands_range : list, optional
             Specifies the range of bands to read. The start index follows Python indexing (starting from 0),
             and the end index is excluded. If not provided, it defaults to the minimum and maximum bands available.
+            Please note that the bands range should be inbetween the ones used in letelphc inputfile.
         database : Dataset, optional
             If provided, the function will use this open dataset instead of opening the file again.
         convention : str, optional

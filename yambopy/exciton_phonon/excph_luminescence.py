@@ -6,9 +6,11 @@ import numpy as np
 from yambopy.units import ha2ev
 from yambopy.tools.funcs import bose,boltzman_f
 from tqdm import tqdm
-from numba import prange#,njit
+from yambopy.tools.citations import citation
+#from numba import prange#,njit
 
 #@njit(cache=True, nogil=True, parallel=True)
+@citation("M. Zanfrognini et al. Phys. Rev. Lett. 131, 206902 (2023)")
 def exc_ph_luminescence(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_el,\
                         exc_energies_in=None,exc_temp=None,ph_channels='b',\
                         PL_energy_prefactor='PT',nexc_out='all',nexc_in='all',\
@@ -156,7 +158,7 @@ def exc_ph_luminescence(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_
 
     # Calculation
     PL_satellites = np.zeros(nfreqs)
-    for w in tqdm(prange(nfreqs)):
+    for w in tqdm(range(nfreqs),desc="Luminescence"):
         # Accumulate phonon emission satellites
         if ph_channels=='e' or ph_channels=='b': 
             PL_satellites[w] += get_PL_satellite(light_energies_Ha[w],ph_sign=-1)

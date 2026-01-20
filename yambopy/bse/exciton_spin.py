@@ -1,3 +1,6 @@
+#
+# Author: MN
+#
 import os
 import numpy as np
 from yambopy.dbs.excitondb import YamboExcitonDB
@@ -5,8 +8,9 @@ from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.wfdb import YamboWFDB
 from .exciton_matrix_elements import exciton_X_matelem
 from yambopy.tools.degeneracy_finder import find_degeneracy_evs
+from yambopy.tools.citations import citation
 
-
+@citation("A. R. Kshirsagar et al. Phys. Rev. B 112, 12 (2025)")
 def compute_exciton_spin(lattice, excdb, wfdb, elec_sz, contribution='b',diagonal=False):
     """
     Compute the spin matrix elements <S'|S_z|S> for excitons.

@@ -5,7 +5,6 @@ Project Authors
 
 * Paleari, Fulvio, Istituto Nanoscienze (Italy)
 * Molina-Sánchez, Alejandro, Universitat de València (Spain)
-* Nalabothula, Muralidhar, University of Luxembourg (Luxembourg)
 * Reho, Riccardo, Utrecht University (Netherlands)
 * Bonacci, Miki, Paul Scherrer Institute (Switzerland)
 * Castelo, José, Universitat de València (Spain)
@@ -28,4 +27,5 @@ Project Authors
 * Daniel Santos Stone
 * Ignacio Alliati 
 * Pierre Lechifflart
+* Muralidhar Nalabothula
 

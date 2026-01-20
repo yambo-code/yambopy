@@ -1,3 +1,6 @@
+#
+# Authors: MN
+#
 import numpy as np
 
 def find_degeneracy_evs(eigenvalues, atol=1e-3, rtol=1e-3):
