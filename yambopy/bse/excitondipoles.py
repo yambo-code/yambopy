@@ -2,13 +2,15 @@
 #
 # Copyright (C) 2024 The Yambo Team
 #
-# Authors: FP
+# Authors: FP RR
 #
 # This file is part of the yambopy project
 #
 import numpy as np
+from netCDF4 import Dataset
 from yambopy import YamboLatticeDB,YamboExcitonDB,YamboDipolesDB
 from yambopy.units import ha2ev
+import os
 
 def exciton_dipoles(blongdir,lattice_path,dipoles_path=None,bse_path=None,kplot=False,check=False):
     """
@@ -29,15 +31,13 @@ def exciton_dipoles(blongdir,lattice_path,dipoles_path=None,bse_path=None,kplot=
 
     Input:
     * blongdir:   electric field polarization direction
-    * exc_states: list of (degenerate) states, e.g. [0,1], [2,3], or [4]
-                  degenerate states are summed over squares
     * lattice_path, dipoles_path, bse_path : paths to required databases
     * kplot [default=False]: get k-resolved values (e.g. for plotting)
     * check [default=False]: compare with BSE residuals
 
     Output:
-    * Values of |D|^2 in bohr^{-2}
-    * [if kplot=True] Value of D(k) in bohr^{-1} (cmplx)
+    * Values of |D|^2 in bohr^2
+    * [if kplot=True] Value of D(k) in bohr (cmplx)
     """
     if bse_path is None:     bse_path = lattice_path
     if dipoles_path is None: dipoles_path = lattice_path
@@ -48,7 +48,7 @@ def exciton_dipoles(blongdir,lattice_path,dipoles_path=None,bse_path=None,kplot=
     # Load full BSE database
     yexc = YamboExcitonDB.from_db_file(ylat,filename=bse_path+'/ndb.BS_diago_Q1')
     # Turn off default [1,1,1] dipole projection upon expansion
-    ydip = YamboDipolesDB(ylat,save=dipoles_path,filename='ndb.dipoles',project=False)
+    ydip = YamboDipolesDB.from_db_file(ylat,filename=f'{dipoles_path}/ndb.dipoles',project=False)
 
     # Dipoles are dimensioned as (k,c,v) not (k,v,c) so we switch the table
     table_kcv = yexc.table
@@ -62,7 +62,7 @@ def exciton_dipoles(blongdir,lattice_path,dipoles_path=None,bse_path=None,kplot=
 
     # Rotate to exciton basis (no-loop fast sum)
     dip_exc = np.sum(yexc.eigenvectors*dipoles[tuple(table_kcv[:,:3].T-1)],axis=1)
-    dip_exc = np.abs(dip_exc)**2.
+    dip_exc_squared = np.abs(dip_exc)**2.
     
     # If k resolution required, we have to do it manually
     if kplot:
@@ -74,11 +74,107 @@ def exciton_dipoles(blongdir,lattice_path,dipoles_path=None,bse_path=None,kplot=
     if check==True:
         q0_def_norm=1e-5 # Optical-limit field in Yambo residuals
         dip_exc_reference = np.abs(yexc.l_residual*yexc.r_residual)
-        err = np.abs(dip_exc-dip_exc_reference/q0_def_norm**2.)
+        err = np.abs(dip_exc_squared-dip_exc_reference/q0_def_norm**2.)
         av_err  = np.mean(err)
         max_err = np.max(err)
         print(f"Selected field_dir: {blongdir}")
         print(f"Total Average | Max errors: {av_err} | {max_err}")
 
-    if not kplot: return dip_exc
-    else:         return dip_exc, dip_exc_k
+    Nk = ylat.nkpoints
+
+    if not kplot: return dip_exc_squared/Nk
+    else:         return dip_exc_squared/Nk, dip_exc_k/Nk
+
+def exc_dipoles_pol(lattice_path,dipoles_path=None,bse_path=None,save_files=True,dip_file="exc_dipoles.npy",overwrite=False):
+    """
+    This function computes the dipoles D in the excitonic basis like the one
+    above,  but the output is different.
+
+    Output:
+    * Complex D_{a,r=x,y,z} for photon emission not projected along Efield 
+    direction -- this is used, e.g., for polarization averages in PL spectra.
+ 
+    Input:
+    * lattice_path, dipoles_path, bse_path : paths to required databases
+    * save_files : whether to save files in `dip_file` .npy database
+    * overwrite : if False and `dip_file` is found, load from file
+    """
+
+    # Check if we just need to load
+    if os.path.exists(dip_file) and overwrite==False:
+        print(f'Loading EXCDIP matrices from {dip_file}...')
+        dip_exc_loaded = np.load(dip_file)
+        return dip_exc_loaded
+
+    if bse_path is None:     bse_path = lattice_path
+    if dipoles_path is None: dipoles_path = lattice_path
+
+    # Load k-space info
+    ylat = YamboLatticeDB.from_db_file(filename=lattice_path+'/ns.db1')
+    # Load full BSE database at Q=0
+    yexc = YamboExcitonDB.from_db_file(ylat,filename=bse_path+'/ndb.BS_diago_Q1')
+    
+    # Read dipoles in bands range | don't project | don't expand
+    # bands range is fixed by BSE calculation | these are dipoles for EMISSION
+    try: 
+        ydip = YamboDipolesDB.from_db_file(ylat,filename=f'{dipoles_path}/ndb.dipoles',bands_range=yexc.bs_bands,project=False,expand=False)
+        dipoles = ydip.dipoles
+    except: # Fallback in case of db fuckery (like dip_bands_ordered)
+        print("[WARNING] Fallback to correctly read dipoles in case of dip_bands_ordered issues with dipoles database")
+        dipoles = quick_read_dipoles(f'{dipoles_path}/ndb.dipoles',yexc.bs_bands,ylat.nbandsv)
+
+    # Expand dipoles
+    rot_mats = ylat.sym_car[ylat.kmap[:,1], ...]
+    dip_expanded = np.einsum('kij,kjcv->kicv',rot_mats,dipoles[ylat.kmap[:,0],...],
+                             optimize=True)
+    time_rev_s = (ylat.kmap[:, 1] >= ylat.sym_car.shape[0]/(int(ylat.time_rev)+1))
+    dip_expanded[time_rev_s] = dip_expanded[time_rev_s].conj()
+
+    # Rotate dipoles in exc. basis [n,nblks,nspin,k,c,v] -> [n,k,c,v]
+    BS_wfc = np.squeeze( yexc.get_Akcv() ) # Works in TDA and no spin pol
+    # Since we have dipoles for emission, we do not conjugate BS_wfc
+    # Then the results are directly the exciton dipoles for emission
+    dip_exc = np.einsum('nkcv,kicv->in',BS_wfc,dip_expanded,
+                        optimize=True).astype(dtype=dipoles.dtype)
+
+    if save_files:
+        if dip_file[-4:]!='.npy': dip_file = dip_file+'.npy'
+        print(f'Exciton dipoles file saved to {dip_file}')
+        np.save(dip_file,dip_exc)
+
+    return dip_exc
+
+def quick_read_dipoles(filename,bands_range,nbandsv,dip_type='iR'):
+    """
+    Quickly read unprojected, unexpanded dipoles without worrying
+    for compatibility with other classes
+
+    :: bands_range is mandatory, as well as nbandsv
+
+    """
+    from yambopy.tools.types import CmplxType
+    with Dataset(filename) as database:
+
+        nq_ibz, nq_bz, nk_ibz, nk_bz = database.variables['HEAD_R_LATT'][:].astype(int)
+        spin = database.variables['SPIN_VARS'][0].astype(int)
+
+        # We assume the not_band_ordered case:
+        # We read dipoles[i_v:f_c,i_v:f_c] 
+
+        min_band = min(bands_range)
+        max_band = max(bands_range)
+        nbands   = max_band-min_band+1
+
+        i_v = bands_range[0]-1
+        f_c = bands_range[1]
+        n_v_included = nbandsv-i_v
+
+        dipoles = database[f'DIP_{dip_type}'][:,:,i_v:f_c,i_v:f_c,:].data # Read as nk,nv,nc,ir
+        dipoles = dipoles.view(dtype=CmplxType(dipoles)).reshape((spin,nk_ibz,nbands,nbands,3))
+
+    if spin==1: dipoles = np.squeeze(dipoles,axis=0)
+    dipoles = np.swapaxes(dipoles,spin,spin+2) # Swap indices
+    
+    dipoles = dipoles[...,n_v_included:,:n_v_included] # cv only
+
+    return dipoles

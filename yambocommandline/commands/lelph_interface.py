@@ -1,3 +1,4 @@
+from netCDF4 import Dataset
 from yambopy import LetzElphElectronPhononDB,ConvertElectronPhononDB
 import os
 import shutil
@@ -7,15 +8,16 @@ Calculate gauge-invariant electron-phonon matrix elements with LetzElPhC and con
 
 - Usage:
 
->> yambopy l2y -ph phinp -b b1 b2 -par nq nk [--kernel kernel] [--lelphc lelphc] [--debug]
+>> yambopy l2y -ph phinp -b b1 b2 -par nq nk [--kernel kernel] [--lelphc lelphc] [--no_lelphc_dbs] [--no_gkkp]
 
 - Input parameters:
-	-ph           : path to ph.x input file, e.g. dvscf/ph.in
-	-b            : initial and final band indices (counting from 1)
-	-par [OPT]    : MPI pools for q and k (needs mpirun)
-	--kernel [OPT]: e-ph kernel type, default 'dfpt'
-	--lelphc [OPT]: path to lelphc executable, default 'lelphc', code will prompt
-	--debug [OPT] : won't remove LetzElPhC input and outputs
+	-ph                   : path to ph.x input file, e.g. dvscf/ph.in
+	-b                    : initial and final band indices (counting from 1, both values included)
+	-par [OPT]            : MPI pools for q and k (needs mpirun)
+	--kernel [OPT]        : e-ph kernel type, default 'dfpt'
+	--lelphc [OPT]        : path to lelphc executable, default 'lelphc', code will prompt
+	--no_lelphc_dbs [OPT] : will remove LetzElPhC input and outputs
+    --no_gkkp [OPT]       : do not generate the gkkp databases for Yambo/Lumen
  
 - Prerequisites:
 
@@ -136,12 +138,12 @@ def letzelph_to_yambo():
 	print(":: Convert el-ph data to yambo format ::")
 	l2y       = ConvertElectronPhononDB(lelph_obj,'lelphc','SAVE','SAVE')
 
-def clean_lelphc(debug,inp_name,ph_path):
-	if debug:
-		print(":: Debug flag ::")
+def clean_lelphc(no_lelphc_dbs,inp_name,ph_path):
+	if not no_lelphc_dbs:
+		print(":: LetzElPhC databases ::")
 		print("     - lelphc.in input written")
 		print("     - lelphc.log output written")
-		print("     - ph_save | ndb.elph | ndb.Dmats not removed")
+		print("     - ph_save | ndb.elph | ndb.Dmats written")
 	else:
 		[os.remove(C) for C in [inp_name,'ndb.elph','ndb.Dmats', 'lelphc.log'] if os.path.isfile(C)]
 		if os.path.isdir(f"{ph_path}/ph_save"): shutil.rmtree(f"{ph_path}/ph_save")
@@ -154,15 +156,17 @@ if __name__=="__main__":
 	parser.add_argument('-k','--kernel', type=str, default='dfpt',help="<Optional> Electron-phonon kernel type, e.g. 'dfpt', 'bare', ... (default 'dfpt')")
 	parser.add_argument('-par','--pools',nargs='2',type=str,default=[1,1],help="<Optional> MPI tasks as 'nqpools nkpools' (default serial)")
 	parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)")
-	parser.add_argument('-D','--debug', action="store_true", help="Debug mode")
+	parser.add_argument('-nl','--no_lelphc_dbs', action="store_true", help="Remove lelphc databases (False if not given)")
+	parser.add_argument('-ng','--no_gkkp', action="store_true", help="Do not generate gkkp dbs (False if not given)")
 	args = parser.parse_args()
 
-	phinp  = args.ph_inp_path
-	bands  = args.bands
-	kernel = args.kernel
-	pools  = args.pools
-	lelphc = args.lelphc
-	debug  = args.debug
+	phinp     = args.ph_inp_path
+	bands     = args.bands
+	kernel    = args.kernel
+	pools     = args.pools
+	lelphc    = args.lelphc
+	no_lelphc = args.no_lelphc_dbs
+	no_gkkp   = args.no_gkkp
 
 	# Check inputs
 	lelphc,ph_path,inp_ph,inp_lelphc,inp_name = checks(phinp,lelphc,bands,kernel,pools)
@@ -174,7 +178,7 @@ if __name__=="__main__":
 	run_elph(lelphc,inp_lelphc,inp_name,pools)
 
 	# load database and convert to yambo format
-	letzelph_to_yambo()
+	if not no_gkkp: letzelph_to_yambo()
 
 	# clean
-	clean_lelphc(debug,inp_name,ph_path)	
+	clean_lelphc(no_lelphc_dbs,inp_name,ph_path)	

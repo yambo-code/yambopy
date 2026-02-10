@@ -1,4 +1,5 @@
 import os
+from netCDF4 import Dataset
 from yambopy import *
 from yambocommandline.commands import generate_save
 from schedulerpy import *

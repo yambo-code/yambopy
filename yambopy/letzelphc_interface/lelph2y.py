@@ -50,9 +50,14 @@ class ConvertElectronPhononDB():
         self.get_yambo_header_variables(SAVE_path)
 
         # Get el-ph data from external code
-        match code:
-            case 'lelphc': self.get_elph_variables_LELPHC(OBJ)
-            case _: raise NotImplementedError("Code %s not found or implemented"%code)
+        #
+        # NM : using match will enforce python 3.10. some HPC's still use <= 3.8
+        # Commenting it out until it gets old enough.
+        # match code:
+        #     case 'lelphc': self.get_elph_variables_LELPHC(OBJ)
+        #     case _: raise NotImplementedError("Code %s not found or implemented"%code)
+        if code.strip() == 'lelphc': self.get_elph_variables_LELPHC(OBJ)
+        else: raise NotImplementedError("Code %s not found or implemented"%code)
 
         if not os.path.isdir(OUT_path): os.mkdir(OUT_path)
 
@@ -122,8 +127,14 @@ class ConvertElectronPhononDB():
     def write_header(self,OUT_path):
            
         # PARS: modes, qpts, kpts, [bnds / bnds_0 bnds_1], using_q_grid=T, hosting_bare_gkkp=F, hosting_DW=F
-        if self.bands[0] == 1: self.pars = [self.nmodes,self.nqpoints_bz,self.nkpoints_bz,self.nbands1,True,False,False]
-        else:   self.pars = [self.nmodes,self.nqpoints_bz,self.nkpoints_bz,self.bands[0],self.bands[1],True,False,False]
+#
+#       This if shold be replaced with a flag in input to produce DBs for the old version of Yambo (<=5.1),
+#       otherwise it produces wrong DBs for the case bands[0]==1
+#
+#       if self.bands[0] == 1: self.pars = [self.nmodes,self.nqpoints_bz,self.nkpoints_bz,self.nbands1,True,False,False]
+#       else:   self.pars = [self.nmodes,self.nqpoints_bz,self.nkpoints_bz,self.bands[0],self.bands[1],True,False,False]
+#
+        self.pars = [self.nmodes,self.nqpoints_bz,self.nkpoints_bz,self.bands[0],self.bands[1],True,False,False]
         len_pars = len(self.pars)
         self.spin_vars = [self.nspin,self.noncollinear] #YAMBO: SPIN_vec_disk=(/n_sp_pol,n_spinor/)
         self.head_r_latt = [self.nkpoints_ibz,self.nkpoints_bz,self.nqpoints_ibz,self.nqpoints_bz]
@@ -137,6 +148,7 @@ class ConvertElectronPhononDB():
         dbs.createDimension('D_%010d'%1,1)
         dbs.createDimension('D_%010d'%2,2)
         dbs.createDimension('D_%010d'%4,4)
+        
         for value in [self.natoms,self.nkpoints_ibz,len_pars,self.nqpoints_bz,self.nkpoints_bz]:
             if value not in [1,2,3,4]: 
                 try: dbs.createDimension('D_%010d'%value,value)

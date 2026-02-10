@@ -34,7 +34,7 @@ def JsonLoader(filename):
 def JsonDumpers(data):
     """ dump dicitonary as string """
     s = json.dumps(data,cls=YambopyEncoder,indent=2)
-    return re.sub('\s+([0-9\]\-])','\\1',s)
+    return re.sub(r'\s+([0-9\]\-])','\\1',s)
 
 def JsonDumper(data,filename):
     """ dump dictionary as file """

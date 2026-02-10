@@ -1,4 +1,4 @@
-# Copyright (c) 2023-2025, Claudio Attaccalite
+# Copyright (c) 2023-2025, Claudio Attaccalite and Myrta Gruning
 # All rights reserved.
 #
 # This file is part of the yambopy project
@@ -289,7 +289,9 @@ def Harmonic_Analysis(nldb, X_order=4, T_range=[-1, -1],prn_Peff=False,INV_MODE=
             print("Write final results: sigma^1, sigma^2, sigma^3, etc...")
             for i_order in range(X_order + 1):
                 output_file = f'o{prefix}.YamboPy-Sigma_probe_order_{i_order}'
-                header = "[eV] " + " ".join([f"S/Im(z){i_order} S/Re(z){i_order}" for _ in range(3)])
+                header = "[eV] " + " "+f"Im[Sigma_x]({i_order}) Re[Sigma_x]({i_order})  "
+                header += f"Im[Sigma_y]({i_order}) Re[Sigma_y]({i_order})   "
+                header += f"Im[Sigma_z]({i_order}) Re[Sigma_z]({i_order})"
                 values = np.column_stack((freqs * ha2ev, Conductibility[i_order, :, 0].imag, Conductibility[i_order, :, 0].real,
                                       Conductibility[i_order, :, 1].imag, Conductibility[i_order, :, 1].real,
                                       Conductibility[i_order, :, 2].imag, Conductibility[i_order, :, 2].real))

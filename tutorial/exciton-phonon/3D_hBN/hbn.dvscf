@@ -1,0 +1,17 @@
+hbn_dvscf
+&inputph
+  tr2_ph=1.0d-12,
+  verbosity='high'
+  prefix='hBN',
+  fildvscf = 'hBN-dvscf',
+  electron_phonon = 'dvscf',
+  fildyn='hBN.dyn',
+  epsil=.false.,
+  !trans=.true.,
+  ldisp=.true.,
+  !qplot=.true.,
+  recover=.true.,
+  nq1=6,
+  nq2=6,
+  nq3=2
+/

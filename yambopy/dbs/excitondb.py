@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2024 The Yambo Team
 #
-# Authors: HPC, AMS, FP, RR
+# Authors: HPC, AMS, FP, RR, MN
 #
 # This file is part of the yambopy project
 #
@@ -24,6 +24,9 @@ from yambopy.tools.skw import SkwInterpolator
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.electronsdb import YamboElectronsDB
 from yambopy.dbs.qpdb import YamboQPDB
+from yambopy.io.cubetools import write_cube
+from yambopy.bse.realSpace_excitonwf import ex_wf2Real
+from yambopy.bse.rotate_excitonwf import rotate_exc_wf
 
 class ExcitonList():
     """
@@ -80,15 +83,19 @@ class YamboExcitonDB(object):
         self.car_qpoint = car_qpoint
         self.q_cutoff = q_cutoff
         self.table = table
+        if table is not None:
+            self.bs_bands = np.array([np.min(self.table[:,1]),np.max(self.table[:,2])]) # set range of bse bands
         self.eigenvectors = eigenvectors
         self.spin_pol = spin_pol
 
     @classmethod
-    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.',Load_WF=True):
+    def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.',Load_WF=True, neigs=-1):
         """ 
         Initialize this class from a file
 
         Set `Read_WF=False` to avoid reading eigenvectors for faster IO and memory efficiency.
+        If neigs < 0 ; all eigen values (vectors) are loaded or else first neigs are loaded 
+        " In case of non-TDA, we load right eigenvectors.
         """
         path_filename = os.path.join(folder,filename)
         if not os.path.isfile(path_filename):
@@ -98,6 +105,21 @@ class YamboExcitonDB(object):
         Qpt = filename.split("Q",1)[1]
 
         with Dataset(path_filename) as database:
+            #energies
+            eig =  database.variables['BS_Energies'][...].data*ha2ev
+            is_coupling = database.variables['COUPLING'][...].data
+            eigenvalues = eig[:,0]+eig[:,1]*I
+            neig_full = len(eigenvalues)
+            ## in the case of Coupling, we override partial loading. This is because, the energies are 
+            ## not ordered, so it really does not make sense.
+            if is_coupling and neigs >0:
+                print("Warning : In the coupling case, all the states are read, overriding user input")
+            #
+            if neigs < 0 or neigs > neig_full or is_coupling:
+                neigs = neig_full
+            #
+            eigenvalues = eigenvalues[:neigs]
+
             if 'BS_left_Residuals' in list(database.variables.keys()):
                 # MN: using complex views instead of a+I*b copies to avoid memory duplication
                 # Old (yet instructive) memory duplication code
@@ -105,36 +127,40 @@ class YamboExcitonDB(object):
                 #rer,imr = database.variables['BS_right_Residuals'][:].T
                 #l_residual = rel+iml*I
                 #r_residual = rer+imr*I
-                l_residual = database.variables['BS_left_Residuals'][:]
-                r_residual = database.variables['BS_right_Residuals'][:]
+                l_residual = database['BS_left_Residuals'][:neigs,...].data
+                r_residual = database['BS_right_Residuals'][:neigs,...].data
                 l_residual = l_residual.view(dtype=CmplxType(l_residual)).reshape(len(l_residual))
                 r_residual = r_residual.view(dtype=CmplxType(r_residual)).reshape(len(r_residual))
             if 'BS_Residuals' in list(database.variables.keys()):
                 # Compatibility with older Yambo versions
-                rel,iml,rer,imr = database.variables['BS_Residuals'][:].T
+                rel,iml,rer,imr = database['BS_Residuals'][:neigs,...].data.T
+                l_residual = rel+iml*I
+                r_residual = rer+imr*I
+            if 'BS_L_magn_Residuals' in list(database.variables.keys()):
+                #residuals
+                rel,iml = database.variables['BS_L_magn_Residuals'][:].T
+                rer,imr = database.variables['BS_L_magn_Residuals'][:].T
                 l_residual = rel+iml*I
                 r_residual = rer+imr*I
 
             car_qpoint = None
-            if 'Q-point' in list(database.variables.keys()):
-                # Finite momentum
-                car_qpoint = database.variables['Q-point'][:]/lattice.alat
+            # Finite momentum
+            if 'BS_Q' in list(database.variables.keys()):                         # Lumen compatibility
+                car_qpoint = database.variables['BS_Q'][...].data/lattice.alat
+            elif 'Q-point' in list(database.variables.keys()):
+                car_qpoint = database.variables['Q-point'][...].data/lattice.alat # Yambo compatibility
             if Qpt=="1": car_qpoint = np.zeros(3)
 
-            #energies
-            eig =  database.variables['BS_Energies'][:]*ha2ev
-            eigenvalues = eig[:,0]+eig[:,1]*I
-                
             #eigenvectors
             table = None
             eigenvectors = None
             if Load_WF and 'BS_EIGENSTATES' in database.variables:
-                eiv = database.variables['BS_EIGENSTATES'][:]
+                eiv = database['BS_EIGENSTATES'][:neigs,...].data
                 #eiv = eiv[:,:,0] + eiv[:,:,1]*I
                 #eigenvectors = eiv
                 eigenvectors = eiv.view(dtype=CmplxType(eiv)).reshape(eiv.shape[:-1])
-                table = database.variables['BS_TABLE'][:].T.astype(int)
 
+            table = np.rint(database.variables['BS_TABLE'][:].T).astype(int)
             spin_vars = [int(database.variables['SPIN_VARS'][:][0]), int(database.variables['SPIN_VARS'][:][1])]
             if spin_vars[0] == 2 and spin_vars[1] == 1:
                spin_pol = 'pol'
@@ -218,17 +244,254 @@ class YamboExcitonDB(object):
         intensities = self.get_intensities()
 
         #get sorted energies
-        sort_e, sort_i = self.get_sorted()     
+        sort_e, sort_i = self.get_sorted()
 
         #write excitons sorted by energy
-        with open('%s_E.dat'%prefix, 'w') as f:
-            for e,n in sort_e:
-                f.write("%3d %12.8lf %12.8e\n"%(n+1,e,intensities[n])) 
+        se_arr = np.array(sort_e)
+        n_idx = se_arr[:, 1].astype(int)
+        data_e = np.column_stack((se_arr[:, 0], intensities[n_idx], n_idx + 1))
+        np.savetxt('%s_E.dat'%prefix, data_e, fmt='%16.8f %20.8e %10d',
+                   header='    E [ev]             Strength           Index')
 
         #write excitons sorted by intensities
-        with open('%s_I.dat'%prefix,'w') as f:
-            for i,n in sort_i:
-                f.write("%3d %12.8lf %12.8e\n"%(n+1,eig[n],i)) 
+        si_arr = np.array(sort_i)
+        n_idx = si_arr[:, 1].astype(int)
+        data_i = np.column_stack((eig[n_idx], np.abs(si_arr[:, 0]), n_idx + 1))
+        np.savetxt('%s_I.dat'%prefix, data_i, fmt='%16.8f %20.8e %10d',
+                   header='    E [ev]             Strength           Index')
+
+    def get_Akcv(self):
+        """
+        Convert eigenvectors from (neigs,BS_table) -> (neigs,nblks,nspin,k,c,v)
+        nblks = 2 for coupling, else 1 for TDA
+        """
+        nspin = 1
+        if self.spin_pol == 'pol': nspin = 2
+        #
+        tmp_akcv = getattr(self, 'Akcv', None) 
+        if tmp_akcv is not None: return tmp_akcv 
+        #
+        if self.eigenvectors is None: return None
+        eig_wfcs = self.eigenvectors
+        #
+        nk = self.nkpoints
+        nv = self.nvbands
+        nc = self.ncbands
+        # Make sure nspin * nc * nv * nk = BS_TABLE length
+        table_len = nspin*nk*nv*nc
+        assert table_len == self.table.shape[0], "BS_TABLE length not equal to ns * nc * nv * nk"
+        #
+        v_min = np.min(self.table[:,1])
+        c_min = np.min(self.table[:,2])
+        bs_table0 = self.table[:,0]-1
+        bs_table1 = self.table[:,1] - v_min
+        bs_table2 = self.table[:,2] - c_min
+        bs_table3 = self.table[:,3]-1
+        #
+        eig_wfcs_returned = np.zeros(eig_wfcs.shape,dtype=eig_wfcs.dtype)
+        #
+        sort_idx = bs_table0*nc*nv + bs_table2*nv + bs_table1 + nk*nc*nv*bs_table3
+        #
+        eig_wfcs_returned[:,sort_idx] = eig_wfcs[...,:table_len]
+        # check if this is coupling .
+        if eig_wfcs.shape[-1]//table_len == 2:
+            eig_wfcs_returned[:,sort_idx+table_len] = eig_wfcs[...,table_len:]
+            # NM : Note that here v and c are inverted i.e 
+            # psi_S = Akcv * phi_v(r_e) * phi_c^*(r_h)
+            eig_wfcs_returned = eig_wfcs_returned.reshape(-1,2,nspin,nk,nc,nv)
+        else :
+            eig_wfcs_returned = eig_wfcs_returned.reshape(-1,1,nspin,nk,nc,nv)
+        #
+        self.Akcv = eig_wfcs_returned
+        return self.Akcv
+    
+    def real_wf_to_cube(self, iexe, wfdb, fixed_postion=[0,0,0], supercell=[1,1,1], degen_tol=1e-2,
+                        wfcCutoffRy=-1, fix_particle='h', phase=False, block_size=256):
+        """
+        Function to compute and save real-space exciton wavefunctions and 
+        dump to cube file
+
+        Args:
+            iexe: index of excitonic states (python indexing. so starts with 0)
+            wfcb: wavefunction database.
+            fixed_postion (list): Position of fixed particle in crystal coordinates
+            supercell (list): Supercell dimensions [nx,ny,nz]
+            degen_tol (float): degeneracy threshold (in eV). default 0.01 eV
+            fix_particle (str): 'e' to fix electron, 'h' to fix hole (default)
+            wfcCutoffRy (float): Wavefunction cutoff in Rydberg (-1 for full cutoff)
+            phase (bool): If True, include phase information i.e multiply the density with
+                     sign of real part of the wavefunction
+            block_size (int): Block size for memory-efficient computation. leave it to default
+                        unless you are in exteremely low memory situation.
+
+        Returns:
+            None (write cube file to disk)
+        """
+        #
+        # first get all degenerate states
+        iexe_degen_states = np.array(self.get_degenerate(iexe+1,eps=degen_tol))-1
+        print("Degenerate states: ",iexe_degen_states+1)
+        # nicely arrange eigvectors to Akcv
+        Akcv = self.get_Akcv()[iexe_degen_states]
+        excQpt = self.car_qpoint
+        # Convert the q-point to crystal coordinates
+        Qpt = wfdb.ydb.lat @ excQpt
+        print("Qpt: ",Qpt)
+        #
+        if fix_particle == 'h': name_file = 'electron'
+        else: name_file = 'hole'
+
+        if phase and wfdb.wf.shape[1] != 1 and wfdb.wf.shape[3] != 1:
+            print("phase plot only works for nspin = 1 and nspinor == 1")
+            phase = False
+        if phase and len(iexe_degen_states) > 1:
+            phase = False
+            print("Warning: phase plots do not work for degenerate states")
+
+        print('Computing exciton wavefunction (%s density) to real space.' %(name_file))
+        sc_latvecs, atom_nums, atom_pos, real_wfc = ex_wf2Real(Akcv, Qpt, wfdb, [np.min(self.table[:, 1]),
+                                                    np.max(self.table[:, 2])], fixed_postion=fixed_postion,
+                                                    fix_particle=fix_particle, supercell=supercell,
+                                                    wfcCutoffRy=wfcCutoffRy, block_size=block_size)
+        # Compute the absoulte^2
+        density = np.abs(real_wfc)**2
+        # Multiply with phase if necessary
+        if phase:
+            phase = np.sign(real_wfc.real) #np.sign(np.angle(real_wfc))
+            density *= phase
+        #
+        # sum over spinor indices and degenerate states
+        real_wfc = np.sum(density,axis=(0,1,2,3))
+        # normalize with max value
+        max_normalize_val = np.max(np.abs(real_wfc))
+        print('Max Normalization value: ',max_normalize_val)
+        real_wfc *= (1.0/max_normalize_val)
+        # write to cube file 
+        print('Writing to .cube file')
+        write_cube('exe_wf_%s_Qpt%s_state%d.cube' %(name_file,self.Qpt,iexe+1),
+                   real_wfc, sc_latvecs, atom_pos, atom_nums,
+                   header='Real space exciton wavefunction')
+
+    def total_crys_angular_momentum(self, wfdb, iexe, symm_mat_cat, frac_vec_cart, degen_tol=1e-3, Dmats=None):
+        """
+        Computes the total crystal angular momentum along a given rotational symmetry axis.
+
+        This method calculates the simultaneous eigenbasis of the Hamiltonian and the
+        Symmetry operator. It verifies if the symmetry belongs to the little group of q
+        before proceeding with the representation calculations.
+
+        Parameters
+        ----------
+        wfdb : object
+            The wavefunction database object containing lattice and basis information.
+        iexe : int
+            Index of the exciton (0-based Python indexing).
+        symm_mat_cat : array_like of shape (3, 3)
+            Rotational symmetry matrix in Cartesian coordinates.
+        frac_vec_cart : array_like of shape (3,)
+            Fractional translational vector associated with the symmetry operation.
+        degen_tol : float, optional
+            Tolerance for identifying degenerate excitons in eV. Default is 1e-3.
+        Dmats : array_like, optional
+            Representation matrices for the given symmetry. If None, they are computed
+            directly from the ``wfdb``. Default is None.
+
+        Returns
+        -------
+        list
+            A list containing:
+            - w : ndarray
+                The real part of the angular momentum values (eigenvalues).
+            - sbasis_r : ndarray
+                The right symmetrized basis vectors.
+            - sbasis_l : ndarray, optional
+                The left symmetrized basis vectors. This is included only if the
+                exciton wavefunction has distinct left/right components (non-Hermitian).
+
+        Returns None
+        ------------
+        None
+            Returned if the rotation is improper (determinant < 0) or if the
+            symmetry does not belong to the little group of Q.
+        """
+        # Identify degenerate excitons
+        iexe = np.array(self.get_degenerate(iexe + 1, eps=degen_tol), dtype=int) - 1
+        print(f"Number of degenerate excitons found : {len(iexe)}. List : {iexe}")
+
+        # Check for improper rotation
+        det_r = np.linalg.det(symm_mat_cat)
+        assert det_r > 0, "Warning : Improper rotation, Only rotation are allowed."
+
+        # Prepare lattice vectors and transformation matrices
+        lat_vec = wfdb.ydb.lat
+        lat_vec_inv = np.linalg.inv(lat_vec)
+        symm_mat_red = lat_vec @ symm_mat_cat @ lat_vec_inv
+
+        # Convert the q-point to crystal coordinates
+        exc_qpt_car = self.car_qpoint
+        print(exc_qpt_car)
+        exc_qpt_crys = lat_vec @ exc_qpt_car
+        print(f"Qpt : ({exc_qpt_crys[0]:.6f}, {exc_qpt_crys[1]:.6f}, {exc_qpt_crys[2]:.6f})")
+
+        # Verify if symmetry belongs to the little group of Q
+        sq_minus_q = np.einsum('ij,j->i', symm_mat_red, exc_qpt_crys) - exc_qpt_crys
+        sq_minus_q = sq_minus_q - np.rint(sq_minus_q)
+
+        assert np.linalg.norm(sq_minus_q) < 1e-4, "Warning : The given symmetry does not belong to little group of Q."
+
+        # Compute representation matrices if not provided
+        if Dmats is None:
+            Dmats = wfdb.Dmat(
+                symm_mat=symm_mat_cat.reshape(1, 3, 3),
+                frac_vec=frac_vec_cart.reshape(1, 3),
+                time_rev=False
+            )[0]
+
+        # Retrieve exciton wavefunctions
+        # Akcv represents the coefficients of the exciton wavefunction
+        akcv = self.get_Akcv()
+        akcv_left = akcv
+
+        # Handle non-Hermitian cases where left eigenvectors differ
+        if akcv.shape[1] == 2:
+            print("Computing left ev ...")
+            akcv_left = np.linalg.inv(akcv.reshape(len(akcv), -1)).conj().T.reshape(akcv.shape)
+
+        # Select specific degenerate components
+        ak_r = akcv[iexe]
+        ak_l = akcv_left[iexe].conj()
+
+        # Calculate phase factor
+        tau_dot_k = np.exp(1j * 2 * np.pi * np.dot(self.car_qpoint, frac_vec_cart))
+
+        # Rotate the right wavefunction
+        rot_akcv = rotate_exc_wf(
+            ak_r, symm_mat_red, wfdb.kBZ, exc_qpt_crys,
+            Dmats, False, ktree=wfdb.ktree
+        )
+
+        # Compute the representation matrix
+        rep = tau_dot_k * np.einsum('m...,n...->mn', ak_l, rot_akcv, optimize=True)
+        w, v = np.linalg.eig(rep)
+
+        # Calculate rotation angle and axis via SVD
+        _, _, vt = np.linalg.svd(symm_mat_cat - np.eye(3))
+        # axis = vt[-1] / np.linalg.norm(vt[-1]) # axis is calculated but not currently used in return
+        angle = np.arccos(np.clip((np.trace(symm_mat_cat) - 1) / 2, -1.0, 1.0))
+
+        # Convert eigenvalues to angular momentum
+        w = 1j * np.log(w) / angle
+        w = w.real
+
+        # Transform basis vectors
+        sbasis_r = np.einsum('ij,i...->j...', v, ak_r, optimize=True)
+
+        if akcv.shape[1] == 2:
+            sbasis_l = np.einsum('ij,i...->j...', v, ak_l.conj(), optimize=True)
+            return [w, sbasis_r, sbasis_l]
+        else:
+            return [w, sbasis_r]
+
 
     def get_nondegenerate(self,eps=1e-4):
         """
@@ -249,7 +512,7 @@ class YamboExcitonDB(object):
         """
         get the intensities of the excitons
         """
-        intensities = self.l_residual*self.r_residual
+        intensities = np.abs(self.l_residual*self.r_residual)
         intensities /= np.max(intensities)
         return intensities
 
@@ -269,19 +532,16 @@ class YamboExcitonDB(object):
 
         return sort_e, sort_i 
 
-    def get_degenerate(self,index,eps=1e-4):
+    def get_degenerate(self,index,eps=1e-4,rtol=1e-3):
         """
         Get degenerate excitons
         
         Args:
             eps: maximum energy difference to consider the two excitons degenerate in eV
         """
-        energy = self.eigenvalues[index-1]
-        excitons = [] 
-        for n,e in enumerate(self.eigenvalues):
-            if np.isclose(energy,e,atol=eps):
-                excitons.append(n+1)
-        return excitons
+        energy = self.eigenvalues[index-1].real
+        excitons = np.where(np.isclose(self.eigenvalues.real, energy, atol=eps, rtol=rtol))[0] + 1
+        return excitons.tolist()
 
     def exciton_bs(self,energies,path,excitons=(0,),debug=False):
         """
@@ -686,7 +946,8 @@ class YamboExcitonDB(object):
             #add weights
             sum_weights = 0
             for t,kcv in enumerate(self.table):
-                k,c,v = kcv[0:3]
+#                k,c,v = kcv[0:3]
+                k = kcv[0]
                 total_weights[k-1] += abs2(eivec[t])
             if abs(sum(total_weights) - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
  
@@ -956,13 +1217,55 @@ class YamboExcitonDB(object):
             bands_kpoints, exc_energies, exc_weights, path_car = self.exciton_bs(energies_db, path, excitons, debug)
             exc_energies = exc_energies[:,self.start_band:self.mband]
             exc_weights  = exc_weights[:,self.start_band:self.mband]
-        #elif spin_pol=='pol':
+        elif self.spin_pol=='pol':
+            bands_kpoints, exc_energies, exc_weights, path_car = self.exciton_bs(energies_db, path, excitons, debug)
+            exc_energies = exc_energies[:,self.start_band:self.mband]
+            exc_weights  = exc_weights[:,self.start_band:self.mband]
 
         if f: exc_weights = f(exc_weights)
         size *= 1.0/np.max(exc_weights)
         ybs = YambopyBandStructure(exc_energies, bands_kpoints, weights=exc_weights, kpath=path_car, size=size)
         return ybs
 
+    def get_magnon_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False):
+        #UNDER DEVELOPMENT
+        """
+        Get a YambopyBandstructure object with the exciton band-structure
+        
+            Arguments:
+            ax          -> axis extance of matplotlib to add the plot to
+            lattice     -> Lattice database
+            energies_db -> Energies database, can be either a SaveDB or QPDB
+            path        -> Path in the brillouin zone
+
+            FP: to be moved in a separate class
+
+            TO BE IMPLEMENTED
+        """
+        from qepy.lattice import Path
+        if not isinstance(path,Path): 
+            raise ValueError('Path argument must be a instance of Path. Got %s instead'%type(path))
+    
+        if space == 'bands':
+            bands_kpoints, energies, weights = self.magnon_bs(energies_db, path.kpoints, excitons, debug)
+            nkpoints = len(bands_kpoints)
+            plot_energies = energies[:,self.start_band:self.mband]
+            plot_weights  = weights[:,self.start_band:self.mband]
+        else:
+            raise NotImplementedError('TODO')
+            eh_size = len(self.unique_vbands)*len(self.unique_cbands)
+            nkpoints = len(bands_kpoints)
+            plot_energies = np.zeros([nkpoints,eh_size])
+            plot_weights = np.zeros([nkpoints,eh_size])
+            for eh,(v,c) in enumerate(product(self.unique_vbands,self.unique_cbands)):
+                plot_energies[:,eh] = energies[:,c]-energies[:,v]
+                plot_weights[:,eh] = weights[:,c] 
+
+        if f: plot_weights = f(plot_weights)
+        size *= 1.0/np.max(plot_weights)
+        ybs = YambopyBandStructure(plot_energies, bands_kpoints, weights=plot_weights, kpath=path, size=size)
+        return ybs
+      
     def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=1,space='bands',f=None,debug=None):
         ybs = self.get_exciton_bs(energies_db,path,excitons,size=size,space=space,f=f,debug=debug)
         return ybs.plot_ax(ax) 
@@ -1379,10 +1682,10 @@ class YamboExcitonDB(object):
         for var in cleanup_vars: kwargs.pop(var,None)
         if 're' in reim: 
             ax.plot(w,chi.real,**kwargs)
-            ax.set_ylabel('$Re(\epsilon_2(\omega))$')
+            ax.set_ylabel(r'$Re(\epsilon_2(\omega))$')
         if 'im' in reim:
             ax.plot(w,chi.imag,**kwargs)
-            ax.set_ylabel('$Im(\epsilon_2(\omega))$')
+            ax.set_ylabel(r'$Im(\epsilon_2(\omega))$')
         ax.set_xlabel('Energy (eV)')
         #plot vertical bar on the brightest excitons
         if n_brightest>-1:
@@ -1421,23 +1724,18 @@ class YamboExcitonDB(object):
             energies -> can be an instance of YamboElectronsDB or YamboQBDB
             path     -> path in reduced coordinates in which to plot the band structure
             exciton  -> exciton index to plot
-            spin     -> ??
         """
         if self.eigenvectors is None:
             raise ValueError('This database does not contain Excitonic states,'
                               'please re-run the yambo BSE calculation with the WRbsWF option in the input file.')
         if isinstance(excitons, int):
             excitons = (excitons,)
-        #get full kmesh
-        kpoints = self.lattice.red_kpoints
-        rlat    = self.lattice.rlat
 
-        rep = list(range(-1,2))
-        kpoints_rep, kpoints_idx_rep = replicate_red_kmesh(kpoints,repx=rep,repy=rep,repz=rep)
-        band_indexes = get_path(kpoints_rep,rlat,None,path)[1] 
-        band_kpoints = kpoints_rep[band_indexes] 
-        band_indexes = kpoints_idx_rep[band_indexes]
-
+        #THESE THREE LINES FROM THE NOPOL CASE
+        car_kpoints = self.lattice.car_kpoints
+        rlat        = self.lattice.rlat
+        bands_kpoints, band_indexes, path_car = get_path(car_kpoints,rlat,None,path,debug=debug) # None means the kpoints are already expanded
+        
         if debug:
             for i,k in zip(band_indexes,band_kpoints):
                 x,y,z = k
@@ -1451,8 +1749,17 @@ class YamboExcitonDB(object):
         #get eigenvalues along the path
         if isinstance(energies,YamboElectronsDB):
             #expand eigenvalues to the full brillouin zone
-            energies_up = energies.eigenvalues[0,self.lattice.kpoints_indexes]
-            energies_dw = energies.eigenvalues[1,self.lattice.kpoints_indexes]
+            if not energies.EXPAND: energies.expandEigenvalues()
+            energies_up = energies.eigenvalues[0,:,:] # SPIN-UP
+#            energies_up = energies.eigenvalues[0] # SPIN-UP
+            energies_dw = energies.eigenvalues[1] # SPIN-DN 
+        #AEK 13.08.2025
+        #It was written like this before. Using it gives very bad bands. 
+        #I think we can remove it
+        #if isinstance(energies,YamboElectronsDB):
+        #    #expand eigenvalues to the full brillouin zone
+        #    energies_up = energies.eigenvalues[0,self.lattice.kpoints_indexes]
+        #    energies_dw = energies.eigenvalues[1,self.lattice.kpoints_indexes]
             
         elif isinstance(energies,YamboQPDB):
             #expand the quasiparticle energies to the bull brillouin zone
@@ -1488,7 +1795,7 @@ class YamboExcitonDB(object):
         energies_up -= fermi_level  
         energies_dw -= fermi_level  
         
-        return np.array(band_kpoints), energies_up, energies_dw, weights_up, weights_dw
+        return np.array(bands_kpoints), energies_up, energies_dw, weights_up, weights_dw, path_car
 
     def get_exciton_bs_spin_pol(self,energies_db,path,excitons,size_up=1,size_dw=1,space='bands',f=None,debug=False):
         """
@@ -1505,14 +1812,12 @@ class YamboExcitonDB(object):
             raise ValueError('Path argument must be a instance of Path. Got %s instead'%type(path))
         if space == 'bands':
             if self.spin_pol=='pol':
-               bands_kpoints, energies_up, energies_dw, weights_up, weights_dw = self.exciton_bs_spin_pol(energies_db, path.kpoints, excitons, debug)
+               bands_kpoints, energies_up, energies_dw, weights_up, weights_dw, path_car = self.exciton_bs_spin_pol(energies_db, path, excitons, debug)
                nkpoints = len(bands_kpoints)
                plot_energies_up = energies_up[:,self.start_band:self.mband]
                plot_energies_dw = energies_dw[:,self.start_band:self.mband]
                plot_weights_up  = weights_up[:,self.start_band:self.mband]
                plot_weights_dw  = weights_dw[:,self.start_band:self.mband]
-        #    elif spin_pol=='pol':
-               
         else:
             raise NotImplementedError('TODO')
             eh_size = len(self.unique_vbands)*len(self.unique_cbands)
@@ -1527,9 +1832,11 @@ class YamboExcitonDB(object):
         if f: plot_weights_up, plot_weights_dw = f(plot_weights_up), f(plot_weights_dw)
         size_plot_up = 100.0 # 1.0/np.max(plot_weights_up)*100.0
         size_plot_dw = 100.0 # 1.0/np.max(plot_weights_dw)*100.0
-        ybs_up = YambopyBandStructure(plot_energies_up, bands_kpoints, weights=plot_weights_up, kpath=path, size=size_plot_up)
-        ybs_dw = YambopyBandStructure(plot_energies_dw, bands_kpoints, weights=plot_weights_dw, kpath=path, size=size_plot_dw)
-        
+        ybs_up = YambopyBandStructure(plot_energies_up, bands_kpoints, weights=plot_weights_up, kpath=path_car, size=size_plot_up)
+        ybs_dw = YambopyBandStructure(plot_energies_dw, bands_kpoints, weights=plot_weights_dw, kpath=path_car, size=size_plot_dw)
+
+        #AEK: This was already commented 13.08.2025
+        #I don't understand what is it for. We might delete it.
         #from numpy import arange
         #x = arange(nkpoints)
         #import matplotlib.pyplot as plt
@@ -1594,8 +1901,10 @@ class YamboExcitonDB(object):
     def interpolate_spin_pol(self,energies,path,excitons,lpratio=5,f=None,size_up=1.0,size_dw=1.0,verbose=True,**kwargs):
         """ Interpolate exciton bandstructure using SKW interpolation from
         Abipy and SPIN-POLARIZED CALCULATIONS
-        """
 
+        AEK 14.08.2025
+        It plots the weight on spin pol bands. 
+        """
         if verbose:
             print("This interpolation is provided by the SKW interpolator implemented in Abipy")
 
@@ -1628,21 +1937,16 @@ class YamboExcitonDB(object):
         ibz_weights_dw = np.zeros([ibz_nkpoints,self.mband_dw-self.start_band_dw]) 
         
         ibz_kpoints = np.zeros([ibz_nkpoints,3])
-        print(self.mband_up,self.start_band_up)
-        print(ibz_weights_up.shape)
-        print(weights_up.shape)
-        print(lattice.kpoints_indexes)
-        print('just before error')
         for idx_bz,idx_ibz in enumerate(lattice.kpoints_indexes):
-            print(weights_up[idx_bz,:])
+#            print(weights_up[idx_bz,:])
             ibz_weights_up[idx_ibz,:], ibz_weights_dw[idx_ibz,:]= weights_up[idx_bz,:], weights_dw[idx_bz,:] 
             ibz_kpoints[idx_ibz] = lattice.red_kpoints[idx_bz]
 
         #get eigenvalues along the path
         # DFT values from SAVE
         if isinstance(energies,YamboElectronsDB):
-            ibz_energies_up = energies.eigenvalues[0,:,self.start_band:self.mband] # spin-up channel
-            ibz_energies_dw = energies.eigenvalues[1,:,self.start_band:self.mband] # spin-dw channel
+            ibz_energies_up = energies.eigenvalues_ibz[0,:,self.start_band:self.mband] # spin-up channel
+            ibz_energies_dw = energies.eigenvalues_ibz[1,:,self.start_band:self.mband] # spin-dw channel
             ibz_kpoints_qp  = ibz_kpoints
         # GW values from ndb.QP
         elif isinstance(energies,YamboQPDB):
@@ -1689,9 +1993,9 @@ class YamboExcitonDB(object):
         fermi_up_dw = max([max(energies_up[0][:,self.nvbands_up-1]), max(energies_dw[0][:,self.nvbands_dw-1])])
 
         #create band-structure object
+        kwargs.pop('size', None)
         exc_bands_up = YambopyBandStructure(energies_up[0],kpoints_path,kpath=path,fermie=fermi_up_dw,weights=exc_weights_up[0],size=size_up,**kwargs)
         exc_bands_dw = YambopyBandStructure(energies_dw[0],kpoints_path,kpath=path,fermie=fermi_up_dw,weights=exc_weights_dw[0],size=size_dw,**kwargs)
-
         return exc_bands_up, exc_bands_dw
 
     ##############################################
