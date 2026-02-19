@@ -5,7 +5,7 @@
 #
 from yambopy import *
 from netCDF4 import Dataset
-from math import sqrt
+import math
 import numpy as np
 from yambopy.tools.string import marquee
 import os
@@ -305,9 +305,6 @@ class YamboElectronPhononDB():
             If threeD=True, plots BZ planes at constant component along `axis`
             (x/y/z) in a subplot grid.
             """
-        import numpy as np
-        import matplotlib.pyplot as plt
-        import math
 
         # --- select k-points as in original code ---
         if kcoords is None:
