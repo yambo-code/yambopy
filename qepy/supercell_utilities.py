@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 from qepy import *
 
 from yambopy.units import *
@@ -301,7 +302,13 @@ class MySupercell(Supercell):
         '''
         R_sc: e.g. an integer array [3, 3, 1] defining the DIAGONAL supercell 
         matdyn: the full phonon output from normal unit cell.
+        ''' 
         '''
+        Unormalize vector if necessary 
+        '''
+        if not matdyn.check_orthogonality():
+            matdyn.unnormalize_with_masses(self.qe_input.get_masses())
+
         qlist, eigvals, eigvecs = sort_all_phonon_modes(matdyn) # Now every thing is ordered in ascending order of phonon energy.
         '''
         Note: phonon q in qlist are in units of 2 pi/ alat
@@ -337,6 +344,20 @@ class MySupercell(Supercell):
             # expand_eigvecs[i] = np.hstack([eigvecs[i]] * self.sup_size) * phases_to_apply
             # self.expanded_phases.append(phases_to_apply)
         expanded_eigvecs *= expanded_phases
+        '''
+        Normalize eigenvectors
+        '''
+        for i in range(len(expanded_eigvecs[:,0])):
+            expanded_eigvecs[i]/=np.linalg.norm(expanded_eigvecs[i])
+        '''
+        Rescale by masses
+        '''
+        qe_non_disp = self.write(self.sc_atom_positions, mode='diagonal')
+        masses_s=qe_non_disp.get_masses()
+        for n in range(len(expanded_eigvecs[:,0])):
+            for a in range(qe_non_disp.natoms):
+                        expanded_eigvecs[i,a*3:(a+1)*3] *= 1.0/sqrt(masses_s[a])
+
         # A list of displacements
         # expand_disp_amplitudes = np.hstack([disp_amplitudes.reshape(-1,1)] * (self.sup_size * matdyn.natoms * 3))
         # displacements = np.real(expand_disp_amplitudes * expanded_eigvecs) # displacements[imode, ix]
@@ -353,6 +374,7 @@ class MySupercell(Supercell):
                 qe_s.write(os.path.join(temp_dir, f'mode_{i+1}.in'))
                 
         # tot_disp = np.sum(np.diag((-1)**np.arange(ntot_modes)) @ displacements, axis=0)
+#        tot_disp = np.sum(displacements, axis=0)/matdyn.nqpoints
         tot_disp = np.sum(displacements, axis=0)/matdyn.nqpoints
         
         '''

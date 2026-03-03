@@ -244,7 +244,7 @@ class Matdyn(object):
        
         for nq in range(self.nqpoints):
             for n in range(self.nmodes):
-                print(np.linalg.norm(self.eiv[nq,n]))
+#                print(np.linalg.norm(self.eiv[nq,n]))
                 self.eiv[nq,n] /= np.linalg.norm(self.eiv[nq,n])
 
     def unnormalize_with_masses(self,masses): 
@@ -262,13 +262,7 @@ class Matdyn(object):
                 for n in range(self.nmodes):
                     for a in range(self.natoms):
                        self.eiv[nq,n,a*3:(a+1)*3] *= sqrt(masses[a])
-
-        for nq in range(self.nqpoints):
-            for n in range(self.nmodes):
-                s = 0
-                e = self.eiv[nq,n,:]
-                s += np.vdot(e,e).real
-                self.eiv[nq,n] *= 1.0/sqrt(s)
+        self.normalize()
     
     def normalize_with_masses(self,masses): 
         """
