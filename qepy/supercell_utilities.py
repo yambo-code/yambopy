@@ -324,6 +324,19 @@ class MySupercell(Supercell):
         ntot_cells=np.prod(R_sc)
         if ntot_cells != matdyn.nqpoints:
             raise ValueError('Number of q-points not compatible with supercell ')
+        #
+        # Check that q-vectors are compatible with the cell
+        #
+        q = []
+        for nq in range(matdyn.nqpoints):
+            q.append(matdyn.qpoints[nq]/self.qe_input.get_alat0()) # in reduced units of reciprocal lattice bases
+        q_red=car_red(q,rec_lat(self.latvec))
+        for nq in range(matdyn.nqpoints):
+            q_red[nq]=q_red[nq,:]*R_sc[:]
+        if not np.all(np.isclose(q_red, np.round(q_red), rtol=0, atol=1e-4)):
+            raise ValueError('Q-vectors not compatible with the supercell')
+        else:
+            print("Q-vectors compatible with the supercell :",R_sc)
 
         self.full_eigvecs = eigvecs.reshape([ntot_modes, matdyn.natoms, 3])
         eigvals = eigvals * cm1toeV * eV2ha # convert phonon energy to Ha
