@@ -247,6 +247,29 @@ class Matdyn(object):
                 print(np.linalg.norm(self.eiv[nq,n]))
                 self.eiv[nq,n] /= np.linalg.norm(self.eiv[nq,n])
 
+    def unnormalize_with_masses(self,masses): 
+        """
+        Remove mass factor, inverse function of normalize_with_masses
+        """
+        masses = np.array(masses)
+        ref_mass = max(masses)
+        masses = masses/ref_mass
+
+        if self.check_orthogonality():
+            print("These eigenvectors are already orthogonal, probably they are not scaled by the masses")
+        else:
+            for nq in range(self.nqpoints):
+                for n in range(self.nmodes):
+                    for a in range(self.natoms):
+                       self.eiv[nq,n,a*3:(a+1)*3] *= sqrt(masses[a])
+
+        for nq in range(self.nqpoints):
+            for n in range(self.nmodes):
+                s = 0
+                e = self.eiv[nq,n,:]
+                s += np.vdot(e,e).real
+                self.eiv[nq,n] *= 1.0/sqrt(s)
+    
     def normalize_with_masses(self,masses): 
         """
         Normalize the displacements u^n_{ai} according to:
