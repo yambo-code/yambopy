@@ -257,11 +257,11 @@ class Matdyn(object):
 
         if self.check_orthogonality():
             print("These eigenvectors are already orthogonal, probably they are not scaled by the masses")
-#        else:
-#            for nq in range(self.nqpoints):
-#                for n in range(self.nmodes):
-#                    for a in range(self.natoms):
-#                       self.eiv[nq,n,a*3:(a+1)*3] *= sqrt(masses[a])
+        else:
+            for nq in range(self.nqpoints):
+                for n in range(self.nmodes):
+                    for a in range(self.natoms):
+                       self.eiv[nq,n,a*3:(a+1)*3] *= sqrt(masses[a])
         self.normalize()
     
     def normalize_with_masses(self,masses): 
@@ -305,7 +305,6 @@ class Matdyn(object):
         Check if the eigenvectors are orthogonal
         """
 
-        check_orth=True
         orth = np.eye(self.nmodes)
         for nq in range(self.nqpoints):
             if nq == 0:
@@ -317,8 +316,9 @@ class Matdyn(object):
                 for m in range(nstar,self.nmodes):
                     e2 = self.eiv[nq,m]
                     orth[n,m] = np.vdot(e1,e2).real
-            check_orth=check_orth and np.isclose(orth,np.eye(self.nmodes),atol=atol).all()
-        return check_orth
+            if not np.isclose(orth,np.eye(self.nmodes),atol=atol).all():
+                return False
+        return True
  
     def check_normalization(self,masses,atol=1e-5):
         """
