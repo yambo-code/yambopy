@@ -307,7 +307,10 @@ class MySupercell(Supercell):
         Unormalize vector if necessary 
         '''
         if not matdyn.check_orthogonality():
+            print("Eigenvectors not normlized unscale masses")
             matdyn.unnormalize_with_masses(self.qe_input.get_masses())
+        else:
+            print("Eigenvectors are normlized")
 
         qlist, eigvals, eigvecs = sort_all_phonon_modes(matdyn) # Now every thing is ordered in ascending order of phonon energy.
         '''
