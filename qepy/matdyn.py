@@ -252,8 +252,8 @@ class Matdyn(object):
         Remove mass factor, inverse function of normalize_with_masses
         """
         masses = np.array(masses)
-        ref_mass = max(masses)
-        masses = masses/ref_mass
+#        ref_mass = max(masses)
+#        masses = masses/ref_mass
 
         if self.check_orthogonality():
             print("These eigenvectors are already orthogonal, probably they are not scaled by the masses")
@@ -278,8 +278,8 @@ class Matdyn(object):
         """
 
         masses = np.array(masses)
-        ref_mass = max(masses)
-        masses = masses/ref_mass
+#        ref_mass = max(masses)
+#        masses = masses/ref_mass
 
         #divide by masses
         if self.check_orthogonality():
@@ -323,8 +323,8 @@ class Matdyn(object):
         """
         
         masses = np.array(masses)
-        ref_mass = max(masses)
-        masses = masses/ref_mass
+#        ref_mass = max(masses)
+#        masses = masses/ref_mass
         
         #check normalization
         norm = np.zeros([self.nmodes])
