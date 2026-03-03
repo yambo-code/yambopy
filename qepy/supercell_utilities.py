@@ -315,10 +315,17 @@ class MySupercell(Supercell):
         '''
         ntot_modes = len(eigvals)
         print(f'INFO: {ntot_modes} modes in total.')
+        #
+        # Check if number of q-points is compatible with cell size
+        #
+        ntot_cells=np.prod(R_sc)
+        if ntot_cells != matdyn.nqpoints:
+            raise ValueError('Number of q-points not compatible with supercell ')
+
         self.full_eigvecs = eigvecs.reshape([ntot_modes, matdyn.natoms, 3])
         eigvals = eigvals * cm1toeV * eV2ha # convert phonon energy to Ha
         # displacement amplitudes are only determined by phonon energy and temperature
-        disp_amplitudes = 1/np.sqrt(2 * eigvals)
+        disp_amplitudes = 1.0/np.sqrt(2.0 * eigvals)
         disp_amplitudes *= np.sqrt(1.0 + 2.0 * bose(eigvals * ha2ev, T_Kelvin))/np.sqrt(amu2au)
         self.sc_atom_positions = self.d_sup(R_sc) # return non-displaced atom coordinates in the DIAGONAL supercell
         newlat_constants = self.lattice_constants(self.new_latvec)
