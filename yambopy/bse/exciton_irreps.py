@@ -45,7 +45,7 @@ def compute_exc_rep(path='.', bse_dir='SAVE', iqpt=1, nstates=-1, degen_tol = 1e
         Working directory containing the ``SAVE`` folder.
         Default is current directory ``'.'``.
     bse_dir : str, optional
-        Subdirectory containing the BSE diagonalization database
+        Directory containing the BSE diagonalization database
         (e.g. ``SAVE`` or ``GW_BSE``). Default ``'SAVE'``.
     iqpt : int, optional
         Index of the q-point in the BSE calculation (1-based as in Yambo).
@@ -91,14 +91,10 @@ def compute_exc_rep(path='.', bse_dir='SAVE', iqpt=1, nstates=-1, degen_tol = 1e
 
     Examples
     --------
-    >>> compute_exc_rep(path='..', bse_dir='GW_BSE',
+    >>> compute_exc_rep(path='..', bse_dir='../GW_BSE',
     ...                  iqpt=1, nstates=3, degen_tol=1e-2)
 
     """
-    ## NM : FIX ME, Add a check for the below comment. 
-    ## Lkind = "full" for q !=0, as Lkind = "bar" should not be used for finite q
-    ## for q = 0, Lking = "bar" is recommaded as "full" will 
-    ## break symmetries (depends on the chosen direction
     if nstates == 0 :
         print("Warning : Number of states set to 0. so returning without any output.")
         return None
@@ -131,8 +127,18 @@ def compute_exc_rep(path='.', bse_dir='SAVE', iqpt=1, nstates=-1, degen_tol = 1e
     #
     filename = 'ndb.BS_diago_Q%d' % (iqpt)
     excdb = YamboExcitonDB.from_db_file(lattice, filename=filename,
-                                             folder=os.path.join(path, bse_dir),
+                                             folder=bse_dir,
                                              Load_WF=True, neigs=nstates_read)
+    # Check for Lkind
+    ## Lkind = "full" for q !=0, as Lkind = "bar" should not be used for finite q
+    ## for q = 0, Lkind = "bar" is recommended as "full" will 
+    ## break symmetries (depends on the chosen direction)
+    if excdb.Lkind is not None: # compatibility with old databases
+        if iqpt==0 and 'bar' not in excdb.Lkind:
+            print(f"Warning: You are using Lkind={excdb.Lkind} at q=0, but 'Lbar' is recommended. Symmetries are broken in this way.")
+        if iqpt!=0 and 'full' not in excdb.Lkind:
+            print(f"Warning: You are using Lkind={excdb.Lkind} at q!=0, but 'Lfull' should be used.")
+
     # Load the wavefunction database
     wfdb = YamboWFDB(path=path, latdb=lattice,
                       bands_range=[np.min(excdb.table[:, 1]) - 1,

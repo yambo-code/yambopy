@@ -8,7 +8,6 @@ import numpy as np
 import math
 from yambopy.units import ha2ev,fs2aut, SVCMm12VMm1,AU2VMm1
 from yambopy.nl.external_efield import Divide_by_the_Field
-from yambopy.nl.harmonic_analysis import update_T_range
 from scipy.optimize import least_squares
 from tqdm import tqdm
 from scipy.ndimage import uniform_filter1d
@@ -161,7 +160,7 @@ def SF_Harmonic_Analysis(nldb, tol=1e-10, X_order=4, X_order2=None, T_range=[-1,
     else:
         raise ValueError("Fields different from SIN/SOFTSIN are not supported ! ")
     
-    if(nldb.N_ext_fields==3): 
+    if(nldb.N_ext_fields==3):
         if(nldb.Efield_general[2]["name"] != "none"):  raise ValueError("Three fields not supported yet ! ")
 
     print("Number of frequencies : %d " % n_frequencies)

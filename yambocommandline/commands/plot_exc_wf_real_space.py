@@ -19,7 +19,7 @@ def run_plot_exc_wf_real_space(args):
     parser.add_argument("-J","--jobdir", type=str, default="SAVE", metavar="DIR",
                         help="BSE JOB directory [PATH/DIR] (default: SAVE)")
     parser.add_argument("--iqpt", type=int, default=1,help="Q-point index (default: 1)")
-    parser.add_argument("--iexe", type=int, required=True,help="Exciton index to plot.")
+    parser.add_argument("--iexe", type=int, required=True,help="Exciton index to plot. (counts from 1)")
     # --iexe and --iqpt are not python indexing. i,e 1st item starts from 1.
     parser.add_argument("--supercell", nargs=3, type=int, default=[1, 1, 1],
                         help="Supercell dimensions (default: 1 1 1)")
@@ -70,7 +70,7 @@ def run_plot_exc_wf_real_space(args):
     filename = f"ndb.BS_diago_Q{iqpt}"
     # NM : In the case of TDA, we donot want to load all the eigenvectors. 
     excdb = YamboExcitonDB.from_db_file(lattice, filename=filename,
-                                        folder=os.path.join(calc_path, BSE_dir),
+                                        folder=BSE_dir,
                                         neigs=args.iexe + args.neig_load)
     #
     wfdb = YamboWFDB(path=calc_path,latdb=lattice,

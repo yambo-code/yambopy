@@ -342,7 +342,6 @@ class YamboExcitonDB(object):
         excQpt = self.car_qpoint
         # Convert the q-point to crystal coordinates
         Qpt = wfdb.ydb.lat @ excQpt
-        print("Qpt: ",Qpt)
         #
         if fix_particle == 'h': name_file = 'electron'
         else: name_file = 'hole'

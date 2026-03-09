@@ -27,3 +27,4 @@ Project Authors
 * Daniel Santos Stone
 * Ignacio Alliati 
 * Muralidhar Nalabothula
+* Anna Romani
