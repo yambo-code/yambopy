@@ -7,7 +7,7 @@ EDIT the path below to point to the yambo SAVE folder.
 """
 save_path='BSE_saves/YAMBO_saves'
 dipoles_path='BSE_saves/BSE_databases'
-from yambopy import *
+from yambopy import YamboLatticeDB,YamboDipolesDB,YamboElectronsDB
 import numpy as np
 import matplotlib.pyplot as plt
 

@@ -1678,19 +1678,28 @@ class YamboExcitonDB(object):
 
         return w,pl
 
-    def plot_chi_ax(self,ax,reim='im',n_brightest=-1,**kwargs):
+    def plot_chi_ax(self,ax,reim='im',n_brightest=-1,is_2D=False,**kwargs):
         """Plot chi on a matplotlib axes"""
         w,chi = self.get_chi(**kwargs)
+        ## WARNING: assuming 
+        ## (i)  nonperiodic direction is z 
+        ## (ii) atomic units for ylat.lat
+        if is_2D: 
+            abs_label = 'alpha'
+            Lz = self.lattice.lat[2,2] # interlayer separation in bohr
+            chi = (chi-1.)*Lz/(4.*np.pi)
+        else:
+            abs_label = 'epsilon'
         #cleanup kwargs variables
         cleanup_vars = ['dipoles','dir','emin','emax','estep','broad',
                         'q0norm','nexcitons','spin_degen','verbose']
         for var in cleanup_vars: kwargs.pop(var,None)
         if 're' in reim: 
             ax.plot(w,chi.real,**kwargs)
-            ax.set_ylabel(r'$Re(\epsilon_2(\omega))$')
+            ax.set_ylabel(r'$Re(\%s(\omega))$' % abs_label)
         if 'im' in reim:
             ax.plot(w,chi.imag,**kwargs)
-            ax.set_ylabel(r'$Im(\epsilon_2(\omega))$')
+            ax.set_ylabel(r'$Im(\%s(\omega))$' % abs_label)
         ax.set_xlabel('Energy (eV)')
         #plot vertical bar on the brightest excitons
         if n_brightest>-1:

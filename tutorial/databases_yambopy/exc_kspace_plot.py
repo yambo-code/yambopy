@@ -7,8 +7,9 @@ EDIT the path below to point to the yambo SAVE folder.
 """
 save_path='BSE_saves/YAMBO_saves'
 bse_path ='BSE_saves/BSE_databases'
-from yambopy import *
-from qepy import *
+from yambopy import YamboLatticeDB,YamboExcitonDB,YamboElectronsDB
+from qepy import Path
+from math import sqrt
 import numpy as np
 import matplotlib.pyplot as plt
 

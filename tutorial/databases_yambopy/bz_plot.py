@@ -6,7 +6,7 @@ We show a specific functionality, namely kpoint reading and expansion.
 EDIT the path below to point to the yambo SAVE folder.
 """
 save_path='BSE_saves/YAMBO_saves'
-from yambopy import *
+from yambopy import YamboLatticeDB
 from yambopy.plot.plotting import BZ_Wigner_Seitz
 import numpy as np
 import matplotlib.pyplot as plt
@@ -87,7 +87,7 @@ if __name__ == "__main__":
         fig = plt.figure(figsize=(9,9))
         ax = plt.gca()
         ax.set_title('Kpoint expansion')
-        ax.add_patch(BZ_hexagon(ylat.rlat,color='black',linewidth=1.))
+        ax.add_patch(BZ_Wigner_Seitz(ylat,color='black',linewidth=1.))
         ax.set_aspect('equal')
         ax.scatter(ylat.car_kpoints[:,0],ylat.car_kpoints[:,1],marker='H',s=200,color='teal',\
                    linewidth=0.5,edgecolors='black',label='expanded')

@@ -1,4 +1,4 @@
-from qepy import *
+from qepy import  Path,ProjwfcXML,ProjwfcIn
 import matplotlib.pyplot as plt
 
 # k-points map

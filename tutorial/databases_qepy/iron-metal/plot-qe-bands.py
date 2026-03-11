@@ -1,4 +1,4 @@
-from qepy import *
+from qepy import Path,PwXML
 
 # k-points map
 npoints = 50
