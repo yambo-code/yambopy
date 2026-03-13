@@ -1,4 +1,4 @@
-from qepy import *
+from qepy import Path,ProjwfcXML,ProjwfcIn
 import matplotlib.pyplot as plt
 
 # k-points map
@@ -15,12 +15,12 @@ path_kpoints = Path([ [[0.0, 0.0, 0.0 ],'G'],
 # atomic_proj.xml (comment if already done)
 '''
 proj = ProjwfcIn(prefix='pw')
-proj.run(folder='bands/t0')
+proj.run(folder='bands')
 '''
 
 # Class ProjwfcXML
 # Atom-projected band structure. Size
-band = ProjwfcXML(prefix='pw',path='bands/t0')
+band = ProjwfcXML(prefix='pw',path='bands')
 # print info
 print(band)
 
@@ -37,8 +37,8 @@ d = band.get_states_helper(orbital_query=['d'])
 fig = plt.figure(figsize=(5,7))
 ax  = fig.add_axes( [ 0.12, 0.10, 0.70, 0.80 ])
 
-band.plot_eigen(ax,path_kpoints=path_kpoints,selected_orbitals=s,color='red',color_2='blue')
-band.plot_eigen(ax,path_kpoints=path_kpoints,selected_orbitals=p,color='green',color_2='orange')
-band.plot_eigen(ax,path_kpoints=path_kpoints,selected_orbitals=d,color='pink',color_2='black')
+#band.plot_eigen(ax,path_kpoints=path_kpoints,selected_orbitals=s,color='pink',color_2='black')
+#band.plot_eigen(ax,path_kpoints=path_kpoints,selected_orbitals=p,color='green',color_2='orange')
+band.plot_eigen(ax,path_kpoints=path_kpoints,selected_orbitals=d,color='red',color_2='blue')
 
 plt.show()

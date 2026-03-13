@@ -174,7 +174,7 @@ class PwIn(object):
 
     def change_cell_parameters(self):
         """
-        Convert the atomic postions to cartesian, change the lattice and convert
+        Convert the atomic positions to cartesian, change the lattice and convert
         the atomic positions to reduced
         """
         raise NotImplementedError('TODO')
@@ -462,7 +462,7 @@ class PwIn(object):
         self.klist = path.get_klist()
 
     def get_cell(self):
-        """ Get the lattice parameters, postions of the atoms and chemical symbols
+        """ Get the lattice parameters, positions of the atoms and chemical symbols
         """
         cell = self.cell_parameters
         sym = [atom[0] for atom in self.atoms]
@@ -473,7 +473,7 @@ class PwIn(object):
 
     def set_atoms_string(self,string):
         """
-        set the atomic postions using string of the form
+        set the atomic positions using string of the form
         Si 0.0 0.0 0.0
         Si 0.5 0.5 0.5
         """
@@ -484,7 +484,7 @@ class PwIn(object):
         self.atoms = atoms
 
     def set_atoms_ase(self,atoms):
-        """ set the atomic postions using a Atoms datastructure from ase
+        """ set the atomic positions using a Atoms datastructure from ase
         """
         # we will write down the cell parameters explicitly
         self.ibrav = 0

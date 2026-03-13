@@ -80,7 +80,7 @@ class PwXML():
         self.atoms = []
         for i in range(1,self.natoms+1):
             atom_xml = self.datafile_xml.findall("IONS/ATOM.%d"%i)[0]
-            #read postions
+            #read positions
             pos_string = atom_xml.get('tau').strip().split()
             pos = [float(x) for x in pos_string]
             #read type  

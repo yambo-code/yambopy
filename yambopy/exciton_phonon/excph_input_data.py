@@ -95,7 +95,7 @@ def exc_ph_get_inputs(lat_path,elph_path,bse_path1,mode='PL',bse_path2=None,wf_p
     if os.path.isfile(dmat_file) and not overwrite: dmat_mode='load'
     else: dmat_mode='save'
     excph_couplings = exciton_phonon_matelem(lattice,elph,wfcs,BSE_dir=bse_path1,BSE_Lin_dir=bse_path2,\
-                                             neigs=max(nexc_in,nexc_out),overwrite=overwrite,\
+                                             nexc_in=nexc_in,nexc_out=nexc_out,overwrite=overwrite,\
                                              dmat_mode=dmat_mode,exph_file=exph_file)
     excph_couplings = excph_couplings[:,phonons_range[0]:phonons_range[1],:nexc_in,:nexc_out]
     

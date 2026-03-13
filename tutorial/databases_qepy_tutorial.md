@@ -1,15 +1,16 @@
-Database Tutorial - Qepy
+Database Tutorial - Qepy (with GW)
 ========
 
 Here you find a basic postprocessing tutorial for quantum espresso databases.
 
+This tutorial is focused on band structure plotting, *including GW calculations*.
+
 Inside the directory there are several scripts showing some of the functionalities of these classes. The examples provided are not exhaustive and you can explore the code in qepy/\* (or write to the yambo forum) to investigate about all the features.
 
-In particular we treat the following classes:
-Scripts and classes DESCRIPTION.
+In particular we treat the following classes: see below for description.
 
 # Download databases
-You can download the relevant databases for this tutorial [here](www.yambo-code.org/educational/tutorials/files/databases\_qepy.tar) from the yambo website, or by simply typing:
+You can download the relevant databases for this tutorial [here](www.yambo-code.org/educational/tutorials/files/databases\_qepy.tar.gz) from the yambo website, or by simply typing:
 > wget www.yambo-code.org/educational/tutorials/files/databases\_qepy.tar
 
 # Yambo wiki
@@ -33,10 +34,6 @@ python plot-qe-orbitals.py
 
 Folder 'iron-metal'
 
-0. Calculate scf density and bands
-
-python flow-iron.py
-
 1. Plot band structure
 
 python plot-qe-bands.py
@@ -51,7 +48,19 @@ python plot-qe-orbitals-size.py
 
 python plot-qe-orbitals-colormap.py
 
-# Tutorial 3. BN (semiconductor). Unfolding supercell band structure
+
+# Tutorial 3. BN (semiconductor). GW Band structure
+==============================================
+
+1. Find stretching coefficients
+
+2. Plot DFT and GW band structures non-interpolated
+
+3. Plot DFT and GW band structures interpolated
+
+4. Compare non-interpolated and interpolated band structures
+
+# Tutorial 4 [ADVANCED]. BN (semiconductor). Unfolding supercell band structure
 ==============================================
 
 Folder 'bn-semiconductor'
@@ -68,7 +77,7 @@ Folder 'bn-semiconductor'
 
 python plot-unfolding.py
 
-# Tutorial 4. BN (semiconductor). Spin texture
+# Tutorial 5 [ADVANCED]. BN (semiconductor). Spin texture
 ==============================================
 
 Folder 'bn-semiconductor'
@@ -80,16 +89,6 @@ Folder 'bn-semiconductor'
    projection to load. Besides, we can plot the spin texture in three different modes,
    "raw", "interpolated" (only spin-z) and "arrow" (needs spin-x, spin-y and spin-z)
 
-python plot-qe-spin_texture.py
+python plot-qe-spin\_texture.py
 
-# Tutorial 5. BN (semiconductor). GW Band structure
-==============================================
-
-1. Find stretching coefficients
-
-2. Plot DFT and GW band structures non-interpolated
-
-3. Plot DFT and GW band structures interpolated
-
-4. Compare non-interpolated and interpolated band structures
 

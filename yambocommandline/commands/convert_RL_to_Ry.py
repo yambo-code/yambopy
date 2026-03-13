@@ -6,8 +6,8 @@ import numpy as np
 Script to convert RL number in Ry energy units using ndb.gops.
 
 Inputs:
- 1. --ndb_gops='path/to/folder/with/ndb.gops' [i.e., SAVE]
- 2. --value= value to convert with units, e.g., '11 RL' or '5 Ry']
+ 1. --ndb_gops path/to/SAVE/folder [or any folder containing ndb.gops]
+ 2. --value value to convert with units [e.g., 11 RL or 5 Ry]
 
 The script will read ndb.gops and find the nearest completed G-shell, then give the
 converted value in Ry (RL) to the one supplied in input.

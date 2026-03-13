@@ -121,6 +121,7 @@ Active contributors:
 - Michele Re Fiorentin
 - Ali Esquembre-Kucukalic
 - Alejandro Molina-Sanchez
+- Anna Romani
 - You if you want to share your scripts!
 
 Past contributors:

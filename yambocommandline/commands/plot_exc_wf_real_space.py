@@ -19,7 +19,7 @@ def run_plot_exc_wf_real_space(args):
     parser.add_argument("-J","--jobdir", type=str, default="SAVE", metavar="DIR",
                         help="BSE JOB directory [PATH/DIR] (default: SAVE)")
     parser.add_argument("--iqpt", type=int, default=1,help="Q-point index (default: 1)")
-    parser.add_argument("--iexe", type=int, required=True,help="Exciton index to plot.")
+    parser.add_argument("--iexe", type=int, required=True,help="Exciton index to plot. (counts from 1)")
     # --iexe and --iqpt are not python indexing. i,e 1st item starts from 1.
     parser.add_argument("--supercell", nargs=3, type=int, default=[1, 1, 1],
                         help="Supercell dimensions (default: 1 1 1)")
@@ -70,13 +70,13 @@ def run_plot_exc_wf_real_space(args):
     filename = f"ndb.BS_diago_Q{iqpt}"
     # NM : In the case of TDA, we donot want to load all the eigenvectors. 
     excdb = YamboExcitonDB.from_db_file(lattice, filename=filename,
-                                        folder=os.path.join(calc_path, BSE_dir),
+                                        folder=BSE_dir,
                                         neigs=args.iexe + args.neig_load)
     #
     wfdb = YamboWFDB(path=calc_path,latdb=lattice,
                      bands_range=[np.min(excdb.table[:, 1]) - 1,np.max(excdb.table[:, 2])])
     #
-    excdb.real_wf_to_cube(iexe=args.iexe-1,wfdb=wfdb,fixed_postion=fixed_position,
+    excdb.real_wf_to_cube(iexe=args.iexe-1,wfdb=wfdb,fixed_position=fixed_position,
                           supercell=args.supercell,degen_tol=args.degen_tol,
                           wfcCutoffRy=args.wfc_cutoff,fix_particle=fix_particle,
                           phase=args.phase, block_size=args.block_size)

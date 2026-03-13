@@ -111,7 +111,7 @@ for i in range(len(jvals)):
     print('*********** Plotting real space wf for state %d with j = %.2f ***************'
           % (idegen[i] + 1, jvals[i]))
     print("="*80)
-    excdb.real_wf_to_cube(iexe=idegen[i], wfdb=wfdb, fixed_postion=[0.0, 0.0, 0.0],
+    excdb.real_wf_to_cube(iexe=idegen[i], wfdb=wfdb, fixed_position=[0.0, 0.0, 0.0],
                           supercell=[9,9,9], degen_tol=1e-14, wfcCutoffRy=-1,
                           fix_particle='e', phase=True)
     print("="*80)

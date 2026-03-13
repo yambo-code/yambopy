@@ -21,7 +21,6 @@ def Divide_by_the_Field(efield,order):
             divide_by_field=np.power(-2.0*1.0j/efield['amplitude'],order,dtype=np.cdouble)
         elif order==0:
             divide_by_field=-4.0/np.power(efield['amplitude'],2.0,dtype=np.cdouble)
-
     elif efield['name'] == 'QSSIN':
         # Approximate relations/does not work yet
         sigma=efield['width']
@@ -29,16 +28,16 @@ def Divide_by_the_Field(efield,order):
         T_0= np.pi/W_0*float(round(W_0/np.pi*3.*sigma))
         T = 2*np.pi/W_0
         E_w= math.sqrt(np.pi/2)*sigma*np.exp(-1j*W_0*T_0)*(special.erf((T-T_0)/math.sqrt(2.0)/sigma)+special.erf(T_0/math.sqrt(2.0)/sigma))
-        
-        if order!=0:
-            divide_by_field = (-2.0*1.0j/(E_w*efield['amplitude']))**order
-        elif order==0:
-            divide_by_field = 4.0/(E_w*efield['amplitude']*np.conj(E_w))
     else:
         raise ValueError("Electric field not implemented in Divide_by_the_Field!")
 
     return divide_by_field
 
+def Gaussian_centre(efield):
+    ratio=np.pi/efield['freq_range'][0]
+    sigma=efield["damping"]/(2.0*(2.0*np.log(2.0))**0.5)
+    peak_ = float(1.0 /ratio * sigma *efield["peak"])
+    return ratio * float(round(peak_)),sigma
 
 def Efield_strength(Intensity, unit_system):
     """

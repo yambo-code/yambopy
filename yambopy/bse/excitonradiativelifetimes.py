@@ -60,7 +60,8 @@ def get_exciton_dipole(state, blongdir, ylat, ydip, yexc, _cache={}):
 
 
 @citation("H.-Y. Chen et al. Phys. Rev. B 100, 075135 (2019)")
-def get_radiative_lifetime_3D_iso(T,state,ylat,ydip,yexc,Meff,eps):
+def get_radiative_lifetime_3D_iso(T,state,ylat,ydip,yexc,Meff,eps,shiftE=0):
+
     """
         Function to compute the radiative lifetime tau_S(T) of a single exciton state for *isotropic* 3D materials.
 
@@ -72,6 +73,7 @@ def get_radiative_lifetime_3D_iso(T,state,ylat,ydip,yexc,Meff,eps):
             * yexc:     BSE database, YamboExcitonDB
             * Meff:     exciton effective mass in electron rest mass (m_e) units. 
             * eps:      material's relative optical dielectric constant
+            * shiftE:   rigid shift of exciton energies. Default: shift=0 eV
 
         Output
             * Radiative lifetime of exciton state in seconds
@@ -83,7 +85,7 @@ def get_radiative_lifetime_3D_iso(T,state,ylat,ydip,yexc,Meff,eps):
     Omega = ylat.lat_vol  #Bohr**3
 
     muS2 = get_exciton_dipole(state,[1,1,1],ylat,ydip,yexc) # Bohr**2
-    ES = np.real(yexc.eigenvalues[state])  # eV
+    ES = np.real(yexc.eigenvalues[state])+shiftE  # eV
 
     Meff_eV = Meff*m_e   # eV
     
@@ -94,7 +96,7 @@ def get_radiative_lifetime_3D_iso(T,state,ylat,ydip,yexc,Meff,eps):
     return 1/(prefactor*dipole_factor*T_factor)
 
 @citation("H.-Y. Chen et al. Phys. Rev. B 100, 075135 (2019)")
-def get_radiative_lifetime_3D_aniso(T,state,ylat,ydip,yexc,Meff,eps):
+def get_radiative_lifetime_3D_aniso(T,state,ylat,ydip,yexc,Meff,eps,shiftE=0):
     """
         Function to compute the radiative lifetime tau_S(T) of a single exciton state for *anisotropic* (uniaxial) 3D materials.
 
@@ -106,6 +108,7 @@ def get_radiative_lifetime_3D_aniso(T,state,ylat,ydip,yexc,Meff,eps):
             * yexc:     BSE database, YamboExcitonDB
             * Meff:     2 element list: exciton effective masses in electron rest mass (m_e) units in-plane, out-of-plane: [Meff_xy, Meff_z]
             * eps:      2 element list: material's relative optical dielectric constants in-plane, out-of-plane: [eps_xy, eps_z]
+            * shiftE:   rigid shift of exciton energies. Default: shift=0 eV
 
         Output
             * Radiative lifetime of exciton state in seconds
@@ -120,7 +123,7 @@ def get_radiative_lifetime_3D_aniso(T,state,ylat,ydip,yexc,Meff,eps):
 
     muS2_xy = get_exciton_dipole(state,[1,1,0],ylat,ydip,yexc) # Bohr**2
     muS2_z = get_exciton_dipole(state,[0,0,1],ylat,ydip,yexc)  # Bohr**2
-    ES = np.real(yexc.eigenvalues[state])  # eV
+    ES = np.real(yexc.eigenvalues[state])+shiftE  # eV
 
     Meff_xy_eV = Meff[0]*m_e  # eV
     Meff_z_eV = Meff[1]*m_e   # eV
@@ -135,7 +138,7 @@ def get_radiative_lifetime_3D_aniso(T,state,ylat,ydip,yexc,Meff,eps):
     return 1/(prefactor*dipole_factor*T_factor)  # seconds
 
 @citation("H.-Y. Chen et al. Phys. Rev. B 100, 075135 (2019)")
-def get_radiative_lifetime_2D(T,state,ylat,ydip,yexc,Meff,eps=1):
+def get_radiative_lifetime_2D(T,state,ylat,ydip,yexc,Meff,eps=1,dip_dir=[1,1,0],shiftE=0):
     """
         Function to compute the radiative lifetime tau_S(T) of a single exciton state for 2D materials.
 
@@ -146,7 +149,9 @@ def get_radiative_lifetime_2D(T,state,ylat,ydip,yexc,Meff,eps=1):
             * ydip:     dipoles database, YamboDipolesDB
             * yexc:     BSE database, YamboExcitonDB
             * Meff:     exciton effective mass in electron rest mass (m_e) units. 
-            * eps:      environment dielectric constant. Default: eps=1, vacuum
+            * eps:      environment dielectric constant. Default: eps=1, vacuum.
+            * dip_dir:  orientation of the dipole moments. Default: [1,1,0] in the xy plane.
+            * shiftE:   rigid shift of exciton energies. Default: shift=0 eV
 
         Output
             * Radiative lifetime of exciton state in seconds
@@ -158,8 +163,8 @@ def get_radiative_lifetime_2D(T,state,ylat,ydip,yexc,Meff,eps=1):
     lat = ylat.lat
     A = np.cross(lat[0],lat[1])[2] # Bohr**2
 
-    muS2 = get_exciton_dipole(state,[1,1,0],ylat,ydip,yexc) # Bohr**2
-    ES = np.real(yexc.eigenvalues[state]) # eV
+    muS2 = get_exciton_dipole(state,dip_dir,ylat,ydip,yexc) # Bohr**2
+    ES = np.real(yexc.eigenvalues[state])+shiftE # eV
 
     Meff_eV = Meff*m_e   # eV
     
@@ -170,7 +175,7 @@ def get_radiative_lifetime_2D(T,state,ylat,ydip,yexc,Meff,eps=1):
     return 1/(prefactor*gamma0_factor*T_factor)   # seconds
 
 @citation("H.-Y. Chen et al. Phys. Rev. B 100, 075135 (2019)")
-def get_radiative_lifetime_1D(T,state,ylat,ydip,yexc,Meff,eps=1):
+def get_radiative_lifetime_1D(T,state,ylat,ydip,yexc,Meff,eps=1,dip_dir=[0,0,1],shiftE=0):
     """
         Function to compute the radiative lifetime tau_S(T) of a single exciton state for 1D materials.
 
@@ -181,7 +186,9 @@ def get_radiative_lifetime_1D(T,state,ylat,ydip,yexc,Meff,eps=1):
             * ydip:     dipoles database, YamboDipolesDB
             * yexc:     BSE database, YamboExcitonDB
             * Meff:     exciton effective mass in electron rest mass (m_e) units. 
-            * eps:      environment dielectric constant. Default: eps=1, vacuum
+            * eps:      environment dielectric constant. Default: eps=1, vacuum.
+            * dip_dir:  orientation of the dipole moments. Default: [0,0,1] along z.
+            * shiftE:   rigid shift of exciton energies. Default: shift=0 eV
 
         Output
             * Radiative lifetime of exciton state in seconds
@@ -191,10 +198,10 @@ def get_radiative_lifetime_1D(T,state,ylat,ydip,yexc,Meff,eps=1):
         raise ValueError("Meff and eps must be floats")
 
     lat = ylat.lat
-    Lz = lat[2]
+    Lz = lat[2,2]
 
-    muS2 = get_exciton_dipole(state,[0,0,1],ylat,ydip,yexc) # Bohr**2
-    ES = np.real(yexc.eigenvalues[state])  # eV
+    muS2 = get_exciton_dipole(state,dip_dir,ylat,ydip,yexc) # Bohr**2
+    ES = np.real(yexc.eigenvalues[state])+shiftE  # eV
 
     Meff_eV = Meff*m_e   # eV
     
@@ -205,7 +212,7 @@ def get_radiative_lifetime_1D(T,state,ylat,ydip,yexc,Meff,eps=1):
     return 1/(prefactor*gamma0_factor*T_factor)   # seconds
 
 @citation("H.-Y. Chen et al. Phys. Rev. B 100, 075135 (2019)")
-def get_radiative_lifetime_0D(state,ylat,ydip,yexc,eps=1):
+def get_radiative_lifetime_0D(state,ylat,ydip,yexc,eps=1,shiftE=0):
     """
         Function to compute the radiative lifetime tau_S(T) of a single exciton state for 0D materials.
 
@@ -215,6 +222,7 @@ def get_radiative_lifetime_0D(state,ylat,ydip,yexc,eps=1):
             * ydip:     dipoles database, YamboDipolesDB
             * yexc:     BSE database, YamboExcitonDB
             * eps:      environment dielectric constant. Default: eps=1, vacuum
+            * shiftE:   rigid shift of exciton energies. Default: shift=0 eV.
 
         Output
             * Radiative lifetime of exciton state in seconds
@@ -224,7 +232,7 @@ def get_radiative_lifetime_0D(state,ylat,ydip,yexc,eps=1):
         raise ValueError("eps must be float")
 
     muS2 = get_exciton_dipole(state,[1,1,1],ylat,ydip,yexc) # Bohr**2
-    ES = np.real(yexc.eigenvalues[state])  # eV
+    ES = np.real(yexc.eigenvalues[state])+shiftE  # eV
     
     gamma0_factor = np.sqrt(eps)*(ES/ha2ev)**3*muS2
     prefactor = 4*np.pi/(3*speed_of_light**3)/autime2s
@@ -233,7 +241,7 @@ def get_radiative_lifetime_0D(state,ylat,ydip,yexc,eps=1):
 
 
 
-def average_lifetime(Trange,states,ylat,ydip,yexc,dimension,Meff=None,eps=None):
+def average_lifetime(Trange,states,ylat,ydip,yexc,dimension,Meff=None,eps=None,dip_dir=None,shiftE=0):
     """
         Function to compute the material's exciton radiative lifetime thermally averaged on the exciton states `states`.
 
@@ -247,28 +255,33 @@ def average_lifetime(Trange,states,ylat,ydip,yexc,dimension,Meff=None,eps=None):
                             - '3D' or '3D_iso' for isotropic 3D bulk systems
                             - '3D_aniso' for anisotropic (uniaxial) 3D bulks
                             - '2D', '1D', '0D' for lower-dimensional systems
+            * Meff:         exciton effective mass. Needed by 3D, 2D, 1D calculations.
+            * eps:          environment dielectric constant.
+            * dip_dir:      dipole orientation. Needed by 2D and 1D calculations.
+            * shiftE:   rigid shift of exciton energies. Default: shift=0 eV.
 
         Output
             * Array of averaged radiative lifetime with length as Trange in input
     """
+    
+    ES = np.real(yexc.eigenvalues)+shiftE
+    DeltaE = ES-ES[states[0]]
 
     if dimension in ['3D','3D_iso']:
-        gammas = np.array([1/get_radiative_lifetime_3D_iso(Trange,state,ylat,ydip,yexc,Meff,eps) for state in states])
+        gammas = np.array([np.exp(-DeltaE[state]/(kb*Trange))/get_radiative_lifetime_3D_iso(Trange,state,ylat,ydip,yexc,Meff,eps,shiftE) for state in states])
     elif dimension=='3D_aniso':
-        gammas = np.array([1/get_radiative_lifetime_3D_aniso(Trange,state,ylat,ydip,yexc,Meff,eps) for state in states])
+        gammas = np.array([np.exp(-DeltaE[state]/(kb*Trange))/get_radiative_lifetime_3D_aniso(Trange,state,ylat,ydip,yexc,Meff,eps,shiftE) for state in states])
     elif dimension=='2D':
-        gammas = np.array([1/get_radiative_lifetime_2D(Trange,state,ylat,ydip,yexc,Meff,eps) for state in states])
+        gammas = np.array([np.exp(-DeltaE[state]/(kb*Trange))/get_radiative_lifetime_2D(Trange,state,ylat,ydip,yexc,Meff,eps,dip_dir,shiftE) for state in states])
     elif dimension=='1D':
-        gammas = np.array([1/get_radiative_lifetime_1D(Trange,state,ylat,ydip,yexc,Meff,eps) for state in states])
+        gammas = np.array([np.exp(-DeltaE[state]/(kb*Trange))/get_radiative_lifetime_1D(Trange,state,ylat,ydip,yexc,Meff,eps,dip_dir,shiftE) for state in states])
     elif dimension=='0D':
-        gammas = np.array([1/get_radiative_lifetime_0D(state,ylat,ydip,yexc,eps) for state in states])
+        gammas = np.array([np.exp(-DeltaE[state]/(kb*Trange))/get_radiative_lifetime_0D(state,ylat,ydip,yexc,eps,shiftE) for state in states])
     else:
         raise ValueError("dimension must be one of the following: '3D','3D_iso','3D_aniso', '2D', '1D', '0D'")
 
     gamma_sum = np.sum(gammas,axis=0)
 
-    ES = np.real(yexc.eigenvalues)
-    DeltaE = ES-ES[states[0]]
     normalize = np.array([np.exp(-DeltaE[state]/(kb*Trange)) for state in states])
     normalize_sum = np.sum(normalize,axis=0)
 

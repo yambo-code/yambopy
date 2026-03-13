@@ -27,9 +27,9 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     O_qvec : array_like
         Momentum transfer vector q in crystal coordinates (q).
     Akq : array_like
-        Wavefunction coefficients for k+q (bra wfc) with shape (n_exe_states, 1, ns, nk, nc, nv).
+        Wavefunction coefficients for k+q (bra wfc) with shape (n_exe_out, 1, ns, nk, nc, nv).
     Ak : array_like
-        Wavefunction coefficients for k (ket wfc) with shape (n_exe_states, 1, ns, nk, nc, nv).
+        Wavefunction coefficients for k (ket wfc) with shape (n_exe_in, 1, ns, nk, nc, nv). [NB: in luminescence, this is the Q=0 intermediates state]
     Omn : array_like
         Matrix elements of the operator O in the basis of electronic states with shape (nlambda, nk, nspin, m_bnd, n_bnd).
         ie Omn = < k+q, m, s | O(q) | n, k, s>, where m_bnd and n_bnd are final and initial bands, respectively.
@@ -49,18 +49,21 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     Returns
     -------
     ex_O_mat : ndarray
-        The computed exciton matrix elements with shape (nlambda, n_exe_states) if diagonal_only is True,
-        or (nlambda, n_exe_states (final), n_exe_states (initial)) if diagonal_only is False.
+        The computed exciton matrix elements with shape (nlambda, n_exe_out) if diagonal_only is True,
+        or (nlambda, n_exe_out (final), n_exe_in (initial)) if diagonal_only is False.
     """
     # Number of arbitrary parameters (lambda) in the Omn matrix (e.g., phonon modes)
     nlambda = Omn.shape[0]
     #
     assert Akq.shape[1] == 1, "Works only with TDA."
     # Shape of the wavefunction coefficients
-    n_exe_states, bse_calc, ns, nk, nc, nv = Akq.shape
+    n_exe_out, bse_calc, ns, nk, nc, nv = Akq.shape
+    n_exe_in                            = Ak.shape[0]
+    if n_exe_in < n_exe_out:
+        print(f"[WARNING] less intermediate states {n_exe_in} than final states {n_exe_out}")
     #
     # Ensure that the shapes of Akq and Ak match
-    assert Akq.shape == Ak.shape, "Wavefunction coefficient mismatch"
+    assert Akq.shape[1:] == Ak.shape[1:], "Wavefunction coefficient mismatch"
     #
     # Ensure that the contribution parameter is valid
     assert contribution in ['b', 'e', 'h'], "Allowed values for contribution are 'b', 'e', 'h'"
@@ -78,13 +81,13 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
     #
     # Ensure the arrays are C-contiguous to reduce cache misses
     Ak_electron = np.ascontiguousarray(Ak[:,0][:,:,idx_k_minus_q, ...])
-    Akq_conj = Akq[:,0].reshape(n_exe_states, -1).conj()
+    Akq_conj = Akq[:,0].reshape(n_exe_out, -1).conj()
     #
     # Initialize the output matrix
     if diagonal_only:
-        ex_O_mat = np.zeros((nlambda, n_exe_states), dtype=Ak.dtype)  # (nlambda, final, initial)
+        ex_O_mat = np.zeros((nlambda, n_exe_out), dtype=Ak.dtype)  # (nlambda, final, initial)
     else:
-        ex_O_mat = np.zeros((nlambda, n_exe_states, n_exe_states), dtype=Ak.dtype)  # (nlambda, final, initial)
+        ex_O_mat = np.zeros((nlambda, n_exe_out, n_exe_in), dtype=Ak.dtype)  # (nlambda, final, initial)
     #
     # Loop over the arbitrary parameters (lambda)
     for il in range(nlambda):
@@ -101,7 +104,7 @@ def exciton_X_matelem(exe_kvec, O_qvec, Akq, Ak, Omn, kpts, contribution='b', di
                 tmp_wfc = tmp_h
         #
         # Reshape the temporary wavefunction coefficients
-        tmp_wfc = tmp_wfc.reshape(n_exe_states, -1)
+        tmp_wfc = tmp_wfc.reshape(n_exe_in, -1)
         #
         # Compute the final matrix elements
         if diagonal_only:

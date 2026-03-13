@@ -19,4 +19,4 @@ elph    = LetzElphElectronPhononDB(ndb_elph,read_all=False)
 # Read wave functions
 wfcs    = YamboWFDB(filename='ns.wf',save=savepath,latdb=lattice,bands_range=bands_range)
 # Calculate exciton-phonon matrix elements
-exph = exciton_phonon_matelem(lattice,elph,wfcs,BSE_dir=bsepath,neigs=nexc,dmat_mode='save',exph_file='MoS2_Ex-ph.npy')
+exph = exciton_phonon_matelem(lattice,elph,wfcs,BSE_dir=bsepath,nexc_in=nexc,nexc_out=nexc,dmat_mode='save',exph_file='MoS2_Ex-ph.npy')

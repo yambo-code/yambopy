@@ -287,9 +287,6 @@ class YamboQPDB():
         """
         from yambopy.tools.skw import SkwInterpolator
 
-        if verbose:
-            print("This interpolation is provided by the SKW interpolator implemented in Abipy")
-
         cell = (lattice.lat, lattice.red_atomic_positions, lattice.atomic_numbers)
         nelect = 0
         fermie = kwargs.pop('fermie',0)
@@ -399,16 +396,13 @@ class YamboQPDB():
         else: 
            return ks_ebands, qp_ebands
 
-
-#########################################################################################################################
-
     def interpolate_QP_corrections(self,yel_coarse,yel_dense,lpratio=20,verbose=1,**kwargs):
         """
-        Interopolate QP corrections on a dense KS bandstructure.
+        Interpolate QP corrections on a dense KS bandstructure.
 
         Input:
-        * yel_coarse:   YamboElectronsDB corresponding to the YamboQPDB
-        * yel_dense:    YamboElectronsBD of the dense bandstructrure
+        * yel_coarse:   YamboElectronsDB corresponding to the YamboQPDB kgrid
+        * yel_dense:    YamboElectronsDB of the dense bandstructrure
 
         Output
         * dense_ks_bands:   KS band structure, YambopyBandStructure object
@@ -418,15 +412,10 @@ class YamboQPDB():
 
         from yambopy.tools.skw import SkwInterpolator
 
-        if verbose:
-            print("This interpolation is provided by the SKW interpolator implemented in Abipy")
-
-
         #consistency check with electrons k-points
         if len(yel_coarse.red_kpoints)!=self.nkpoints:
             print(len(yel_coarse.red_kpoints),self.nkpoints)
             raise ValueError("The QP database is not consistent with the coarse electron database")
-
 
         #consistency check with electronic bands
         if yel_dense.nbands<self.nbands:
@@ -460,8 +449,6 @@ class YamboQPDB():
         dense_ks_bands = YambopyBandStructure(ks_dense,kpts_dense)
 
         return dense_ks_bands,dense_qp_bands
-
-#########################################################################################################################
 
 
     def expand_eigenvalues(self,lattice,data=None):

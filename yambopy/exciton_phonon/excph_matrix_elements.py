@@ -9,7 +9,7 @@ from yambopy.bse.rotate_excitonwf import rotate_exc_wf
 from tqdm import tqdm
 
 def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,1],BSE_dir='bse',BSE_Lin_dir=None,
-                           neigs=-1,dmat_mode='run',save_files=True,exph_file='Ex-ph.npy',overwrite=False):
+                           nexc_in=-1,nexc_out=-1,dmat_mode='run',save_files=True,exph_file='Ex-ph.npy',overwrite=False):
     """
     This function calculates the exciton-phonon matrix elements
 
@@ -34,8 +34,10 @@ def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,1],BSE_dir='bse',BSE_Lin_
     Qrange : int list, optional
         Exciton Qpoint index range [iQ_initial, iQ_final] (python counting). Default is [0,0] (Gamma point only).
         Note that the indexing is in full BZ and not in iBZ. See wfc.kBZ to see the kpoints in full BZ
-    neigs : int, optional
-        Number of excitonic states included in calculation. Default is -1 (all).
+    nexc_in : int, optional
+        Number of excitonic states included in Lin calculation. Default is -1 (all).
+    nexc_out : int, optional
+        Number of excitonic states included in Lout calculation. Default is -1 (all).
     dmat_mode : str, optional
         If 'save', print dmats on .npy file for faster recalculation. If 'load', load from .npy file. Else, calculate Dmats at runtime.
     save_files : bool, optional
@@ -55,7 +57,7 @@ def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,1],BSE_dir='bse',BSE_Lin_
     for ik in range(wfdb.nkpoints):
         filename = 'ndb.BS_diago_Q%d' % (ik+1)
         excdb = YamboExcitonDB.from_db_file(latdb,filename=filename,folder=BSE_dir,\
-                                            Load_WF=True, neigs=neigs)
+                                            Load_WF=True, neigs=nexc_out)
         exdbs.append(excdb)
         #
         # NM : Add a sanity check to avoid a disasterous consequence
@@ -76,7 +78,7 @@ def exciton_phonon_matelem(latdb,elphdb,wfdb,Qrange=[0,1],BSE_dir='bse',BSE_Lin_
     for iQ in tqdm(range(Qrange[0],Qrange[1])):
         Q_in = wfdb.kBZ[iQ]
         exph_mat.append( exciton_phonon_matelem_iQ(elphdb,wfdb,exdbs,Dmats,\
-                                                   BSE_Lin_dir=BSE_Lin_dir,Q_in=Q_in,neigs=neigs) )
+                                                   BSE_Lin_dir=BSE_Lin_dir,Q_in=Q_in,neigs=nexc_in) )
     # IO
     if len(exph_mat)<2: exph_mat = exph_mat[0] # single Q-point calculation (suppress axis)
     else:               exph_mat = np.array(exph_mat) #[nQ,nq,nmodes,nexc_in (Qexc),nexc_out (Qexc+q)]
@@ -116,7 +118,7 @@ def exciton_phonon_matelem_iQ(elphdb,wfdb,exdbs,Dmats,BSE_Lin_dir=None,
     """
     latdb = wfdb.ydb
     # Determine Lkind(in)
-    Ak = rotate_Akcv_Q(wfdb, exdbs, Q_in, Dmats, folder=BSE_Lin_dir)
+    Ak = rotate_Akcv_Q(wfdb, exdbs, Q_in, Dmats, neigs=neigs, folder=BSE_Lin_dir)
     # Compute ex-ph
     exph_mat = []
     bse_bnds_range = [wfdb.min_bnd,wfdb.min_bnd + wfdb.nbands]
@@ -159,9 +161,17 @@ def save_or_load_dmat(wfdb, mode='run', dmat_file='Dmats.npy'):
         return wfdb.Dmat()
 
 
-def rotate_Akcv_Q(wfdb, exdbs, Qpt, Dmats, folder=None):
+def rotate_Akcv_Q(wfdb, exdbs, Qpt, Dmats, neigs=-1, folder=None):
     '''
     Qpt reduced coordinates in BZ or whatever
+
+    wfdb : wavefunction object
+    exdbs : previously read list of exciton objects for Lout (used if folder is None)
+    Qpt: reduced coordinates in BZ or whatever
+    Dmats: precalculated Dmat
+    neigs: number of states (used if folder is not None, otherwise it's nexc_out)
+    folder: where to load the Lin exciton states (if needed). 
+            can be used also to reload the same in case we want nexc_in/=nexc_out for same L
     '''
     latdb = wfdb.ydb
     idx_BZQ = wfdb.kptBZidx(Qpt)
@@ -172,7 +182,8 @@ def rotate_Akcv_Q(wfdb, exdbs, Qpt, Dmats, folder=None):
     exe_iQIBZ = wfdb.kpts_iBZ[iQ_iBZ]
     #
     if folder is not None:
-        neigs = len(exdbs[0].eigenvalues)
+        if neigs==-1:
+            neigs = len(exdbs[0].eigenvalues) # Set neigs equal to nexc_out
         filename = 'ndb.BS_diago_Q%d' % (iQ_iBZ+1)
         excdbin = YamboExcitonDB.from_db_file(latdb,filename=filename,folder=folder,\
                                               Load_WF=True, neigs=neigs)
