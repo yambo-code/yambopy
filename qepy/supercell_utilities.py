@@ -3,6 +3,7 @@ import sys
 from qepy import *
 
 from yambopy.units import *
+from yambopy.zeros import *
 from yambopy.tools.funcs import bose
 
 import os
@@ -333,7 +334,7 @@ class MySupercell(Supercell):
         q_red=car_red(q,rec_lat(self.latvec))
         for nq in range(matdyn.nqpoints):
             q_red[nq]=q_red[nq,:]*R_sc[:]
-        if not np.all(np.isclose(q_red, np.round(q_red), rtol=0, atol=1e-4)):
+        if not np.all(np.isclose(q_red, np.round(q_red), rtol=0, atol=matdyn_q_atol)):
             raise ValueError('Q-vectors not compatible with the supercell')
         else:
             print("Q-vectors compatible with the supercell :",R_sc)
