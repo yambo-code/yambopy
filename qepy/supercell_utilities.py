@@ -298,7 +298,7 @@ class MySupercell(Supercell):
         return displacements #displacements[mode in order of ascending frequency][basis]
 
 
-    def apply_full_thermal_displacement(self, R_sc:np.ndarray, matdyn:Matdyn, T_Kelvin:float, rm_output_sym = True, 
+    def apply_full_thermal_displacement(self, R_sc:np.ndarray, matdyn:Matdyn, T_Kelvin:float, rm_output_sym = False,write_wf=True, 
                                         qe_control_dict:dict = {}, qe_system_dict:dict = {}, qe_electron_dict:dict={}, output_all=False, temp_dir = None):
         '''
         R_sc: e.g. an integer array [3, 3, 1] defining the DIAGONAL supercell 
@@ -426,6 +426,8 @@ class MySupercell(Supercell):
             if rm_output_sym:
                 qe_s.system['nosym'] = '.true.'
                 qe_s.system['noinv'] = '.true.'
+            if not write_wf:
+                qe_s.control['disk_io']= "'none'"
             if 'nbnd' not in qe_s.system.keys():
                 print('Warning: nbnd not specified!')
             fname = 'thermal_disp_%d.nscf.in' % (i+1)
