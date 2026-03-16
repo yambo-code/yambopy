@@ -298,8 +298,10 @@ class MySupercell(Supercell):
         return displacements #displacements[mode in order of ascending frequency][basis]
 
 
-    def apply_full_thermal_displacement(self, R_sc:np.ndarray, matdyn:Matdyn, T_Kelvin:float, rm_output_sym = False,write_wf=True, 
-                                        qe_control_dict:dict = {}, qe_system_dict:dict = {}, qe_electron_dict:dict={}, output_all=False, temp_dir = None):
+    def apply_full_thermal_displacement(self, R_sc:np.ndarray, matdyn:Matdyn, T_Kelvin:float, 
+                                        rm_output_sym = False,write_wf=True,force_symmorphic=True,
+                                        qe_control_dict:dict = {}, qe_system_dict:dict = {}, 
+                                        qe_electron_dict:dict={}, output_all=False, temp_dir = None):
         '''
         R_sc: e.g. an integer array [3, 3, 1] defining the DIAGONAL supercell 
         matdyn: the full phonon output from normal unit cell.
@@ -412,7 +414,8 @@ class MySupercell(Supercell):
         for i in range(2):
             qe_s = self.write(self.sc_atom_positions, 'diagonal', (-1)**i * tot_disp)
             qe_s.control['pseudo_dir'] = "'./'"
-            qe_s.system['force_symmorphic'] = '.true.' # important for later Yambo calculations
+            if force_symmorphic:
+                qe_s.system['force_symmorphic'] = '.true.' # important for later Yambo calculations
             for k, v in qe_control_dict.items():
                 qe_s.control[k] = v
             for k, v in qe_system_dict.items():
