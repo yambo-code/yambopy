@@ -306,7 +306,7 @@ class Matdyn(object):
         """
 
         orth = np.eye(self.nmodes)
-        nq=1
+        nq=0
         nstar=1  # Some time can be usefull to exclude the three modes with zero energy
         for n in range(nstar,self.nmodes):
             e1 = self.eiv[nq,n]
