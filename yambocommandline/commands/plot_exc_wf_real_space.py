@@ -76,7 +76,7 @@ def run_plot_exc_wf_real_space(args):
     wfdb = YamboWFDB(path=calc_path,latdb=lattice,
                      bands_range=[np.min(excdb.table[:, 1]) - 1,np.max(excdb.table[:, 2])])
     #
-    excdb.real_wf_to_cube(iexe=args.iexe-1,wfdb=wfdb,fixed_postion=fixed_position,
+    excdb.real_wf_to_cube(iexe=args.iexe-1,wfdb=wfdb,fixed_position=fixed_position,
                           supercell=args.supercell,degen_tol=args.degen_tol,
                           wfcCutoffRy=args.wfc_cutoff,fix_particle=fix_particle,
                           phase=args.phase, block_size=args.block_size)

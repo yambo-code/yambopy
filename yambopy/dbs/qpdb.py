@@ -396,9 +396,6 @@ class YamboQPDB():
         else: 
            return ks_ebands, qp_ebands
 
-
-#########################################################################################################################
-
     def interpolate_QP_corrections(self,yel_coarse,yel_dense,lpratio=20,verbose=1,**kwargs):
         """
         Interpolate QP corrections on a dense KS bandstructure.
@@ -452,8 +449,6 @@ class YamboQPDB():
         dense_ks_bands = YambopyBandStructure(ks_dense,kpts_dense)
 
         return dense_ks_bands,dense_qp_bands
-
-#########################################################################################################################
 
 
     def expand_eigenvalues(self,lattice,data=None):

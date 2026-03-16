@@ -266,33 +266,6 @@ class AnalyseBSECmd(Cmd):
         #all the other arguments are passed to the analyse bse function
         recipes.analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, text=text, draw=draw )
 
-class TestCmd(Cmd):
-    """
-    Run yambopy tests
-    
-        possible arguments are:
-
-        basic -> fast test where input/output is compared with reference files
-        full  -> requires yambo and quantum espresso to be installed
-    """
-    
-    def __init__(self,args):
-        #check for args
-        if len(args) < 1:
-            print((self.__doc__))
-            exit(0)
-
-        cmds = {'basic':self.basic,
-                'full':self.full}
-        self.run(cmds,args)
-
-    def basic(self,*args):
-        os.system('py.test --cov-config=.coveragerc --cov')
-        
-    def full(self,*args):
-        print(args)
-    
-
 class MergeQPCmd(Cmd):
     """
     Merge QP databases.
@@ -764,7 +737,6 @@ class YambopyCmd(Cmd):
                  'convert':      ConvertRLtoRyCmd,
                  'bsesize':      BSEKernelSizeCmd,
                  'l2y':          ConvertLELPHCtoYAMBO,
-                 'test':         TestCmd,
                  'exc-irrep':    Exc_irrepCmd,
                  'exc-wf':       Exc_wf_plotCmd,
                  'exc-sort':     Exc_sortCmd,

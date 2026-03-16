@@ -1,3 +1,12 @@
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: FP, MN
+#
+# This file is part of the yambopy project
+#
 import numpy as np
 from netCDF4 import Dataset
 from yambopy.tools.string import marquee

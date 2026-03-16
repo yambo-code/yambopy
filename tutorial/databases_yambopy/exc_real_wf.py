@@ -31,9 +31,9 @@ wfdb = YamboWFDB(path='.', latdb=lattice,
 # I want to set the degeneracy threshold to 0.01 eV
 # For example I want to plot the 3rd exciton, so iexe = 2 (python indexing )
 #
-excdb.real_wf_to_cube(iexe=2, wfdb=wfdb, fixed_postion=[0.0      ,  0.0 ,       0.0],
+excdb.real_wf_to_cube(iexe=2, wfdb=wfdb, fixed_position=[0.0      ,  0.0 ,       0.0],
                     supercell=[1,1,1], degen_tol=0.01, wfcCutoffRy=-1, fix_particle='h')
-# fixed_postion is in reduced units
+# fixed_position is in reduced units
 # in case, you want to plot hole density by fixing electron, set fix_particle = 'e'
 
 ## .cube will be dumped and use vesta to visualize it !

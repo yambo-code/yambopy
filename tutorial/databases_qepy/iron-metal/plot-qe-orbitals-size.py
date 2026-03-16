@@ -15,12 +15,12 @@ path_kpoints = Path([ [[0.0, 0.0, 0.0 ],'G'],
 # atomic_proj.xml (comment if already done)
 '''
 proj = ProjwfcIn(prefix='pw')
-proj.run(folder='bands/t0')
+proj.run(folder='bands')
 '''
 
 # Class ProjwfcXML
 # Atom-projected band structure. Size
-band = ProjwfcXML(prefix='pw',path='bands/t0')
+band = ProjwfcXML(prefix='pw',path='bands')
 # print info
 print(band)
 

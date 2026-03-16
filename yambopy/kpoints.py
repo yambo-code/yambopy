@@ -294,7 +294,7 @@ def generate_kpoint_grid(nk1,nk2,nk3,sym_and_trev,IBZ=True,eps=1.0e-5):
     Nsym = len(sym_red)
 
     # Generate full regular grid in crystal coordinates
-    xkg = regular_grid(nk1,nk2,nk3)
+    xkg = regular_grid(nk1,nk2,nk3) # [nk,3]
 
     if IBZ:
         # Now we have to start checking for equivalent points:

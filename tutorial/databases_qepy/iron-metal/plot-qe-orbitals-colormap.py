@@ -19,12 +19,12 @@ atom_d = [3,4,5,6,7]
 # atomic_proj.xml (comment if already done)
 '''
 proj = ProjwfcIn(prefix='pw')
-proj.run(folder='bands/t0')
+proj.run(folder='bands')
 '''
 
 # Class ProjwfcXML
 # Atom-projected band structure. Colormap
-band = ProjwfcXML(prefix='pw',path='bands/t0')
+band = ProjwfcXML(prefix='pw',path='bands')
 
 # Manual selection of the lists of states by inspecting projwfc output
 #s = [8]
