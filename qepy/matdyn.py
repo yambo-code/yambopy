@@ -244,7 +244,7 @@ class Matdyn(object):
        
         for nq in range(self.nqpoints):
             for n in range(self.nmodes):
-                print(np.linalg.norm(self.eiv[nq,n]))
+#                print(np.linalg.norm(self.eiv[nq,n]))
                 self.eiv[nq,n] /= np.linalg.norm(self.eiv[nq,n])
 
     def unnormalize_with_masses(self,masses): 
@@ -306,18 +306,15 @@ class Matdyn(object):
         """
 
         orth = np.eye(self.nmodes)
-        for nq in range(self.nqpoints):
-            if nq == 0:
-                nstar=3
-            else:
-                nstar=0
-            for n in range(nstar,self.nmodes):
-                e1 = self.eiv[nq,n]
-                for m in range(nstar,self.nmodes):
-                    e2 = self.eiv[nq,m]
-                    orth[n,m] = np.vdot(e1,e2).real
-            if not np.isclose(orth,np.eye(self.nmodes),atol=atol).all():
-                return False
+        nq=1
+        nstar=1  # Some time can be usefull to exclude the three modes with zero energy
+        for n in range(nstar,self.nmodes):
+            e1 = self.eiv[nq,n]
+            for m in range(nstar,self.nmodes):
+                e2 = self.eiv[nq,m]
+                orth[n,m] = np.vdot(e1,e2).real
+        if not np.isclose(orth,np.eye(self.nmodes),atol=atol).all():
+            return False
         return True
  
     def check_normalization(self,masses,atol=1e-5):
