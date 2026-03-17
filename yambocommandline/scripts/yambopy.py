@@ -607,71 +607,75 @@ class ConvertRLtoRyCmd(Cmd):
         convert_RL_to_Ry.convert(value,ndb_gops)
 
 class ConvertLELPHCtoYAMBO(Cmd):
-	"""
-	Calculate gauge-invariant electron-phonon matrix elements with LetzElPhC and convert them into Yambo format
+    """
+    Calculate gauge-invariant electron-phonon matrix elements with LetzElPhC and convert them into Yambo format
+    
+    - Usage:
+    
+    >> yambopy l2y -ph phinp -b b1 b2 -par nq nk [--kernel kernel] [--lelphc lelphc] [--no_lelphc_dbs] [--no_gkkp]
+    
+    - Input parameters:
+        -ph                   : path to ph.x input file, e.g. dvscf/ph.in
+        -b                    : initial and final band indices (counting from 1, both values included)
+        -par [OPT]            : MPI pools for q and k (needs mpirun)
+        --kernel [OPT]        : e-ph kernel type, default 'dfpt'
+        --lelphc [OPT]        : path to lelphc executable, default 'lelphc', code will prompt
+        --no_lelphc_dbs [OPT] : will remove LetzElPhC input and outputs
+        --no_gkkp [OPT]       : do not generate the gkkp databases for Yambo/Lumen
 
-	:: Usage:
+    - Prerequisites:
 
-    >> yambopy l2y -ph phinp -b b1 b2 -par nq nk [--kernel kernel] [--lelphc lelphc] [--debug]
+    * ph.x phonon calculation must be complete, e.g. the phinp folder should contain:
+        - ph.x input file
+        - pw.x (scf) save directory
+        - [prefix].dyn files
+        - _ph* directories
+    * Yambo SAVE directory must be present. We run in the directory where the SAVE is.
+    * LetzElPhC must be installed
+    * mpirun must be linked for parallel runs
+    """
+    def __init__(self,args):
 
-    :: Input parameters:
-        -ph           : path to ph.x input file, e.g. dvscf/ph.in
-        -b            : initial and final band indices (counting from 1)
-        -par [OPT]    : MPI pools for q and k (needs mpirun)
-        --kernel [OPT]: e-ph kernel type, default 'dfpt'
-        --lelphc [OPT]: path to lelphc executable (code will prompt)
-        --debug [OPT] : won't remove LetzElPhC input and outputs
+        #check for args
+        if len(args) < 5:
+            print((self.__doc__))
+            exit(0)
 
-	:: Prerequisites:
+        parser = argparse.ArgumentParser(description='Generate electron-phonon coupling databases via LetzElPhC')
+        parser.add_argument('-ph','--ph_inp_path', type=str, help='<Required> Path to ph.x (dvscf) input file',required=True)
+        parser.add_argument('-b','--bands',nargs=2,type=str,help="<Required> First and last band (counting from 1), e.g. 'b_i b_f'",required=True)
+        parser.add_argument('-k','--kernel', type=str, default='dfpt',help="<Optional> Electron-phonon kernel type, e.g. 'dfpt', 'bare', ... (default 'dfpt')")
+        parser.add_argument('-par','--pools',nargs=2,type=str, default=[1,1], help="<Optional> MPI tasks as 'nqpools nkpools' (default serial)")
+        parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)")
+        parser.add_argument('-nl','--no_lelphc_dbs', action="store_true", help="Remove lelphc databases (False if not given)")
+        parser.add_argument('-ng','--no_gkkp', action="store_true", help="Do not generate gkkp dbs")
 
-	* ph.x phonon calculation must be complete, e.g. the phinp folder should contain:
-		- ph.x input file
-		- pw.x (scf) save directory
-		- [prefix].dyn files
-		- _ph* directories
-	* Yambo SAVE directory must be present. We run in the directory where the SAVE is.
-	* LetzElPhC must be installed
-	* mpirun must be linked for parallel runs
-	"""
-	def __init__(self,args):
+        args = parser.parse_args(args)
 
-		#check for args
-		if len(args) < 5:
-			print((self.__doc__))
-			exit(0)
+        phinp         = args.ph_inp_path
+        bands         = args.bands
+        kernel        = args.kernel
+        pools         = args.pools
+        lelphc        = args.lelphc
+        no_lelphc_dbs = args.no_lelphc_dbs
+        no_gkkp       = args.no_gkkp
 
-		parser = argparse.ArgumentParser(description='Generate electron-phonon coupling databases via LetzElPhC')
-		parser.add_argument('-ph','--ph_inp_path', type=str, help='<Required> Path to ph.x (dvscf) input file',required=True)
-		parser.add_argument('-b','--bands',nargs=2,type=str,help="<Required> First and last band (counting from 1), e.g. 'b_i b_f'",required=True)
-		parser.add_argument('-k','--kernel', type=str, default='dfpt',help="<Optional> Electron-phonon kernel type, e.g. 'dfpt', 'bare', ... (default 'dfpt')")
-		parser.add_argument('-par','--pools',nargs=2,type=str, default=[1,1], help="<Optional> MPI tasks as 'nqpools nkpools' (default serial)")
-		parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)")
-		parser.add_argument('-D','--debug', action="store_true", help="Debug mode")
+        # Check inputs
+        lelphc,ph_path,inp_ph,inp_lelphc,inp_name = \
+        lelph_interface.checks(phinp,lelphc,bands,kernel,pools)
 
-		args = parser.parse_args(args)
+        # run preprocessing
+        lelph_interface.run_preprocessing(lelphc,ph_path,inp_ph)
 
-		phinp  = args.ph_inp_path
-		bands  = args.bands
-		kernel = args.kernel
-		pools  = args.pools
-		lelphc = args.lelphc
-		debug  = args.debug
+        # run el-ph calculation and rotation
+        lelph_interface.run_elph(lelphc,inp_lelphc,inp_name)
 
-		# Check inputs
-		lelphc,ph_path,inp_ph,inp_lelphc,inp_name = \
-		lelph_interface.checks(phinp,lelphc,bands,kernel,pools)
+        # load database and convert to yambo format
+        if not no_gkkp:
+           lelph_interface.letzelph_to_yambo()
 
-		# run preprocessing
-		lelph_interface.run_preprocessing(lelphc,ph_path,inp_ph)
-
-		# run el-ph calculation and rotation
-		lelph_interface.run_elph(lelphc,inp_lelphc,inp_name)
-
-		# load database and convert to yambo format
-		lelph_interface.letzelph_to_yambo()
-
-		# clean
-		lelph_interface.clean_lelphc(debug,inp_name,ph_path)
+        # clean
+        lelph_interface.clean_lelphc(no_lelphc_dbs,inp_name,ph_path)
 
 class BSEKernelSizeCmd(Cmd):
     """
@@ -714,6 +718,32 @@ class BSEKernelSizeCmd(Cmd):
 
         get_BSE_kernel_size.get_BSE_kernel_size(nk,nv,nc,np,ncpl)
 
+class Exc_sortCmd(Cmd):
+    """
+    Script to sort excitonic states according to energies and intensities.
+    """
+    def __init__(self,args):
+        from yambocommandline.commands import exc_sort
+        exc_sort.run_exc_sort(args)
+
+class Exc_wf_plotCmd(Cmd):
+    """
+    Real space exciton wf for either fixed hole/electron
+    """
+    def __init__(self,args):
+         from yambocommandline.commands import plot_exc_wf_real_space
+         plot_exc_wf_real_space.run_plot_exc_wf_real_space(args)
+
+
+class Exc_irrepCmd(Cmd):
+    """
+    Script to get the irreducuble representation labels for excitonic states.
+    """
+    def __init__(self,args):
+        from yambocommandline.commands import run_exc_irreps
+        run_exc_irreps.run_exc_irrep(args)
+
+
 class YambopyCmd(Cmd):
     """
     class to implement commands for yambopy.
@@ -733,8 +763,12 @@ class YambopyCmd(Cmd):
                  'phinp':        GetPHqInputCmd,
                  'convert':      ConvertRLtoRyCmd,
                  'bsesize':      BSEKernelSizeCmd,
-				 'l2y':          ConvertLELPHCtoYAMBO,
-                 'test':         TestCmd}
+                 'l2y':          ConvertLELPHCtoYAMBO,
+                 'test':         TestCmd,
+                 'exc-irrep':    Exc_irrepCmd,
+                 'exc-wf':       Exc_wf_plotCmd,
+                 'exc-sort':     Exc_sortCmd,
+                 }
 
     def __init__(self,*args):
         """

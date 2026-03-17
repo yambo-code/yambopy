@@ -283,7 +283,7 @@ class YamboQPDB():
 
     def interpolate(self,lattice,path,what='QP+KS',lpratio=5,valence=None,verbose=1,**kwargs):
         """
-        Interpolate the QP corrections on a k-point path, requires the lattice structure
+        Interpolate the QP bandstrcture on a k-point path, requires the lattice structure with Expand=False
         """
         from yambopy.tools.skw import SkwInterpolator
 
@@ -398,6 +398,71 @@ class YamboQPDB():
            return ks_ebands_up, ks_ebands_dw , qp_ebands_up, qp_ebands_dw
         else: 
            return ks_ebands, qp_ebands
+
+
+#########################################################################################################################
+
+    def interpolate_QP_corrections(self,yel_coarse,yel_dense,lpratio=20,verbose=1,**kwargs):
+        """
+        Interopolate QP corrections on a dense KS bandstructure.
+
+        Input:
+        * yel_coarse:   YamboElectronsDB corresponding to the YamboQPDB
+        * yel_dense:    YamboElectronsBD of the dense bandstructrure
+
+        Output
+        * dense_ks_bands:   KS band structure, YambopyBandStructure object
+        * dense_qp_bands:   QP band structure, YambopyBandStructure object
+
+        """
+
+        from yambopy.tools.skw import SkwInterpolator
+
+        if verbose:
+            print("This interpolation is provided by the SKW interpolator implemented in Abipy")
+
+
+        #consistency check with electrons k-points
+        if len(yel_coarse.red_kpoints)!=self.nkpoints:
+            print(len(yel_coarse.red_kpoints),self.nkpoints)
+            raise ValueError("The QP database is not consistent with the coarse electron database")
+
+
+        #consistency check with electronic bands
+        if yel_dense.nbands<self.nbands:
+            print(yel_dense.nbands,self.nbands)
+            raise ValueError("The QP database has more bands than the electron dense bandstructure")
+
+        nelect = 0
+        fermie = kwargs.pop('fermie',0)
+
+        kpts_coarse = yel_coarse.red_kpoints
+        eigv_coarse = np.array(yel_coarse.eigenvalues_ibz)
+        cell = (yel_coarse.lat, yel_coarse.red_atomic_positions, yel_coarse.atomic_numbers)
+        sym_rec  = yel_coarse.sym_rec
+        symrel = [sym for sym,trev in zip(yel_coarse.sym_rec_red,yel_coarse.time_rev_list) if trev==False ]
+        time_rev = True
+
+        qp_coarse = self.eigenvalues_qp
+        Nkpts_coarse,Nbands_coarse = qp_coarse.shape
+        ks_coarse = eigv_coarse[0][:, :Nbands_coarse]
+
+        corrections_coarse = qp_coarse-ks_coarse
+        corrections_coarse = corrections_coarse.reshape(1,Nkpts_coarse,Nbands_coarse)
+        skw = SkwInterpolator(lpratio,kpts_coarse,corrections_coarse,fermie,nelect,cell,symrel,time_rev,verbose=verbose)
+
+        kpts_dense = yel_dense.red_kpoints
+        ks_dense = np.squeeze(np.array(yel_dense.eigenvalues_ibz))[:,:Nbands_coarse]
+        corrections_dense = skw.interp_kpts(kpts_dense).eigens[0]
+        qp_dense = corrections_dense + ks_dense
+
+        dense_qp_bands = YambopyBandStructure(qp_dense,kpts_dense)
+        dense_ks_bands = YambopyBandStructure(ks_dense,kpts_dense)
+
+        return dense_ks_bands,dense_qp_bands
+
+#########################################################################################################################
+
 
     def expand_eigenvalues(self,lattice,data=None):
         """ Expand QP values in full BZ

@@ -212,5 +212,139 @@ def find_kpt(tree, kpt_search, tol=1e-5):
     assert np.max(dist) < tol, "Kpoint not found"
     return idx  # Return the index of the found k-point
 
+def regular_grid(nk1,nk2,nk3):
+    """
+    Generation of positive-coordinate full 'square' grid starting from zero
+    Shifted grids not allowed for now
+    """
+    i, j, k = np.meshgrid(np.arange(nk1), np.arange(nk2), np.arange(nk3), indexing='ij')
+    xkg = np.array([
+        i.flatten() / nk1,
+        j.flatten() / nk2,
+        k.flatten() / nk3,
+    ])
+    return xkg.T # shape [nk,3]
 
+def find_kpatch(kpts, kcentre, kdist, lat_vecs):
+    """
+    find set of kpoints around the kcentre with in kdist
 
+    Parameters
+    ----------
+    kpts : kpoints in crystal coordinates (nk,3)
+    kcentre : kpoint centre in crystal coordinates (3)
+    kdist : distance around kcentre to be considered in atomic units 
+            i.e 1/bohr.
+    lat_vecs: lattice vectors. ith lattice vector is ai = a[:,i]
+    Returns
+    -------
+    int array
+        Indices of kpoints in kpts array which satify the given condition i.e
+        | k - kcentre + G0| <= kdist, where G0 is reciprocal lattice vector to bring to BZ
+    """
+    #
+    blat = 2*np.pi*np.linalg.inv(lat_vecs)
+    kdiff = kpts-kcentre[None,:]
+    kdiff = kdiff-np.floor(kdiff)
+    #
+    tmp_arr = np.array([-3, -2, -1, 0, 1, 2, 3])
+    nG0 = len(tmp_arr)
+    G0 = np.zeros((nG0,nG0,nG0,3))
+    G0[...,0], G0[...,1], G0[...,2] = np.meshgrid(tmp_arr, tmp_arr,
+                                                  tmp_arr, indexing='ij')
+    G0 = G0.reshape(-1,3)
+    kdiff = kdiff[:,None,:]-G0[None,:,:]
+    kdiff = kdiff.reshape(-1,3)@blat
+    kdiff = np.linalg.norm(kdiff,axis=-1).reshape(len(kpts),-1)
+    kdiff = np.min(kdiff,axis=-1)
+    return np.where(kdiff <= kdist)[0]
+
+    
+def generate_kpoint_grid(nk1,nk2,nk3,sym_and_trev,IBZ=True,eps=1.0e-5):
+    """
+    Generation of gamma-centered Monkhorst-Pack grid.
+
+    This function is the python porting of the Quantum ESPRESSO subroutine `kpoint_grid` found in PW/kpoint_grid.f90
+
+    Input:
+        nk1, nk2, nk3 -> grid dimensions
+        sym_and_trev  -> (sym_red, time_rev, time_rev_list)
+
+        (Symmetries in reduced coordinates, trev logical, indices of symmetries composed with time reversal)
+        These can be obtained from the attributes of the same name in YamboLatticeDB
+
+        IBZ [True]    -> grid is reduced to IBZ by checking equivalent points
+            [False]   -> grid is generated with symmetries turned off
+                         (i.e. NOT in BZ - the Wigner-Seitz cell - but in the primitive reciprocal unit cell)
+        epes [1e-5]   -> numerical error for equivalent points
+
+        In order to obtain a list of kpoints in the full BZ, use IBZ==True and then expand_kpoints().
+
+    Output:
+        xks -> Number of kpoints in IBZ
+        xk  -> kpoints in IBZ/BZ in CRYSTAL coordinates (convert to cc with red_car())
+        wk  -> kpoints weights
+    """
+    Nk    = nk1*nk2*nk3
+    wkk   = np.ones(Nk)    # Weights
+    equiv = np.arange(Nk)  # Initially, each kpoint is equivalent to itself
+
+    # symmetry and time-reversal info
+    sym_red, is_trev, is_sym_trev = sym_and_trev
+    Nsym = len(sym_red)
+
+    # Generate full regular grid in crystal coordinates
+    xkg = regular_grid(nk1,nk2,nk3)
+
+    if IBZ:
+        # Now we have to start checking for equivalent points:
+        for ik in range(Nk):
+            # Check if this k-point has already been found equivalent to another
+            # Do not consider points previously found equivalent to another
+            # Check both k and -k
+            if equiv[ik] == ik:
+                for i_s in range(Nsym):
+                    # Apply symmetry operations
+                    xkr = np.dot(sym_red[i_s,:,:], xkg[ik,:])
+                    # Bring back in 1st BZ
+                    xkr -= np.round(xkr)
+                    # Take opposite if symmetry is composed with TR
+                    if is_sym_trev[i_s]: xkr = -xkr
+
+                    # Check if in the list
+                    xx, yy, zz = xkr*[nk1,nk2,nk3]
+                    in_the_list = all( abs(v-round(v)) <= eps for v in [xx, yy, zz])
+
+                    if in_the_list:
+                        i,j,k = [(round(xkr[dim]*nki + 2*nki) % nki) + 1 for dim, nki in enumerate([nk1, nk2, nk3])]
+                        n = (k-1) + (j-1)*nk3 + (i-1)*nk2*nk3
+
+                        if n > ik and equiv[n] == n:
+                            equiv[n] = ik
+                            wkk[ik] += 1.0
+                        elif equiv[n] != ik or n < ik:
+                            raise ValueError("Error in the checking algorithm")
+
+                    # Time reversal symmetry check
+                    if is_trev:
+                        xx, yy, zz = -xkr*[nk1,nk2,nk3]
+                        in_the_list = all(abs(v - round(v)) <= eps for v in [xx, yy, zz])
+
+                        if in_the_list:
+                            i, j, k = [(round(-xkr[dim]*nki + 2*nki) % nki) + 1 for dim, nki in enumerate([nk1, nk2, nk3])]
+                            n = (k-1) + (j-1)*nk3 + (i-1)*nk2*nk3
+
+                            if n > ik and equiv[n] == n:
+                                equiv[n] = ik
+                                wkk[ik] += 1.0
+                            elif equiv[n] != ik or n < ik:
+                                raise ValueError("Error in the checking algorithm")
+
+    # Filter unique k-points
+    unique_kpoints = (equiv == np.arange(Nk))
+    # Bring back unique points into first BZ
+    xk = xkg[unique_kpoints,:] - np.round(xkg[unique_kpoints,:])
+    wk = wkk[unique_kpoints] / np.sum(wkk[unique_kpoints])  # Normalize weights
+    nks = len(xk[0])
+
+    return nks, xk, wk

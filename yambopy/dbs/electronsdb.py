@@ -74,7 +74,7 @@ class YamboElectronsDB():
 
             args = dict( atomic_numbers         = atomic_numbers,
                          car_atomic_positions   = atomic_positions,
-                         eigenvalues_ibz        = database.variables['EIGENVALUES'][:,:]*ha2ev,
+                        eigenvalues_ibz        = database.variables['EIGENVALUES'][...].data*ha2ev,
                          sym_car                = np.transpose( database.variables['SYMMETRY'][:], (0,2,1) ), # transpose leaving first axis as symm index
                          iku_kpoints            = database.variables['K-POINTS'][:].T,
                          nbands                 = int(dimensions[5]),
@@ -328,7 +328,7 @@ class YamboElectronsDB():
 
         return self.kpoints_full, self.kpoints_indexes, self.symmetry_indexes
 
-    def energy_gaps(self,eigenvalues=None,GWshift=0.):
+    def energy_gaps(self,eigenvalues=None,GWshift=0.,nv=-1,verbose=1):
         """
         Calculate the energy of the gap and apply custom rigid shift
 
@@ -337,7 +337,7 @@ class YamboElectronsDB():
         """
         if eigenvalues is None: eiv = self.eigenvalues_ibz[0]
         else:                   eiv = eigenvalues
-        nv  = self.nbandsv
+        if nv<1: nv = self.nbandsv # call from YamboDipolesDB may have reduced set of bands
 
         # First apply shift if there is one
         eiv[:,nv:]+=GWshift
@@ -346,9 +346,10 @@ class YamboElectronsDB():
         Egap = np.min(eiv[:,nv]) - np.max(eiv[:,nv-1])
         Edir = np.min(eiv[:,nv]  -        eiv[:,nv-1])
 
-        print('DFT Energy gap: %s eV'%Egap)
-        print('DFT Direct gap: %s eV'%Edir)
-        print('GW shift:       %s eV'%GWshift)
+        if verbose:
+            print('DFT Energy gap: %s eV'%Egap)
+            print('DFT Direct gap: %s eV'%Edir)
+            print('GW shift:       %s eV'%GWshift)
 
         return eiv
 

@@ -1,0 +1,66 @@
+# Runlevels
+optics                       # [R OPT] Optics
+rim_cut                      # [R RIM CUT] Coulomb potential
+bss                          # [R BSS] Bethe Salpeter Equation solver
+em1s                         # [R Xs] Static Inverse Dielectric Matrix
+bse                          # [R BSE] Bethe Salpeter Equation.
+bsk                          # [R BSK] Bethe Salpeter Equation kernel
+Lkind="full"
+StdoHash=  40                # [IO] Live-timing Hashes
+# Overall cutoff
+###FFTGvecs = 60 Ry             # [FFT] Plane-waves
+# RIM settings
+RandQpts=1000000             # [RIM] Number of random q-points in the BZ
+RandGvec= 100            RL    # [RIM] Coulomb interaction RS components
+CUTGeo= "slab z"               # [CUT] Coulomb Cutoff geometry: box/cylinder/sphere X/Y/Z/XY..
+% CUTBox
+ 0.00     | 0.00     | 0.00     |        # [CUT] [au] Box sides
+%
+# BSE
+BS_CPU= "4.1.2"                   # [PARALLEL] CPUs for each role
+BS_ROLEs= "k.eh.t"                 # [PARALLEL] CPUs roles (k,eh,t)
+BS_nCPU_diago=4              # [PARALLEL] CPUs for matrix diagonalization
+BSEmod= "causal"             # [BSE] resonant/causal/coupling
+BSKmod= "SEX"                # [BSE] IP/Hartree/HF/ALDA/SEX/BSfxc
+BSSmod= "d"                  # [BSS] (h)aydock/(d)iagonalization/(i)nversion/(t)ddft`
+BSENGexx=  40          Ry    # [BSK] Exchange components
+ALLGexx                      # [BSS] Force the use use all RL vectors for the exchange part
+BSENGBlk=  8           Ry    # [BSK] Screened interaction block size
+% KfnQP_E
+ 1.000000 | 1.000000 | 1.000000 |        # [EXTQP BSK BSS] E parameters  (c/v) eV|adim|adim
+%
+% BEnRange
+  0.00000 |  4.00000 | eV    # [BSS] Energy range
+%
+% BDmRange
+  0.05000 |  0.05000 | eV    # [BSS] Damping range
+%
+BEnSteps= 2000               # [BSS] Energy steps
+% BLongDir
+ 1.000000 | 0.000000 | 0.000000 |        # [BSS] [cc] Electric Field
+%
+% BSEQptR
+ 1 | 7 |                     # [BSK] Transferred momenta range
+%
+% BSEBands
+   25 |  28 |                 # [BSK] Bands range
+%
+% BSehWind
+ 100.0000 | 100.0000 |       # [BSK] [o/o] E/h coupling pairs energy window
+%
+WRbsWF                      # [BSS] Write to disk excitonic the FWs
+# Static screening
+X_and_IO_CPU= "1 1 4 2 1"       # [PARALLEL] CPUs for each role
+X_and_IO_ROLEs= "q g k c v"      # [PARALLEL] CPUs roles (q,g,k,c,v)
+X_and_IO_nCPU_LinAlg_INV=-1      # [PARALLEL] CPUs for Linear Algebra (if -1 it is automatically set)
+Chimod= "hartree"            # [X] IP/Hartree/ALDA/LRC/BSfxc
+% QpntsRXs
+   1 | 7 |                 # [Xs] Transferred momenta
+%
+% BndsRnXs
+   1 |  200 |                 # [Xs] Polarization function bands
+%
+% LongDrXs
+ 1.000000 | 1.000000 | 1.000000 |        # [Xs] [cc] Electric Field
+%
+NGsBlkXs= 8            Ry    # [Xs] Response block size

@@ -1,5 +1,4 @@
 from qepy import *
-#from yambopy.lattice import *
 import sys
 import argparse
 """
@@ -48,7 +47,7 @@ def generate_nondiagonal_supercell(uc,Q,kpoints=None):
 
     print('Nondiagonal supercell written to file.')   
 
-def generate_displaced_supercells(uc,Q,eivs,kpoints=None):
+def generate_displaced_supercells(uc,Q,modes_file,kpoints=None):
     """
     Third case: displaced supercells along phonon modes at Q
     """
@@ -57,11 +56,16 @@ def generate_displaced_supercells(uc,Q,eivs,kpoints=None):
 
     sc = Supercell(qe) # initialize class
     nd_atom_positions = sc.nd_sup(Q) # Generate supercell as PwIn object called 'qe_nd' getting new atomic positions
+    
+    #Read the matdyn file
+    qe_dyn=Matdyn.from_modes_file(filename=modes_file)
 
-    # Displace atoms.
+    # Displace atoms./
     # Intensity is Temp (in bohr)
     # Sign and direction (standing wave at Q) given by modes_file
-    sc.displace(eivs,nd_atom_positions,Temp=0.1) # Generate list of displaced supercells as PwIn objects called 'modes_qe'
+    #sc.displace(modes_file,nd_atom_positions,Temp=0.1) # Generate list of displaced supercells as PwIn objects called 'modes_qe'
+    # iq index of the q-point in the matdyn file (default 0, the first q-point)
+    sc.displace(qe_dyn,nd_atom_positions,iq=0,Temp=0.1)
     N_modes = len(sc.modes_qe)
 
     #name of output file
@@ -73,7 +77,7 @@ def generate_displaced_supercells(uc,Q,eivs,kpoints=None):
 
     print('Displaced supercells written to file.')
 
-def generate_displaced_unitcell(uc,eivs):
+def generate_displaced_unitcell(uc,modes_file):
     """
     Fourth case: displaced cell at Q=0
     """
@@ -82,10 +86,13 @@ def generate_displaced_unitcell(uc,eivs):
     sc = Supercell(qe) # initialize class
     atom_positions = sc.d_sup([1,1,1]) # Generate "supercell" with size 1 as PwIn object called 'qe_d' getting atomic positions
     
+    #Read the matdyn file
+    qe_dyn=Matdyn.from_modes_file(filename=modes_file)
+
     # Displace atoms.
     # Intensity is Temp (in bohr)
     # Sign and direction (standing wave at Q) given by modes_file
-    sc.displace(eivs,atom_positions,Temp=0.1) # Generate list of displaced supercells as PwIn objects called 'modes_qe'
+    sc.displace(qe_dyn,atom_positions,Temp=0.1) # Generate list of displaced supercells as PwIn objects called 'modes_qe'
     N_modes = len(sc.modes_qe)
 
     #name of output file
