@@ -20,18 +20,21 @@ From the command line, type:
 This generate the input for the Bloch-states dynamics (`-nl`) in the "pump-probe" mode (`p`) in the verbose mode (`-V nl`). The input is saved in the text file `01_Floquet_sample.in`  
 
  For the purposes of this tutorial, edit the `01_Floquet_sample.in` to change the following variables:
-`% NLBands`
-  `4 |5 |                           # [NL] Bands range`
-`%`
+```
+% NLBands`
+  4 |5 |                           # [NL] Bands range
+%
 ...
-`Field1_Freq= 4.100000      eV    # [RT Field1] Frequency`
+Field1_Freq= 4.100000      eV    # [RT Field1] Frequency
 ...
-`% Field1_Dir`
- `1.000000 | 1.000000 | 0.000000 |        # [RT Field1] Versor`
-`%`  
-
+% Field1_Dir`
+ 1.000000 | 1.000000 | 0.000000 |        # [RT Field1] Versor
+%`  
+```
 Finally change the key variable to perform a run that samples the TD Bloch states: 
-`FLOrder=-4                # [NL] Fourier Order of Floquet Analysis`
+```
+FLOrder=-4                # [NL] Fourier Order of Floquet Analysis
+```
 
 if left to the default value (`-1` ), no database is created. A positive integer value, correspond to the harmonic order of the analysis. The harmonic order of analysis influences the number of times for which the time-dependent Bloch-states are sampled. In this case we choose `4`, that allows one to carry out the analysis up to the fourth order. 
 
@@ -39,16 +42,24 @@ This analysis can be performed only for monochromatic sources, so the only choic
 Note it is important *not* to change the simulation time from its default (`-1.0`) but if you are experienced in such calculations. When the dfault is set, the code computes internally the minimum simulation time needed to sample the TD Bloch-states. If the simulation time is changed and it is not long enough, the code does proceed with the simulation but does not sample the Bloch-states.
 
 When the input is created and the relevant variables set to their values, from the command line, type:
-`$PATH_TO_EXEC/yambo_nl -F 01_Floquet_sample.in -J fl_sample`
+```
+$PATH_TO_EXEC/yambo_nl -F 01_Floquet_sample.in -J fl_sample
+``` 
 This starts the simulation. The relevant database is saved in `fl_sample`directory.
 When completed,  type `$ ls fl_sample/`, which should return
-`ndb.dipoles    ndb.Nonlinear_fragment_1  ndb.RT_V_bands`
-`ndb.Nonlinear  ndb.RT_OBSERVABLES        ndb.RT_V_bands_K_section`
+```
+ndb.dipoles    ndb.Nonlinear_fragment_1  ndb.RT_V_bands
+ndb.Nonlinear  ndb.RT_OBSERVABLES        ndb.RT_V_bands_K_section
+```
 The relevant databases are `ndb.RT_V_bands*`. 
 By typing
-`ncdump fl_sample/ndb.RT_V_bands`
+```
+ncdump fl_sample/ndb.RT_V_bands
+```
 the content of the database is dumped to human readable output. You can verify indeed that the harmonic order for the analysis is set to 4 (` IO_Floquet_order = 4`) and that the Bloch states were sampled at the following 11 times (ignoring time 0)  in atomic units:
-` IO_TIME_points = ..., 1801.24363627398 ;
+``` 
+IO_TIME_points = ..., 1801.24363627398
+```
 11 corresponds to `(4*2 + 1) + 2` where `9`points are needed to extract the F-KS coefficients up to the fourth harmonic order and the extra `2` points are used to determine the phase of Bloch-states which corresponds to the Floquet quasienergy. The second file `ndb.RT_V_bands_K_section` contains the sampled TD Bloch-states. 
 
 ## 2. Analysis with yambo.py
