@@ -253,7 +253,8 @@ class FLeigenvectors:
         NL_out_alltimes = np.matmul(M,self.FL_vecs)
         return alltimes,NL_out_alltimes
 
-    def plot_realtime(self,band_to_plot=1,t_step=0.0025,n_steps=669):
+    def plot_realtime(self,band_to_plot=1,t_step=0.0025):
+        n_steps = int(self.period*4/t_step)+10
         X,Y=self.calc_all_times_pVecs(t_step=t_step,n_steps=n_steps)
 
         fig,axes=plt.subplots(2)
@@ -362,7 +363,7 @@ def build_exp_matrix(listof_times=None,t0_fs=None,t_step=None,n_steps=None,max_f
 
 def get_frequency(db_path):
    ds=Dataset(db_path+'/ndb.Nonlinear')
-   freq = float(ds['Field_Freq_range_1'][0])
+   freq = float(ds['Field_Freq_1'][0])
    return freq
 
 def get_bands(kpt=None,band=None):
@@ -399,7 +400,7 @@ def findallk_qe(vbdb,report_file=None):
                 ks_evk[_kpt,_bnd] = vbs.ks_ev
                 fl_qek[_kpt,_bnd] = opt_evecs.FL_qe
                 fl_eig[_kpt,_bnd,:,:] = opt_evecs.FL_vecs[:,:]
-                f.write(f'Bnd {_bnd+1:2} @Kpt {_kpt+1:2}: KS eval [eV] = {ks_evk[_kpt,_bnd]:.6f} --- FL qe [eV] = {fl_qek[_kpt,_bnd]:.6f} -- Diff [eV] = {vbs.ks_ev-opt_evecs.FL_qe:.6f} -- It.: {opt_evecs.nr_it:2} -- err in period = {opt_evecs.err:.2e}\n')
+                f.write(f'Bnd {_bnd+1:2} @Kpt {_kpt+1:2}: KS eval [eV] = {ks_evk[_kpt,_bnd]:.6f} --- FL qe [eV] = {fl_qek[_kpt,_bnd]:.6f} -- Diff [eV] = {vbs.ks_ev-opt_evecs.FL_qe:.2e} -- It.: {opt_evecs.nr_it:2} -- err in period = {opt_evecs.err:.2e}\n')
     return fl_eig, fl_qek, ks_evk  
 
 def calc_rho(vbdb,fl_eig,order,harmonic,kpt,bnd_1,bnd_2):
