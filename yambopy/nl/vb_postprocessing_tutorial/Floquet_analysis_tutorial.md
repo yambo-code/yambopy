@@ -21,13 +21,13 @@ This generate the input for the Bloch-states dynamics (`-nl`) in the "pump-probe
 
  For the purposes of this tutorial, edit the `01_Floquet_sample.in` to change the following variables:
 ```
-% NLBands`
+% NLBands
   4 |5 |                           # [NL] Bands range
 %
 ...
 Field1_Freq= 4.100000      eV    # [RT Field1] Frequency
 ...
-% Field1_Dir`
+% Field1_Dir
  1.000000 | 1.000000 | 0.000000 |        # [RT Field1] Versor
 %`  
 ```
