@@ -137,7 +137,9 @@ Finally, we use the  `find_qe` method to obtain the Floquet quasienergies and co
   optimized_evecs.output()
 ```
 The print statement gives the value of the quasienergy (`QE`) and the accuracy/erro/iternationsr of the algorithm.  
-`QE= -0.7363720804263066 eV with accuracy 2.277656729887667e-09 eV after 4 iterations - error in periodicity = 1.972764563161435e-09`
+```
+QE= -0.7363720804263066 eV with accuracy 2.277656729887667e-09 eV after 4 iterations - error in periodicity = 1.972764563161435e-09
+```
 Further, it produces a folder `figs-TIMESTAMP_iterN/` containing
 
 - `fig-FKS_projection.pdf` from the  `plot_floquet` method,                    
@@ -148,7 +150,7 @@ The `fig-real_time_projection_over_KS_state_2.pdf` shows the points sampled in t
 
 <img src="./img/fig-real_time_projection_over_KS_state_2.png" style="zoom:50%" />
 
-The `fig-FKS_projection.pdf` shows for  $\bf k$ index = 6 and band index $n=$4, the $d_{{\bf k}ni}(\eta)$ for $i=4,5$ and $\eta = -4,\dots,4$. One can see that most of the weight is still on the ground state $i=4, \eta = 0$, with linear response components ($i= 5, \eta = \pm 1$) of the order of $10^{-5}$ and very small nonlinear components.  
+The `fig-FKS_projection.pdf` shows for  $\bf k$ index = 6 and band index $n=4$, the $d_{{\bf k}ni}(\eta)$ for $i=4,5$ and $\eta = -4,\dots,4$. One can see that most of the weight is still on the ground state $i=4, \eta = 0$, with linear response components ($i= 5, \eta = \pm 1$) of the order of $10^{-5}$ and very small nonlinear components.  
 
 <img src="./img/fig-FKS_projection.png" style="zoom:50%" />
 
