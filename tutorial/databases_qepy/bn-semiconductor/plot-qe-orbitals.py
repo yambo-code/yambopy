@@ -1,4 +1,4 @@
-from qepy import *
+from qepy import Path,ProjwfcXML,ProjwfcIn
 from math import sqrt
 
 # Matplotlib options

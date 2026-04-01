@@ -65,6 +65,7 @@ class PwIn(object):
     def __init__(self):
         """ TODO: specify the required parameters """
         #kpoints
+        self.filename="pwscf.in"
         self.ktype = "automatic"
         self.kpoints = [1,1,1]
         self.shiftk = [0,0,0]
@@ -86,6 +87,7 @@ class PwIn(object):
         new = cls()
 
         with open(filename,"r") as f:
+            new.filename=filename
             new.file_lines = f.readlines() #set file lines
             new.store(new.control,"control")     #read &control
             new.store(new.system,"system")      #read &system
@@ -172,7 +174,7 @@ class PwIn(object):
 
     def change_cell_parameters(self):
         """
-        Convert the atomic postions to cartesian, change the lattice and convert
+        Convert the atomic positions to cartesian, change the lattice and convert
         the atomic positions to reduced
         """
         raise NotImplementedError('TODO')
@@ -230,6 +232,13 @@ class PwIn(object):
             for atype,apos in atoms:
                 red_atoms.append( [atype,car_red([apos],self.cell_parameters)[0]] )
             self._atoms = red_atoms 
+
+    def get_alat0(self):
+        if self.system['celldm(1)'] == None:
+            alat0 = np.linalg.norm(self.cell_parameters[0])
+        else:
+            alat0 = float(self.system['celldm(1)'])
+        return alat0
 
 
     def get_atoms(self, units=None):
@@ -453,7 +462,7 @@ class PwIn(object):
         self.klist = path.get_klist()
 
     def get_cell(self):
-        """ Get the lattice parameters, postions of the atoms and chemical symbols
+        """ Get the lattice parameters, positions of the atoms and chemical symbols
         """
         cell = self.cell_parameters
         sym = [atom[0] for atom in self.atoms]
@@ -464,7 +473,7 @@ class PwIn(object):
 
     def set_atoms_string(self,string):
         """
-        set the atomic postions using string of the form
+        set the atomic positions using string of the form
         Si 0.0 0.0 0.0
         Si 0.5 0.5 0.5
         """
@@ -475,7 +484,7 @@ class PwIn(object):
         self.atoms = atoms
 
     def set_atoms_ase(self,atoms):
-        """ set the atomic postions using a Atoms datastructure from ase
+        """ set the atomic positions using a Atoms datastructure from ase
         """
         # we will write down the cell parameters explicitly
         self.ibrav = 0
@@ -680,7 +689,7 @@ class PwIn(object):
                     self.klist = [ [a,b,c,int(d)] for a,b,c,d in self.klist ]
 
     def slicefile(self, keyword):
-        file_slice_regexp = f'&{keyword}(?:.?)+\n((?:.+\n)+?)(?:\s+)?[\/&]'
+        file_slice_regexp = rf'&{keyword}(?:.?)+\n((?:.+\n)+?)(?:\s+)?[\/&]'
         lines = re.findall(file_slice_regexp,"".join(self.file_lines),re.MULTILINE | re.IGNORECASE)
         return lines
 
@@ -688,7 +697,7 @@ class PwIn(object):
         """
         Save the variables specified in each of the groups on the structure
         """
-        group_regexp = '([a-zA-Z_0-9_\(\)]+)(?:\s+)?=(?:\s+)?([a-zA-Z\'"0-9_.+-]+)' 
+        group_regexp = r'([a-zA-Z_0-9_\(\)]+)(?:\s+)?=(?:\s+)?([a-zA-Z\'"0-9_.+-]+)' 
         for file_slice in self.slicefile(name):
             for keyword, value in re.findall(group_regexp,file_slice):
                 group[keyword.strip()]=value.strip()

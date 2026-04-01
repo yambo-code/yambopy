@@ -1,14 +1,38 @@
+#
+# License-Identifier: GPL
+#
+# Copyright (C) 2024 The Yambo Team
+#
+# Authors: FP, MN
+#
+# This file is part of the yambopy project
+#
 import numpy as np
 from netCDF4 import Dataset
 from yambopy.tools.string import marquee
 from yambopy.units import ha2ev
 from yambopy.kpoints import build_ktree, find_kpt
 
+def get_string_nc(nc_char):
+    """
+    Convert nc data type to plain string
+    """
+    if isinstance(nc_char, np.ndarray):
+        if nc_char.dtype.kind == 'S':  # Byte strings (C chars)
+            nc_char = nc_char.tobytes().decode('utf-8').strip()
+        else:
+            nc_char = str(nc_char)  # Fallback for non-string arrays
+    elif isinstance(nc_char, bytes):
+        nc_char = nc_char.decode('utf-8').strip()
+    else:
+        nc_char = str(nc_char).strip()
+    return nc_char.strip().replace('\0', '')
+
 class LetzElphElectronPhononDB():
     """
     Python class to read the electron-phonon matrix elements from LetzElPhC.
 
-    About LetzElPhC: https://gitlab.com/lumen-code/LetzElPhC
+    About LetzElPhC: https://github.com/yambo-code/LetzElPhC
     
     By default it reads the full database g(q,k,m,s,b1,b2) including phonon energies.
     
@@ -22,14 +46,14 @@ class LetzElphElectronPhononDB():
     
       :: lph.kpoints         #kpoints in cryst. coords. (BZ)
       :: lph.qpoints         #qpoints in crist. coords. (BZ)
-      :: lph.ph_energies     #Phonon energies (eV)      
+      :: lph.ph_energies     #Phonon energies (eV)
       :: lph.ph_eigenvectors #Phonon modes
       :: lph.gkkp            #El-ph matrix elements (by default normalised with ph. energies) [!!!! RYDBERG UNITS !!!!]:
       :: lph.gkkp_sq         #Couplings (square)
 
     Formats:
     - modes[iq][il][iat][ix]
-    - gkkp[iq][ik][il][is][ib1][ib2]              
+    - gkkp[iq][ik][il][is][ib1][ib2]
     """
 
     def __init__(self,filename,read_all=True,div_by_energies=True,verbose=False):
@@ -51,33 +75,23 @@ class LetzElphElectronPhononDB():
         self.div_by_energies = div_by_energies # if true, the elph store are normalized with 1/(2*w_ph)
         #
         #
-        conv = database['convention'][...].data
-        if isinstance(conv, np.ndarray):
-            if conv.dtype.kind == 'S':  # Byte strings (C chars)
-                conv = conv.tobytes().decode('utf-8').strip()
-            else:
-                conv = str(conv)  # Fallback for non-string arrays
-        elif isinstance(conv, bytes):
-            conv = conv.decode('utf-8').strip()
-        else:
-            conv = str(conv).strip()
-        conv = conv.strip().replace('\0', '')
-        #
-        #
-        if conv == 'standard':
-            print("Convention used in Letzelphc : k -> k+q (standard)")
-        else:
-            print("Convention used in Letzelphc : k-q -> k (yambo)")
-        self.convention = conv
+        conv   = database['convention'][...].data
+        self.convention = get_string_nc(conv)
+        kernel = database['kernel'][...].data
+        self.kernel     = get_string_nc(kernel)
+
         #
         # Read DB
         self.kpoints = database.variables['kpoints'][:]
         self.qpoints = database.variables['qpoints'][:]
         self.bands   = database.variables['bands'][:]
+        self.kmap    = database.variables['kmap'][:]
         self.ktree   = build_ktree(self.kpoints)
         self.qtree   = build_ktree(self.qpoints)
-        
-        self.ph_energies = database.variables['FREQ'][:]*(ha2ev/2.) # Energy units are in Rydberg
+
+        # Energy units are in rydberg 
+        self.ph_energies = database.variables['FREQ'][...].data*(ha2ev/2.)
+
         self.check_energies()
 
         if read_all: 
@@ -92,6 +106,12 @@ class LetzElphElectronPhononDB():
         
         self.verbose = verbose
 
+        if self.verbose:
+            if conv == 'standard':
+                print("Convention used in Letzelphc : k -> k+q (standard)")
+            else:
+                print("Convention used in Letzelphc : k-q -> k (yambo)")
+
     def check_energies(self):
         """
         Inform the user about unexpected negative frequencies and set them to positive
@@ -100,7 +120,7 @@ class LetzElphElectronPhononDB():
         warn = False
         for Q in indices[0]:
             for M in indices[1]:
-                if Q==0 and M in [0,1,2]: 
+                if Q==0 and M in [0,1,2]:
                     self.ph_energies[Q,M]=0.
                 else:
                     warn = True
@@ -171,6 +191,7 @@ class LetzElphElectronPhononDB():
         bands_range : list, optional
             Specifies the range of bands to read. The start index follows Python indexing (starting from 0),
             and the end index is excluded. If not provided, it defaults to the minimum and maximum bands available.
+            Please note that the bands range should be inbetween the ones used in letelphc inputfile.
         database : Dataset, optional
             If provided, the function will use this open dataset instead of opening the file again.
         convention : str, optional
@@ -257,6 +278,26 @@ class LetzElphElectronPhononDB():
         idx_q = find_kpt(self.ktree, factor*qpt[None, :] + self.kpoints)
         return elph_iq[idx_q, ...]
 
+    def descreen(self,Z,Zval,atomic_masses):
+        """
+        Obtain approximate "true" bare matrix elements, removing
+        the core electron screening. 
+
+        If using pseudopotentials,
+        "bare" nuclei are actually still partially screened by
+        core frozen core electrons.
+
+        - Read the docstring of descreen_el_ph for information.
+
+        NOTE: Only works with kernel='bare'.
+        """
+        if self.kernel.strip()!='bare':
+            raise ValueError("[ERROR] descreening can only be applied \
+                              to mat. el. computed with kernel='bare'")
+
+        ry2ev = ha2ev/2.
+        self.gkkp_bare = descreen_el_ph(self.gkkp,self.ph_energies/ry2ev,self.ph_eigenvectors,Z,Zval,masses=atomic_masses)
+
     def __str__(self):
 
         lines = []; app = lines.append
@@ -268,6 +309,7 @@ class LetzElphElectronPhononDB():
         app('natoms: %d'%self.nat)
         app('nbands: %d %d'%(self.nb1,self.nb2))
         app('convention: %s'%self.convention)
+        app('kernel: %s'%self.kernel)
 
         if self.verbose:
 

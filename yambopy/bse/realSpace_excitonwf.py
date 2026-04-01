@@ -1,4 +1,4 @@
-##
+#
 # Authors: MN
 ##
 ### Compute real space exction wavefunction when hole/electron is fixed.
@@ -40,7 +40,7 @@ wfdb = YamboWFDB(path='.', latdb=lattice,
 # I want to set the degeneracy threshold to 0.01 eV
 # For example I want to plot the 3rd exciton, so iexe = 2 (python indexing )
 #
-excdb.real_wf_to_cube(iexe=2, wfdb=wfdb, fixed_postion=[0,0,0], supercell=[1,1,1],
+excdb.real_wf_to_cube(iexe=2, wfdb=wfdb, fixed_position=[0,0,0], supercell=[1,1,1],
                         degen_tol=0.01, wfcCutoffRy=80, fix_particle='h')
 
 ## fix_particle = 'e' if you want to fix electron and plot hole density
@@ -50,7 +50,7 @@ excdb.real_wf_to_cube(iexe=2, wfdb=wfdb, fixed_postion=[0,0,0], supercell=[1,1,1
 ##
 
 @func_profile
-def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
+def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_position,
                fix_particle='h', supercell=[1,1,1], wfcCutoffRy=-1,
                block_size=256):
     """
@@ -66,7 +66,7 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
         Qpt (numpy.ndarray): Q-point of exciton in crystal coordinates
         wfcdb (YamboWFDB): Wavefunction database
         bse_bnds (list): Band range used in BSE [min_band, max_band] (python indexing)
-        fixed_postion (list): Position of fixed particle in crystal coordinates
+        fixed_position (list): Position of fixed particle in crystal coordinates
         fix_particle (str): 'e' to fix electron, 'h' to fix hole (default)
         supercell (list): Supercell dimensions [nx,ny,nz]
         wfcCutoffRy (float): Wavefunction cutoff in Rydberg (-1 for no cutoff)
@@ -84,14 +84,14 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     """
     ## first the resonat part
     supercell_latvecs,atom_nums,atom_pos,exe_wfc_real = \
-            ex_wf2Real_kernel(Akcv[:,0], Qpt, wfcdb, bse_bnds, fixed_postion,
+            ex_wf2Real_kernel(Akcv[:,0], Qpt, wfcdb, bse_bnds, fixed_position,
                               fix_particle=fix_particle, supercell=supercell,
                               wfcCutoffRy=wfcCutoffRy, block_size=block_size,
                               ares=False, out_res=None)
     # for nonTDA add the anti-resonant part
     if Akcv.shape[1] == 2:
         supercell_latvecs,atom_nums,atom_pos,exe_wfc_real = \
-            ex_wf2Real_kernel(Akcv[:,1], Qpt, wfcdb, bse_bnds, fixed_postion,
+            ex_wf2Real_kernel(Akcv[:,1], Qpt, wfcdb, bse_bnds, fixed_position,
             fix_particle=fix_particle, supercell=supercell,
             wfcCutoffRy=wfcCutoffRy, block_size=block_size,
                               ares=True, out_res=exe_wfc_real)
@@ -101,7 +101,7 @@ def ex_wf2Real(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
 
 
 @func_profile
-def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
+def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_position,
                fix_particle='h', supercell=[1,1,1], wfcCutoffRy=-1,
                block_size=256, ares=False, out_res=None):
     """
@@ -120,7 +120,7 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
         bse_bnds (list): BSE band range used in bse [nb1, nb2]. fortran indexing. i.e index starts from 1.
                         i.e nb1  and nb2 are same indices used in yambo input i.e
                         % BSEBands nb1 | nb2 % in yambo input
-        fixed_postion (list): Fixed particle position in crystal coords [3]
+        fixed_position (list): Fixed particle position in crystal coords [3]
         fix_particle (str): 'e'=fix electron, 'h'=fix hole (default)
         supercell (list): Supercell dimensions [nx,ny,nz]
         wfcCutoffRy (float): Wavefunction cutoff in Rydberg (-1= full cutoff)
@@ -173,7 +173,7 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     assert nc + nv == bse_bnds[1]-bse_bnds[0], "Band mismatch"
     assert nk == nkBZ, "kpoint mismatch"
     #
-    fixed_postion = np.array(fixed_postion)
+    fixed_position = np.array(fixed_position)
     #
     hole_bnds = [bse_bnds[0],bse_bnds[0]+nv]
     elec_bnds = [bse_bnds[0]+nv,bse_bnds[1]]
@@ -214,20 +214,20 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     #
     ##
     # find the nearest fft grid point.
-    fixed_postion = fixed_postion.astype(np.float64)
-    fx_pnt_int = np.floor(fixed_postion)
-    fixed_postion -= fx_pnt_int
-    fixed_postion = np.round(fixed_postion * fft_box) / fft_box
-    fixed_postion += fx_pnt_int
+    fixed_position = fixed_position.astype(np.float64)
+    fx_pnt_int = np.floor(fixed_position)
+    fixed_position -= fx_pnt_int
+    fixed_position = np.round(fixed_position * fft_box) / fft_box
+    fixed_position += fx_pnt_int
     # shift the position of hole to middle of supercell
-    fixed_postion += np.array(supercell)//2
+    fixed_position += np.array(supercell)//2
     #
     if fix_particle == 'h':
         print("Position of the hole (reduced units) is set to : ",
-              fixed_postion[0], fixed_postion[1], fixed_postion[2])
+              fixed_position[0], fixed_position[1], fixed_position[2])
     if fix_particle == 'e':
         print("Position of the electron (reduced units) is set to : ",
-              fixed_postion[0], fixed_postion[1], fixed_postion[2])
+              fixed_position[0], fixed_position[1], fixed_position[2])
     #
     ktree = wfcdb.ktree #build_ktree(wfcdb.kBZ)
     #
@@ -331,7 +331,7 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
                 fx_gvec = gvecs_elec
             # compute
             ## NM : Donot perform FFT as we only need it for one point.
-            exp_fx = np.exp(2*np.pi*1j*((fx_gvec + fx_kvec[None,:])@fixed_postion))
+            exp_fx = np.exp(2*np.pi*1j*((fx_gvec + fx_kvec[None,:])@fixed_position))
             fx_wfc *= exp_fx[None,None,None,:]
             fx_wfc = np.sum(fx_wfc,axis=-1) #(spin,bnd,spinor)
             ns1, nbndc, nspinorr, ng = ft_wfc.shape
@@ -377,11 +377,11 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
                                             supercell[2]*fft_box[2])
     #
     # compute postioon of fixed particle in cart units 
-    fixed_postion_cc = lat_vec@fixed_postion
+    fixed_position_cc = lat_vec@fixed_position
     Lsupercells = Lsupercells.reshape(-1,3)#/np.array(supercell)[None,:]
     Lsupercells = Lsupercells@lat_vec.T
     atom_pos = Lsupercells[:,None,:] + wfcdb.ydb.car_atomic_positions[None,:,:]
-    atom_pos = np.append(atom_pos.reshape(-1,3),fixed_postion_cc[None,:],axis=0)
+    atom_pos = np.append(atom_pos.reshape(-1,3),fixed_position_cc[None,:],axis=0)
     supercell_latvecs = lat_vec*np.array(supercell)[None,:]
     ## Make atomic numbers 
     atom_nums = np.zeros(len(atom_pos),dtype=wfcdb.ydb.atomic_numbers.dtype)
@@ -392,7 +392,7 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
     return supercell_latvecs,atom_nums,atom_pos,exe_wfc_real
 
 #def compute_exc_wfc_real(path='.', bse_dir='SAVE', iqpt=1, nstates=[1],
-#                          fixed_postion=[0,0,0], fix_particle='h', aveg=True, supercell=[1,1,1],
+#                          fixed_position=[0,0,0], fix_particle='h', aveg=True, supercell=[1,1,1],
 #                         wfcCutoffRy=-1, phase=False, block_size=256):
 #    #
 #    lattice = YamboLatticeDB.from_db_file(os.path.join(path, 'SAVE', 'ns.db1'))
@@ -412,7 +412,7 @@ def ex_wf2Real_kernel(Akcv, Qpt, wfcdb, bse_bnds, fixed_postion,
 #    Qpt = wfdb.ydb.lat @ excQpt
 
 #    sc_latvecs, atom_nums, atom_pos, real_wfc = ex_wf2Real(Akcv, Qpt, wfdb, [np.min(excdb.table[:, 1]),
-#                np.max(excdb.table[:, 2])], fixed_postion=fixed_postion,
+#                np.max(excdb.table[:, 2])], fixed_position=fixed_position,
 #                          fix_particle=fix_particle, supercell=supercell, 
 #                          wfcCutoffRy=wfcCutoffRy, block_size=block_size)
 #    #

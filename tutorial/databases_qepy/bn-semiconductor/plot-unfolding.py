@@ -1,6 +1,6 @@
 import numpy as np
-from qepy *
 import matplotlib.pyplot as plt
+from qepy Path,PwXML,Unfolding
 
 # Matplotlib options
 fig = plt.figure(figsize=(7,5))

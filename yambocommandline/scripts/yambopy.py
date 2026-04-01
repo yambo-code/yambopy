@@ -45,7 +45,7 @@ class Cmd():
 
 class PlotExcitons(Cmd):
     """
-    Plot excitons calculation
+    Plot excitons calculation.
         
         possible arguments are:
         
@@ -75,7 +75,7 @@ class PlotExcitons(Cmd):
 
 class PlotEm1sCmd(Cmd):
     """
-    Plot em1s calculation
+    Plot em1s calculation.
 
         possible arguments are:
         
@@ -214,6 +214,8 @@ class AnalyseGWCmd(Cmd):
 
 class AnalyseBSECmd(Cmd):
     """
+    Study the convergence of BSE calculations.
+
     Using ypp, you can study the convergence of BSE calculations in 2 ways:
       Create a .png of all absorption spectra relevant to the variable you study
       Look at the eigenvalues of the first n "bright" excitons (given a threshold intensity)
@@ -264,36 +266,9 @@ class AnalyseBSECmd(Cmd):
         #all the other arguments are passed to the analyse bse function
         recipes.analyse_bse( folder, var, exc_n, exc_int, exc_degen, exc_max_E, text=text, draw=draw )
 
-class TestCmd(Cmd):
-    """
-    Run yambopy tests
-    
-        possible arguments are:
-
-        basic -> fast test where input/output is compared with reference files
-        full  -> requires yambo and quantum espresso to be installed
-    """
-    
-    def __init__(self,args):
-        #check for args
-        if len(args) < 1:
-            print((self.__doc__))
-            exit(0)
-
-        cmds = {'basic':self.basic,
-                'full':self.full}
-        self.run(cmds,args)
-
-    def basic(self,*args):
-        os.system('py.test --cov-config=.coveragerc --cov')
-        
-    def full(self,*args):
-        print(args)
-    
-
 class MergeQPCmd(Cmd):
     """
-    Merge QP databases
+    Merge QP databases.
     
         possible arguments are:
 
@@ -376,43 +351,9 @@ class AddQPCmd(Cmd):
         """
         print(self.__doc__)
 
-class GkkpCmd(Cmd):
-    """
-    Produce a SAVE folder including elph_gkkp databases
-    
-    Arguments are:
-        -nscf, --nscf_dir  -> <Optional> Path to nscf save folder
-        -elph, --elph_dir  -> Path to elph_dir folder
-        -y, --yambo_dir    -> <Optional> Path to yambo executables
-        -e, --expand       -> <Optional> Expand gkkp databases
-    """
-    def __init__(self,args):
-        #check for args
-        if len(args) < 2:
-            print((self.__doc__))
-            exit(0)
-            
-        parser = argparse.ArgumentParser(description='Generate SAVE folder including gkkp databases')
-        parser.add_argument('-nscf','--nscf_dir', type=str, default="", help='<Optional> Path to nscf save folder')
-        parser.add_argument('-elph','--elph_dir', type=str,help='<Required> Path to elph_dir folder',required=True)
-        parser.add_argument('-y','--yambo_dir', default="", type=str,help='<Optional> Path to yambo executables')
-        parser.add_argument('-e','--expand', action="store_true", help="Expand GKKP")
-        args = parser.parse_args(args)
-        
-        nscf_dir  = args.nscf_dir
-        elph_dir  = args.elph_dir
-        yambo_dir = args.yambo_dir
-        expand    = args.expand
-        
-        database = './'
-        scheduler = Scheduler.factory
-
-        #call gkkp
-        gkkp.generate_gkkp(database,nscf_dir,elph_dir,yambo_dir,expand,scheduler)
-        
 class SaveCmd(Cmd):
     """
-    Produce a SAVE folder
+    Produce a SAVE folder.
     
     Arguments are:
         -nscf, --nscf_dir  -> Path to nscf save folder
@@ -550,41 +491,13 @@ class GwSubspace(Cmd):
         fld_diag = args.fld_diag
         fld_offdiag = args.fld_offdiag
         gw_subspace.create_newdb(fld_diag,fld_offdiag)
-
-class GetPHqInputCmd(Cmd):        
-    """
-    Script to update the explicit list of q-points in a ph input file (ldisp=.false., qplot=.true.).
-
-    - Reads the output of the scf calculation and the ph input.
-
-    Usage:
-    :: -pw,--pwout='path/to/pw/output/file
-    :: -ph,--phin='path/to/ph/input/file'
-    """
-    def __init__(self,args):
-
-        #check for args
-        if len(args) < 4:
-            print((self.__doc__))
-            exit(0)
-
-        parser = argparse.ArgumentParser(description='Append explicit qpoints to ph input')
-        parser.add_argument('-pw','--pwout', type=str, help='Path to pw (scf) output file',required=True)
-        parser.add_argument('-ph','--phin', type=str,help='Path to ph (dvscf or elph) input file',required=True)
-        args = parser.parse_args(args)
-
-        pwout = args.pwout
-        phin  = args.phin
-
-        get_phq_input.get_phq_input(pwout,phin)
-
 class ConvertRLtoRyCmd(Cmd):
     """
     Script to convert RL number in Ry energy units using ndb.gops.
 
     Inputs:
-    1. -gops,--ndb_gops='path/to/folder/with/ndb.gops' [i.e., SAVE]
-    2. -v,--value='value to convert with units' [e.g., 11 RL or 5 Ry]
+    1. --ndb_gops path/to/SAVE/folder [or any folder containing ndb.gops]
+    2. --value value to convert with units [e.g., 11 RL or 5 Ry]
 
     The script will read ndb.gops and find the nearest completed G-shell, then give the
     converted value in Ry (RL) to the one supplied in input.
@@ -607,71 +520,75 @@ class ConvertRLtoRyCmd(Cmd):
         convert_RL_to_Ry.convert(value,ndb_gops)
 
 class ConvertLELPHCtoYAMBO(Cmd):
-	"""
-	Calculate gauge-invariant electron-phonon matrix elements with LetzElPhC and convert them into Yambo format
+    """
+    Calculate gauge-invariant electron-phonon matrix elements with LetzElPhC and convert them into Yambo format.
+    
+    - Usage:
+    
+    >> yambopy l2y -ph phinp -b b1 b2 -par nq nk [--kernel kernel] [--lelphc lelphc] [--no_lelphc_dbs] [--no_gkkp]
+    
+    - Input parameters:
+        -ph                   : path to ph.x input file, e.g. dvscf/ph.in
+        -b                    : initial and final band indices (counting from 1, both values included)
+        -par [OPT]            : MPI pools for q and k (needs mpirun)
+        --kernel [OPT]        : e-ph kernel type, default 'dfpt'
+        --lelphc [OPT]        : path to lelphc executable, default 'lelphc', code will prompt
+        --no_lelphc_dbs [OPT] : will remove LetzElPhC input and outputs
+        --no_gkkp [OPT]       : do not generate the gkkp databases for Yambo/Lumen
 
-	:: Usage:
+    - Prerequisites:
 
-    >> yambopy l2y -ph phinp -b b1 b2 -par nq nk [--kernel kernel] [--lelphc lelphc] [--debug]
+    * ph.x phonon calculation must be complete, e.g. the phinp folder should contain:
+        - ph.x input file
+        - pw.x (scf) save directory
+        - [prefix].dyn files
+        - _ph* directories
+    * Yambo SAVE directory must be present. We run in the directory where the SAVE is.
+    * LetzElPhC must be installed
+    * mpirun must be linked for parallel runs
+    """
+    def __init__(self,args):
 
-    :: Input parameters:
-        -ph           : path to ph.x input file, e.g. dvscf/ph.in
-        -b            : initial and final band indices (counting from 1)
-        -par [OPT]    : MPI pools for q and k (needs mpirun)
-        --kernel [OPT]: e-ph kernel type, default 'dfpt'
-        --lelphc [OPT]: path to lelphc executable (code will prompt)
-        --debug [OPT] : won't remove LetzElPhC input and outputs
+        #check for args
+        if len(args) < 5:
+            print((self.__doc__))
+            exit(0)
 
-	:: Prerequisites:
+        parser = argparse.ArgumentParser(description='Generate electron-phonon coupling databases via LetzElPhC')
+        parser.add_argument('-ph','--ph_inp_path', type=str, help='<Required> Path to ph.x (dvscf) input file',required=True)
+        parser.add_argument('-b','--bands',nargs=2,type=str,help="<Required> First and last band (counting from 1), e.g. 'b_i b_f'",required=True)
+        parser.add_argument('-k','--kernel', type=str, default='dfpt',help="<Optional> Electron-phonon kernel type, e.g. 'dfpt', 'bare', ... (default 'dfpt')")
+        parser.add_argument('-par','--pools',nargs=2,type=str, default=[1,1], help="<Optional> MPI tasks as 'nqpools nkpools' (default serial)")
+        parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)")
+        parser.add_argument('-nl','--no_lelphc_dbs', action="store_true", help="Remove lelphc databases (False if not given)")
+        parser.add_argument('-ng','--no_gkkp', action="store_true", help="Do not generate gkkp dbs")
 
-	* ph.x phonon calculation must be complete, e.g. the phinp folder should contain:
-		- ph.x input file
-		- pw.x (scf) save directory
-		- [prefix].dyn files
-		- _ph* directories
-	* Yambo SAVE directory must be present. We run in the directory where the SAVE is.
-	* LetzElPhC must be installed
-	* mpirun must be linked for parallel runs
-	"""
-	def __init__(self,args):
+        args = parser.parse_args(args)
 
-		#check for args
-		if len(args) < 5:
-			print((self.__doc__))
-			exit(0)
+        phinp         = args.ph_inp_path
+        bands         = args.bands
+        kernel        = args.kernel
+        pools         = args.pools
+        lelphc        = args.lelphc
+        no_lelphc_dbs = args.no_lelphc_dbs
+        no_gkkp       = args.no_gkkp
 
-		parser = argparse.ArgumentParser(description='Generate electron-phonon coupling databases via LetzElPhC')
-		parser.add_argument('-ph','--ph_inp_path', type=str, help='<Required> Path to ph.x (dvscf) input file',required=True)
-		parser.add_argument('-b','--bands',nargs=2,type=str,help="<Required> First and last band (counting from 1), e.g. 'b_i b_f'",required=True)
-		parser.add_argument('-k','--kernel', type=str, default='dfpt',help="<Optional> Electron-phonon kernel type, e.g. 'dfpt', 'bare', ... (default 'dfpt')")
-		parser.add_argument('-par','--pools',nargs=2,type=str, default=[1,1], help="<Optional> MPI tasks as 'nqpools nkpools' (default serial)")
-		parser.add_argument('-lelphc','--lelphc',type=str,default='lelphc',help="<Optional> Path to lelphc executable (default assumed in Path, otherwise prompted)")
-		parser.add_argument('-D','--debug', action="store_true", help="Debug mode")
+        # Check inputs
+        lelphc,ph_path,inp_ph,inp_lelphc,inp_name = \
+        lelph_interface.checks(phinp,lelphc,bands,kernel,pools)
 
-		args = parser.parse_args(args)
+        # run preprocessing
+        lelph_interface.run_preprocessing(lelphc,ph_path,inp_ph)
 
-		phinp  = args.ph_inp_path
-		bands  = args.bands
-		kernel = args.kernel
-		pools  = args.pools
-		lelphc = args.lelphc
-		debug  = args.debug
+        # run el-ph calculation and rotation
+        lelph_interface.run_elph(lelphc,inp_lelphc,inp_name)
 
-		# Check inputs
-		lelphc,ph_path,inp_ph,inp_lelphc,inp_name = \
-		lelph_interface.checks(phinp,lelphc,bands,kernel,pools)
+        # load database and convert to yambo format
+        if not no_gkkp:
+           lelph_interface.letzelph_to_yambo()
 
-		# run preprocessing
-		lelph_interface.run_preprocessing(lelphc,ph_path,inp_ph)
-
-		# run el-ph calculation and rotation
-		lelph_interface.run_elph(lelphc,inp_lelphc,inp_name)
-
-		# load database and convert to yambo format
-		lelph_interface.letzelph_to_yambo()
-
-		# clean
-		lelph_interface.clean_lelphc(debug,inp_name,ph_path)
+        # clean
+        lelph_interface.clean_lelphc(no_lelphc_dbs,inp_name,ph_path)
 
 class BSEKernelSizeCmd(Cmd):
     """
@@ -714,6 +631,94 @@ class BSEKernelSizeCmd(Cmd):
 
         get_BSE_kernel_size.get_BSE_kernel_size(nk,nv,nc,np,ncpl)
 
+class Exc_sortCmd(Cmd):
+    """
+    Script to sort excitonic states according to energies and intensities. [-h for help]
+    """
+    def __init__(self,args):
+        from yambocommandline.commands import exc_sort
+        exc_sort.run_exc_sort(args)
+
+class Exc_wf_plotCmd(Cmd):
+    """
+    Real space exciton wf for either fixed hole/electron. [-h for help]
+    """
+    def __init__(self,args):
+         from yambocommandline.commands import plot_exc_wf_real_space
+         plot_exc_wf_real_space.run_plot_exc_wf_real_space(args)
+
+
+class Exc_irrepCmd(Cmd):
+    """
+    Script to get the irreducible representation labels for excitonic states. [-h for help]
+    """
+    def __init__(self,args):
+        from yambocommandline.commands import run_exc_irreps
+        run_exc_irreps.run_exc_irrep(args)
+
+class GkkpCmd(Cmd):
+    """
+    [LEGACY] Produce a SAVE folder including elph_gkkp databases.
+    
+    Arguments are:
+        -nscf, --nscf_dir  -> <Optional> Path to nscf save folder
+        -elph, --elph_dir  -> Path to elph_dir folder
+        -y, --yambo_dir    -> <Optional> Path to yambo executables
+        -e, --expand       -> <Optional> Expand gkkp databases
+    """
+    def __init__(self,args):
+        #check for args
+        if len(args) < 2:
+            print((self.__doc__))
+            exit(0)
+            
+        parser = argparse.ArgumentParser(description='Generate SAVE folder including gkkp databases')
+        parser.add_argument('-nscf','--nscf_dir', type=str, default="", help='<Optional> Path to nscf save folder')
+        parser.add_argument('-elph','--elph_dir', type=str,help='<Required> Path to elph_dir folder',required=True)
+        parser.add_argument('-y','--yambo_dir', default="", type=str,help='<Optional> Path to yambo executables')
+        parser.add_argument('-e','--expand', action="store_true", help="Expand GKKP")
+        args = parser.parse_args(args)
+        
+        nscf_dir  = args.nscf_dir
+        elph_dir  = args.elph_dir
+        yambo_dir = args.yambo_dir
+        expand    = args.expand
+        
+        database = './'
+        scheduler = Scheduler.factory
+
+        #call gkkp
+        gkkp.generate_gkkp(database,nscf_dir,elph_dir,yambo_dir,expand,scheduler)
+        
+
+class GetPHqInputCmd(Cmd):        
+    """
+    [LEGACY] Script to update the explicit list of q-points in a ph input file (ldisp=.false., qplot=.true.).
+
+    - Reads the output of the scf calculation and the ph input.
+
+    Usage:
+    :: -pw,--pwout='path/to/pw/output/file
+    :: -ph,--phin='path/to/ph/input/file'
+    """
+    def __init__(self,args):
+
+        #check for args
+        if len(args) < 4:
+            print((self.__doc__))
+            exit(0)
+
+        parser = argparse.ArgumentParser(description='Append explicit qpoints to ph input')
+        parser.add_argument('-pw','--pwout', type=str, help='Path to pw (scf) output file',required=True)
+        parser.add_argument('-ph','--phin', type=str,help='Path to ph (dvscf or elph) input file',required=True)
+        args = parser.parse_args(args)
+
+        pwout = args.pwout
+        phin  = args.phin
+
+        get_phq_input.get_phq_input(pwout,phin)
+
+
 class YambopyCmd(Cmd):
     """
     class to implement commands for yambopy.
@@ -726,15 +731,18 @@ class YambopyCmd(Cmd):
                  'addqp':        AddQPCmd,
                  'mergeqp':      MergeQPCmd,
                  'save':         SaveCmd,
-                 'gkkp':         GkkpCmd,
                  'bands':        PlotBndStrCmd,
                  'serial':       UpdtSrlNmbrCmd,
                  'gwsubspace':   GwSubspace,
-                 'phinp':        GetPHqInputCmd,
                  'convert':      ConvertRLtoRyCmd,
                  'bsesize':      BSEKernelSizeCmd,
-				 'l2y':          ConvertLELPHCtoYAMBO,
-                 'test':         TestCmd}
+                 'l2y':          ConvertLELPHCtoYAMBO,
+                 'exc-irrep':    Exc_irrepCmd,
+                 'exc-wf':       Exc_wf_plotCmd,
+                 'exc-sort':     Exc_sortCmd,
+                 'gkkp':         GkkpCmd,
+                 'phinp':        GetPHqInputCmd,
+                 }
 
     def __init__(self,*args):
         """

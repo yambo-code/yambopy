@@ -7,7 +7,7 @@ EDIT the path below to point to the yambo SAVE folder.
 """
 save_path='BSE_saves/YAMBO_saves'
 dipoles_path='BSE_saves/BSE_databases'
-from yambopy import *
+from yambopy import YamboLatticeDB,YamboDipolesDB,YamboElectronsDB
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     ylat = YamboLatticeDB.from_db_file(filename=save_path+'/SAVE/ns.db1')
 
     # Read dipole matrix elements
-    ydip = YamboDipolesDB(ylat,save=dipoles_path,filename='ndb.dipoles')
+    ydip = YamboDipolesDB.from_db_file(ylat,filename=f"{dipoles_path}/ndb.dipoles")
     print(ydip)
 
     # Read electron energies

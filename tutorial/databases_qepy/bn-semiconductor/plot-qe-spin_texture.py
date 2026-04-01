@@ -1,5 +1,5 @@
-from qepy import *
-from yambopy import *
+import matplotlib.pyplot as plt
+from qepy import Spin_texture
 
 # Figure features
 fig = plt.figure(figsize=(7,7))

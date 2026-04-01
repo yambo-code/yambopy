@@ -1,4 +1,4 @@
-from qepy import *
+from qepy import Path,PwXML
 from math import sqrt
 
 # k-points map
@@ -16,3 +16,12 @@ xml = PwXML(prefix='bn',path='bands')
 
 # Class PwXML. QE database reading
 xml.plot_eigen(path_kpoints)
+
+# Alternative option with more plot control
+## Matplotlib options 
+#fig = plt.figure()
+#ax = fig.add_subplot(1,1,1)
+
+## Class PwXML. QE database reading
+#xml.plot_eigen_ax(ax,path_kpoints)
+#plt.show()

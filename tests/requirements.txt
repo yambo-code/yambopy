@@ -1,9 +1,0 @@
-## pip install -r requirements.txt
-## installs the Python dep. for Yambopy
-numpy
-netcdf4
-matplotlib
-scipy
-pytest-cov
-coverage # To check the extent of code tested
-future # Python 2.7/3+ compatiblity

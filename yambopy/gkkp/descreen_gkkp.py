@@ -1,4 +1,5 @@
 import numpy as np
+from yambopy.units import amu2ry
 
 def descreen_el_ph(pseudoscreened_elph,ph_energies,ph_modes,Z,Zval,masses=None):
     """
@@ -40,7 +41,7 @@ def descreen_el_ph(pseudoscreened_elph,ph_energies,ph_modes,Z,Zval,masses=None):
     ```
 
     from yambopy import LetzElphElectronPhononDB
-    from yambopy.units import ha2ev,amu2ry
+    from yambopy.units import ha2ev
     ry2ev = ha2ev/2.              # lelphc uses RYDBERG units
     Z = [42,16,16]                # atomic_numbers (hardcoded here, read with pwin or latticedb)
     Zval = [14,6,6]               # Taken from pseudopotentials, read with qepy utility
