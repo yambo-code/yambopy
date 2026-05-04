@@ -131,8 +131,20 @@ def exciton_phonon_matelem_iQ(elphdb,wfdb,Dmats,BSE_dir,BSE_Lin_dir=None,
     """
     latdb = wfdb.ydb
     # Load and rotate Lin(Q)
+    if BSE_Lin_dir is None: BSE_Lin_dir = BSE_dir
     Ak = rotate_Akcv_Q(wfdb, Q_in, Dmats, neigs=nexc_in, folder=BSE_Lin_dir)
-    
+    if nexc_in == -1: nexc_in = Ak.shape[0]
+
+    # If nexc_out is -1, we need to know it before the MPI chunking
+    if nexc_out == -1:
+        if rank==0: print("nexc_out is -1, determining the number of excitons from database...")
+        idx_BZQ0 = wfdb.kptBZidx(Q_in + elphdb.qpoints[0])
+        iQ_iBZ0 = wfdb.ydb.kpoints_indexes[idx_BZQ0]
+        filename0 = 'ndb.BS_diago_Q%d' % (iQ_iBZ0+1)
+        excdb0 = YamboExcitonDB.from_db_file(wfdb.ydb,filename=filename0,folder=BSE_dir,Load_WF=False, neigs=-1)
+        nexc_out = len(excdb0.eigenvalues)
+        if rank==0: print(f"nexc_out determined: {nexc_out}")
+
     # Compute ex-ph
     bse_bnds_range = [wfdb.min_bnd,wfdb.min_bnd + wfdb.nbands]    
     
@@ -199,12 +211,12 @@ def save_or_load_dmat(wfdb, mode='run', dmat_file='Dmats.npy'):
     """
     if dmat_file[-4:]!='.npy': dmat_file = dmat_file+'.npy'
     if mode=='save':
-        print('Saving D matrices...')
+        if rank==0: print('Saving D matrices...')
         Dmats = wfdb.Dmat()
         if rank==0: np.save(dmat_file,Dmats)
         return Dmats
     elif mode=='load': 
-        print('Loading D matrices...')
+        if rank==0: print('Loading D matrices...')
         if not os.path.exists(dmat_file):
             raise FileNotFoundError(f"Cannot load '{dmat_file}' - file does not exist.")
         Dmats_loaded = np.load(dmat_file)
