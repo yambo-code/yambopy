@@ -15,7 +15,7 @@ from itertools import product
 from yambopy.units import ha2ev, I
 from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz
 from yambopy.lattice import replicate_red_kmesh, calculate_distances, car_red, red_car
-from yambopy.kpoints import get_path, get_path_car
+from yambopy.kpoints import get_path, get_path_car, check_kgrid
 from yambopy.tools.funcs import gaussian, lorentzian, boltzman_f, abs2
 from yambopy.tools.string import marquee
 from yambopy.tools.types import CmplxType
@@ -70,7 +70,7 @@ class YamboExcitonDB(object):
         Exciton eigenvectors are arranged as eigenvectors[i_exc, i_kvc]
         Transitions are unpacked in table[ i_k, i_v, i_c, i_s_c, i_s_v ] (last two are spin indices)
     """
-    def __init__(self,lattice,Qpt,eigenvalues,l_residual,r_residual,spin_pol='no',car_qpoint=None,q_cutoff=None,Lkind=None,table=None,eigenvectors=None):
+    def __init__(self,lattice,Qpt,eigenvalues,l_residual,r_residual,spin_pol='no',cutoff=None,car_qpoint=None,Lkind=None,table=None,eigenvectors=None):
         if not isinstance(lattice,YamboLatticeDB):
             raise ValueError('Invalid type for lattice argument. It must be YamboLatticeDB')
 
@@ -81,22 +81,25 @@ class YamboExcitonDB(object):
         self.r_residual = r_residual
         #optional
         self.car_qpoint = car_qpoint
-        self.q_cutoff = q_cutoff
         self.table = table
         self.Lkind    = Lkind
         if table is not None:
             self.bs_bands = np.array([np.min(self.table[:,1]),np.max(self.table[:,2])]) # set range of bse bands
         self.eigenvectors = eigenvectors
         self.spin_pol = spin_pol
+        self.cutoff   = cutoff
+        self.dim      = self.check_dim(cutoff)
 
     @classmethod
     def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.',Load_WF=True, neigs=-1):
         """ 
         Initialize this class from a file
 
-        Set `Read_WF=False` to avoid reading eigenvectors for faster IO and memory efficiency.
+        Set `Load_WF=False` to avoid reading eigenvectors for faster IO and memory efficiency.
+        
         If neigs < 0 ; all eigen values (vectors) are loaded or else first neigs are loaded 
         " In case of non-TDA, we load right eigenvectors.
+
         """
         path_filename = os.path.join(folder,filename)
         if not os.path.isfile(path_filename):
@@ -172,16 +175,12 @@ class YamboExcitonDB(object):
                spin_pol = 'pol'
             else:
                spin_pol = 'no'
-        # Check if Coulomb cutoff is present
-        path_cutoff = os.path.join(path_filename.split('ndb',1)[0],'ndb.cutoff')  
-        q_cutoff = None
-        if os.path.isfile(path_cutoff):
-            with Dataset(path_cutoff) as database:
-                bare_qpg = database.variables['CUT_BARE_QPG'][:]
-                bare_qpg = bare_qpg[:,:,0]+bare_qpg[:,:,1]*I
-                q_cutoff = np.abs(bare_qpg[0,int(Qpt)-1])
 
-        return cls(lattice,Qpt,eigenvalues,l_residual,r_residual,spin_pol,q_cutoff=q_cutoff,car_qpoint=car_qpoint,Lkind=Lkind,table=table,eigenvectors=eigenvectors)
+            #check Coulomb cutoff
+            if 'W_Cutoff' in database.variables:
+                cutoff = str(database.variables['W_Cutoff'][:][0],'UTF-8').strip()
+
+        return cls(lattice,Qpt,eigenvalues,l_residual,r_residual,spin_pol,cutoff=cutoff,car_qpoint=car_qpoint,Lkind=Lkind,table=table,eigenvectors=eigenvectors)
 
     @property
     def unique_vbands(self):
@@ -1228,25 +1227,35 @@ class YamboExcitonDB(object):
         # chi = sum_s [ |R_s|^2/(w-E+i*eta) + |R_s|^2/(-w-E-i*eta) ]
         chi = np.einsum('s,sn->n', EL1 * EL2, G1 + G2)
         
-        #dimensional factors
-        try:
-            if not self.Qpt=='1': q0norm = 2*np.pi*np.linalg.norm(self.car_qpoint)
-        except:
-            print("[WARNING] 1/q^2 set to 1 in eps2")
-            q0norm=1
-        try:
-            if self.q_cutoff is not None: q0norm = self.q_cutoff
-        except:
-            print("[WARNING] 1/q^2 set to 1 in eps2")
-            q0norm=1
+        # Coulomb potential factors
+        ## default for absorption calculations is |q|->0 which in yambo is |q|=1e-5
+        ## at finite Q we use the correct finite value
+        if not self.Qpt=='1': q0norm = 2*np.pi*np.linalg.norm(self.car_qpoint)
 
-        d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
-        cofactor = ha2ev*spin_degen/(2*np.pi)**3 * d3k_factor * (4*np.pi)  / q0norm**2
+        # constant factors
+        ## NB: the 1/Nk in d3k_factor is the k-sum normalization missing from the residuals
+        d3k_factor = self.lattice.rlat_vol / self.lattice.nkpoints
+        cofactor = ha2ev * spin_degen / (2*np.pi)**3 * d3k_factor 
+        vcoulomb = (4*np.pi) / q0norm**2.
+       
+        # macroscopic dielectric function
+        epsilon = 1. + cofactor * vcoulomb * chi
 
-        chi = 1. + chi*cofactor #We are actually computing the epsilon, not the chi.
+        # dimensionality: we return epsilon in 3D and alpha in 2D
+        if self.dim=="3D": return w, epsilon
+        elif self.dim=="2D":
+            if   " x" in self.cutoff: idir=0
+            elif " y" in self.cutoff: idir=1
+            elif " z" in self.cutoff: idir=2
+            else:                     idir=2 # Assume 'cutoff z' by default
+            L = self.lattice.lat[idir,idir] # interlayer separation in bohr
+            alpha = (epsilon - 1.) * L / (4.*np.pi)
+            return w, alpha
+        ## So far 1D and 0D not implemented, give 3D epsilon
+        else:
+            print(f"[WARNING] Detected system is {self.dim}. Returning 3D epsilon.")
+            return w, epsilon
 
-        return w,chi
-    
     def get_pl(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,Boltz_Temp=300,**kwargs):
         """
         Calculate PL_0  using excitonic states
@@ -1325,18 +1334,11 @@ class YamboExcitonDB(object):
 
         return w,pl
 
-    def plot_chi_ax(self,ax,reim='im',n_brightest=-1,is_2D=False,**kwargs):
+    def plot_chi_ax(self,ax,reim='im',n_brightest=-1,**kwargs):
         """Plot chi on a matplotlib axes"""
         w,chi = self.get_chi(**kwargs)
-        ## WARNING: assuming 
-        ## (i)  nonperiodic direction is z 
-        ## (ii) atomic units for ylat.lat
-        if is_2D: 
-            abs_label = 'alpha'
-            Lz = self.lattice.lat[2,2] # interlayer separation in bohr
-            chi = (chi-1.)*Lz/(4.*np.pi)
-        else:
-            abs_label = 'epsilon'
+        if self.dim=='2D': abs_label = 'alpha'
+        else:              abs_label = 'epsilon'
         #cleanup kwargs variables
         cleanup_vars = ['dipoles','dir','emin','emax','estep','broad',
                         'q0norm','nexcitons','spin_degen','verbose']
@@ -1681,10 +1683,25 @@ class YamboExcitonDB(object):
     #  END SPIN DEPENDENT PART UNDER DEVELOPMENT #
     ##############################################
 
+    def check_dim(self,cutoff):
+        """
+        - If no Coulomb cutoff is used, system is assumed 3D
+        - If cutoff is detected:
+            - no. of 1s in kpoint grid is assumed no. of aperiodic directions
+        """
+        if 'none' in cutoff: 
+            return '3D'
+        else:
+            kpts  = self.lattice.get_ibz_kpoints(units='red')
+            Ngrid = check_kgrid( kpts, self.lattice.rlat )[0]
+            dim   = 3 - Ngrid.count(1)
+            return f"{dim}D"
+
     def get_string(self,mark="="):
         lines = []; app = lines.append
         app( marquee(self.__class__.__name__,mark=mark) )
         app( "BSE solved at Q:            %s"%self.Qpt )
+        app( "dimensionality:             %s system"%self.dim )
         app( "number of excitons:         %d"%self.nexcitons )
         if self.Lkind is not None:
             app("L kind:                     %s"%self.Lkind)
@@ -1693,6 +1710,7 @@ class YamboExcitonDB(object):
             app( "number of kpoints:          %d"%self.nkpoints  )
             app( "number of valence bands:    %d"%self.nvbands )
             app( "number of conduction bands: %d"%self.ncbands )
+            app( "bands global index:         %d - %d"%(self.bs_bands[0],self.bs_bands[1]))
         return '\n'.join(lines)
     
     def __str__(self):

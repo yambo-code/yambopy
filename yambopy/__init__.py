@@ -44,6 +44,7 @@ import numpy as np
 #tools and units
 from yambopy.tools.jsonencoder import *
 from yambopy.tools.types import *
+from yambopy.tools.latex import *
 from yambopy.units import *
 from yambopy.zeros import *
 
