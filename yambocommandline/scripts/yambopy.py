@@ -25,7 +25,7 @@ class Cmd():
         """
         version=importlib.metadata.version('yambopy')
         print("@misc{yambopy,")
-        print("      author = {Paleari, Fulvio and Molina-Sánchez, Alejandro and Nalabothula, Muralidhar and Reho, Riccardo and Bonacci, Miki and Castelo, José M. and Cervantes-Villanueva, Jorge and Pionteck, Mike and Silvetti, Martino and Attaccalite, Claudio and Pereira Coutada Miranda, Henrique},")
+        print("      author = {Paleari, Fulvio and Molina-Sánchez, Alejandro and Nalabothula, Muralidhar and Reho, Riccardo and Bonacci, Miki and Castelo, José M. and Cervantes-Villanueva, Jorge and Re Fiorentin, Michele and Pionteck, Mike and Silvetti, Martino and Attaccalite, Claudio and Pereira Coutada Miranda, Henrique},")
         print("      title = {Yambopy},")
         print("      month = mar,")
         print("      year = 2025,")
