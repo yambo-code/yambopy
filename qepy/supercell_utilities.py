@@ -403,9 +403,9 @@ class MySupercell(Supercell):
         # tot_disp = np.sum(np.diag((-1)**np.arange(ntot_modes)) @ displacements, axis=0)
 #        tot_disp = np.sum(displacements, axis=0)/matdyn.nqpoints
 
-        # This displacement should not be renormalized again
-        # This is already done in the supercell-expasion 
-        tot_disp = np.sum(displacements, axis=0) #/matdyn.nqpoints
+        # This displacement should be with sqrt(nqpoints) becasue part of renormalization
+        # is absorbed in the normalization of the eigenvectors
+        tot_disp = np.sum(displacements, axis=0)/np.sqrt(matdyn.nqpoints)
         
         '''
         NB:
