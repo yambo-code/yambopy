@@ -68,13 +68,13 @@ def ip_resonant_raman_oneph(laser_energies, ph_energies, el_energies,
 
     # Shape checks
     #assert el_energies.ndim == 2, "el_energies must be (nk, nb)"
-    #nk, nb = el_energies.shape
-    #nv = int(n_val)
-    #nc = nb - nv
+    nk, nb = el_energies.shape
+    nv = int(n_val)
+    nc = nb - nv
     #assert 0 < nv < nb, "n_val must satisfy 0 < n_val < nb"
     #assert elec_dipoles.shape == (3, nk, nc, nv), \
     #    f"elec_dipoles shape {elec_dipoles.shape} != (3, {nk}, {nc}, {nv})"
-    #nmodes = ph_energies.shape[0]
+    nmodes = ph_energies.shape[0]
     #assert eph_g.shape == (nmodes, nk, nb, nb), \
     #    f"eph_g shape {eph_g.shape} != ({nmodes}, {nk}, {nb}, {nb})"
     #assert laser_energies.ndim == 1
