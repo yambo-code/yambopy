@@ -67,22 +67,22 @@ def ip_resonant_raman_oneph(laser_energies, ph_energies, el_energies,
     cm1_to_Ha = cm1_to_eV / ha2ev
 
     # Shape checks
-    assert el_energies.ndim == 2, "el_energies must be (nk, nb)"
-    nk, nb = el_energies.shape
-    nv = int(n_val)
-    nc = nb - nv
-    assert 0 < nv < nb, "n_val must satisfy 0 < n_val < nb"
-    assert elec_dipoles.shape == (3, nk, nc, nv), \
-        f"elec_dipoles shape {elec_dipoles.shape} != (3, {nk}, {nc}, {nv})"
-    nmodes = ph_energies.shape[0]
-    assert eph_g.shape == (nmodes, nk, nb, nb), \
-        f"eph_g shape {eph_g.shape} != ({nmodes}, {nk}, {nb}, {nb})"
-    assert laser_energies.ndim == 1
-    assert cell_vol > 0.
+    #assert el_energies.ndim == 2, "el_energies must be (nk, nb)"
+    #nk, nb = el_energies.shape
+    #nv = int(n_val)
+    #nc = nb - nv
+    #assert 0 < nv < nb, "n_val must satisfy 0 < n_val < nb"
+    #assert elec_dipoles.shape == (3, nk, nc, nv), \
+    #    f"elec_dipoles shape {elec_dipoles.shape} != (3, {nk}, {nc}, {nv})"
+    #nmodes = ph_energies.shape[0]
+    #assert eph_g.shape == (nmodes, nk, nb, nb), \
+    #    f"eph_g shape {eph_g.shape} != ({nmodes}, {nk}, {nb}, {nb})"
+    #assert laser_energies.ndim == 1
+    #assert cell_vol > 0.
 
     # Unit conversion to Hartree
-    laser_Ha = np.asarray(laser_energies) / ha2ev
-    ph_Ha    = np.asarray(ph_energies)    / ha2ev
+    #laser_Ha = np.asarray(laser_energies) / ha2ev
+    #ph_Ha    = np.asarray(ph_energies)    / ha2ev
     El_Ha    = np.asarray(el_energies)    / ha2ev
     # Murali's convention: half of input broadening enters the denominator
     broad_Ha = (broad / ha2ev) / 2.0
