@@ -7,12 +7,14 @@ from tqdm import tqdm
 from yambopy.units import ha2ev
 
 
-@citation("PHYSICAL REVIEW B 113, 085201 (2026)")
+#@citation("PHYSICAL REVIEW B 113, 085201 (2026)")
 def ip_resonant_raman_oneph(laser_energies, ph_energies, el_energies,
                             elec_dipoles, eph_g, cell_vol,
                             broad=0.1, ph_freq_threshold=5.0):
     """
-    1-phonon Raman tensor at independent-particle (IP) level (Stokes).
+    ! 1-phonon Raman tensor at independent-particle (IP) level
+    ! Phys. Rev. B 113, 085201 – Published 2 February, 2026
+    ! DOI: 10.1103/ty8m-mgml
 
     Mirrors `compute_Raman_oneph_ip` from
     https://github.com/muralidhar-nalabothula/PhdScripts/blob/main/exph/raman.py
@@ -20,7 +22,7 @@ def ip_resonant_raman_oneph(laser_energies, ph_energies, el_energies,
     All band-window bookkeeping (which bands, IBZ -> BZ expansion, etc.)
     is the caller's responsibility. The function assumes that every input
     is already sliced and aligned onto the same nb-band window in the
-    order (valence, then conduction) along the band axis.
+    order (valence, then conduction) along the band axis. 
 
     Parameters
     ----------
