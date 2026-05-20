@@ -7,7 +7,7 @@ The driver does all the band-window bookkeeping:
     them into the LetzElPhC k-grid
   - slices electron energies, dipoles and gkkp to the user-chosen
     `raman_bands` window (Fortran 1-indexed, inclusive)
-  - passes ready-to-use arrays to ip_resonant_raman_oneph
+  - passes ready-to-use arrays to ip_resonant_raman_tensor_oneph
 
 The Raman function itself takes only the energies, dipoles, gkkp,
 cell volume and broadening and evaluates the formula.
@@ -19,7 +19,7 @@ import numpy as np
 
 from yambopy import (YamboLatticeDB, YamboElectronsDB,
                      YamboDipolesDB, LetzElphElectronPhononDB)
-from yambopy.exciton_phonon.excph_resonant_raman import ip_resonant_raman_oneph
+from yambopy.exciton_phonon.excph_resonant_raman import ip_resonant_raman_tensor_oneph
 
 
 # ---- User inputs ----------------------------------------------------------
@@ -31,7 +31,7 @@ dipole_path = folder + '/dipoles/ndb.dipoles'
 omega_range = (1.0, 6.0, 501)         # laser energies (eV): min, max, npts
 broading    = 0.10                    # Lorentzian broadening (eV)
 ph_fre_th   = 5.0                     # acoustic-mode cutoff (cm^-1)
-raman_bands = (47, 56)                # 1-indexed Fortran inclusive
+raman_bands = (44, 56)                # 1-indexed Fortran inclusive
 
 
 # ---- Databases ------------------------------------------------------------
@@ -52,7 +52,7 @@ diff = diff - np.round(diff)
 perm = np.argmin(np.linalg.norm(diff, axis=-1), axis=1)
 
 
-# ---- Resolve band ranges (1-indexed inclusive, Fortran) -------------------
+# ---- Resolve band range (1-indexed inclusive, Fortran) -------------------
 b_in_F, b_out_F = raman_bands
 nb              = b_out_F - b_in_F + 1
 n_val           = int(electrons.nbandsv) - (b_in_F - 1)
@@ -89,7 +89,7 @@ elec_dipoles = np.transpose(elec_dipoles, (1, 0, 2, 3))                 # (3, nk
 # ---- Raman calculation ----------------------------------------------------
 laser_eV = np.linspace(omega_range[0], omega_range[1], int(omega_range[2]))
 
-R = ip_resonant_raman_oneph(
+R = ip_resonant_raman_tensor_oneph(
     laser_energies    = laser_eV,
     ph_energies       = ph_eV,
     el_energies       = el_eV,
