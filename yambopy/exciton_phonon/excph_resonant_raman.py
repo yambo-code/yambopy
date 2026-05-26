@@ -116,7 +116,7 @@ def ip_resonant_raman_tensor_oneph(laser_energies, ph_energies, el_energies,
 @njit(cache=True, nogil=True, parallel=True)
 def _exc_raman_oneph_kernel(laser_Ha, ph_Ha, BS_energies, exc_dip_absorp,
                             exc_ph, ram_fac, ph_thresh_Ha):
-    """Numba kernel for `exc_resonant_raman_oneph`.
+    """Numba kernel for `exc_resonant_raman_tensor_oneph`.
 
     Mirrors `compute_Raman_oneph_exc_numba` from Murali's PhdScripts.
     All inputs in atomic units.
@@ -175,7 +175,7 @@ def _exc_raman_oneph_kernel(laser_Ha, ph_Ha, BS_energies, exc_dip_absorp,
     return Ram
 
 
-def exc_resonant_raman_oneph(laser_energies, ph_energies, exc_energies,
+def exc_resonant_raman_tensor_oneph(laser_energies, ph_energies, exc_energies,
                              exc_dipoles, exc_ph_mat_el, n_kpts, cell_vol,
                              broad=0.1, ph_freq_threshold=5.0,
                              precision='d'):
@@ -409,6 +409,154 @@ def ip_raman_spectrum_oneph(laser_energy, ph_energies,
 
     # ---- Place each mode's intensity on the energy grid ------------------
     diff = energy_grid[:, None] - ph_axis[None, :]         # (nE, nmodes)
+    btype = str(broad_type).strip().lower()
+    if btype == 'gaussian':
+        sigma   = fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+        profile = np.exp(-0.5 * (diff / sigma)**2) / (sigma * np.sqrt(2.0 * np.pi))
+    elif btype == 'lorentzian':
+        hwhm    = 0.5 * fwhm
+        profile = (hwhm / np.pi) / (diff**2 + hwhm**2)
+    else:
+        raise ValueError("broad_type must be 'gaussian' or 'lorentzian'")
+
+    intensity = np.einsum('em, m -> e', profile, I_mode)
+
+    return energy_grid, intensity
+
+
+def exc_raman_spectrum_oneph(laser_energy, ph_energies,
+                             exc_energies=None, exc_dipoles=None,
+                             exc_ph_mat_el=None, n_kpts=None, cell_vol=None,
+                             raman_tensor=None,
+                             broad=0.1, ph_freq_threshold=5.0,
+                             energy_grid=None, energy_units='cm-1',
+                             spectrum_broad=0.1, broad_type='lorentzian',
+                             pol_in=None, pol_out=None,
+                             precision='d'):
+    """
+    1-phonon excitonic Raman spectrum at a single laser energy (Stokes).
+
+    Excitonic analogue of `ip_raman_spectrum_oneph`. Implements the
+    "place each phonon peak on the energy axis with a broadening" step
+    on top of the excitonic Raman tensor returned by
+    `exc_resonant_raman_tensor_oneph`:
+
+        I(E) = Σ_λ |M^{μν}(ω_L, ω_λ)|² · δ(E − ℏω_λ)
+
+    The δ-function is replaced by a Lorentzian (default) or Gaussian of
+    FWHM `spectrum_broad`.
+
+    If `raman_tensor` is given, it is used directly and the excitonic
+    tensor calculation is skipped.
+
+    Parameters
+    ----------
+    laser_energy : float
+        Single laser energy ω_L in eV.
+    ph_energies : (nmodes,) float ndarray
+        Phonon energies at q=0 in eV (used to place each peak and,
+        if ``raman_tensor is None``, forwarded to the tensor function).
+    exc_energies, exc_dipoles, exc_ph_mat_el, n_kpts, cell_vol : optional
+        Required only when ``raman_tensor is None``. Same meaning as in
+        `exc_resonant_raman_tensor_oneph`.
+    raman_tensor : (nmodes, 3, 3) or (1, nmodes, 3, 3) complex ndarray, optional
+        Pre-computed excitonic Raman tensor at the single laser energy
+        of interest (as returned by `exc_resonant_raman_tensor_oneph`).
+    broad : float, optional
+        Lorentzian broadening (eV) for the electronic / excitonic Γ.
+        Default: 0.1.
+    ph_freq_threshold : float, optional
+        Acoustic-mode cutoff in cm^-1 passed to the tensor function.
+        Acoustic modes are KEPT in the output spectrum so the user can
+        inspect their (typically tiny / noise-level) contribution.
+        Default: 5.
+    energy_grid : 1D ndarray, optional
+        Energy grid on which the spectrum is evaluated, in
+        `energy_units`. Auto-built around the phonon range when None.
+    energy_units : {'cm-1', 'eV'}, optional
+        Units of the output `energy_grid` and of `spectrum_broad`.
+        Default: 'cm-1'.
+    spectrum_broad : float, optional
+        FWHM of the broadening function applied to each phonon peak,
+        in `energy_units`. Default: 0.1.
+    broad_type : {'lorentzian', 'gaussian'}, optional
+        Shape of the broadening function. Default: 'lorentzian'.
+    pol_in, pol_out : array-like of shape (3,), optional
+        Incoming / outgoing photon polarisation Cartesian 3-vectors
+        (complex allowed). If both are given, the per-mode intensity is
+        ``|Σ_{μν} e_out[μ] R[λ,μ,ν] e_in[ν]|²`` (vectors normalised
+        internally). If either is None (default), the unpolarised D1
+        sum is used: ``I_λ = Σ_{μν} |R[λ,μ,ν]|²``.
+    precision : {'d', 's'}, optional
+        Forwarded to `exc_resonant_raman_tensor_oneph` when the tensor
+        is computed inside this function. Default: 'd'.
+
+    Returns
+    -------
+    energy_grid : (nE,) float ndarray
+        Energy axis in `energy_units`.
+    intensity   : (nE,) float ndarray
+        Raman intensity at each energy.
+    """
+    # ---- Compute or accept the Raman tensor -------------------------------
+    nmodes = int(ph_energies.shape[0])
+    if raman_tensor is None:
+        for name, arr in (('exc_energies',  exc_energies),
+                          ('exc_dipoles',   exc_dipoles),
+                          ('exc_ph_mat_el', exc_ph_mat_el),
+                          ('n_kpts',        n_kpts),
+                          ('cell_vol',      cell_vol)):
+            if arr is None:
+                raise ValueError("`%s` must be provided when `raman_tensor` is None"
+                                 % name)
+        R = exc_resonant_raman_tensor_oneph(
+                np.array([float(laser_energy)]),
+                ph_energies, exc_energies, exc_dipoles, exc_ph_mat_el,
+                n_kpts, cell_vol,
+                broad=broad, ph_freq_threshold=ph_freq_threshold,
+                precision=precision)
+        R = R[0]                                              # (nmodes, 3, 3)
+    else:
+        R = np.asarray(raman_tensor)
+        if R.ndim == 4 and R.shape[0] == 1:
+            R = R[0]
+        if R.shape != (nmodes, 3, 3):
+            raise ValueError("raman_tensor shape %s != (%d, 3, 3)" %
+                             (tuple(R.shape), nmodes))
+
+    # ---- Per-mode intensity ----------------------------------------------
+    if (pol_in is None) or (pol_out is None):
+        I_mode = np.sum(np.abs(R)**2, axis=(1, 2))            # (nmodes,)
+    else:
+        e_in  = np.asarray(pol_in,  dtype=complex)
+        e_out = np.asarray(pol_out, dtype=complex)
+        e_in  = e_in  / np.linalg.norm(e_in)
+        e_out = e_out / np.linalg.norm(e_out)
+        amp   = np.einsum('m, lmn, n -> l', e_out, R, e_in)
+        I_mode = np.abs(amp)**2                                # (nmodes,)
+
+    # ---- Energy axis and broadening unit conversions ---------------------
+    units = str(energy_units).strip().lower()
+    if units in ('cm-1', 'cm^-1', 'cm', 'wavenumber'):
+        ph_axis = np.asarray(ph_energies) * _EV_TO_CM1
+    elif units in ('ev',):
+        ph_axis = np.asarray(ph_energies, dtype=float)
+    else:
+        raise ValueError("energy_units must be 'cm-1' or 'eV'")
+
+    fwhm = float(spectrum_broad)
+    if fwhm <= 0.:
+        raise ValueError("spectrum_broad (FWHM) must be > 0")
+
+    if energy_grid is None:
+        emin = min(0.0, float(np.min(ph_axis)) - 5.0 * fwhm)
+        emax = float(np.max(ph_axis)) + 5.0 * fwhm
+        step = max(fwhm / 4.0, (emax - emin) / 5000.0)
+        energy_grid = np.arange(emin, emax + step, step)
+    energy_grid = np.asarray(energy_grid, dtype=float)
+
+    # ---- Place each mode's intensity on the energy grid ------------------
+    diff  = energy_grid[:, None] - ph_axis[None, :]            # (nE, nmodes)
     btype = str(broad_type).strip().lower()
     if btype == 'gaussian':
         sigma   = fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0)))
