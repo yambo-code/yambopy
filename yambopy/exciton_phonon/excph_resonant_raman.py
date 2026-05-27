@@ -570,3 +570,386 @@ def exc_raman_spectrum_oneph(laser_energy, ph_energies,
     intensity = np.einsum('em, m -> e', profile, I_mode)
 
     return energy_grid, intensity
+
+
+# =============================================================================
+# Diagnostic helpers — inspect every intermediate of the excitonic Raman
+# tensor at a SINGLE laser energy. Pure numpy (no numba) so the code is easy
+# to read; use for debugging / spectrum inspection.
+# =============================================================================
+
+def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
+                               exc_dipoles, exc_ph_mat_el, n_kpts, cell_vol,
+                               broad=0.1, ph_freq_threshold=5.0,
+                               save_per_pair=False):
+    """
+    Diagnostic version of `exc_resonant_raman_tensor_oneph`. Computes the
+    Raman tensor at a SINGLE laser energy in pure numpy and returns every
+    intermediate quantity that goes into it.
+
+    The returned dict is intended to be fed to `save_raman_components`,
+    which writes it both as a single .npz archive and as a folder of
+    column-format .dat files suitable for gnuplot.
+
+    Parameters
+    ----------
+    laser_energy : float
+        Single laser energy omega_L in eV.
+    ph_energies, exc_energies, exc_dipoles, exc_ph_mat_el, n_kpts, cell_vol :
+        Same as `exc_resonant_raman_tensor_oneph`.
+    broad, ph_freq_threshold :
+        Same as `exc_resonant_raman_tensor_oneph`.
+    save_per_pair : bool, optional
+        If True, include the full complex
+        (nmodes, 3, 3, nexc, nexc) per-pair amplitudes in the dict.
+        Memory ~ nmodes * 9 * nexc^2 * 16 bytes. Off by default.
+
+    Returns
+    -------
+    dict
+        See README produced by `save_raman_components` for the
+        complete list of keys.
+    """
+    cm1_to_Ha = 0.12398e-3 / ha2ev
+
+    # ----- Unit conversion (eV -> Ha) ------------------------------------
+    wL           = float(laser_energy) / ha2ev
+    ph_Ha        = np.asarray(ph_energies,  dtype=float) / ha2ev
+    exc_Ha       = np.asarray(exc_energies, dtype=float) / ha2ev
+    broad_Ha     = (broad / ha2ev) / 2.0
+    ph_thresh_Ha = ph_freq_threshold * cm1_to_Ha
+    ram_fac      = 1.0 / float(n_kpts) / np.sqrt(cell_vol)
+
+    nmodes = ph_Ha.shape[0]
+    nexc   = exc_Ha.shape[0]
+
+    BS_energies = exc_Ha - 1j * broad_Ha   # E_lam - i*Gamma/2
+
+    D_emi = np.asarray(exc_dipoles, dtype=complex)
+    D_abs = np.conj(D_emi)
+
+    inv_denom_res_v1  = 1.0 / (wL - BS_energies)                              # (nexc,)
+    inv_denom_ares_v1 = 1.0 / (wL + BS_energies)
+    inv_denom_res_v2  = 1.0 / (wL - BS_energies[None, :] - ph_Ha[:, None])    # (nmodes, nexc)
+    inv_denom_ares_v2 = 1.0 / (wL + BS_energies[None, :] - ph_Ha[:, None])
+
+    dipS_res   = D_abs * inv_denom_res_v1[None, :]                            # (3, nexc)
+    dipS_ares  = D_emi * inv_denom_ares_v1[None, :]
+    dipSp_res  = D_emi[None, :, :] * inv_denom_res_v2[:, None, :]             # (nmodes, 3, nexc)
+    dipSp_ares = D_abs[None, :, :] * inv_denom_ares_v2[:, None, :]
+
+    exc_ph_abs = np.asarray(exc_ph_mat_el, dtype=complex)   # yambopy raw (mode, init, fin)
+    exc_ph_emi = np.conj(exc_ph_abs)                         # Stokes / emission
+
+    radiation_factor = np.sqrt(np.abs(wL - ph_Ha) / wL)
+    active_modes     = np.abs(ph_Ha) > ph_thresh_Ha
+    prefactor        = radiation_factor * ram_fac            # (nmodes,) real
+
+    term_res  = np.einsum('al, mLl, mbL -> mab',
+                          dipS_res,  exc_ph_emi, dipSp_res,  optimize=True)
+    term_ares = np.einsum('al, mLl, mbL -> mab',
+                          dipS_ares, exc_ph_abs, dipSp_ares, optimize=True)
+
+    term_res  = term_res  * prefactor[:, None, None]
+    term_ares = term_ares * prefactor[:, None, None]
+    term_res[~active_modes]  = 0.0
+    term_ares[~active_modes] = 0.0
+    raman_tensor = term_res + term_ares
+
+    # Per-pair factorized intensity (sum over polarizations); cheap & always returned.
+    A_res     = np.sum(np.abs(dipS_res)**2,  axis=0)
+    A_ares    = np.sum(np.abs(dipS_ares)**2, axis=0)
+    B_res     = np.sum(np.abs(dipSp_res)**2,  axis=1)
+    B_ares    = np.sum(np.abs(dipSp_ares)**2, axis=1)
+    g_sq_pair = (np.abs(exc_ph_abs)**2).transpose(0, 2, 1)
+    pref_sq   = (prefactor**2)[:, None, None]
+
+    pair_intensity_res  = (A_res[None, :, None]  * g_sq_pair * B_res[:, None, :]) * pref_sq
+    pair_intensity_ares = (A_ares[None, :, None] * g_sq_pair * B_ares[:, None, :]) * pref_sq
+    pair_intensity_res[~active_modes]  = 0.0
+    pair_intensity_ares[~active_modes] = 0.0
+
+    components = {
+        'laser_energy_eV'         : float(laser_energy),
+        'broad_eV'                : float(broad),
+        'ph_freq_threshold_cm-1'  : float(ph_freq_threshold),
+        'n_kpts'                  : int(n_kpts),
+        'cell_vol_bohr3'          : float(cell_vol),
+        'ram_fac'                 : float(ram_fac),
+        'exc_energies_eV'         : exc_Ha * ha2ev,
+        'exc_energies_Ha'         : exc_Ha,
+        'ph_energies_eV'          : ph_Ha * ha2ev,
+        'ph_energies_Ha'          : ph_Ha,
+        'active_modes'            : active_modes.astype(np.int64),
+        'exc_dip_emi'             : D_emi,
+        'exc_dip_absorp'          : D_abs,
+        'exc_ph_abs'              : exc_ph_abs,
+        'exc_ph_emi'              : exc_ph_emi,
+        'inv_denom_res_v1'        : inv_denom_res_v1,
+        'inv_denom_ares_v1'       : inv_denom_ares_v1,
+        'inv_denom_res_v2'        : inv_denom_res_v2,
+        'inv_denom_ares_v2'       : inv_denom_ares_v2,
+        'dipS_res'                : dipS_res,
+        'dipS_ares'               : dipS_ares,
+        'dipSp_res'               : dipSp_res,
+        'dipSp_ares'              : dipSp_ares,
+        'radiation_factor'        : radiation_factor,
+        'pair_intensity_res'      : pair_intensity_res,
+        'pair_intensity_ares'     : pair_intensity_ares,
+        'term_res'                : term_res,
+        'term_ares'               : term_ares,
+        'raman_tensor'            : raman_tensor,
+    }
+
+    if save_per_pair:
+        per_pair_res  = np.einsum('al, mLl, mbL -> mablL',
+                                  dipS_res,  exc_ph_emi, dipSp_res,  optimize=True)
+        per_pair_ares = np.einsum('al, mLl, mbL -> mablL',
+                                  dipS_ares, exc_ph_abs, dipSp_ares, optimize=True)
+        per_pair_res  = per_pair_res  * prefactor[:, None, None, None, None]
+        per_pair_ares = per_pair_ares * prefactor[:, None, None, None, None]
+        per_pair_res[~active_modes]  = 0.0
+        per_pair_ares[~active_modes] = 0.0
+        components['per_pair_res']  = per_pair_res
+        components['per_pair_ares'] = per_pair_ares
+
+    return components
+
+
+def save_raman_components(components, out_dir='raman_components',
+                          top_n_pairs=20, heatmap_modes='auto'):
+    """
+    Persist a diagnostic dict from `exc_raman_components_oneph` to disk.
+
+    Writes one compressed .npz archive containing every array, plus a
+    set of column-format .dat files for gnuplot, plus a README and a
+    sample plot.gp.
+
+    Parameters
+    ----------
+    components : dict
+        As returned by `exc_raman_components_oneph`.
+    out_dir : str
+        Folder to create / overwrite.
+    top_n_pairs : int
+        Number of dominant (lambda1, lambda2) pairs listed per active mode.
+    heatmap_modes : {'auto', 'all', None} or list of int
+        Which modes get a full nexc x nexc pair-intensity heatmap file.
+        'auto' = top 3 by |R|^2 (default). 'all' = every active mode.
+        None = skip. Explicit list = those mode indices.
+    """
+    import os
+
+    os.makedirs(out_dir, exist_ok=True)
+
+    # 1. npz with everything
+    array_components = {}
+    for k, v in components.items():
+        try:
+            array_components[k] = np.asarray(v)
+        except (TypeError, ValueError):
+            pass
+    np.savez_compressed(os.path.join(out_dir, 'components.npz'),
+                        **array_components)
+
+    wL_eV   = float(components['laser_energy_eV'])
+    ph_eV   = np.asarray(components['ph_energies_eV'])
+    exc_eV  = np.asarray(components['exc_energies_eV'])
+    active  = np.asarray(components['active_modes']).astype(bool)
+    rad_fac = np.asarray(components['radiation_factor'])
+    nmodes  = ph_eV.shape[0]
+    nexc    = exc_eV.shape[0]
+    ph_cm   = ph_eV * _EV_TO_CM1
+
+    term_res  = np.asarray(components['term_res'])
+    term_ares = np.asarray(components['term_ares'])
+    raman_t   = np.asarray(components['raman_tensor'])
+
+    mod_res_sum  = np.sum(np.abs(term_res)**2,  axis=(1, 2))
+    mod_ares_sum = np.sum(np.abs(term_ares)**2, axis=(1, 2))
+    mod_total    = np.sum(np.abs(raman_t)**2,   axis=(1, 2))
+
+    # 2. summary_modes.dat
+    with open(os.path.join(out_dir, 'summary_modes.dat'), 'w') as f:
+        f.write('# Excitonic Raman diagnostics at laser_energy = %.6f eV\n' % wL_eV)
+        f.write('# 1:mode_idx  2:ph_freq_cm-1  3:ph_freq_eV  '
+                '4:|R_res|^2_sum  5:|R_ares|^2_sum  6:|R_total|^2_sum  '
+                '7:radiation_factor  8:active(1)/skipped(0)\n')
+        for m in range(nmodes):
+            f.write('%6d  %14.4f  %14.6e  %16.6e  %16.6e  %16.6e  %12.4e  %d\n'
+                    % (m, ph_cm[m], ph_eV[m],
+                       mod_res_sum[m], mod_ares_sum[m], mod_total[m],
+                       rad_fac[m], int(active[m])))
+
+    # 3. summary_excitons.dat
+    D_emi         = np.asarray(components['exc_dip_emi'])
+    inv_d_res_v1  = np.asarray(components['inv_denom_res_v1'])
+    inv_d_ares_v1 = np.asarray(components['inv_denom_ares_v1'])
+    Dx, Dy, Dz = np.abs(D_emi[0]), np.abs(D_emi[1]), np.abs(D_emi[2])
+    D_sq = Dx**2 + Dy**2 + Dz**2
+
+    with open(os.path.join(out_dir, 'summary_excitons.dat'), 'w') as f:
+        f.write('# Excitonic Raman diagnostics at laser_energy = %.6f eV\n' % wL_eV)
+        f.write('# 1:exc_idx  2:E_eV  3:|D_x|  4:|D_y|  5:|D_z|  6:|D|^2  '
+                '7:|1/denom_res_v1|  8:|1/denom_ares_v1|\n')
+        for l in range(nexc):
+            f.write('%6d  %14.6f  %14.6e  %14.6e  %14.6e  %14.6e  %14.6e  %14.6e\n'
+                    % (l, exc_eV[l], Dx[l], Dy[l], Dz[l], D_sq[l],
+                       np.abs(inv_d_res_v1[l]), np.abs(inv_d_ares_v1[l])))
+
+    # 4. dominant pairs per mode
+    pair_res   = np.asarray(components['pair_intensity_res'])
+    pair_ares  = np.asarray(components['pair_intensity_ares'])
+    pair_total = pair_res + pair_ares
+    exc_ph_abs = np.asarray(components['exc_ph_abs'])
+    g_abs_sq   = np.abs(exc_ph_abs)**2
+
+    pairs_dir = os.path.join(out_dir, 'pairs_per_mode')
+    os.makedirs(pairs_dir, exist_ok=True)
+    for m in range(nmodes):
+        if not active[m]:
+            continue
+        flat = pair_total[m].ravel()
+        if not np.any(flat > 0):
+            continue
+        n_top = min(top_n_pairs, flat.size)
+        top_idx = np.argsort(flat)[::-1][:n_top]
+        L1, L2 = np.unravel_index(top_idx, pair_total[m].shape)
+        filename = os.path.join(pairs_dir, 'pairs_mode_%03d.dat' % m)
+        with open(filename, 'w') as f:
+            f.write('# Top %d pair contributions, mode %d '
+                    '(omega = %.2f cm-1, %.4f eV)\n'
+                    % (n_top, m, ph_cm[m], ph_eV[m]))
+            f.write('# laser_energy = %.6f eV\n' % wL_eV)
+            f.write('# lambda1 = first-vertex exciton; lambda2 = second-vertex exciton\n')
+            f.write('# 1:rank  2:lambda1  3:lambda2  4:E_lambda1_eV  5:E_lambda2_eV  '
+                    '6:|g(lambda2,lambda1)|^2  7:|c_res|^2  8:|c_ares|^2  9:|c_total|^2\n')
+            for rank, (l1, l2) in enumerate(zip(L1, L2), start=1):
+                f.write('%6d  %6d  %6d  %14.6f  %14.6f  %14.6e  '
+                        '%14.6e  %14.6e  %14.6e\n'
+                        % (rank, l1, l2,
+                           exc_eV[l1], exc_eV[l2],
+                           g_abs_sq[m, l2, l1],
+                           pair_res[m, l1, l2],
+                           pair_ares[m, l1, l2],
+                           pair_total[m, l1, l2]))
+
+    # 5. heatmap files
+    if heatmap_modes is None:
+        chosen = []
+    elif isinstance(heatmap_modes, str):
+        opt = heatmap_modes.strip().lower()
+        if opt == 'all':
+            chosen = [m for m in range(nmodes) if active[m]]
+        elif opt == 'auto':
+            ranked = np.argsort(mod_total)[::-1]
+            chosen = [int(m) for m in ranked if active[m]][:3]
+        else:
+            raise ValueError("heatmap_modes string must be 'auto' or 'all'")
+    else:
+        chosen = [int(m) for m in heatmap_modes]
+    if chosen:
+        heatmap_dir = os.path.join(out_dir, 'heatmaps')
+        os.makedirs(heatmap_dir, exist_ok=True)
+        for m in chosen:
+            filename = os.path.join(heatmap_dir, 'pair_intensity_mode_%03d.dat' % m)
+            with open(filename, 'w') as f:
+                f.write('# Pair intensity heatmap, mode %d '
+                        '(omega = %.2f cm-1, %.4f eV)\n'
+                        % (m, ph_cm[m], ph_eV[m]))
+                f.write('# laser_energy = %.6f eV\n' % wL_eV)
+                f.write('# gnuplot:  splot "%s" u 1:2:5 with image\n'
+                        % os.path.basename(filename))
+                f.write('# 1:lambda1  2:lambda2  3:|c_res|^2  4:|c_ares|^2  5:|c_total|^2\n')
+                for l1 in range(nexc):
+                    for l2 in range(nexc):
+                        f.write('%6d  %6d  %14.6e  %14.6e  %14.6e\n'
+                                % (l1, l2,
+                                   pair_res[m, l1, l2],
+                                   pair_ares[m, l1, l2],
+                                   pair_total[m, l1, l2]))
+                    f.write('\n')
+
+    # 6. README and plot.gp
+    with open(os.path.join(out_dir, 'README.txt'), 'w') as f:
+        f.write(
+            'Excitonic Raman diagnostic dump\n'
+            'Generated by save_raman_components(...).\n\n'
+            'Laser energy : %.6f eV\n'
+            'Broadening   : %.4f eV (electronic Gamma, full width)\n'
+            'Nmodes       : %d   Nexc : %d\n\n'
+            'Files\n-----\n'
+            'components.npz\n'
+            '    Compressed numpy archive with every array of the diagnostic\n'
+            '    dict (use np.load(...) in Python).\n\n'
+            'summary_modes.dat\n'
+            '    One row per phonon mode. Columns:\n'
+            '    1 mode_idx | 2 ph_freq (cm-1) | 3 ph_freq (eV)\n'
+            '    4 |R_res|^2_sum_ab | 5 |R_ares|^2_sum_ab | 6 |R_total|^2_sum_ab\n'
+            '    7 radiation_factor sqrt(|wL-wph|/wL) | 8 active(1)/skipped(0)\n\n'
+            'summary_excitons.dat\n'
+            '    One row per exciton state. Columns:\n'
+            '    1 exc_idx | 2 E (eV) | 3 |Dx| | 4 |Dy| | 5 |Dz| | 6 |D|^2\n'
+            '    7 |1/(wL - E + iG/2)| | 8 |1/(wL + E - iG/2)|\n\n'
+            'pairs_per_mode/pairs_mode_NNN.dat\n'
+            '    Top-N most contributing (lambda1, lambda2) pairs per active\n'
+            '    mode. Ranked by |c_res|^2 + |c_ares|^2.\n'
+            '    Columns: rank, lambda1, lambda2, E1, E2, |g|^2, |c_res|^2,\n'
+            '             |c_ares|^2, |c_total|^2\n\n'
+            'heatmaps/pair_intensity_mode_NNN.dat\n'
+            '    Full (nexc x nexc) pair-intensity table for selected modes,\n'
+            '    in gnuplot matrix-with-coordinates format (blank line between\n'
+            '    rows). Columns: lambda1, lambda2, |c_res|^2, |c_ares|^2,\n'
+            '    |c_total|^2\n\n'
+            'Conventions\n-----------\n'
+            '  lambda1 = first-vertex exciton (couples to incoming photon)\n'
+            '  lambda2 = second-vertex exciton (couples to outgoing photon)\n'
+            '  exc_ph[m, init, fin] = yambopy raw absorption-form matrix\n'
+            '  element. The Raman formula uses exc_ph[m, lambda2, lambda1].\n\n'
+            'See plot.gp in this folder for example gnuplot commands.\n'
+            % (wL_eV, float(components['broad_eV']), nmodes, nexc))
+
+    with open(os.path.join(out_dir, 'plot.gp'), 'w') as f:
+        f.write(
+            '# Quick gnuplot recipe for the Raman diagnostic dump.\n'
+            '# Run inside this folder:  gnuplot plot.gp\n\n'
+            'set terminal pdfcairo size 9in,7in enhanced font "Helvetica,11"\n'
+            'set output "diagnostic.pdf"\n'
+            'set grid\n\n'
+            'set multiplot layout 2,2 title '
+            '"Excitonic Raman diagnostic at omega_L = %.3f eV"\n\n'
+            '# (1) Mode-resolved spectrum\n'
+            'set title "Per-mode |R|^2 (sum over polarisations)"\n'
+            'set xlabel "Raman shift (cm^{-1})"\n'
+            'set ylabel "|R|^2 (arb.u.)"\n'
+            'plot "summary_modes.dat" u 2:6 w impulses lw 2 t "total", \\\n'
+            '     ""                   u 2:4 w impulses lw 1 lt 3 t "resonant only"\n\n'
+            '# (2) Exciton oscillator strengths\n'
+            'set title "Exciton |D|^2 vs E"\n'
+            'set xlabel "Exciton energy (eV)"\n'
+            'set ylabel "|D|^2"\n'
+            'plot "summary_excitons.dat" u 2:6 w impulses lw 1.5 notitle\n\n'
+            '# (3) Resonance pattern\n'
+            'set title "Resonance: |1/(omega_L - E +/- iGamma/2)|"\n'
+            'set xlabel "Exciton energy (eV)"\n'
+            'set ylabel "|1/denom|"\n'
+            'plot "summary_excitons.dat" u 2:7 w l lw 1.5 t "resonant", \\\n'
+            '     ""                     u 2:8 w l lw 1   t "anti-resonant"\n\n'
+            '# (4) Top-pair contributions for the brightest mode\n'
+            'set title "Top 20 (lambda1, lambda2) contributions"\n'
+            'set xlabel "Rank"\n'
+            'set ylabel "|c_total|^2"\n'
+            'set logscale y\n'
+            'plot for [f in system("ls pairs_per_mode/pairs_mode_*.dat | head -1")] \\\n'
+            '     f u 1:9 w impulses lw 2 t f\n\n'
+            'unset multiplot\n'
+            'unset output\n\n'
+            '# Pair-intensity heatmap (if heatmaps/ exists), uncomment:\n'
+            '#   set terminal pdfcairo size 6in,5in\n'
+            '#   set output "heatmap.pdf"\n'
+            '#   set title "|c_total|^2(lambda1, lambda2)"\n'
+            '#   set xlabel "lambda1"; set ylabel "lambda2"\n'
+            '#   set palette defined (0 "white", 0.5 "orange", 1 "red")\n'
+            '#   set logscale cb\n'
+            '#   splot "heatmaps/pair_intensity_mode_012.dat" u 1:2:5 w image\n'
+            % wL_eV)
