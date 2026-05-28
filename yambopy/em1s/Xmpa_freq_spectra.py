@@ -1,4 +1,4 @@
-#
+
 # License-Identifier: GPL
 #
 # Copyright (C) 2024 The Yambo Team
@@ -126,7 +126,7 @@ class XmpaDB(object):
         #set the number of fragments to read
         if isinstance(nqs,int):
            self.range_nqs=[nqs]
-        elif isinstance(nqs,list):
+        elif isinstance(nqs,list) or isinstance(nqs,range):
            self.range_nqs=nqs
         else:
            self.range_nqs=range(self.nqpoints)                
@@ -137,6 +137,7 @@ class XmpaDB(object):
             if not os.path.isfile("%s/%s_fragment_%d"%(self.mpa,self.filename,iQ+1)): read_fragments=False
         if read_fragments: self.readDBs(self.range_nqs) # get sqrt(v)*X*sqrt(v)
 
+        self.readDBs(self.range_nqs)
         #get qpg
         self.get_Coulomb()
 
@@ -187,7 +188,7 @@ class XmpaDB(object):
 
         alloc_dim=0
         if self.rim==True:
-           database = Dataset("%s/ndb.RIM"%self.mpa, 'r') 
+           database = Dataset("%s/ndb.RIM"%self.coul, 'r') 
            alloc_dim=database.variables["RIM_qpg"].shape[0]
            q_p_G[:,:alloc_dim] = np.array(np.diagonal(database.variables["RIM_qpg"],axis1=0, axis2=1))
            self.sqrt_V[:,:alloc_dim] = np.sqrt(q_p_G[:,:alloc_dim])
@@ -212,8 +213,8 @@ class XmpaDB(object):
                 for ig in range(alloc_dim,self.size):
                         Q = 2.*np.pi*self.car_qpoints[iq]
                         G = 2.*np.pi*self.gvectors[ig]
-                        q_p_G[:,ig] = nrm(Q+G)
-                        if (q_p_G[:,ig]==0.0): q_p_G[:,ig]=1.e-8
+                        q_p_G[iq,ig] = nrm(Q+G)
+                        if (q_p_G[iq,ig]==0.0): q_p_G[iq,ig]=1.e-8
 
             self.sqrt_V[:,alloc_dim:self.size] = np.sqrt(self.d3kfactor*4*np.pi)/q_p_G[:,alloc_dim:self.size]
 
