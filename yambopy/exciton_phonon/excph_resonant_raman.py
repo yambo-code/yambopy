@@ -953,3 +953,156 @@ def save_raman_components(components, out_dir='raman_components',
             '#   set logscale cb\n'
             '#   splot "heatmaps/pair_intensity_mode_012.dat" u 1:2:5 w image\n'
             % wL_eV)
+
+
+def save_resonance_heatmap(components, mode_idx, out_path=None):
+    """
+    Write a (nexc x nexc) heatmap of the bare resonance denominators for a
+    single phonon mode — no dipoles, no phonon matrix elements.
+
+    Each cell (l1, l2) contains:
+
+        res_map[l1, l2]  = |1/(wL - E_l1 + iG/2)| * |1/(wL - E_l2 - wph + iG/2)|
+        ares_map[l1, l2] = |1/(wL + E_l1 - iG/2)| * |1/(wL + E_l2 - wph - iG/2)|
+
+    This shows the pure double-resonance landscape: which (l1, l2) pairs are
+    simultaneously resonant at both photon vertices, irrespective of whether
+    they are optically bright or phonon-connected.
+
+    Parameters
+    ----------
+    components : dict
+        As returned by `exc_raman_components_oneph`.
+    mode_idx : int
+        Index of the phonon mode to plot.
+    out_path : str or None
+        File path for the output .dat file.  If None, defaults to
+        'resonance_heatmap_mode_<mode_idx>.dat' in the current directory.
+
+    Returns
+    -------
+    res_map  : (nexc, nexc) float ndarray
+    ares_map : (nexc, nexc) float ndarray
+    """
+    import os
+
+    inv_v1_res  = np.abs(np.asarray(components['inv_denom_res_v1']))   # (nexc,)
+    inv_v1_ares = np.abs(np.asarray(components['inv_denom_ares_v1']))
+    inv_v2_res  = np.abs(np.asarray(components['inv_denom_res_v2']))   # (nmodes, nexc)
+    inv_v2_ares = np.abs(np.asarray(components['inv_denom_ares_v2']))
+
+    m = int(mode_idx)
+    # outer product: axis-0 = l1 (first vertex), axis-1 = l2 (second vertex)
+    res_map  = np.outer(inv_v1_res,  inv_v2_res[m])   # (nexc, nexc)
+    ares_map = np.outer(inv_v1_ares, inv_v2_ares[m])
+
+    ph_eV  = np.asarray(components['ph_energies_eV'])
+    wL_eV  = float(components['laser_energy_eV'])
+    exc_eV = np.asarray(components['exc_energies_eV'])
+    nexc   = exc_eV.shape[0]
+
+    if out_path is None:
+        out_path = 'resonance_heatmap_mode_%03d.dat' % m
+
+    with open(out_path, 'w') as f:
+        f.write('# Bare resonance heatmap — mode %d '
+                '(omega = %.2f cm-1, %.4f eV)\n'
+                % (m, ph_eV[m] * _EV_TO_CM1, ph_eV[m]))
+        f.write('# laser_energy = %.6f eV\n' % wL_eV)
+        f.write('# No dipoles, no phonon matrix elements.\n')
+        f.write('# res_map[l1,l2]  = |1/(wL-E_l1+iG/2)| * |1/(wL-E_l2-wph+iG/2)|\n')
+        f.write('# ares_map[l1,l2] = |1/(wL+E_l1-iG/2)| * |1/(wL+E_l2-wph-iG/2)|\n')
+        f.write('# gnuplot:  splot "%s" u 1:2:3 with image   (res)\n'
+                % os.path.basename(out_path))
+        f.write('# gnuplot:  splot "%s" u 1:2:4 with image   (ares)\n'
+                % os.path.basename(out_path))
+        f.write('# 1:l1  2:l2  3:res_map  4:ares_map  5:E_l1_eV  6:E_l2_eV\n')
+        for l1 in range(nexc):
+            for l2 in range(nexc):
+                f.write('%6d  %6d  %14.6e  %14.6e  %14.6f  %14.6f\n'
+                        % (l1, l2,
+                           res_map[l1, l2], ares_map[l1, l2],
+                           exc_eV[l1], exc_eV[l2]))
+            f.write('\n')
+
+    return res_map, ares_map
+
+
+def save_dipole_g_dipole_heatmap(components, mode_idx, out_path=None):
+    """
+    Write a (nexc x nexc) heatmap of the bare dipole-phonon-dipole product for
+    a single phonon mode — no energy denominators.
+
+    Each cell (l1, l2) contains:
+
+        dip_g_dip[l1, l2] = |D|²[l1]  *  |g[m, l2, l1]|²  *  |D|²[l2]
+
+    where |D|²[l] = Σ_a |D_emi[a, l]|² is the total oscillator strength of
+    exciton l (summed over Cartesian components), and |g[m, l2, l1]|² is the
+    phonon matrix element squared for mode m connecting l1 -> l2.
+
+    This shows which pairs are simultaneously optically bright and
+    phonon-connected, regardless of their resonance with the laser.
+    Comparing this with the full pair-intensity heatmap reveals how much of
+    the structure comes from the resonance denominators vs. the intrinsic
+    optical / phonon coupling.
+
+    Parameters
+    ----------
+    components : dict
+        As returned by `exc_raman_components_oneph`.
+    mode_idx : int
+        Index of the phonon mode to plot.
+    out_path : str or None
+        File path for the output .dat file.  If None, defaults to
+        'dip_g_dip_heatmap_mode_<mode_idx>.dat' in the current directory.
+
+    Returns
+    -------
+    dip_g_dip : (nexc, nexc) float ndarray
+    """
+    import os
+
+    D_emi    = np.asarray(components['exc_dip_emi'])    # (3, nexc)
+    exc_ph   = np.asarray(components['exc_ph_abs'])     # (nmodes, nexc, nexc) [mode, init, fin]
+    exc_eV   = np.asarray(components['exc_energies_eV'])
+    ph_eV    = np.asarray(components['ph_energies_eV'])
+    wL_eV    = float(components['laser_energy_eV'])
+
+    m   = int(mode_idx)
+    nexc = exc_eV.shape[0]
+
+    D_sq      = np.sum(np.abs(D_emi)**2, axis=0)        # (nexc,)  |D|² per exciton
+    g_sq      = np.abs(exc_ph[m])**2                    # (nexc, nexc) [init, fin]
+    # g_sq[l1, l2] = |g[m, init=l1, fin=l2]|²
+    # We want dip_g_dip[l1, l2] = D_sq[l1] * g_sq[l2, l1] * D_sq[l2]
+    # (l1 is first-vertex, l2 is second-vertex, phonon connects l1->l2
+    #  in the yambopy raw convention [mode, init, fin] where init=l2, fin=l1
+    #  matches exc_ph_emi[m, l2, l1] used in term_res)
+    dip_g_dip = D_sq[:, None] * g_sq.T * D_sq[None, :]  # (nexc, nexc)
+
+    if out_path is None:
+        out_path = 'dip_g_dip_heatmap_mode_%03d.dat' % m
+
+    with open(out_path, 'w') as f:
+        f.write('# Dipole-phonon-dipole heatmap — mode %d '
+                '(omega = %.2f cm-1, %.4f eV)\n'
+                % (m, ph_eV[m] * _EV_TO_CM1, ph_eV[m]))
+        f.write('# laser_energy = %.6f eV  (no denominators)\n' % wL_eV)
+        f.write('# dip_g_dip[l1,l2] = |D|^2[l1] * |g[m,l2,l1]|^2 * |D|^2[l2]\n')
+        f.write('# gnuplot:  splot "%s" u 1:2:3 with image\n'
+                % os.path.basename(out_path))
+        f.write('# 1:l1  2:l2  3:dip_g_dip  4:|D|^2_l1  5:|g|^2  6:|D|^2_l2  '
+                '7:E_l1_eV  8:E_l2_eV\n')
+        for l1 in range(nexc):
+            for l2 in range(nexc):
+                f.write('%6d  %6d  %14.6e  %14.6e  %14.6e  %14.6e  %14.6f  %14.6f\n'
+                        % (l1, l2,
+                           dip_g_dip[l1, l2],
+                           D_sq[l1],
+                           g_sq[l2, l1],
+                           D_sq[l2],
+                           exc_eV[l1], exc_eV[l2]))
+            f.write('\n')
+
+    return dip_g_dip
