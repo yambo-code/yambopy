@@ -2,6 +2,8 @@
 # Authors: PMI, MN
 ##
 
+import warnings
+
 import numpy as np
 from tqdm import tqdm
 from numba import njit, prange
@@ -273,6 +275,36 @@ def exc_resonant_raman_tensor_oneph(laser_energies, ph_energies, exc_energies,
 _EV_TO_CM1 = 8065.54
 
 
+def _per_mode_intensity(R, pol_in=None, pol_out=None):
+    """Per-mode Raman intensity from a Raman tensor.
+
+    Parameters
+    ----------
+    R : (..., nmodes, 3, 3) complex ndarray
+        Raman tensor, optionally carrying leading axes (e.g. a
+        laser-energy probe window of shape (n_probe, nmodes, 3, 3)).
+    pol_in, pol_out : array-like of shape (3,), optional
+        Incoming / outgoing photon polarisation 3-vectors (complex
+        allowed, normalised internally). If either is None the
+        unpolarised Eq. (D1) sum ``Σ_{μν} |R[..,λ,μ,ν]|²`` is used,
+        else ``|Σ_{μν} e_out[μ] R[..,λ,μ,ν] e_in[ν]|²``.
+
+    Returns
+    -------
+    (..., nmodes) real ndarray
+        Intensity per mode, preserving any leading axes of ``R``.
+    """
+    R = np.asarray(R)
+    if (pol_in is None) or (pol_out is None):
+        return np.sum(np.abs(R)**2, axis=(-1, -2))
+    e_in  = np.asarray(pol_in,  dtype=complex)
+    e_out = np.asarray(pol_out, dtype=complex)
+    e_in  = e_in  / np.linalg.norm(e_in)
+    e_out = e_out / np.linalg.norm(e_out)
+    amp = np.einsum('m, ...lmn, n -> ...l', e_out, R, e_in)
+    return np.abs(amp)**2
+
+
 def ip_raman_spectrum_oneph(laser_energy, ph_energies,
                             el_energies=None, elec_dipoles=None, eph_g=None,
                             cell_vol=None,
@@ -280,7 +312,8 @@ def ip_raman_spectrum_oneph(laser_energy, ph_energies,
                             broad=0.1, ph_freq_threshold=5.0,
                             energy_grid=None, energy_units='cm-1',
                             spectrum_broad=0.1, broad_type='lorentzian',
-                            pol_in=None, pol_out=None):
+                            pol_in=None, pol_out=None,
+                            n_probe=1):
     """
     1-phonon IP Raman spectrum at a single laser energy.
 
@@ -343,6 +376,27 @@ def ip_raman_spectrum_oneph(laser_energy, ph_energies,
         is |Σ_{μν} e_out[μ] R[λ,μ,ν] e_in[ν]|² (vectors normalised
         internally). If either is None (default), the unpolarised D1
         sum is used: I_λ = Σ_{μν} |R[λ,μ,ν]|².
+    n_probe : int, optional
+        Number of laser-energy probe points used for *windowed probing*
+        of the resonance profile. Default 1 (single laser energy ω_L,
+        identical to the previous behaviour).
+
+        For ``n_probe > 1`` the per-mode intensity is integrated over a
+        symmetric window of laser energies centred on ω_L:
+
+            ω_L + k·h ,  k = -(n-1)/2 … +(n-1)/2 ,  h = γ/4 ,  γ = `broad`
+
+        following the windowed-probe recipe (step h tied to the known
+        broadening γ; integral via Simpson, which requires an odd number
+        of points). This catches a resonance sitting near ω_L even when
+        ω_L itself lands on a tail. The per-mode intensity fed to the
+        spectrum is then ``∫ I_λ(ω_L) dω_L`` over the window (Simpson),
+        a conserved-area collapse.
+
+        Requires ``raman_tensor is None`` (the tensor must be recomputed
+        at every probe energy) and ``n_probe`` odd. A warning is issued
+        if the implied window reach (``(n-1)/8`` in units of γ) is much
+        smaller than the ~10γ recommended for a Lorentzian resonance.
 
     Returns
     -------
@@ -351,39 +405,64 @@ def ip_raman_spectrum_oneph(laser_energy, ph_energies,
     intensity   : (nE,) float ndarray
         Raman intensity at each energy.
     """
-    # ---- Compute or accept the Raman tensor -------------------------------
-    nmodes = int(ph_energies.shape[0])
-    if raman_tensor is None:
-        for name, arr in (('el_energies', el_energies),
-                          ('elec_dipoles', elec_dipoles),
-                          ('eph_g', eph_g),
-                          ('cell_vol', cell_vol)):
-            if arr is None:
-                raise ValueError("`%s` must be provided when `raman_tensor` is None" % name)
-        R = ip_resonant_raman_tensor_oneph(
-                np.array([float(laser_energy)]),
-                ph_energies, el_energies, elec_dipoles, eph_g, cell_vol,
-                broad=broad, ph_freq_threshold=ph_freq_threshold)
-        R = R[0]                                          # (nmodes, 3, 3)
-    else:
+    # ---- Compute or accept the Raman tensor, then per-mode intensity ------
+    nmodes  = int(ph_energies.shape[0])
+    n_probe = int(n_probe)
+    if n_probe < 1:
+        raise ValueError("n_probe must be >= 1 (got %d)" % n_probe)
+
+    if raman_tensor is not None:
+        if n_probe > 1:
+            raise ValueError(
+                "windowed probing (n_probe > 1) recomputes the Raman tensor "
+                "at several laser energies and is incompatible with a "
+                "precomputed `raman_tensor`")
         R = np.asarray(raman_tensor)
         if R.ndim == 4 and R.shape[0] == 1:
             R = R[0]
         if R.shape != (nmodes, 3, 3):
             raise ValueError("raman_tensor shape %s != (%d, 3, 3)" %
                              (tuple(R.shape), nmodes))
-
-    # ---- Per-mode intensity ----------------------------------------------
-    if (pol_in is None) or (pol_out is None):
-        # Eq. (D1) sum over polarisation indices
-        I_mode = np.sum(np.abs(R)**2, axis=(1, 2))        # (nmodes,)
+        I_mode = _per_mode_intensity(R, pol_in, pol_out)       # (nmodes,)
     else:
-        e_in  = np.asarray(pol_in,  dtype=complex)
-        e_out = np.asarray(pol_out, dtype=complex)
-        e_in  = e_in  / np.linalg.norm(e_in)
-        e_out = e_out / np.linalg.norm(e_out)
-        amp   = np.einsum('m, lmn, n -> l', e_out, R, e_in)
-        I_mode = np.abs(amp)**2                            # (nmodes,)
+        for name, arr in (('el_energies', el_energies),
+                          ('elec_dipoles', elec_dipoles),
+                          ('eph_g', eph_g),
+                          ('cell_vol', cell_vol)):
+            if arr is None:
+                raise ValueError("`%s` must be provided when `raman_tensor` is None" % name)
+
+        if n_probe == 1:
+            laser_grid = np.array([float(laser_energy)])
+        else:
+            if n_probe % 2 == 0:
+                raise ValueError("n_probe must be odd (Simpson integration "
+                                 "needs an even number of intervals); got %d"
+                                 % n_probe)
+            if broad <= 0.:
+                raise ValueError("windowed probing needs broad (gamma) > 0")
+            h      = broad / 4.0                               # step = gamma/4
+            n_half = (n_probe - 1) // 2
+            laser_grid = float(laser_energy) + np.arange(-n_half, n_half + 1) * h
+            reach_g = n_half * h / broad                       # = n_half/4, in units of gamma
+            if reach_g < 10.0:
+                warnings.warn(
+                    "windowed-probe reach is %.2f*gamma (n_probe=%d, h=gamma/4); "
+                    "the Lorentzian resonance tail recommends ~10-30*gamma "
+                    "(n_probe >= 81). The window only samples the immediate "
+                    "neighbourhood of the laser energy." % (reach_g, n_probe),
+                    stacklevel=2)
+
+        R_win = ip_resonant_raman_tensor_oneph(
+                    laser_grid, ph_energies, el_energies, elec_dipoles, eph_g,
+                    cell_vol, broad=broad, ph_freq_threshold=ph_freq_threshold)
+        I_win = _per_mode_intensity(R_win, pol_in, pol_out)    # (n_probe, nmodes)
+
+        if n_probe == 1:
+            I_mode = I_win[0]                                  # (nmodes,)
+        else:
+            from scipy.integrate import simpson
+            I_mode = simpson(I_win, dx=h, axis=0)              # (nmodes,) conserved area
 
     # ---- Energy axis and broadening unit conversions ---------------------
     units = str(energy_units).strip().lower()
