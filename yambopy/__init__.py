@@ -55,6 +55,9 @@ from yambopy.lattice import *
 #skw interpolator (adapted from abipy version)
 from yambopy.tools.skw import *
 
+#tetrahedron interpolation
+from yambopy.tools.tetra import *
+
 #yambo databases
 from yambopy.dbs.dipolesdb import *
 from yambopy.dbs.qpdb import *
