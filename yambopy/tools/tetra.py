@@ -132,7 +132,7 @@ nfreqs = len(w)
 ## Build tetrahedra connections (fast)
 tetra = get_tetrahedra_mesh(nk1,nk2,nk3,lat.red_kpoints,lat.rlat*lat.alat[0])
 ## Calculate integral (parallel calc)
-DOS   = spectra_tetrahedron(energies,tetra,w,njobs=njobs)
+DOS   = spectra_tetrahedron(energies,tetra,w,nspin=lat.nspin,njobs=njobs)
 
 #
 # Spectral Function case (PDOS in this specific example)
@@ -154,7 +154,7 @@ p_proj_BZ = np.sum(proj_BZ[:,p_states,:],axis=1)   # (iii) Matrix elements of SF
 # Run tetrahedron method (optimized + interpolation of matrix el. [default])
 p_PDOS=spectra_tetrahedron(energies,tetra,w,matels=p_proj_BZ,njobs=njobs)
 # Run tetrahedron method (linear + average of matrix el.)
-#p_PDOS=spectra_tetrahedron(energies,tetra,w,matels=p_proj_BZ,linear=lin,interp_matels=False,njobs=njobs)
+#p_PDOS=spectra_tetrahedron(energies,tetra,w,nspin=lat.nspin,matels=p_proj_BZ,linear=lin,interp_matels=False,njobs=njobs)
 ```
 
 # You can plot (w,DOS) and (w,p_PDOS)
@@ -381,7 +381,7 @@ def spectra_tetrahedron(energies,tetra_mesh,freqs,nspin=2,matels=None,interp_mat
     """
     Calculate a k-integral with the tetrahedron method:
 
-    D(w;q) = \sum_n \int_dk |C_nk(q)|^2 \delta( w-E_nk(q) )
+    D(w;q) = \sum_n \int_dk |C_nk(q)|^2 \delta( w-E_nk(q) )  * nspin / ntetra
 
     If the expression depends on multiple state and momenta 
     indices and energies (e.g., lifetimes, spectral functions 
@@ -398,6 +398,10 @@ def spectra_tetrahedron(energies,tetra_mesh,freqs,nspin=2,matels=None,interp_mat
     energies   -> pole energies in eV [e_nk], 
                   must be an array of shape (N_momenta, N_states)
     freqs      -> Evaluation energies in eV [w] (np array)
+    nspin      -> Spin factor [Default 2, optional, you can provide lat.nspin]: 
+                  * nspin=2 collinear nonmagnetic
+                  * nspin=1 noncollinear (SOC)
+                  * nspin=1 magnetic (provide spin-polarized bands and matels)
     matels     -> matrix elements squared [|C_nk|^2, optional], 
                   must be an array of shape (N_momenta,N_states).
                   * If None:     DOS calculation.
