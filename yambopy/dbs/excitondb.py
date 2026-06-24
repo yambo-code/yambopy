@@ -15,7 +15,7 @@ from itertools import product
 from yambopy.units import ha2ev, I
 from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz
 from yambopy.lattice import replicate_red_kmesh, calculate_distances, car_red, red_car
-from yambopy.kpoints import get_path, get_path_car, check_kgrid
+from yambopy.kpoints import get_path, get_path_car, check_kgrid, build_ktree, find_kpt
 from yambopy.tools.funcs import gaussian, lorentzian, boltzman_f, abs2
 from yambopy.tools.string import marquee
 from yambopy.tools.types import CmplxType
@@ -496,6 +496,98 @@ class YamboExcitonDB(object):
         else:
             return [w, sbasis_r]
 
+    def get_Bkij_projected(self,projections=None,dbs=None,dump=False):
+        """
+        Project the exciton eigenvectors on the basis of atomic orbitals using
+        the projections calculated with projwfc.x.
+
+        NOTE: the projwfc calculation must be run on the same nscf save folder
+              used to generate the Yambo SAVE and BSE calculations
+        
+        The eigens projected on the Bloch basis \psi_{nk} are defined as:
+        
+        \Psi^{a,Q}(r_h,r_e) =\sum_{cvk} A^{a,Q}_{kcv}\psi^*_{vk-Q}(r_h)\psi_{ck}(r_e)
+
+        We can obtain the coefficients projected on atomic orbitals \phi_i as:
+
+        \Psi^{a,Q}(r_h,r_e) =\sum_{cvk} B^{a,Q}_{kij}\phi^*_{j}(r_h)\phi_{i}(r_e)
+        
+        if we have the atomic orbital projections \psi_{nk}(r) = \sum_{i} a^i_{nk} \phi^i(r).
+        The B-coefficients are given by: 
+
+            B^{a,Q}_{kij}=\sum_{kcv} A^{a,Q}_{kcv} a^{j,*}_{vk} a^i_{ck}
+
+        The indices i,j refer to atom-orbital labels that can be queried with ProjwfcXML functions
+        and allow for grouping hole and electron subsystems in real space, giving a 
+        "electron-hole" hopping picture of the exciton.
+
+        Parameters
+        ----------
+        projections -> np ndarray, complex, (nk_bz, n_proj, n_bands), optional
+                       This array is produced by expanding the QE atomic orbital projections
+                       to the full BZ by ProjwfcXML.rotate_proj().
+                       * n_bands must match the BS bands 
+                       * if magnetic, it is a list [proj_spin1, proj_spin2]
+                       * if None, dbs will be used to calculate Dmat and rotate the IBZ projs
+        dbs         -> list of yambopy objects as [ProjwfcXML, YamboWFDB], optional
+                       * if projections is given, dbs is not used
+        dump -> optional, default False. If True, dump the Bkij in a 'Bkij.npy' file.
+
+        Output
+        --------
+        Bkij -> np ndarray, complex (nexcitons,nspin,nk_bz,n_proj,n_proj)
+        """
+        # If not provided, we have to expand the QE atomic orbital projections
+        if projections is None:
+            if dbs is None: raise ValueError("[ERROR] projections not given as argument")
+           
+            projwfc = dbs[0]
+            wfdb    = dbs[1]
+            if os.path.isfile('Dmat.npy'): 
+                Dmats = np.load('Dmat.npy')
+            else:
+                # This can be a long calculation for many empty states
+                # Only a small subset of Dmat is generally needed
+                Dmats = wfdb.Dmat()
+                np.save('Dmat.npy',Dmats)
+
+            projections = projwfc.rotate_proj(wfdb,Dmats=Dmats,\
+                    bands_range=[self.bs_bands[0]-1,self.bs_bands[1]])
+
+        # Get Bloch-basis coefficients
+        Akcv = self.get_Akcv()
+        # Check blocks
+        if Akcv.shape[1]==2: raise NotImplementedError("[ERROR] Non-hermitian case not implemented.")
+        Akcv = Akcv[:,0,...]
+        # Check spin
+        nspin = Akcv.shape[1]
+        if nspin==2 and type(projections) is not list:
+            raise ValueError("[ERROR] Magnetic system: provide [proj_s1, proj_s2] list.")
+            assert nspin==len(projections), "Two spin components not found"
+            projections = np.stack(projections,axis=0)
+        if nspin==1:
+            if type(projections) is list: projections = projections[0]
+            projections = projections[None,...] # Explicitly add spin axis
+        # Safety check
+        assert isinstance(projections,np.ndarray)
+        # Check kpoints
+        assert projections.shape[1]==self.lattice.nkpoints, \
+                "Projections must expanded in BZ using ProjwfcXML.rotate_proj()"
+        # Check bands
+        assert projections.shape[-1]==Akcv.shape[-2]+Akcv.shape[-1], \
+                "Mismatch in nbands for projs and Akcv"
+        # Check Q-vector
+        red_Qpt = self.lattice.lat @ self.car_qpoint
+        ktree = build_ktree(self.lattice.red_kpoints)
+        k_minus_Q_idx = find_kpt(ktree,self.lattice.red_kpoints-red_Qpt)
+        a_star_v = np.conj( projections[:,k_minus_Q_idx,:,:self.nvbands] ) # spin,k-Q,proj,nv
+        a_c      =          projections[...,self.nvbands:]  # spin, k, proj,nc
+        # Calculation
+        Bkij= np.einsum('eskcv,skic,skjv->eskij',Akcv,a_c,a_star_v)
+
+        if dump: np.save('Bkij.npy',Bkij)
+
+        return Bkij
 
     def get_nondegenerate(self,eps=1e-4):
         """
@@ -628,7 +720,55 @@ class YamboExcitonDB(object):
             if abs(sum_weights - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
 
         return weights
-    
+
+    def get_generalised_exciton_weights(self,excitons,coefficients,nelec,nhole,nk=None):
+        """
+        Calculated k-resolved generalised exciton weights either in
+        TRANSITION space or in HOPPING space.
+
+        :: TRANSITION space
+
+        We use Akcv = self.get_Akcv().
+        Here, nelec is the list of conduction states, nhole is the list
+        of valence states.
+
+        We analyse, for each (k,Q), the transitions between valence and conduction
+        subsets k-Q{v}->k{c}.
+
+        :: HOPPING space
+
+        We use Bkij = self.get_Bkij_projected().
+        Here, nelec is the list of atomic orbitals of the electron subsystem,
+        nhole is the list of atomic orbitals of the hole subsystem.
+
+        We analyze, for each (k,Q), the transitions between hole atomic orbitals
+        and electron atomic orbitals (or any combination of atomic orbitals forming
+        a real-space subsystem) k-Q{j}->k{i}
+
+        Parameters
+        ----------
+        excitons     -> int list, indices of exciton states, PYTHON COUNTING
+        coefficients -> np ndarray, exciton coefficients
+                        * Akcv [nk,nc,nv] for TRANSITION SPACE weights
+                        * Bkij [nk,ne,nh] for HOPPING SPACE weights
+        nelec        -> int list, conduction/electron indices to include, PYTHON COUNTING
+        nhole        -> int list, valence/hole indices to include, PYTHON COUNTING
+        nk           -> int, optional, number of kpoints in BZ
+        """
+        try: all(exciton > 0 for exciton in excitons)
+        except: raise ValueError("[ERROR] Found nonpositive indices in exciton list")
+        # TODO: Here, one could even call the degeneracy finder to warn the user if they
+        #       are unintentionally splitting degenerate states.
+        if nk is None: nk = coefficients.shape[0]
+
+        weights = np.zeros(nk)
+        for exciton in excitons:
+            aux_weights = abs2(coefficients[exciton])
+            for ik in range(nk):
+                for ie in nelec:
+                    for ih in nhole: weights[ik] += aux_weights[ik,ie,ih]
+        return weights
+
     def get_exciton_total_weights(self,excitons):
         """get weight of state in each band"""
         total_weights = np.zeros(self.nkpoints)

@@ -573,15 +573,14 @@ class ProjwfcXML(object):
             Dmats = wfdb.Dmat(
                 symm_mat=symm_mats_cart,
                 frac_vec=frac_vecs_cart,
-                time_rev=time_rev
-                )[:,:,:,b_i:b_f,b_i:b_f] # nsym, nk_ibz, ns, nb1, nb2
+                time_rev=time_rev ) # nsym, nk_ibz, ns, nb1, nb2
+        Dmats = Dmats[:,:,:,b_i:b_f,b_i:b_f]
 
         # kpt info
         nk_BZ    = wfdb.ydb.nkpoints
         bz2ibz_k = wfdb.ydb.BZ_to_IBZ_indexes # ik_BZ = iR @ ik_IBZ
         bz2ibz_s = wfdb.ydb.symmetry_indexes  # iR
        
-
         if self.spin_components != 2:
             proj_ibz = self.proj[:,:,b_i:b_f]
             proj_bz = np.zeros((nk_BZ,self.nproj,nbands_bz),dtype=complex)
