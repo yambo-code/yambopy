@@ -588,8 +588,8 @@ class ProjwfcXML(object):
             for ik_bz in range(nk_BZ):
                 ik_ibz = bz2ibz_k[ik_bz]
                 i_sym  = bz2ibz_s[ik_bz]
-                Dstar = np.conj(Dmats[i_sym,ik_ibz,0])
-                proj_bz[ik_bz] = np.einsum('mn,im->in',Dstar,proj_ibz[ik_ibz]) 
+                D      = Dmats[i_sym,ik_ibz,0]
+                proj_bz[ik_bz] = np.einsum('mn,im->in',D,proj_ibz[ik_ibz]) 
 
             return proj_bz
 
