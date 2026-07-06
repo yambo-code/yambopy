@@ -125,25 +125,33 @@ class YamboExcitonPhononDB():
         Parameters
         ----------
         read_sq : None or bool, optional
-            Whether to also read the modulus-squared array
+            How to obtain the modulus-squared array
             EXCITON_PH_GKKP_SQUARED_Q. Newer lumen databases no longer store
-            this variable (it is squared on the fly by the consumers). If
-            None (default) its presence is auto-detected from the first
-            fragment: read when available, otherwise skipped and
-            ``self.excph_sq`` is left as None.
+            this variable, so ``self.excph_sq`` is always populated for
+            backward compatibility with consumers that expect it:
+
+            * None (default) -- auto: read the stored array when present,
+              otherwise reconstruct it on the fly as ``|excph|**2``.
+            * True  -- read from the DB (errors if the variable is absent).
+            * False -- always reconstruct as ``|excph|**2`` (ignore any
+              stored array).
+
+            The reconstruction ``REAL(g)**2 + AIMAG(g)**2`` is exactly the
+            expression lumen used to fill the stored array, so the result is
+            equivalent up to floating-point precision.
         """
         var_nm    = "EXCITON_PH_GKKP_Q"
         var_sq_nm = "EXCITON_PH_GKKP_SQUARED_Q"
 
         # excph[q][mode][iexc1][iexc2]
         excph_full    = np.zeros([self.nfrags,self.nmodes,self.nexc_i,self.nexc_o],dtype=np.complex64)
+        excph_sq_full = np.zeros([self.nfrags,self.nmodes,self.nexc_i,self.nexc_o])
 
-        # Auto-detect whether the squared variable is present (absent in
-        # newer lumen databases, which dropped EXCPH_Gkkp_sq).
+        # Decide whether to read the stored squared array (absent in newer
+        # lumen databases, which dropped EXCPH_Gkkp_sq).
         if read_sq is None:
             with Dataset(self.frag_filename + "1") as db0:
                 read_sq = ('%s1'%var_sq_nm) in db0.variables
-        excph_sq_full = np.zeros([self.nfrags,self.nmodes,self.nexc_i,self.nexc_o]) if read_sq else None
 
         for iq in range(self.nfrags):
             fil = self.frag_filename + "%d"%(iq+1)
@@ -157,6 +165,12 @@ class YamboExcitonPhononDB():
                 excph_sq_full[iq] = np.moveaxis( excph_sq, -1,0)
                 #excph_sq_full[iq] = np.swapaxes( np.swapaxes(excph_sq[:,:,:],-1,0), -1,-2)
             database.close()
+
+        # If the stored squared array is not available, reconstruct it on the
+        # fly so self.excph_sq stays a valid array for downstream consumers.
+        # In-place assignment keeps the float64 dtype of the read path.
+        if not read_sq:
+            excph_sq_full[:] = np.abs(excph_full)**2
 
         # Check integrity of elph values
         if np.isnan(excph_full).any(): print('[WARNING] NaN values detected in elph database.')
