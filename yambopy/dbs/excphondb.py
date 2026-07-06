@@ -113,33 +113,51 @@ class YamboExcitonPhononDB():
     
         self.car_qpoints = np.array([ q/self.alat for q in self.qpoints ])
 
-    def read_excph(self):
+    def read_excph(self, read_sq=None):
         """
-        Read exciton-phonon matrix elements and their modulus squared
-        
+        Read exciton-phonon matrix elements and (optionally) their modulus
+        squared.
+
         NB: EXCPH_GKKP_Q is saved by yambo as (2,mode,exc_out,exc_in), but netCDF stores
             the *transpose* (exc_in,exc_out,mode,2).
             We want to change it to complex (iq,mode,exc_in,exc_out)
-        """    
+
+        Parameters
+        ----------
+        read_sq : None or bool, optional
+            Whether to also read the modulus-squared array
+            EXCITON_PH_GKKP_SQUARED_Q. Newer lumen databases no longer store
+            this variable (it is squared on the fly by the consumers). If
+            None (default) its presence is auto-detected from the first
+            fragment: read when available, otherwise skipped and
+            ``self.excph_sq`` is left as None.
+        """
         var_nm    = "EXCITON_PH_GKKP_Q"
         var_sq_nm = "EXCITON_PH_GKKP_SQUARED_Q"
-            
+
         # excph[q][mode][iexc1][iexc2]
-        excph_full    = np.zeros([self.nfrags,self.nmodes,self.nexc_i,self.nexc_o],dtype=np.complex64)  
-        excph_sq_full = np.zeros([self.nfrags,self.nmodes,self.nexc_i,self.nexc_o])  
-        
+        excph_full    = np.zeros([self.nfrags,self.nmodes,self.nexc_i,self.nexc_o],dtype=np.complex64)
+
+        # Auto-detect whether the squared variable is present (absent in
+        # newer lumen databases, which dropped EXCPH_Gkkp_sq).
+        if read_sq is None:
+            with Dataset(self.frag_filename + "1") as db0:
+                read_sq = ('%s1'%var_sq_nm) in db0.variables
+        excph_sq_full = np.zeros([self.nfrags,self.nmodes,self.nexc_i,self.nexc_o]) if read_sq else None
+
         for iq in range(self.nfrags):
             fil = self.frag_filename + "%d"%(iq+1)
             database = Dataset(fil)
             excph = database.variables['%s%d'%(var_nm,iq+1)][:]
             excph_full[iq] = np.moveaxis( excph[:,:,:,0]+I*excph[:,:,:,1], -1,0 )
             #excph_full[iq] = np.swapaxes( np.swapaxes(excph[:,:,:,0] + I*excph[:,:,:,1],-1,0), -1,-2)
-            
-            excph_sq = database.variables['%s%d'%(var_sq_nm,iq+1)][:]
-            excph_sq_full[iq] = np.moveaxis( excph_sq, -1,0)
-            #excph_sq_full[iq] = np.swapaxes( np.swapaxes(excph_sq[:,:,:],-1,0), -1,-2)
+
+            if read_sq:
+                excph_sq = database.variables['%s%d'%(var_sq_nm,iq+1)][:]
+                excph_sq_full[iq] = np.moveaxis( excph_sq, -1,0)
+                #excph_sq_full[iq] = np.swapaxes( np.swapaxes(excph_sq[:,:,:],-1,0), -1,-2)
             database.close()
-        
+
         # Check integrity of elph values
         if np.isnan(excph_full).any(): print('[WARNING] NaN values detected in elph database.')
 
