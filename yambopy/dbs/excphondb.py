@@ -68,8 +68,8 @@ class YamboExcitonPhononDB():
         self.nexc_o = database.variables['EXCITON_SUM'][1].astype(int)
         self.nmodes = database.variables['PHONON_MODES'][0].astype(int)
         self.nqpoints = database.variables['HEAD_R_LATT'][3].astype(int)
-        self.type_exc_i = database.variables['L_kind_in'][...].tostring().decode().strip()
-        self.type_exc_o = database.variables['L_kind_out'][...].tostring().decode().strip()
+        self.type_exc_i = database.variables['L_kind_in'][...].tobytes().decode().strip()
+        self.type_exc_o = database.variables['L_kind_out'][...].tobytes().decode().strip()
         database.close()
 
         #Check how many databases are present
