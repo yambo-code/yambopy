@@ -588,7 +588,7 @@ def exc_raman_spectrum_oneph(laser_energy, ph_energies,
 def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
                                exc_dipoles, exc_ph_mat_el, n_kpts, cell_vol,
                                broad=0.1, ph_freq_threshold=5.0,
-                               save_per_pair=False):
+                               save_per_pair=False, precision='s'):
     """
     Diagnostic version of `exc_resonant_raman_tensor_oneph`. Computes the
     Raman tensor at a SINGLE laser energy in pure numpy and returns every
@@ -597,6 +597,18 @@ def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
     The returned dict is intended to be fed to `save_raman_components`,
     which writes it both as a single .npz archive and as a folder of
     column-format .dat files suitable for gnuplot.
+
+    Memory notes
+    ------------
+    The dominant arrays are the ``(nmodes, nexc, nexc)`` ones. To keep the
+    footprint small this routine (a) stores only the absorption-form
+    exciton-phonon matrix and applies its conjugate on the fly instead of
+    keeping a second full copy, (b) frees the pair-intensity scratch as soon
+    as it is consumed, (c) builds the optional per-pair amplitudes one mode
+    at a time, and (d) works in single precision by default (see
+    ``precision``). For ``nexc=1000, nmodes=6`` the base footprint drops from
+    ~0.4 GB (double, old) to ~0.1 GB (single); with ``save_per_pair`` the
+    per-pair peak drops roughly 6x.
 
     Parameters
     ----------
@@ -609,15 +621,30 @@ def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
     save_per_pair : bool, optional
         If True, include the full complex
         (nmodes, 3, 3, nexc, nexc) per-pair amplitudes in the dict.
-        Memory ~ nmodes * 9 * nexc^2 * 16 bytes. Off by default.
+        Memory ~ nmodes * 9 * nexc^2 * itemsize. Off by default.
+    precision : {'s', 'd'}, optional
+        Floating-point precision of the returned arrays. 's' = single
+        (float32 / complex64, the default) halves the memory of every large
+        array; 'd' = double (float64 / complex128) reproduces the original
+        bit-for-bit-comparable values. Energies/denominators are always
+        evaluated in double internally and only the stored arrays are cast.
 
     Returns
     -------
     dict
         See README produced by `save_raman_components` for the
-        complete list of keys.
+        complete list of keys. (The redundant ``exc_ph_emi`` key is no longer
+        included; it is simply ``conj(exc_ph_abs)``.)
     """
     cm1_to_Ha = 0.12398e-3 / ha2ev
+
+    prec = str(precision).strip().lower()
+    if prec in ('s', 'single'):
+        f_type, c_type = np.float32, np.complex64
+    elif prec in ('d', 'double'):
+        f_type, c_type = np.float64, np.complex128
+    else:
+        raise ValueError("precision must be 's' (single) or 'd' (double)")
 
     # ----- Unit conversion (eV -> Ha) ------------------------------------
     wL           = float(laser_energy) / ha2ev
@@ -640,25 +667,32 @@ def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
     inv_denom_res_v2  = 1.0 / (wL - BS_energies[None, :] - ph_Ha[:, None])    # (nmodes, nexc)
     inv_denom_ares_v2 = 1.0 / (wL + BS_energies[None, :] - ph_Ha[:, None])
 
-    dipS_res   = D_abs * inv_denom_res_v1[None, :]                            # (3, nexc)
-    dipS_ares  = D_emi * inv_denom_ares_v1[None, :]
-    dipSp_res  = D_emi[None, :, :] * inv_denom_res_v2[:, None, :]             # (nmodes, 3, nexc)
-    dipSp_ares = D_abs[None, :, :] * inv_denom_ares_v2[:, None, :]
+    dipS_res   = (D_abs * inv_denom_res_v1[None, :]).astype(c_type)           # (3, nexc)
+    dipS_ares  = (D_emi * inv_denom_ares_v1[None, :]).astype(c_type)
+    dipSp_res  = (D_emi[None, :, :] * inv_denom_res_v2[:, None, :]).astype(c_type)   # (nmodes, 3, nexc)
+    dipSp_ares = (D_abs[None, :, :] * inv_denom_ares_v2[:, None, :]).astype(c_type)
 
-    exc_ph_abs = np.asarray(exc_ph_mat_el, dtype=complex)   # yambopy raw (mode, init, fin)
-    exc_ph_emi = np.conj(exc_ph_abs)                         # Stokes / emission
+    # Big array: keep only the absorption form. The emission (Stokes) form is
+    # just its conjugate and is applied on the fly, saving a full second
+    # (nmodes, nexc, nexc) copy.
+    exc_ph_abs = np.asarray(exc_ph_mat_el, dtype=c_type)     # yambopy raw (mode, init, fin)
 
-    radiation_factor = np.sqrt(np.abs(wL - ph_Ha) / wL)
+    radiation_factor = np.sqrt(np.abs(wL - ph_Ha) / wL).astype(f_type)
     active_modes     = np.abs(ph_Ha) > ph_thresh_Ha
-    prefactor        = radiation_factor * ram_fac            # (nmodes,) real
+    prefactor        = (radiation_factor * ram_fac).astype(f_type)           # (nmodes,) real
 
-    term_res  = np.einsum('al, mLl, mbL -> mab',
-                          dipS_res,  exc_ph_emi, dipSp_res,  optimize=True)
+    # Resonant term needs conj(exc_ph_abs). Using the identity
+    #   conj( sum a*conj(g)*b ) = sum conj(a)*g*conj(b)
+    # keeps the conjugations on the small dressed-dipole arrays and lets the
+    # einsum read exc_ph_abs directly (no big (nmodes,nexc,nexc) conj temp).
+    term_res  = np.conj(np.einsum('al, mLl, mbL -> mab',
+                                  np.conj(dipS_res), exc_ph_abs, np.conj(dipSp_res),
+                                  optimize=True))
     term_ares = np.einsum('al, mLl, mbL -> mab',
                           dipS_ares, exc_ph_abs, dipSp_ares, optimize=True)
 
-    term_res  = term_res  * prefactor[:, None, None]
-    term_ares = term_ares * prefactor[:, None, None]
+    term_res  = (term_res  * prefactor[:, None, None]).astype(c_type)
+    term_ares = (term_ares * prefactor[:, None, None]).astype(c_type)
     term_res[~active_modes]  = 0.0
     term_ares[~active_modes] = 0.0
     raman_tensor = term_res + term_ares
@@ -668,11 +702,12 @@ def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
     A_ares    = np.sum(np.abs(dipS_ares)**2, axis=0)
     B_res     = np.sum(np.abs(dipSp_res)**2,  axis=1)
     B_ares    = np.sum(np.abs(dipSp_ares)**2, axis=1)
-    g_sq_pair = (np.abs(exc_ph_abs)**2).transpose(0, 2, 1)
+    g_sq_pair = (np.abs(exc_ph_abs)**2).transpose(0, 2, 1).astype(f_type)
     pref_sq   = (prefactor**2)[:, None, None]
 
-    pair_intensity_res  = (A_res[None, :, None]  * g_sq_pair * B_res[:, None, :]) * pref_sq
-    pair_intensity_ares = (A_ares[None, :, None] * g_sq_pair * B_ares[:, None, :]) * pref_sq
+    pair_intensity_res  = (A_res[None, :, None]  * g_sq_pair * B_res[:, None, :] * pref_sq).astype(f_type)
+    pair_intensity_ares = (A_ares[None, :, None] * g_sq_pair * B_ares[:, None, :] * pref_sq).astype(f_type)
+    del g_sq_pair                                            # free the (nmodes, nexc, nexc) scratch
     pair_intensity_res[~active_modes]  = 0.0
     pair_intensity_ares[~active_modes] = 0.0
 
@@ -691,7 +726,6 @@ def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
         'exc_dip_emi'             : D_emi,
         'exc_dip_absorp'          : D_abs,
         'exc_ph_abs'              : exc_ph_abs,
-        'exc_ph_emi'              : exc_ph_emi,
         'inv_denom_res_v1'        : inv_denom_res_v1,
         'inv_denom_ares_v1'       : inv_denom_ares_v1,
         'inv_denom_res_v2'        : inv_denom_res_v2,
@@ -709,14 +743,22 @@ def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
     }
 
     if save_per_pair:
-        per_pair_res  = np.einsum('al, mLl, mbL -> mablL',
-                                  dipS_res,  exc_ph_emi, dipSp_res,  optimize=True)
-        per_pair_ares = np.einsum('al, mLl, mbL -> mablL',
-                                  dipS_ares, exc_ph_abs, dipSp_ares, optimize=True)
-        per_pair_res  = per_pair_res  * prefactor[:, None, None, None, None]
-        per_pair_ares = per_pair_ares * prefactor[:, None, None, None, None]
-        per_pair_res[~active_modes]  = 0.0
-        per_pair_ares[~active_modes] = 0.0
+        # Build one mode at a time into preallocated arrays: the einsum never
+        # forms an all-modes (nmodes, 3, 3, nexc, nexc) temporary, so the peak
+        # working set is a single mode (3, 3, nexc, nexc) plus one (nexc, nexc)
+        # conjugate slice, rather than several full-size temporaries.
+        per_pair_res  = np.zeros((nmodes, 3, 3, nexc, nexc), dtype=c_type)
+        per_pair_ares = np.zeros((nmodes, 3, 3, nexc, nexc), dtype=c_type)
+        for m in range(nmodes):
+            if not active_modes[m]:
+                continue
+            g_m = exc_ph_abs[m]                              # (nexc, nexc) view
+            per_pair_res[m]  = np.einsum('al, Ll, bL -> ablL',
+                                         dipS_res, np.conj(g_m), dipSp_res[m],
+                                         optimize=True) * prefactor[m]
+            per_pair_ares[m] = np.einsum('al, Ll, bL -> ablL',
+                                         dipS_ares, g_m, dipSp_ares[m],
+                                         optimize=True) * prefactor[m]
         components['per_pair_res']  = per_pair_res
         components['per_pair_ares'] = per_pair_ares
 
