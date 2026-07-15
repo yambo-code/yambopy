@@ -84,16 +84,17 @@ class ProjwfcXML(object):
             
         if hasattr(self, 'order_is_l_j_mj') and self.order_is_l_j_mj:
             states = []
-            #                                                                                         wfc                  l                 j                 m_j                 
-            for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z0-9]+)\s*\),\s+wfc\s+([0-9])\s+\((?:l=([0-9.]+))? ?(?:j=([0-9.]+))? ?(?:m_j=\s+([0-9.]+))?',f.read()):
+            #                                                                                         wfc                  l                 j                 m                 m_j
+            for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z0-9]+)\s*\),\s+wfc\s+([0-9])\s+\((?:l=([0-9.]+))? ?(?:j=([0-9.]+))? ?(?:m=\s+([0-9.]+))? ?(?:m_j=\s+([0-9.]+))?',f.read()):
                 # examples of the lines we have to read
-                #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin case
-                #  5: atom   1 (C  ), wfc  3 (j=1.5 l=1 m_j=-1.5)     #non collinear spin case
-                istate, iatom, atype, wfc, l, j, m_j = line
+                #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin / collinear spin case (real harmonics: has m)
+                #  5: atom   1 (C  ), wfc  3 (j=1.5 l=1 m_j=-1.5)     #non collinear spin case (has m_j instead of m)
+                istate, iatom, atype, wfc, l, j, m, m_j = line
                 if j: j = float(j)
                 if l: l = int(l)
+                if m: m = int(m)
                 if m_j: m_j = float(m_j)
-                states.append({'istate':int(istate), 'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc), 'l':l, 'j':j, 'm_j':m_j})
+                states.append({'istate':int(istate), 'iatom':int(iatom), 'atype':atype, 'wfc':int(wfc), 'l':l, 'j':j, 'm':m, 'm_j':m_j})
             self.states = states
 
             f.close() 
@@ -147,26 +148,89 @@ class ProjwfcXML(object):
 
         return proj
 
-    def get_states_helper(self, atom_query=['all'], orbital_query=['s','p','d','f']):
-        """
-        Get the sates that you want based on dictionary query by providing array of atoms and orbitals, default all orbitals
-        
-        Returns an array with the indices of the requested states in the qe array
-        """
-        states =  self.states
-        queried_states = []
+    # QE real-spherical-harmonic ordering (m index = 1..2l+1) -> friendly names.
+    # Maps a component name to the (l, m) pair that identifies it in self.states.
+    _orbital_components = {
+        's':       (0, 1),
+        'p_z':     (1, 1), 'p_x': (1, 2), 'p_y': (1, 3),
+        'd_z2':    (2, 1), 'd_zx': (2, 2),
+        'd_zy':    (2, 3), 'd_yz': (2, 3),          # QE labels this 'd_zy'; 'd_yz' is an alias
+        'd_x2-y2': (2, 4), 'd_x2y2': (2, 4),
+        'd_xy':    (2, 5),
+    }
 
-        for state in states:
-            if (atom_query == ['all']) or (state['atype'] in atom_query):
-                if (state['l']==0) and 's' in orbital_query:         #s orbital
+    def get_states_helper(self, atom_query=['all'], orbital_query=['s','p','d','f'],
+                          iatom_query=['all'], component_query=None, m_query=None):
+        """
+        Get the states matching a query, returning their indices in the QE projection array.
+
+        Filters (all optional, combined with AND):
+        - atom_query:      list of atom *types*, e.g. ['Cr']            (default ['all'])
+        - iatom_query:     list of atom *numbers* (1-based, as in the projwfc log),
+                           e.g. [1] to pick only the first Cr atom      (default ['all'])
+        - orbital_query:   angular momenta by letter, e.g. ['d']        (default all: s,p,d,f)
+        - m_query:         list of raw magnetic indices m (1..2l+1) to keep within the
+                           selected orbitals, e.g. [1] for the m=1 component
+        - component_query: friendly orbital-component names that fix both l and m,
+                           e.g. ['d_z2'] (see ProjwfcXML._orbital_components for the list).
+                           When given, it fully specifies (l, m) and takes precedence over
+                           orbital_query / m_query.
+
+        Requires the magnetic quantum number 'm' to be present in self.states, which holds
+        for collinear / no-spin runs (real harmonics). For non-collinear (SOC) states the
+        label is m_j, not m, so component_query / m_query cannot be used there.
+
+        Returns a list with the indices (istate-1) of the requested states in the QE array.
+
+        Examples:
+            # all d states on every Cr atom
+            get_states_helper(atom_query=['Cr'], orbital_query=['d'])
+            # d_z2 on both Cr atoms (friendly name)
+            get_states_helper(atom_query=['Cr'], component_query=['d_z2'])
+            # d_z2 on the first Cr atom only
+            get_states_helper(iatom_query=[1], component_query=['d_z2'])
+            # equivalent to d_z2 via the raw m index
+            get_states_helper(atom_query=['Cr'], orbital_query=['d'], m_query=[1])
+        """
+        l_to_letter = {0: 's', 1: 'p', 2: 'd', 3: 'f'}
+
+        # Resolve friendly component names into a set of allowed (l, m) pairs.
+        allowed_lm = None
+        if component_query is not None:
+            allowed_lm = set()
+            for c in component_query:
+                if c not in self._orbital_components:
+                    raise ValueError(f"Unknown orbital component '{c}'. "
+                                     f"Known components: {sorted(self._orbital_components)}")
+                allowed_lm.add(self._orbital_components[c])
+
+        def has_m(state):
+            return isinstance(state.get('m'), int)
+
+        queried_states = []
+        for state in self.states:
+            # atom-type filter
+            if not (atom_query == ['all'] or state['atype'] in atom_query):
+                continue
+            # atom-number filter
+            if not (iatom_query == ['all'] or state['iatom'] in iatom_query):
+                continue
+
+            if allowed_lm is not None:
+                # component_query fully specifies (l, m)
+                if has_m(state) and (state['l'], state['m']) in allowed_lm:
                     queried_states.append(state['istate'] - 1)
-                if (state['l']==1) and 'p' in orbital_query:         #p orbital
-                    queried_states.append(state['istate'] - 1)
-                if (state['l']==2) and 'd' in orbital_query:         #d orbital
-                    queried_states.append(state['istate'] - 1)
-                if (state['l']==3) and 'f' in orbital_query:         #f orbital
-                    queried_states.append(state['istate'] - 1)
-                
+                continue
+
+            # angular-momentum (letter) filter
+            letter = l_to_letter.get(state['l'])
+            if letter is None or letter not in orbital_query:
+                continue
+            # optional raw m filter within the selected orbitals
+            if m_query is not None and not (has_m(state) and state['m'] in m_query):
+                continue
+            queried_states.append(state['istate'] - 1)
+
         return queried_states
 
 
