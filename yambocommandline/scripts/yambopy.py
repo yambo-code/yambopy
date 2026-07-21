@@ -96,11 +96,12 @@ class PlotEm1sCmd(Cmd):
             print((self.__doc__))
             exit(0)
 
-        parser = argparse.ArgumentParser(description='Plot em1s calculation.')
+        parser = argparse.ArgumentParser(description='Plot em1s/pp calculation.')
         pa = parser.add_argument
         pa('folders',        nargs='+', help='json file containing the absorption spectra. Default: \'absorptionspectra.json\'' )
         pa('-w','--write',   help='Write data file in a text file', default='em1s.dat', type=str)
         pa('-p','--plot',    help='Save a file with the plot', default='em1s.pdf', type=str)
+        pa('-r','--rp',      help='Read ndb.pp instead of ndb.em1s (default False)', action='store_true')
         pa('-v','--verbose', help='Print which files are not folder', action='store_true')
         pa('--fontsize',     help='Choose the font size of the plot', default=10, type=int)
         args = parser.parse_args(args)
@@ -114,14 +115,18 @@ class PlotEm1sCmd(Cmd):
         ax = plt.gca()
 
         epsilons = []
+        dbname="em1s"
+        if args.rp:
+            dbname="pp"
+
         for folder in folders: 
-            if os.path.isdir(folder) and os.path.isfile("%s/ndb.em1s"%folder):
+            if os.path.isdir(folder) and os.path.isfile("%s/ndb.%s" % (folder,dbname)):
                 if not os.path.isfile("%s/ns.db1"%folder):
                     if not os.path.isfile("%s/../SAVE/ns.db1"%folder):
                         if args.verbose: print("SAVE folder not found")
                     else:
                         os.system('cp %s/../SAVE/ns.db1 %s/'%(folder,folder))
-                print(folder)
+                print("Reading epsilon from: "+folder)
                 ys = YamboStaticScreeningDB(save=folder,em1s=folder)
                 #plot epsilon^-1_{00} = [(1+vX)]_{00}
                 ys.plot_epsm1(ax,marker='o',markersize=2,label=folder)
@@ -131,6 +136,7 @@ class PlotEm1sCmd(Cmd):
             else:
                 if args.verbose:
                     print("path %s is not a folder"%folder)
+                exit(0)
 
         if args.write:
             #write a text file with the data
