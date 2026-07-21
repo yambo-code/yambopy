@@ -250,20 +250,21 @@ class YamboExcitonDB(object):
 
         #get sorted energies
         sort_e, sort_i = self.get_sorted()
+        dip_header="Max Dipole Residual "+str(self.max_res)+"\n"
 
         #write excitons sorted by energy
         se_arr = np.array(sort_e)
         n_idx = se_arr[:, 1].astype(int)
         data_e = np.column_stack((se_arr[:, 0], intensities[n_idx], n_idx + 1))
         np.savetxt('%s_E.dat'%prefix, data_e, fmt='%16.8f %20.8e %10d',
-                   header='    E [ev]             Strength           Index')
+                   header=dip_header+'    E [ev]             Strength           Index')
 
         #write excitons sorted by intensities
         si_arr = np.array(sort_i)
         n_idx = si_arr[:, 1].astype(int)
         data_i = np.column_stack((eig[n_idx], np.abs(si_arr[:, 0]), n_idx + 1))
         np.savetxt('%s_I.dat'%prefix, data_i, fmt='%16.8f %20.8e %10d',
-                   header='    E [ev]             Strength           Index')
+                   header=dip_header+'    E [ev]             Strength           Index')
 
     def get_Akcv(self):
         """
@@ -609,7 +610,8 @@ class YamboExcitonDB(object):
         get the intensities of the excitons
         """
         intensities = np.abs(self.l_residual*self.r_residual)
-        intensities /= np.max(intensities)
+        self.max_res = np.max(intensities)
+        intensities /= self.max_res 
         return intensities
 
     def get_sorted(self):
