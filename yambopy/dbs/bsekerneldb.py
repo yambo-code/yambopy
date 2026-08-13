@@ -8,6 +8,7 @@ import numpy as np
 from itertools import product
 from yambopy import YamboLatticeDB
 from yambopy.tools.string import marquee
+from yambopy.tools.types import CmplxType
 from yambopy.units import I
 
 class YamboBSEKernelDB(object):
@@ -37,8 +38,10 @@ class YamboBSEKernelDB(object):
         with Dataset(path_filename) as database:
             if 'BSE_RESONANT' in database.variables:
                 # Read as transposed since dimensions in netCDF are inverted
-                reker, imker = database.variables['BSE_RESONANT'][:].T
-                ker = reker + imker*I
+                #reker, imker = database.variables['BSE_RESONANT'][:].T
+                #ker = reker + imker*I
+                ker = database['BSE_RESONANT'][...].data
+                ker = ker.view(dtype=CmplxType(ker)).T[0]
                 
                 # Transform the triangular matrix to a square Hermitian matrix
                 kernel = np.conjugate(np.transpose(np.triu(ker))) + np.triu(ker)
