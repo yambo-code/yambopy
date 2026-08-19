@@ -458,7 +458,7 @@ class YamboWFDB:
         Ny_vals = np.where(gvec_tmp[:, 1] >= 0, gvec_tmp[:, 1], gvec_tmp[:, 1] + grid[1])
         Nz_vals = np.where(gvec_tmp[:, 2] >= 0, gvec_tmp[:, 2], gvec_tmp[:, 2] + grid[2])
         #
-        assert np.min(Nx_vals) >=0 and (np.min(Ny_vals) >=0 and np.min(Nz_vals)) >=0, "Wrong fft indices"
+        assert np.min(Nx_vals) >=0 and (np.min(Ny_vals) >=0 and np.min(Nz_vals) >=0), "Wrong fft indices"
         tmp_wfc[:,:,Nx_vals, Ny_vals,Nz_vals] = wfc_tmp
         return scipy.fft.ifftn(tmp_wfc,norm="forward",axes=(2,3,4))/np.sqrt(cel_vol)
 
