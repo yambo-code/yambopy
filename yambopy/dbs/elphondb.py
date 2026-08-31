@@ -9,7 +9,7 @@
 #
 from yambopy import *
 from netCDF4 import Dataset
-from math import sqrt
+import math
 import numpy as np
 from yambopy.tools.string import marquee
 import os
@@ -68,6 +68,7 @@ class YamboElectronPhononDB():
         self.alat        = lattice.alat
         self.rlat        = lattice.rlat
         self.car_kpoints = lattice.car_kpoints
+        self.red_kpoints = lattice.red_kpoints
             
         # Check if databases exist. Exit only if header is missing.
         try: database = Dataset(filename)
@@ -236,7 +237,7 @@ class YamboElectronPhononDB():
         self.gkkp_mixed = np.real(self.gkkp)*np.real(self.gkkp_bare)+np.imag(self.gkkp)*np.imag(self.gkkp_bare)
         
     @add_fig_kwargs
-    def plot_elph(self,data,kcoords=None,plt_show=False,plt_cbar=False,**kwargs):
+    def plot_elph_old(self,data,kcoords=None,plt_show=False,plt_cbar=False,**kwargs):
         """
         2D scatterplot in the BZ:
 
@@ -284,6 +285,163 @@ class YamboElectronPhononDB():
 
         if plt_show: plt.show()
         else: print("Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
+
+    def plot_elph(self, data, kcoords=None, plt_show=False, plt_cbar=False,
+              threeD=False, axis='z', tol=1e-6, ncols=3, **kwargs):
+        """
+        2D scatterplot in the BZ:
+    
+      (i)  in k-space of the quantity A_{k}(iq,inu,ib1,ib2).
+         (ii) in q-space of the quantity A_{q}(ik,inu,ib1,ib2).
+    
+        Any real quantity which is a function of only the k-grid or q-grid may be supplied.
+
+        The indices iq/ik,inu,ib1,ib2 are user-specified.
+
+        - kcoords refers to the k/q-grid in Cartesian coordinates (i.e., yelph.car_qpoints and similar).
+          If None is specified, a k-space, fixed-q plot is assumed.
+
+        - if plt_show plot is shown
+        - if plt_cbar colorbar is shown
+        - kwargs example: marker='H', s=300, cmap='viridis', etc.
+
+        NB: So far requires a 2D system.
+            If threeD=True, plots BZ planes at constant component along `axis`
+            (x/y/z) in a subplot grid.
+            """
+
+        # --- select k-points as in original code ---
+        if kcoords is None:
+            kpts = self.car_kpoints  # Assume k-space plot
+        else:
+            kpts = kcoords           # Plot on momentum map supplied by user
+
+        # --- input check as in original code ---
+        if len(data) != len(kpts):
+            raise ValueError('Something wrong in data dimensions (%d data vs %d kpts)' % (len(data), len(kpts)))
+
+        # -------------------------------------------------------------------------
+        # Helper(s) for 3D layer selection
+        # -------------------------------------------------------------------------
+        def _axis_to_index(ax):
+            ax = ax.lower()
+            if ax == 'x': return 0
+            if ax == 'y': return 1
+            if ax == 'z': return 2
+            raise ValueError("axis must be one of 'x', 'y', 'z'")
+
+        def _unique_with_tol(vals, tol_):
+            vals = np.asarray(vals)
+            decimals = max(0, int(np.ceil(-np.log10(tol_))))
+            vals_r = np.round(vals, decimals=decimals)
+            uniq = np.unique(vals_r)
+            return uniq, vals_r, decimals
+
+        ax_idx = _axis_to_index(axis)
+
+        # -------------------------------------------------------------------------
+        # 2D path: keep original structure/behavior
+        # -------------------------------------------------------------------------
+        if not threeD:
+            # Global plot stuff (original)
+            self.fig, self.ax = plt.subplots(1, 1)
+            self.ax.add_patch(BZ_Wigner_Seitz(self.lattice))
+
+            if plt_cbar:
+                if 'cmap' in kwargs.keys(): color_map = plt.get_cmap(kwargs['cmap'])
+                else:                       color_map = plt.get_cmap('viridis')
+
+            lim = 1.05 * np.linalg.norm(self.rlat[0])
+            self.ax.set_xlim(-lim, lim)
+            self.ax.set_ylim(-lim, lim)
+
+            # Reproduce plot also in adjacent BZs (original)
+            BZs = shifted_grids_2D(kpts, self.rlat)
+            for kpts_s in BZs:
+                plot = self.ax.scatter(kpts_s[:, 0], kpts_s[:, 1], c=data, **kwargs)
+
+            if plt_cbar:
+                self.fig.colorbar(plot)
+
+            plt.gca().set_aspect('equal')
+
+            if plt_show:
+                plt.show()
+            else:
+                print("Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
+            return
+
+        # -------------------------------------------------------------------------
+        # 3D path: make a subplot grid of constant-axis slices (projections)
+        # -------------------------------------------------------------------------
+        uniq_layers, kpts_r, decimals = _unique_with_tol(kpts[:, ax_idx], tol)
+
+        # which two coordinates to plot
+        all_idx = [0, 1, 2]
+        all_idx.remove(ax_idx)
+        xidx, yidx = all_idx[0], all_idx[1]
+        axis_names = {0: 'x', 1: 'y', 2: 'z'}
+        proj_label = f"{axis_names[xidx]}{axis_names[yidx]}"
+
+        nlay = len(uniq_layers)
+        nrows = int(math.ceil(nlay / ncols))
+
+        self.fig, axes = plt.subplots(nrows, ncols, figsize=(5.5 * ncols, 5.5 * nrows))
+        axes = np.atleast_1d(axes).ravel()
+
+        # Color normalization across all layers (so colors mean the same everywhere)
+        # Matplotlib will auto-scale by default; this keeps it global if you pass vmin/vmax.
+        if ('vmin' not in kwargs) and ('vmax' not in kwargs):
+            kwargs = dict(kwargs)  # avoid mutating caller dict
+            kwargs['vmin'] = np.nanmin(data)
+            kwargs['vmax'] = np.nanmax(data)
+
+        lim = 1.05 * np.linalg.norm(self.rlat[0])
+
+        last_plot = None
+        for i, layer_val in enumerate(uniq_layers):
+            ax = axes[i]
+
+            # BZ border (same as original)
+            ax.add_patch(BZ_Wigner_Seitz(self.lattice))
+
+            ax.set_xlim(-lim, lim)
+            ax.set_ylim(-lim, lim)
+            ax.set_aspect('equal')
+
+            ax.set_title(f"{axis} ≈ {layer_val:g} (rounded {decimals} dp)")
+
+            # select points in this layer
+            mask = (kpts_r == layer_val)
+            k_layer = kpts[mask]
+            d_layer = np.asarray(data)[mask]
+
+            # reproduce plot also in adjacent BZs (needs 2D shifts on the projected plane)
+            BZs = shifted_grids_2D(k_layer[:, [xidx, yidx]], self.rlat)
+
+            # shifted_grids_2D expects 2D kpts; we use only the projected coords
+            for kpts_s in BZs:
+                last_plot = ax.scatter(kpts_s[:, 0], kpts_s[:, 1], c=d_layer, **kwargs)
+
+            ax.set_xlabel(axis_names[xidx])
+            ax.set_ylabel(axis_names[yidx])
+
+        # Turn off unused axes
+        for j in range(nlay, len(axes)):
+            axes[j].axis('off')
+
+        # One shared colorbar for the whole figure
+        if plt_cbar and last_plot is not None:
+            self.fig.colorbar(last_plot, ax=axes[:nlay], shrink=0.9)
+
+        self.fig.suptitle(f"3D slices: projection on {proj_label}-plane, grouped by {axis}", y=0.995)
+
+        self.fig.tight_layout()
+
+        if plt_show:
+            plt.show()
+        else:
+            print("3D subplot grid ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
         
     def __str__(self,verbose=False):
 
