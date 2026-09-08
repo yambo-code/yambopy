@@ -225,41 +225,158 @@ def regular_grid(nk1,nk2,nk3):
     ])
     return xkg.T # shape [nk,3]
 
-def find_kpatch(kpts, kcentre, kdist, lat_vecs):
+
+def find_kpatch(kpts, kcentre, lat_vecs, nshells=1, tol=1e-5, G_range=3):
     """
-    find set of kpoints around the kcentre with in kdist
+    Find k-points belonging to the first `nshells` neighbor shells
+    around kcentre, including degeneracies and rigorous BZ mapping.
 
     Parameters
     ----------
-    kpts : kpoints in crystal coordinates (nk,3)
-    kcentre : kpoint centre in crystal coordinates (3)
-    kdist : distance around kcentre to be considered in atomic units 
-            i.e 1/bohr.
-    lat_vecs: lattice vectors. ith lattice vector is ai = a[:,i]
+    kpts : (nk, 3)
+        k-points in crystal (fractional) coordinates
+    kcentre : (3,)
+        center k-point in crystal coordinates
+    lat_vecs : (3,3)
+        lattice vectors. ith lattice vector is ai = a[:,i]
+    nshells : int
+        number of neighbor shells to include
+    tol : float
+        tolerance for degeneracy
+    G_range : int
+        Range of surrounding reciprocal cells to check. G_range=2 checks 343 cells,
+        which is sufficient when combined with initial rounding.
+
     Returns
     -------
-    int array
-        Indices of kpoints in kpts array which satify the given condition i.e
-        | k - kcentre + G0| <= kdist, where G0 is reciprocal lattice vector to bring to BZ
+    idx : array of int
+        indices of selected k-points
     """
-    #
-    blat = 2*np.pi*np.linalg.inv(lat_vecs)
-    kdiff = kpts-kcentre[None,:]
-    kdiff = kdiff-np.floor(kdiff)
-    #
-    tmp_arr = np.array([-3, -2, -1, 0, 1, 2, 3])
-    nG0 = len(tmp_arr)
-    G0 = np.zeros((nG0,nG0,nG0,3))
-    G0[...,0], G0[...,1], G0[...,2] = np.meshgrid(tmp_arr, tmp_arr,
-                                                  tmp_arr, indexing='ij')
-    G0 = G0.reshape(-1,3)
-    kdiff = kdiff[:,None,:]-G0[None,:,:]
-    kdiff = kdiff.reshape(-1,3)@blat
-    kdiff = np.linalg.norm(kdiff,axis=-1).reshape(len(kpts),-1)
-    kdiff = np.min(kdiff,axis=-1)
-    return np.where(kdiff <= kdist)[0]
+    kcentre = np.array(kcentre)
+    blat = 2 * np.pi * np.linalg.inv(lat_vecs)
+    kdiff = kpts - kcentre[None, :]
+    kdiff = kdiff - np.round(kdiff)
+    g_vals = np.arange(-G_range, G_range + 1)
+    G_grid = np.array(list(product(g_vals, repeat=3)))
+    kdiff_all = kdiff[:, None, :] + G_grid[None, :, :]
+    kcart_all = kdiff_all @ blat
+    dist_all = np.linalg.norm(kcart_all, axis=-1)
+    dist = np.min(dist_all, axis=-1)
+    dist_sorted = np.sort(dist)
+    unique_mask = np.concatenate(([True], np.diff(dist_sorted) > tol))
+    unique_dists = dist_sorted[unique_mask]
+    if nshells > len(unique_dists):
+        raise ValueError("nshells larger than available unique distance shells")
+    cutoff = unique_dists[nshells - 1]
+    return np.where(dist <= cutoff + tol)[0]
 
-    
+def kfmt(kpt,digits=6):
+    """
+    Format kpts
+    (useful for rlu coords.)
+    """
+    if kpt is None: return kpt
+
+    fmt_kcoords = []
+    for i in range(len(kpt)):
+        fmt_kcoords.append(round(kpt[i], digits))
+    return fmt_kcoords
+
+def generate_G_shells(rlat,Nshells=3,unshifted=False):
+    """
+    Generate G vectors in Cartesian coordinates
+
+    :: rlat -> reciprocal lattice vectors
+    :: Nshells -> number of shells generated (in some rare cases, a BZ could border a second-order shell)
+    :: unshifted -> if true., add [0.,0.,0.] to the Gvectors
+    """
+    car_G = []
+    for i in range(-Nshells,Nshells+1):
+        for j in range(-Nshells,Nshells+1):
+            for k in range(-Nshells,Nshells+1):
+                if (i, j, k) == (0,0,0): continue
+                car_G.append( i*rlat[0]+j*rlat[1]+k*rlat[2] )
+    car_G = np.array(car_G)
+
+    if unshifted: car_G = np.insert(car_G,0,np.zeros(3),axis=0)
+    return car_G
+
+def point_is_on_border(car_k,rlat,Nshells=3,tol=1e-6):
+    """
+    Evaluate the condition    k.G = 0.5 |G|^2
+    for each kpoint and a certain number of G shells.
+    If true, then the kpoint in on the BZ border.
+
+    :: car_k   : kpoints in cartesian coordinates
+    :: rlat    : reciprocal lattice vectors
+    :: Nshells : shells of G-vectors generated
+                 (default 3: should not be increased unless pathological BZ)
+    :: tol     : numeric tolerance (in principle depends on kpt density)
+    """
+    # First build Nshells shells of lattice vectors
+    car_G = generate_G_shells(rlat,Nshells=Nshells)
+    # Now evaluate Bragg's condition k.G = 0.5*|G|^2/2.
+    bragg_l = car_k @ car_G.T  # list of (Nk,NG) scalar products
+    bragg_r = 0.5 * np.linalg.norm(car_G,axis=1)**2. # (NG) norms
+    bragg_satisfied = np.abs(bragg_l - bragg_r[np.newaxis,:]) < tol # (Nk,NG) bool values: for each k, NG tests
+    # Find border points
+    border_points_indx = []
+    for ik in range(len(car_k)):
+        is_border = np.count_nonzero(bragg_satisfied[ik])
+        if is_border>0: border_points_indx.append(ik)
+    return border_points_indx
+
+def check_kgrid(red_kpts,rlat,tol=1e-5):
+    """
+    Analysis of Monkhorst-Pack grid
+
+    Inputs:
+    :: red_kpts -> kpts in rlu (IBZ only for faster check)
+    :: rlat     -> reciprocal lattice vectors
+
+    It returns:
+    :: Ngrid [Nx, Ny, Nz] -> MP grid size
+    :: min_dk_rlu         -> minimal k-steps in grid
+    """
+    def ind_min_pos(a,tol=1e-5):
+        return np.where(a>tol,a,np.inf).argmin()
+
+    # Faster to check on IBZ
+    kpts = red_kpts
+
+    # Get min nonzero values in each direction
+    kx = kpts[:,0]
+    ky = kpts[:,1]
+    kz = kpts[:,2]
+
+    ksteps = kfmt( [ kx[ind_min_pos(kx)],\
+                     ky[ind_min_pos(ky)],\
+                     kz[ind_min_pos(kz)] ] )
+
+    # From those we can find grid size
+    ksteps = [1. if stp == 0. else stp for stp in ksteps]
+    Ngrid  = [ int(np.round(1./stp)) for stp in ksteps]
+
+    # Check farthest points from origin along x,y,z
+    kpt_max_xyz =  [ kpts[np.argmax(np.abs(kx))],\
+                     kpts[np.argmax(np.abs(ky))],\
+                     kpts[np.argmax(np.abs(kz))] ]
+
+    # Are they on the border?
+    kdir_has_edge = point_is_on_border( red_car(kpt_max_xyz,rlat), rlat)
+
+    # The min k step is used to find the calculated points
+    # on the grid along symmetry directions for band plots.
+    # If some BZ-edge pts are missing along xyz, we must not
+    # consider that step size.
+    if not any(kdir_has_edge):
+        print("[WARNING] It looks like no points on the BZ border\
+                         might be sampled: check that this is what you want.")
+    min_dk_rlu = min([ksteps[ik] if ik in kdir_has_edge else np.inf \
+                     for ik in range(3)])
+
+    return Ngrid, min_dk_rlu
+
 def generate_kpoint_grid(nk1,nk2,nk3,sym_and_trev,IBZ=True,eps=1.0e-5):
     """
     Generation of gamma-centered Monkhorst-Pack grid.
@@ -294,7 +411,7 @@ def generate_kpoint_grid(nk1,nk2,nk3,sym_and_trev,IBZ=True,eps=1.0e-5):
     Nsym = len(sym_red)
 
     # Generate full regular grid in crystal coordinates
-    xkg = regular_grid(nk1,nk2,nk3)
+    xkg = regular_grid(nk1,nk2,nk3) # [nk,3]
 
     if IBZ:
         # Now we have to start checking for equivalent points:

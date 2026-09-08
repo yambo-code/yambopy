@@ -131,7 +131,7 @@ def exc_dipoles_pol(lattice_path,dipoles_path=None,bse_path=None,save_files=True
     dip_expanded[time_rev_s] = dip_expanded[time_rev_s].conj()
 
     # Rotate dipoles in exc. basis [n,nblks,nspin,k,c,v] -> [n,k,c,v]
-    BS_wfc = np.squeeze( yexc.get_Akcv() ) # Works in TDA and no spin pol
+    BS_wfc = np.squeeze( yexc.get_Akcv() ,axis=(1,2)) # Works in TDA and no spin pol
     # Since we have dipoles for emission, we do not conjugate BS_wfc
     # Then the results are directly the exciton dipoles for emission
     dip_exc = np.einsum('nkcv,kicv->in',BS_wfc,dip_expanded,
