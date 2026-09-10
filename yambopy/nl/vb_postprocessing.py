@@ -477,7 +477,7 @@ def get_qebands_interpolate(lat,path,fl_qek,ks_evk,lpratio=5,fermie=0,nelect = 0
         fl_eigens[0,ik,:] = sorted(fl_qek[ik,:])
         ks_eigens[0,ik,:] = sorted(ks_evk[ik,:])
     skw_fl = SkwInterpolator(lpratio,kpoints,fl_eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
-    skw_ks = SkwInterpolator(lpratio,kpoints,fl_eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
+    skw_ks = SkwInterpolator(lpratio,kpoints,ks_eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
 
     fl_eigens_kpath = skw_fl.interp_kpts(band_kpoints_rlu).eigens[0]
     fl_bs = YambopyBandStructure(fl_eigens_kpath,band_kpoints,kpath=path_car)
