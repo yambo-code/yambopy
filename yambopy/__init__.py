@@ -44,6 +44,7 @@ import numpy as np
 #tools and units
 from yambopy.tools.jsonencoder import *
 from yambopy.tools.types import *
+from yambopy.tools.latex import *
 from yambopy.units import *
 from yambopy.zeros import *
 
@@ -53,6 +54,9 @@ from yambopy.lattice import *
 
 #skw interpolator (adapted from abipy version)
 from yambopy.tools.skw import *
+
+#tetrahedron interpolation
+from yambopy.tools.tetra import *
 
 #yambo databases
 from yambopy.dbs.dipolesdb import *

@@ -15,7 +15,7 @@ from itertools import product
 from yambopy.units import ha2ev, I
 from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz
 from yambopy.lattice import replicate_red_kmesh, calculate_distances, car_red, red_car
-from yambopy.kpoints import get_path, get_path_car
+from yambopy.kpoints import get_path, get_path_car, check_kgrid, build_ktree, find_kpt
 from yambopy.tools.funcs import gaussian, lorentzian, boltzman_f, abs2
 from yambopy.tools.string import marquee
 from yambopy.tools.types import CmplxType
@@ -70,7 +70,7 @@ class YamboExcitonDB(object):
         Exciton eigenvectors are arranged as eigenvectors[i_exc, i_kvc]
         Transitions are unpacked in table[ i_k, i_v, i_c, i_s_c, i_s_v ] (last two are spin indices)
     """
-    def __init__(self,lattice,Qpt,eigenvalues,l_residual,r_residual,spin_pol='no',car_qpoint=None,q_cutoff=None,Lkind=None,table=None,eigenvectors=None):
+    def __init__(self,lattice,Qpt,eigenvalues,l_residual,r_residual,spin_pol='no',cutoff=None,car_qpoint=None,Lkind=None,table=None,eigenvectors=None):
         if not isinstance(lattice,YamboLatticeDB):
             raise ValueError('Invalid type for lattice argument. It must be YamboLatticeDB')
 
@@ -81,22 +81,25 @@ class YamboExcitonDB(object):
         self.r_residual = r_residual
         #optional
         self.car_qpoint = car_qpoint
-        self.q_cutoff = q_cutoff
         self.table = table
         self.Lkind    = Lkind
         if table is not None:
             self.bs_bands = np.array([np.min(self.table[:,1]),np.max(self.table[:,2])]) # set range of bse bands
         self.eigenvectors = eigenvectors
         self.spin_pol = spin_pol
+        self.cutoff   = cutoff
+        self.dim      = self.check_dim(cutoff)
 
     @classmethod
     def from_db_file(cls,lattice,filename='ndb.BS_diago_Q1',folder='.',Load_WF=True, neigs=-1):
         """ 
         Initialize this class from a file
 
-        Set `Read_WF=False` to avoid reading eigenvectors for faster IO and memory efficiency.
+        Set `Load_WF=False` to avoid reading eigenvectors for faster IO and memory efficiency.
+        
         If neigs < 0 ; all eigen values (vectors) are loaded or else first neigs are loaded 
         " In case of non-TDA, we load right eigenvectors.
+
         """
         path_filename = os.path.join(folder,filename)
         if not os.path.isfile(path_filename):
@@ -172,16 +175,12 @@ class YamboExcitonDB(object):
                spin_pol = 'pol'
             else:
                spin_pol = 'no'
-        # Check if Coulomb cutoff is present
-        path_cutoff = os.path.join(path_filename.split('ndb',1)[0],'ndb.cutoff')  
-        q_cutoff = None
-        if os.path.isfile(path_cutoff):
-            with Dataset(path_cutoff) as database:
-                bare_qpg = database.variables['CUT_BARE_QPG'][:]
-                bare_qpg = bare_qpg[:,:,0]+bare_qpg[:,:,1]*I
-                q_cutoff = np.abs(bare_qpg[0,int(Qpt)-1])
 
-        return cls(lattice,Qpt,eigenvalues,l_residual,r_residual,spin_pol,q_cutoff=q_cutoff,car_qpoint=car_qpoint,Lkind=Lkind,table=table,eigenvectors=eigenvectors)
+            #check Coulomb cutoff
+            if 'W_Cutoff' in database.variables:
+                cutoff = str(database.variables['W_Cutoff'][:][0],'UTF-8').strip()
+
+        return cls(lattice,Qpt,eigenvalues,l_residual,r_residual,spin_pol,cutoff=cutoff,car_qpoint=car_qpoint,Lkind=Lkind,table=table,eigenvectors=eigenvectors)
 
     @property
     def unique_vbands(self):
@@ -251,20 +250,21 @@ class YamboExcitonDB(object):
 
         #get sorted energies
         sort_e, sort_i = self.get_sorted()
+        dip_header="Max Dipole Residual "+str(self.max_res)+"\n"
 
         #write excitons sorted by energy
         se_arr = np.array(sort_e)
         n_idx = se_arr[:, 1].astype(int)
         data_e = np.column_stack((se_arr[:, 0], intensities[n_idx], n_idx + 1))
         np.savetxt('%s_E.dat'%prefix, data_e, fmt='%16.8f %20.8e %10d',
-                   header='    E [ev]             Strength           Index')
+                   header=dip_header+'    E [ev]             Strength           Index')
 
         #write excitons sorted by intensities
         si_arr = np.array(sort_i)
         n_idx = si_arr[:, 1].astype(int)
         data_i = np.column_stack((eig[n_idx], np.abs(si_arr[:, 0]), n_idx + 1))
         np.savetxt('%s_I.dat'%prefix, data_i, fmt='%16.8f %20.8e %10d',
-                   header='    E [ev]             Strength           Index')
+                   header=dip_header+'    E [ev]             Strength           Index')
 
     def get_Akcv(self):
         """
@@ -497,6 +497,98 @@ class YamboExcitonDB(object):
         else:
             return [w, sbasis_r]
 
+    def get_Bkij_projected(self,projections=None,dbs=None,dump=False):
+        """
+        Project the exciton eigenvectors on the basis of atomic orbitals using
+        the projections calculated with projwfc.x.
+
+        NOTE: the projwfc calculation must be run on the same nscf save folder
+              used to generate the Yambo SAVE and BSE calculations
+        
+        The eigens projected on the Bloch basis \psi_{nk} are defined as:
+        
+        \Psi^{a,Q}(r_h,r_e) =\sum_{cvk} A^{a,Q}_{kcv}\psi^*_{vk-Q}(r_h)\psi_{ck}(r_e)
+
+        We can obtain the coefficients projected on atomic orbitals \phi_i as:
+
+        \Psi^{a,Q}(r_h,r_e) =\sum_{cvk} B^{a,Q}_{kij}\phi^*_{j}(r_h)\phi_{i}(r_e)
+        
+        if we have the atomic orbital projections \psi_{nk}(r) = \sum_{i} a^i_{nk} \phi^i(r).
+        The B-coefficients are given by: 
+
+            B^{a,Q}_{kij}=\sum_{kcv} A^{a,Q}_{kcv} a^{j,*}_{vk} a^i_{ck}
+
+        The indices i,j refer to atom-orbital labels that can be queried with ProjwfcXML functions
+        and allow for grouping hole and electron subsystems in real space, giving a 
+        "electron-hole" hopping picture of the exciton.
+
+        Parameters
+        ----------
+        projections -> np ndarray, complex, (nk_bz, n_proj, n_bands), optional
+                       This array is produced by expanding the QE atomic orbital projections
+                       to the full BZ by ProjwfcXML.rotate_proj().
+                       * n_bands must match the BS bands 
+                       * if magnetic, it is a list [proj_spin1, proj_spin2]
+                       * if None, dbs will be used to calculate Dmat and rotate the IBZ projs
+        dbs         -> list of yambopy objects as [ProjwfcXML, YamboWFDB], optional
+                       * if projections is given, dbs is not used
+        dump -> optional, default False. If True, dump the Bkij in a 'Bkij.npy' file.
+
+        Output
+        --------
+        Bkij -> np ndarray, complex (nexcitons,nspin,nk_bz,n_proj,n_proj)
+        """
+        # If not provided, we have to expand the QE atomic orbital projections
+        if projections is None:
+            if dbs is None: raise ValueError("[ERROR] projections not given as argument")
+           
+            projwfc = dbs[0]
+            wfdb    = dbs[1]
+            if os.path.isfile('Dmat.npy'): 
+                Dmats = np.load('Dmat.npy')
+            else:
+                # This can be a long calculation for many empty states
+                # Only a small subset of Dmat is generally needed
+                Dmats = wfdb.Dmat()
+                np.save('Dmat.npy',Dmats)
+
+            projections = projwfc.rotate_proj(wfdb,Dmats=Dmats,\
+                    bands_range=[self.bs_bands[0]-1,self.bs_bands[1]])
+
+        # Get Bloch-basis coefficients
+        Akcv = self.get_Akcv()
+        # Check blocks
+        if Akcv.shape[1]==2: raise NotImplementedError("[ERROR] Non-hermitian case not implemented.")
+        Akcv = Akcv[:,0,...]
+        # Check spin
+        nspin = Akcv.shape[1]
+        if nspin==2 and type(projections) is not list:
+            raise ValueError("[ERROR] Magnetic system: provide [proj_s1, proj_s2] list.")
+            assert nspin==len(projections), "Two spin components not found"
+            projections = np.stack(projections,axis=0)
+        if nspin==1:
+            if type(projections) is list: projections = projections[0]
+            projections = projections[None,...] # Explicitly add spin axis
+        # Safety check
+        assert isinstance(projections,np.ndarray)
+        # Check kpoints
+        assert projections.shape[1]==self.lattice.nkpoints, \
+                "Projections must expanded in BZ using ProjwfcXML.rotate_proj()"
+        # Check bands
+        assert projections.shape[-1]==Akcv.shape[-2]+Akcv.shape[-1], \
+                "Mismatch in nbands for projs and Akcv"
+        # Check Q-vector
+        red_Qpt = self.lattice.lat @ self.car_qpoint
+        ktree = build_ktree(self.lattice.red_kpoints)
+        k_minus_Q_idx = find_kpt(ktree,self.lattice.red_kpoints-red_Qpt)
+        a_star_v = np.conj( projections[:,k_minus_Q_idx,:,:self.nvbands] ) # spin,k-Q,proj,nv
+        a_c      =          projections[...,self.nvbands:]  # spin, k, proj,nc
+        # Calculation
+        Bkij= np.einsum('eskcv,skic,skjv->eskij',Akcv,a_c,a_star_v)
+
+        if dump: np.save('Bkij.npy',Bkij)
+
+        return Bkij
 
     def get_nondegenerate(self,eps=1e-4):
         """
@@ -518,7 +610,8 @@ class YamboExcitonDB(object):
         get the intensities of the excitons
         """
         intensities = np.abs(self.l_residual*self.r_residual)
-        intensities /= np.max(intensities)
+        self.max_res = np.max(intensities)
+        intensities /= self.max_res 
         return intensities
 
     def get_sorted(self):
@@ -629,7 +722,55 @@ class YamboExcitonDB(object):
             if abs(sum_weights - 1) > 1e-3: raise ValueError('Excitonic weights does not sum to 1 but to %lf.'%sum_weights)
 
         return weights
-    
+
+    def get_generalised_exciton_weights(self,excitons,coefficients,nelec,nhole,nk=None):
+        """
+        Calculated k-resolved generalised exciton weights either in
+        TRANSITION space or in HOPPING space.
+
+        :: TRANSITION space
+
+        We use Akcv = self.get_Akcv().
+        Here, nelec is the list of conduction states, nhole is the list
+        of valence states.
+
+        We analyse, for each (k,Q), the transitions between valence and conduction
+        subsets k-Q{v}->k{c}.
+
+        :: HOPPING space
+
+        We use Bkij = self.get_Bkij_projected().
+        Here, nelec is the list of atomic orbitals of the electron subsystem,
+        nhole is the list of atomic orbitals of the hole subsystem.
+
+        We analyze, for each (k,Q), the transitions between hole atomic orbitals
+        and electron atomic orbitals (or any combination of atomic orbitals forming
+        a real-space subsystem) k-Q{j}->k{i}
+
+        Parameters
+        ----------
+        excitons     -> int list, indices of exciton states, PYTHON COUNTING
+        coefficients -> np ndarray, exciton coefficients
+                        * Akcv [nk,nc,nv] for TRANSITION SPACE weights
+                        * Bkij [nk,ne,nh] for HOPPING SPACE weights
+        nelec        -> int list, conduction/electron indices to include, PYTHON COUNTING
+        nhole        -> int list, valence/hole indices to include, PYTHON COUNTING
+        nk           -> int, optional, number of kpoints in BZ
+        """
+        try: all(exciton > 0 for exciton in excitons)
+        except: raise ValueError("[ERROR] Found nonpositive indices in exciton list")
+        # TODO: Here, one could even call the degeneracy finder to warn the user if they
+        #       are unintentionally splitting degenerate states.
+        if nk is None: nk = coefficients.shape[0]
+
+        weights = np.zeros(nk)
+        for exciton in excitons:
+            aux_weights = abs2(coefficients[exciton])
+            for ik in range(nk):
+                for ie in nelec:
+                    for ih in nhole: weights[ik] += aux_weights[ik,ie,ih]
+        return weights
+
     def get_exciton_total_weights(self,excitons):
         """get weight of state in each band"""
         total_weights = np.zeros(self.nkpoints)
@@ -1228,25 +1369,35 @@ class YamboExcitonDB(object):
         # chi = sum_s [ |R_s|^2/(w-E+i*eta) + |R_s|^2/(-w-E-i*eta) ]
         chi = np.einsum('s,sn->n', EL1 * EL2, G1 + G2)
         
-        #dimensional factors
-        try:
-            if not self.Qpt=='1': q0norm = 2*np.pi*np.linalg.norm(self.car_qpoint)
-        except:
-            print("[WARNING] 1/q^2 set to 1 in eps2")
-            q0norm=1
-        try:
-            if self.q_cutoff is not None: q0norm = self.q_cutoff
-        except:
-            print("[WARNING] 1/q^2 set to 1 in eps2")
-            q0norm=1
+        # Coulomb potential factors
+        ## default for absorption calculations is |q|->0 which in yambo is |q|=1e-5
+        ## at finite Q we use the correct finite value
+        if not self.Qpt=='1': q0norm = 2*np.pi*np.linalg.norm(self.car_qpoint)
 
-        d3k_factor = self.lattice.rlat_vol/self.lattice.nkpoints
-        cofactor = ha2ev*spin_degen/(2*np.pi)**3 * d3k_factor * (4*np.pi)  / q0norm**2
+        # constant factors
+        ## NB: the 1/Nk in d3k_factor is the k-sum normalization missing from the residuals
+        d3k_factor = self.lattice.rlat_vol / self.lattice.nkpoints
+        cofactor = ha2ev * spin_degen / (2*np.pi)**3 * d3k_factor 
+        vcoulomb = (4*np.pi) / q0norm**2.
+       
+        # macroscopic dielectric function
+        epsilon = 1. + cofactor * vcoulomb * chi
 
-        chi = 1. + chi*cofactor #We are actually computing the epsilon, not the chi.
+        # dimensionality: we return epsilon in 3D and alpha in 2D
+        if self.dim=="3D": return w, epsilon
+        elif self.dim=="2D":
+            if   " x" in self.cutoff: idir=0
+            elif " y" in self.cutoff: idir=1
+            elif " z" in self.cutoff: idir=2
+            else:                     idir=2 # Assume 'cutoff z' by default
+            L = self.lattice.lat[idir,idir] # interlayer separation in bohr
+            alpha = (epsilon - 1.) * L / (4.*np.pi)
+            return w, alpha
+        ## So far 1D and 0D not implemented, give 3D epsilon
+        else:
+            print(f"[WARNING] Detected system is {self.dim}. Returning 3D epsilon.")
+            return w, epsilon
 
-        return w,chi
-    
     def get_pl(self,dipoles=None,dir=0,emin=0,emax=10,estep=0.01,broad=0.1,q0norm=1e-5, nexcitons='all',spin_degen=2,verbose=0,Boltz_Temp=300,**kwargs):
         """
         Calculate PL_0  using excitonic states
@@ -1325,18 +1476,11 @@ class YamboExcitonDB(object):
 
         return w,pl
 
-    def plot_chi_ax(self,ax,reim='im',n_brightest=-1,is_2D=False,**kwargs):
+    def plot_chi_ax(self,ax,reim='im',n_brightest=-1,**kwargs):
         """Plot chi on a matplotlib axes"""
         w,chi = self.get_chi(**kwargs)
-        ## WARNING: assuming 
-        ## (i)  nonperiodic direction is z 
-        ## (ii) atomic units for ylat.lat
-        if is_2D: 
-            abs_label = 'alpha'
-            Lz = self.lattice.lat[2,2] # interlayer separation in bohr
-            chi = (chi-1.)*Lz/(4.*np.pi)
-        else:
-            abs_label = 'epsilon'
+        if self.dim=='2D': abs_label = 'alpha'
+        else:              abs_label = 'epsilon'
         #cleanup kwargs variables
         cleanup_vars = ['dipoles','dir','emin','emax','estep','broad',
                         'q0norm','nexcitons','spin_degen','verbose']
@@ -1681,10 +1825,25 @@ class YamboExcitonDB(object):
     #  END SPIN DEPENDENT PART UNDER DEVELOPMENT #
     ##############################################
 
+    def check_dim(self,cutoff):
+        """
+        - If no Coulomb cutoff is used, system is assumed 3D
+        - If cutoff is detected:
+            - no. of 1s in kpoint grid is assumed no. of aperiodic directions
+        """
+        if 'none' in cutoff: 
+            return '3D'
+        else:
+            kpts  = self.lattice.get_ibz_kpoints(units='red')
+            Ngrid = check_kgrid( kpts, self.lattice.rlat )[0]
+            dim   = 3 - Ngrid.count(1)
+            return f"{dim}D"
+
     def get_string(self,mark="="):
         lines = []; app = lines.append
         app( marquee(self.__class__.__name__,mark=mark) )
         app( "BSE solved at Q:            %s"%self.Qpt )
+        app( "dimensionality:             %s system"%self.dim )
         app( "number of excitons:         %d"%self.nexcitons )
         if self.Lkind is not None:
             app("L kind:                     %s"%self.Lkind)
@@ -1693,6 +1852,7 @@ class YamboExcitonDB(object):
             app( "number of kpoints:          %d"%self.nkpoints  )
             app( "number of valence bands:    %d"%self.nvbands )
             app( "number of conduction bands: %d"%self.ncbands )
+            app( "bands global index:         %d - %d"%(self.bs_bands[0],self.bs_bands[1]))
         return '\n'.join(lines)
     
     def __str__(self):

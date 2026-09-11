@@ -521,6 +521,95 @@ class ProjwfcXML(object):
         self.eigen0 = self.eigen # save original bands
         self.eigen  = scissored_bands
 
+    def rotate_proj(self,wfdb,symm_mats_cart=None,frac_vecs_cart=None,time_rev=None,Dmats=None,bands_range=[]):
+        """
+        Rotate atomic projections in full BZ using Dmats:
+
+        proj(i, nRk) = \sum_m Dmat^*(mn,k ; R) * proj(i, mk)
+
+        Needs Yambo SAVE directory with ns.db1 and ns.wf* databases.
+
+        Parameters
+        ----------
+        wfdb : object
+            The wavefunction database object YamboWFDB containing 
+            lattice, basis and symmetry information.
+        symm_mats_cart : array_like of shape (nsym, 3, 3), optional
+            Rotational symmetry matrices in Cartesian coordinates. 
+            Default is None.
+        frac_vecs_cart : array_like of shape (nsym, 3), optional
+            Fractional translational vector associated with the 
+            symmetry operation. Default is None.
+        time_rev : bool, optional
+            Whether time-reversal symmetry is included. 
+            Default is None.
+        bands_range: list, optional
+            Range of bands to be used as [b_in,b_out). Default is all bands.
+        Dmats : array_like, optional
+            Representation matrices for the given symmetry. If None, 
+            they are computed directly from the ``wfdb``. Default is None.
+
+        NB: if `None` is given in the optional arguments, it will use 
+            the symmetries from Yambo SAVE
+
+        Returns
+        -------
+        proj_bz : ndarray
+            The rotated projections (nkpoints_bz, nproj, nstates)
+        """
+        
+        # Validate bands_range
+        if len(bands_range) == 0:
+            bands_range = [0, self.nbands]
+        elif min(bands_range) < 0 or max(bands_range) > self.nbands:
+            print("Warning: Invalid bands_range, loading all bands.")
+            bands_range = [0, self.nbands]
+        b_i = bands_range[0]
+        b_f = bands_range[1]
+        nbands_bz = bands_range[1]-bands_range[0]
+
+        # Compute representation matrices if not provided
+        if Dmats is None:
+            Dmats = wfdb.Dmat(
+                symm_mat=symm_mats_cart,
+                frac_vec=frac_vecs_cart,
+                time_rev=time_rev ) # nsym, nk_ibz, ns, nb1, nb2
+        Dmats = Dmats[:,:,:,b_i:b_f,b_i:b_f]
+
+        # kpt info
+        nk_BZ    = wfdb.ydb.nkpoints
+        bz2ibz_k = wfdb.ydb.BZ_to_IBZ_indexes # ik_BZ = iR @ ik_IBZ
+        bz2ibz_s = wfdb.ydb.symmetry_indexes  # iR
+       
+        if self.spin_components != 2:
+            proj_ibz = self.proj[:,:,b_i:b_f]
+            proj_bz = np.zeros((nk_BZ,self.nproj,nbands_bz),dtype=complex)
+
+            for ik_bz in range(nk_BZ):
+                ik_ibz = bz2ibz_k[ik_bz]
+                i_sym  = bz2ibz_s[ik_bz]
+                D      = Dmats[i_sym,ik_ibz,0]
+                proj_bz[ik_bz] = np.einsum('mn,im->in',D,proj_ibz[ik_ibz]) 
+
+            return proj_bz
+
+        else:
+            print("[WARNING] UNTESTED proj rotation in magnetic systems")
+
+            proj1_ibz = self.proj1[:,:,b_i:b_f]
+            proj2_ibz = self.proj2[:,:,b_i:b_f]
+            proj1_bz = np.zeros((nk_BZ,self.nproj,bands_bz),dtype=complex)
+            proj2_bz = np.zeros((nk_BZ,self.nproj,bands_bz),dtype=complex)
+            for ik_bz in range(nk_BZ):
+                ik_ibz = bz2ibz_k[ik_bz]
+                i_sym  = bz2ibz_s[ik_bz]
+                Dstar = np.conj(Dmats[i_sym,ik_ibz,0])
+                proj1_bz[ik_bz] = np.einsum('mn,im->in',Dstar,proj1_ibz[ik_ibz])
+                Dstar = np.conj(Dmats[i_sym,ik_ibz,1])
+                proj2_bz[ik_bz] = np.einsum('mn,im->in',Dstar,proj2_ibz[ik_ibz])
+            
+            return proj1_bz, proj2_bz
+
     def __str__(self):
         version_number = float(re.findall(r"([0-9.]+)",self.qe_version)[0])
         lines = []; app = lines.append

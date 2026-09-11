@@ -54,7 +54,7 @@ def plot_2D_excph(qpts,data,rlat=None,plt_cbar=False,**kwargs):
     ax.set_ylim(-lim,lim)
     ax.set_xlabel('$q_x$ ($\mathring{A}^{-1}$)',fontsize=12)
     ax.set_ylabel('$q_y$ ($\mathring{A}^{-1}$)',fontsize=12)
-    cbar.ax.set_ylabel('$|\mathcal{G}(q)|$ eV',fontsize=12)
+    if plt_cbar: cbar.ax.set_ylabel('$|\mathcal{G}(q)|$ eV',fontsize=12)
 
 #
 # User input

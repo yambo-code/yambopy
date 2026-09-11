@@ -21,7 +21,7 @@ class YamboLatticeDB(object):
     """
     def __init__(self,lat=None,alat=None,sym_car=None,iku_kpoints=None,
                       car_atomic_positions=None,atomic_numbers=None,
-                      time_rev=None,nelectrons=None,spinor_components=None,
+                      time_rev=None,nelectrons=None,spinor_components=None,spin=None,
                       mag_syms=None):
         self.lat                  = np.array(lat)
         self.alat                 = np.array(alat)
@@ -31,6 +31,7 @@ class YamboLatticeDB(object):
         self.atomic_numbers       = np.array(atomic_numbers)
         self.time_rev             = time_rev
         self.spinor_components    = spinor_components
+        self.spin                 = spin
         self.nelectrons           = nelectrons
         self.mag_syms             = mag_syms
         self.ibz_nkpoints         = len(iku_kpoints)
@@ -51,6 +52,7 @@ class YamboLatticeDB(object):
             dimensions = database.variables['DIMENSIONS'][:]
             time_rev   = dimensions[9].astype(int)
             spinor_components = dimensions[11].astype(int)
+            spin              = dimensions[12].astype(int)
             nelectrons = dimensions[14].astype(int)
             mag_syms   = database.variables['mag_syms'][:].astype(int)[0]
 
@@ -76,6 +78,7 @@ class YamboLatticeDB(object):
                          alat                 = database.variables['LATTICE_PARAMETER'][:].T,
                          time_rev             = time_rev,
                          spinor_components    = spinor_components,
+                         spin                 = spin,
                          nelectrons           = nelectrons,
                          mag_syms             = mag_syms)
 
@@ -106,6 +109,12 @@ class YamboLatticeDB(object):
     @property
     def nkpoints(self):
         return len(self.car_kpoints)
+
+    @property
+    def nspin(self):
+        if self.spinor_components==2: return 1 # SOC
+        elif self.spin==2: return 1 # magnetic
+        else: return 2 # nonmagnetic, no SOC
 
     @property
     def red_atomic_positions(self):
@@ -318,4 +327,6 @@ class YamboLatticeDB(object):
         if self.ibz_nkpoints!=self.nkpoints: app(f"{self.ibz_nkpoints} kpoints expanded to {self.nkpoints}")
         else: app(f"{self.nkpoints} kpoints in the IBZ")
         app(f"Time-reversal symmetry: {bool(self.time_rev)}")
+        app(f"Spin-orbit coupling:    {not(bool(self.spinor_components%2))}")
+        app(f"Magnetic:               {not(bool(self.spin%2))}")
         return "\n".join(lines)

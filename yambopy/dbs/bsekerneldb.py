@@ -8,6 +8,7 @@ import numpy as np
 from itertools import product
 from yambopy import YamboLatticeDB
 from yambopy.tools.string import marquee
+from yambopy.tools.types import CmplxType
 from yambopy.units import I
 
 class YamboBSEKernelDB(object):
@@ -37,8 +38,10 @@ class YamboBSEKernelDB(object):
         with Dataset(path_filename) as database:
             if 'BSE_RESONANT' in database.variables:
                 # Read as transposed since dimensions in netCDF are inverted
-                reker, imker = database.variables['BSE_RESONANT'][:].T
-                ker = reker + imker*I
+                #reker, imker = database.variables['BSE_RESONANT'][:].T
+                #ker = reker + imker*I
+                ker = database['BSE_RESONANT'][...].data
+                ker = ker.view(dtype=CmplxType(ker)).T[0]
                 
                 # Transform the triangular matrix to a square Hermitian matrix
                 kernel = np.conjugate(np.transpose(np.triu(ker))) + np.triu(ker)
@@ -63,7 +66,7 @@ class YamboBSEKernelDB(object):
         if excitons.ntransitions != self.ntransitions:
             print('[WARNING] Mismatch in ntransitions between ExcitonDB and BSEkernelDB!')        
 
-    def get_kernel_exciton_basis(self,excitons):
+    def get_kernel_exciton_basis(self,excitons,excitons_range=[]):
         """ Switch from transition |tq>=|kc,k-qv> to excitonic |lq> basis. 
             In this basis the kernel is diagonal.
             
@@ -71,15 +74,30 @@ class YamboBSEKernelDB(object):
                     = sum_{t,t'}( (A^l_t)^* K_tt' A^l_t' ) 
        
             exciton: YamboExcitonDB object 
+            excitons_range: [exc_start,exc_end+1] list of states
+                            e.g. first 4 excitons: [0,4]
             Here t->kcv according to table from YamboExcitonDB database
         """
-        kernel   = self.kernel
-        Nstates  = self.ntransitions
-        eivs     = excitons.eigenvectors
+        # Validate exciton_range
+        if len(excitons_range) == 0:
+            excitons_range = [0, excitons.nexcitons]
+        elif min(excitons_range) < 0 or max(excitons_range) > excitons.nexcitons:
+            print("Warning: Invalid excitons_range, loading all excitons.")
+            excitons_range = [0, excitons.nexcitons]
+        min_exc = min(excitons_range)
+        nexc    = max(excitons_range) - min_exc
+
+        # Consistency of ndb.BS_diago and ndb.BS_PAR
         self.consistency_BSE_BSK(excitons)
+        
+        # Get <l|t> coeffifients
+        eivs     = excitons.eigenvectors[min_exc:min_exc+nexc,:]
 
         # Basis transformation
-        kernel_exc_basis  = np.einsum('ij,kj,ki->k', kernel, eivs, np.conj(eivs), optimize=True)
+        kernel_exc_basis  = np.einsum('ij,kj,ki->k', self.kernel, eivs, np.conj(eivs), optimize=True)
+        
+        #kernel   = self.kernel
+        #Nstates  = self.ntransitions
         #kernel_exc_basis = np.zeros(Nstates,dtype=complex)
         #for il in range(Nstates):
         #    kernel_exc_basis[il] = np.dot( np.conj(eivs[il]), np.dot(kernel,eivs[il]) )

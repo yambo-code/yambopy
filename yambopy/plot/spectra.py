@@ -73,3 +73,44 @@ def get_spectra(energies,constant=1.,weights=None,residuals=None,broadening=0.01
         D = constant*np.einsum('n,n,nw->w', weights, residuals, broadening / (energy_poles**2 + broadening**2),optimize=True)
 
     return w,D
+
+def get_JDOS(energies,nval,ncond=-1):
+    """
+    Get transitions array in correct format for calculating JDOS
+    with `get_spectra`.
+
+    Inputs:
+    * energies: band energies [nk,nbands]
+    * nval: no. valence bands
+    * ncond: no. conduction bands (default: nbands-nv)
+
+    Returns:
+    * transition energies `trans` [nk, nc*nv]
+    * index table `table` [i_trans,i_val,i_cond]
+    
+    How to use with `get_spectra`:
+    
+    ```
+    transitions, table = get_JDOS(energies,nval,ncond)
+    w, JDOS            = get_spectra(transitions,weights,broadening,**args)
+    ```
+    
+    """
+    # Array of transitions [nk,nc*nv]
+    if nc<0: nc = energies.shape[1]-nv
+    # By default we take all valence bands, only empty states can be reduced
+    energies = energies[:,:nv+nc]
+    val   = energies[:,:nv]
+    cond  = energies[:,nv:]
+    trans = cond[:,:,None]-val[:,None,:]
+    trans = trans.reshape(len(energies), nc * nv)
+    # Index table
+    v_indices = np.arange(nv)
+    c_indices = np.arange(nv, nv + nc)
+    table = []
+    t = 0
+    for c in c_indices:
+        for v in v_indices:
+            table.append((t, c, v))
+            t += 1
+    return trans,table

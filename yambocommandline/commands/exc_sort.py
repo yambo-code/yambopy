@@ -9,7 +9,7 @@ from yambopy.dbs.latticedb import YamboLatticeDB
 def run_exc_sort(args):
     parser = argparse.ArgumentParser(description="Write the sorted energies and intensities to a file.")
     #
-    parser.add_argument("--save", type=str, default=".", help="Path to the SAVE directory (location of ns.db1, as in PATH/SAVE). Default current directory.")
+    parser.add_argument("--save", type=str, default="SAVE", help="Path to the SAVE directory (location of ns.db1, as in PATH/SAVE). Default SAVE")
     parser.add_argument("-J", "--jobdir", type=str, default="SAVE", metavar="DIR", help="BSE job directory (as in PATH/DIR). Default SAVE")
     parser.add_argument("--iqpt", type=int, default=1, help="Q-point index. Default 1")
     args = parser.parse_args(args)

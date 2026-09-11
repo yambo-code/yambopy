@@ -18,7 +18,6 @@ dipolespath = bsepath # ndb.dipoles is needed (optional)
 # Path to lattice and k-space info
 savepath = f'{path}/SAVE' # ns.db1 database is needed
 
-bands_range=[6,10] # 2 valence, 2 conduction bands
 phonons_range=[0,12] # All phonons
 nexc_out = 12 # 12 excitonic states at each momentum (Lout)
 nexc_in  = 12 # 12 excitonic states at Q=0 (Lin)
@@ -39,7 +38,7 @@ broad = 0.005 # Broadening parameter for peak width (in eV)
 input_data = exc_ph_get_inputs(savepath,elphpath,bsepath,\
                                bse_path2=bseBARpath,dipoles_path=dipolespath,\
                                nexc_in=nexc_in,nexc_out=nexc_out,\
-                               bands_range=bands_range,phonons_range=phonons_range)
+                               phonons_range=phonons_range)
 
 ph_energies, exc_energies, exc_energies_in, G, exc_dipoles = input_data
 
@@ -48,6 +47,10 @@ w,PL = exc_ph_luminescence(T_ph,ph_energies,exc_energies,exc_dipoles,G,\
                            exc_energies_in=exc_energies_in,exc_temp=T_exc,\
                            nexc_out=nexc_out,nexc_in=nexc_in,emin=emin,emax=emax,\
                            estep=estep,broad=broad) #,ph_channels='e')
+
+# Save luminescence intensities
+print("Printing phonon assisted luminescence in 'luminescence.dat' file")
+np.savetxt('luminescence.dat',np.c_[w,PL])
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
