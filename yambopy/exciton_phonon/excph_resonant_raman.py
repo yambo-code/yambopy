@@ -1155,3 +1155,480 @@ def save_dipole_g_dipole_heatmap(components, mode_idx, out_path=None):
             f.write('\n')
 
     return dip_g_dip
+
+
+# =============================================================================
+# Interference between exciton pairs
+#
+# Every (lambda1, lambda2) pair adds a complex, polarisation-resolved
+# amplitude c[a, b, l1, l2] to the Raman tensor R[a, b] = sum_pairs c.
+# The measured intensity is |sum c|^2 (coherent), whereas the pair-intensity
+# heatmaps show sum |c|^2 (incoherent). The difference is interference.
+#
+# c has rank-1 structure in (a, b) for each pair,
+#     c = p * ( conj(g) * dipS_res[:, l1] (x) dipSp_res[:, l2]
+#             +      g  * dipS_ares[:, l1] (x) dipSp_ares[:, l2] ),
+# so every quantity below reduces to (nexc x nexc) matrix algebra and is
+# evaluated in row blocks. The (nmodes, 3, 3, nexc, nexc) per-pair tensor is
+# never built, which keeps this usable at thousands of exciton states.
+# =============================================================================
+
+def _select_interference_modes(modes, active, I_coh):
+    """Resolve the `modes` argument of `exc_raman_interference_oneph`."""
+    import warnings
+
+    act = np.flatnonzero(active)
+    if modes is None or (isinstance(modes, str) and modes.strip().lower() == 'auto'):
+        ranked = act[np.argsort(I_coh[act])[::-1]]
+        return [int(m) for m in ranked[:3]]
+    if isinstance(modes, str):
+        if modes.strip().lower() == 'all':
+            return [int(m) for m in act]
+        raise ValueError("modes must be 'auto', 'all', None or a list of "
+                         "mode indices (got %r)" % modes)
+
+    sel = [int(m) for m in np.atleast_1d(modes)]
+    bad = [m for m in sel if m < 0 or m >= len(active)]
+    if bad:
+        raise ValueError("mode indices %s out of range 0..%d"
+                         % (bad, len(active) - 1))
+    skipped = [m for m in sel if not active[m]]
+    if skipped:
+        warnings.warn("modes %s are below the acoustic threshold and carry "
+                      "no Raman tensor; skipped." % skipped, stacklevel=3)
+    return [m for m in sel if active[m]]
+
+
+def exc_raman_interference_oneph(components, modes='auto', group_edges=None,
+                                 n_groups=8, curve_points=500,
+                                 curve_max_pairs=None, block_elems=2_000_000):
+    """
+    Quantify interference between exciton pairs in the excitonic Raman tensor.
+
+    Works on the dict returned by `exc_raman_components_oneph` (it does NOT
+    need ``save_per_pair=True``) and reports, per phonon mode, how the
+    complex amplitudes of the (lambda1, lambda2) pairs combine.
+
+    Definitions (mode m, polarisations a, b)
+    -----------------------------------------
+    c[a,b,l1,l2]      amplitude of one pair;  R[a,b] = sum_pairs c  (the tensor)
+    I_coh             sum_ab |R|^2                 measured intensity
+    I_incoh           sum_pairs sum_ab |c|^2       intensity without interference
+    coherence_ratio   I_coh / I_incoh              1: independent pairs,
+                                                   <1: destructive, >1: constructive
+
+    Resonant and anti-resonant parts of the SAME pair are added coherently
+    inside c; "incoherent" refers to adding different pairs.
+
+    Parameters
+    ----------
+    components : dict
+        As returned by `exc_raman_components_oneph` (or re-loaded from its
+        components.npz). Needs the dressed dipoles, `exc_ph_abs`,
+        `radiation_factor`, `ram_fac` and `active_modes`.
+    modes : 'auto', 'all', None or list of int, optional
+        Modes for which the maps, curve and blocks are built. 'auto'/None =
+        the 3 brightest active modes. The scalar ratios are always computed
+        for every active mode. Indices are 0-based.
+    group_edges : 1D array of float, optional
+        Exciton-energy edges (eV) of the windows used for the block
+        decomposition; windows are half-open [e_i, e_i+1). States outside all
+        windows are reported through ``residual_share``.
+    n_groups : int or None, optional
+        If `group_edges` is not given, use this many uniform windows spanning
+        all exciton energies. None/0 skips the block decomposition. Default 8.
+    curve_points : int, optional
+        Number of (log-spaced) samples stored for the cumulative curve.
+    curve_max_pairs : int or None, optional
+        Use only the strongest this-many pairs for the cumulative curve. The
+        full ordering needs an argsort over nexc^2 pairs (~16 nexc^2 bytes);
+        capping it saves memory. The curve then does not reach I_coh
+        (``curve_complete`` is False).
+    block_elems : int, optional
+        Approximate number of matrix elements processed per row block. Lower
+        it to reduce peak memory; results do not depend on it.
+
+    Returns
+    -------
+    dict with keys
+        I_coh, I_incoh, coherence_ratio : (nmodes,) float  (NaN if inactive)
+        analysed_modes                  : (n,) int
+        group_edges_eV                  : edges used, or None
+        per_mode : {mode: dict} with, for each analysed mode,
+            phase_weight      (nexc, nexc)  Re(sum_ab conj(R) c) / I_coh.
+                              Signed share of the intensity carried by each
+                              pair; sums to exactly 1. Negative = cancels.
+            incoherent_share  (nexc, nexc)  sum_ab|c|^2 / I_incoh; sums to 1.
+                              ``phase_weight - incoherent_share`` is the
+                              per-pair interference (sums to 0).
+            curve_n_pairs, curve_I_coh, curve_I_incoh : running intensities
+                              when adding pairs from strongest to weakest.
+            curve_complete    whether the curve covers every pair.
+            block_intensity   (ng, ng) sum_ab |A_ij|^2, block (i, j) alone.
+            block_share       (ng, ng) Re(sum_ab conj(R) A_ij) / I_coh.
+            block_interference (ng, ng) block_share - block_intensity/I_coh:
+                              interference of block (i, j) with all others.
+            block_coherence   I_coh / sum_ij block_intensity.
+            residual_share    share carried by states outside the windows.
+        plus laser_energy_eV, broad_eV, exc_energies_eV, ph_energies_eV,
+        active_modes copied from `components`.
+
+    Notes
+    -----
+    Index convention matches the heatmaps: l1 = first-vertex exciton (rows),
+    l2 = second-vertex exciton (columns), g = exc_ph_abs[m, l2, l1].
+
+    Memory per analysed mode is ~16 nexc^2 bytes for the two maps plus ~16
+    nexc^2 transiently for the curve ordering (0.4 + 0.8 GB at 7200 states).
+
+    Interference means subtracting nearly equal amplitudes; run
+    `exc_raman_components_oneph` with ``precision='d'`` for quantitative
+    results. A warning is issued for single-precision input.
+    """
+    import warnings
+
+    dSr = np.asarray(components['dipS_res'])
+    if dSr.dtype == np.complex64:
+        warnings.warn(
+            "components were produced with precision='s'. Interference means "
+            "subtracting nearly equal amplitudes, so single precision can "
+            "exaggerate weak cancellation; rerun exc_raman_components_oneph "
+            "with precision='d' for quantitative results.", stacklevel=2)
+
+    dSr    = dSr.astype(np.complex128)                              # (3, nexc)
+    dSa    = np.asarray(components['dipS_ares'], dtype=np.complex128)
+    dSpr   = np.asarray(components['dipSp_res'])                    # (nmodes, 3, nexc)
+    dSpa   = np.asarray(components['dipSp_ares'])
+    G      = np.asarray(components['exc_ph_abs'])                   # (nmodes, nexc, nexc) [m, l2, l1]
+    active = np.asarray(components['active_modes']).astype(bool)
+    pref   = (np.asarray(components['radiation_factor'], dtype=float)
+              * float(components['ram_fac']))
+    exc_eV = np.asarray(components['exc_energies_eV'], dtype=float)
+    ph_eV  = np.asarray(components['ph_energies_eV'], dtype=float)
+    nmodes, nexc = G.shape[0], G.shape[1]
+
+    rb = max(1, min(nexc, int(block_elems) // max(nexc, 1)))        # rows per block
+
+    # Mode-independent first-vertex factors.
+    Ar = np.sum(np.abs(dSr)**2, axis=0)
+    Aa = np.sum(np.abs(dSa)**2, axis=0)
+    Sx = np.sum(np.conj(dSr) * dSa, axis=0)                          # res-ares overlap
+
+    def _gblock(m, s, e):
+        """Rows s:e of gT[l1, l2] = G[m, l2, l1], as a double-precision copy."""
+        return np.ascontiguousarray(G[m][:, s:e].T, dtype=np.complex128)
+
+    def _second_vertex(m):
+        return (dSpr[m].astype(np.complex128), dSpa[m].astype(np.complex128))
+
+    def _tensor(m):
+        """R[a,b] = sum_pairs c, accumulated block-wise in double precision."""
+        dpr, dpa = _second_vertex(m)
+        R = np.zeros((3, 3), dtype=np.complex128)
+        for s in range(0, nexc, rb):
+            e  = min(s + rb, nexc)
+            gb = _gblock(m, s, e)
+            R += dSr[:, s:e] @ (np.conj(gb) @ dpr.T) + dSa[:, s:e] @ (gb @ dpa.T)
+        return pref[m] * R
+
+    def _pair_pass(m, R, want_maps, P):
+        """Incoherent total; optionally the pair maps and block accumulators."""
+        p = pref[m]
+        dpr, dpa = _second_vertex(m)
+        Br = np.sum(np.abs(dpr)**2, axis=0)
+        Ba = np.sum(np.abs(dpa)**2, axis=0)
+        Sy = np.sum(np.conj(dpr) * dpa, axis=0)
+        Rc = np.conj(R)
+
+        inc = w = Zr = Za = None
+        if want_maps:
+            inc = np.empty((nexc, nexc))
+            w   = np.empty((nexc, nexc))
+        if P is not None:
+            Zr = np.zeros((P.shape[0], 3, nexc), dtype=np.complex128)
+            Za = np.zeros_like(Zr)
+
+        I_inc = 0.0
+        for s in range(0, nexc, rb):
+            e  = min(s + rb, nexc)
+            gb = _gblock(m, s, e)
+            # sum_ab |c|^2 = p^2 [ |g|^2 (Ar Br + Aa Ba) + 2 Re(g^2 Sx Sy) ]
+            incb  = (gb.real**2 + gb.imag**2) * (np.outer(Ar[s:e], Br)
+                                                 + np.outer(Aa[s:e], Ba))
+            incb += 2.0 * np.real(gb * gb * np.outer(Sx[s:e], Sy))
+            incb *= p * p
+            I_inc += incb.sum()
+            if want_maps:
+                inc[s:e] = incb
+                # sum_ab conj(R) c = p [ conj(g) u_res + g u_ares ]
+                ur = dSr[:, s:e].T @ Rc @ dpr
+                ua = dSa[:, s:e].T @ Rc @ dpa
+                w[s:e] = p * np.real(np.conj(gb) * ur + gb * ua)
+            if P is not None:
+                Zr += (P[:, None, s:e] * dSr[None, :, s:e]) @ np.conj(gb)
+                Za += (P[:, None, s:e] * dSa[None, :, s:e]) @ gb
+        return I_inc, inc, w, Zr, Za
+
+    def _curve(m, inc):
+        """Running coherent / incoherent intensity, strongest pairs first."""
+        p = pref[m]
+        dpr, dpa = _second_vertex(m)
+        flat   = inc.ravel()
+        npairs = flat.size
+        if curve_max_pairs is not None and int(curve_max_pairs) < npairs:
+            k     = max(1, int(curve_max_pairs))
+            part  = np.argpartition(flat, npairs - k)[npairs - k:]
+            order = part[np.argsort(flat[part])[::-1]]
+        else:
+            order = np.argsort(flat)[::-1]
+        nuse = order.size
+
+        npts = max(2, min(int(curve_points), nuse))
+        ks   = np.unique(np.append(
+            np.geomspace(1, nuse, num=npts).astype(np.int64), nuse))
+        I_coh_k = np.empty(ks.size)
+        I_inc_k = np.empty(ks.size)
+
+        chunk = max(1, int(block_elems) // 9)
+        S, run_inc, ptr = np.zeros((3, 3), dtype=np.complex128), 0.0, 0
+        Gm = G[m]
+        for s in range(0, nuse, chunk):
+            idx = order[s:s + chunk]
+            l1, l2 = idx // nexc, idx % nexc
+            g = Gm[l2, l1].astype(np.complex128)
+            c = (np.conj(g)[:, None, None] * dSr[:, l1].T[:, :, None] * dpr[:, l2].T[:, None, :]
+                 + g[:, None, None]        * dSa[:, l1].T[:, :, None] * dpa[:, l2].T[:, None, :])
+            c *= p
+            cs = np.cumsum(c, axis=0)
+            cs += S
+            run = run_inc + np.cumsum(flat[idx])
+            j0 = ptr
+            while ptr < ks.size and ks[ptr] <= s + idx.size:
+                ptr += 1
+            if ptr > j0:
+                pos = ks[j0:ptr] - (s + 1)
+                I_coh_k[j0:ptr] = np.sum(np.abs(cs[pos])**2, axis=(1, 2))
+                I_inc_k[j0:ptr] = run[pos]
+            S, run_inc = cs[-1], run[-1]
+        return ks, I_coh_k, I_inc_k, nuse == npairs
+
+    # ---- energy windows for the block decomposition ----
+    P = edges = None
+    if group_edges is not None:
+        edges = np.asarray(group_edges, dtype=float)
+        if edges.ndim != 1 or edges.size < 2 or np.any(np.diff(edges) <= 0):
+            raise ValueError("group_edges must be a strictly increasing 1D "
+                             "array with at least 2 values (eV)")
+    elif n_groups:
+        ng = int(n_groups)
+        if ng < 1:
+            raise ValueError("n_groups must be a positive integer or None")
+        lo, hi = float(exc_eV.min()), float(exc_eV.max())
+        if hi <= lo:
+            hi = lo + 1e-6
+        edges = np.linspace(lo, hi, ng + 1)
+        edges[-1] = np.nextafter(hi, np.inf)        # keep the top state inside
+    if edges is not None:
+        ng  = edges.size - 1
+        gid = np.digitize(exc_eV, edges) - 1
+        ok  = (gid >= 0) & (gid < ng)
+        P = np.zeros((ng, nexc))
+        P[gid[ok], np.flatnonzero(ok)] = 1.0
+
+    # ---- tensor and coherent intensity for every active mode ----
+    I_coh = np.zeros(nmodes)
+    tensors = {}
+    for m in np.flatnonzero(active):
+        tensors[m] = _tensor(m)
+        I_coh[m] = np.sum(np.abs(tensors[m])**2)
+
+    sel = _select_interference_modes(modes, active, I_coh)
+
+    I_inc = np.zeros(nmodes)
+    per_mode = {}
+    for m in np.flatnonzero(active):
+        want = m in sel
+        R = tensors[m]
+        I_inc[m], inc, w, Zr, Za = _pair_pass(m, R, want, P if want else None)
+        if not want:
+            continue
+
+        Ic, Ii = I_coh[m], I_inc[m]
+        entry = {}
+        ks, curve_coh, curve_inc, complete = _curve(m, inc)
+        entry.update(curve_n_pairs=ks, curve_I_coh=curve_coh,
+                     curve_I_incoh=curve_inc, curve_complete=complete)
+
+        if Ic > 0:
+            w /= Ic
+        else:
+            w[:] = np.nan
+        if Ii > 0:
+            inc /= Ii
+        else:
+            inc[:] = np.nan
+        entry['phase_weight']     = w
+        entry['incoherent_share'] = inc
+
+        if P is not None:
+            dpr, dpa = _second_vertex(m)
+            A = pref[m] * (np.einsum('iaL,bL,jL->ijab', Zr, dpr, P)
+                           + np.einsum('iaL,bL,jL->ijab', Za, dpa, P))
+            b_int = np.sum(np.abs(A)**2, axis=(2, 3))
+            if Ic > 0:
+                b_share = np.real(np.einsum('ab,ijab->ij', np.conj(R), A)) / Ic
+                b_intf  = b_share - b_int / Ic
+                resid   = 1.0 - b_share.sum()
+            else:
+                b_share = b_intf = np.full_like(b_int, np.nan)
+                resid   = np.nan
+            tot = b_int.sum()
+            entry.update(block_intensity=b_int, block_share=b_share,
+                         block_interference=b_intf,
+                         block_coherence=(Ic / tot) if tot > 0 else np.nan,
+                         residual_share=resid)
+        per_mode[int(m)] = entry
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        ratio = np.where(I_inc > 0, I_coh / I_inc, np.nan)
+
+    return {
+        'laser_energy_eV' : float(components['laser_energy_eV']),
+        'broad_eV'        : float(components['broad_eV']),
+        'exc_energies_eV' : exc_eV,
+        'ph_energies_eV'  : ph_eV,
+        'active_modes'    : active.astype(np.int64),
+        'I_coh'           : I_coh,
+        'I_incoh'         : I_inc,
+        'coherence_ratio' : ratio,
+        'analysed_modes'  : np.array(sel, dtype=np.int64),
+        'group_edges_eV'  : edges,
+        'per_mode'        : per_mode,
+    }
+
+
+def save_raman_interference(interference, out_dir='raman_interference'):
+    """
+    Write the result of `exc_raman_interference_oneph` to disk.
+
+    Files
+    -----
+    interference.npz                      everything (per-mode keys suffixed _mode_NNN)
+    summary_interference.dat              one row per mode: I_coh, I_incoh, ratio
+    phase_weight_mode_NNN.dat             (nexc x nexc) maps, gnuplot image format
+    cumulative_mode_NNN.dat               running intensities vs number of pairs
+    blocks_mode_NNN.dat                   energy-window block decomposition
+    README.txt
+    """
+    import os
+
+    os.makedirs(out_dir, exist_ok=True)
+    wL     = float(interference['laser_energy_eV'])
+    exc_eV = np.asarray(interference['exc_energies_eV'])
+    ph_eV  = np.asarray(interference['ph_energies_eV'])
+    active = np.asarray(interference['active_modes']).astype(bool)
+    edges  = interference.get('group_edges_eV')
+    per    = interference['per_mode']
+    nexc   = exc_eV.size
+    analysed = set(int(m) for m in interference['analysed_modes'])
+
+    # ---- npz ----
+    flat = {k: np.asarray(v) for k, v in interference.items()
+            if k not in ('per_mode', 'group_edges_eV')}
+    if edges is not None:
+        flat['group_edges_eV'] = np.asarray(edges)
+    for m, d in per.items():
+        for k, v in d.items():
+            flat['%s_mode_%03d' % (k, m)] = np.asarray(v)
+    np.savez_compressed(os.path.join(out_dir, 'interference.npz'), **flat)
+
+    # ---- summary ----
+    with open(os.path.join(out_dir, 'summary_interference.dat'), 'w') as f:
+        f.write('# Exciton-pair interference at laser_energy = %.6f eV\n' % wL)
+        f.write('# I_coh = sum_ab |R|^2,  I_incoh = sum_pairs sum_ab |c|^2\n')
+        f.write('# ratio < 1: destructive, > 1: constructive, nan: inactive mode\n')
+        f.write('# 1:mode_idx  2:ph_freq_cm-1  3:ph_freq_eV  4:active  5:I_coh  '
+                '6:I_incoh  7:I_coh/I_incoh  8:analysed\n')
+        for m in range(ph_eV.size):
+            f.write('%6d  %12.4f  %14.6e  %d  %14.6e  %14.6e  %12.5f  %d\n'
+                    % (m, ph_eV[m] * _EV_TO_CM1, ph_eV[m], int(active[m]),
+                       interference['I_coh'][m], interference['I_incoh'][m],
+                       interference['coherence_ratio'][m], int(m in analysed)))
+
+    lam = np.arange(nexc)
+    for m, d in per.items():
+        title = ('mode %d (omega = %.2f cm-1, %.4f eV), laser_energy = %.6f eV'
+                 % (m, ph_eV[m] * _EV_TO_CM1, ph_eV[m], wL))
+
+        # ---- phase-weight maps (vectorised: one savetxt per l1 row) ----
+        w, sh = d['phase_weight'], d['incoherent_share']
+        with open(os.path.join(out_dir, 'phase_weight_mode_%03d.dat' % m), 'w') as f:
+            f.write('# Pair phase-weight heatmap, %s\n' % title)
+            f.write('# phase_weight     = Re(sum_ab conj(R) c) / I_coh   (sums to 1; <0 cancels)\n')
+            f.write('# incoherent_share = sum_ab |c|^2 / I_incoh        (sums to 1)\n')
+            f.write('# interference     = phase_weight - incoherent_share (sums to 0)\n')
+            f.write('# 1:l1  2:l2  3:phase_weight  4:incoherent_share  5:interference  '
+                    '6:E_l1_eV  7:E_l2_eV\n')
+            for l1 in range(nexc):
+                blk = np.column_stack([np.full(nexc, l1), lam, w[l1], sh[l1],
+                                       w[l1] - sh[l1], np.full(nexc, exc_eV[l1]), exc_eV])
+                np.savetxt(f, blk, fmt='%6d  %6d  %14.6e  %14.6e  %14.6e  %14.6f  %14.6f')
+                f.write('\n')
+
+        # ---- cumulative curve ----
+        Ic = interference['I_coh'][m]
+        with open(os.path.join(out_dir, 'cumulative_mode_%03d.dat' % m), 'w') as f:
+            f.write('# Cumulative intensity adding pairs strongest-first, %s\n' % title)
+            f.write('# complete = %s  (False: curve_max_pairs truncated it)\n'
+                    % bool(d['curve_complete']))
+            f.write('# final I_coh = %.6e   final I_incoh = %.6e\n'
+                    % (Ic, interference['I_incoh'][m]))
+            f.write('# 1:n_pairs  2:I_coh_running  3:I_incoh_running  4:I_coh_running/I_coh\n')
+            frac = d['curve_I_coh'] / Ic if Ic > 0 else np.full(d['curve_I_coh'].size, np.nan)
+            np.savetxt(f, np.column_stack([d['curve_n_pairs'], d['curve_I_coh'],
+                                           d['curve_I_incoh'], frac]),
+                       fmt='%12d  %14.6e  %14.6e  %12.6f')
+
+        # ---- blocks ----
+        if 'block_intensity' in d and edges is not None:
+            ng = len(edges) - 1
+            with open(os.path.join(out_dir, 'blocks_mode_%03d.dat' % m), 'w') as f:
+                f.write('# Energy-window block decomposition, %s\n' % title)
+                f.write('# windows are half-open [E_lo, E_hi); i = first-vertex window, '
+                        'j = second-vertex window\n')
+                f.write('# block_coherence = I_coh / sum_ij intensity_alone = %.6f\n'
+                        % d['block_coherence'])
+                f.write('# residual_share (states outside all windows) = %.6e\n'
+                        % d['residual_share'])
+                f.write('# 1:i  2:j  3:E_lo_i  4:E_hi_i  5:E_lo_j  6:E_hi_j  '
+                        '7:intensity_alone  8:share  9:interference\n')
+                for i in range(ng):
+                    for j in range(ng):
+                        f.write('%4d  %4d  %10.5f  %10.5f  %10.5f  %10.5f  '
+                                '%14.6e  %14.6e  %14.6e\n'
+                                % (i, j, edges[i], edges[i + 1], edges[j], edges[j + 1],
+                                   d['block_intensity'][i, j], d['block_share'][i, j],
+                                   d['block_interference'][i, j]))
+                    f.write('\n')
+
+    with open(os.path.join(out_dir, 'README.txt'), 'w') as f:
+        f.write(
+            'Exciton-pair interference dump (exc_raman_interference_oneph)\n\n'
+            'Laser energy : %.6f eV   Nexc : %d\n\n'
+            'Each exciton pair (l1, l2) adds a complex amplitude c to the Raman\n'
+            'tensor R = sum c. Intensity is |sum c|^2 (coherent); the pair heatmaps\n'
+            'show sum |c|^2 (incoherent). Their ratio measures interference.\n\n'
+            'summary_interference.dat  I_coh, I_incoh and I_coh/I_incoh per mode\n'
+            'phase_weight_mode_NNN.dat signed share of the intensity per pair\n'
+            '                          (col 3, sums to 1), no-interference share\n'
+            '                          (col 4) and their difference (col 5)\n'
+            'cumulative_mode_NNN.dat   running I_coh / I_incoh as pairs are added\n'
+            '                          strongest first; where col 2 and col 3\n'
+            '                          separate, interference sets in\n'
+            'blocks_mode_NNN.dat       same decomposition coarse-grained into\n'
+            '                          exciton-energy windows\n'
+            'interference.npz          all arrays\n\n'
+            'l1 = first-vertex exciton, l2 = second-vertex exciton (0-based).\n'
+            'gnuplot: splot "phase_weight_mode_NNN.dat" u 1:2:3 w image\n'
+            '         (use a diverging palette centred on 0)\n'
+            % (wL, nexc))
