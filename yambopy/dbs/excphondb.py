@@ -68,8 +68,8 @@ class YamboExcitonPhononDB():
         self.nexc_o = database.variables['EXCITON_SUM'][1].astype(int)
         self.nmodes = database.variables['PHONON_MODES'][0].astype(int)
         self.nqpoints = database.variables['HEAD_R_LATT'][3].astype(int)
-        self.type_exc_i = database.variables['L_kind_in'][...].tostring().decode().strip()
-        self.type_exc_o = database.variables['L_kind_out'][...].tostring().decode().strip()
+        self.type_exc_i = database.variables['L_kind_in'][...].tobytes().decode().strip()
+        self.type_exc_o = database.variables['L_kind_out'][...].tobytes().decode().strip()
         database.close()
 
         #Check how many databases are present
@@ -113,33 +113,65 @@ class YamboExcitonPhononDB():
     
         self.car_qpoints = np.array([ q/self.alat for q in self.qpoints ])
 
-    def read_excph(self):
+    def read_excph(self, read_sq=None):
         """
-        Read exciton-phonon matrix elements and their modulus squared
-        
+        Read exciton-phonon matrix elements and (optionally) their modulus
+        squared.
+
         NB: EXCPH_GKKP_Q is saved by yambo as (2,mode,exc_out,exc_in), but netCDF stores
             the *transpose* (exc_in,exc_out,mode,2).
             We want to change it to complex (iq,mode,exc_in,exc_out)
-        """    
+
+        Parameters
+        ----------
+        read_sq : None or bool, optional
+            How to obtain the modulus-squared array
+            EXCITON_PH_GKKP_SQUARED_Q. Newer lumen databases no longer store
+            this variable, so ``self.excph_sq`` is always populated for
+            backward compatibility with consumers that expect it:
+
+            * None (default) -- auto: read the stored array when present,
+              otherwise reconstruct it on the fly as ``|excph|**2``.
+            * True  -- read from the DB (errors if the variable is absent).
+            * False -- always reconstruct as ``|excph|**2`` (ignore any
+              stored array).
+
+            The reconstruction ``REAL(g)**2 + AIMAG(g)**2`` is exactly the
+            expression lumen used to fill the stored array, so the result is
+            equivalent up to floating-point precision.
+        """
         var_nm    = "EXCITON_PH_GKKP_Q"
         var_sq_nm = "EXCITON_PH_GKKP_SQUARED_Q"
-            
+
         # excph[q][mode][iexc1][iexc2]
-        excph_full    = np.zeros([self.nfrags,self.nmodes,self.nexc_i,self.nexc_o],dtype=np.complex64)  
-        excph_sq_full = np.zeros([self.nfrags,self.nmodes,self.nexc_i,self.nexc_o])  
-        
+        excph_full    = np.zeros([self.nfrags,self.nmodes,self.nexc_i,self.nexc_o],dtype=np.complex64)
+        excph_sq_full = np.zeros([self.nfrags,self.nmodes,self.nexc_i,self.nexc_o])
+
+        # Decide whether to read the stored squared array (absent in newer
+        # lumen databases, which dropped EXCPH_Gkkp_sq).
+        if read_sq is None:
+            with Dataset(self.frag_filename + "1") as db0:
+                read_sq = ('%s1'%var_sq_nm) in db0.variables
+
         for iq in range(self.nfrags):
             fil = self.frag_filename + "%d"%(iq+1)
             database = Dataset(fil)
             excph = database.variables['%s%d'%(var_nm,iq+1)][:]
             excph_full[iq] = np.moveaxis( excph[:,:,:,0]+I*excph[:,:,:,1], -1,0 )
             #excph_full[iq] = np.swapaxes( np.swapaxes(excph[:,:,:,0] + I*excph[:,:,:,1],-1,0), -1,-2)
-            
-            excph_sq = database.variables['%s%d'%(var_sq_nm,iq+1)][:]
-            excph_sq_full[iq] = np.moveaxis( excph_sq, -1,0)
-            #excph_sq_full[iq] = np.swapaxes( np.swapaxes(excph_sq[:,:,:],-1,0), -1,-2)
+
+            if read_sq:
+                excph_sq = database.variables['%s%d'%(var_sq_nm,iq+1)][:]
+                excph_sq_full[iq] = np.moveaxis( excph_sq, -1,0)
+                #excph_sq_full[iq] = np.swapaxes( np.swapaxes(excph_sq[:,:,:],-1,0), -1,-2)
             database.close()
-        
+
+        # If the stored squared array is not available, reconstruct it on the
+        # fly so self.excph_sq stays a valid array for downstream consumers.
+        # In-place assignment keeps the float64 dtype of the read path.
+        if not read_sq:
+            excph_sq_full[:] = np.abs(excph_full)**2
+
         # Check integrity of elph values
         if np.isnan(excph_full).any(): print('[WARNING] NaN values detected in elph database.')
 
