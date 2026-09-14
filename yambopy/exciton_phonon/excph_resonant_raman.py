@@ -1259,8 +1259,12 @@ def exc_raman_interference_oneph(components, modes='auto', group_edges=None,
                               Signed share of the intensity carried by each
                               pair; sums to exactly 1. Negative = cancels.
             incoherent_share  (nexc, nexc)  sum_ab|c|^2 / I_incoh; sums to 1.
-                              ``phase_weight - incoherent_share`` is the
-                              per-pair interference (sums to 0).
+                              Share the pair would have without interference.
+            interference      (nexc, nexc)  phase_weight - sum_ab|c|^2 / I_coh.
+                              Half of the pair's cross terms with all other
+                              pairs, over I_coh: >0 constructive, <0
+                              destructive. Sums to 1 - I_incoh/I_coh. Same
+                              convention as block_interference.
             curve_n_pairs, curve_I_coh, curve_I_incoh : running intensities
                               when adding pairs from strongest to weakest.
             curve_complete    whether the curve covers every pair.
@@ -1461,14 +1465,17 @@ def exc_raman_interference_oneph(components, modes='auto', group_edges=None,
 
         if Ic > 0:
             w /= Ic
+            intf = w - inc / Ic                     # half the cross terms / I_coh
         else:
             w[:] = np.nan
+            intf = np.full_like(w, np.nan)
         if Ii > 0:
             inc /= Ii
         else:
             inc[:] = np.nan
         entry['phase_weight']     = w
         entry['incoherent_share'] = inc
+        entry['interference']     = intf
 
         if P is not None:
             dpr, dpa = _second_vertex(m)
@@ -1561,17 +1568,19 @@ def save_raman_interference(interference, out_dir='raman_interference'):
                  % (m, ph_eV[m] * _EV_TO_CM1, ph_eV[m], wL))
 
         # ---- phase-weight maps (vectorised: one savetxt per l1 row) ----
-        w, sh = d['phase_weight'], d['incoherent_share']
+        w, sh, it = d['phase_weight'], d['incoherent_share'], d['interference']
         with open(os.path.join(out_dir, 'phase_weight_mode_%03d.dat' % m), 'w') as f:
             f.write('# Pair phase-weight heatmap, %s\n' % title)
             f.write('# phase_weight     = Re(sum_ab conj(R) c) / I_coh   (sums to 1; <0 cancels)\n')
             f.write('# incoherent_share = sum_ab |c|^2 / I_incoh        (sums to 1)\n')
-            f.write('# interference     = phase_weight - incoherent_share (sums to 0)\n')
+            f.write('# interference     = phase_weight - sum_ab |c|^2 / I_coh\n')
+            f.write('#                    (half the cross terms / I_coh; >0 constructive, '
+                    '<0 destructive; sums to 1 - I_incoh/I_coh)\n')
             f.write('# 1:l1  2:l2  3:phase_weight  4:incoherent_share  5:interference  '
                     '6:E_l1_eV  7:E_l2_eV\n')
             for l1 in range(nexc):
                 blk = np.column_stack([np.full(nexc, l1), lam, w[l1], sh[l1],
-                                       w[l1] - sh[l1], np.full(nexc, exc_eV[l1]), exc_eV])
+                                       it[l1], np.full(nexc, exc_eV[l1]), exc_eV])
                 np.savetxt(f, blk, fmt='%6d  %6d  %14.6e  %14.6e  %14.6e  %14.6f  %14.6f')
                 f.write('\n')
 
@@ -1621,7 +1630,9 @@ def save_raman_interference(interference, out_dir='raman_interference'):
             'summary_interference.dat  I_coh, I_incoh and I_coh/I_incoh per mode\n'
             'phase_weight_mode_NNN.dat signed share of the intensity per pair\n'
             '                          (col 3, sums to 1), no-interference share\n'
-            '                          (col 4) and their difference (col 5)\n'
+            '                          (col 4, sums to 1) and the interference\n'
+            '                          (col 5) = col 3 - |c|^2/I_coh: half the\n'
+            '                          cross terms, >0 constructive, <0 destructive\n'
             'cumulative_mode_NNN.dat   running I_coh / I_incoh as pairs are added\n'
             '                          strongest first; where col 2 and col 3\n'
             '                          separate, interference sets in\n'
