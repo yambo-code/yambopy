@@ -77,7 +77,7 @@ class YamboVbandsDB():
     def get_frequency(self):
         ds=Dataset(self.vb_path+'/ndb.Nonlinear')
         freq = float(ds['Field_Freq_1'][0])
-        period = 2*np.pi / freq
+        period = 2.0*np.pi / freq
         return freq,period
 
     def get_florder(self):
