@@ -38,7 +38,7 @@ class VbPP():
         freq =  get_frequency(vb_db.vb_path)
         self.freq  =freq*ha2ev 
         self.period = 2.0*np.pi/freq/fs2aut #in fs
-        self.qe_thrs,self.err_thrs,self.step,self.max_iter,self.max_fl_mode = self.set_conv_parameters(vb_db,vb_pars=None)
+        self.qe_thrs,self.err_thrs,self.step,self.max_iter,self.max_fl_mode = self.set_conv_parameters(vb_db,vb_pars=vb_pars)
         self.tot_fl_modes = self.max_fl_mode * 2 + 1
         self.exp_mat_long,self.exp_mat_m1 = self.get_exp_matrix()
 
@@ -89,8 +89,8 @@ class VbPP():
             max_iter=300
             max_fl_mode = vb_db.fl_order
         else:
-            qe_thrs,err_thrs,step,max_iter,max_fl_mode = list_pars    
-            max_fl_mode = min(max_fl_mode,self.fl_order)
+            qe_thrs,err_thrs,step,max_iter,max_fl_mode = vb_pars
+            max_fl_mode = min(max_fl_mode,vb_db.fl_order)
         list_pars = [qe_thrs,err_thrs,step,max_iter,max_fl_mode]
         
         return list_pars
@@ -172,13 +172,108 @@ class VbPP():
 
         return fl_eigenvectors
 
-    def find_qe(self,qe_ev=None,tag=None):
-        """ Secant solver to iterate over executions of run_nl2fl
-            and minimize the error between nl_in and nl_out
+    def qe_from_ratio(self,qe_ref=None,component=None):
+        """Floquet quasienergy directly from the ratio of the raw coefficients
+           at times differing by one period.
+
+           For a Floquet state c_j(t) = exp(-i*qe*t/hbar) * p_j(t) with p_j(t+T)=p_j(t),
+           hence  c_j(t+T)/c_j(t) = exp(-i*qe*T/hbar)   for every j and t.
+           All (t,j) pairs are combined in the |c|^2-weighted estimator
+               z = sum_{t,j} conj(c_j(t)) * c_j(t+T)   ->   qe = -hbar*arg(z)/T
+           (so tiny, noisy components do not spoil the result).
+           The phase is defined only modulo 2*pi, i.e. qe is defined modulo hbar*omega:
+           the branch closest to qe_ref (default: KS energy) is returned.
+
+           component : None (use all basis states) or 0-based index in the basis,
+                       to use the ratio of a single coefficient only.
+           Returns (qe_ev, info) with info a dict of diagnostics:
+               eps_t     : qe estimated at each starting time (should be flat)
+               spread    : std of eps_t [eV]
+               coherence : |z| / sum|c(t)||c(t+T)|, equal to 1 for a perfect Floquet state
+        """
+        if qe_ref is None:
+            qe_ref = self.ks_ev
+        t = np.asarray(self.times)
+        c = np.asarray(self.tvecs)
+        T = self.period
+        dt = np.diff(t)
+        if t[-1] - t[0] < T:
+            raise ValueError("Simulation shorter than one field period: cannot use the ratio method")
+
+        shift = T/dt[0]
+        if np.allclose(dt,dt[0],rtol=1e-6) and abs(shift-round(shift)) < 1e-3:
+            # period is an integer number of time steps: no interpolation needed
+            s = int(round(shift))
+            c0, c1 = c[:len(t)-s], c[s:]
+        else:
+            # period not commensurate with the time grid: interpolate c(t+T)
+            from scipy.interpolate import CubicSpline
+            mask = (t + T) <= (t[-1] + 1e-9)
+            c0 = c[mask]
+            c1 = CubicSpline(t,c,axis=0)(t[mask]+T)
+
+        if component is not None:
+            c0, c1 = c0[:,component:component+1], c1[:,component:component+1]
+
+        z_t = np.sum(np.conj(c0)*c1,axis=1)
+        z   = np.sum(z_t)
+        # phase is defined modulo 2pi -> qe modulo hbar*omega: choose branch closest to reference
+        def _branch(eps0):
+            return eps0 + np.round((qe_ref-eps0)/self.freq)*self.freq
+        qe   = _branch(-hbar_eVfs*np.angle(z)/T)
+        eps_t = _branch(-hbar_eVfs*np.angle(z_t)/T)
+        coherence = np.abs(z)/np.sum(np.abs(c0)*np.abs(c1))
+        info = {'eps_t':eps_t,'spread':np.std(eps_t),'coherence':coherence,
+                'n_pairs':len(z_t)}
+        return qe, info
+
+    def plot_raw_tvecs(self,band_to_plot=1,outdir=None):
+        """Plot the raw coefficients c_j(t) of the propagated state on KS state j
+           (before removing the Floquet phase factor exp(-i qe t/hbar)).
+           band_to_plot is 1-based position in the basis, as in plot_realtime.
+        """
+        c = np.array(self.tvecs)[:,band_to_plot-1]
+        t = np.array(self.times)
+        outdir = outdir or f'figs-raw_k{self.kpt}_b{self.band}'
+        os.makedirs(outdir,exist_ok=True)
+        fig,axes = plt.subplots(3,sharex=True)
+        fig.set_size_inches(8.3,7.5)
+        fig.suptitle(f'Raw coefficient on KS state {band_to_plot} (kpt {self.kpt}, band {self.band})')
+        axes[0].plot(t,c.real,marker='.',color='tab:blue'); axes[0].set_ylabel(f'Re[ c_{band_to_plot} ]')
+        axes[1].plot(t,c.imag,marker='.',color='tab:blue'); axes[1].set_ylabel(f'Im[ c_{band_to_plot} ]')
+        axes[2].plot(t,np.abs(c),marker='.',color='tab:blue'); axes[2].set_ylabel(f'|c_{band_to_plot}|')
+        axes[2].set_xlabel('Time (fs)')
+        plt.savefig(f'{outdir}/fig-raw_coefficient_KS_state_{band_to_plot}.pdf')
+        plt.close()
+
+    def find_qe(self,qe_ev=None,tag=None,method='optimize',component=None):
+        """method = 'optimize' : secant solver over run_nl2fl, minimising the
+                                 error between nl_in and nl_out (original behaviour)
+                    'ratio'    : quasienergy from c(t+T)/c(t) (see qe_from_ratio),
+                                 no iteration; run_nl2fl is called once to get the
+                                 Floquet coefficients and the periodicity error
+           qe_ev     : initial guess ('optimize') / branch reference ('ratio')
         """
         if qe_ev   is None:
             qe_ev = self.ks_ev
+        if method == 'ratio':
+            return self._find_qe_ratio(qe_ev,tag=tag,component=component)
+        if method != 'optimize':
+            raise ValueError("method must be 'optimize' or 'ratio'")
+        return self._find_qe_optimize(qe_ev,tag=tag)
 
+    def _find_qe_ratio(self,qe_ev,tag=None,component=None):
+        qe, info = self.qe_from_ratio(qe_ref=qe_ev,component=component)
+        evecs = self.run_nl2fl(qe,tag=tag,iter_num=0)
+        evecs.nr_it  = 0
+        evecs.nr_acc = info['spread']
+        evecs.ratio_info = info
+        return evecs
+
+    def _find_qe_optimize(self,qe_ev,tag=None):
+        """ Secant solver to iterate over executions of run_nl2fl
+            and minimize the error between nl_in and nl_out
+        """
         lof_qe  = []
         lof_err = []
 
@@ -273,6 +368,35 @@ class FLeigenvectors:
         os.system(f'if [ ! -d {self.dir} ]; then mkdir {self.dir};fi')
         plt.legend()
         plt.savefig(f'{self.dir}/fig-real_time_projection_over_KS_state_{band_to_plot+1}.pdf')
+        plt.close()
+
+    def plot_realtime_raw(self,band_to_plot=1,t_step=0.0025):
+        """Same as plot_realtime but for the coefficient BEFORE removing the Floquet
+           phase, c(t) = exp(-i qe t/hbar) * p(t). Data points: raw NL coefficients;
+           line: Floquet reconstruction exp(-i qe t/hbar) * sum_eta f_eta exp(-i eta w t).
+        """
+        n_steps = int(self.period*4/t_step)+10
+        X,Y = self.calc_all_times_pVecs(t_step=t_step,n_steps=n_steps)
+        phase_X = np.exp(-1j*self.FL_qe*X/hbar_eVfs)
+        phase_t = np.exp(-1j*self.FL_qe*self.times/hbar_eVfs)
+        C_fl  = Y[:,band_to_plot]*phase_X
+        C_in  = self.NL_in[:,band_to_plot]*phase_t     # = raw tvecs
+        C_out = self.NL_out[:,band_to_plot]*phase_t
+
+        fig,axes = plt.subplots(3,sharex=True)
+        fig.set_size_inches(8.3,7.5)
+        fig.suptitle(f'Raw coefficient (with Floquet phase) on Kohn-Sham state: {band_to_plot+1}')
+        for ax,f in zip(axes,[np.real,np.imag,np.abs]):
+            ax.plot(X,f(C_fl),label='FL_calculated',color='tab:blue')
+            ax.plot(self.times,f(C_in) ,label='NL_in (raw data)',marker='o',linestyle='',color='tab:olive',ms=12)
+            ax.plot(self.times,f(C_out),label='NL_out',marker='.',linestyle='',color='tab:blue',ms=11)
+        axes[0].set_ylabel(f'Re[ c_{band_to_plot+1} ]')
+        axes[1].set_ylabel(f'Im[ c_{band_to_plot+1} ]')
+        axes[2].set_ylabel(f'|c_{band_to_plot+1}|')
+        axes[2].set_xlabel('Time (fs)')
+        axes[0].legend()
+        os.makedirs(self.dir,exist_ok=True)
+        plt.savefig(f'{self.dir}/fig-real_time_raw_coefficient_KS_state_{band_to_plot+1}.pdf')
         plt.close()
 
     def plot_floquet(self,labels='+1'):
@@ -385,7 +509,7 @@ def get_bands(kpt=None,band=None):
 ### FLOQUET BAND/PLOT FUNCTIONS ###
 ##################################################################################
 
-def findallk_qe(vbdb,report_file=None):
+def findallk_qe(vbdb,report_file=None,method='optimize'):
     from contextlib import nullcontext
     #
     ks_evk = np.zeros([vbdb.n_kpts,vbdb.n_vbands])
@@ -396,7 +520,7 @@ def findallk_qe(vbdb,report_file=None):
         for _bnd in range(vbdb.n_vbands):
             for _kpt in range(vbdb.n_kpts):
                 vbs = VbPP(vbdb,_kpt+1,_bnd+1)
-                opt_evecs = vbs.find_qe()
+                opt_evecs = vbs.find_qe(method=method)
                 ks_evk[_kpt,_bnd] = vbs.ks_ev
                 fl_qek[_kpt,_bnd] = opt_evecs.FL_qe
                 fl_eig[_kpt,_bnd,:,:] = opt_evecs.FL_vecs[:,:]
@@ -533,4 +657,3 @@ def plot_2D_kdist(data,lat,nspin=-1,plt_cbar=False,shift_BZ=True,**kwargs):
 
     #if plt_show: plt.show()
     #else: print_string = "Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc..."
-
