@@ -206,6 +206,7 @@ class VbPP():
             s = int(round(shift))
             c0, c1 = c[:len(t)-s], c[s:]
         else:
+            print("WARNING!!! Period is not an integer number of the time steps ")
             # period not commensurate with the time grid: interpolate c(t+T)
             from scipy.interpolate import CubicSpline
             mask = (t + T) <= (t[-1] + 1e-9)
@@ -243,7 +244,8 @@ class VbPP():
         axes[1].plot(t,c.imag,marker='.',color='tab:blue'); axes[1].set_ylabel(f'Im[ c_{band_to_plot} ]')
         axes[2].plot(t,np.abs(c),marker='.',color='tab:blue'); axes[2].set_ylabel(f'|c_{band_to_plot}|')
         axes[2].set_xlabel('Time (fs)')
-        plt.savefig(f'{outdir}/fig-raw_coefficient_KS_state_{band_to_plot}.pdf')
+        plt.show()
+        #plt.savefig(f'{outdir}/fig-raw_coefficient_KS_state_{band_to_plot}.pdf')
         plt.close()
 
     def find_qe(self,qe_ev=None,tag=None,method='optimize',component=None):
@@ -367,8 +369,9 @@ class FLeigenvectors:
         axes[1].set_ylabel(f'Im[ d_{band_to_plot+1} ]')
         os.system(f'if [ ! -d {self.dir} ]; then mkdir {self.dir};fi')
         plt.legend()
-        plt.savefig(f'{self.dir}/fig-real_time_projection_over_KS_state_{band_to_plot+1}.pdf')
-        plt.close()
+        plt.show()
+        #plt.savefig(f'{self.dir}/fig-real_time_projection_over_KS_state_{band_to_plot+1}.pdf')
+        #plt.close()
 
     def plot_realtime_raw(self,band_to_plot=1,t_step=0.0025):
         """Same as plot_realtime but for the coefficient BEFORE removing the Floquet
@@ -395,8 +398,9 @@ class FLeigenvectors:
         axes[2].set_ylabel(f'|c_{band_to_plot+1}|')
         axes[2].set_xlabel('Time (fs)')
         axes[0].legend()
-        os.makedirs(self.dir,exist_ok=True)
-        plt.savefig(f'{self.dir}/fig-real_time_raw_coefficient_KS_state_{band_to_plot+1}.pdf')
+        plt.show()
+ #       os.makedirs(self.dir,exist_ok=True)
+#        plt.savefig(f'{self.dir}/fig-real_time_raw_coefficient_KS_state_{band_to_plot+1}.pdf')
         plt.close()
 
     def plot_floquet(self,labels='+1'):
