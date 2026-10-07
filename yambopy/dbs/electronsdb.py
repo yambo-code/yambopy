@@ -230,23 +230,18 @@ class YamboElectronsDB():
         """ Determine the fermi energy
         """
         from scipy.optimize import bisect
+        from yambopy.tools.funcs import fermi_array
 
         kpts, nks, nss = self.expand_kpoints()
-
-        def fermi_array(e_array,ef):
-            """ Fermi dirac function for an array
-            """
-            e_array = (e_array-ef)/inv_smear
-            return [ fermi(e) for e in e_array]
 
         def occupation_minus_ne(ef):
             """ The total occupation minus the total number of electrons
             """
             if self.spinor == 1:
-               return sum([sum(self.spin_degen*fermi_array(self.eigenvalues[0,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)])-self.electrons
+               return sum([sum(self.spin_degen*fermi_array(self.eigenvalues[0,nk],ef,inv_smear))*self.weights[nk] for nk in range(self.nkpoints)])-self.electrons
             elif self.spinor == 2:
-               sum_up = sum([sum(self.spin_degen*fermi_array(self.eigenvalues[0,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)]) 
-               sum_dw = sum([sum(self.spin_degen*fermi_array(self.eigenvalues[1,nk],ef))*self.weights[nk] for nk in range(self.nkpoints)]) 
+               sum_up = sum([sum(self.spin_degen*fermi_array(self.eigenvalues[0,nk],ef,inv_smear))*self.weights[nk] for nk in range(self.nkpoints)]) 
+               sum_dw = sum([sum(self.spin_degen*fermi_array(self.eigenvalues[1,nk],ef,inv_smear))*self.weights[nk] for nk in range(self.nkpoints)]) 
                return sum_up + sum_dw -self.electrons
      
         efermi = bisect(occupation_minus_ne,self.min_eival,self.max_eival)
@@ -261,21 +256,21 @@ class YamboElectronsDB():
         Shift bands and get occupations
         """
         self.invsmear = invsmear
-        self.efermi = fermi
+        self._efermi = fermi
 
         #full brillouin zone
         self.eigenvalues     -= self.efermi
         self.occupations = np.zeros([self.spin,self.nkpoints,self.nbands],dtype=np.float32)
         for nspin in range(self.spin):
             for nk in range(self.nkpoints):
-                self.occupations[nspin,nk] = fermi_array(self.eigenvalues[nspin,nk,:self.nbands],0)
+                self.occupations[nspin,nk] = fermi_array(self.eigenvalues[nspin,nk,:self.nbands],0.0, invsmear)
 
         #for the ibz
         self.eigenvalues_ibz -= self.efermi
         self.occupations_ibz = np.zeros([self.spin,self.nkpoints_ibz,self.nbands],dtype=np.float32)
         for nspin in range(self.spin):
             for nk in range(self.nkpoints_ibz):
-                self.occupations_ibz[nk] = fermi_array(self.eigenvalues_ibz[nspin,nk,:],0,self.invsmear)
+                self.occupations_ibz[nspin,nk] = fermi_array(self.eigenvalues_ibz[nspin,nk,:], 0.0, invsmear) 
 
         return self.efermi
 
