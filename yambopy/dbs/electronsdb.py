@@ -274,7 +274,7 @@ class YamboElectronsDB():
 
         return self.efermi
 
-    def setFermiFixed(self,broad=1e-5):
+    def setFermiFixed(self,broad=1e-5, TopVal=False):
         """
         Set Fermi level using fixed occupations method
         Useful for semi-conductors
@@ -285,7 +285,11 @@ class YamboElectronsDB():
         top = np.max(eigenvalues[:,:,self.nbandsv-1])
         #bottom of conduction
         bot = np.max(eigenvalues[:,:,self.nbandsv])
-        efermi = (top+bot)/2.
+        # use top valence like in Yambo
+        if TopVal: 
+            efermi = top
+        else:
+            efermi = (top+bot)/2.
         self.setFermi(efermi,broad)
 
     def expandEigenvalues(self):
