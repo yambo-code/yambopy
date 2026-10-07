@@ -127,6 +127,7 @@ from yambopy.nl.damp_it import *
 # from yambopy.nl.sum_frequencies import *
 from yambopy.nl.hhg_tools import *
 from yambopy.nl.vb_postprocessing import *
+from yambopy.nl.vb_pp_claudio import *
 from yambopy.nl.nl_analysis import *
 from yambopy.nl.sin_analysis import *
 from yambopy.nl.freqmix_analysis import *
