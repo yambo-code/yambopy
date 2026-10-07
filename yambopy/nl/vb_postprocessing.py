@@ -206,7 +206,9 @@ class VbPP():
             s = int(round(shift))
             c0, c1 = c[:len(t)-s], c[s:]
         else:
-            print("WARNING!!! Period is not an integer number of the time steps ")
+            print("\n\n WARNING!!! Period is not an integer number of the time steps \n\n")
+            print("Time step :",str(dt[0])," fs ")
+            print("Period    :",str(T)," fs ")
             # period not commensurate with the time grid: interpolate c(t+T)
             from scipy.interpolate import CubicSpline
             mask = (t + T) <= (t[-1] + 1e-9)
