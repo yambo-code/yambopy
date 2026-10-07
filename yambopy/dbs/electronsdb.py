@@ -261,7 +261,7 @@ class YamboElectronsDB():
         Shift bands and get occupations
         """
         self.invsmear = invsmear
-        self.efermi = fermi
+        self._efermi = fermi
 
         #full brillouin zone
         self.eigenvalues     -= self.efermi

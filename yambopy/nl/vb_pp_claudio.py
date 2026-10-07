@@ -251,6 +251,10 @@ class VbPP_cla():
         """
         if qe_ev   is None:
             qe_ev = self.ks_ev
+
+        print("Initial KS energies : \n")
+        print(qe_ev)
+        sys.exit(0)
         if method == 'ratio':
             return self._find_qe_ratio(qe_ev,tag=tag,component=component)
         if method != 'optimize':
@@ -488,19 +492,11 @@ def get_frequency(db_path):
    return freq
 
 def get_bands(kpt=None,band=None):
-  ds=Dataset('SAVE/ns.db1')
-  KSevalues=ds['EIGENVALUES'][:]
-  vb,vb_kpt,vbM=0,0,-111
-  for _band in range(KSevalues.shape[2]):
-    for _kpt in range(KSevalues.shape[1]):
-      for _spin in range(KSevalues.shape[0]):
-        if KSevalues[_spin,_kpt,_band] < 0. and KSevalues[_spin,_kpt,_band] > vbM:
-           vb,vb__kpt,vbM = _band,_kpt,KSevalues[_spin,_kpt,_band]
+  save_folder='./SAVE'
+  yel=YamboElectronsDB.from_db_file(folder=save_folder)
+  efermi=yel.setFermiFixed()  # for insulators only
+  return yel.eigenvalues_ibz[0,kpt-1,band-1] #-efermi
 
-  if kpt is None and band is None:
-    return (KSevalues - vbM)*ha2ev
-  else:
-    return (KSevalues[0,kpt-1,band-1] - vbM)*ha2ev
 
 ##################################################################################
 ### FLOQUET BAND/PLOT FUNCTIONS ###
