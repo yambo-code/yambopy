@@ -495,8 +495,8 @@ def get_bands(kpt=None,band=None):
   save_folder='./SAVE'
   yel=YamboElectronsDB.from_db_file(folder=save_folder)
   yel.expandEigenvalues()
-  efermi=yel.setFermiFixed()  # for insulators only
-  return yel.eigenvalues_ibz[0,kpt-1,band-1] #-efermi
+  yel.setFermiFixed(TopVal=True) # set Fermi energy like in Yambo/Lumen
+  return yel.eigenvalues_ibz[0,kpt-1,band-1]
 
 
 ##################################################################################
