@@ -24,7 +24,7 @@ class YamboVbandsDB():
         number_of_steps = int(ds['IO_TIME_steps_last_nsteps'][2])
         return number_of_steps
     
-    def get_basis_size(self):
+    def get_sizes(self):
         """gets the size of the basis
         """
         ds=Dataset(self.vb_path+'/ndb.RT_V_bands_K_section')
@@ -40,7 +40,7 @@ class YamboVbandsDB():
         """gets the basis index
         """
         basis_idx = [-1,-1]
-        ds=Dataset(self.jobdir+'/ndb.RT_V_bands')
+        ds=Dataset(self.vb_path+'/ndb.RT_V_bands')
         basis_idx[0] = int(ds['RT_bands_kpts'][0])   
         basis_idx[1] = int(ds['RT_bands_kpts'][1])   
         return basis_idx
@@ -75,7 +75,7 @@ class YamboVbandsDB():
         return list_of_times
 
     def get_frequency(self):
-        ds=Dataset(self.jobdir+'/ndb.Nonlinear')
+        ds=Dataset(self.vb_path+'/ndb.Nonlinear')
         freq = float(ds['Field_Freq_range_1'][0])
         period = 2*np.pi / freq
         return freq,period
@@ -91,15 +91,15 @@ class YamboVbandsDB():
         """folder: type string
            calc: type string
         """
-        self.vb_path = '%s/%s/%s'%(folder,calc,nl_db)
+        self.vb_path = '%s/%s/'%(folder,calc)
         for ndb in ['/ndb.RT_V_bands','/ndb.RT_V_bands_K_section']:
             try:
                 data_obs = Dataset(self.vb_path+ndb)
             except:
                 raise ValueError("Error reading V_bands databases at %s"%self.vb_path)
 
-        self.n_timesteps = self.get_ntimesteps()
-        self.basis_size = self.get_basis_size()
+        self.n_timesteps = self.get_n_timesteps()
+        self.basis_size,self.n_vbands, self.n_kpts = self.get_sizes()
         self.basis_index = self.get_basis_idx()
         self.tvecs = self.get_tvecs()
         self.times = self.get_times()

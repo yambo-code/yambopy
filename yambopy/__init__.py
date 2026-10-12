@@ -65,6 +65,7 @@ from yambopy.dbs.electronsdb import *
 from yambopy.dbs.rtdb import *
 from yambopy.dbs.rt_carriers_db import *
 from yambopy.dbs.nldb import *
+from yambopy.dbs.vbandsdb import *
 from yambopy.dbs.excitondb import *
 from yambopy.dbs.wfdb import *
 from yambopy.dbs.elphondb import *
@@ -125,6 +126,7 @@ from yambopy.nl.nl_analysis import *
 from yambopy.nl.sin_analysis import *
 from yambopy.nl.freqmix_analysis import *
 from yambopy.nl.pulse_analysis import *
+from yambopy.nl.vb_postprocessing import *
 #doublegrid files
 from yambopy.double_grid.dg_convergence import *
 
