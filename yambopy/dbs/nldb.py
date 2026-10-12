@@ -125,7 +125,6 @@ class YamboNLDB(object):
             else:
                 self.Efield_general.append(efield.copy())
                 self.N_ext_fields=self.N_ext_fields+1
-
         #
         # Read polarization and currect files 
         #
