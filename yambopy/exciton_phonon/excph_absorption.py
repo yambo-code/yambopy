@@ -8,7 +8,6 @@ from yambopy.tools.funcs import bose
 from tqdm import tqdm
 from yambopy.tools.citations import citation
 
-@citation("P. Lechifflart et al. Phys. Rev. Materials 7, 024006 (2023)")
 def exc_ph_absorption(ph_temp,ph_energies,exc_energies,exc_dipoles,exc_ph_mat_el,cell_volume,\
                       exc_energies_in=None,ph_channels='b',nexc_out='all',nexc_in='all',\
                       emin=0,emax=10,estep=0.01,broad=0.025,broad_0=None,\
