@@ -585,10 +585,51 @@ def exc_raman_spectrum_oneph(laser_energy, ph_energies,
 # to read; use for debugging / spectrum inspection.
 # =============================================================================
 
+def raman_damping(exc_energies, damping_range, damping_erange):
+    """
+    Exciton-energy dependent Lorentzian half-width (HWHM), in eV.
+
+    Same curve as lumen's `RAMAN_damping` (RamanDmRange / RamanDmERange):
+    a linear ramp between E1 and E2, constant outside that window,
+
+        eta(E) = eta1                                E <= E1
+               = eta1 + (eta2-eta1)*(E-E1)/(E2-E1)   E1 < E < E2
+               = eta2                                E >= E2
+
+    with eta_i = FWHM_i / 2. E1, E2 are absolute exciton energies.
+
+    Parameters
+    ----------
+    exc_energies : array_like
+        Exciton energies in eV.
+    damping_range : (float, float)
+        FWHM at E1 and at E2 (eV). Both must be > 0; a decreasing ramp is
+        allowed.
+    damping_erange : (float, float)
+        E1 (ramp start) and E2 (plateau knee) in eV, E2 > E1.
+
+    Returns
+    -------
+    eta : ndarray, same shape as exc_energies
+        HWHM in eV.
+    """
+    fw1, fw2 = (float(x) for x in damping_range)
+    E1, E2 = (float(x) for x in damping_erange)
+    if E2 <= E1:
+        raise ValueError('damping_erange: E2 must be larger than E1')
+    if fw1 <= 0.0 or fw2 <= 0.0:
+        raise ValueError('damping_range: damping must be positive')
+    E = np.asarray(exc_energies, dtype=float)
+    t = np.clip((E - E1) / (E2 - E1), 0.0, 1.0)
+    return 0.5 * (fw1 + (fw2 - fw1) * t)
+
+
 def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
                                exc_dipoles, exc_ph_mat_el, n_kpts, cell_vol,
                                broad=0.1, ph_freq_threshold=5.0,
-                               save_per_pair=False, precision='s'):
+                               save_per_pair=False, precision='s',
+                               damping_range=None, damping_erange=None,
+                               gauge='length'):
     """
     Diagnostic version of `exc_resonant_raman_tensor_oneph`. Computes the
     Raman tensor at a SINGLE laser energy in pure numpy and returns every
@@ -628,6 +669,24 @@ def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
         array; 'd' = double (float64 / complex128) reproduces the original
         bit-for-bit-comparable values. Energies/denominators are always
         evaluated in double internally and only the stored arrays are cast.
+    damping_range, damping_erange : (float, float) or None, optional
+        Energy-dependent ("adaptive") damping, as lumen's RamanDmRange and
+        RamanDmERange: FWHM at E1 and at E2, and E1, E2 (all in eV). Each
+        exciton gets the half-width eta(E_S) of `raman_damping`, in both
+        vertices (E_S - i eta(E_S) and E_S' - i eta(E_S')). If
+        `damping_range` is None or (0, 0) the flat `broad` is used and
+        `damping_erange` is ignored, reproducing the previous behaviour.
+    gauge : {'velocity', 'length'}, optional
+        Selects the per-mode prefactor, as in lumen's RAMAN_oneph_exc.F:
+          'length'   (default) sqrt(|w_D| w_L) * |w_D| * ram_fac; pass exciton
+                     dipoles built from DIP_iR (lumen >= ad1e3d3b69,
+                     Gauge = length).
+          'velocity' sqrt(|w_D|/w_L) * ram_fac; pass exciton dipoles built
+                     from DIP_v (lumen before the gauge commits, 355680bac0~1).
+        w_D = w_L - w_ph. The denominators are the same in both. The
+        prefactor is one real number per mode, so it cancels in phase
+        weights, interference and coherence ratios; those change between
+        gauges only through the dipoles.
 
     Returns
     -------
@@ -650,14 +709,32 @@ def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
     wL           = float(laser_energy) / ha2ev
     ph_Ha        = np.asarray(ph_energies,  dtype=float) / ha2ev
     exc_Ha       = np.asarray(exc_energies, dtype=float) / ha2ev
-    broad_Ha     = (broad / ha2ev) / 2.0
     ph_thresh_Ha = ph_freq_threshold * cm1_to_Ha
     ram_fac      = 1.0 / float(n_kpts) / np.sqrt(cell_vol)
 
     nmodes = ph_Ha.shape[0]
     nexc   = exc_Ha.shape[0]
 
-    BS_energies = exc_Ha - 1j * broad_Ha   # E_lam - i*Gamma/2
+    # Per-exciton half-width eta(E) (eV). Flat `broad` unless a ramp is given,
+    # the same fallback as lumen (RamanDmRange = 0 | 0 -> RamanBroad).
+    ramp = damping_range is not None and any(float(x) != 0.0 for x in damping_range)
+    if ramp:
+        if damping_erange is None:
+            raise ValueError('damping_erange (E1, E2) is required with damping_range')
+        eta_eV = raman_damping(exc_Ha * ha2ev, damping_range, damping_erange)
+        n_below = int(np.sum(exc_Ha * ha2ev <= float(damping_erange[0])))
+        n_above = int(np.sum(exc_Ha * ha2ev >= float(damping_erange[1])))
+        print('Damping ramp E1,E2   [eV] : %.6f  %.6f' % tuple(damping_erange))
+        print('Damping FWHM E1,E2   [eV] : %.6f  %.6f' % tuple(damping_range))
+        print('Damping HWHM min,max [eV] : %.6f  %.6f' % (eta_eV.min(), eta_eV.max()))
+        print('Excitons below/in/above   : %d  %d  %d'
+              % (n_below, nexc - n_below - n_above, n_above))
+        eta_Ha = eta_eV / ha2ev
+    else:
+        eta_Ha = np.full(nexc, (broad / ha2ev) / 2.0)
+        eta_eV = eta_Ha * ha2ev
+
+    BS_energies = exc_Ha - 1j * eta_Ha   # E_lam - i*eta(E_lam)
 
     D_emi = np.asarray(exc_dipoles, dtype=complex)
     D_abs = np.conj(D_emi)
@@ -677,7 +754,14 @@ def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
     # (nmodes, nexc, nexc) copy.
     exc_ph_abs = np.asarray(exc_ph_mat_el, dtype=c_type)     # yambopy raw (mode, init, fin)
 
-    radiation_factor = np.sqrt(np.abs(wL - ph_Ha) / wL).astype(f_type)
+    g_name = str(gauge).strip().lower()
+    if g_name == 'velocity':
+        radiation_factor = np.sqrt(np.abs(wL - ph_Ha) / wL).astype(f_type)
+    elif g_name == 'length':
+        radiation_factor = (np.sqrt(np.abs(wL - ph_Ha) * wL)
+                            * np.abs(wL - ph_Ha)).astype(f_type)
+    else:
+        raise ValueError("gauge must be 'velocity' or 'length'")
     active_modes     = np.abs(ph_Ha) > ph_thresh_Ha
     prefactor        = (radiation_factor * ram_fac).astype(f_type)           # (nmodes,) real
 
@@ -714,6 +798,13 @@ def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
     components = {
         'laser_energy_eV'         : float(laser_energy),
         'broad_eV'                : float(broad),
+        'gauge'                   : g_name,
+        'damping_mode'            : 'ramp' if ramp else 'flat',
+        'damping_range_eV'        : (np.asarray(damping_range, dtype=float) if ramp
+                                     else np.array([float(broad), float(broad)])),
+        'damping_erange_eV'       : (np.asarray(damping_erange, dtype=float) if ramp
+                                     else np.array([np.nan, np.nan])),
+        'eta_eV'                  : eta_eV,
         'ph_freq_threshold_cm-1'  : float(ph_freq_threshold),
         'n_kpts'                  : int(n_kpts),
         'cell_vol_bohr3'          : float(cell_vol),
@@ -765,6 +856,16 @@ def exc_raman_components_oneph(laser_energy, ph_energies, exc_energies,
     return components
 
 
+def _damping_text(d):
+    """One-line description of the exciton damping used in `d`."""
+    if str(d.get('damping_mode', 'flat')) == 'ramp':
+        fw = np.asarray(d['damping_range_eV'], dtype=float)
+        er = np.asarray(d['damping_erange_eV'], dtype=float)
+        return ('ramp, FWHM %.4f -> %.4f eV between E1 = %.4f and E2 = %.4f eV'
+                % (fw[0], fw[1], er[0], er[1]))
+    return '%.4f eV flat (electronic Gamma, full width)' % float(d['broad_eV'])
+
+
 def save_raman_components(components, out_dir='raman_components',
                           top_n_pairs=20, heatmap_modes='auto'):
     """
@@ -806,6 +907,9 @@ def save_raman_components(components, out_dir='raman_components',
     exc_eV  = np.asarray(components['exc_energies_eV'])
     active  = np.asarray(components['active_modes']).astype(bool)
     rad_fac = np.asarray(components['radiation_factor'])
+    gauge   = str(components.get('gauge', 'velocity'))
+    pref_txt = ('sqrt(|wL-wph|*wL)*|wL-wph|' if gauge == 'length'
+                else 'sqrt(|wL-wph|/wL)')
     nmodes  = ph_eV.shape[0]
     nexc    = exc_eV.shape[0]
     ph_cm   = ph_eV * _EV_TO_CM1
@@ -821,6 +925,7 @@ def save_raman_components(components, out_dir='raman_components',
     # 2. summary_modes.dat
     with open(os.path.join(out_dir, 'summary_modes.dat'), 'w') as f:
         f.write('# Excitonic Raman diagnostics at laser_energy = %.6f eV\n' % wL_eV)
+        f.write('# gauge: %s   (col 7 = %s)\n' % (gauge, pref_txt))
         f.write('# 1:mode_idx  2:ph_freq_cm-1  3:ph_freq_eV  '
                 '4:|R_res|^2_sum  5:|R_ares|^2_sum  6:|R_total|^2_sum  '
                 '7:radiation_factor  8:active(1)/skipped(0)\n')
@@ -836,15 +941,18 @@ def save_raman_components(components, out_dir='raman_components',
     inv_d_ares_v1 = np.asarray(components['inv_denom_ares_v1'])
     Dx, Dy, Dz = np.abs(D_emi[0]), np.abs(D_emi[1]), np.abs(D_emi[2])
     D_sq = Dx**2 + Dy**2 + Dz**2
+    eta_eV = np.asarray(components.get('eta_eV',
+                                       np.full(nexc, 0.5 * float(components['broad_eV']))))
 
     with open(os.path.join(out_dir, 'summary_excitons.dat'), 'w') as f:
         f.write('# Excitonic Raman diagnostics at laser_energy = %.6f eV\n' % wL_eV)
+        f.write('# damping: %s\n' % _damping_text(components))
         f.write('# 1:exc_idx  2:E_eV  3:|D_x|  4:|D_y|  5:|D_z|  6:|D|^2  '
-                '7:|1/denom_res_v1|  8:|1/denom_ares_v1|\n')
+                '7:|1/denom_res_v1|  8:|1/denom_ares_v1|  9:eta_HWHM_eV\n')
         for l in range(nexc):
-            f.write('%6d  %14.6f  %14.6e  %14.6e  %14.6e  %14.6e  %14.6e  %14.6e\n'
+            f.write('%6d  %14.6f  %14.6e  %14.6e  %14.6e  %14.6e  %14.6e  %14.6e  %12.6f\n'
                     % (l, exc_eV[l], Dx[l], Dy[l], Dz[l], D_sq[l],
-                       np.abs(inv_d_res_v1[l]), np.abs(inv_d_ares_v1[l])))
+                       np.abs(inv_d_res_v1[l]), np.abs(inv_d_ares_v1[l]), eta_eV[l]))
 
     # 4. dominant pairs per mode
     pair_res   = np.asarray(components['pair_intensity_res'])
@@ -925,7 +1033,8 @@ def save_raman_components(components, out_dir='raman_components',
             'Excitonic Raman diagnostic dump\n'
             'Generated by save_raman_components(...).\n\n'
             'Laser energy : %.6f eV\n'
-            'Broadening   : %.4f eV (electronic Gamma, full width)\n'
+            'Damping      : %s\n'
+            'Gauge        : %s (prefactor %s; dipoles from %s)\n'
             'Nmodes       : %d   Nexc : %d\n\n'
             'Files\n-----\n'
             'components.npz\n'
@@ -935,11 +1044,13 @@ def save_raman_components(components, out_dir='raman_components',
             '    One row per phonon mode. Columns:\n'
             '    1 mode_idx | 2 ph_freq (cm-1) | 3 ph_freq (eV)\n'
             '    4 |R_res|^2_sum_ab | 5 |R_ares|^2_sum_ab | 6 |R_total|^2_sum_ab\n'
-            '    7 radiation_factor sqrt(|wL-wph|/wL) | 8 active(1)/skipped(0)\n\n'
+            '    7 radiation_factor (gauge prefactor, see above) | 8 active(1)/skipped(0)\n\n'
             'summary_excitons.dat\n'
             '    One row per exciton state. Columns:\n'
             '    1 exc_idx | 2 E (eV) | 3 |Dx| | 4 |Dy| | 5 |Dz| | 6 |D|^2\n'
-            '    7 |1/(wL - E + iG/2)| | 8 |1/(wL + E - iG/2)|\n\n'
+            '    7 |1/(wL - E + i eta(E))| | 8 |1/(wL + E - i eta(E))|\n'
+            '    9 eta(E) (HWHM, eV): RamanBroad/2 (flat) or the lumen-style\n'
+            '      ramp of raman_damping (RamanDmRange / RamanDmERange)\n\n'
             'pairs_per_mode/pairs_mode_NNN.dat\n'
             '    Top-N most contributing (lambda1, lambda2) pairs per active\n'
             '    mode. Ranked by |c_res|^2 + |c_ares|^2.\n'
@@ -956,7 +1067,8 @@ def save_raman_components(components, out_dir='raman_components',
             '  exc_ph[m, init, fin] = yambopy raw absorption-form matrix\n'
             '  element. The Raman formula uses exc_ph[m, lambda2, lambda1].\n\n'
             'See plot.gp in this folder for example gnuplot commands.\n'
-            % (wL_eV, float(components['broad_eV']), nmodes, nexc))
+            % (wL_eV, _damping_text(components), gauge, pref_txt,
+               'DIP_iR' if gauge == 'length' else 'DIP_v', nmodes, nexc))
 
     with open(os.path.join(out_dir, 'plot.gp'), 'w') as f:
         f.write(
@@ -1011,8 +1123,11 @@ def save_resonance_heatmap(components, mode_idx, out_path=None):
 
     Each cell (l1, l2) contains:
 
-        res_map[l1, l2]  = |1/(wL - E_l1 + iG/2)| * |1/(wL - E_l2 - wph + iG/2)|
-        ares_map[l1, l2] = |1/(wL + E_l1 - iG/2)| * |1/(wL + E_l2 - wph - iG/2)|
+        res_map[l1, l2]  = |1/(wL - E_l1 + i eta_l1)| * |1/(wL - E_l2 - wph + i eta_l2)|
+        ares_map[l1, l2] = |1/(wL + E_l1 - i eta_l1)| * |1/(wL + E_l2 - wph - i eta_l2)|
+
+    with eta_l = eta(E_l) the exciton half-width (flat or ramp, see
+    `exc_raman_components_oneph`).
 
     This shows the pure double-resonance landscape: which (l1, l2) pairs are
     simultaneously resonant at both photon vertices, irrespective of whether
@@ -1059,8 +1174,9 @@ def save_resonance_heatmap(components, mode_idx, out_path=None):
                 % (m, ph_eV[m] * _EV_TO_CM1, ph_eV[m]))
         f.write('# laser_energy = %.6f eV\n' % wL_eV)
         f.write('# No dipoles, no phonon matrix elements.\n')
-        f.write('# res_map[l1,l2]  = |1/(wL-E_l1+iG/2)| * |1/(wL-E_l2-wph+iG/2)|\n')
-        f.write('# ares_map[l1,l2] = |1/(wL+E_l1-iG/2)| * |1/(wL+E_l2-wph-iG/2)|\n')
+        f.write('# damping: %s\n' % _damping_text(components))
+        f.write('# res_map[l1,l2]  = |1/(wL-E_l1+i eta_l1)| * |1/(wL-E_l2-wph+i eta_l2)|\n')
+        f.write('# ares_map[l1,l2] = |1/(wL+E_l1-i eta_l1)| * |1/(wL+E_l2-wph-i eta_l2)|\n')
         f.write('# gnuplot:  splot "%s" u 1:2:3 with image   (res)\n'
                 % os.path.basename(out_path))
         f.write('# gnuplot:  splot "%s" u 1:2:4 with image   (ares)\n'
@@ -1330,7 +1446,8 @@ def exc_raman_interference_oneph(components, modes='auto', group_edges=None,
         per_group : {label: dict}, label like '007_008', with the same keys
             as per_mode (sums over the group's modes as described under
             `mode_groups`) plus modes, I_coh, I_incoh, coherence_ratio.
-        plus laser_energy_eV, broad_eV, exc_energies_eV, ph_energies_eV,
+        plus laser_energy_eV, broad_eV, gauge, damping_mode, damping_range_eV,
+        damping_erange_eV, eta_eV, exc_energies_eV, ph_energies_eV,
         active_modes copied from `components`.
 
     Notes
@@ -1597,6 +1714,14 @@ def exc_raman_interference_oneph(components, modes='auto', group_edges=None,
     return {
         'laser_energy_eV' : float(components['laser_energy_eV']),
         'broad_eV'        : float(components['broad_eV']),
+        'gauge'           : str(components.get('gauge', 'velocity')),
+        'damping_mode'    : str(components.get('damping_mode', 'flat')),
+        'damping_range_eV': np.asarray(components.get(
+            'damping_range_eV', [components['broad_eV']] * 2), dtype=float),
+        'damping_erange_eV': np.asarray(components.get(
+            'damping_erange_eV', [np.nan, np.nan]), dtype=float),
+        'eta_eV'          : np.asarray(components.get(
+            'eta_eV', np.full(exc_eV.size, 0.5 * float(components['broad_eV'])))),
         'exc_energies_eV' : exc_eV,
         'ph_energies_eV'  : ph_eV,
         'active_modes'    : active.astype(np.int64),
@@ -1640,6 +1765,7 @@ def save_raman_interference(interference, out_dir='raman_interference'):
     per_g  = interference.get('per_group', {})
     nexc   = exc_eV.size
     analysed = set(int(m) for m in interference['analysed_modes'])
+    damp   = _damping_text(interference) + '   gauge: %s' % interference.get('gauge', 'velocity')
 
     # ---- npz ----
     flat = {k: np.asarray(v) for k, v in interference.items()
@@ -1657,6 +1783,7 @@ def save_raman_interference(interference, out_dir='raman_interference'):
     # ---- summary ----
     with open(os.path.join(out_dir, 'summary_interference.dat'), 'w') as f:
         f.write('# Exciton-pair interference at laser_energy = %.6f eV\n' % wL)
+        f.write('# damping: %s\n' % damp)
         f.write('# I_coh = sum_ab |R|^2,  I_incoh = sum_pairs sum_ab |c|^2\n')
         f.write('# ratio < 1: destructive, > 1: constructive, nan: inactive mode\n')
         f.write('# 1:mode_idx  2:ph_freq_cm-1  3:ph_freq_eV  4:active  5:I_coh  '
@@ -1702,6 +1829,7 @@ def save_raman_interference(interference, out_dir='raman_interference'):
         w, sh, it = d['phase_weight'], d['incoherent_share'], d['interference']
         with open(os.path.join(out_dir, 'phase_weight_%s.dat' % tag), 'w') as f:
             f.write('# Pair phase-weight heatmap, %s\n' % title)
+            f.write('# damping: %s\n' % damp)
             f.write('# phase_weight     = Re(sum_ab conj(R) c) / I_coh   (sums to 1; <0 cancels)\n')
             f.write('# incoherent_share = sum_ab |c|^2 / I_incoh        (sums to 1)\n')
             f.write('# interference     = phase_weight - sum_ab |c|^2 / I_coh\n')
@@ -1718,6 +1846,7 @@ def save_raman_interference(interference, out_dir='raman_interference'):
         # ---- cumulative curve ----
         with open(os.path.join(out_dir, 'cumulative_%s.dat' % tag), 'w') as f:
             f.write('# Cumulative intensity adding pairs strongest-first, %s\n' % title)
+            f.write('# damping: %s\n' % damp)
             f.write('# complete = %s  (False: curve_max_pairs truncated it)\n'
                     % bool(d['curve_complete']))
             f.write('# final I_coh = %.6e   final I_incoh = %.6e\n' % (Ic, Ii))
@@ -1732,6 +1861,7 @@ def save_raman_interference(interference, out_dir='raman_interference'):
             ng = len(edges) - 1
             with open(os.path.join(out_dir, 'blocks_%s.dat' % tag), 'w') as f:
                 f.write('# Energy-window block decomposition, %s\n' % title)
+                f.write('# damping: %s\n' % damp)
                 f.write('# windows are half-open [E_lo, E_hi); i = first-vertex window, '
                         'j = second-vertex window\n')
                 f.write('# block_coherence = I_coh / sum_ij intensity_alone = %.6f\n'
