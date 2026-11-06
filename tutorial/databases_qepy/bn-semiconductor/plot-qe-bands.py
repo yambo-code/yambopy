@@ -1,6 +1,5 @@
 from qepy import PwXML
-from yambopy import BrillouinZone
-from cell_to_ibrav import CellToIbrav
+from yambopy import BrillouinZone, CellToIbrav
 from math import sqrt
 
 # k-points map

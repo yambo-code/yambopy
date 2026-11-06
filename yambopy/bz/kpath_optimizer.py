@@ -85,8 +85,7 @@ class KPathOptimizer:
 
     def __init__(self, rlat: np.ndarray, sym: list[np.ndarray]):
         self._rlat = rlat
-        self._sym = sym
-        # print(sym)
+        self.sym = [s for s in sym if not np.all(s == np.zeros((3, 3)))]
 
     # ------------------------------------------------------------------
     # Public API
@@ -133,10 +132,10 @@ class KPathOptimizer:
                 "original_length": 0.0,
                 "improvement": 0.0,
                 "n_combinations": 1,
-                "stars": [get_star_of_k(k, self._sym) for k in kpath],
+                "stars": [get_star_of_k(k, self.sym) for k in kpath],
             }
 
-        stars = [get_star_of_k(k, self._sym) for k in kpath]
+        stars = [get_star_of_k(k, self.sym) for k in kpath]
         star_sizes = [len(s) for s in stars]
         total_combinations = np.prod(star_sizes)
 

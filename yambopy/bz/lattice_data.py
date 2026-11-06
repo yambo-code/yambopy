@@ -78,7 +78,10 @@ IBRAV_REQUIRED_PARAMETERS: dict[int, list[str]] = {
 # Lattice data
 # =============================================================================
 
-def get_lattice_data(ibrav: int, parameters: dict[str, float] | None = None) -> tuple[np.ndarray, str, dict, str]:
+def get_lattice_data(
+    ibrav: int,
+    parameters: dict[str, float] | None = None
+) -> tuple[np.ndarray, str, dict, str]:
     """
     Return lattice vectors and high-symmetry k-point information for a
     given QE Bravais-lattice index.

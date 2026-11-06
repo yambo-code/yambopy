@@ -20,7 +20,7 @@ Dependencies
   ``yambopy.lattice.isbetween``)
 """
 
-from __future__ import annotations
+# from __future__ import annotations
 
 import re
 from itertools import product
@@ -87,16 +87,16 @@ class BrillouinZone:
 
     def __init__(
         self,
-        ibrav: int | None = None,
-        parameters: dict[str, float] | None = None,
-        cell: Sequence | None = None,
-        path_string: str | None = None,
-        extra_points: dict[str, Sequence[float]] | None = None,
-        npoints: int | None = None,
-        density: float | None = None,
-        intervals: list[int] | None = None,
-        optimise: bool=False,
-        sym_red: list[np.ndarray]|None = None
+        ibrav: int = None,
+        parameters: dict[str, float] = None,
+        cell: Sequence = None,
+        path_string: str = None,
+        extra_points: dict[str, Sequence[float]] = None,
+        npoints: int = None,
+        density: float = None,
+        intervals: list[int] = None,
+        optimise: bool = False,
+        sym_red: list[np.ndarray] = None
     ):
         self.cell = None
         self.high_symmetry_points = {}
@@ -105,10 +105,8 @@ class BrillouinZone:
             self.cell, self.variant, self.high_symmetry_points, self.default_path = (
                 get_lattice_data(ibrav, parameters)
             )
-        elif optimise:
-            if cell is None or sym_red is None:
+        elif optimise and (cell is None or sym_red is None):
                 raise ValueError("To optimise the path, a cell or ibrav+parameters, and symmetry matrices must be supplied")
-            self.cell = cell
         elif cell is not None:
             cell2ibrav = CellToIbrav(cell)
             print(cell2ibrav.summary())
@@ -116,8 +114,8 @@ class BrillouinZone:
             self.cell, self.variant, self.high_symmetry_points, self.default_path = (
                 get_lattice_data(cell2ibrav.ibrav, cell2ibrav.parameters_dict())
             )
-        elif path_string is None and extra_points is None and intervals is None:
-            raise ValueError("Either specify:\n 1: ibrav and parameters\n 2: cell\n 3: path_string, extra_points and intervals")
+        elif path_string is None and intervals is None:
+            raise ValueError("Either specify:\n 1: ibrav and parameters\n 2: cell\n 3: path_string and intervals")
 
         # Reciprocal cell: columns are reciprocal primitive vectors.
         self.rcell = None
@@ -144,13 +142,14 @@ class BrillouinZone:
                 self.path_sections.append(labels)
 
         # Validate all labels are recognised.
-        all_labels_recognized = all(
-            label in self.high_symmetry_points
-            for section in self.path_sections
-            for label in section
-        )
-        if not all_labels_recognized:
-            raise ValueError("Given path contains unrecognised labels.")
+        if self.high_symmetry_points:
+            all_labels_recognized = all(
+                label in self.high_symmetry_points
+                for section in self.path_sections
+                for label in section
+            )
+            if not all_labels_recognized:
+                raise ValueError("Given path contains unrecognised labels.")
 
         self.star_indices = [[0]*len(section) for section in self.path_sections]
 
@@ -221,8 +220,8 @@ class BrillouinZone:
 
     def optimise_path(self,
         sym_red: list[np.ndarray],
-        rcell: np.ndarray | None = None,
-        method: str = "brute",
+        rcell: np.ndarray = None,
+        method: str = "greedy_global",
         max_combinations: int = 100000,
         parallel_segments: bool = True):
         """
@@ -256,7 +255,7 @@ class BrillouinZone:
 
         for section in self.path_sections:
             for label in section:
-                self.high_symmetry_points[label] = get_star_of_k(self.high_symmetry_points[label][0], sym_red)
+                self.high_symmetry_points[label] = get_star_of_k(self.high_symmetry_points[label][0], opt.sym)
 
 
     def print_optimisation_info(self):
@@ -280,7 +279,10 @@ class BrillouinZone:
     # Interpolation
     # ------------------------------------------------------------------
 
-    def interpolate(self, npoints: int | None = None, density: float | None = None):
+    def interpolate(self,
+        npoints: int = None,
+        density: float = None
+    ):
         """
         Interpolate evenly-spaced k-points along the path.
 
@@ -479,7 +481,7 @@ class BrillouinZone:
                 kpt_dists.append(dist)
         return np.array(kpt_dists)
 
-    def special_kpoints_distances(self, merge_sections: bool = False) -> list[np.ndarray]|np.ndarray:
+    def special_kpoints_distances(self, merge_sections: bool = False) -> list[np.ndarray] | np.ndarray:
         """
         Cumulative Cartesian distances between consecutive special
         k-points on the path.
@@ -529,7 +531,7 @@ class BrillouinZone:
         Parameters
         ----------
         merge_sections : bool
-            If *True*, consecutive sections are joined with a ``' - '``
+            If *True*, consecutive sections are joined with a ``' — '``
             separator at the shared boundary.
 
         Returns
@@ -548,7 +550,7 @@ class BrillouinZone:
                 boundaries = np.cumsum(section_lengths)
                 for k in boundaries:
                     labels_list[k - 1] = (
-                        f"{labels_list[k - 1]} - {labels_list[k]}"
+                        f"{labels_list[k - 1]} — {labels_list[k]}"
                     )
                 for k in sorted(boundaries, reverse=True):
                     labels_list.pop(k)
@@ -608,18 +610,23 @@ class BrillouinZone:
             kpoints_car = kpoints_car_expanded
 
         spoints_car = self.special_kpoints("car")
-        spoints_distances = self.special_kpoints_distances()
+        spoints_distances = self.special_kpoints_distances(True)
 
         collinear_kpoints = []
         collinear_indices = []
         collinear_distances = []
+        prev_segment_keys: set[tuple] = set()
         kdist = 0
 
         for section in spoints_car:
+
+            prev_segment_keys.clear()
+
             for k in range(len(section) - 1):
                 data = {}
                 start_kpoint = section[k]
                 end_kpoint = section[k + 1]
+                current_segment_keys: set[tuple] = set()
 
                 for x, y, z in product(range(-1, 2), repeat=3):
                     shift = red_car(np.array([[x, y, z]]), rlat)[0]
@@ -628,6 +635,13 @@ class BrillouinZone:
                         kpoint_shift = kpoint + shift
 
                         if isbetween(start_kpoint, end_kpoint, kpoint_shift):
+                            # Dedup only against the immediately preceding segment
+                            # (catches boundary duplicates between consecutive segments).
+                            dup_key = (index, tuple(np.round(kpoint_shift, decimals=8)))
+                            if dup_key in prev_segment_keys:
+                                continue
+                            current_segment_keys.add(dup_key)
+
                             key = tuple(
                                 round(kpt, 4) for kpt in kpoint_shift
                             )
@@ -640,7 +654,7 @@ class BrillouinZone:
                             data[key] = [
                                 index, distance, kpoint_shift, distance_within_path,
                             ]
-
+                prev_segment_keys = current_segment_keys
                 kdist += 1
 
                 # Sort by distance from start of segment (nearest first).
