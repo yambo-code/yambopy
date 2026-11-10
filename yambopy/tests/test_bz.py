@@ -725,3 +725,142 @@ def test_optimise_path_needs_lattice(hex_cell_and_sym):
     bz = BrillouinZone(path_string="GMKG", intervals=[5, 5, 5])
     with pytest.raises(ValueError, match="needs a lattice"):
         bz.optimise_path(sym)
+
+
+# -----------------------------------------------------------------------------
+# Library methods taking a BrillouinZone instead of the old Path
+# -----------------------------------------------------------------------------
+
+import types  # noqa: E402
+
+FCC_PATH = "GXWKGLUWLK,UX"  # two sections, to exercise the merged tick
+
+
+def _agg():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    return plt
+
+
+def test_bandstructure_on_grid_points_uses_path_positions(latticedb):
+    bz = BrillouinZone(cell=latticedb.lat, path_string=FCC_PATH, npoints=60)
+    kpts, _, d = bz.find_collinear_grid(latticedb, expand_kpoints=True)
+    bands = YambopyBandStructure(np.zeros((len(kpts), 2)), kpts, bz=bz)
+    assert np.allclose(bands.distances, d)
+    # The first k-point (Gamma) sits on the first tick, and no position
+    # goes beyond the last tick (section jumps are not counted).
+    ticks = bz.special_kpoints_distances(True)
+    assert bands.distances[0] == pytest.approx(ticks[0])
+    assert max(bands.distances) <= ticks[-1] + 1e-9
+
+
+def test_exciton_dispersion_on_bz(latticedb):
+    from copy import deepcopy
+    from yambopy.bse.bse_dispersion import ExcitonDispersion
+
+    lattice = deepcopy(latticedb)
+    lattice.expand_kpoints(verbose=0)
+    exc_energies = np.arange(lattice.ibz_nkpoints, dtype=float)[:, None] * [1.0, 2.0]
+    disp = types.SimpleNamespace(red_qpoints=lattice.red_kpoints, lattice=lattice, exc_energies=exc_energies)
+
+    bz = BrillouinZone(cell=np.asarray(lattice.lat) * BOHR_TO_ANGSTROM, path_string=FCC_PATH, npoints=60)
+    ybs = ExcitonDispersion.get_dispersion(disp, bz)
+    _, ibz_ref, d_ref = bz.find_collinear_grid(latticedb, expand_kpoints=True)
+
+    assert ybs.bz is bz
+    assert np.allclose(ybs.bands[:, 0], ibz_ref)   # energy rows follow the IBZ index of each q
+    assert np.allclose(ybs.distances, d_ref)
+
+
+def test_exciton_weight_plot_on_bz(latticedb):
+    from yambopy.bse.excitonweight import YamboExcitonWeight
+
+    plt = _agg()
+    lat = np.asarray(latticedb.lat)
+    kpts = np.asarray(latticedb.car_kpoints)  # IBZ points, yambopy convention
+    nk = len(kpts)
+    weight = types.SimpleNamespace(
+        lat=lat,
+        calc_kpts_transitions=lambda **kw: (kpts, [np.ones(nk)], np.arange(1, nk + 1)),
+        eigenvalues=np.tile(np.arange(4.0), (nk, 1)),
+        nbands=4,
+        transitions_v_to_c={(1, 3): 1.0},
+    )
+    bz = BrillouinZone(cell=lat * BOHR_TO_ANGSTROM, path_string=FCC_PATH, npoints=60)
+    fig, ax = plt.subplots()
+    YamboExcitonWeight.plot_exciton_bs(weight, ax, bz)
+    _, _, d = bz.find_collinear_lattice_kpoints(lat, kpts)
+    assert np.allclose(ax.lines[-1].get_xdata(), d)
+    assert [t.get_text() for t in ax.get_xticklabels()] == bz.path_labels_list(True, fmt="latex")
+    plt.close(fig)
+
+
+def test_unfolding_plot_uses_bz_indices():
+    from qepy.unfolding import Unfolding
+
+    plt = _agg()
+    bz = BrillouinZone(path_string="MKG", intervals=[10, 12])  # labels only, as for a supercell
+    nk = len(bz.kpoints_distances()) if bz.rcell is not None else sum(bz.intervals) + 1
+    unf = types.SimpleNamespace(kpoints=np.c_[np.arange(nk), np.zeros(nk), np.zeros(nk)],
+                                nbands_pc=1, eigen_pc=np.zeros((nk, 1)), band_min=0,
+                                nbands_sc=1, eigen_sc=np.zeros((nk, 1)), projection=np.ones((nk, 1)))
+    fig, ax = plt.subplots()
+    Unfolding.plot_eigen_ax(unf, ax, path=bz.get_indices())
+    assert [t.get_text() for t in ax.get_xticklabels()] == bz.path_labels_list(True, fmt="latex")
+    plt.close(fig)
+
+
+def test_spin_polarised_exciton_bs_passes_bz():
+    from yambopy.dbs.excitondb import YamboExcitonDB
+
+    bz = BrillouinZone(ibrav=4, parameters=HEX, npoints=30)
+    nk = 5
+    calls = []
+
+    def fake_bs(energies, bz_arg, excitons, debug):
+        calls.append(bz_arg)
+        e = np.zeros((nk, 4))
+        return bz.kpoints("car")[:nk], e, e, e + 1, e + 1
+
+    exc = types.SimpleNamespace(spin_pol="pol", start_band=0, mband=4, exciton_bs_spin_pol=fake_bs)
+    up, dw = YamboExcitonDB.get_exciton_bs_spin_pol(exc, None, bz, (0,))
+    assert calls == [bz] and up.bz is bz and dw.bz is bz
+
+
+def test_exciton_bs_plot_wrappers_pass_bz():
+    from yambopy.dbs.excitondb import YamboExcitonDB
+
+    plt = _agg()
+    bz = BrillouinZone(ibrav=4, parameters=HEX, npoints=30)
+    nk = len(bz.kpoints())
+    received = {}
+
+    def fake_get_exciton_bs(energies_db, bz_arg, excitons, size=1, f=None, debug=False):
+        received.update(bz=bz_arg, size=size)
+        return YambopyBandStructure(np.linspace(0, 1, 2 * nk).reshape(nk, 2), bz.kpoints("car"), bz=bz_arg)
+
+    exc = types.SimpleNamespace(get_exciton_bs=fake_get_exciton_bs)
+    exc.plot_exciton_bs_ax = lambda *a, **k: YamboExcitonDB.plot_exciton_bs_ax(exc, *a, **k)
+    fig, ax = plt.subplots()
+    YamboExcitonDB.plot_exciton_bs_ax(exc, ax, None, bz, (0,), size=2)
+    assert received == {"bz": bz, "size": 2}
+    fig = YamboExcitonDB.plot_exciton_bs(exc, None, bz, (0,), show=False)
+    assert received["bz"] is bz
+    plt.close("all")
+
+
+def test_path_distances():
+    bz = BrillouinZone(ibrav=4, parameters=HEX, path_string="GMKG,AL", npoints=60)
+    G, M, K, A, L = (np.asarray(bz.high_symmetry_points[x][0]) @ bz.rcell for x in "GMKAL")
+    ticks = bz.special_kpoints_distances(True)  # G, M, K, G—A, L
+
+    # Gamma visited twice, then the next section's start on the merged tick
+    x = bz.path_distances(np.array([G, M, K, G, A, L]))
+    assert np.allclose(x, ticks[[0, 1, 2, 3, 3, 4]])
+    # Equivalent copies (shifted by a reciprocal lattice vector) are found too
+    shift = bz.rcell[0] + bz.rcell[1]
+    assert np.allclose(bz.path_distances(np.array([G + shift, M])), ticks[:2])
+    # A point off the path, or out of path order
+    assert bz.path_distances(np.array([0.3 * bz.rcell[2]])) is None
+    assert bz.path_distances(np.array([K, M])) is None

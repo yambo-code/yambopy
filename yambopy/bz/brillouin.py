@@ -844,6 +844,64 @@ class BrillouinZone:
     # Collinear k-points on the optimised path
     # ------------------------------------------------------------------
 
+    def path_distances(self, kpoints_car: np.ndarray, tol: float = 1e-4) -> np.ndarray | None:
+        """
+        Positions along the path of k-points given in path order (e.g. the
+        k-points returned by :meth:`find_collinear_kpoints`), in this
+        ``BrillouinZone``'s Cartesian convention (``k_red @ self.rcell``).
+
+        Each k-point (modulo a reciprocal lattice vector) gets the first
+        position along the path where it lies on a segment, after the
+        previous one's (at the same position only for a different point,
+        as at a merged section boundary); so a point the path visits twice
+        (e.g. Γ) is placed correctly each time.  These are the band-structure x-axis
+        values matching :meth:`special_kpoints_distances` ticks.
+
+        Returns *None* if some k-point is not on the path (in that order).
+        """
+        kpoints_car = np.asarray(kpoints_car, dtype=float).reshape(-1, 3)
+        rcell = self.rcell
+        red = np.linalg.solve(rcell.T, kpoints_car.T).T
+        red -= np.floor(red + 0.5)
+
+        path_red = self.special_kpoints("red", merge_sections=True)
+        lo = np.floor(path_red.min(axis=0) - 0.5).astype(int)
+        hi = np.ceil(path_red.max(axis=0) + 0.5).astype(int)
+        gvecs = np.array(list(product(*(range(l, h + 1) for l, h in zip(lo, hi)))), dtype=float)
+
+        # Segments: start point, direction, length, start position on the path.
+        segments = []
+        start = 0.0
+        for section in self.special_kpoints("car"):
+            for i in range(len(section) - 1):
+                A, B = section[i], section[i + 1]
+                length = float(np.linalg.norm(B - A))
+                if length > 1e-15:
+                    segments.append((A, (B - A) / length, length, start))
+                start += length
+
+        positions = np.empty(len(kpoints_car))
+        last = -np.inf
+        previous = None
+        for n, k in enumerate(red):
+            same_point = previous is not None and np.allclose(k - previous, np.round(k - previous), atol=1e-6)
+            earliest = last + tol if same_point else last - tol
+            images = (k + gvecs) @ rcell  # all G-shifted copies
+            best = np.inf
+            for A, u, length, offset in segments:
+                AP = images - A
+                proj = AP @ u
+                off_line = np.linalg.norm(AP - np.outer(proj, u), axis=1)
+                ok = (off_line <= tol) & (proj >= -tol * length) & (proj <= length * (1 + tol))
+                for x in offset + proj[ok]:
+                    if earliest <= x < best:
+                        best = x
+            if not np.isfinite(best):
+                return None
+            positions[n] = last = best
+            previous = k
+        return positions
+
     def find_collinear_kpoints(
         self,
         kpoints_car: np.ndarray,

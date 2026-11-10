@@ -183,6 +183,13 @@ class YambopyBandStructure():
                 if np.shape(bz_kpoints) == np.shape(self.kpoints) and np.allclose(bz_kpoints, self.kpoints):
                     self._distances = list(self.bz.kpoints_distances())
                     return self._distances
+                # Grid k-points found on the path (e.g. by find_collinear_grid,
+                # in the BZ's convention): use their positions along the path.
+                if np.ndim(self.kpoints) == 2 and np.shape(self.kpoints)[1] == 3 and len(self.kpoints):
+                    path_distances = self.bz.path_distances(self.kpoints)
+                    if path_distances is not None:
+                        self._distances = list(path_distances)
+                        return self._distances
             self._distances = [0]
             distance = 0
             for nk in range(1,len(self.kpoints)):

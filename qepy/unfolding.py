@@ -10,6 +10,7 @@
 #
 #
 from qepy import *
+from yambopy.bz.labels import format_label
 import numpy as np
 from sys import stdout
 import h5py
@@ -224,15 +225,13 @@ class Unfolding():
         """
         Provisional plot function for quick visualization of the data. Useful for small calculations. 
         For large calculations is more useful loading the .npy and plot it with another script.
+
+        path: [index, label] pairs locating the special points, as returned
+        by BrillouinZone.get_indices(); labels are drawn in LaTeX.
         """
 
         print(" * Plotting EBS ...  ")
 
-        # Getting the data of the defined path
-        if path:
-            if isinstance(path,Path):
-                path = path.get_indexes()
-            ax.set_xticks( *list(zip(*path)) )
         ax.set_ylabel('E (eV)')
 
         # Computing the distance of the path 
@@ -241,7 +240,7 @@ class Unfolding():
         # Defining labels
         ticks, labels = list(zip(*path))
         ax.set_xticks([kpoints_dists[t] for t in ticks])
-        ax.set_xticklabels(labels)
+        ax.set_xticklabels([format_label(label, 'latex') for label in labels])
         ax.set_ylabel('E (eV)')
 
         # Plotting high-symmetry vertical lines

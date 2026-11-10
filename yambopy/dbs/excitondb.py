@@ -15,7 +15,6 @@ from itertools import product
 from yambopy.units import ha2ev, I
 from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz
 from yambopy.lattice import replicate_red_kmesh, calculate_distances, car_red, red_car
-from yambopy.kpoints import get_path
 from yambopy.tools.funcs import gaussian, lorentzian, boltzman_f, abs2
 from yambopy.tools.string import marquee
 from yambopy.tools.types import CmplxType
@@ -565,11 +564,6 @@ class YamboExcitonDB(object):
         if isinstance(excitons, int):
             excitons = (excitons,)
 
-        car_kpoints = self.lattice.car_kpoints
-        # rlat = self.lattice.rlat
-        # bands_kpoints, band_indexes, path_car = get_path(car_kpoints, rlat, None, path,
-        #                                                  debug=debug)  # None means the kpoints are already expanded
-
         bands_kpoints, band_indexes, _ = bz.find_collinear_grid(self.lattice, expand_kpoints=False)
 
         if debug:
@@ -898,10 +892,8 @@ class YamboExcitonDB(object):
             ax          -> axis extance of matplotlib to add the plot to
             lattice     -> Lattice database
             energies_db -> Energies database, can be either ElectronsDB or QPDB
-            path        -> Path in the brillouin zone
+            bz          -> BrillouinZone with the path
         """
-        # if not isinstance(bz, BrillouinZone):
-        #     raise ValueError('BZ argument must be a instance of BrillouinZone. Got %s instead' % type(bz))
 
         if self.spin_pol == 'no':
             bands_kpoints, exc_energies, exc_weights = self.exciton_bs(energies_db, bz, excitons, debug)
@@ -914,17 +906,19 @@ class YamboExcitonDB(object):
         ybs = YambopyBandStructure(exc_energies, bands_kpoints, bz, weights=exc_weights, size=size)
         return ybs
 
-    def plot_exciton_bs_ax(self,ax,energies_db,path,excitons,size=1,space='bands',f=None,debug=None):
-        ybs = self.get_exciton_bs(energies_db,path,excitons,size=size,space=space,f=f,debug=debug)
+    def plot_exciton_bs_ax(self,ax,energies_db,bz,excitons,size=1,f=None,debug=False):
+        """Plot the exciton band structure along the path of bz (a BrillouinZone) on ax."""
+        ybs = self.get_exciton_bs(energies_db,bz,excitons,size=size,f=f,debug=debug)
         return ybs.plot_ax(ax)
 
     @add_fig_kwargs
 
-    def plot_exciton_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False,**kwargs):
+    def plot_exciton_bs(self,energies_db,bz,excitons,size=1,f=None,debug=False,**kwargs):
+        """Plot the exciton band structure along the path of bz (a BrillouinZone)."""
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        self.plot_exciton_bs_ax(ax,energies_db,path,excitons,size=size,space=space,f=f,debug=debug)
+        self.plot_exciton_bs_ax(ax,energies_db,bz,excitons,size=size,f=f,debug=debug)
         return fig
 
     def interpolate(self, energies, bz, excitons, lpratio=5, f=None, verbose=1, size=1, **kwargs):
@@ -1012,8 +1006,9 @@ class YamboExcitonDB(object):
 
         return exc_bands
 
-    def interpolate_transitions(self,energies,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
-        """ Interpolate exciton bandstructure using SKW interpolation from Abipy
+    def interpolate_transitions(self,energies,bz,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
+        """ Interpolate the exciton transitions along the path of bz (a
+        BrillouinZone) using SKW interpolation from Abipy.
         """
 
         lattice = self.lattice
@@ -1057,23 +1052,22 @@ class YamboExcitonDB(object):
         #interpolate energies
         na = np.newaxis
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
-        kpoints_path = path.get_klist()[:,:3]
+        kpoints_path = bz.kpoints('red')
         energies = skw.interp_kpts(kpoints_path).eigens
      
         #interpolate transitions
         na = np.newaxis
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_transitions[na,:,:],fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
-        kpoints_path = path.get_klist()[:,:3]
+        kpoints_path = bz.kpoints('red')
         exc_transitions = skw.interp_kpts(kpoints_path).eigens
 
-        #create band-structure object
-        exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],size=size,**kwargs)
-        exc_bands.set_fermi(self.nvbands)
 
         return exc_transitions
 
-    def interpolate_spin(self,energies,spin_proj,path,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
-        """ Interpolate exciton bandstructure using SKW interpolation from Abipy
+    def interpolate_spin(self,energies,spin_proj,bz,excitons,lpratio=5,f=None,size=1,verbose=True,**kwargs):
+        """ Interpolate the exciton band structure, with spin projections,
+        along the path of bz (a BrillouinZone) using SKW interpolation from
+        Abipy.
         """
 
         if verbose:
@@ -1126,13 +1120,13 @@ class YamboExcitonDB(object):
         print("na")
         print(na)
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_energies[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-        kpoints_path = path.get_klist()[:,:3]
+        kpoints_path = bz.kpoints('red')
         energies = skw.interp_kpts(kpoints_path).eigens
      
         #interpolate weights
         na = np.newaxis
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-        kpoints_path = path.get_klist()[:,:3]
+        kpoints_path = bz.kpoints('red')
         exc_weights = skw.interp_kpts(kpoints_path).eigens
 
         #interpolate spin projection
@@ -1140,13 +1134,13 @@ class YamboExcitonDB(object):
         print("na")
         print(na)
         skw = SkwInterpolator(lpratio,ibz_kpoints,ibz_spin[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-        kpoints_path = path.get_klist()[:,:3]
+        kpoints_path = bz.kpoints('red')
         spin_inter   = skw.interp_kpts(kpoints_path).eigens
         print("spin_inter")
         print(spin_inter)
 
         #create band-structure object
-        exc_bands = YambopyBandStructure(energies[0],kpoints_path,kpath=path,weights=exc_weights[0],spin_proj=spin_inter[0],size=size,**kwargs)
+        exc_bands = YambopyBandStructure(energies[0],bz.kpoints('car'),bz=bz,weights=exc_weights[0],spin_proj=spin_inter[0],size=size,**kwargs)
         exc_bands.set_fermi(self.nvbands)
 
         return exc_bands
@@ -1370,7 +1364,7 @@ class YamboExcitonDB(object):
     #  SPIN DEPENDENT PART UNDER DEVELOPMENT #
     ##########################################
 
-    def exciton_bs_spin_pol(self,energies,path,excitons=(0,),debug=False):
+    def exciton_bs_spin_pol(self,energies,bz,excitons=(0,),debug=False):
         """
         Calculate exciton band-structure
         This function should contains the case of non-polarized calculations.
@@ -1378,7 +1372,7 @@ class YamboExcitonDB(object):
             
             Arguments:
             energies -> can be an instance of YamboElectronsDB or YamboQBDB
-            path     -> path in reduced coordinates in which to plot the band structure
+            bz       -> BrillouinZone whose path the band structure is plotted on
             exciton  -> exciton index to plot
         """
         if self.eigenvectors is None:
@@ -1387,20 +1381,17 @@ class YamboExcitonDB(object):
         if isinstance(excitons, int):
             excitons = (excitons,)
 
-        #THESE THREE LINES FROM THE NOPOL CASE
-        car_kpoints = self.lattice.car_kpoints
-        rlat        = self.lattice.rlat
-        bands_kpoints, band_indexes, path_car = get_path(car_kpoints,rlat,None,path,debug=debug) # None means the kpoints are already expanded
-        
+        # The lattice k-points are already expanded (as in exciton_bs)
+        bands_kpoints, band_indexes, _ = bz.find_collinear_grid(self.lattice, expand_kpoints=False)
+
         if debug:
-            for i,k in zip(band_indexes,band_kpoints):
-                x,y,z = k
-                plt.text(x,y,i) 
-            plt.scatter(kpoints_rep[:,0],kpoints_rep[:,1])
-            plt.plot(path[:,0],path[:,1],c='r')
-            plt.scatter(band_kpoints[:,0],band_kpoints[:,1])
+            import matplotlib.pyplot as plt
+            spoints = bz.special_kpoints('car', True)
+            for i, k in zip(band_indexes, bands_kpoints):
+                plt.text(k[0], k[1], i)
+            plt.plot(spoints[:, 0], spoints[:, 1], c='r')
+            plt.scatter(bands_kpoints[:, 0], bands_kpoints[:, 1])
             plt.show()
-            exit()
 
         #get eigenvalues along the path
         if isinstance(energies,YamboElectronsDB):
@@ -1444,9 +1435,9 @@ class YamboExcitonDB(object):
         energies_up -= fermi_level  
         energies_dw -= fermi_level  
         
-        return np.array(bands_kpoints), energies_up, energies_dw, weights_up, weights_dw, path_car
+        return np.array(bands_kpoints), energies_up, energies_dw, weights_up, weights_dw
 
-    def get_exciton_bs_spin_pol(self,energies_db,path,excitons,size_up=1,size_dw=1,space='bands',f=None,debug=False):
+    def get_exciton_bs_spin_pol(self,energies_db,bz,excitons,size_up=1,size_dw=1,space='bands',f=None,debug=False):
         """
         Get a YambopyBandstructure object with the exciton band-structure SPIN POLARIZED
         
@@ -1454,14 +1445,11 @@ class YamboExcitonDB(object):
             ax          -> axis extance of matplotlib to add the plot to
             lattice     -> Lattice database
             energies_db -> Energies database, can be either a SaveDB or QPDB
-            path        -> Path in the brillouin zone
+            bz          -> BrillouinZone with the path
         """
-        from qepy.lattice import Path
-        if not isinstance(path,Path): 
-            raise ValueError('Path argument must be a instance of Path. Got %s instead'%type(path))
         if space == 'bands':
             if self.spin_pol=='pol':
-               bands_kpoints, energies_up, energies_dw, weights_up, weights_dw, path_car = self.exciton_bs_spin_pol(energies_db, path, excitons, debug)
+               bands_kpoints, energies_up, energies_dw, weights_up, weights_dw = self.exciton_bs_spin_pol(energies_db, bz, excitons, debug)
                nkpoints = len(bands_kpoints)
                plot_energies_up = energies_up[:,self.start_band:self.mband]
                plot_energies_dw = energies_dw[:,self.start_band:self.mband]
@@ -1481,8 +1469,8 @@ class YamboExcitonDB(object):
         if f: plot_weights_up, plot_weights_dw = f(plot_weights_up), f(plot_weights_dw)
         size_plot_up = 100.0 # 1.0/np.max(plot_weights_up)*100.0
         size_plot_dw = 100.0 # 1.0/np.max(plot_weights_dw)*100.0
-        ybs_up = YambopyBandStructure(plot_energies_up, bands_kpoints, weights=plot_weights_up, kpath=path_car, size=size_plot_up)
-        ybs_dw = YambopyBandStructure(plot_energies_dw, bands_kpoints, weights=plot_weights_dw, kpath=path_car, size=size_plot_dw)
+        ybs_up = YambopyBandStructure(plot_energies_up, bands_kpoints, weights=plot_weights_up, bz=bz, size=size_plot_up)
+        ybs_dw = YambopyBandStructure(plot_energies_dw, bands_kpoints, weights=plot_weights_dw, bz=bz, size=size_plot_dw)
 
         return ybs_up, ybs_dw
 
@@ -1533,9 +1521,10 @@ class YamboExcitonDB(object):
  
         return weights_up, weights_dw
 
-    def interpolate_spin_pol(self,energies,path,excitons,lpratio=5,f=None,size_up=1.0,size_dw=1.0,verbose=True,**kwargs):
-        """ Interpolate exciton bandstructure using SKW interpolation from
-        Abipy and SPIN-POLARIZED CALCULATIONS
+    def interpolate_spin_pol(self,energies,bz,excitons,lpratio=5,f=None,size_up=1.0,size_dw=1.0,verbose=True,**kwargs):
+        """ Interpolate the exciton band structure along the path of bz (a
+        BrillouinZone) using SKW interpolation from Abipy, for SPIN-POLARIZED
+        CALCULATIONS
 
         AEK 14.08.2025
         It plots the weight on spin pol bands. 
@@ -1610,7 +1599,7 @@ class YamboExcitonDB(object):
 
         skw_up = SkwInterpolator(lpratio,ibz_kpoints_qp,ibz_energies_up[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
         skw_dw = SkwInterpolator(lpratio,ibz_kpoints_qp,ibz_energies_dw[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-        kpoints_path = path.get_klist()[:,:3]
+        kpoints_path = bz.kpoints('red')
         energies_up = skw_up.interp_kpts(kpoints_path).eigens
         energies_dw = skw_dw.interp_kpts(kpoints_path).eigens
      
@@ -1618,7 +1607,7 @@ class YamboExcitonDB(object):
         na = np.newaxis
         skw_up = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights_up[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
         skw_dw = SkwInterpolator(lpratio,ibz_kpoints,ibz_weights_dw[na,:,:],fermie,nelect,cell,symrel,time_rev,verbose=verbose)
-        kpoints_path = path.get_klist()[:,:3]
+        kpoints_path = bz.kpoints('red')
         exc_weights_up = skw_up.interp_kpts(kpoints_path).eigens
         exc_weights_dw = skw_dw.interp_kpts(kpoints_path).eigens
 
@@ -1629,48 +1618,9 @@ class YamboExcitonDB(object):
 
         #create band-structure object
         kwargs.pop('size', None)
-        exc_bands_up = YambopyBandStructure(energies_up[0],kpoints_path,kpath=path,fermie=fermi_up_dw,weights=exc_weights_up[0],size=size_up,**kwargs)
-        exc_bands_dw = YambopyBandStructure(energies_dw[0],kpoints_path,kpath=path,fermie=fermi_up_dw,weights=exc_weights_dw[0],size=size_dw,**kwargs)
+        exc_bands_up = YambopyBandStructure(energies_up[0],bz.kpoints('car'),bz=bz,fermie=fermi_up_dw,weights=exc_weights_up[0],size=size_up,**kwargs)
+        exc_bands_dw = YambopyBandStructure(energies_dw[0],bz.kpoints('car'),bz=bz,fermie=fermi_up_dw,weights=exc_weights_dw[0],size=size_dw,**kwargs)
         return exc_bands_up, exc_bands_dw
-
-    def get_magnon_bs(self,energies_db,path,excitons,size=1,space='bands',f=None,debug=False):
-        #UNDER DEVELOPMENT
-        """
-        Get a YambopyBandstructure object with the exciton band-structure
-
-            Arguments:
-            ax          -> axis extance of matplotlib to add the plot to
-            lattice     -> Lattice database
-            energies_db -> Energies database, can be either a SaveDB or QPDB
-            path        -> Path in the brillouin zone
-
-            FP: to be moved in a separate class
-
-            TO BE IMPLEMENTED
-        """
-        from qepy.lattice import Path
-        if not isinstance(path,Path):
-            raise ValueError('Path argument must be a instance of Path. Got %s instead'%type(path))
-
-        if space == 'bands':
-            bands_kpoints, energies, weights = self.magnon_bs(energies_db, path.kpoints, excitons, debug)
-            nkpoints = len(bands_kpoints)
-            plot_energies = energies[:,self.start_band:self.mband]
-            plot_weights  = weights[:,self.start_band:self.mband]
-        else:
-            raise NotImplementedError('TODO')
-            eh_size = len(self.unique_vbands)*len(self.unique_cbands)
-            nkpoints = len(bands_kpoints)
-            plot_energies = np.zeros([nkpoints,eh_size])
-            plot_weights = np.zeros([nkpoints,eh_size])
-            for eh,(v,c) in enumerate(product(self.unique_vbands,self.unique_cbands)):
-                plot_energies[:,eh] = energies[:,c]-energies[:,v]
-                plot_weights[:,eh] = weights[:,c]
-
-        if f: plot_weights = f(plot_weights)
-        size *= 1.0/np.max(plot_weights)
-        ybs = YambopyBandStructure(plot_energies, bands_kpoints, weights=plot_weights, kpath=path, size=size)
-        return ybs
 
     ##############################################
     #  END SPIN DEPENDENT PART UNDER DEVELOPMENT #

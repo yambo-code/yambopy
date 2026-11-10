@@ -12,12 +12,10 @@ from glob import glob
 
 import numpy as np
 
-from qepy.lattice import Path
 from yambopy import *
 from yambopy.units import *
 from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz
 from yambopy.lattice import replicate_red_kmesh, calculate_distances, car_red, red_car
-from yambopy.kpoints import get_path
 from yambopy.tools.funcs import gaussian, lorentzian
 from yambopy.tools.skw import SkwInterpolator
 from yambopy import YamboExcitonDB, BrillouinZone
@@ -178,28 +176,22 @@ class ExcitonDispersion():
     #####################################
     # Dispersion plot under development #
     #####################################
-    def get_dispersion(self, path):
+    def get_dispersion(self, bz):
         """
-        Obtain dispersion along symmetry lines.
+        Obtain the exciton dispersion along the path of bz (a BrillouinZone
+        describing this lattice, in any units or cell): the q-points of the
+        grid lying on the path.
 
         Similar to band plots in k-space, check YamboExcitonDB for more comments
-
-        :: path is instance of Path class
         """
-        qpoints = self.red_qpoints
-        qpath    = np.array(path.kpoints)
-
-        rep = list(range(-1,2))
-        qpoints_rep, qpoints_idx_rep = replicate_red_kmesh(qpoints,repx=rep,repy=rep,repz=rep)
-        exc_indexes = get_path(qpoints_rep,qpath)[1] #indices are second output
-        exc_qpoints  = np.array(qpoints_rep[exc_indexes])
-        exc_indexes = qpoints_idx_rep[exc_indexes]
+        car_qpoints = red_car(self.red_qpoints, self.lattice.rlat)
+        exc_qpoints, exc_indexes, _ = bz.find_collinear_lattice_kpoints(self.lattice.lat, car_qpoints)
 
         # Here assuming same ordering in index expansion between k-yambopy and q-yambo...
         energies = self.exc_energies[self.lattice.kpoints_indexes]
         energies_path  = energies[exc_indexes]
 
-        ybs_disp = YambopyBandStructure(energies_path, exc_qpoints, kpath=path)
+        ybs_disp = YambopyBandStructure(energies_path, exc_qpoints, bz=bz)
         return ybs_disp
 
     def get_dispersion_interpolated(self):
@@ -231,20 +223,18 @@ class ExcitonDispersion():
 
         return bz.kpoints_distances(), np.transpose(energies[0])
 
-    def plot_exciton_disp_ax(self,ax,path,**kwargs):
-        ybs_disp = self.get_dispersion(path)
-        print(ybs_disp.nbands)
-        print(ybs_disp.nkpoints)
-        print(ybs_disp._xlim)
-        print(ybs_disp.nbands)
-        return ybs_disp.plot_ax(ax) 
+    def plot_exciton_disp_ax(self,ax,bz,**kwargs):
+        """Plot the exciton dispersion along the path of bz (a BrillouinZone) on ax."""
+        ybs_disp = self.get_dispersion(bz)
+        return ybs_disp.plot_ax(ax, **kwargs)
 
     @add_fig_kwargs
-    def plot_exciton_disp(self,path,**kwargs):
+    def plot_exciton_disp(self,bz,**kwargs):
+        """Plot the exciton dispersion along the path of bz (a BrillouinZone)."""
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        self.plot_exciton_disp_ax(ax,path)
+        self.plot_exciton_disp_ax(ax,bz)
         return fig
     
     def plot_dispersion(self):

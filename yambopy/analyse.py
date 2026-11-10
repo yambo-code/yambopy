@@ -10,7 +10,6 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 from yambopy.plot.bandstructure import YambopyBandStructure
-from yambopy.kpoints import get_path
 from yambopy.tools.duck import isstring
 from yambopy.io.inputfile import YamboIn
 from yambopy.dbs.latticedb import YamboLatticeDB
@@ -131,13 +130,14 @@ class YamboAnalyser():
 
         return inputfiles_tags
 
-    def get_bands(self,tags=None,path_kpoints=None,type_calc=('ks','gw')):
+    def get_bands(self,tags=None,bz=None,type_calc=('ks','gw')):
         """
         Get the gw bands from a gw calculation from a filename
 
         Arguments:
             json_filename: the name of the json file
             output_filename: the name of the output filename that is in the json file
+            bz: BrillouinZone; if given, keep only the k-points on its path
             type_calc:
                We read from the netcdf file:
                Eo : LDA
@@ -182,43 +182,44 @@ class YamboAnalyser():
                 bands_e[nkpoint,nband] = ei
             #end section
 
-            if path_kpoints:
+            if bz is not None:
                 #get data from json file
                 jsonfile = list(self.jsonfiles.values())[0]
                 lat = YamboLatticeDB.from_dict(jsonfile['lattice'])
-                kpoints, bands_indexes, path_car = get_path(lat.car_kpoints,lat.rlat,None,path_kpoints)  
+                # This file's k-points (yambo internal units -> k_red @ rlat)
+                car_kpoints = np.array(kpoints) / lat.alat
+                kpoints, bands_indexes, _ = bz.find_collinear_lattice_kpoints(lat.lat, car_kpoints)
                 bands_e0 = bands_e0[bands_indexes]
                 bands_e  = bands_e[bands_indexes] 
 
             #add bands
             if 'ks' in type_calc: 
-                ks_bandstructure = YambopyBandStructure(bands_e0,kpoints,label=filename)
+                ks_bandstructure = YambopyBandStructure(bands_e0,kpoints,bz=bz,label=filename)
             if 'gw' in type_calc:
-                qp_bandstructure = YambopyBandStructure(bands_e, kpoints,label=filename)
+                qp_bandstructure = YambopyBandStructure(bands_e, kpoints,bz=bz,label=filename)
 
         return ks_bandstructure, qp_bandstructure
 
     @add_fig_kwargs
-    def plot_ks(self,path=None,tags=None):
+    def plot_ks(self,bz=None,tags=None):
         """
-        Use this function to plot the kohn sham energies from a GW calculation
+        Use this function to plot the kohn sham energies from a GW calculation,
+        along the path of bz (a BrillouinZone) if given
         """
         #get bands from these files
-        ks_bands = self.get_bands(tags=tags,path=path,type_calc=('ks'))[0]
+        ks_bands = self.get_bands(tags=tags,bz=bz,type_calc=('ks',))[0]
         
         #plot the bands
         return ks_bands.plot(show=False)
 
     @add_fig_kwargs
-    def plot_gw(self,path_kpoints=None,tags=None,**kwargs):
+    def plot_gw(self,bz=None,tags=None,**kwargs):
         """
-        Use this function to plot the quasiparticle energies from a GW calculation
+        Use this function to plot the quasiparticle energies from a GW calculation,
+        along the path of bz (a BrillouinZone) if given
         """
-        print('tags')
-        print(tags)
-        print()
         #get bands from these files
-        gw_bands = self.get_bands(tags=tags,path_kpoints=path_kpoints,type_calc=('gw',))[1]
+        gw_bands = self.get_bands(tags=tags,bz=bz,type_calc=('gw',))[1]
 
         #plot the bands
         return gw_bands.plot(show=False)
