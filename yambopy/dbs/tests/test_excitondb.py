@@ -9,7 +9,7 @@ import os
 from yambopy.dbs.excitondb import YamboExcitonDB
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.dbs.electronsdb import YamboElectronsDB
-from qepy.lattice import Path
+from yambopy.bz.brillouin import BrillouinZone
 
 test_path = os.path.join(os.path.dirname(__file__),'..','..','data','refs','bse')
 
@@ -17,16 +17,11 @@ class TestYamboExcitonDB(unittest.TestCase):
 
     def test_yamboexcitondb(self):
 
-        #define path in reduced coordinates
-        npoints = 20
-        path = Path([ [[0.0, 0.0, 0.0],'$\\Gamma$'],
-                      [[0.5, 0.0, 0.0],'M'],
-                      [[1./3,1./3,0.0],'K'],
-                      [[0.0, 0.0, 0.0],'$\\Gamma$']],
-                      [int(npoints*2),int(npoints),int(np.sqrt(5)*npoints)])
-
         #load databases
         lat  = YamboLatticeDB.from_db_file(os.path.join(test_path,'SAVE','ns.db1'))
+
+        #define the path on the lattice of the databases (FCC silicon)
+        bz = BrillouinZone(cell=lat.lat, path_string='GXWKG', npoints=80)
         exc  = YamboExcitonDB.from_db_file(lat,folder=os.path.join(test_path,'yambo'))
         electrons = YamboElectronsDB(lat,save=os.path.join(test_path,'SAVE')) 
 
@@ -48,7 +43,7 @@ class TestYamboExcitonDB(unittest.TestCase):
         kpoints, amplitude, phase = exc.get_amplitudes_phases((1,0,))
 
         #exciton_bandstructure
-        exc.plot_exciton_bs(electrons, path, (1,2,), args_plot={'c':'g'},space='bands',show=False)
+        exc.plot_exciton_bs(electrons, bz, (1,2,), show=False)
 
     def tearDown(self):
         if os.path.isfile('exc_I.dat'): os.remove('exc_I.dat')
