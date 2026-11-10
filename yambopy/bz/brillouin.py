@@ -186,6 +186,15 @@ class BrillouinZone:
         self.optimisation_results = None
 
         options = _optimise_options(optimise)
+        if cell is not None:
+            if isinstance(cell, str) or np.shape(cell) != (3, 3):
+                raise TypeError(
+                    f"cell must be a 3x3 array of lattice vectors, not {cell!r}. "
+                    "Note that the third positional argument is cell: pass the "
+                    "path as path_string=..."
+                )
+            if ibrav is not None or parameters is not None:
+                raise ValueError("Give either ibrav and parameters, or cell, not both.")
         has_lattice = (ibrav is not None and parameters is not None) or cell is not None
         if options is not None and (not has_lattice or sym_red is None):
             raise ValueError(

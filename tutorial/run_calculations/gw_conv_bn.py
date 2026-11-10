@@ -125,22 +125,20 @@ def xi():
 
 def plot_xi():
 
-    # Define path in reduced coordinates using Class Path
-    npoints = 10
-    path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
-                  [[  0.5,  0.0,  0.0],'M'],
-                  [[1./3.,1./3.,  0.0],'K'],
-                  [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
-
     # Read Lattice information from SAVE
     lat  = YamboLatticeDB.from_db_file(filename='gw-xi/SAVE/ns.db1')
+
+    npoints = 10
+    # Brillouin-zone path on the lattice of the databases (hexagonal BN)
+    bz = BrillouinZone(cell=lat.lat, path_string='GMKG',
+                       intervals=[int(npoints*2),int(npoints),int(np.sqrt(5)*npoints)])
     # Read QP database
     y1   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-xi/coh')
     y2   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-xi/pp')
 
     # 2. Plot of KS and QP eigenvalues NOT interpolated along the path
-    ks_bs_1, qp_bs_1 = y1.get_bs_path(lat,path)
-    ks_bs_2, qp_bs_2 = y2.get_bs_path(lat,path)
+    ks_bs_1, qp_bs_1 = y1.get_bs_path(lat,bz)
+    ks_bs_2, qp_bs_2 = y2.get_bs_path(lat,bz)
 
     # 3. Set Fermi energy at the top of the valence band
     n_top_valence_band = 4
@@ -192,22 +190,20 @@ def dyson_eq():
 
 def plot_dyson():
 
-    # Define path in reduced coordinates using Class Path
-    npoints = 10
-    path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
-                  [[  0.5,  0.0,  0.0],'M'],
-                  [[1./3.,1./3.,  0.0],'K'],
-                  [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
-
     # Read Lattice information from SAVE
     lat  = YamboLatticeDB.from_db_file(filename='gw-zeros/SAVE/ns.db1')
+
+    npoints = 10
+    # Brillouin-zone path on the lattice of the databases (hexagonal BN)
+    bz = BrillouinZone(cell=lat.lat, path_string='GMKG',
+                       intervals=[int(npoints*2),int(npoints),int(np.sqrt(5)*npoints)])
     # Read QP database
     y1   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-zeros/newton')
     y2   = YamboQPDB.from_db(filename='ndb.QP',folder='gw-zeros/secant')
 
     # 2. Plot of KS and QP eigenvalues NOT interpolated along the path
-    ks_bs_1, qp_bs_1 = y1.get_bs_path(lat,path)
-    ks_bs_2, qp_bs_2 = y2.get_bs_path(lat,path)
+    ks_bs_1, qp_bs_1 = y1.get_bs_path(lat,bz)
+    ks_bs_2, qp_bs_2 = y2.get_bs_path(lat,bz)
 
     fig = plt.figure(figsize=(4,5))
     ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])

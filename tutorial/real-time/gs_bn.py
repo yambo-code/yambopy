@@ -7,6 +7,7 @@ import sys
 import argparse
 from qepy import *
 from schedulerpy import *
+from yambopy import BrillouinZone
 from math import sqrt
 
 kpoints      = [6,6,1]
@@ -21,10 +22,9 @@ matdyn = 'matdyn.x'
 prefix = 'bn'
 
 npoints = 10 
-p = Path([ [[0.0, 0.0, 0.0],'$\Gamma$'],
-           [[0.5, 0.0, 0.0],'M'],
-           [[1./3,1./3,0.0],'K'],
-           [[0.0, 0.0, 0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
+# Brillouin-zone path of the hexagonal cell (ibrav=4, a=4.7, c=layer_separation, bohr)
+bz = BrillouinZone(4, {'a': 4.7, 'c': layer_separation}, path_string='GMKG',
+                   intervals=[int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
 
 # scheduler
 scheduler = Scheduler.factory
@@ -98,7 +98,7 @@ def bands():
     qe.system['nbnd'] = 6
     qe.system['force_symmorphic'] = ".true."
     qe.ktype = 'crystal'
-    qe.set_path(p)
+    qe.set_path(bz)
     qe.write('bands/%s.bands'%prefix)
 
 def phonon(kpoints,qpoints,folder='phonon'):
@@ -147,7 +147,7 @@ def update_positions(pathin,pathout):
 def run_plot():
     print("running plotting:")
     xml = PwXML(prefix=prefix,path='bands')
-    xml.plot_eigen(p)
+    xml.plot_eigen(path_kpoints=bz.get_indices())
 
 def run_projection(show=True):
     import matplotlib.pyplot as plt
@@ -160,7 +160,7 @@ def run_projection(show=True):
     n_atom = range(16)
     b_atom = range(16,32)
     ax = plt.subplot(1,1,1)
-    cax = projection.plot_eigen(ax,path=p,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='seismic')
+    cax = projection.plot_eigen(ax,path_kpoints=bz.get_indices(),selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='seismic')
     plt.colorbar(cax)
     if show: plt.show()
 
@@ -259,14 +259,14 @@ if __name__ == "__main__":
         dyn['asr']   = "'simple'"
         dyn['flfrq'] = "'%s.freq'" % prefix
         dyn['q_in_cryst_coord'] = '.true.'
-        dyn.qpoints = p.get_klist()
+        dyn.qpoints = bz.kpoints(coords='red', qe=True)
         dyn.write('phonon/matdyn.in')
         qe_run.add_command('%s < matdyn.in'%matdyn)
         qe_run.run()
 
         # matdyn class to read and plot the frequencies
         m = Matdyn.from_modes_file(folder='phonon')
-        m.plot_eigen(path=p)
+        m.plot_eigen(bz)
  
     if args.bands:
         run_bands(nthreads)

@@ -48,11 +48,11 @@ if __name__ == "__main__":
 
     # Plot on top of the band structure
     
-    ## [1.] Define path in crystal coordinates using class Path
+    ## [1.] Define the Brillouin-zone path on the lattice of the databases
 
     npoints = 20
     intervals = [int(npoints * 2), int(npoints), int(sqrt(5) * npoints)]
-    bz = BrillouinZone(4, {'a': ylat.alat[0], 'c': ylat.alat[2]/ylat.alat[0]}, 'GMKG', intervals=intervals)
+    bz = BrillouinZone(cell=ylat.lat, path_string='GMKG', intervals=intervals)
 
     ## [2.] Read electron energies
     ## NB:  A YamboQPDB object containing QP corrections is also accepted

@@ -23,14 +23,8 @@ q2r = 'q2r.x'
 matdyn = 'matdyn.x'
 prefix = 'bn'
 
-# npoints = 10
-# p = Path([ [[0.0, 0.0, 0.0],r'$\Gamma$'],
-#            [[0.5, 0.0, 0.0],r'M'],
-#            [[1./3,1./3,0.0],r'K'],
-#            [[0.0, 0.0, 0.0],r'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
-
 # Brillouin zone
-bz = BrillouinZone(ibrav, {'a': alat, 'c': layer_separation}, 'GMKG', npoints=100)
+bz = BrillouinZone(ibrav, {'a': alat, 'c': layer_separation}, path_string='GMKG', npoints=100)
 
 # scheduler
 scheduler = Scheduler.factory
@@ -153,7 +147,7 @@ def update_positions(pathin,pathout):
 def run_plot():
     print("running plotting:")
     xml = PwXML(prefix=prefix,path='bands')
-    xml.plot_eigen(bz)
+    xml.plot_eigen(path_kpoints=bz.get_indices())
 
 def run_projection(show=True):
     import matplotlib.pyplot as plt
@@ -166,7 +160,7 @@ def run_projection(show=True):
     n_atom = range(16)
     b_atom = range(16,32)
     ax = plt.subplot(1,1,1)
-    cax = projection.plot_eigen(ax,bz,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='seismic')
+    cax = projection.plot_eigen(ax,path_kpoints=bz.get_indices(),selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='seismic')
     plt.colorbar(cax)
     if show: plt.show()
 
@@ -265,7 +259,6 @@ if __name__ == "__main__":
         dyn['asr']   = "'simple'"
         dyn['flfrq'] = "'%s.freq'" % prefix
         dyn['q_in_cryst_coord'] = '.true.'
-        # dyn.qpoints = p.get_klist()
         dyn.qpoints = bz.kpoints(coords='red', qe=True)
         dyn.write('phonon/matdyn.in')
         qe_run.add_command('%s < matdyn.in'%matdyn)

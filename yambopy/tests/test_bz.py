@@ -864,3 +864,13 @@ def test_path_distances():
     # A point off the path, or out of path order
     assert bz.path_distances(np.array([0.3 * bz.rcell[2]])) is None
     assert bz.path_distances(np.array([K, M])) is None
+
+
+def test_cell_argument_is_checked():
+    # The third positional argument is cell, not the path string.
+    with pytest.raises(TypeError, match="path_string="):
+        BrillouinZone(4, HEX, "GMKG", npoints=20)
+    with pytest.raises(ValueError, match="not both"):
+        BrillouinZone(4, HEX, cell=get_lattice_data(4, HEX)[0], npoints=20)
+    bz = BrillouinZone(4, HEX, path_string="GMKG", npoints=20)
+    assert bz.path_string == "GMKG"
