@@ -1,23 +1,15 @@
 """
-brillouin_v04.py
-================
-Extends ``brillouin_v03``: ``find_collinear_kpoints`` now **deduplicates**
-k-points that are found on multiple adjacent segments (segment boundaries).
+brillouin.py
+============
+``BrillouinZone`` — high-symmetry k-paths in the Brillouin zones of the
+QE Bravais lattices (see :mod:`yambopy.bz.lattice_data`):
 
-Provides:
-
-* ``get_lattice_data`` — returns lattice vectors, Bravais variant, high-symmetry
-  k-point coordinates and a default band-structure path for a given QE ibrav.
-
-* ``BrillouinZone`` — constructs interpolated k-paths in any of the supported
-  Brillouin zones.
-  New in v04: deduplicated ``find_collinear_kpoints()``.
-
-Dependencies
-------------
-* numpy
-* yambopy (``yambopy.kpoints.expand_kpoints``, ``yambopy.lattice.red_car``,
-  ``yambopy.lattice.isbetween``)
+* build the path from ``ibrav`` + parameters or from any cell describing a
+  supported lattice, optionally optimised over symmetry-equivalent points;
+* interpolate it (``npoints``, ``density`` or ``intervals``) and provide the
+  band-structure x-axis, tick positions, labels and indices;
+* find the k-points of a grid (e.g. a yambo database) lying on the path,
+  whatever the units or cell of the grid's lattice.
 """
 
 # from __future__ import annotations
@@ -32,8 +24,6 @@ import numpy as np
 from yambopy.bz.lattice_data import find_basis_change, get_lattice_data, lattice_data_for_cell
 from yambopy.bz.kpath_optimizer import KPathOptimizer, get_star_of_k
 from yambopy.dbs.latticedb import YamboLatticeDB
-from yambopy.kpoints import expand_kpoints
-from yambopy.lattice import isbetween, red_car
 
 
 # =============================================================================
@@ -599,109 +589,6 @@ class BrillouinZone:
     # Collinear k-points
     # ------------------------------------------------------------------
 
-    def get_collinear_kpoints(self, kpoints_car, sym_car=None, debug=False):
-        """
-        Given a set of k-points, return those which are collinear with
-        the path.
-
-        Parameters
-        ----------
-        kpoints_car : ndarray
-            Cartesian coordinates of k-points (full or irreducible BZ).
-        sym_car : list or None
-            Symmetry operations to expand IBZ k-points, or *None* if
-            *kpoints_car* already covers the full BZ.
-        debug : bool
-            Print debug information.
-
-        Returns
-        -------
-        collinear_kpoints : ndarray
-            Cartesian coordinates of collinear k-points.
-        collinear_indices : ndarray
-            Indices of the matching k-points.
-        collinear_distances : ndarray
-            Distances of the projected k-points along the path.
-        """
-        rlat = self.rcell
-
-        if sym_car is None:
-            kpoints_indices = list(range(len(kpoints_car)))
-        else:
-            _, kpoints_indices, _, kpoints_car_expanded = expand_kpoints(
-                kpoints_car, sym_car, rlat
-            )
-            kpoints_car = kpoints_car_expanded
-
-        spoints_car = self.special_kpoints("car")
-        spoints_distances = self.special_kpoints_distances(True)
-
-        collinear_kpoints = []
-        collinear_indices = []
-        collinear_distances = []
-        prev_segment_keys: set[tuple] = set()
-        kdist = 0
-
-        for section in spoints_car:
-
-            prev_segment_keys.clear()
-
-            for k in range(len(section) - 1):
-                data = {}
-                start_kpoint = section[k]
-                end_kpoint = section[k + 1]
-                current_segment_keys: set[tuple] = set()
-
-                for x, y, z in product(range(-1, 2), repeat=3):
-                    shift = red_car(np.array([[x, y, z]]), rlat)[0]
-
-                    for index, kpoint in zip(kpoints_indices, kpoints_car):
-                        kpoint_shift = kpoint + shift
-
-                        if isbetween(start_kpoint, end_kpoint, kpoint_shift):
-                            # Dedup only against the immediately preceding segment
-                            # (catches boundary duplicates between consecutive segments).
-                            dup_key = (index, tuple(np.round(kpoint_shift, decimals=8)))
-                            if dup_key in prev_segment_keys:
-                                continue
-                            current_segment_keys.add(dup_key)
-
-                            key = tuple(
-                                round(kpt, 4) for kpt in kpoint_shift
-                            )
-                            distance = float(
-                                np.linalg.norm(start_kpoint - kpoint_shift)
-                            )
-                            distance_within_path = (
-                                spoints_distances[kdist] + distance
-                            )
-                            data[key] = [
-                                index, distance, kpoint_shift, distance_within_path,
-                            ]
-                prev_segment_keys = current_segment_keys
-                kdist += 1
-
-                # Sort by distance from start of segment (nearest first).
-                sorted_data = sorted(data.values(), key=lambda i: i[1])
-
-                for index, distance, kpoint_shift, distance_within_path in sorted_data:
-                    collinear_indices.append(index)
-                    collinear_kpoints.append(kpoint_shift)
-                    collinear_distances.append(distance_within_path)
-
-                    if debug:
-                        print(
-                            f"{kpoint_shift[0]:12.8f} {kpoint_shift[1]:12.8f} "
-                            f"{kpoint_shift[2]:12.8f}  {index}  {distance}  "
-                            f"{distance_within_path}"
-                        )
-
-        return (
-            np.array(collinear_kpoints),
-            np.array(collinear_indices),
-            np.array(collinear_distances),
-        )
-
     def find_collinear_grid(
         self,
         latticedb: YamboLatticeDB,
@@ -739,8 +626,45 @@ class BrillouinZone:
                 latdb.expand_kpoints(atol=1e-6, verbose=1)
             kmap = latdb.BZ_to_IBZ_indexes
 
-        red_kpts = np.linalg.solve(np.asarray(latdb.rlat).T, np.asarray(latdb.car_kpoints).T).T
-        lat = np.asarray(latdb.lat, dtype=float)
+        col_kpts, col_idx, col_dsts = self.find_collinear_lattice_kpoints(
+            latdb.lat, latdb.car_kpoints, tol=tol
+        )
+
+        if expand_kpoints:
+            col_idx = np.asarray(kmap)[col_idx]
+        return col_kpts, col_idx, col_dsts
+
+    def find_collinear_lattice_kpoints(
+        self,
+        lat: np.ndarray,
+        car_kpoints: np.ndarray,
+        tol: float = 1e-4,
+    ):
+        """
+        Find which k-points, given for another description of the same
+        lattice, lie on the path.
+
+        Parameters
+        ----------
+        lat : ndarray, shape (3, 3)
+            Direct lattice vectors (rows) the k-points refer to, e.g. a yambo
+            database's ``lat``.  It may differ from ``self.cell`` in units,
+            orientation and choice of primitive vectors.
+        car_kpoints : ndarray, shape (M, 3)
+            Cartesian k-points in the convention of *lat*:
+            ``k_red @ rec_lat(lat)``, without ``2π`` (yambopy's
+            ``car_kpoints``).
+        tol : float
+            Tolerance passed to :meth:`find_collinear_kpoints`.
+
+        Returns
+        -------
+        Same as :meth:`find_collinear_kpoints`, with indices into
+        *car_kpoints* and k-points in this ``BrillouinZone``'s convention.
+        """
+        lat = np.asarray(lat, dtype=float)
+        # rec_lat(lat) = inv(lat).T, so k_red = car_kpoints @ lat.T.
+        red_kpts = np.asarray(car_kpoints, dtype=float) @ lat.T
 
         # Basis change between the two cells, compared at equal volume.
         def normalised(c):
@@ -756,11 +680,7 @@ class BrillouinZone:
         # lat ~ M @ cell, so k_red(lat) = M @ k_red(cell).
         red_kpts = red_kpts @ np.linalg.inv(M).T
 
-        col_kpts, col_idx, col_dsts = self.find_collinear_kpoints(red_kpts @ self.rcell, tol=tol)
-
-        if expand_kpoints:
-            col_idx = np.asarray(kmap)[col_idx]
-        return col_kpts, col_idx, col_dsts
+        return self.find_collinear_kpoints(red_kpts @ self.rcell, tol=tol)
 
     # ------------------------------------------------------------------
     # Collinear k-points on the optimised path

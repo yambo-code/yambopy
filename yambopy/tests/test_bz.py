@@ -369,3 +369,48 @@ def test_bandstructure_json_round_trip(tmp_path):
     no_bz = YambopyBandStructure(bands, bz.kpoints("car"))
     no_bz.write_json(str(path))
     assert YambopyBandStructure.from_json(str(path)).bz is None
+
+
+# -----------------------------------------------------------------------------
+# Band structure from a yambo electrons database
+# -----------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def electronsdb():
+    from yambopy.dbs.electronsdb import YamboElectronsDB
+    return YamboElectronsDB.from_db_file(os.path.dirname(NS_DB1), Expand=False)
+
+
+def test_electrons_path_matches_lattice_grid(electronsdb, latticedb):
+    lat = np.asarray(electronsdb.lat)
+    bz = BrillouinZone(cell=lat, npoints=60)
+    x, ibz = electronsdb.get_bandstructure_path(bz)
+    _, ibz_ref, x_ref = bz.find_collinear_grid(latticedb, expand_kpoints=True)
+    assert len(ibz) > 0
+    assert np.array_equal(ibz, ibz_ref)
+    assert np.allclose(x, x_ref)
+
+    for cell in (lat * BOHR_TO_ANGSTROM,
+                 (np.array([[1, 1, 0], [0, 1, 0], [0, 0, 1]]) @ lat) * BOHR_TO_ANGSTROM):
+        other = BrillouinZone(cell=cell, npoints=60)
+        x_other, ibz_other = electronsdb.get_bandstructure_path(other)
+        assert np.array_equal(ibz_other, ibz)
+        assert np.allclose(x_other / other.special_kpoints_distances(True)[-1],
+                           x / bz.special_kpoints_distances(True)[-1])
+
+    # The database is left unexpanded.
+    assert electronsdb.expanded is False
+
+
+def test_electrons_plot_bandstructure(electronsdb):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    bz = BrillouinZone(cell=np.asarray(electronsdb.lat) * BOHR_TO_ANGSTROM, npoints=60)
+    fig, ax = plt.subplots()
+    electronsdb.plot_bandstructure_ax(ax, bz, bandmin=0, bandmax=4)
+    assert np.allclose(ax.get_xticks(), bz.special_kpoints_distances(True))
+    assert [t.get_text() for t in ax.get_xticklabels()] == bz.path_labels_list(True)
+    assert len(ax.lines) >= 4
+    plt.close(fig)

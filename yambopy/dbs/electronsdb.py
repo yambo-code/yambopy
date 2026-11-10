@@ -400,42 +400,50 @@ class YamboElectronsDB():
 
         return ax
 
-    def plot_bandstructure_ax(self, ax, bz, bandmin = None, bandmax = None, add_indexes = False, **kwargs):
+    def get_bandstructure_path(self, bz, tol=1e-4):
         """
-        Plot this bandstructure on Matpltolib ax
+        Find the grid k-points lying on the path of a BrillouinZone.
+
+        The irreducible k-points are expanded to the full BZ (without
+        modifying this database) and matched against the path, so *bz*
+        may use other units or another cell for the same lattice.
+
+        Returns
+        -------
+        distances : ndarray, shape (N,)
+            Positions along the path, in the BrillouinZone's units.
+        ibz_indexes : ndarray, shape (N,)
+            Index of the irreducible k-point (into eigenvalues_ibz) of each.
         """
-        bands_kpoints, bands_indexes, bands_distances = bz.get_collinear_kpoints(self.kpoints_full, debug = True)
-        #path_kpoint_distances, path_kpoint_x_coords, path_kpoint_labels = bz.linear_kpoint_axis()
+        _, bz_to_ibz, _, kpoints_full = expand_kpoints(self.car_kpoints, self.sym_car, self.rlat)
+        _, indexes, distances = bz.find_collinear_lattice_kpoints(self.lat, kpoints_full, tol=tol)
+        return distances, np.asarray(bz_to_ibz)[indexes]
 
-        path_kpoint_distances = bz.kpoints_distances()
-        path_kpoint_labels = bz.path_labels_list()
+    def plot_bandstructure_ax(self, ax, bz, bandmin = None, bandmax = None, **kwargs):
+        """
+        Plot the bands at the grid k-points lying on the path of *bz*
+        (a BrillouinZone) on Matplotlib ax.
+        """
+        bands_distances, ibz_indexes = self.get_bandstructure_path(bz)
 
-        #self.get_fermi()
-
-        #calculate distances
-        #bands_distances = [0]
-        #distance = 0
-        #for nk in range(1, len(bands_kpoints)):
-        #    distance += np.linalg.norm(bands_kpoints[nk] - bands_kpoints[nk - 1])
-        #    bands_distances.append(distance)
-
-        for xcoord in path_kpoint_distances:
+        ticks = bz.special_kpoints_distances(True)
+        for xcoord in ticks:
             ax.axvline(xcoord, color = 'k')
 
         #plot bands
+        colors = kwargs.pop('c', None)
         if self.spin == 2:
-           color = kwargs.pop('c', 'red')
-           ax.plot(bands_distances, self.eigenvalues[0, bands_indexes, bandmin:bandmax], c = color, **kwargs)
-           color = kwargs.pop('c', 'blue')
-           ax.plot(bands_distances, self.eigenvalues[1, bands_indexes, bandmin:bandmax], c = color, **kwargs)
+            colors = colors if isinstance(colors, (list, tuple)) else ('red', 'blue')
+            for ispin, color in enumerate(colors[:2]):
+                ax.plot(bands_distances, self.eigenvalues_ibz[ispin, ibz_indexes, bandmin:bandmax], c = color, **kwargs)
         else:
-            color = kwargs.pop('c', 'red')
-            ax.plot(bands_distances, self.eigenvalues[0, bands_indexes, bandmin:bandmax], c = color, **kwargs)
+            color = colors if colors is not None else 'red'
+            ax.plot(bands_distances, self.eigenvalues_ibz[0, ibz_indexes, bandmin:bandmax], c = color, **kwargs)
 
-        ax.set_xlim(0, max(path_kpoint_distances))
+        ax.set_xlim(0, ticks[-1])
 
-        ax.set_xticks(path_kpoint_distances)
-        ax.set_xticklabels(path_kpoint_labels)
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(bz.path_labels_list(True))
 
         return ax
 

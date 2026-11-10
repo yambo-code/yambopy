@@ -633,7 +633,6 @@ class YamboExcitonDB(object):
         # bands_kpoints, band_indexes, path_car = get_path(car_kpoints, rlat, None, path,
         #                                                  debug=debug)  # None means the kpoints are already expanded
 
-        # bands_kpoints, band_indexes, _ = bz.get_collinear_kpoints(car_kpoints, None, debug)
         bands_kpoints, band_indexes, _ = bz.find_collinear_grid(self.lattice, expand_kpoints=False)
 
         if debug:
