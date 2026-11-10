@@ -6,7 +6,6 @@
 import numpy as np
 from yambopy.tools.string import marquee
 from yambopy.plot.plotting import add_fig_kwargs
-#from qepy.lattice import Path
 # from yambopy import BrillouinZone
 
 def exagerate_differences(ks_ebandsc,ks_ebandsp,ks_ebandsm,d=0.01,exagerate=5):

@@ -308,11 +308,9 @@ class YamboQPDB():
             symrel = lattice.sym_rec_red
             trev_for_interp=False
         
-        # band_kpoints_rlu = path.get_klist()[:,:3]
         band_kpoints_rlu = bz.kpoints(coords='red')
 
         # Obtain quantities in cc needed for plot (since interpolation wants rlu)
-        #_, _, path_car = get_path(lattice.car_kpoints,lattice.rlat,lattice.sym_car,path)
         #band_kpoints = red_car(band_kpoints_rlu,lattice.rlat)
         band_kpoints = bz.kpoints(coords='car')
 
@@ -339,7 +337,6 @@ class YamboQPDB():
               print('No spin-polarized bands DFT')
               eigens  = self.eigenvalues_dft[np.newaxis,:]
               skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
-              #kpoints_path = path.get_klist()[:,:3]
               dft_eigens_kpath = skw.interp_kpts(band_kpoints_rlu).eigens[0]
               if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
               #ks_ebands = YambopyBandStructure(dft_eigens_kpath,band_kpoints,kpath=path_car,**kwargs)
@@ -360,7 +357,6 @@ class YamboQPDB():
 
                skw_up = SkwInterpolator(lpratio,kpoints,eigens_up,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
                skw_dw = SkwInterpolator(lpratio,kpoints,eigens_dw,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
-               #kpoints_path = path.get_klist()[:,:3]
                qp_eigens_up_kpath = skw_up.interp_kpts(band_kpoints_rlu).eigens[0]
                qp_eigens_dw_kpath = skw_dw.interp_kpts(band_kpoints_rlu).eigens[0]
                #if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
@@ -379,7 +375,6 @@ class YamboQPDB():
                    eigens[0,ik,:] = sorted(aux[0,ik,:])
                #end sorting
                skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
-               #kpoints_path = path.get_klist()[:,:3]
                qp_eigens_kpath = skw.interp_kpts(band_kpoints_rlu).eigens[0]
                if valence: kwargs['fermie'] = np.max(qp_eigens_kpath[:,:valence])
 
@@ -391,7 +386,6 @@ class YamboQPDB():
             if 'Z' in what:
                 eigens = self.z[np.newaxis,:]
                 skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
-                #kpoints_path = path.get_klist()[:,:3]
                 qp_z_kpath = skw.interp_kpts(band_kpoints_rlu).eigens[0]
 
 
