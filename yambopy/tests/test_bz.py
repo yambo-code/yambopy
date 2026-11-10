@@ -414,3 +414,35 @@ def test_electrons_plot_bandstructure(electronsdb):
     assert [t.get_text() for t in ax.get_xticklabels()] == bz.path_labels_list(True)
     assert len(ax.lines) >= 4
     plt.close(fig)
+
+
+# -----------------------------------------------------------------------------
+# KPathOptimizer tie-breaking
+# -----------------------------------------------------------------------------
+
+def test_turn_penalty_favours_straight_paths():
+    from yambopy.bz.kpath_optimizer import KPathOptimizer
+
+    k0, k1 = np.array([0.0, 0, 0]), np.array([1.0, 0, 0])
+    assert KPathOptimizer._turn_penalty(k0, k1, np.array([2.0, 0, 0]), 1.0) == pytest.approx(0.0)
+    assert KPathOptimizer._turn_penalty(k0, k1, np.array([1.0, 1, 0]), 1.0) == pytest.approx(0.05)
+    assert KPathOptimizer._turn_penalty(k0, k1, np.array([0.0, 0, 0]), 1.0) == pytest.approx(0.1)
+
+
+@pytest.mark.parametrize("method", ["greedy", "greedy_global"])
+@pytest.mark.filterwarnings("ignore::DeprecationWarning:spglib")
+def test_greedy_breaks_ties_by_carrying_on(method):
+    from yambopy.bz.kpath_optimizer import KPathOptimizer
+
+    spglib = pytest.importorskip("spglib")
+    cell = np.diag([3.0, 3.0, 10.0])  # square in-plane: (1/4, 0) has 4 equidistant copies
+    sym = [w.T for w in spglib.get_symmetry((cell, [[0, 0, 0]], [1]))["rotations"]]
+    opt = KPathOptimizer(np.linalg.inv(cell.T), sym)
+    # X -> G -> P: every copy of P is 1/4 from G; carrying on means P = (-1/4, 0).
+    result = opt.optimize_kpath([[0.5, 0, 0], [0, 0, 0], [0.25, 0, 0]], method=method)
+    assert np.allclose(result["kpath_frac"][1:], [[0, 0, 0], [-0.25, 0, 0]])
+
+
+def test_cell_to_ibrav_removed():
+    import yambopy
+    assert not hasattr(yambopy, "CellToIbrav")

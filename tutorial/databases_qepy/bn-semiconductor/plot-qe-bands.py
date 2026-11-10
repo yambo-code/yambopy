@@ -1,5 +1,5 @@
 from qepy import PwXML
-from yambopy import BrillouinZone, CellToIbrav
+from yambopy import BrillouinZone
 from math import sqrt
 
 # k-points map
@@ -16,11 +16,6 @@ bz = BrillouinZone(
 
 # Class PwXML. QE database reading
 xml = PwXML(prefix='bn', path='bands')
-
-c2i = CellToIbrav(xml.cell)
-print(c2i.summary())
-
-# Class PwXML. QE database reading
 xml.plot_eigen(bz.get_indices())
 
 # Alternative option with more plot control

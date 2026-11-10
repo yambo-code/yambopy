@@ -113,7 +113,9 @@ def get_lattice_data(
         QE Bravais-lattice index (1-11, plus -3, -5, -9).
     parameters : dict or None
         Lattice parameters dict (e.g. ``{'a': 3.615}``).  Required keys
-        depend on *ibrav* (see :data:`IBRAV_REQUIRED_PARAMETERS`).
+        depend on *ibrav* (see :data:`IBRAV_REQUIRED_PARAMETERS`).  Lengths
+        are in any unit (the cell uses the same one); the rhombohedral
+        angle ``gamma`` is in degrees.
 
     Returns
     -------
@@ -162,7 +164,9 @@ def _standard_lattice_data(
         QE Bravais-lattice index (1-11, plus -3, -5, -9).
     parameters : dict or None
         Lattice parameters dict (e.g. ``{'a': 3.615}``).  Required keys
-        depend on *ibrav* (see :data:`IBRAV_REQUIRED_PARAMETERS`).
+        depend on *ibrav* (see :data:`IBRAV_REQUIRED_PARAMETERS`).  Lengths
+        are in any unit (the cell uses the same one); the rhombohedral
+        angle ``gamma`` is in degrees.
 
     Returns
     -------
@@ -194,9 +198,7 @@ def _standard_lattice_data(
     a = parameters.get("a", 1.0)
     b = parameters.get("b", 1.0)
     c = parameters.get("c", 1.0)
-    alpha = parameters.get("alpha", np.pi / 2)
-    beta = parameters.get("beta", np.pi / 2)
-    gamma = parameters.get("gamma", np.pi / 2)
+    gamma = parameters.get("gamma", 90.0)  # degrees; only ibrav ±5 uses it
 
     match ibrav:
         # --- CUB ---
@@ -271,13 +273,12 @@ def _standard_lattice_data(
             high_symmetry_points = {
                 "G": [0, 0, 0],
                 "A": [0, 0, 1 / 2],
-                # "H": [1 / 3, 1 / 3, 1 / 2],
+                # M = (1/2, 0, 0) is the midpoint of the BZ edge joining the
+                # corners (2/3, -1/3, 0) and (1/3, 1/3, 0); either works as K.
                 "H": [2 / 3, -1 / 3, 1 / 2],
-                # "K": [1 / 3, 1 / 3, 0],
                 "K": [2 / 3, -1 / 3, 0],
                 "L": [1 / 2, 0, 1 / 2],
                 "M": [1 / 2, 0, 0],
-                # "M": [1 / 2, -1 / 2, 0]
             }
             default_path = "GMKGALHA,LM,KH"
 

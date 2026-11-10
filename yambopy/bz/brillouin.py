@@ -12,8 +12,6 @@ QE Bravais lattices (see :mod:`yambopy.bz.lattice_data`):
   whatever the units or cell of the grid's lattice.
 """
 
-# from __future__ import annotations
-
 import re
 from itertools import product
 from typing import Any, Sequence
@@ -235,23 +233,29 @@ class BrillouinZone:
         max_combinations: int = 100000,
         parallel_segments: bool = True):
         """
-        Piecewise optimised k-path using :class:`~kpath_optimizer.KPathOptimizer`.
+        Replace each special point of the path by the member of its star
+        (symmetry-equivalent copies) that gives the shortest path, using
+        :class:`~yambopy.bz.kpath_optimizer.KPathOptimizer`.
 
-        Each comma-separated section of the path is optimised independently.
-        Returns a list of result dicts (one per section) as returned by
-        :meth:`~kpath_optimizer.KPathOptimizer.optimize_kpath`.
+        Each comma-separated section is optimised independently.  The
+        choices are stored in :attr:`star_indices` and each special point
+        in :attr:`high_symmetry_points` becomes its star (first member: the
+        original point).  Only the special points are optimised; call
+        :meth:`interpolate` (or :meth:`interpolate_intervals`) afterwards
+        to rebuild the k-points (the constructor does this when
+        ``optimise=True``).
 
-        Notes
-        -----
-        * The optimisation runs on the *special k-points* defining each section;
-          interpolated points are **not** re-optimised.
-        * ``KSymmetry`` works in QE primitive fractional coordinates, while
-          ``BrillouinZone.high_symmetry_points`` are given in the coordinate
-          system of the cell returned by :func:`get_lattice_data`.  These
-          coincide for primitive Bravais types (``aP``, ``mP``, ``oP``, ``tP``,
-          ``hP``, ``cP``).  For centred lattices the coordinates are already in
-          the primitive-cell basis for this implementation, so the integration
-          is consistent.
+        Parameters
+        ----------
+        sym_red : list of ndarray, shape (3, 3)
+            Point-group operations in yambopy's ``sym_red`` convention,
+            referred to the same cell as this ``BrillouinZone`` (e.g. a
+            yambo database's ``sym_red`` when the zone was built from its
+            ``lat``).
+        rcell : ndarray or None
+            Reciprocal cell for path lengths; defaults to :attr:`rcell`.
+        method, max_combinations, parallel_segments
+            Passed to :meth:`~yambopy.bz.kpath_optimizer.KPathOptimizer.optimize_kpath`.
         """
 
         if rcell is None:
@@ -623,7 +627,7 @@ class BrillouinZone:
             if latticedb.ibz_nkpoints == latticedb.nkpoints:
                 # Expand a copy: expanding modifies the database in place.
                 latdb = deepcopy(latticedb)
-                latdb.expand_kpoints(atol=1e-6, verbose=1)
+                latdb.expand_kpoints(atol=1e-6, verbose=0)
             kmap = latdb.BZ_to_IBZ_indexes
 
         col_kpts, col_idx, col_dsts = self.find_collinear_lattice_kpoints(

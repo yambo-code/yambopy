@@ -5,11 +5,15 @@ kpath_optimizer.py
 of symmetry-equivalent k-points.
 
 For each k-point in the input path, the class considers all symmetry-
-equivalent k-points (the star of k, obtained from a :class:`KSymmetry`
-instance) and searches for the combination that minimises the total
+equivalent k-points (the star of k, from the crystal point-group
+operations) and searches for the combination that minimises the total
 Cartesian path length and individual segment lengths.
 
-Dependencies: numpy, ksymmetry.
+Conventions: k-points are in reduced reciprocal coordinates; Cartesian
+coordinates are ``k_red @ rlat`` (rows of *rlat* are the reciprocal
+vectors, without ``2π``).  Symmetry operations ``W`` are yambopy's
+``sym_red`` (acting on reduced direct coordinates as ``x' = x @ W``), so
+they act on reduced k-points as ``k' = W^-1 k``.
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from typing import Sequence
 import numpy as np
 
 def apply_W_to_k(W: np.ndarray, k: np.ndarray) -> np.ndarray:
+    """Apply a ``sym_red`` operation to a reduced k-point: ``W^-1 k``."""
     return np.linalg.solve(W, k)
 
 def k_equiv(k1: np.ndarray, k2: np.ndarray, atol: float = 1e-5) -> bool:
@@ -29,12 +34,8 @@ def k_in_list(k: np.ndarray, lst: list[np.ndarray], atol: float = 1e-5) -> bool:
     return any(k_equiv(k, kr, atol) for kr in lst)
 
 def frac_to_cart_k(k_frac: Sequence, B: np.ndarray) -> np.ndarray:
-    """Convert k from fractional reciprocal to Cartesian (2*pi/Ang)."""
+    """Convert k from reduced to Cartesian coordinates (``k @ B``, no 2π)."""
     return B.T @ np.asarray(k_frac, dtype=float)
-
-def cart_to_frac_k(k_cart: Sequence, B: np.ndarray) -> np.ndarray:
-    """Convert k from Cartesian (2*pi/Ang) to fractional reciprocal."""
-    return np.linalg.solve(B.T, np.asarray(k_cart, dtype=float))
 
 def get_star_of_k(k_frac: Sequence, crystal_pg_ops: list[np.ndarray], atol: float = 1e-5) -> np.ndarray:
     """
@@ -44,6 +45,10 @@ def get_star_of_k(k_frac: Sequence, crystal_pg_ops: list[np.ndarray], atol: floa
     ----------
     k_frac : array-like, shape (3,)
         k-point in fractional reciprocal coordinates.
+    crystal_pg_ops : list of ndarray, shape (3, 3)
+        Point-group operations in yambopy's ``sym_red`` convention.
+    atol : float
+        Tolerance to consider two k-points equal modulo a G-vector.
 
     Returns
     -------
@@ -55,7 +60,6 @@ def get_star_of_k(k_frac: Sequence, crystal_pg_ops: list[np.ndarray], atol: floa
     star: list[np.ndarray] = [k0]
     for W in crystal_pg_ops:
         k_new = apply_W_to_k(W, k0)
-        # k_new = cart_to_frac_k(np.dot(W, frac_to_cart_k(k0, B)), B)
         if not k_in_list(k_new, star, atol):
             star.append(k_new)
     return np.array(star)
@@ -72,14 +76,15 @@ class KPathOptimizer:
 
     Parameters
     ----------
-    symmetry : KSymmetry
-        A :class:`~ksymmetry.KSymmetry` instance providing the crystal
-        symmetry (point-group operations, star computation, coordinate
-        conversions).
+    rlat : ndarray, shape (3, 3)
+        Reciprocal lattice vectors as rows (no ``2π``).
+    sym : list of ndarray, shape (3, 3)
+        Point-group operations in yambopy's ``sym_red`` convention.  Null
+        matrices (yambo pads its symmetry arrays with them) are ignored.
 
     Methods
     -------
-    optimize_kpath(kpath_frac, method='brute', ...)
+    optimize_kpath(kpath_frac, method='greedy_global', ...)
         Return the shortest combination of equivalent k-points.
     """
 
@@ -113,13 +118,20 @@ class KPathOptimizer:
             Fall back to greedy when brute-force combinations exceed this
             threshold (default 100000).
         parallel_segments : bool
-            If True, also penalise non-uniform segment directions.
+            If True, break ties between (nearly) equally short choices in
+            favour of smoother paths: ``'brute'`` adds a penalty for unequal
+            segment lengths (up to 10% of their spread over their mean);
+            the greedy methods add up to 10% to a segment's length for
+            turning back on the previous one (none for carrying straight on).
 
         Returns
         -------
         dict with keys:
             kpath_cart, kpath_frac, segment_lengths, total_length,
-            original_length, improvement (%), n_combinations, stars.
+            original_length, improvement (%), n_combinations, stars,
+            best_indices (index of the chosen member of each point's star;
+            0 is the input point), and ``warning`` when brute force fell
+            back to greedy.
         """
         kpath = [np.asarray(k, dtype=float) for k in kpath_frac]
 
@@ -143,10 +155,6 @@ class KPathOptimizer:
         star_sizes = [len(s) for s in stars]
         total_combinations = np.prod(star_sizes)
 
-        # original_length = sum(
-        #     kpath_segment_length(kpath[i], kpath[i + 1], self._rlat)
-        #     for i in range(len(kpath) - 1)
-        # )
         original_length = self._path_length(kpath)
 
         if method == "brute":
@@ -253,10 +261,7 @@ class KPathOptimizer:
                         stars[i - 2][best_indices[i - 2]],
                         self._rlat
                     )
-                    seg1 = prev_k_cart - prev_prev_k_cart
-                    seg2 = k_cart - prev_k_cart
-                    angle = self._angle_between_vectors(seg1, seg2)
-                    dist += dist * (1.0 - angle / np.pi) * 0.1
+                    dist += self._turn_penalty(prev_prev_k_cart, prev_k_cart, k_cart, dist)
                 if j == 0 or dist < best_dist:
                     best_dist = dist
                     best_idx = j
@@ -308,10 +313,7 @@ class KPathOptimizer:
                     dist = float(np.linalg.norm(k_cart - prev_k_cart))
                     if parallel_segments and len(current_path) > 1:
                         prev_prev_k_cart = frac_to_cart_k(current_path[-2], self._rlat)
-                        seg1 = prev_k_cart - prev_prev_k_cart
-                        seg2 = k_cart - prev_k_cart
-                        angle = self._angle_between_vectors(seg1, seg2)
-                        dist += dist * (1.0 - angle / np.pi) * 0.1
+                        dist += self._turn_penalty(prev_prev_k_cart, prev_k_cart, k_cart, dist)
                     if dist < best_local_dist:
                         best_local_dist = dist
                         best_local_idx = j
@@ -365,6 +367,17 @@ class KPathOptimizer:
             return 0.0
         return float(np.std(lengths) / mean_length * 0.1)
 
+    @classmethod
+    def _turn_penalty(cls, k0: np.ndarray, k1: np.ndarray, k2: np.ndarray, dist: float) -> float:
+        """
+        Penalty for the turn at *k1* on the way k0 -> k1 -> k2 (Cartesian):
+        0 when the path carries straight on, up to 10% of *dist* when it
+        turns straight back.  Used by the greedy methods to choose between
+        star members giving (nearly) equal segment lengths.
+        """
+        angle = cls._angle_between_vectors(k1 - k0, k2 - k1)
+        return dist * (angle / np.pi) * 0.1
+
     @staticmethod
     def _angle_between_vectors(v1: np.ndarray, v2: np.ndarray) -> float:
         """Angle between two vectors in radians."""
@@ -374,8 +387,3 @@ class KPathOptimizer:
             return 0.0
         cos_a = float(np.dot(v1, v2) / (n1 * n2))
         return float(np.arccos(np.clip(cos_a, -1.0, 1.0)))
-
-    def _fold_k_to_first_bz(self, k_frac: Sequence) -> np.ndarray:
-        """Fold a k-point to the first Brillouin zone [-0.5, 0.5)."""
-        k = np.asarray(k_frac, dtype=float)
-        return k - np.floor(k + 0.5)
