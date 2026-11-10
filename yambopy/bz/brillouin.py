@@ -29,9 +29,8 @@ from copy import deepcopy
 
 import numpy as np
 
-from yambopy.bz.lattice_data import get_lattice_data
+from yambopy.bz.lattice_data import get_lattice_data, lattice_data_for_cell
 from yambopy.bz.kpath_optimizer import KPathOptimizer, get_star_of_k
-from yambopy.bz.cell_to_ibrav import CellToIbrav
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.kpoints import expand_kpoints
 from yambopy.lattice import isbetween, red_car
@@ -108,16 +107,14 @@ class BrillouinZone:
         elif optimise and (cell is None or sym_red is None):
                 raise ValueError("To optimise the path, a cell or ibrav+parameters, and symmetry matrices must be supplied")
         elif cell is not None:
-            cell2ibrav = CellToIbrav(cell)
-            print(cell2ibrav.summary())
-
             self.cell, self.variant, self.high_symmetry_points, self.default_path = (
-                get_lattice_data(cell2ibrav.ibrav, cell2ibrav.parameters_dict())
+                lattice_data_for_cell(cell)
             )
         elif path_string is None and intervals is None:
             raise ValueError("Either specify:\n 1: ibrav and parameters\n 2: cell\n 3: path_string and intervals")
 
-        # Reciprocal cell: columns are reciprocal primitive vectors.
+        # Reciprocal cell: rows are reciprocal primitive vectors (no 2π),
+        # so k_car = k_red @ rcell.
         self.rcell = None
         if self.cell is not None:
             self.rcell = np.linalg.inv(self.cell.T)
@@ -297,61 +294,38 @@ class BrillouinZone:
         if npoints is not None and density is not None:
             raise ValueError("You may define npoints or density, but not both.")
 
-        length = sum(self.special_kpoints_distances(merge_sections=True))
+        # Cartesian length of every segment, in path order.
+        seg_lengths = [
+            float(np.linalg.norm(section[i + 1] - section[i]))
+            for section in self.special_kpoints("car")
+            for i in range(len(section) - 1)
+        ]
+        length = sum(seg_lengths)
+        nsegments = len(seg_lengths)
 
         if npoints is None:
             if density is None:
                 density = 5.0
             npoints = int(round(length * density))
 
-        points = self.special_kpoints("red", merge_sections=False)
-        lengths = self.special_kpoints_distances(merge_sections=True)
+        # Each segment contributes `n` points (its end point excluded) and
+        # each section adds its final point, so the segments share
+        # npoints - nsections points, distributed in proportion to their
+        # lengths.  Every non-degenerate segment gets at least 2 points.
+        budget = max(npoints - len(self.path_sections), 2 * nsegments)
+        intervals: list[int] = []
+        remaining_length = length
+        remaining_points = budget
+        for seg_len in seg_lengths:
+            if seg_len < 1e-12 or remaining_length < 1e-12:
+                n = 1
+            else:
+                n = max(2, int(round(seg_len * remaining_points / remaining_length)))
+            intervals.append(n)
+            remaining_length -= seg_len
+            remaining_points = max(remaining_points - n, 0)
 
-        self.kpts_red = []
-        self.kpts_car = []
-        accumulated: list[float] = []
-        x0 = 0.0
-        section_index = 1  # offset into the flat lengths array
-
-        intervals = []
-
-        for spoints in points:
-            kpoints = np.array(spoints)
-            diffs = kpoints[1:] - kpoints[:-1]
-            segment_kpts_red: list[np.ndarray] = []
-
-            for kpt, diff, seg_len in zip(
-                kpoints[:-1],
-                diffs,
-                lengths[section_index: section_index + len(kpoints) - 1],
-            ):
-                remaining = length - x0
-                if abs(remaining) < 1e-6:
-                    n = 0
-                else:
-                    n = max(2, int(round(seg_len * (npoints - len(accumulated)) / remaining)))
-
-                for t in np.linspace(0, 1, n, endpoint=False):
-                    segment_kpts_red.append(kpt + t * diff)
-                    accumulated.append(x0 + t * seg_len)
-
-                x0 += seg_len
-
-                intervals.append(n)
-
-            section_index += len(kpoints) - 1
-
-            if len(kpoints) > 0:
-                segment_kpts_red.append(kpoints[-1])
-
-            if not segment_kpts_red:
-                segment_kpts_red = []
-
-            self.kpts_car.append(
-                np.array([np.dot(kpt, self.rcell) for kpt in segment_kpts_red])
-            )
-            self.kpts_red.append(np.array(segment_kpts_red) if segment_kpts_red else np.empty((0, 3)))
-
+        self._build_kpoints(intervals)
         self.intervals = intervals
 
     def interpolate_intervals(self, intervals: list[int]):
@@ -372,28 +346,35 @@ class BrillouinZone:
                 f"number of path segments ({num_intervals})."
             )
 
-        points = self.special_kpoints("red", merge_sections=False)
+        self._build_kpoints(intervals)
+        self.intervals = list(intervals)
 
+    def _build_kpoints(self, intervals: list[int]):
+        """
+        Fill :attr:`kpts_red` and :attr:`kpts_car` (one array per path
+        section) placing ``intervals[i]`` evenly spaced points on segment
+        *i* (its end point excluded) and closing each section with its
+        last special point.
+        """
         self.kpts_red = []
         self.kpts_car = []
         i = 0
 
-        for spoints in points:
-            kpoints = np.array(spoints)
-            segment_kpts_red: list[np.ndarray] = []
+        for spoints in self.special_kpoints("red", merge_sections=False):
+            kpoints = np.array(spoints, dtype=float)
+            section_kpts: list[np.ndarray] = []
 
-            for kpt, _diff in zip(kpoints, kpoints[1:] - kpoints[:-1]):
+            for kpt, diff in zip(kpoints[:-1], kpoints[1:] - kpoints[:-1]):
                 for t in np.linspace(0, 1, intervals[i], endpoint=False):
-                    segment_kpts_red.append(kpt + t * _diff)
+                    section_kpts.append(kpt + t * diff)
                 i += 1
 
             if len(kpoints) > 0:
-                segment_kpts_red.append(kpoints[-1])
+                section_kpts.append(kpoints[-1])
 
-            self.kpts_car.append(
-                np.array([np.dot(kpt, self.rcell) for kpt in segment_kpts_red])
-            )
-            self.kpts_red.append(np.array(segment_kpts_red) if segment_kpts_red else np.empty((0, 3)))
+            red = np.array(section_kpts) if section_kpts else np.empty((0, 3))
+            self.kpts_red.append(red)
+            self.kpts_car.append(red @ self.rcell)
 
     # ------------------------------------------------------------------
     # K-point access
@@ -471,13 +452,18 @@ class BrillouinZone:
         """
         Cumulative Cartesian distances along the interpolated path.
 
-        Useful for band-structure x-axis plotting.
+        Returns one distance per k-point of :meth:`kpoints`, so it can be
+        used directly as the band-structure x-axis.  The jump between the
+        end of a section and the start of the next one is not counted:
+        both points share the same x, where :meth:`special_kpoints_distances`
+        (with ``merge_sections=True``) places the merged ``'A — B'`` tick.
         """
-        kpt_dists = [0.0]
+        kpt_dists: list[float] = []
         dist = 0.0
         for kpts in self.kpts_car:
-            for nk in range(len(kpts) - 1):
-                dist += float(np.linalg.norm(kpts[nk + 1] - kpts[nk]))
+            for nk in range(len(kpts)):
+                if nk > 0:
+                    dist += float(np.linalg.norm(kpts[nk] - kpts[nk - 1]))
                 kpt_dists.append(dist)
         return np.array(kpt_dists)
 
@@ -561,14 +547,29 @@ class BrillouinZone:
     # Ticks
     # ------------------------------------------------------------------
 
-    def get_indices(self) -> list[tuple]:
+    def get_indices(self) -> list[list]:
+        """
+        Return ``[index, label]`` pairs locating each special point in the
+        array returned by :meth:`kpoints`.
+
+        Labels are those of :meth:`path_labels_list` with
+        ``merge_sections=True``; a merged ``'A — B'`` label points to *A*,
+        the last k-point of its section (*B* is the next one).
+        """
         indices = []
         index = 0
-        labels = self.path_labels_list(True)
-        for n, label in enumerate(labels[:-1]):
-            indices.append([index, label])
-            index += self.intervals[n]
-        indices.append([index, labels[-1]])
+        n = 0  # running segment index into self.intervals
+        for s, section in enumerate(self.path_sections):
+            if s == 0:
+                indices.append([index, section[0]])
+            for label in section[1:]:
+                index += self.intervals[n]
+                n += 1
+                indices.append([index, label])
+            if s < len(self.path_sections) - 1:
+                # Merge this section's end with the next section's start.
+                indices[-1][1] = f"{indices[-1][1]} — {self.path_sections[s + 1][0]}"
+                index += 1
         return indices
 
     # ------------------------------------------------------------------

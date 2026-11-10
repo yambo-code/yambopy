@@ -78,7 +78,7 @@ class YambopyBandStructure():
     """
     _colormap = 'rainbow'
 
-    def __init__(self,bands,kpoints, bz,fermie=0,weights=None,spin_proj=None,**kwargs):
+    def __init__(self,bands,kpoints,bz=None,fermie=0,weights=None,spin_proj=None,**kwargs):
         self.bands = np.array(bands)
         self.weights = np.array(weights)     if weights   is not None else None
         self.spin_proj = np.array(spin_proj) if spin_proj is not None else None 
@@ -170,6 +170,14 @@ class YambopyBandStructure():
     @property
     def distances(self):
         if not hasattr(self,"_distances"):
+            # When the k-points are the BZ path, use its distances: they
+            # collapse the jumps between path sections, matching the
+            # tick positions set in add_kpath_labels.
+            if self.bz is not None and getattr(self.bz, 'rcell', None) is not None:
+                bz_kpoints = self.bz.kpoints('car')
+                if np.shape(bz_kpoints) == np.shape(self.kpoints) and np.allclose(bz_kpoints, self.kpoints):
+                    self._distances = list(self.bz.kpoints_distances())
+                    return self._distances
             self._distances = [0]
             distance = 0
             for nk in range(1,len(self.kpoints)):

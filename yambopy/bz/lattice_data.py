@@ -1,4 +1,7 @@
+from itertools import product
 from math import cos, isclose, radians, sqrt, tan
+from typing import Sequence
+
 import numpy as np
 
 
@@ -78,6 +81,18 @@ IBRAV_REQUIRED_PARAMETERS: dict[int, list[str]] = {
 # Lattice data
 # =============================================================================
 
+#: ibrav values whose Setyawan-Curtarolo special points assume ordered
+#: lattice constants, and the parameters that must be sorted.  (Simple
+#: orthorhombic, ibrav=8, is valid for any order: sorting would only
+#: rename X, Y, Z, so it is left as given.)
+_ORDERED_PARAMETERS: dict[int, tuple[str, ...]] = {
+    9: ("a", "b"),
+    -9: ("a", "b"),
+    10: ("a", "b", "c"),
+    11: ("a", "b", "c"),
+}
+
+
 def get_lattice_data(
     ibrav: int,
     parameters: dict[str, float] | None = None
@@ -85,6 +100,61 @@ def get_lattice_data(
     """
     Return lattice vectors and high-symmetry k-point information for a
     given QE Bravais-lattice index.
+
+    For the centred orthorhombic lattices (ibrav 9, -9, 10, 11) the
+    Setyawan-Curtarolo formulas assume ordered lattice constants
+    (a < b, or a < b < c).  Other orderings are handled by computing the
+    points for the sorted constants and expressing them in the reduced
+    coordinates of the requested cell, which is returned as QE defines it.
+
+    Parameters
+    ----------
+    ibrav : int
+        QE Bravais-lattice index (1-11, plus -3, -5, -9).
+    parameters : dict or None
+        Lattice parameters dict (e.g. ``{'a': 3.615}``).  Required keys
+        depend on *ibrav* (see :data:`IBRAV_REQUIRED_PARAMETERS`).
+
+    Returns
+    -------
+    cell : ndarray, shape (3, 3)
+        Direct-lattice basis vectors as rows.
+    variant : str
+        Bravais-lattice variant label (e.g. ``'CUB'``, ``'FCC'``).
+    high_symmetry_points : dict[str, list[float]]
+        Fractional coordinates of high-symmetry k-points.
+    default_path : str
+        Default piecewise band-structure path (comma-separated sections).
+    """
+    data = _standard_lattice_data(ibrav, parameters)
+
+    keys = _ORDERED_PARAMETERS.get(ibrav)
+    if keys is None:
+        return data
+    values = [parameters[k] for k in keys]
+    if values == sorted(values):
+        return data
+
+    cell = data[0]
+    sorted_parameters = dict(parameters, **dict(zip(keys, sorted(values))))
+    std_cell, variant, points, default_path = _standard_lattice_data(ibrav, sorted_parameters)
+
+    M = find_basis_change(std_cell, cell)
+    if M is None:  # cannot happen: both cells describe the same lattice
+        raise RuntimeError(f"No basis change found for ibrav={ibrav}, {parameters}.")
+
+    points = {label: M @ np.asarray(k, dtype=float) for label, k in points.items()}
+    return cell, variant, points, default_path
+
+
+def _standard_lattice_data(
+    ibrav: int,
+    parameters: dict[str, float] | None = None
+) -> tuple[np.ndarray, str, dict, str]:
+    """
+    :func:`get_lattice_data` without the handling of unordered lattice
+    constants: the Setyawan-Curtarolo special points are only correct when
+    the constants are in the order they assume.
 
     Parameters
     ----------
@@ -513,3 +583,147 @@ def get_lattice_data(
             raise ValueError(f"ibrav: {ibrav} not supported.")
 
     return cell, variant, high_symmetry_points, default_path
+
+
+# =============================================================================
+# Special points for an arbitrary cell
+# =============================================================================
+
+#: Space group of a one-atom lattice (its holohedry) -> QE ibrav.
+_HOLOHEDRY_TO_IBRAV = {
+    221: 1,   # Pm-3m   cubic P
+    225: 2,   # Fm-3m   cubic F
+    229: 3,   # Im-3m   cubic I
+    191: 4,   # P6/mmm  hexagonal
+    166: 5,   # R-3m    rhombohedral
+    123: 6,   # P4/mmm  tetragonal P
+    139: 7,   # I4/mmm  tetragonal I
+    47: 8,    # Pmmm    orthorhombic P
+    65: 9,    # Cmmm    orthorhombic C
+    69: 10,   # Fmmm    orthorhombic F
+    71: 11,   # Immm    orthorhombic I
+}
+
+
+def find_basis_change(
+    std_cell: np.ndarray,
+    cell: np.ndarray,
+    rtol: float = 1e-4,
+) -> np.ndarray | None:
+    """
+    Find an integer matrix ``M`` with ``|det M| = 1`` such that
+    ``cell = M @ std_cell @ R.T`` for some orthogonal ``R``, i.e. both
+    cells (basis vectors as rows) span the same lattice up to a rotation.
+
+    The search matches metric tensors, ``cell @ cell.T == M G_std M.T``.
+    A lattice vector ``v = n @ std_cell`` has ``|n_i| <= |v| |b_i|``, which
+    bounds the coefficients, so the search is exhaustive.  Proper changes
+    of basis (``det M = +1``) are preferred.  Returns *None* if none exists.
+
+    Reduced reciprocal coordinates then transform as ``k_cell = M @ k_std``.
+    """
+    std_cell = np.asarray(std_cell, dtype=float)
+    cell = np.asarray(cell, dtype=float)
+    G_std = std_cell @ std_cell.T
+    G = cell @ cell.T
+    atol = rtol * float(np.max(np.abs(np.diag(G))))
+
+    rcell_std = np.linalg.inv(std_cell.T)
+    max_coeff = int(np.ceil(
+        np.sqrt(np.max(np.diag(G))) * np.max(np.linalg.norm(rcell_std, axis=1)) + 1e-6
+    ))
+    rng = range(-max_coeff, max_coeff + 1)
+    vecs = np.array([v for v in product(rng, repeat=3) if any(v)], dtype=float)
+    norms = np.einsum("ij,jk,ik->i", vecs, G_std, vecs)
+    cands = [vecs[np.abs(norms - G[i, i]) < atol] for i in range(3)]
+
+    improper = None
+    for v0 in cands[0]:
+        for v1 in cands[1]:
+            if abs(v0 @ G_std @ v1 - G[0, 1]) >= atol:
+                continue
+            for v2 in cands[2]:
+                if (abs(v0 @ G_std @ v2 - G[0, 2]) >= atol
+                        or abs(v1 @ G_std @ v2 - G[1, 2]) >= atol):
+                    continue
+                M = np.array([v0, v1, v2])
+                det = round(np.linalg.det(M))
+                if det == 1:
+                    return M.astype(int)
+                if det == -1 and improper is None:
+                    improper = M.astype(int)
+    return improper
+
+
+def lattice_data_for_cell(
+    cell: Sequence,
+    symprec: float = 1e-5,
+) -> tuple[np.ndarray, str, dict, str]:
+    """
+    Like :func:`get_lattice_data`, but for a user-given cell (basis vectors
+    as rows), which is returned unchanged.
+
+    The Bravais lattice is identified with spglib, from the symmetry of a
+    one-atom crystal on *cell*, so the result does not depend on the
+    cell's orientation or choice of primitive vectors (e.g. hexagonal with
+    60 instead of 120 degrees, ibrav -5/-9 orientations, rotated cells).
+    The special points of the matching standard cell are then expressed
+    in the reduced coordinates of *cell*.
+
+    Parameters
+    ----------
+    cell : array-like, shape (3, 3)
+        Direct-lattice basis vectors as rows.
+    symprec : float
+        Relative tolerance; spglib gets ``symprec`` times the longest
+        basis vector as its (absolute) distance tolerance.
+    """
+    import warnings
+
+    import spglib
+
+    cell = np.asarray(cell, dtype=float)
+    scale = float(np.max(np.linalg.norm(cell, axis=1)))
+    with warnings.catch_warnings():
+        # spglib >= 2.5 warns about its legacy error handling on every call;
+        # failures are still reported by returning None, handled below.
+        warnings.simplefilter("ignore", DeprecationWarning)
+        dataset = spglib.get_symmetry_dataset(
+            (cell, [[0.0, 0.0, 0.0]], [1]), symprec=symprec * scale
+        )
+    if dataset is None:
+        raise ValueError("spglib could not determine the lattice symmetry of the cell.")
+
+    ibrav = _HOLOHEDRY_TO_IBRAV.get(dataset.number)
+    if ibrav is None:
+        raise ValueError(
+            f"Lattice with holohedry {dataset.international} "
+            f"(space group {dataset.number}) is not supported "
+            "(monoclinic and triclinic lattices have no ibrav data here)."
+        )
+
+    # Conventional lattice constants from spglib's standardised cell.
+    a, b, c = np.linalg.norm(dataset.std_lattice, axis=1)
+    params: dict[str, float] = {"a": a, "b": b, "c": c}
+    if ibrav == 5:
+        # spglib gives the hexagonal setting; convert to rhombohedral.
+        params = {
+            "a": float(np.sqrt(a ** 2 / 3 + c ** 2 / 9)),
+            "gamma": float(np.degrees(np.arccos(
+                (2 * c ** 2 - 3 * a ** 2) / (2 * c ** 2 + 6 * a ** 2)
+            ))),
+        }
+    # Any ordering of a, b, c is fine here: get_lattice_data handles the
+    # orderings the Setyawan-Curtarolo formulas do not assume.
+
+    std_cell, variant, points, default_path = get_lattice_data(ibrav, params)
+
+    M = find_basis_change(std_cell, cell, rtol=max(10 * symprec, 1e-6))
+    if M is None:
+        raise ValueError(
+            f"Could not relate the given cell to the standard ibrav={ibrav} "
+            f"cell {params}. Pass ibrav and parameters instead."
+        )
+
+    points = {label: M @ np.asarray(k, dtype=float) for label, k in points.items()}
+    return cell.copy(), variant, points, default_path
