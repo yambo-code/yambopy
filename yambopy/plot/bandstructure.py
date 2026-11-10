@@ -111,8 +111,12 @@ class YambopyBandStructure():
 
     @classmethod
     def from_dict(cls,d):
-        instance = cls(d['bands'],d['kpoints'],labels=d['labels'],labpos=d['labpos'],
-                       fermie=d['fermie'],weights=d['weights'],**d['kwargs'])
+        bz = None
+        if d.get('bz') is not None:
+            from yambopy.bz.brillouin import BrillouinZone
+            bz = BrillouinZone.from_dict(d['bz'])
+        instance = cls(d['bands'],d['kpoints'],bz=bz,fermie=d.get('fermie',0),
+                       weights=d['weights'],spin_proj=d.get('spin_proj'),**d['kwargs'])
         instance._xlim = d['_xlim']
         instance._ylim = d['_ylim']
         return instance
@@ -129,10 +133,11 @@ class YambopyBandStructure():
         """
         d = { 'bands': self.bands.tolist(),
               'weights': self.weights.tolist() if self.weights is not None else None,
+              'spin_proj': self.spin_proj.tolist() if self.spin_proj is not None else None,
               'kpoints': self.kpoints.tolist(),
+              'fermie': float(self.fermie),
               'kwargs': self.kwargs,
-              'labels': self.labels,
-              'bz': self.bz.as_dict(),
+              'bz': self.bz.as_dict() if self.bz is not None else None,
               '_xlim': self._xlim,
               '_ylim': self._ylim }
         return d 

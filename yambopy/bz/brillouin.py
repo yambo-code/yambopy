@@ -29,7 +29,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from yambopy.bz.lattice_data import get_lattice_data, lattice_data_for_cell
+from yambopy.bz.lattice_data import find_basis_change, get_lattice_data, lattice_data_for_cell
 from yambopy.bz.kpath_optimizer import KPathOptimizer, get_star_of_k
 from yambopy.dbs.latticedb import YamboLatticeDB
 from yambopy.kpoints import expand_kpoints
@@ -42,6 +42,19 @@ from yambopy.lattice import isbetween, red_car
 
 #: Matches path labels like G, M, K, A1, B1, P2, X1, etc.
 _LABEL_RE = re.compile(r"[A-Z][a-z0-9]*")
+
+
+def _to_builtin(obj: Any) -> Any:
+    """Recursively convert numpy arrays and scalars to plain Python types."""
+    if isinstance(obj, dict):
+        return {key: _to_builtin(value) for key, value in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_to_builtin(value) for value in obj]
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, np.generic):
+        return obj.item()
+    return obj
 
 
 # =============================================================================
@@ -100,12 +113,19 @@ class BrillouinZone:
         self.cell = None
         self.high_symmetry_points = {}
 
+        has_lattice = (ibrav is not None and parameters is not None) or cell is not None
+        if optimise and (not has_lattice or sym_red is None):
+            raise ValueError(
+                "To optimise the path, supply a cell or ibrav+parameters, "
+                "and the symmetry matrices (sym_red)."
+            )
+        if sym_red is not None:
+            sym_red = [np.asarray(s) for s in sym_red]
+
         if ibrav is not None and parameters is not None:
             self.cell, self.variant, self.high_symmetry_points, self.default_path = (
                 get_lattice_data(ibrav, parameters)
             )
-        elif optimise and (cell is None or sym_red is None):
-                raise ValueError("To optimise the path, a cell or ibrav+parameters, and symmetry matrices must be supplied")
         elif cell is not None:
             self.cell, self.variant, self.high_symmetry_points, self.default_path = (
                 lattice_data_for_cell(cell)
@@ -189,8 +209,11 @@ class BrillouinZone:
     # ------------------------------------------------------------------
 
     def as_dict(self) -> dict[str, Any]:
-        """Return all arguments needed to reconstruct this instance."""
-        return self.arguments
+        """
+        Return all arguments needed to reconstruct this instance, as plain
+        Python types (numpy arrays become lists) so it can be stored as JSON.
+        """
+        return _to_builtin(self.arguments)
 
     @classmethod
     def from_dict(cls, args: dict[str, Any]) -> "BrillouinZone":
@@ -685,28 +708,58 @@ class BrillouinZone:
         expand_kpoints: bool = True,
         tol: float = 1e-4
     ):
-        # Safe copy (deleted below)
-        latdb = deepcopy(latticedb)
-        rlat = latdb.rlat
-        # Expand if `lattice` unexpanded
+        """
+        Find the k-points of a yambo database grid that lie on the path.
+
+        The grid k-points are taken in reduced coordinates of the database
+        lattice and re-expressed in this ``BrillouinZone``'s cell, so the
+        two may differ in units (e.g. Å vs bohr), orientation and choice of
+        primitive vectors, as long as they describe the same lattice.
+
+        Parameters
+        ----------
+        latticedb : YamboLatticeDB
+        expand_kpoints : bool
+            If *True*, search the full-BZ grid (expanding the database copy
+            if needed) and return indices into the irreducible k-points.
+            If *False*, search the database k-points as they are.
+        tol : float
+            Tolerance passed to :meth:`find_collinear_kpoints`.
+
+        Returns
+        -------
+        Same as :meth:`find_collinear_kpoints`; the k-points are Cartesian
+        in this ``BrillouinZone``'s convention (``k_red @ self.rcell``).
+        """
+        latdb = latticedb
         if expand_kpoints:
-            if latdb.ibz_nkpoints == latdb.nkpoints:
+            if latticedb.ibz_nkpoints == latticedb.nkpoints:
+                # Expand a copy: expanding modifies the database in place.
+                latdb = deepcopy(latticedb)
                 latdb.expand_kpoints(atol=1e-6, verbose=1)
             kmap = latdb.BZ_to_IBZ_indexes
-        # red_kpts = latdb.red_kpoints
-        car_kpts = latdb.car_kpoints
-        # ibz_red_kpts = latdb.get_ibz_kpoints(units='red')
-        # ibz_car_kpts = latdb.get_ibz_kpoints(units='car')
 
-        # inv_kmap = latdb.IBZ_to_BZ_indexes
-        # sym_red = latdb.sym_red
+        red_kpts = np.linalg.solve(np.asarray(latdb.rlat).T, np.asarray(latdb.car_kpoints).T).T
+        lat = np.asarray(latdb.lat, dtype=float)
 
-        del latdb
+        # Basis change between the two cells, compared at equal volume.
+        def normalised(c):
+            return c / abs(np.linalg.det(c)) ** (1 / 3)
 
-        col_kpts, col_idx, col_dsts = self.find_collinear_kpoints(car_kpts, rcell=rlat, tol=tol)
+        M = find_basis_change(normalised(self.cell), normalised(lat), rtol=1e-3)
+        if M is None:
+            raise ValueError(
+                "The lattice of the database does not match the lattice of "
+                "this BrillouinZone (up to units, rotation and choice of "
+                "primitive vectors)."
+            )
+        # lat ~ M @ cell, so k_red(lat) = M @ k_red(cell).
+        red_kpts = red_kpts @ np.linalg.inv(M).T
+
+        col_kpts, col_idx, col_dsts = self.find_collinear_kpoints(red_kpts @ self.rcell, tol=tol)
 
         if expand_kpoints:
-            col_idx = kmap[col_idx]
+            col_idx = np.asarray(kmap)[col_idx]
         return col_kpts, col_idx, col_dsts
 
     # ------------------------------------------------------------------
@@ -716,23 +769,20 @@ class BrillouinZone:
     def find_collinear_kpoints(
         self,
         kpoints_car: np.ndarray,
-        # sym_red: list[np.ndarray],
-        rcell: np.ndarray | None = None,
         tol: float = 1e-4,
     ):
         """
-        Find which k-points from a given set lie on the piecewise optimised
-        path, ordered by distance along that path.
+        Find which k-points from a given set lie on the (possibly
+        optimised) path, ordered by distance along that path.
 
-        The optimised path is obtained from :attr:`optimized_path` and its
-        Cartesian coordinates are internally converted to the same convention
-        used by the rest of ``BrillouinZone`` (``k_frac @ self.rcell``, *i.e.*
-        **without** the ``2π`` factor).  The input *kpoints_car* must be in the
-        **same** convention.
+        The input *kpoints_car* must be in the convention used by the rest
+        of ``BrillouinZone`` (``k_red @ self.rcell``, *i.e.* **without** the
+        ``2π`` factor).  Use :meth:`find_collinear_grid` for a yambo
+        database grid.
 
-        For each segment, G-shifted copies of each input k-point (shifts in
-        ``[-1, 0, 1]`` per reciprocal-lattice direction) are tested for
-        collinearity.
+        Input k-points are folded into ``[-1/2, 1/2)`` (reduced) and their
+        G-shifted copies, over a range of shifts covering the whole path,
+        are tested for collinearity with each segment.
 
         Results are **deduplicated**: a k-point (same original index and same
         Cartesian position, modulo a G-vector) is reported only once, at the
@@ -745,7 +795,9 @@ class BrillouinZone:
             Cartesian coordinates of k-points to test, in the ``BrillouinZone``
             convention (``k_frac @ self.rcell``, no ``2π`` factor).
         tol : float
-            Relative tolerance for collinearity (fraction of segment length).
+            Maximum distance from the segment line (in the units of
+            ``self.rcell``), and maximum overshoot past either segment end
+            as a fraction of the segment length.
 
         Returns
         -------
@@ -763,11 +815,23 @@ class BrillouinZone:
                 "kpoints_car must be a 2-D array of shape (M, 3)."
             )
 
-        if rcell is None:
-            rcell = self.rcell
+        rcell = self.rcell
 
-        # self.opt_path = self.compute_optimized_path(sym_red, rcell,'brute', parallel_segments=False)
-        # print(self.opt_path)
+        # Fold the input into [-1/2, 1/2) in reduced coordinates.
+        red = np.linalg.solve(rcell.T, kpoints_car.T).T
+        red -= np.floor(red + 0.5)
+        kpoints_car = red @ rcell
+
+        # G-shifts: enough for the folded points to reach every point of
+        # the path, whose (optimised) special points may lie outside the
+        # first cell.
+        path_red = self.special_kpoints("red", merge_sections=True)
+        lo = np.floor(path_red.min(axis=0) - 0.5).astype(int)
+        hi = np.ceil(path_red.max(axis=0) + 0.5).astype(int)
+        gvecs = np.array(
+            list(product(*(range(l, h + 1) for l, h in zip(lo, hi)))), dtype=float
+        )
+        shifts_cart = gvecs @ rcell
 
         collinear_kpoints: list[np.ndarray] = []
         collinear_distances: list[float] = []
@@ -775,30 +839,16 @@ class BrillouinZone:
         prev_segment_keys: set[tuple] = set()
         path_distance = 0.0
 
-        # Pre-compute G-shift Cartesian vectors (BZ convention).
-        gvecs = np.array(list(product(range(-1, 2), repeat=3)), dtype=float)
-        shifts_cart = gvecs @ rcell  # (27, 3)
-        # shifts_cart = red_car(gvecs, rcell)
-
         for seg_cart in self.special_kpoints('car'):
             # Sections are separated by commas in the path string; the
             # last point of one section is not adjacent to the first of
             # the next → reset boundary-dedup state.
             prev_segment_keys.clear()
 
-            # Convert optimised kpath_cart from KSymmetry convention
-            # (which includes 2π) to BZ convention (k_frac @ rcell).
-            # kpath_frac = section["kpath_frac"]
-            # seg_cart = kpath_frac @ rcell  # (Nk, 3), BZ convention
-            # seg_cart = red_car(kpath_frac, rcell)
-            # seg_lengths = section["segment_lengths"]
-
             for i in range(len(seg_cart) - 1):
                 A = seg_cart[i]
                 B = seg_cart[i + 1]
                 AB = B - A
-                # AB_len = seg_lengths[i] / (2 * np.pi)
-                # AB_len = seg_lengths[i]
                 AB_len = np.linalg.norm(AB)
 
                 if AB_len < 1e-15:
@@ -836,7 +886,7 @@ class BrillouinZone:
                 path_distance += AB_len
 
         if collinear_distances:
-            order = np.argsort(collinear_distances)
+            order = np.argsort(collinear_distances, kind="stable")
             return (
                 np.array(collinear_kpoints)[order],
                 np.array(collinear_indices)[order],

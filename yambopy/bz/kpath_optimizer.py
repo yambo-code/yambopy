@@ -124,15 +124,19 @@ class KPathOptimizer:
         kpath = [np.asarray(k, dtype=float) for k in kpath_frac]
 
         if len(kpath) < 2:
+            # Nothing to optimise: a single point (or none) keeps its
+            # original position, i.e. the first member of its star.
+            kpath_frac = np.array(kpath).reshape(-1, 3)
             return {
-                "kpath_cart": frac_to_cart_k(np.array(kpath), self._rlat),
-                "kpath_frac": np.array(kpath),
+                "kpath_cart": kpath_frac @ self._rlat,
+                "kpath_frac": kpath_frac,
                 "segment_lengths": np.array([]),
                 "total_length": 0.0,
                 "original_length": 0.0,
                 "improvement": 0.0,
                 "n_combinations": 1,
                 "stars": [get_star_of_k(k, self.sym) for k in kpath],
+                "best_indices": [0] * len(kpath),
             }
 
         stars = [get_star_of_k(k, self.sym) for k in kpath]
@@ -165,7 +169,10 @@ class KPathOptimizer:
             )
 
         result["original_length"] = original_length
-        result["improvement"] = (1 - result["total_length"] / original_length) * 100
+        result["improvement"] = (
+            (1 - result["total_length"] / original_length) * 100
+            if original_length > 0 else 0.0
+        )
         return result
 
     # ------------------------------------------------------------------

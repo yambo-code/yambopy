@@ -8,6 +8,7 @@ spread, and the band-structure x-axis, ticks and indices agree.
 """
 
 import itertools
+import os
 
 import numpy as np
 import pytest
@@ -265,3 +266,106 @@ def test_collinear_kpoints_independent_of_cell_choice():
     _, _, d_ref = ref.find_collinear_kpoints(grid @ ref.rcell)
     assert len(d) > 0
     assert np.allclose(d, d_ref)
+
+
+# -----------------------------------------------------------------------------
+# Grid k-points from a yambo database (units and cell choice)
+# -----------------------------------------------------------------------------
+
+BOHR_TO_ANGSTROM = 0.529177210903
+NS_DB1 = os.path.join(os.path.dirname(__file__), "..", "data", "refs", "gw", "SAVE", "ns.db1")
+
+
+@pytest.fixture(scope="module")
+def latticedb():
+    from yambopy.dbs.latticedb import YamboLatticeDB
+    return YamboLatticeDB.from_db_file(NS_DB1, Expand=False)
+
+
+@pytest.mark.parametrize("expand", [True, False])
+def test_collinear_grid_independent_of_units_and_cell(latticedb, expand):
+    lat = np.asarray(latticedb.lat)
+    rotated = (np.array([[1, 1, 0], [0, 1, 0], [0, 0, 1]]) @ lat) @ random_rotation(
+        np.random.default_rng(3)).T
+    results = []
+    for cell in (lat, lat * BOHR_TO_ANGSTROM, rotated * BOHR_TO_ANGSTROM):
+        bz = BrillouinZone(cell=cell, npoints=60)
+        _, idx, d = bz.find_collinear_grid(latticedb, expand_kpoints=expand)
+        results.append((idx, d / bz.special_kpoints_distances(True)[-1]))
+
+    idx_ref, x_ref = results[0]
+    assert len(idx_ref) > 0
+    assert np.all(idx_ref < latticedb.ibz_nkpoints)
+    for idx, x in results[1:]:
+        assert np.array_equal(idx, idx_ref)
+        assert np.allclose(x, x_ref)
+
+
+def test_collinear_grid_full_bz_finds_more_points(latticedb):
+    bz = BrillouinZone(cell=latticedb.lat, npoints=60)
+    _, idx_full, _ = bz.find_collinear_grid(latticedb, expand_kpoints=True)
+    _, idx_ibz, _ = bz.find_collinear_grid(latticedb, expand_kpoints=False)
+    assert len(idx_full) >= len(idx_ibz)
+    # The database itself is not modified by the expansion.
+    assert latticedb.ibz_nkpoints == latticedb.nkpoints
+
+
+def test_collinear_grid_rejects_other_lattice(latticedb):
+    bz = BrillouinZone(ibrav=3, parameters={"a": 5}, npoints=20)
+    with pytest.raises(ValueError, match="does not match"):
+        bz.find_collinear_grid(latticedb)
+
+
+# -----------------------------------------------------------------------------
+# Optimisation edge cases
+# -----------------------------------------------------------------------------
+
+@pytest.mark.filterwarnings("ignore::DeprecationWarning:spglib")
+def test_optimise_single_point_section():
+    cell = get_lattice_data(4, HEX)[0]
+    bz = BrillouinZone(cell=cell, path_string="GMK,A", npoints=40,
+                       optimise=True, sym_red=hexagonal_sym_red(cell))
+    assert bz.star_indices[1] == [0]
+    assert len(bz.kpoints()) == 40
+
+
+def test_optimise_requires_symmetries():
+    with pytest.raises(ValueError, match="sym_red"):
+        BrillouinZone(ibrav=4, parameters=HEX, optimise=True)
+    with pytest.raises(ValueError, match="sym_red"):
+        BrillouinZone(cell=get_lattice_data(4, HEX)[0], optimise=True)
+
+
+# -----------------------------------------------------------------------------
+# Serialisation
+# -----------------------------------------------------------------------------
+
+@pytest.mark.filterwarnings("ignore::DeprecationWarning:spglib")
+def test_bz_json_round_trip():
+    import json
+
+    cell = get_lattice_data(4, HEX)[0]
+    bz = BrillouinZone(cell=cell, path_string="GMKGQ", extra_points={"Q": np.array([0.1, 0, 0])},
+                       npoints=np.int64(50), optimise=True, sym_red=hexagonal_sym_red(cell))
+    clone = BrillouinZone.from_dict(json.loads(json.dumps(bz.as_dict())))
+    assert np.allclose(clone.kpoints("car"), bz.kpoints("car"))
+    assert clone.path_labels_list(True) == bz.path_labels_list(True)
+
+
+def test_bandstructure_json_round_trip(tmp_path):
+    bz = BrillouinZone(ibrav=4, parameters=HEX, npoints=60)
+    nk = len(bz.kpoints())
+    bands = np.linspace(0, 1, nk * 2).reshape(nk, 2)
+    original = YambopyBandStructure(bands, bz.kpoints("car"), bz=bz, fermie=0.5)
+    path = tmp_path / "bands.json"
+    original.write_json(str(path))
+
+    loaded = YambopyBandStructure.from_json(str(path))
+    assert np.allclose(loaded.bands, bands)
+    assert loaded.fermie == 0.5
+    assert np.allclose(loaded.distances, original.distances)
+    assert loaded.bz.path_labels_list(True) == bz.path_labels_list(True)
+
+    no_bz = YambopyBandStructure(bands, bz.kpoints("car"))
+    no_bz.write_json(str(path))
+    assert YambopyBandStructure.from_json(str(path)).bz is None
