@@ -27,10 +27,12 @@ def apply_W_to_k(W: np.ndarray, k: np.ndarray) -> np.ndarray:
     return np.linalg.solve(W, k)
 
 def k_equiv(k1: np.ndarray, k2: np.ndarray, atol: float = 1e-5) -> bool:
+    """True if two reduced k-points are equal modulo a reciprocal lattice vector."""
     d = k1 - k2
     return np.allclose(d - np.round(d), 0.0, atol=atol)
 
 def k_in_list(k: np.ndarray, lst: list[np.ndarray], atol: float = 1e-5) -> bool:
+    """True if *k* is equivalent (see :func:`k_equiv`) to any k-point in *lst*."""
     return any(k_equiv(k, kr, atol) for kr in lst)
 
 def frac_to_cart_k(k_frac: Sequence, B: np.ndarray) -> np.ndarray:
@@ -193,7 +195,11 @@ class KPathOptimizer:
         stars: list[np.ndarray],
         parallel_segments: bool = True,
     ) -> dict:
-        """Exhaustive search over all combinations of equivalent k-points."""
+        """
+        Exhaustive search over all combinations of equivalent k-points,
+        scoring path length plus, with *parallel_segments*, the
+        segment-length uniformity penalty.
+        """
         n_points = len(kpath)
         initial_path = [np.asarray(kpath[i], dtype=float) for i in range(n_points)]
         best_score = self._path_length(initial_path)
@@ -242,8 +248,11 @@ class KPathOptimizer:
         stars: list[np.ndarray],
         parallel_segments: bool = True,
     ) -> dict:
-        """Greedy sequential optimisation: pick each k-point to minimise the
-        segment to the previously chosen point."""
+        """
+        Greedy sequential optimisation: keep the first point and pick each
+        next one to minimise the segment from the previous choice (plus,
+        with *parallel_segments*, the turn penalty).
+        """
         n_points = len(kpath)
         best_indices = [0] * n_points
         for i in range(n_points):
@@ -293,8 +302,11 @@ class KPathOptimizer:
         stars: list[np.ndarray],
         parallel_segments: bool = True,
     ) -> dict:
-        """Greedy global: try every possible starting k-point, then greedily
-        extend, and keep the overall shortest path."""
+        """
+        Greedy global: start from every member of the first point's star,
+        extend greedily as in :meth:`_optimize_kpath_greedy`, and keep the
+        shortest resulting path.
+        """
         n_points = len(kpath)
         if n_points == 2:
             return self._optimize_kpath_greedy(kpath, stars, parallel_segments)

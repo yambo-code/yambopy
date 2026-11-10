@@ -1,3 +1,20 @@
+"""
+lattice_data.py
+===============
+Lattice and high-symmetry k-point data for the QE Bravais lattices
+(ibrav 1-11, -3, -5, -9), with the Setyawan-Curtarolo special points and
+default band-structure paths:
+
+* :func:`get_lattice_data` — cell, variant, special points and default
+  path for an ibrav and its lattice parameters;
+* :func:`lattice_data_for_cell` — the same for an arbitrary cell, keeping
+  the cell and expressing the special points in its reduced coordinates;
+* :func:`find_basis_change` — integer change of basis between two cells
+  of the same lattice.
+
+Special points are in reduced reciprocal coordinates of the returned cell.
+"""
+
 from itertools import product
 from math import cos, isclose, radians, sqrt, tan
 from typing import Sequence
@@ -7,8 +24,9 @@ import numpy as np
 
 def latex(s: str) -> str:
     """
-    Print to terminal Greek letters
-    written in latex math mode
+    Return *s* with LaTeX math-mode Greek letters (e.g. ``$\\Gamma$``)
+    replaced by their Unicode characters (``Γ``) and ``$`` removed, for
+    printing labels in a terminal.
     """
     import re
     LATEX_GREEK = {
@@ -95,7 +113,7 @@ _ORDERED_PARAMETERS: dict[int, tuple[str, ...]] = {
 
 def get_lattice_data(
     ibrav: int,
-    parameters: dict[str, float] | None = None
+    parameters: dict[str, float],
 ) -> tuple[np.ndarray, str, dict, str]:
     """
     Return lattice vectors and high-symmetry k-point information for a
@@ -111,7 +129,7 @@ def get_lattice_data(
     ----------
     ibrav : int
         QE Bravais-lattice index (1-11, plus -3, -5, -9).
-    parameters : dict or None
+    parameters : dict
         Lattice parameters dict (e.g. ``{'a': 3.615}``).  Required keys
         depend on *ibrav* (see :data:`IBRAV_REQUIRED_PARAMETERS`).  Lengths
         are in any unit (the cell uses the same one); the rhombohedral
@@ -123,8 +141,9 @@ def get_lattice_data(
         Direct-lattice basis vectors as rows.
     variant : str
         Bravais-lattice variant label (e.g. ``'CUB'``, ``'FCC'``).
-    high_symmetry_points : dict[str, list[float]]
-        Fractional coordinates of high-symmetry k-points.
+    high_symmetry_points : dict[str, list[float] or ndarray]
+        Reduced coordinates of the high-symmetry k-points, in the basis of
+        the reciprocal of *cell*.
     default_path : str
         Default piecewise band-structure path (comma-separated sections).
     """
@@ -151,7 +170,7 @@ def get_lattice_data(
 
 def _standard_lattice_data(
     ibrav: int,
-    parameters: dict[str, float] | None = None
+    parameters: dict[str, float],
 ) -> tuple[np.ndarray, str, dict, str]:
     """
     :func:`get_lattice_data` without the handling of unordered lattice
@@ -162,7 +181,7 @@ def _standard_lattice_data(
     ----------
     ibrav : int
         QE Bravais-lattice index (1-11, plus -3, -5, -9).
-    parameters : dict or None
+    parameters : dict
         Lattice parameters dict (e.g. ``{'a': 3.615}``).  Required keys
         depend on *ibrav* (see :data:`IBRAV_REQUIRED_PARAMETERS`).  Lengths
         are in any unit (the cell uses the same one); the rhombohedral
@@ -622,6 +641,14 @@ def find_basis_change(
     of basis (``det M = +1``) are preferred.  Returns *None* if none exists.
 
     Reduced reciprocal coordinates then transform as ``k_cell = M @ k_std``.
+
+    Parameters
+    ----------
+    std_cell, cell : array-like, shape (3, 3)
+        The two cells, basis vectors as rows, in the same length unit.
+    rtol : float
+        Tolerance on the metric tensor entries, relative to the largest
+        squared length of *cell*'s basis vectors.
     """
     std_cell = np.asarray(std_cell, dtype=float)
     cell = np.asarray(cell, dtype=float)

@@ -53,32 +53,74 @@ class BrillouinZone:
     """
     Construct interpolated k-paths in any of the supported Brillouin zones.
 
-    Follows Quantum ESPRESSO's Bravais-lattice classification (ibrav [1]_).
-    Not all ibrav values are supported.
+    Follows Quantum ESPRESSO's Bravais-lattice classification (ibrav [1]_)
+    and the Setyawan-Curtarolo special points and default paths.  Not all
+    ibrav values are supported (no monoclinic or triclinic lattices).
+
+    The lattice is given either by *ibrav* + *parameters* or by *cell*.
+    Without either, only *path_string* + *intervals* are used: labels,
+    ticks and indices are available, but no k-point coordinates.
 
     Parameters
     ----------
-    ibrav : int
+    ibrav : int or None
         QE Bravais-lattice index (1-11, plus -3, -5, -9).
     parameters : dict or None
-        Lattice parameters (e.g. ``{'a': 3.615}``).  Required keys depend
-        on *ibrav*.
+        Lattice parameters for *ibrav* (e.g. ``{'a': 3.615}``); see
+        :func:`~yambopy.bz.lattice_data.get_lattice_data`.
+    cell : array-like, shape (3, 3), or None
+        Direct lattice vectors as rows, in any orientation, choice of
+        primitive vectors and length unit.  The Bravais lattice is
+        identified and the special points are given in reduced
+        coordinates of this cell (see
+        :func:`~yambopy.bz.lattice_data.lattice_data_for_cell`).
     path_string : str or None
         Piecewise special k-point path (comma-separated sections, e.g.
         ``'GMKGALHA,LM,KH'``).  When *None*, uses the default path for the
         lattice type.
     extra_points : dict or None
-        Additional or overriding special k-point definitions.
-        (e.g. ``{'M': [0, 0.5, 0], 'K': [1/3, 1/3, 0]}``)
+        Additional or overriding special points, in reduced coordinates of
+        the cell (e.g. ``{'M': [0, 0.5, 0], 'K': [1/3, 1/3, 0]}``).
     npoints : int or None
         Total number of k-points along the whole path.  Incompatible with
         *density* and *intervals*.
     density : float or None
-        Linear density of k-points (1/A).  Incompatible with *npoints* and
-        *intervals*.  Default: 5 when none of the three is given.
+        Linear density of k-points, per unit of reciprocal length of the
+        cell (e.g. 1/Å or 1/bohr, without 2π).  Incompatible with
+        *npoints* and *intervals*.  Default: 5 when none of the three is
+        given.
     intervals : list[int] or None
-        Number of k-points on each path segment.  Incompatible with *npoints*
+        Number of k-points on each path segment, its end point excluded
+        (see :meth:`interpolate_intervals`).  Incompatible with *npoints*
         and *density*.
+    optimise : bool
+        Replace each special point by the symmetry-equivalent copy giving
+        the shortest path (see :meth:`optimise_path`).  Requires a lattice
+        and *sym_red*.
+    sym_red : list of ndarray, shape (3, 3), or None
+        Point-group operations in yambopy's ``sym_red`` convention, used
+        when *optimise* is True.
+
+    Attributes
+    ----------
+    cell, rcell : ndarray, shape (3, 3)
+        Direct and reciprocal lattice vectors as rows (``rcell`` without
+        2π, so Cartesian k-points are ``k_red @ rcell``).
+    variant : str
+        Setyawan-Curtarolo lattice variant (e.g. ``'HEX'``, ``'ORCF1'``).
+    high_symmetry_points : dict[str, list]
+        For each label, the star of the special point (a single entry
+        unless the path was optimised); the first member is the original.
+    path_sections : list[list[str]]
+        Labels of each comma-separated section of the path.
+    star_indices : list[list[int]]
+        Member of the star used for each point of each section.
+    path_string, default_path : str
+        Normalised path, and the lattice's default path.
+    intervals : list[int]
+        Number of k-points on each segment, its end point excluded.
+    kpts_red, kpts_car : list[ndarray]
+        Interpolated k-points of each section (see :meth:`kpoints`).
 
     References
     ----------
@@ -273,6 +315,11 @@ class BrillouinZone:
 
 
     def print_optimisation_info(self):
+        """
+        Print, for each special point of the path, its coordinates and,
+        when the optimisation chose another member of its star, the
+        original and chosen coordinates (reduced) and the star index.
+        """
         print('Path:')
         for i, section in enumerate(self.path_sections):
             print('---')
@@ -300,13 +347,18 @@ class BrillouinZone:
         """
         Interpolate evenly-spaced k-points along the path.
 
+        Points are shared between segments in proportion to their lengths,
+        with at least 2 per segment; :attr:`intervals` is set accordingly.
+
         Parameters
         ----------
         npoints : int or None
-            Total number of k-points along the whole path.
+            Exact total number of k-points along the whole path (unless it
+            is too small for 2 points per segment).
         density : float or None
-            Linear density of k-points (1/A).  When both *npoints* and
-            *density* are *None*, defaults to *density=5*.
+            Linear density of k-points, per unit of reciprocal length of
+            the cell (no 2π).  When both *npoints* and *density* are
+            *None*, defaults to *density=5*.
         """
         if npoints is not None and density is not None:
             raise ValueError("You may define npoints or density, but not both.")
@@ -352,9 +404,10 @@ class BrillouinZone:
         Parameters
         ----------
         intervals : list[int]
-            Number of points on each path segment (in order along the path).
-            The total length must equal the number of segments defined by
-            the path string.
+            Number of points on each path segment (in order along the
+            path), the segment's start point included and its end point
+            excluded; each section is closed with its last special point.
+            Its length must equal the number of segments in the path.
         """
         num_intervals = sum(len(s) - 1 for s in self.path_sections)
         if num_intervals != len(intervals):
@@ -404,7 +457,8 @@ class BrillouinZone:
         Parameters
         ----------
         coords : ``'red'`` or ``'car'``
-            ``'red'`` for fractional reciprocal, ``'car'`` for Cartesian.
+            ``'red'`` for reduced reciprocal coordinates, ``'car'`` for
+            Cartesian (``k_red @ self.rcell``, no 2π).
         qe : bool
             If *True*, append a trailing column of ones (QE format).
 
@@ -435,12 +489,13 @@ class BrillouinZone:
         Parameters
         ----------
         coords : ``'red'`` or ``'car'``
+            Reduced, or Cartesian (``k_red @ self.rcell``, no 2π).
         merge_sections : bool
             If *True*, return a single flat array joining all path sections.
 
         Returns
         -------
-        list[list[ndarray]] or ndarray
+        list[list[ndarray]] (one list per section) or ndarray, shape (N, 3)
         """
         if coords == "red":
             sub_lists = [
@@ -486,19 +541,21 @@ class BrillouinZone:
 
     def special_kpoints_distances(self, merge_sections: bool = False) -> list[np.ndarray] | np.ndarray:
         """
-        Cumulative Cartesian distances between consecutive special
-        k-points on the path.
+        Cumulative Cartesian distances of the special k-points along the
+        path.
 
         Parameters
         ----------
         merge_sections : bool
-            If *False* (default), each section starts again at the
-            cumulative distance of the previous sections.  If *True*,
-            distances are accumulated monotonically across sections.
+            If *False* (default), return one array per section, each
+            starting at 0.  If *True*, return a single array accumulated
+            across sections, where the end of a section and the start of
+            the next share one entry: these are the band-structure tick
+            positions, matching ``path_labels_list(True)``.
 
         Returns
         -------
-        ndarray
+        list[ndarray] or ndarray
         """
         spoints_piecewise = self.special_kpoints("car")
         sdistances: list[np.ndarray] = []
@@ -534,8 +591,9 @@ class BrillouinZone:
         Parameters
         ----------
         merge_sections : bool
-            If *True*, consecutive sections are joined with a ``' — '``
-            separator at the shared boundary.
+            If *True*, the last label of a section and the first of the
+            next are merged into one ``'A — B'`` entry, as they share one
+            tick on the band-structure axis.
 
         Returns
         -------
