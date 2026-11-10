@@ -411,7 +411,7 @@ def test_electrons_plot_bandstructure(electronsdb):
     fig, ax = plt.subplots()
     electronsdb.plot_bandstructure_ax(ax, bz, bandmin=0, bandmax=4)
     assert np.allclose(ax.get_xticks(), bz.special_kpoints_distances(True))
-    assert [t.get_text() for t in ax.get_xticklabels()] == bz.path_labels_list(True)
+    assert [t.get_text() for t in ax.get_xticklabels()] == bz.path_labels_list(True, fmt="latex")
     assert len(ax.lines) >= 4
     plt.close(fig)
 
@@ -446,3 +446,150 @@ def test_greedy_breaks_ties_by_carrying_on(method):
 def test_cell_to_ibrav_removed():
     import yambopy
     assert not hasattr(yambopy, "CellToIbrav")
+
+
+# -----------------------------------------------------------------------------
+# Path strings and labels
+# -----------------------------------------------------------------------------
+
+from yambopy.bz.labels import (  # noqa: E402
+    format_label,
+    label_to_latex,
+    label_to_unicode,
+    parse_label,
+    parse_path,
+)
+
+
+@pytest.mark.parametrize("path, sections", [
+    ("GMKG", [["G", "M", "K", "G"]]),
+    ("GMKGALHA,LM,KH", [list("GMKGALHA"), ["L", "M"], ["K", "H"]]),
+    ("G-M-K-G", [["G", "M", "K", "G"]]),
+    ("Gamma M K Gamma", [["G", "M", "K", "G"]]),
+    ("GammaMKGamma", [["G", "M", "K", "G"]]),
+    ("GKK'G", [["G", "K", "K'", "G"]]),
+    ("GXYSigmaGZSigma1NPY1Z,XP", [["G", "X", "Y", "Sigma", "G", "Z", "Sigma1", "N", "P", "Y1", "Z"], ["X", "P"]]),
+    ("PhiPiPsiP", [["Phi", "Pi", "Psi", "P"]]),
+    ("GM,", [["G", "M"]]),
+])
+def test_parse_path(path, sections):
+    assert parse_path(path) == sections
+
+
+@pytest.mark.parametrize("path", ["gMK", "GKpG", "G#M", "GΣM", "Gam", "Alpha"])
+def test_parse_path_rejects_invalid(path):
+    with pytest.raises(ValueError, match="Invalid path"):
+        parse_path(path)
+
+
+def test_parse_label():
+    assert parse_label("Sigma1") == ("Sigma", "1", 0)
+    assert parse_label("K''") == ("K", "", 2)
+    with pytest.raises(ValueError, match="Invalid special-point label"):
+        parse_label("Kp")
+
+
+@pytest.mark.parametrize("label, latex, unicode", [
+    ("G", r"$\Gamma$", "Γ"),
+    ("M", "$M$", "M"),
+    ("X1", "$X_{1}$", "X₁"),
+    ("Sigma1", r"$\Sigma_{1}$", "Σ₁"),
+    ("K'", r"$K^{\prime}$", "K′"),
+    ("G2'", r"$\Gamma_{2}^{\prime}$", "Γ₂′"),
+])
+def test_label_rendering(label, latex, unicode):
+    assert label_to_latex(label) == latex
+    assert label_to_unicode(label) == unicode
+
+
+def test_format_merged_and_legacy_labels():
+    assert format_label("A — L", "plain") == "A — L"
+    assert format_label("A — L", "latex") == "$A|L$"
+    assert format_label("H — G", "unicode") == "H|Γ"
+    assert format_label(r"$\Gamma$", "latex") == r"$\Gamma$"
+    with pytest.raises(ValueError, match="Unknown label format"):
+        format_label("G", "html")
+
+
+def test_latex_labels_render_in_matplotlib():
+    import matplotlib
+    matplotlib.use("Agg")
+    from matplotlib.mathtext import MathTextParser
+
+    parser = MathTextParser("path")
+    bz = BrillouinZone(ibrav=7, parameters={"a": 3, "c": 5}, npoints=50)
+    for label in bz.path_labels_list(True, fmt="latex"):
+        parser.parse(label)  # raises on invalid mathtext
+
+
+def test_bct2_uses_sigma():
+    bz = BrillouinZone(ibrav=7, parameters={"a": 3, "c": 5}, npoints=50)
+    assert bz.variant == "BCT2"
+    assert {"Sigma", "Sigma1"} <= set(bz.high_symmetry_points)
+    assert "S" not in bz.high_symmetry_points
+    assert bz.path_labels_list(True, fmt="unicode")[:5] == ["Γ", "X", "Y", "Σ", "Γ"]
+
+
+def test_path_aliases_and_extra_points():
+    bz = BrillouinZone(ibrav=4, parameters=HEX, path_string="Gamma-K-K'-Gamma",
+                       extra_points={"K'": [-1 / 3, -1 / 3, 0]}, npoints=30)
+    assert bz.path_sections == [["G", "K", "K'", "G"]]
+    assert bz.path_string == "GKK'G"
+    assert bz.path_labels_list(fmt="latex") == [r"$\Gamma$", "$K$", r"$K^{\prime}$", r"$\Gamma$"]
+
+
+def test_undefined_label_is_reported():
+    with pytest.raises(ValueError, match=r"undefined special points \['Q'\]"):
+        BrillouinZone(ibrav=4, parameters=HEX, path_string="GMQ")
+
+
+def test_single_point_sections_merge_consistently():
+    bz = BrillouinZone(ibrav=4, parameters=HEX, path_string="GMK,A,LH", npoints=60)
+    labels = bz.path_labels_list(True)
+    assert labels == ["G", "M", "K — A — L", "H"]
+    assert [label for _, label in bz.get_indices()] == labels
+    assert len(bz.special_kpoints_distances(True)) == len(labels)
+    assert [label for _, label in bz.get_indices(fmt="latex")] == bz.path_labels_list(True, fmt="latex")
+
+
+def test_bandstructure_ticks_are_latex():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    bz = BrillouinZone(ibrav=4, parameters=HEX, npoints=60)
+    nk = len(bz.kpoints())
+    fig, ax = plt.subplots()
+    YambopyBandStructure(np.linspace(0, 1, 2 * nk).reshape(nk, 2), bz.kpoints("car"), bz=bz).plot_ax(ax)
+    assert [t.get_text() for t in ax.get_xticklabels()] == bz.path_labels_list(True, fmt="latex")
+    plt.close(fig)
+
+
+@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive")
+def test_qepy_plots_use_latex_labels():
+    import types
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from qepy.pwxml import PwXML
+    from qepy.matdyn import Matdyn
+
+    bz = BrillouinZone(ibrav=4, parameters=HEX, npoints=60)
+    nk = len(bz.kpoints())
+    expected = bz.path_labels_list(True, fmt="latex")
+
+    pw = types.SimpleNamespace(kpoints=bz.kpoints("car"), lsda=False,
+                               eigen1=np.zeros((nk, 2)), nbands=2)
+    fig, ax = plt.subplots()
+    PwXML.plot_eigen_ax(pw, ax, path_kpoints=bz.get_indices())
+    assert [t.get_text() for t in ax.get_xticklabels()] == expected
+    plt.close(fig)
+
+    phonons = types.SimpleNamespace(nqpoints=nk, nmodes=3, eig=np.zeros((nk, 3)))
+    Matdyn.plot_eigen(phonons, bz)
+    ax = plt.gca()
+    assert [t.get_text() for t in ax.get_xticklabels()] == expected
+    assert np.allclose(ax.lines[-1].get_xdata(), bz.kpoints_distances())
+    plt.close("all")
+    with pytest.raises(ValueError, match="q-points"):
+        Matdyn.plot_eigen(types.SimpleNamespace(nqpoints=nk - 1, nmodes=3, eig=np.zeros((nk - 1, 3))), bz)

@@ -11,6 +11,7 @@ import re
 import xml.etree.ElementTree as ET
 from numpy import array, zeros, pi, conjugate, arange
 from .lattice import calculate_distances
+from yambopy.bz.labels import format_label
 from yambopy.tools.string import marquee
 from .auxiliary import *
 from itertools import chain
@@ -191,16 +192,16 @@ class ProjwfcXML(object):
         example usage to get:
              state #   2: atom   1 (Li ), wfc  2 (l=1 m= 1)
 
-        plot_eigen(ax, path_kpoints=path_kpoints, selected_orbitals=[1], color=color, size=dotsize)
+        plot_eigen(ax, path_kpoints=bz.get_indices(), selected_orbitals=[1], color=color, size=dotsize)
+
+        path_kpoints: [index, label] pairs from BrillouinZone.get_indices();
+        labels are drawn in LaTeX.
 
             notice python counting; state# - 1 = selected_orbital index
         """
         # from numpy import arange # redundent
         import matplotlib.pyplot as plt
         import matplotlib as mpl
-        # if path_kpoints:
-        #     if isinstance(path_kpoints, Path):
-        #         path_kpoints = path_kpoints.get_indexes()
         if bandmax is None or bandmax > self.nbands:
             bandmax = self.nbands
 
@@ -220,7 +221,7 @@ class ProjwfcXML(object):
         # make K-points labels
         ticks, labels = list(zip(*path_kpoints))
         ax.set_xticks([kpoints_dists[t] for t in ticks])
-        ax.set_xticklabels(labels)
+        ax.set_xticklabels([format_label(label, 'latex') for label in labels])
         ax.set_ylabel('E (eV)')
 
         # plot vertical lines

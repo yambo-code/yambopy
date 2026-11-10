@@ -229,7 +229,7 @@ class YambopyBandStructure():
 
         ax.set_xticks(distances)
 
-        ax.set_xticklabels(self.bz.path_labels_list(True))
+        ax.set_xticklabels(self.bz.path_labels_list(True, fmt="latex"))
 
     def plot_ax(self,ax,xlim=None,ylim=None,size=1.,ylabel=r'$\epsilon_{n\mathbf{k}}$ [eV]', alpha_weights=0.5,legend=False,**kwargs):
         """Receive an intance of matplotlib axes and add the plot"""

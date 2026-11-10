@@ -12,7 +12,6 @@ QE Bravais lattices (see :mod:`yambopy.bz.lattice_data`):
   whatever the units or cell of the grid's lattice.
 """
 
-import re
 from itertools import product
 from typing import Any, Sequence
 from copy import deepcopy
@@ -21,15 +20,8 @@ import numpy as np
 
 from yambopy.bz.lattice_data import find_basis_change, get_lattice_data, lattice_data_for_cell
 from yambopy.bz.kpath_optimizer import KPathOptimizer, get_star_of_k
+from yambopy.bz.labels import MERGE_SEPARATOR, format_label, normalise_label, parse_path
 from yambopy.dbs.latticedb import YamboLatticeDB
-
-
-# =============================================================================
-# Path-label regex (compiled once)
-# =============================================================================
-
-#: Matches path labels like G, M, K, A1, B1, P2, X1, etc.
-_LABEL_RE = re.compile(r"[A-Z][a-z0-9]*")
 
 
 def _to_builtin(obj: Any) -> Any:
@@ -76,11 +68,13 @@ class BrillouinZone:
         :func:`~yambopy.bz.lattice_data.lattice_data_for_cell`).
     path_string : str or None
         Piecewise special k-point path (comma-separated sections, e.g.
-        ``'GMKGALHA,LM,KH'``).  When *None*, uses the default path for the
-        lattice type.
+        ``'GMKGALHA,LM,KH'``, ``'G-M-K-G'`` or ``"Gamma K K' Gamma"``; see
+        :mod:`yambopy.bz.labels` for the label grammar).  When *None*, uses
+        the default path for the lattice type.
     extra_points : dict or None
         Additional or overriding special points, in reduced coordinates of
-        the cell (e.g. ``{'M': [0, 0.5, 0], 'K': [1/3, 1/3, 0]}``).
+        the cell (e.g. ``{'M': [0, 0.5, 0], "K'": [-1/3, -1/3, 0]}``).
+        Keys follow the label grammar.
     npoints : int or None
         Total number of k-points along the whole path.  Incompatible with
         *density* and *intervals*.
@@ -172,7 +166,7 @@ class BrillouinZone:
         # Merge user-supplied extra points (may overwrite defaults).
         if extra_points is not None and isinstance(extra_points, dict):
             for label, coords in extra_points.items():
-                self.high_symmetry_points[label] = np.array(coords)
+                self.high_symmetry_points[normalise_label(label)] = np.array(coords)
 
         for label, coords in self.high_symmetry_points.items():
             self.high_symmetry_points[label] = [coords]
@@ -181,22 +175,23 @@ class BrillouinZone:
         if path_string is None:
             path_string = self.default_path
 
-        # Parse path sections.
-        self.path_sections: list[list[str]] = []
-        for section in path_string.split(","):
-            labels = _LABEL_RE.findall(section)
-            if labels:
-                self.path_sections.append(labels)
+        # Parse path sections (see yambopy.bz.labels for the grammar).
+        self.path_sections: list[list[str]] = parse_path(path_string)
 
-        # Validate all labels are recognised.
+        # Validate all labels are defined.
         if self.high_symmetry_points:
-            all_labels_recognized = all(
-                label in self.high_symmetry_points
+            unknown = sorted({
+                label
                 for section in self.path_sections
                 for label in section
-            )
-            if not all_labels_recognized:
-                raise ValueError("Given path contains unrecognised labels.")
+                if label not in self.high_symmetry_points
+            })
+            if unknown:
+                raise ValueError(
+                    f"Path {path_string!r} uses undefined special points {unknown}; "
+                    f"defined: {sorted(self.high_symmetry_points)}. "
+                    "Add them with extra_points."
+                )
 
         self.star_indices = [[0]*len(section) for section in self.path_sections]
 
@@ -583,7 +578,7 @@ class BrillouinZone:
     # Labels
     # ------------------------------------------------------------------
 
-    def path_labels_list(self, merge_sections: bool = False) -> list[str]:
+    def path_labels_list(self, merge_sections: bool = False, fmt: str = "plain") -> list[str]:
         """
         Return a flat list of special-point labels for band-structure
         x-axis labelling.
@@ -593,43 +588,43 @@ class BrillouinZone:
         merge_sections : bool
             If *True*, the last label of a section and the first of the
             next are merged into one ``'A — B'`` entry, as they share one
-            tick on the band-structure axis.
+            tick on the band-structure axis (see
+            :meth:`special_kpoints_distances`).
+        fmt : ``'plain'``, ``'latex'`` or ``'unicode'``
+            Rendering of the labels (see
+            :func:`~yambopy.bz.labels.format_label`): ``'latex'`` for
+            matplotlib, ``'unicode'`` for terminals and Qt widgets.
 
         Returns
         -------
         list[str]
         """
-        labels_list = [
-            label for section in self.path_sections for label in section
-        ]
-
-        if merge_sections:
-            section_lengths = [len(s) for s in self.path_sections]
-            if len(section_lengths) > 0:
-                # Last entry is never a boundary.
-                section_lengths.pop()
-                boundaries = np.cumsum(section_lengths)
-                for k in boundaries:
-                    labels_list[k - 1] = (
-                        f"{labels_list[k - 1]} — {labels_list[k]}"
-                    )
-                for k in sorted(boundaries, reverse=True):
-                    labels_list.pop(k)
-
-        return labels_list
+        if not merge_sections:
+            labels = [label for section in self.path_sections for label in section]
+        else:
+            labels = []
+            for s, section in enumerate(self.path_sections):
+                if s > 0:
+                    # This section's start shares the previous end's tick.
+                    labels[-1] += MERGE_SEPARATOR + section[0]
+                    labels.extend(section[1:])
+                else:
+                    labels.extend(section)
+        return [format_label(label, fmt) for label in labels]
 
     # ------------------------------------------------------------------
     # Ticks
     # ------------------------------------------------------------------
 
-    def get_indices(self) -> list[list]:
+    def get_indices(self, fmt: str = "plain") -> list[list]:
         """
         Return ``[index, label]`` pairs locating each special point in the
         array returned by :meth:`kpoints`.
 
         Labels are those of :meth:`path_labels_list` with
-        ``merge_sections=True``; a merged ``'A — B'`` label points to *A*,
-        the last k-point of its section (*B* is the next one).
+        ``merge_sections=True``, rendered in format *fmt* (``'plain'``,
+        ``'latex'`` or ``'unicode'``); a merged ``'A — B'`` label points to
+        *A*, the last k-point of its section (*B* is the next one).
         """
         indices = []
         index = 0
@@ -643,8 +638,10 @@ class BrillouinZone:
                 indices.append([index, label])
             if s < len(self.path_sections) - 1:
                 # Merge this section's end with the next section's start.
-                indices[-1][1] = f"{indices[-1][1]} — {self.path_sections[s + 1][0]}"
+                indices[-1][1] += MERGE_SEPARATOR + self.path_sections[s + 1][0]
                 index += 1
+        for pair in indices:
+            pair[1] = format_label(pair[1], fmt)
         return indices
 
     # ------------------------------------------------------------------

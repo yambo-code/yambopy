@@ -54,6 +54,7 @@ from yambopy.lattice import *
 from yambopy.bz.brillouin import *
 from yambopy.bz.lattice_data import *
 from yambopy.bz.kpath_optimizer import *
+from yambopy.bz.labels import *
 
 #kpoint mesh operations
 from yambopy.kpoints import *

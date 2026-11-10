@@ -12,7 +12,8 @@ default band-structure paths:
 * :func:`find_basis_change` — integer change of basis between two cells
   of the same lattice.
 
-Special points are in reduced reciprocal coordinates of the returned cell.
+Special points are in reduced reciprocal coordinates of the returned cell,
+named following :mod:`yambopy.bz.labels` (``G`` for Γ, ``Sigma1`` for Σ₁).
 """
 
 from itertools import product
@@ -20,60 +21,6 @@ from math import cos, isclose, radians, sqrt, tan
 from typing import Sequence
 
 import numpy as np
-
-
-def latex(s: str) -> str:
-    """
-    Return *s* with LaTeX math-mode Greek letters (e.g. ``$\\Gamma$``)
-    replaced by their Unicode characters (``Γ``) and ``$`` removed, for
-    printing labels in a terminal.
-    """
-    import re
-    LATEX_GREEK = {
-        r'\alpha': 'α',
-        r'\beta': 'β',
-        r'\gamma': 'γ',
-        r'\delta': 'δ',
-        r'\epsilon': 'ε',
-        r'\zeta': 'ζ',
-        r'\eta': 'η',
-        r'\theta': 'θ',
-        r'\iota': 'ι',
-        r'\kappa': 'κ',
-        r'\lambda': 'λ',
-        r'\mu': 'μ',
-        r'\nu': 'ν',
-        r'\xi': 'ξ',
-        r'\omicron': 'ο',
-        r'\pi': 'π',
-        r'\rho': 'ρ',
-        r'\sigma': 'σ',
-        r'\tau': 'τ',
-        r'\upsilon': 'υ',
-        r'\phi': 'φ',
-        r'\chi': 'χ',
-        r'\psi': 'ψ',
-        r'\omega': 'ω',
-        r'\Gamma': 'Γ',
-        r'\Delta': 'Δ',
-        r'\Theta': 'Θ',
-        r'\Lambda': 'Λ',
-        r'\Xi': 'Ξ',
-        r'\Pi': 'Π',
-        r'\Sigma': 'Σ',
-        r'\Upsilon': 'Υ',
-        r'\Phi': 'Φ',
-        r'\Psi': 'Ψ',
-        r'\Omega': 'Ω'
-    }
-
-    # remove dollars
-    s = re.sub(r'\$(.*?)\$', r'\1', s)
-    # replace latex commands
-    for symbol, unicode in LATEX_GREEK.items():
-        s = s.replace(symbol, unicode)
-
-    return s
 
 
 #: Required lattice parameters for each supported ibrav.
@@ -446,14 +393,14 @@ def _standard_lattice_data(
                     "G": [0, 0, 0],
                     "N": [1 / 2, 1 / 2, 0],
                     "P": [1 / 4, 3 / 4, -1 / 4],
-                    "S": [eta, eta, -eta],
-                    "S1": [1 - eta, 1 - eta, eta],
+                    "Sigma": [eta, eta, -eta],
+                    "Sigma1": [1 - eta, 1 - eta, eta],
                     "X": [0, 1 / 2, -1 / 2],
                     "Y": [zeta, 1 / 2, -1 / 2],
                     "Y1": [1 / 2, 1 - zeta, zeta],
                     "Z": [1 / 2, 1 / 2, 1 / 2],
                 }
-                default_path = "GXYSGZS1NPY1Z,XP"
+                default_path = "GXYSigmaGZSigma1NPY1Z,XP"
 
         # --- ORC (simple orthorhombic) ---
         case 8:

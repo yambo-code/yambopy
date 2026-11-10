@@ -443,7 +443,7 @@ class YamboElectronsDB():
         ax.set_xlim(0, ticks[-1])
 
         ax.set_xticks(ticks)
-        ax.set_xticklabels(bz.path_labels_list(True))
+        ax.set_xticklabels(bz.path_labels_list(True, fmt="latex"))
 
         return ax
 

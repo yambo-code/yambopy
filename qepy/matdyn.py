@@ -193,22 +193,33 @@ class Matdyn(object):
 
     def plot_eigen(self,bz):
         """ plot the phonon frequencies using matplotlib
+
+        bz: BrillouinZone whose path k-points are the q-points of this
+        calculation (e.g. matdyn run on bz.kpoints()); labels in LaTeX.
         """
         import matplotlib.pyplot as plt
 
+        x = bz.kpoints_distances()
+        if len(x) != self.nqpoints:
+            raise ValueError(
+                f"The path of bz has {len(x)} k-points but this calculation "
+                f"has {self.nqpoints} q-points: use the BrillouinZone the "
+                "q-points were generated from."
+            )
         spoints_distances = bz.special_kpoints_distances(True)
 
-        plt.xticks(spoints_distances)
+        plt.xticks(spoints_distances, bz.path_labels_list(True, fmt='latex'))
 
         for xcoord in spoints_distances:
             plt.axvline(xcoord)
 
-        plt.ylabel('\\omega (cm$^{-1}$)')
+        plt.ylabel(r'$\omega$ (cm$^{-1}$)')
+        plt.xlim(x[0], x[-1])
 
         #plot bands
         eig = np.array(self.eig)
         for ib in range(self.nmodes):
-           plt.plot(range(self.nqpoints),eig[:,ib], 'r-', lw=2)
+           plt.plot(x,eig[:,ib], 'r-', lw=2)
         plt.show()
 
     def get_phonon_freq(self,iq,n,unit="eV"):
