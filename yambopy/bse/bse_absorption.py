@@ -64,48 +64,6 @@ class YamboBSEAbsorptionSpectra():
         #initialize this class
         return cls
 
-    def get_excitons_bak(self,min_intensity=0.1,max_energy=4,eps=1e-4):
-        """ 
-        Obtain the excitons using ypp
-        Parameters:
-            min_intensity - Only plot excitons with intensity larger than this value (default: 0.1)
-            max_energy    - Only plot excitons with energy below this value (default: 4 eV)
-            Degen_Step    - Only plot excitons whose energy is different by more that this value (default: 0.0)
-        """
-        excitons = self.excitondb.get_nondegenerate(eps=eps)
-
-        #filter with energy
-        excitons = excitons[excitons[:,0]<max_energy]
-
-        #filter with intensity
-        excitons = excitons[excitons[:,1]>min_intensity]
-
-        #filter with degen
-        if Degen_Step:
-
-            #create a list with differences in energy
-            new_excitons = []
-            prev_exc = 0
-            for exc in self.excitons:
-                e,i,index = exc
-                #if the energy of this exciton is too diferent then we add it to the list
-                if abs(e-prev_exc)<Degen_Step:
-                    new_excitons[-1][1] += i
-                    continue
-                new_excitons.append([e,i,index])
-                intensity = 0
-                prev_exc = e
-            self.excitons = np.array(new_excitons)
-
-        #create dictionary with excitons 
-        excitons = self.data["excitons"]
-        for e,intensity,i in self.excitons:
-            exciton = {"energy": e,
-                       "intensity": intensity,
-                       "index": i}
-            excitons.append(exciton)
-        return self.excitons
-
     def get_excitons(self,min_intensity=0.1,max_energy=4,eps=1e-4,Degen_Step=False):
         """
         Obtain the excitons using ypp

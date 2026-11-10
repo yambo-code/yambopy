@@ -371,52 +371,6 @@ class PwXML():
         if xlim: ax.set_xlim(xlim)
         if ylim: ax.set_ylim(ylim)
 
-    def plot_eigen_ax_bak(self, ax, bz, xlim = (), ylim = (), color = 'r', **kwargs):
-        kpoints_distances = bz.kpoints_distances()
-        spoints_distances = bz.special_kpoints_distances(True)
-        spoints_labels = bz.path_labels_list(True)
-
-        for xcoord in spoints_distances:
-            ax.axvline(xcoord, color = 'k')
-
-        ax.axhline(0, c='k')
-
-        ax.set_xticks(spoints_distances)
-        ax.set_xticklabels(spoints_labels)
-
-        ax.set_xlim(kpoints_distances[0], kpoints_distances[-1])
-        if xlim: ax.set_xlim(xlim)
-        if ylim: ax.set_ylim(ylim)
-
-        ax.set_ylabel('E (eV)')
-
-        ls = kwargs.pop('ls', 'solid')
-        lw = kwargs.pop('lw', 1)
-
-        y_offset = kwargs.pop('y_offset', 0.0)
-
-        if self.lsda:
-           eigen1 = np.array(self.eigen1)
-
-           print(len(eigen1))
-
-           for ib in range(self.nbands_up):
-               ax.plot(kpoints_distances, eigen1[:, ib] + y_offset, '%s-'%color, lw = lw, zorder = 1, label = 'spin-up')
-               ax.plot(kpoints_distances, eigen1[:, ib + self.nbands_up] + y_offset, 'b-', lw = lw, zorder = 1, label = 'spin-down')
-
-           import matplotlib.pyplot as plt
-
-           handles, labels = plt.gca().get_legend_handles_labels()
-           by_label = dict(zip(labels, handles))
-           plt.legend(by_label.values(), by_label.keys())
-
-        # Case: Non spin polarization
-        else:
-           eigen1 = np.array(self.eigen1)
-
-           for ib in range(self.nbands):
-               ax.plot(kpoints_distances, eigen1[:, ib] + y_offset, color = color, linestyle = ls, lw = lw, zorder = 1)
-     
     #def plot_eigen_spin_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),spin_proj=None):
     def plot_eigen_spin_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),spin_proj=False,spin_folder='.'):
         #
@@ -529,16 +483,6 @@ class PwXML():
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
         self.plot_eigen_ax(ax,path_kpoints=path_kpoints)
-        return fig
-
-    @add_fig_kwargs
-    def plot_eigen_bak(self, bz, xlim = (), ylim = ()):
-        """ plot the eigenvalues using matplotlib
-        """
-        import matplotlib.pyplot as plt
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 1, 1)
-        self.plot_eigen_ax(ax, bz)
         return fig
 
     def write_eigen(self,fmt='gnuplot'):

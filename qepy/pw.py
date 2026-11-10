@@ -335,20 +335,6 @@ class PwIn(object):
         if nscf_kpoints: self.set_kpoints(nscf_kpoints) 
         return self
 
-    def set_bands_bak(self,nbnd,path_kpoints=None,conv_thr=1e-8,
-                 diago_full_acc=True,force_symmorphic=True):
-        """
-        set the calculation to be nscf
-        """
-        self.control['calculation'] = "'bands'"
-        self.electrons['conv_thr'] = conv_thr
-        self.system['nbnd'] = nbnd
-        self.electrons['diago_full_acc'] = fortran_bool(diago_full_acc)
-        self.system['force_symmorphic'] = fortran_bool(force_symmorphic)
-        self.ktype = 'crystal'
-        if path_kpoints: self.set_path(path_kpoints)
-        return self
-
     def set_bands(self, nbnd, bz = None, conv_thr = 1e-8, diago_full_acc = True, force_symmorphic = True):
         """
         Set the calculation to be 'bands'
@@ -473,9 +459,6 @@ class PwIn(object):
             mass = float(atype[0])
             masses.append(mass)
         return masses
-
-    def set_path_bak(self,path):
-        self.klist = path.get_klist()
 
     def set_path(self, bz):
         self.klist = bz.kpoints(coords = 'red', qe = True)

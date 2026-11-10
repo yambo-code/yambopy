@@ -191,28 +191,6 @@ class Matdyn(object):
                     eivq[indexes] = r
                 self.eiv[nq] = eivq
 
-    def plot_eigen_bak(self,path=[]):
-        """ plot the phonon frequencies using matplotlib
-        """
-        import matplotlib.pyplot as plt
-
-        if path:
-            if isinstance(path,Path):
-                path = path.get_indexes()
-            plt.xticks( *list(zip(*path)) )
-        plt.ylabel('\\omega (cm$^{-1}$)')
-
-        #plot vertical line
-        for point in path:
-            x, label = point
-            plt.axvline(x)
-
-        #plot bands
-        eig = np.array(self.eig)
-        for ib in range(self.nmodes):
-           plt.plot(range(self.nqpoints),eig[:,ib], 'r-', lw=2)
-        plt.show()
-
     def plot_eigen(self,bz):
         """ plot the phonon frequencies using matplotlib
         """
