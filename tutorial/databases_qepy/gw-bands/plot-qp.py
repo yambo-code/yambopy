@@ -15,7 +15,7 @@ bz = BrillouinZone(
     cell=lat.lat,
     path_string=path_string,
     npoints=100,
-    optimise=True,
+    optimise=True,  # or options, e.g. {'method': 'brute', 'parallel_segments': False}
     sym_red=lat.sym_red
 )
 

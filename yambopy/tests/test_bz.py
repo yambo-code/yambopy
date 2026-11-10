@@ -21,6 +21,9 @@ from yambopy.bz.lattice_data import (
 )
 from yambopy.plot.bandstructure import YambopyBandStructure
 
+# spglib >= 2.5 warns about its legacy error handling on every call.
+pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning:spglib")
+
 # (ibrav, parameters, expected variant).  Unordered constants for ibrav
 # 9, -9, 10 and 11 exercise the reordering in get_lattice_data.
 LATTICES = [
@@ -240,7 +243,6 @@ def hexagonal_sym_red(cell):
     return [w.T for w in rotations]
 
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning:spglib")
 def test_optimise_on_cell():
     a, c = HEX["a"], HEX["c"]
     cell60 = np.array([[a, 0, 0], [a / 2, a * np.sqrt(3) / 2, 0], [0, 0, c]])
@@ -287,8 +289,14 @@ def test_collinear_grid_independent_of_units_and_cell(latticedb, expand):
     lat = np.asarray(latticedb.lat)
     rotated = (np.array([[1, 1, 0], [0, 1, 0], [0, 0, 1]]) @ lat) @ random_rotation(
         np.random.default_rng(3)).T
+    cells = [lat, lat * BOHR_TO_ANGSTROM]
+    if expand:
+        # Only the full grid is independent of which (equivalent)
+        # orientation the path takes in a differently built cell; the
+        # irreducible points on the path depend on it.
+        cells.append(rotated * BOHR_TO_ANGSTROM)
     results = []
-    for cell in (lat, lat * BOHR_TO_ANGSTROM, rotated * BOHR_TO_ANGSTROM):
+    for cell in cells:
         bz = BrillouinZone(cell=cell, npoints=60)
         _, idx, d = bz.find_collinear_grid(latticedb, expand_kpoints=expand)
         results.append((idx, d / bz.special_kpoints_distances(True)[-1]))
@@ -320,7 +328,6 @@ def test_collinear_grid_rejects_other_lattice(latticedb):
 # Optimisation edge cases
 # -----------------------------------------------------------------------------
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning:spglib")
 def test_optimise_single_point_section():
     cell = get_lattice_data(4, HEX)[0]
     bz = BrillouinZone(cell=cell, path_string="GMK,A", npoints=40,
@@ -340,7 +347,6 @@ def test_optimise_requires_symmetries():
 # Serialisation
 # -----------------------------------------------------------------------------
 
-@pytest.mark.filterwarnings("ignore::DeprecationWarning:spglib")
 def test_bz_json_round_trip():
     import json
 
@@ -430,7 +436,6 @@ def test_turn_penalty_favours_straight_paths():
 
 
 @pytest.mark.parametrize("method", ["greedy", "greedy_global"])
-@pytest.mark.filterwarnings("ignore::DeprecationWarning:spglib")
 def test_greedy_breaks_ties_by_carrying_on(method):
     from yambopy.bz.kpath_optimizer import KPathOptimizer
 
@@ -593,3 +598,130 @@ def test_qepy_plots_use_latex_labels():
     plt.close("all")
     with pytest.raises(ValueError, match="q-points"):
         Matdyn.plot_eigen(types.SimpleNamespace(nqpoints=nk - 1, nmodes=3, eig=np.zeros((nk - 1, 3))), bz)
+
+
+# -----------------------------------------------------------------------------
+# Cells identical to a standard one keep its special points
+# -----------------------------------------------------------------------------
+
+@pytest.mark.parametrize("ibrav, parameters, variant", LATTICES, ids=LATTICE_IDS)
+def test_standard_cell_keeps_tabulated_points(ibrav, parameters, variant):
+    from yambopy.bz.lattice_data import lattice_data_for_cell
+
+    cell, _, points, _ = get_lattice_data(ibrav, parameters)
+    _, var, points_cell, _ = lattice_data_for_cell(cell)
+    assert var == variant
+    for label, k in points.items():
+        assert np.allclose(points_cell[label], k), label
+
+
+# -----------------------------------------------------------------------------
+# Path optimisation options
+# -----------------------------------------------------------------------------
+
+FAR_K = {"K": [-1 / 3, -1 / 3, 0], "H": [-1 / 3, -1 / 3, 0.5]}  # corners not adjacent to M, L
+
+
+@pytest.fixture(scope="module")
+def hex_cell_and_sym():
+    cell = get_lattice_data(4, HEX)[0]
+    return cell, hexagonal_sym_red(cell)
+
+
+def test_optimise_options_normalisation():
+    from yambopy.bz.brillouin import OPTIMISE_DEFAULTS, _optimise_options
+
+    assert _optimise_options(False) is None
+    assert _optimise_options(None) is None
+    assert _optimise_options(True) == OPTIMISE_DEFAULTS
+    assert _optimise_options({"method": "brute"}) == {**OPTIMISE_DEFAULTS, "method": "brute"}
+    assert _optimise_options({"max_combinations": np.int64(10)})["max_combinations"] == 10
+
+
+@pytest.mark.parametrize("optimise, error, match", [
+    ({"methd": "brute"}, ValueError, "Unknown optimise options"),
+    ({"method": "exact"}, ValueError, "Unknown optimise method"),
+    ({"max_combinations": 0}, ValueError, "max_combinations"),
+    ({"max_combinations": True}, ValueError, "max_combinations"),
+    ({"parallel_segments": "yes"}, ValueError, "parallel_segments"),
+    ("brute", TypeError, "bool or a dict"),
+])
+def test_optimise_options_rejected(hex_cell_and_sym, optimise, error, match):
+    cell, sym = hex_cell_and_sym
+    with pytest.raises(error, match=match):
+        BrillouinZone(cell=cell, npoints=20, optimise=optimise, sym_red=sym)
+
+
+def test_optimise_method_is_used(hex_cell_and_sym):
+    cell, sym = hex_cell_and_sym
+    common = dict(cell=cell, path_string="GMKGALHA", extra_points=FAR_K, npoints=100, sym_red=sym)
+    greedy = BrillouinZone(**common, optimise={"method": "greedy"})
+    brute = BrillouinZone(**common, optimise={"method": "brute"})
+    assert brute.optimisation_results[0]["improvement"] > greedy.optimisation_results[0]["improvement"] > 0
+    assert brute.star_indices != greedy.star_indices
+    assert brute.as_dict()["optimise"] == {"method": "brute", "max_combinations": 100000,
+                                           "parallel_segments": True}
+
+
+def test_optimise_brute_fallback_warns(hex_cell_and_sym):
+    cell, sym = hex_cell_and_sym
+    with pytest.warns(UserWarning, match="Too many combinations"):
+        bz = BrillouinZone(cell=cell, path_string="GMKG", extra_points=FAR_K, npoints=50,
+                           optimise={"method": "brute", "max_combinations": 1}, sym_red=sym)
+    assert "warning" in bz.optimisation_results[0]
+
+
+def test_not_optimised_has_no_results():
+    bz = BrillouinZone(ibrav=4, parameters=HEX, npoints=20)
+    assert bz.optimisation_results is None
+    assert bz.as_dict()["optimise"] is False
+
+
+@pytest.mark.parametrize("mode", [{"npoints": 80}, {"density": 50}, {"intervals": [10, 7, 12]}])
+def test_optimise_path_after_construction(hex_cell_and_sym, mode):
+    cell, sym = hex_cell_and_sym
+    common = dict(cell=cell, path_string="GMKG", extra_points=FAR_K, **mode)
+    at_init = BrillouinZone(**common, optimise={"method": "brute"}, sym_red=sym)
+
+    later = BrillouinZone(**common)
+    before = later.kpoints("car").copy()
+    results = later.optimise_path(sym, method="brute")
+
+    assert results is later.optimisation_results and results[0]["improvement"] > 0
+    assert later.star_indices == at_init.star_indices
+    assert np.allclose(later.kpoints("car"), at_init.kpoints("car"))
+    assert not np.allclose(later.kpoints("car")[-3:], before[-3:]) or len(before) != len(later.kpoints())
+    if "intervals" in mode:
+        assert later.intervals == mode["intervals"]
+
+
+def test_optimise_path_survives_serialisation(hex_cell_and_sym):
+    import json
+
+    cell, sym = hex_cell_and_sym
+    bz = BrillouinZone(cell=cell, path_string="GMKG", extra_points=FAR_K, npoints=60)
+    bz.optimise_path(sym, method="greedy", parallel_segments=False)
+    clone = BrillouinZone.from_dict(json.loads(json.dumps(bz.as_dict())))
+    assert clone.as_dict()["optimise"] == {"method": "greedy", "max_combinations": 100000,
+                                           "parallel_segments": False}
+    assert clone.star_indices == bz.star_indices
+    assert np.allclose(clone.kpoints("car"), bz.kpoints("car"))
+
+
+def test_optimise_path_reoptimises_from_original_points(hex_cell_and_sym):
+    cell, sym = hex_cell_and_sym
+    bz = BrillouinZone(cell=cell, path_string="GMKGALHA", extra_points=FAR_K, npoints=100)
+    bz.optimise_path(sym, method="brute")
+    brute_indices = [list(section) for section in bz.star_indices]
+    bz.optimise_path(sym, method="greedy")
+    fresh = BrillouinZone(cell=cell, path_string="GMKGALHA", extra_points=FAR_K, npoints=100,
+                          optimise={"method": "greedy"}, sym_red=sym)
+    assert bz.star_indices == fresh.star_indices != brute_indices
+    assert np.allclose(bz.kpoints("car"), fresh.kpoints("car"))
+
+
+def test_optimise_path_needs_lattice(hex_cell_and_sym):
+    _, sym = hex_cell_and_sym
+    bz = BrillouinZone(path_string="GMKG", intervals=[5, 5, 5])
+    with pytest.raises(ValueError, match="needs a lattice"):
+        bz.optimise_path(sym)

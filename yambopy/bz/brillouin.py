@@ -12,6 +12,7 @@ QE Bravais lattices (see :mod:`yambopy.bz.lattice_data`):
   whatever the units or cell of the grid's lattice.
 """
 
+import warnings
 from itertools import product
 from typing import Any, Sequence
 from copy import deepcopy
@@ -22,6 +23,45 @@ from yambopy.bz.lattice_data import find_basis_change, get_lattice_data, lattice
 from yambopy.bz.kpath_optimizer import KPathOptimizer, get_star_of_k
 from yambopy.bz.labels import MERGE_SEPARATOR, format_label, normalise_label, parse_path
 from yambopy.dbs.latticedb import YamboLatticeDB
+
+
+#: Default path-optimisation options (see :meth:`BrillouinZone.optimise_path`).
+OPTIMISE_DEFAULTS: dict[str, Any] = {
+    "method": "greedy_global",
+    "max_combinations": 100000,
+    "parallel_segments": True,
+}
+
+_OPTIMISE_METHODS = ("brute", "greedy", "greedy_global")
+
+
+def _optimise_options(optimise: bool | dict | None) -> dict[str, Any] | None:
+    """
+    Normalise the *optimise* argument of :class:`BrillouinZone`: *None* when
+    disabled, else the full options dict (defaults updated with the given
+    ones), validated.
+    """
+    if optimise is None or optimise is False:
+        return None
+    if optimise is True:
+        return dict(OPTIMISE_DEFAULTS)
+    if not isinstance(optimise, dict):
+        raise TypeError(f"optimise must be a bool or a dict of options, not {type(optimise).__name__}.")
+
+    unknown = sorted(set(optimise) - set(OPTIMISE_DEFAULTS))
+    if unknown:
+        raise ValueError(f"Unknown optimise options {unknown}; valid: {list(OPTIMISE_DEFAULTS)}.")
+    options = {**OPTIMISE_DEFAULTS, **optimise}
+    if options["method"] not in _OPTIMISE_METHODS:
+        raise ValueError(f"Unknown optimise method {options['method']!r}; valid: {list(_OPTIMISE_METHODS)}.")
+    if isinstance(options["max_combinations"], bool) or not isinstance(options["max_combinations"], (int, np.integer)) \
+            or options["max_combinations"] < 1:
+        raise ValueError(f"max_combinations must be a positive integer, not {options['max_combinations']!r}.")
+    if not isinstance(options["parallel_segments"], (bool, np.bool_)):
+        raise ValueError(f"parallel_segments must be True or False, not {options['parallel_segments']!r}.")
+    options["max_combinations"] = int(options["max_combinations"])
+    options["parallel_segments"] = bool(options["parallel_segments"])
+    return options
 
 
 def _to_builtin(obj: Any) -> Any:
@@ -87,13 +127,15 @@ class BrillouinZone:
         Number of k-points on each path segment, its end point excluded
         (see :meth:`interpolate_intervals`).  Incompatible with *npoints*
         and *density*.
-    optimise : bool
+    optimise : bool or dict
         Replace each special point by the symmetry-equivalent copy giving
         the shortest path (see :meth:`optimise_path`).  Requires a lattice
-        and *sym_red*.
+        and *sym_red*.  *True* uses :data:`OPTIMISE_DEFAULTS`; a dict
+        overrides some of them, e.g. ``{'method': 'brute',
+        'max_combinations': 10**6, 'parallel_segments': False}``.
     sym_red : list of ndarray, shape (3, 3), or None
         Point-group operations in yambopy's ``sym_red`` convention, used
-        when *optimise* is True.
+        when *optimise* is enabled.
 
     Attributes
     ----------
@@ -115,6 +157,11 @@ class BrillouinZone:
         Number of k-points on each segment, its end point excluded.
     kpts_red, kpts_car : list[ndarray]
         Interpolated k-points of each section (see :meth:`kpoints`).
+    optimisation_results : list[dict] or None
+        Per-section results of the last path optimisation, as returned by
+        :meth:`~yambopy.bz.kpath_optimizer.KPathOptimizer.optimize_kpath`
+        (``total_length``, ``original_length``, ``improvement`` in %, ...);
+        *None* if the path was not optimised.
 
     References
     ----------
@@ -131,14 +178,16 @@ class BrillouinZone:
         npoints: int = None,
         density: float = None,
         intervals: list[int] = None,
-        optimise: bool = False,
+        optimise: bool | dict = False,
         sym_red: list[np.ndarray] = None
     ):
         self.cell = None
         self.high_symmetry_points = {}
+        self.optimisation_results = None
 
+        options = _optimise_options(optimise)
         has_lattice = (ibrav is not None and parameters is not None) or cell is not None
-        if optimise and (not has_lattice or sym_red is None):
+        if options is not None and (not has_lattice or sym_red is None):
             raise ValueError(
                 "To optimise the path, supply a cell or ibrav+parameters, "
                 "and the symmetry matrices (sym_red)."
@@ -195,8 +244,8 @@ class BrillouinZone:
 
         self.star_indices = [[0]*len(section) for section in self.path_sections]
 
-        if optimise and sym_red is not None:
-            self.optimise_path(sym_red)
+        if options is not None:
+            self._optimise(sym_red, options)
 
         # Reconstruct normalised path string.
         section_strings = ["".join(s) for s in self.path_sections]
@@ -225,7 +274,7 @@ class BrillouinZone:
             "npoints": npoints,
             "density": density,
             "intervals": intervals,
-            "optimise": optimise,
+            "optimise": options if options is not None else False,
             "sym_red": sym_red
         }
 
@@ -263,24 +312,27 @@ class BrillouinZone:
     # Optimise k-path
     # ------------------------------------------------------------------
 
-    def optimise_path(self,
+    def optimise_path(
+        self,
         sym_red: list[np.ndarray],
-        rcell: np.ndarray = None,
-        method: str = "greedy_global",
-        max_combinations: int = 100000,
-        parallel_segments: bool = True):
+        method: str = OPTIMISE_DEFAULTS["method"],
+        max_combinations: int = OPTIMISE_DEFAULTS["max_combinations"],
+        parallel_segments: bool = OPTIMISE_DEFAULTS["parallel_segments"],
+    ) -> list[dict]:
         """
         Replace each special point of the path by the member of its star
         (symmetry-equivalent copies) that gives the shortest path, using
-        :class:`~yambopy.bz.kpath_optimizer.KPathOptimizer`.
+        :class:`~yambopy.bz.kpath_optimizer.KPathOptimizer`, and rebuild
+        the k-points.
 
         Each comma-separated section is optimised independently.  The
         choices are stored in :attr:`star_indices` and each special point
         in :attr:`high_symmetry_points` becomes its star (first member: the
-        original point).  Only the special points are optimised; call
-        :meth:`interpolate` (or :meth:`interpolate_intervals`) afterwards
-        to rebuild the k-points (the constructor does this when
-        ``optimise=True``).
+        original point).  The k-points are re-interpolated as the zone was
+        built (*npoints*, *density* or *intervals*), and the options are
+        recorded so that :meth:`as_dict` / :meth:`from_dict` reproduce the
+        optimised zone.  Calling it again re-optimises from the original
+        points.
 
         Parameters
         ----------
@@ -289,25 +341,68 @@ class BrillouinZone:
             referred to the same cell as this ``BrillouinZone`` (e.g. a
             yambo database's ``sym_red`` when the zone was built from its
             ``lat``).
-        rcell : ndarray or None
-            Reciprocal cell for path lengths; defaults to :attr:`rcell`.
-        method, max_combinations, parallel_segments
-            Passed to :meth:`~yambopy.bz.kpath_optimizer.KPathOptimizer.optimize_kpath`.
+        method : ``'greedy_global'``, ``'greedy'`` or ``'brute'``
+            Search strategy: ``'brute'`` is exhaustive (exact) up to
+            *max_combinations* combinations per section, then falls back to
+            ``'greedy'`` with a warning; ``'greedy'`` picks each point in
+            turn; ``'greedy_global'`` repeats it from every copy of the
+            first point and keeps the shortest path.
+        max_combinations : int
+            Limit for ``'brute'`` (ignored by the greedy methods).
+        parallel_segments : bool
+            Break ties in favour of smoother paths (see
+            :meth:`~yambopy.bz.kpath_optimizer.KPathOptimizer.optimize_kpath`).
+
+        Returns
+        -------
+        list[dict]
+            :attr:`optimisation_results`, one dict per section.
         """
+        if self.rcell is None:
+            raise ValueError("Path optimisation needs a lattice (ibrav+parameters or cell).")
+        options = _optimise_options({
+            "method": method,
+            "max_combinations": max_combinations,
+            "parallel_segments": parallel_segments,
+        })
+        sym_red = [np.asarray(s) for s in sym_red]
+        self._optimise(sym_red, options)
 
-        if rcell is None:
-            rcell = self.rcell
+        args = self.arguments
+        if args["intervals"] is not None:
+            self.interpolate_intervals(args["intervals"])
+        else:
+            self.interpolate(args["npoints"], args["density"])
 
-        opt = KPathOptimizer(rcell, sym_red)
+        args["optimise"] = options
+        args["sym_red"] = sym_red
+        return self.optimisation_results
+
+    def _optimise(self, sym_red: list[np.ndarray], options: dict[str, Any]):
+        """
+        Optimise the special points of every section (see
+        :meth:`optimise_path`) without re-interpolating.
+        """
+        opt = KPathOptimizer(self.rcell, sym_red)
+        results = []
         for i, section in enumerate(self.path_sections):
             kpath_frac = [self.high_symmetry_points[label][0] for label in section]
-            result = opt.optimize_kpath(kpath_frac, method, max_combinations, parallel_segments)
-            self.star_indices[i] = result['best_indices']
+            result = opt.optimize_kpath(
+                kpath_frac,
+                options["method"],
+                options["max_combinations"],
+                options["parallel_segments"],
+            )
+            if "warning" in result:
+                warnings.warn(f"Path section {''.join(section)!r}: {result['warning']}", stacklevel=3)
+            self.star_indices[i] = result["best_indices"]
+            results.append(result)
 
         for section in self.path_sections:
             for label in section:
                 self.high_symmetry_points[label] = get_star_of_k(self.high_symmetry_points[label][0], opt.sym)
 
+        self.optimisation_results = results
 
     def print_optimisation_info(self):
         """
@@ -318,6 +413,10 @@ class BrillouinZone:
         print('Path:')
         for i, section in enumerate(self.path_sections):
             print('---')
+            if self.optimisation_results is not None:
+                result = self.optimisation_results[i]
+                print(f"Section {''.join(section)}: length {result['original_length']:.4f} -> "
+                      f"{result['total_length']:.4f} ({result['improvement']:.1f}% shorter)")
             for j, label in enumerate(section):
                 rcoords = np.array(self.high_symmetry_points[label][0])
                 index = self.star_indices[i][j]

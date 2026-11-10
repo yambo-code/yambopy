@@ -16,7 +16,7 @@ Special points are in reduced reciprocal coordinates of the returned cell,
 named following :mod:`yambopy.bz.labels` (``G`` for Γ, ``Sigma1`` for Σ₁).
 """
 
-from itertools import product
+from itertools import permutations, product
 from math import cos, isclose, radians, sqrt, tan
 from typing import Sequence
 
@@ -572,6 +572,11 @@ _HOLOHEDRY_TO_IBRAV = {
 }
 
 
+#: QE ibrav settings of the same Bravais lattice, tried by
+#: :func:`lattice_data_for_cell`.
+_QE_SETTINGS: dict[int, tuple[int, ...]] = {3: (3, -3), 5: (5, -5), 9: (9, -9)}
+
+
 def find_basis_change(
     std_cell: np.ndarray,
     cell: np.ndarray,
@@ -585,7 +590,9 @@ def find_basis_change(
     The search matches metric tensors, ``cell @ cell.T == M G_std M.T``.
     A lattice vector ``v = n @ std_cell`` has ``|n_i| <= |v| |b_i|``, which
     bounds the coefficients, so the search is exhaustive.  Proper changes
-    of basis (``det M = +1``) are preferred.  Returns *None* if none exists.
+    of basis (``det M = +1``) are preferred, and among them those closest
+    to the identity (the identity itself whenever the cells have the same
+    metric).  Returns *None* if none exists.
 
     Reduced reciprocal coordinates then transform as ``k_cell = M @ k_std``.
 
@@ -610,7 +617,14 @@ def find_basis_change(
     rng = range(-max_coeff, max_coeff + 1)
     vecs = np.array([v for v in product(rng, repeat=3) if any(v)], dtype=float)
     norms = np.einsum("ij,jk,ik->i", vecs, G_std, vecs)
-    cands = [vecs[np.abs(norms - G[i, i]) < atol] for i in range(3)]
+    # Candidates for each row, closest to the identity's row first, so that
+    # the identity is returned whenever it is valid (identical cells keep
+    # their special points) and otherwise the change of basis closest to it.
+    eye = np.eye(3)
+    cands = []
+    for i in range(3):
+        c = vecs[np.abs(norms - G[i, i]) < atol]
+        cands.append(c[np.argsort(np.linalg.norm(c - eye[i], axis=1), kind="stable")])
 
     improper = None
     for v0 in cands[0]:
@@ -691,14 +705,39 @@ def lattice_data_for_cell(
     # Any ordering of a, b, c is fine here: get_lattice_data handles the
     # orderings the Setyawan-Curtarolo formulas do not assume.
 
-    std_cell, variant, points, default_path = get_lattice_data(ibrav, params)
-
-    M = find_basis_change(std_cell, cell, rtol=max(10 * symprec, 1e-6))
-    if M is None:
+    # QE has two settings for some families (e.g. ibrav 3 and -3); prefer
+    # the one the cell is in, so that its points keep their tabulated form.
+    # For orthorhombic lattices spglib's order of a, b, c may differ from the
+    # cell's, so the orderings are tried as well.
+    rtol = max(10 * symprec, 1e-6)
+    if ibrav in (8, 9, 10, 11):
+        orderings = [dict(params, a=a_, b=b_, c=c_)
+                     for a_, b_, c_ in sorted(set(permutations((a, b, c))))]
+    else:
+        orderings = [params]
+    # Rank the matches: the cell is exactly a QE cell (2), it has the same
+    # metric as one (1), or it only spans the same lattice (0).
+    identity = np.eye(3, dtype=int)
+    scale = float(np.max(np.linalg.norm(cell, axis=1)))
+    best, best_rank = None, -1
+    for candidate, candidate_params in product(_QE_SETTINGS.get(ibrav, (ibrav,)), orderings):
+        std_cell, variant, points, default_path = get_lattice_data(candidate, candidate_params)
+        M = find_basis_change(std_cell, cell, rtol=rtol)
+        if M is None:
+            continue
+        rank = 0
+        if np.array_equal(M, identity):
+            rank = 2 if np.allclose(std_cell, cell, atol=rtol * scale) else 1
+        if rank > best_rank:
+            best, best_rank = (M, variant, points, default_path), rank
+        if rank == 2:
+            break
+    if best is None:
         raise ValueError(
             f"Could not relate the given cell to the standard ibrav={ibrav} "
             f"cell {params}. Pass ibrav and parameters instead."
         )
 
+    M, variant, points, default_path = best
     points = {label: M @ np.asarray(k, dtype=float) for label, k in points.items()}
     return cell.copy(), variant, points, default_path
