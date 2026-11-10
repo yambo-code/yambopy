@@ -133,7 +133,10 @@ class KPathOptimizer:
             original_length, improvement (%), n_combinations, stars,
             best_indices (index of the chosen member of each point's star;
             0 is the input point), and ``warning`` when brute force fell
-            back to greedy.
+            back to greedy.  ``kpath_frac`` holds the chosen coordinates:
+            each star member is used at its copy (shifted by a reciprocal
+            lattice vector) nearest to the previous point, so the path stays
+            continuous across the zone boundary.
         """
         kpath = [np.asarray(k, dtype=float) for k in kpath_frac]
 
@@ -186,6 +189,72 @@ class KPathOptimizer:
         return result
 
     # ------------------------------------------------------------------
+    # Internal: choosing copies and comparing lengths
+    # ------------------------------------------------------------------
+
+    #: Shifts tried around the rounded difference, (0, 0, 0) first.
+    _SHIFTS = np.array(sorted(itertools.product((-1, 0, 1), repeat=3),
+                              key=lambda v: (sum(abs(x) for x in v), v)), dtype=float)
+
+    def _nearest_image(self, k: np.ndarray, ref: np.ndarray) -> np.ndarray:
+        """
+        Copy of the reduced k-point *k* (shifted by a reciprocal lattice
+        vector) nearest, in Cartesian distance, to the reduced point *ref*.
+        Among equally near copies, the least shifted one (*k* itself if it
+        is one of them).
+        """
+        shifts = np.vstack([np.zeros(3), np.round(ref - k) + self._SHIFTS])
+        candidates = k + shifts
+        distances = np.linalg.norm((candidates - ref) @ self._rlat, axis=1)
+        nearest = np.flatnonzero(~np.array([self._shorter(d, distances.min()) or
+                                            self._shorter(distances.min(), d) for d in distances]))
+        return candidates[nearest[np.argmin(np.abs(shifts[nearest]).sum(axis=1))]]
+
+    @staticmethod
+    def _is_shifted(k: np.ndarray, star_member: np.ndarray) -> bool:
+        """True if *k* is a shifted copy of *star_member*, not the member itself."""
+        return not np.allclose(k, star_member, atol=1e-8)
+
+    def _chain(self, points: list[np.ndarray]) -> list[np.ndarray]:
+        """
+        Keep the first point and replace each next one by its copy nearest
+        to the previous: since each shift only matters relative to the
+        previous point, this minimises every segment, hence the length.
+        """
+        chained = [np.asarray(points[0], dtype=float)]
+        for k in points[1:]:
+            chained.append(self._nearest_image(np.asarray(k, dtype=float), chained[-1]))
+        return chained
+
+    @staticmethod
+    def _shorter(a: float, b: float) -> bool:
+        """
+        True if *a* is shorter than *b* beyond rounding noise, so that
+        (nearly) equal choices keep the first one found.
+        """
+        if not np.isfinite(b):
+            return a < b
+        return a < b - 1e-9 * abs(b) - 1e-15
+
+    def _result(self, chosen: list[np.ndarray], indices: list[int],
+                stars: list[np.ndarray], n_combinations: int) -> dict:
+        """Result dict for the chosen reduced coordinates."""
+        chosen = np.array(chosen, dtype=float)
+        segment_lengths = [
+            kpath_segment_length(chosen[i], chosen[i + 1], self._rlat)
+            for i in range(len(chosen) - 1)
+        ]
+        return {
+            "kpath_frac": chosen,
+            "kpath_cart": chosen @ self._rlat,
+            "segment_lengths": np.array(segment_lengths),
+            "total_length": sum(segment_lengths),
+            "n_combinations": n_combinations,
+            "stars": stars,
+            "best_indices": list(indices),
+        }
+
+    # ------------------------------------------------------------------
     # Internal: brute force search
     # ------------------------------------------------------------------
 
@@ -196,51 +265,69 @@ class KPathOptimizer:
         parallel_segments: bool = True,
     ) -> dict:
         """
-        Exhaustive search over all combinations of equivalent k-points,
-        scoring path length plus, with *parallel_segments*, the
-        segment-length uniformity penalty.
+        Exhaustive search over all combinations of star members, each
+        placed at its copy nearest to the previous point (see
+        :meth:`_chain`), scoring path length plus, with
+        *parallel_segments*, the segment-length uniformity penalty.  Ties
+        keep the combination with the fewest shifted copies.
         """
-        n_points = len(kpath)
-        initial_path = [np.asarray(kpath[i], dtype=float) for i in range(n_points)]
-        best_score = self._path_length(initial_path)
-        if parallel_segments:
-            best_score += self._segment_uniformity_penalty(initial_path)
-
-        best_indices = [0] * n_points
+        best_score = float("inf")
+        best_indices, best_path = None, None
         n_combinations = 0
 
+        best_shifts = None
         for indices in itertools.product(*[range(len(s)) for s in stars]):
             n_combinations += 1
-            current_path = [stars[i][idx] for i, idx in enumerate(indices)]
-            current_length = self._path_length(current_path)
+            members = [stars[i][idx] for i, idx in enumerate(indices)]
+            current_path = self._chain(members)
+            current_score = self._path_length(current_path)
             if parallel_segments:
-                penalty = self._segment_uniformity_penalty(current_path)
-                current_score = current_length + penalty
-            else:
-                current_score = current_length
-            if current_score < best_score:
-                best_score = current_score
-                best_indices = list(indices)
+                current_score += self._segment_uniformity_penalty(current_path)
+            n_shifts = sum(self._is_shifted(k, m) for k, m in zip(current_path, members))
+            tie = best_path is not None and not self._shorter(current_score, best_score) \
+                and not self._shorter(best_score, current_score)
+            if (best_path is None or self._shorter(current_score, best_score)
+                    or (tie and n_shifts < best_shifts)):
+                best_score, best_shifts = current_score, n_shifts
+                best_indices, best_path = list(indices), current_path
 
-        optimized_frac = [stars[i][idx] for i, idx in enumerate(best_indices)]
-        optimized_cart = [frac_to_cart_k(k, self._rlat) for k in optimized_frac]
-        segment_lengths = [
-            kpath_segment_length(optimized_frac[i], optimized_frac[i + 1], self._rlat)
-            for i in range(n_points - 1)
-        ]
-        return {
-            "kpath_frac": np.array(optimized_frac),
-            "kpath_cart": np.array(optimized_cart),
-            "segment_lengths": np.array(segment_lengths),
-            "total_length": sum(segment_lengths),
-            "n_combinations": n_combinations,
-            "stars": stars,
-            "best_indices": best_indices,
-        }
+        return self._result(best_path, best_indices, stars, n_combinations)
 
     # ------------------------------------------------------------------
     # Internal: greedy sequential search
     # ------------------------------------------------------------------
+
+    def _extend_greedily(
+        self,
+        chosen: list[np.ndarray],
+        indices: list[int],
+        stars: list[np.ndarray],
+        parallel_segments: bool,
+    ):
+        """
+        Extend a path (lists *chosen* / *indices*, modified in place) point
+        by point: each next point is the star member whose nearest copy is
+        closest to the previous choice (plus, with *parallel_segments*, the
+        turn penalty); ties prefer an unshifted member, then the lowest index.
+        """
+        for i in range(len(chosen), len(stars)):
+            prev = chosen[-1]
+            prev_cart = prev @ self._rlat
+            best_dist, best_idx, best_k, best_shifted = float("inf"), 0, None, True
+            for j, k_star in enumerate(stars[i]):
+                k = self._nearest_image(np.asarray(k_star, dtype=float), prev)
+                k_cart = k @ self._rlat
+                dist = float(np.linalg.norm(k_cart - prev_cart))
+                if parallel_segments and len(chosen) > 1:
+                    dist += self._turn_penalty(chosen[-2] @ self._rlat, prev_cart, k_cart, dist)
+                shifted = self._is_shifted(k, k_star)
+                tie = best_k is not None and not self._shorter(dist, best_dist) \
+                    and not self._shorter(best_dist, dist)
+                if (best_k is None or self._shorter(dist, best_dist)
+                        or (tie and best_shifted and not shifted)):
+                    best_dist, best_idx, best_k, best_shifted = dist, j, k, shifted
+            chosen.append(best_k)
+            indices.append(best_idx)
 
     def _optimize_kpath_greedy(
         self,
@@ -250,47 +337,11 @@ class KPathOptimizer:
     ) -> dict:
         """
         Greedy sequential optimisation: keep the first point and pick each
-        next one to minimise the segment from the previous choice (plus,
-        with *parallel_segments*, the turn penalty).
+        next one as in :meth:`_extend_greedily`.
         """
-        n_points = len(kpath)
-        best_indices = [0] * n_points
-        for i in range(n_points):
-            if i == 0:
-                best_indices[0] = 0
-                continue
-            prev_k_cart = frac_to_cart_k(stars[i - 1][best_indices[i - 1]], self._rlat)
-            best_dist = float("inf")
-            best_idx = 0
-            for j, k_star in enumerate(stars[i]):
-                k_cart = frac_to_cart_k(k_star, self._rlat)
-                dist = float(np.linalg.norm(k_cart - prev_k_cart))
-                if parallel_segments and i > 1:
-                    prev_prev_k_cart = frac_to_cart_k(
-                        stars[i - 2][best_indices[i - 2]],
-                        self._rlat
-                    )
-                    dist += self._turn_penalty(prev_prev_k_cart, prev_k_cart, k_cart, dist)
-                if j == 0 or dist < best_dist:
-                    best_dist = dist
-                    best_idx = j
-            best_indices[i] = best_idx
-
-        optimized_frac = [stars[i][idx] for i, idx in enumerate(best_indices)]
-        optimized_cart = [frac_to_cart_k(k, self._rlat) for k in optimized_frac]
-        segment_lengths = [
-            kpath_segment_length(optimized_frac[i], optimized_frac[i + 1], self._rlat)
-            for i in range(n_points - 1)
-        ]
-        return {
-            "kpath_frac": np.array(optimized_frac),
-            "kpath_cart": np.array(optimized_cart),
-            "segment_lengths": np.array(segment_lengths),
-            "total_length": sum(segment_lengths),
-            "n_combinations": sum(len(s) for s in stars),
-            "stars": stars,
-            "best_indices": best_indices,
-        }
+        chosen, indices = [np.asarray(stars[0][0], dtype=float)], [0]
+        self._extend_greedily(chosen, indices, stars, parallel_segments)
+        return self._result(chosen, indices, stars, sum(len(s) for s in stars))
 
     # ------------------------------------------------------------------
     # Internal: greedy global search
@@ -304,53 +355,19 @@ class KPathOptimizer:
     ) -> dict:
         """
         Greedy global: start from every member of the first point's star,
-        extend greedily as in :meth:`_optimize_kpath_greedy`, and keep the
-        shortest resulting path.
+        extend greedily as in :meth:`_extend_greedily`, and keep the
+        shortest resulting path (ties keep the first start).
         """
-        n_points = len(kpath)
-        if n_points == 2:
-            return self._optimize_kpath_greedy(kpath, stars, parallel_segments)
-
-        best_indices = None
-        best_length = float("inf")
+        best = None
         for start_idx in range(len(stars[0])):
-            current_indices = [start_idx]
-            current_path = [stars[0][start_idx]]
-            for i in range(1, n_points):
-                prev_k_cart = frac_to_cart_k(current_path[-1], self._rlat)
-                best_local_idx = 0
-                best_local_dist = float("inf")
-                for j in range(len(stars[i])):
-                    k_cart = frac_to_cart_k(stars[i][j], self._rlat)
-                    dist = float(np.linalg.norm(k_cart - prev_k_cart))
-                    if parallel_segments and len(current_path) > 1:
-                        prev_prev_k_cart = frac_to_cart_k(current_path[-2], self._rlat)
-                        dist += self._turn_penalty(prev_prev_k_cart, prev_k_cart, k_cart, dist)
-                    if dist < best_local_dist:
-                        best_local_dist = dist
-                        best_local_idx = j
-                current_indices.append(best_local_idx)
-                current_path.append(stars[i][best_local_idx])
-            current_length = self._path_length(current_path)
-            if current_length < best_length:
-                best_length = current_length
-                best_indices = list(current_indices)
+            chosen, indices = [np.asarray(stars[0][start_idx], dtype=float)], [start_idx]
+            self._extend_greedily(chosen, indices, stars, parallel_segments)
+            length = self._path_length(chosen)
+            if best is None or self._shorter(length, best[0]):
+                best = (length, chosen, indices)
 
-        optimized_frac = [stars[i][idx] for i, idx in enumerate(best_indices)]
-        optimized_cart = [frac_to_cart_k(k, self._rlat) for k in optimized_frac]
-        segment_lengths = [
-            kpath_segment_length(optimized_frac[i], optimized_frac[i + 1], self._rlat)
-            for i in range(n_points - 1)
-        ]
-        return {
-            "kpath_frac": np.array(optimized_frac),
-            "kpath_cart": np.array(optimized_cart),
-            "segment_lengths": np.array(segment_lengths),
-            "total_length": sum(segment_lengths),
-            "n_combinations": len(stars[0]) * sum(len(s) for s in stars[1:]),
-            "stars": stars,
-            "best_indices": best_indices,
-        }
+        n_combinations = len(stars[0]) * sum(len(s) for s in stars[1:])
+        return self._result(best[1], best[2], stars, n_combinations)
 
     # ------------------------------------------------------------------
     # Internal: path and segment helpers

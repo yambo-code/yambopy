@@ -657,9 +657,13 @@ def test_optimise_method_is_used(hex_cell_and_sym):
     common = dict(cell=cell, path_string="GMKGALHA", extra_points=FAR_K, npoints=100, sym_red=sym)
     greedy = BrillouinZone(**common, optimise={"method": "greedy"})
     brute = BrillouinZone(**common, optimise={"method": "brute"})
-    assert brute.optimisation_results[0]["improvement"] > greedy.optimisation_results[0]["improvement"] > 0
-    assert brute.star_indices != greedy.star_indices
-    assert brute.as_dict()["optimise"] == {"method": "brute", "max_combinations": 100000,
+    stars = [len(brute.high_symmetry_points[label]) for label in "GMKGALHA"]
+    # brute force tries every combination of star members, greedy one star at a time
+    assert brute.optimisation_results[0]["n_combinations"] == np.prod(
+        [len(s) for s in brute.optimisation_results[0]["stars"]])
+    assert greedy.optimisation_results[0]["n_combinations"] == sum(
+        len(s) for s in greedy.optimisation_results[0]["stars"])
+    assert stars and brute.as_dict()["optimise"] == {"method": "brute", "max_combinations": 100000,
                                            "parallel_segments": True}
 
 
@@ -712,11 +716,14 @@ def test_optimise_path_reoptimises_from_original_points(hex_cell_and_sym):
     cell, sym = hex_cell_and_sym
     bz = BrillouinZone(cell=cell, path_string="GMKGALHA", extra_points=FAR_K, npoints=100)
     bz.optimise_path(sym, method="brute")
-    brute_indices = [list(section) for section in bz.star_indices]
+    n_brute = bz.optimisation_results[0]["n_combinations"]
     bz.optimise_path(sym, method="greedy")
     fresh = BrillouinZone(cell=cell, path_string="GMKGALHA", extra_points=FAR_K, npoints=100,
                           optimise={"method": "greedy"}, sym_red=sym)
-    assert bz.star_indices == fresh.star_indices != brute_indices
+    assert bz.optimisation_results[0]["n_combinations"] == fresh.optimisation_results[0]["n_combinations"] < n_brute
+    assert bz.star_indices == fresh.star_indices
+    assert {label: len(v) for label, v in bz.high_symmetry_points.items()} == \
+        {label: len(v) for label, v in fresh.high_symmetry_points.items()}
     assert np.allclose(bz.kpoints("car"), fresh.kpoints("car"))
 
 
@@ -874,3 +881,48 @@ def test_cell_argument_is_checked():
         BrillouinZone(4, HEX, cell=get_lattice_data(4, HEX)[0], npoints=20)
     bz = BrillouinZone(4, HEX, path_string="GMKG", npoints=20)
     assert bz.path_string == "GMKG"
+
+
+# -----------------------------------------------------------------------------
+# Optimiser: shifted copies and ties
+# -----------------------------------------------------------------------------
+
+@pytest.mark.parametrize("parameters", [HEX, {"a": 4.7, "c": 12.0}], ids=["a3-c5", "a4.7-c12"])
+@pytest.mark.parametrize("method", ["greedy", "greedy_global", "brute"])
+def test_optimiser_reaches_the_shortest_path(method, parameters):
+    # With a=4.7, c=12 the old greedy search was misled by a rounding-level tie
+    cell = get_lattice_data(4, parameters)[0]
+    sym = hexagonal_sym_red(cell)
+    bz = BrillouinZone(cell=cell, path_string="GMKG", extra_points=FAR_K, npoints=60,
+                       optimise={"method": method}, sym_red=sym)
+    G, M = (np.asarray(bz.high_symmetry_points[x][0]) @ bz.rcell for x in "GM")
+    corner = 2 / 3 * np.linalg.norm(bz.rcell[1]) * np.sqrt(3) / 2  # |Gamma-K| of the hexagon
+    shortest = np.linalg.norm(M - G) + corner / 2 + corner         # G-M, M-K (half an edge), K-G
+    assert bz.special_kpoints_distances(True)[-1] == pytest.approx(shortest, rel=1e-6)
+    # The path closes at the original Gamma, and K is an unshifted star member
+    path = bz.special_kpoints("red", True)
+    assert np.allclose(path[0], 0) and np.allclose(path[-1], 0)
+    assert np.allclose(path[2], [1 / 3, 1 / 3, 0])
+
+
+def test_optimiser_ties_are_not_decided_by_rounding(hex_cell_and_sym):
+    from yambopy.bz.kpath_optimizer import KPathOptimizer, get_star_of_k
+
+    cell, sym = hex_cell_and_sym
+    opt = KPathOptimizer(np.linalg.inv(cell.T), sym)
+    stars = [get_star_of_k(k, opt.sym) for k in ([0, 0, 0], [0.5, 0, 0])]
+    # The three M's are equally far from Gamma (up to rounding): keep the first
+    result = opt._optimize_kpath_greedy(None, stars, parallel_segments=False)
+    assert result["best_indices"] == [0, 0]
+
+
+def test_nearest_image_prefers_the_unshifted_point(hex_cell_and_sym):
+    from yambopy.bz.kpath_optimizer import KPathOptimizer
+
+    cell, sym = hex_cell_and_sym
+    opt = KPathOptimizer(np.linalg.inv(cell.T), sym)
+    K = np.array([2 / 3, -1 / 3, 0])
+    # Gamma and its copy (1, 0, 0) are equally far from K: keep Gamma itself
+    assert np.allclose(opt._nearest_image(np.zeros(3), K), 0)
+    # From near (1, 0, 0), the copy there is clearly nearer
+    assert np.allclose(opt._nearest_image(np.zeros(3), np.array([0.9, 0.0, 0])), [1, 0, 0])

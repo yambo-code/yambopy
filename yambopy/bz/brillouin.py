@@ -145,12 +145,15 @@ class BrillouinZone:
     variant : str
         Setyawan-Curtarolo lattice variant (e.g. ``'HEX'``, ``'ORCF1'``).
     high_symmetry_points : dict[str, list]
-        For each label, the star of the special point (a single entry
-        unless the path was optimised); the first member is the original.
+        For each label, the special point (a single entry), or, once the
+        path is optimised, its star (first member: the original point)
+        followed by any copies, shifted by a reciprocal lattice vector,
+        that the optimised path uses.
     path_sections : list[list[str]]
         Labels of each comma-separated section of the path.
     star_indices : list[list[int]]
-        Member of the star used for each point of each section.
+        Entry of ``high_symmetry_points[label]`` used for each point of
+        each section.
     path_string, default_path : str
         Normalised path, and the lattice's default path.
     intervals : list[int]
@@ -184,6 +187,7 @@ class BrillouinZone:
         self.cell = None
         self.high_symmetry_points = {}
         self.optimisation_results = None
+        self._star_sizes: dict[str, int] = {}
 
         options = _optimise_options(optimise)
         if cell is not None:
@@ -334,10 +338,14 @@ class BrillouinZone:
         :class:`~yambopy.bz.kpath_optimizer.KPathOptimizer`, and rebuild
         the k-points.
 
-        Each comma-separated section is optimised independently.  The
-        choices are stored in :attr:`star_indices` and each special point
-        in :attr:`high_symmetry_points` becomes its star (first member: the
-        original point).  The k-points are re-interpolated as the zone was
+        Each comma-separated section is optimised independently.  Each star
+        member is considered at its copy (shifted by a reciprocal lattice
+        vector) nearest to the previous point, so the optimised path stays
+        continuous across the zone boundary; ties between equally short
+        choices keep unshifted points and the original order.  Each special
+        point in :attr:`high_symmetry_points` becomes its star (first
+        member: the original point) followed by any shifted copies the path
+        uses, and :attr:`star_indices` records the entry used.  The k-points are re-interpolated as the zone was
         built (*npoints*, *density* or *intervals*), and the options are
         recorded so that :meth:`as_dict` / :meth:`from_dict` reproduce the
         optimised zone.  Calling it again re-optimises from the original
@@ -404,20 +412,38 @@ class BrillouinZone:
             )
             if "warning" in result:
                 warnings.warn(f"Path section {''.join(section)!r}: {result['warning']}", stacklevel=3)
-            self.star_indices[i] = result["best_indices"]
             results.append(result)
 
-        for section in self.path_sections:
-            for label in section:
-                self.high_symmetry_points[label] = get_star_of_k(self.high_symmetry_points[label][0], opt.sym)
+        # Each point becomes its star (first member: the original point).
+        self._star_sizes = {}
+        for label in {label for section in self.path_sections for label in section}:
+            self.high_symmetry_points[label] = list(
+                get_star_of_k(self.high_symmetry_points[label][0], opt.sym)
+            )
+            self._star_sizes[label] = len(self.high_symmetry_points[label])
+
+        # The optimiser may use a star member shifted by a reciprocal lattice
+        # vector (to keep the path continuous): record the exact coordinates,
+        # appending such copies after the star members.
+        for i, (section, result) in enumerate(zip(self.path_sections, results)):
+            indices = []
+            for label, k in zip(section, result["kpath_frac"]):
+                copies = self.high_symmetry_points[label]
+                match = next((n for n, c in enumerate(copies) if np.allclose(c, k, atol=1e-8)), None)
+                if match is None:
+                    copies.append(np.asarray(k, dtype=float))
+                    match = len(copies) - 1
+                indices.append(match)
+            self.star_indices[i] = indices
 
         self.optimisation_results = results
 
     def print_optimisation_info(self):
         """
         Print, for each special point of the path, its coordinates and,
-        when the optimisation chose another member of its star, the
-        original and chosen coordinates (reduced) and the star index.
+        when the optimisation chose another point (a star member or a
+        shifted copy), the original and chosen coordinates (reduced) and the
+        index of the choice in ``high_symmetry_points[label]``.
         """
         print('Path:')
         for i, section in enumerate(self.path_sections):
@@ -434,7 +460,8 @@ class BrillouinZone:
                 if index != 0:
                     print(f"Original coordinates (red): {np.round(rcoords, 4)}")
                     print(f"Optimized coordinates (red): {np.round(rcoords_idx, 4)}")
-                    print(f"Corresponding star: {index}")
+                    kind = "star member" if index < self._star_sizes.get(label, index + 1) else "shifted copy"
+                    print(f"Chosen entry: {index} ({kind})")
                 else:
                     print(f"Coordinates (red): {np.round(rcoords, 4)}")
 
