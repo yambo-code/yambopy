@@ -35,6 +35,11 @@ class ConvertElectronPhononDB():
     - ph. energies [units]
     - ph. eigenvectors
     - el-ph mat. elements
+
+    *NB*: el-ph mat. elements are stored as <nk|d_a V(q)|mk-q>, so 
+          they are *NOT* divided by energies.
+          (Thus, if OBJ is `LetzElphElectronPhononDB`, it should be 
+           instanced with `div_by_energies=False`)
     """
     def __init__(self,OBJ,code,SAVE_path,OUT_path=None):
         """

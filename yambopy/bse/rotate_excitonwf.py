@@ -7,7 +7,7 @@ from yambopy.tools.citations import citation
 
 
 @func_profile
-@citation("M. Nalabothula et al. arXiv:2511.21540 (2025)")
+@citation("M. Nalabothula et al.: Phys. Rev. B 113, 205130 (2026)")
 def rotate_exc_wf(Ak, symm_mat_red, kpoints, exe_qpt, dmats, time_rev, ktree=None):
     """
     Rotate the exciton wavefunction Ak using symmetry operations.
@@ -16,7 +16,7 @@ def rotate_exc_wf(Ak, symm_mat_red, kpoints, exe_qpt, dmats, time_rev, ktree=Non
     which is represented in the basis of electronic states. The rotation is
     performed using the symmetry matrix in reduced coordinates and the
     corresponding representation matrices.
-    Implements Eq. (49) of M. Nalabothula et al. arXiv:2511.21540 (2025)
+    Implements Eq. (49) of M. Nalabothula et al.: Phys. Rev. B 113, 205130 (2026)
 
     Parameters
     ----------

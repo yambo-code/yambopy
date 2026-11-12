@@ -175,6 +175,36 @@ def get_radiative_lifetime_2D(T,state,ylat,ydip,yexc,Meff,eps=1,dip_dir=[1,1,0],
     return 1/(prefactor*gamma0_factor*T_factor)   # seconds
 
 @citation("H.-Y. Chen et al. Phys. Rev. B 100, 075135 (2019)")
+def get_intrinsic_radiative_lifetime_2D(state,ylat,ydip,yexc,eps=1,dip_dir=[1,1,0],shiftE=0):
+    """
+        Function to compute the intrtinsic radiative lifetime of a single exciton state for 2D materials.
+
+        Input
+            * state:    index of the exciton state. Python convention (indices starting from 0)
+            * ylat:     lattice database, YamboLatticeDB
+            * ydip:     dipoles database, YamboDipolesDB
+            * yexc:     BSE database, YamboExcitonDB
+            * eps:      environment dielectric constant. Default: eps=1, vacuum.
+            * dip_dir:  orientation of the dipole moments. Default: [1,1,0] in the xy plane.
+            * shiftE:   rigid shift of exciton energies. Default: shift=0 eV
+
+        Output
+            * Radiative lifetime of exciton state in seconds
+    """
+    if eps !=1 : print("[WARNING] Setting eps/=1 for 2D system")
+
+    lat = ylat.lat
+    A = np.cross(lat[0],lat[1])[2] # Bohr**2
+
+    muS2 = get_exciton_dipole(state,dip_dir,ylat,ydip,yexc) # Bohr**2
+    ES = np.real(yexc.eigenvalues[state])+shiftE # eV
+    
+    gamma0_factor = (ES/ha2ev)*muS2/(eps*A)
+    prefactor = 4*np.pi/speed_of_light/autime2s
+
+    return 1/(prefactor*gamma0_factor)   # seconds
+
+
 def get_radiative_lifetime_1D(T,state,ylat,ydip,yexc,Meff,eps=1,dip_dir=[0,0,1],shiftE=0):
     """
         Function to compute the radiative lifetime tau_S(T) of a single exciton state for 1D materials.

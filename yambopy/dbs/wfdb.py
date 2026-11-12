@@ -531,11 +531,11 @@ class YamboWFDB:
 
 
     @func_profile
-    @citation("M. Nalabothula et al. arXiv:2511.21540 (2025)")
+    @citation("M. Nalabothula et al.: Phys. Rev. B 113, 205130 (2026)")
     def Dmat(self, symm_mat=None, frac_vec=None, time_rev=None):
         """
         Computes the symmetry-adapted matrix elements < Rk | U(R) | k >.
-        Implements Eq. 5 of M Nalabothula et al. arXiv:2511.21540.
+        Implements Eq. 5 of M. Nalabothula et al.: Phys. Rev. B 113, 205130 (2026).
 
         Parameters
         ----------
