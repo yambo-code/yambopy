@@ -19,7 +19,21 @@ from abc import ABC,abstractmethod
 # Template class
 #
 class Xn_from_signal(ABC):
-    def __init__(self,nldb,X_order=4,T_range=[-1, -1],l_out_current=False,nsamp=-1,samp_mod='',solver='',tol=1e-10,debug_mode=False): 
+    def __init__(self,nldb,X_order=4,T_range=[-1, -1],l_out_current=False,nsamp=-1,samp_mod='',solver='',tol=1e-10,debug_mode=False,
+                 current_type='berry'):
+        """
+        current_type (used only with l_out_current=True), length gauge:
+           'berry'   : NL_J(1:3), Berry-phase current of Souza et al. PRB 69, 085106 (finite differences in k
+                       of the time-dependent valence states, NL_Berry_current.F)
+           'dipoles' : NL_J(4:6), J = Tr[rho v] with the velocity matrix elements DIP_v (no k-derivative).
+                       Recommended for the DC (order 0, shift current): on coarse grids the k-derivative of
+                       the resonant first-order states makes the Berry DC current converge very slowly.
+        """
+        CURRENT_TYPES = {'berry':0, 'dipoles':3}
+        if current_type not in CURRENT_TYPES:
+            raise ValueError(f"Invalid current_type. Expected one of: {list(CURRENT_TYPES)}")
+        self.current_type = current_type
+        self.i_curr0 = CURRENT_TYPES[current_type]   # first row of NL_J_t (6 rows: berry x,y,z, dipoles x,y,z)
         self.time = nldb.IO_TIME_points # Time series
         self.T_step =self.time[1] - self.time[0]     # Time step of the simulation
         self.T_deph =12.0/nldb.NL_damping 
@@ -70,7 +84,7 @@ class Xn_from_signal(ABC):
             s+="User time range      : "+str(self.T_urange)+" [au] \n"
         s+="Frequency range: ["+str(self.freqs[0])+","+str(self.freqs[-1])+"] [au] \n"
         if  self.l_out_current:
-            s+="Output is set to current."
+            s+="Output is set to current ("+self.current_type+")."
         else:
             s+="Output is set to polarization."
         return s
@@ -107,7 +121,7 @@ class Xn_from_signal(ABC):
             i_t = np.random.uniform(i_t_start,int(np.round(t / self.T_step)), self.nsamp)
         T_i = i_t*self.T_step - self.efield["initial_time"] 
         if self.l_out_current:
-            S_i = np.array([self.current[ifrq][idir,i] for i in i_t])
+            S_i = np.array([self.current[ifrq][idir+self.i_curr0,i] for i in i_t])
         else:
             S_i = np.array([self.polarization[ifrq][idir,i] for i in i_t]) 
         return T_i,S_i
