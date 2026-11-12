@@ -198,7 +198,7 @@ SIG.output_analysis(OUT)
 ```
 ### Example 2: Monochromatic external field. Shift-current from current.
 
-For one monochromatic external field, the `Xn_from_sine` class is instantiated. Here, the default for `l_out_current` is overwritten and set to `True`.  This means that the current, rather than the polarization is analysed.  Note that the `yambo_nl` run must output the current together with polarization. The output of `perform_analysis` is passed  to `output_analysis` that outputs ` o-DBs.YamboPy-Sigma_probe_order_?` (shift current is in the `o-DBs.YamboPy-X_probe_order_0` ), and to `reconstruct_signal` that outputs the files `o-DBs.YamboPy-curr_reconstructed_F*` 
+For one monochromatic external field, the `Xn_from_sine` class is instantiated. Here, the default for `l_out_current` is overwritten and set to `True`.  This means that the current, rather than the polarization is analysed.  Note that the `yambo_nl` run must output the current together with polarization. The output of `perform_analysis` is passed  to `output_analysis` that outputs ` o-DBs.YamboPy-Sigma_probe_order_?` (shift current is in the `o-DBs.YamboPy-Sigma_probe_order_0`; see the note below on its normalisation), and to `reconstruct_signal` that outputs the files `o-DBs.YamboPy-curr_reconstructed_F*` 
 
 ```python
 NLDB=YamboNLDB(calc="DBs")
@@ -208,6 +208,8 @@ SIG.output_analysis(OUT)
 SIG.reconstruct_signal(OUT)
 ```
 ### Example 3: Frequency mixing. Sum/difference of frequencies.
+
+**Normalisation of the zero-frequency (DC) term.** With ${\bf E}(t)=E_0\sin(\omega t)$, i.e. $E(\omega)=iE_0/2$, the orders $n\geq1$ are divided by $E(\omega)^n$ (factor $(-2i/E_0)^n$), so that $P(n\omega)=\chi^{(n)}E(\omega)^n$. The order $0$ is multiplied by $-4/E_0^2$, i.e. $S_0=-J_{\rm DC}/|E(\omega)|^2$. In the usual convention for the shift current (Sipe and Shkrebtii; Ibañez-Azpiroz *et al.*, PRB 97, 245143 (2018); the `nl_response` sum-over-states code of Lumen), $J_{\rm DC}=\sigma(0;\omega,-\omega)E(\omega)E(-\omega)+\sigma(0;-\omega,\omega)E(-\omega)E(\omega)=2\sigma|E(\omega)|^2$. Hence `o-DBs.YamboPy-Sigma_probe_order_0` contains $-2\sigma$: multiply it by $-1/2$ to compare with those results.
 
 For two monochromatic external fields, the `Xn_from_freqmix` class is instantiated. Here, the default for the lower limit`T_range` is overwritten and set to `50 fs`.  The output of `perform_analysis` is passed  to `output_analysis` that in turn outputs `o-DBs.YamboPy-X_probe_order_?_?`  each containing the $\chi^{(|n|+|m|)} (-\omega_\sigma; n\omega_1, m\omega_2 )$. The sum/difference of frequencies is given for $n,m=1$ (`o-DBs.YamboPy-X_probe_order_1_1`) and $n=1, m=-1$ (`o-DBs.YamboPy-X_probe_order_1_-1`).  
 

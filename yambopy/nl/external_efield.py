@@ -15,7 +15,23 @@ def get_Efield_w(freqs,efield):
 
     
 def Divide_by_the_Field(efield,order):
-    
+    """
+    Factor that turns the harmonic X_n of the signal into the response function.
+
+    SIN / SOFTSIN field:  E(t) = E0 sin(w t),  i.e.  E(w) = i E0/2 (coefficient of e^{-iwt}).
+    The signal is fitted as  S(t) = X_0 + sum_{n>0} [ X_n e^{-inwt} + c.c. ].
+
+    order n >= 1 :  X_n = chi^(n)(-nw; w,...,w) E(w)^n   ->  factor (-2i/E0)^n
+                    (same convention as Lumen SOS: P(2w) = chi E(w)E(w), J(nw) = sigma E(w)^n)
+
+    order 0      :  factor -4/E0^2, i.e.  S_0 = -X_0/[E(w)E(-w)] = -J_DC/|E(w)|^2 .
+                    In the convention of Sipe-Shkrebtii, of Ibanez-Azpiroz et al. PRB 97, 245143
+                    (2018) and of the Lumen shift current (nl_response/Shift_Current.F),
+                        J_DC = sigma(0;w,-w) E(w)E(-w) + sigma(0;-w,w) E(-w)E(w) = 2 sigma |E(w)|^2 ,
+                    so that   S_0 = -2 sigma .
+                    To compare with Shift_Current.F (electron charge -e, same sign as the
+                    real-time current) multiply the order-0 output by -1/2.
+    """
     if efield['name']=='SIN' or efield['name']=='SOFTSIN':
         if order !=0:
             divide_by_field=np.power(-2.0*1.0j/efield['amplitude'],order,dtype=np.cdouble)
