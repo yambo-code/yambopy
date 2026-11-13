@@ -129,7 +129,14 @@ class Xn_from_pulse(Xn_from_signal):
             run_info = self.append_runinfo(T)
             if (to_file):
                 output_file = f'o{self.prefix}.YPy-X_order_{i_n}_{i_p}'
-                header = "E[eV] " + " ".join([f"X{i_n}({i_p}w)/Im({d}) X{i_n}({i_p}w)/Re({d})" for d in ('x','y','z')])
+                qlabel = f"X{i_n}({i_p}w)"
+                desc = ["YamboPy: nonlinear response from a real-time simulation (Lumen / yambo_nl)",
+                        f"Quantity    : response of order {i_n} at frequency {i_p} w (pulse analysis), "
+                        f"chi^({i_n})(-{i_p}w; w,...,w,-w,...,-w) with {i_n-i_m} times +w and {i_m} times -w",
+                        f"Field       : {self.efield['name']}, versor {np.round(np.asarray(self.efield['versor'],dtype=float),4).tolist()}",
+                        f"Units       : {self.response_units(i_n)}",
+                        "Normalization: per unit volume of the simulation cell"]
+                header = self.make_header(desc,qlabel)
                 values = np.column_stack((self.freqs * ha2ev, out[ii, :, 0].imag, out[ii, :, 0].real,
                                 out[ii, :, 1].imag, out[ii, :, 1].real,
                                 out[ii, :, 2].imag, out[ii, :, 2].real))

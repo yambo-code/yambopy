@@ -90,7 +90,15 @@ class Xn_from_freqmix(Xn_from_signal):
             for i_c,(i_n,i_m) in enumerate(itertools.product(range(-NX, NX+1),range(-MX, MX+1))):
                 output_file = f'o{self.prefix}.YamboPy-X_probe_order_{i_n}_{i_m}'
                 iorder = (i_n+i_m,i_n,i_m)
-                header = "E[eV] " + " ".join([f"X{iorder}/Im_{d} X{iorder}/Re_{d}" for d in ('x','y','z')])
+                qlabel = f"X({i_n},{i_m})"
+                desc = ["YamboPy: nonlinear response from a real-time simulation (Lumen / yambo_nl)",
+                        f"Quantity    : frequency-mixing component at {i_n} w_probe {'+' if i_m>=0 else '-'} {abs(i_m)} w_pump "
+                        f"(total order {abs(i_n)+abs(i_m)}), divided by E_probe(w)^|{i_n}| E_pump^|{i_m}|",
+                        f"Pump        : {self.pump_freq*ha2ev:.6f} eV",
+                        f"Probe field : E(t) = E0 sin(w t), versor {np.round(np.asarray(self.efield['versor'],dtype=float),4).tolist()}",
+                        f"Units       : {self.response_units(abs(i_n)+abs(i_m))}",
+                        "Normalization: per unit volume of the simulation cell"]
+                header = self.make_header(desc,qlabel)
                 values = np.column_stack((self.freqs * ha2ev, out[i_c, :, 0].imag, out[i_c, :, 0].real,
                         out[i_c, :, 1].imag, out[i_c, :, 1].real,
                         out[i_c, :, 2].imag, out[i_c, :, 2].real))

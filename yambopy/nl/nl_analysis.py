@@ -13,6 +13,7 @@ from tqdm import tqdm
 from scipy.optimize import least_squares
 import sys
 import os
+import datetime
 from abc import ABC,abstractmethod
 #
 #
@@ -34,6 +35,7 @@ class Xn_from_signal(ABC):
             raise ValueError(f"Invalid current_type. Expected one of: {list(CURRENT_TYPES)}")
         self.current_type = current_type
         self.i_curr0 = CURRENT_TYPES[current_type]   # first row of NL_J_t (6 rows: berry x,y,z, dipoles x,y,z)
+        self.nldb = nldb                # kept for the description of the simulation in the output files
         self.time = nldb.IO_TIME_points # Time series
         self.T_step =self.time[1] - self.time[0]     # Time step of the simulation
         self.T_deph =12.0/nldb.NL_damping 
@@ -188,20 +190,136 @@ class Xn_from_signal(ABC):
     def reconstruct_signal(self,out,to_file):
         pass
 
+    # ------------------------------------------------------------------
+    # Description of the output files (header) and of the simulation (footer)
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _order_name(n):
+        names={0:"DC / rectification (order 0)",1:"linear response (order 1)",2:"second harmonic (order 2)",
+               3:"third harmonic (order 3)"}
+        return names.get(n,f"harmonic of order {n}")
+
+    def response_units(self,n):
+        """Units of the order-n output, consistent with get_Unit_of_Measure."""
+        if self.l_out_current:
+            if n==0: return "A/V^2"
+            if n==1: return "S/m (= A/m^2 / (V/m))"
+            return f"A/m^2 / (V/m)^{n}"
+        if n==0: return "esu (cm/statV)"
+        if n==1: return "dimensionless (a.u.)"
+        if n==2: return "esu (cm/statV)"
+        return f"esu (cm/statV)^{n-1}"
+
+    def response_description(self,n):
+        """Name, definition and notes of the response function extracted at order n (one monochromatic field)."""
+        v=np.asarray(self.efield["versor"],dtype=float)
+        vlab=self._versor_label(v)
+        if self.l_out_current:
+            src=f"current J(t) ({self.current_type} current: " + \
+                ("NL_J(1:3), Berry-phase/length-gauge current" if self.current_type=='berry' else "NL_J(4:6), Tr[rho v] with the dipoles DIP_v") + ")"
+            if n==0:
+                name="sigma^(2)(0;w,-w) - DC photocurrent (shift + injection-type, bulk photovoltaic)"
+                defi="J_DC = sigma(0;w,-w)E(w)E(-w) + sigma(0;-w,w)E(-w)E(w) = 2 sigma |E(w)|^2"
+                note=["Output S_0 = -J_DC/|E(w)|^2 = -2 sigma (factor -4/E0^2, see Divide_by_the_Field):",
+                      "multiply by -1/2 to get sigma in the convention of Lumen nl_response (Shift_Current.F)."]
+            elif n==1:
+                name="sigma^(1)(w) - linear optical conductivity"; defi="J(w) = sigma(w) E(w)"; note=[]
+            elif n==2:
+                name="sigma^(2)(-2w;w,w) - second-harmonic current"; defi="J(2w) = sigma(-2w;w,w) E(w)E(w)"; note=[]
+            else:
+                name=f"sigma^({n})(-{n}w;w,...,w) - harmonic current of order {n}"; defi=f"J({n}w) = sigma E(w)^{n}"; note=[]
+        else:
+            src="polarization P(t) (Berry-phase polarization, NL_P)" if not self.nldb.l_use_DIPOLES else "polarization P(t) (from the dipoles)"
+            if n==0:
+                name="chi^(2)(0;w,-w) - optical rectification"
+                defi="P_DC = chi(0;w,-w)E(w)E(-w) + chi(0;-w,w)E(-w)E(w) = 2 chi |E(w)|^2"
+                note=["Output X_0 = -P_DC/|E(w)|^2 = -2 chi (factor -4/E0^2, see Divide_by_the_Field)."]
+            elif n==1:
+                name="chi^(1)(w) - linear susceptibility"; defi="P(w) = chi(w) E(w)"
+                note=["Dielectric function: eps(w) = 1 + 4 pi chi(w)."]
+            elif n==2:
+                name="chi^(2)(-2w;w,w) - second-harmonic generation (SHG)"; defi="P(2w) = chi(-2w;w,w) E(w)E(w)"
+                note=["1 esu (cm/statV) = 4.189e-4 m/V = 4.189e8 pm/V  (SI chi = 4 pi/(3e4) x esu)."]
+            elif n==3:
+                name="chi^(3)(-3w;w,w,w) - third-harmonic generation (THG)"; defi="P(3w) = chi(-3w;w,w,w) E(w)^3"; note=[]
+            else:
+                name=f"chi^({n})(-{n}w;w,...,w) - harmonic of order {n}"; defi=f"P({n}w) = chi E(w)^{n}"; note=[]
+        lines=[ "YamboPy: nonlinear response from a real-time simulation (Lumen / yambo_nl)",
+                f"Quantity    : {name}",
+                f"Definition  : {defi}",
+                f"Field       : E(t) = E0 sin(w t) e_v, E(w) = i E0/2 (coefficient of e^(-iwt)), e_v = {vlab}",
+                f"Signal      : {src}",
+                f"Tensor      : column 'a' is the Cartesian component a of the response to the field along e_v,",
+                f"              i.e. the tensor element (a; v,...,v), e.g. X^(2)_a = chi^(2)_(a v v)",
+                f"Units       : {self.response_units(n)}" ]
+        lines.append("Normalization: per unit volume of the simulation cell (2D systems: rescale by L_z/t_eff)")
+        for x in note: lines.append("Note        : "+x)
+        return lines
+
+    @staticmethod
+    def _versor_label(v):
+        lab=[c for c,x in zip('xyz',v) if abs(x)>1e-6]
+        if len(lab)==1 and abs(abs(v['xyz'.index(lab[0])])-1)<1e-6: return f"{lab[0]} {np.round(v,4).tolist()}"
+        return str(np.round(v,4).tolist())
+
+    def make_header(self,description,qlabel):
+        """Header for np.savetxt: description lines, column list and the column-name line."""
+        cols=["Columns:","   1  E [eV]   photon energy of the field (hbar w)"]
+        ic=2
+        for d in ('x','y','z'):
+            cols.append(f"  {ic:2d}  Im {qlabel}_{d}"); ic+=1
+            cols.append(f"  {ic:2d}  Re {qlabel}_{d}"); ic+=1
+        names="E[eV] "+" ".join([f"Im({qlabel}_{d}) Re({qlabel}_{d})" for d in ('x','y','z')])
+        return "\n".join(description+[""]+cols+["",names])
+
     def append_runinfo(self,T):
-        s = "# Field details:"
-        s+= "# Type field            "+str(self.efield["name"])+"\n"
-        s+= "# Field intensity       "+str(self.efield["intensity"])+"\n"
-        s+= "# Field versor          "+str(self.efield["versor"])+"\n"
-        if self.efield["name"]=='QSSIN':
-            s+= "Centre Gaussian     "+str(self.T0/fs2aut)+"[fs] \n"
-            s+= "Gaussian sigma      "+str(self.sigma/fs2aut)+"[fs] \n"
-        s+= "# Analysis details:"
-        s+="# Max harmonic order   : "+str(self.X_order)+"\n"
-        s+="# Sampling mode        : "+str(self.samp_mod) +"\n"
-        s+="# Solver               : "+str(self.solver)+"\n"
-        s+="# Sampling points      : "+str(self.nsamp)+"\n"
-        s+="# Start sampling time  : "+str(T/fs2aut)+" [fs] \n"
+        """Footer: simulation and analysis parameters."""
+        nl=self.nldb
+        def fld(e,tag):
+            s =f"# {tag}\n"
+            s+=f"#   Type                  : {e['name']}\n"
+            s+=f"#   Intensity [a.u.]      : {e['intensity']:.6e}\n"
+            s+=f"#   Amplitude E0          : {e['amplitude']:.6e} [a.u.]  = {e['amplitude']*AU2VMm1:.6e} [V/m]\n"
+            s+=f"#   Versor                : {np.round(np.asarray(e['versor'],dtype=float),6).tolist()}\n"
+            s+=f"#   Frequency (1st run)   : {e['freq_range'][0]*ha2ev:.6f} [eV]\n"
+            s+=f"#   Initial time          : {e['initial_time']/fs2aut:.4f} [fs]\n"
+            if e['name'] in ('QSSIN','GAUSS','PULSE','SPULSE'):
+                s+=f"#   Width/damping         : {e['damping']/fs2aut:.4f} [fs]\n"
+            return s
+        s ="#\n# ===================== Simulation parameters (ndb.Nonlinear) =====================\n"
+        s+=f"# Database                : {nl.nl_path}\n"
+        s+=f"# Gauge                   : {nl.Gauge}\n"
+        s+=f"# Correlation             : {nl.Correlation}\n"
+        s+=f"# Integrator              : {nl.Integrator}\n"
+        s+=f"# Bands                   : {list(np.asarray(nl.RT_bands).tolist())}\n"
+        s+=f"# Damping (dephasing)     : {nl.NL_damping*ha2ev:.6f} [eV]\n"
+        rad = "= dephasing" if nl.RAD_LifeTime<=0 else f"{nl.RAD_LifeTime/fs2aut:.4f} [fs]"
+        s+=f"# Radiative life-time     : {rad}\n"
+        s+=f"# Time step               : {nl.RT_step/fs2aut:.6f} [fs]\n"
+        s+=f"# Time steps / total time : {nl.NE_steps} / {nl.NE_steps*nl.RT_step/fs2aut:.4f} [fs]\n"
+        if nl.n_frequencies>0:
+            s+=f"# Frequencies             : {nl.n_frequencies} in [{nl.NL_er[0]*ha2ev:.4f}, {nl.NL_er[1]*ha2ev:.4f}] [eV]\n"
+        if nl.n_angles>0:
+            s+=f"# Angles                  : {nl.n_angles}\n"
+        s+=f"# Use dipoles (no Berry)  : {nl.l_use_DIPOLES}\n"
+        s+=f"# Force 2nd order k-deriv.: {nl.l_force_SndOrd}\n"
+        s+=f"# Current evaluated       : {nl.l_eval_CURRENT}\n"
+        if nl.Correlation not in ('IPA',):
+            s+=f"# G-vectors Hartree / Sx  : {nl.QP_ng_SH} / {nl.QP_ng_Sx}\n"
+        s+=fld(self.efield,"Probe field")
+        for i_p,e in enumerate(self.pumps):
+            if e['name']!='none': s+=fld(e,f"Pump field {i_p+1}")
+        s+="# ========================== Analysis parameters ==========================\n"
+        s+=f"# Analysis                : {type(self).__name__}\n"
+        s+=f"# Signal                  : {'current ('+self.current_type+')' if self.l_out_current else 'polarization'}\n"
+        s+=f"# Max harmonic order      : {self.X_order}\n"
+        s+=f"# Sampling mode           : {self.samp_mod}\n"
+        s+=f"# Solver                  : {self.solver}\n"
+        s+=f"# Sampling points         : {self.nsamp}\n"
+        s+=f"# Start sampling time     : {T/fs2aut:.4f} [fs]\n"
+        if self.T_urange!=[-1, -1]:
+            s+=f"# User time range         : {self.T_urange} [a.u.]\n"
+        s+=f"# Written                 : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
         return s
         
 

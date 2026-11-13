@@ -45,7 +45,7 @@ class Xn_from_sine(Xn_from_signal):
             return T_range
         
         def update_time_range(self,T_period): # not sure if this is a general or specific method - let it here for the moment
-            T_range = self.T_urange
+            T_range = list(self.T_urange)   # copy: the user range must not be overwritten by the first frequency
             out_of_bounds = False
             if T_range[0] <= 0.0:
                 T_range[0] = self.time[-1] - T_period
@@ -54,9 +54,9 @@ class Xn_from_sine(Xn_from_signal):
             else:
                 T_range[1] = self.time[-1]                
             if T_range[1] > self.time[-1]:
-                T_range[1] = slef.time[-1]
+                T_range[1] = self.time[-1]
                 T_range[0] = T_range[1] - T_period
-                out_of_bound = True
+                out_of_bounds = True
             return T_range, out_of_bounds
 
         def define_matrix(self,T_i,ifrq):
@@ -83,20 +83,22 @@ class Xn_from_sine(Xn_from_signal):
                 run_info = self.append_runinfo(T)
                 if (to_file):
                     output_file = f'o{self.prefix}.YamboPy-X_probe_order_{i_order}'
-                    header = "E[eV] " + " ".join([f"X{i_order}/Im({d}) X{i_order}/Re({d})" for d in ('x','y','z')])
+                    qlabel = f"X{i_order}"
                     if self.l_out_current:
                         output_file = f'o{self.prefix}.YamboPy-Sigma_probe_order_{i_order}'
-                        header = "E[eV] " + " ".join([f"S{i_order}/Im({d}) S{i_order}/Re({d})" for d in ('x','y','z')])
+                        qlabel = f"S{i_order}"
+                    header = self.make_header(self.response_description(i_order),qlabel)
                     values = np.column_stack((self.freqs * ha2ev, out[i_order, :, 0].imag, out[i_order, :, 0].real,
                                       out[i_order, :, 1].imag, out[i_order, :, 1].real,
                                       out[i_order, :, 2].imag, out[i_order, :, 2].real))
-                    np.savetxt(output_file, values, header=header, delimiter=' ', footer="Harmonic analysis results")
+                    np.savetxt(output_file, values, header=header, delimiter=' ', footer="Harmonic analysis (monochromatic field)")
                     outf = open(output_file, "a")
                     outf.writelines(run_info)
                     outf.close()
                 else:
                     print(run_info)
-                    return (self.freqs, out)
+            if not to_file:
+                return (self.freqs, out)
 
         def reconstruct_signal(self,out,to_file=True):
             Seff = np.zeros((self.n_runs, 3, len(self.time)), dtype=np.cdouble)
@@ -109,10 +111,14 @@ class Xn_from_sine(Xn_from_signal):
             for i_f in tqdm(range(self.n_runs)):
                 values = np.column_stack((self.time / fs2aut, Seff[i_f, 0, :].real, Seff[i_f, 1, :].real, Seff[i_f, 2, :].real))
                 output_file = f'o{self.prefix}.YamboPy-pol_reconstructed_F{i_f + 1}'
-                header="[fs] Px Py Pz"
+                header=(f"Signal reconstructed from the harmonics 0..{self.X_order} of run {i_f+1}, "
+                        f"field frequency {self.freqs[i_f]*ha2ev:.6f} eV\n"
+                        "Columns: 1 time [fs], 2-4 P_x P_y P_z [a.u.]\nt[fs] Px Py Pz")
                 if self.l_out_current:
                     output_file = f'o{self.prefix}.YamboPy-curr_reconstructed_F{i_f + 1}'
-                    header="[fs] Jx Jy Jz"
+                    header=(f"Signal reconstructed from the harmonics 0..{self.X_order} of run {i_f+1}, "
+                            f"field frequency {self.freqs[i_f]*ha2ev:.6f} eV, {self.current_type} current\n"
+                            "Columns: 1 time [fs], 2-4 J_x J_y J_z [a.u.]\nt[fs] Jx Jy Jz")
                 if (to_file):
                     np.savetxt(output_file, values, header=header, delimiter=' ', footer="Reconstructed signal")
                 else:
