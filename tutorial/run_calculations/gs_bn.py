@@ -3,16 +3,19 @@
 # Run a Silicon groundstate calculation using Quantum Espresso
 #
 from __future__ import print_function, division
-import sys
+# import sys
 import argparse
 from qepy import *
 from schedulerpy import *
-from math import sqrt
+# from math import sqrt
+from yambopy import BrillouinZone
 
+ibrav = 4
 kpoints      = [6,6,1]
 kpoints_nscf = [6,6,1]
 kpoints_double = [24,24,1]
 qpoints = [3,3,1]
+alat = 4.7
 layer_separation = 12
 pw = 'pw.x'
 ph = 'ph.x'
@@ -20,11 +23,8 @@ q2r = 'q2r.x'
 matdyn = 'matdyn.x'
 prefix = 'bn'
 
-npoints = 10 
-p = Path([ [[0.0, 0.0, 0.0],r'$\Gamma$'],
-           [[0.5, 0.0, 0.0],r'M'],
-           [[1./3,1./3,0.0],r'K'],
-           [[0.0, 0.0, 0.0],r'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
+# Brillouin zone
+bz = BrillouinZone(ibrav, {'a': alat, 'c': layer_separation}, path_string='GMKG', npoints=100)
 
 # scheduler
 scheduler = Scheduler.factory
@@ -43,13 +43,13 @@ def get_inputfile():
     qe.control['verbosity'] = "'high'"
     qe.control['wf_collect'] = '.true.'
     qe.control['pseudo_dir'] = "'../pseudos/'"
-    qe.system['celldm(1)'] = 4.7
+    qe.system['celldm(1)'] = alat
     qe.system['celldm(3)'] = layer_separation/qe.system['celldm(1)']
     qe.system['ecutwfc'] = 60
     qe.system['occupations'] = "'fixed'"
     qe.system['nat'] = 2
     qe.system['ntyp'] = 2
-    qe.system['ibrav'] = 4
+    qe.system['ibrav'] = ibrav
     qe.kpoints = [9, 9, 1]
     qe.electrons['conv_thr'] = 1e-10
     return qe
@@ -98,7 +98,7 @@ def bands():
     qe.system['nbnd'] = 6
     qe.system['force_symmorphic'] = ".true."
     qe.ktype = 'crystal'
-    qe.set_path(p)
+    qe.set_path(bz)
     qe.write('bands/%s.bands'%prefix)
 
 def phonon(kpoints,qpoints,folder='phonon'):
@@ -147,7 +147,7 @@ def update_positions(pathin,pathout):
 def run_plot():
     print("running plotting:")
     xml = PwXML(prefix=prefix,path='bands')
-    xml.plot_eigen(p)
+    xml.plot_eigen(path_kpoints=bz.get_indices())
 
 def run_projection(show=True):
     import matplotlib.pyplot as plt
@@ -160,7 +160,7 @@ def run_projection(show=True):
     n_atom = range(16)
     b_atom = range(16,32)
     ax = plt.subplot(1,1,1)
-    cax = projection.plot_eigen(ax,path=p,selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='seismic')
+    cax = projection.plot_eigen(ax,path_kpoints=bz.get_indices(),selected_orbitals=b_atom,selected_orbitals_2=n_atom,size=40,cmap='seismic')
     plt.colorbar(cax)
     if show: plt.show()
 
@@ -204,22 +204,22 @@ if __name__ == "__main__":
 
     if args.relax:
         print("running relax:")
-        qe_run = scheduler() 
+        qe_run = scheduler()
         qe_run.add_command("cd relax; mpirun -np %d %s -inp %s.relax > relax.log"%(nthreads,pw,prefix))  #relax
         qe_run.run()
-        update_positions('relax','scf') 
+        update_positions('relax','scf')
         print("done!")
 
     if args.scf:
         print("running scf:")
-        qe_run = scheduler() 
+        qe_run = scheduler()
         qe_run.add_command("cd scf; mpirun -np %d %s -inp %s.scf > scf.log"%(nthreads,pw,prefix))  #scf
         qe_run.run()
         print("done!")
    
     if args.nscf: 
         print("running nscf:")
-        qe_run = scheduler() 
+        qe_run = scheduler()
         qe_run.add_command("cp -r scf/%s.save nscf/"%prefix) #nscf
         qe_run.add_command("cd nscf; mpirun -np %d %s -nk %d -inp %s.nscf > nscf.log"%(nthreads,pw,nthreads,prefix)) #nscf
         qe_run.run()
@@ -227,7 +227,7 @@ if __name__ == "__main__":
 
     if args.nscf_double: 
         print("running nscf_double:")
-        qe_run = scheduler() 
+        qe_run = scheduler()
         qe_run.add_command("cp -r scf/%s.save nscf_double/"%prefix) #nscf
         qe_run.add_command("cd nscf_double; mpirun -np %d %s -inp %s.nscf > nscf_double.log"%(nthreads,pw,prefix)) #nscf
         qe_run.run()
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     
     if args.phonon:
         print("running phonon:")
-        qe_run = scheduler() 
+        qe_run = scheduler()
         qe_run.add_command("cp -r scf/%s.save phonon/"%prefix)
         qe_run.add_command("cd phonon; mpirun -np %d %s -inp %s.ph > phonon.log"%(nthreads,ph,prefix)) #phonon
         qe_run.add_command("dynmat.x < %s.dynmat > dynmat.log"%prefix) #matdyn
@@ -243,7 +243,7 @@ if __name__ == "__main__":
         print("done!")
 
     if args.dispersion:
-        qe_run = scheduler() 
+        qe_run = scheduler()
 
         #q2r
         disp = DynmatIn()
@@ -259,14 +259,14 @@ if __name__ == "__main__":
         dyn['asr']   = "'simple'"
         dyn['flfrq'] = "'%s.freq'" % prefix
         dyn['q_in_cryst_coord'] = '.true.'
-        dyn.qpoints = p.get_klist()
+        dyn.qpoints = bz.kpoints(coords='red', qe=True)
         dyn.write('phonon/matdyn.in')
         qe_run.add_command('%s < matdyn.in'%matdyn)
         qe_run.run()
 
         # matdyn class to read and plot the frequencies
         m = Matdyn.from_modes_file(folder='phonon')
-        m.plot_eigen(path=p)
+        m.plot_eigen(bz)
  
     if args.bands:
         run_bands(nthreads)

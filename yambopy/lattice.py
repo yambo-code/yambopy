@@ -79,6 +79,7 @@ def rec_lat(lat):
     b3 = np.cross(a1,a2)/v
     return np.array([b1,b2,b3])
 
+
 def replicate_red_kmesh(kmesh,repx=list(range(1)),repy=list(range(1)),repz=list(range(1))):
     """
     copy a kmesh in the tree directions

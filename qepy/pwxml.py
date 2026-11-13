@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from qepy.auxiliary import *
 from .lattice import *
 from yambopy.plot.plotting import add_fig_kwargs 
+from yambopy.bz.labels import format_label
 from re import findall
 from numpy import zeros
 
@@ -317,28 +318,23 @@ class PwXML():
         return "\n".join(lines)
 
     def plot_eigen_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),color='r',**kwargs):
-        #
-        # Careful with variable path. I am substituting vy path_kpoints
-        # To be done in all the code (and in the tutorials)
-        #
-        # argurments:
-        # ls: linestyle
-        if path_kpoints:
-            if isinstance(path_kpoints,Path):
-                path_kpoints = path_kpoints.get_indexes()
-                path_ticks, path_labels = list(zip(*path_kpoints))
-            ax.set_xticks( path_ticks )
-            ax.set_xticklabels( path_labels )
+        """
+        Plot the bands on Matplotlib ax.
+
+        path_kpoints: [index, label] pairs locating the special points, as
+        returned by BrillouinZone.get_indices(); labels are drawn in LaTeX.
+        kwargs: ls (linestyle), lw (linewidth), y_offset.
+        """
         ax.set_ylabel('E (eV)')
 
         ls = kwargs.pop('ls','solid')
         lw = kwargs.pop('lw',1)
         y_offset = kwargs.pop('y_offset',0.0)
-        #get kpoint_dists 
+        #get kpoint_dists
         kpoints_dists = calculate_distances(self.kpoints)
         ticks, labels = list(zip(*path_kpoints))
         ax.set_xticks([kpoints_dists[t] for t in ticks])
-        ax.set_xticklabels(labels)
+        ax.set_xticklabels([format_label(label, 'latex') for label in labels])
         ax.set_xlim(kpoints_dists[0],kpoints_dists[-1])
 
         #plot vertical lines
@@ -347,7 +343,7 @@ class PwXML():
         ax.axhline(0,c='k')
 
         #plot bands
-       
+
         if self.lsda:
            eigen1 = np.array(self.eigen1)
 
@@ -371,7 +367,6 @@ class PwXML():
         if xlim: ax.set_xlim(xlim)
         if ylim: ax.set_ylim(ylim)
 
-     
     #def plot_eigen_spin_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),spin_proj=None):
     def plot_eigen_spin_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),spin_proj=False,spin_folder='.'):
         #
@@ -387,12 +382,6 @@ class PwXML():
         if spin_proj == True:
            self.spin_projection(spin_dir=3,folder=spin_folder,prefix='bands')
 
-        if path_kpoints:
-            if isinstance(path_kpoints,Path):
-                path_kpoints = path_kpoints.get_indexes()
-                path_ticks, path_labels = list(zip(*path_kpoints))
-            ax.set_xticks( path_ticks )
-            ax.set_xticklabels( path_labels )
         ax.set_ylabel('E (eV)')
 
         # I choose a colormap for spin
@@ -402,7 +391,7 @@ class PwXML():
         kpoints_dists = calculate_distances(self.kpoints)
         ticks, labels = list(zip(*path_kpoints))
         ax.set_xticks([kpoints_dists[t] for t in ticks])
-        ax.set_xticklabels(labels)
+        ax.set_xticklabels([format_label(label, 'latex') for label in labels])
         ax.set_xlim(kpoints_dists[0],kpoints_dists[-1])
 
         # NOT WORKING, CHECK IT!
@@ -438,17 +427,13 @@ class PwXML():
 
     def plot_eigen_occ_ax(self,ax,path_kpoints=[],xlim=(),ylim=(),color='r'):
 
-        if path_kpoints:
-            if isinstance(path_kpoints,Path):
-                path_kpoints = path_kpoints.get_indexes()
-            ax.set_xticks( *list(zip(*path_kpoints)) )
         ax.set_ylabel('E (eV)')
 
         #get kpoint_dists 
         kpoints_dists = calculate_distances(self.kpoints)
         ticks, labels = list(zip(*path_kpoints))
         ax.set_xticks([kpoints_dists[t] for t in ticks])
-        ax.set_xticklabels(labels)
+        ax.set_xticklabels([format_label(label, 'latex') for label in labels])
         ax.set_xlim(kpoints_dists[0],kpoints_dists[-1])
 
         #plot vertical lines

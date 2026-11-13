@@ -8,7 +8,7 @@ EDIT the path below to point to the yambo SAVE folder.
 save_path='BSE_saves/YAMBO_saves'
 bse_path ='BSE_saves/BSE_databases'
 from yambopy import YamboLatticeDB,YamboExcitonDB,YamboElectronsDB
-from qepy import Path
+from yambopy import BrillouinZone
 from math import sqrt
 import numpy as np
 import matplotlib.pyplot as plt
@@ -48,14 +48,11 @@ if __name__ == "__main__":
 
     # Plot on top of the band structure
     
-    ## [1.] Define path in crystal coordinates using class Path
+    ## [1.] Define the Brillouin-zone path on the lattice of the databases
 
     npoints = 20
-    path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
-                  [[  0.5,  0.0,  0.0],'M'],
-                  [[1./3.,1./3.,  0.0],'K'],
-                  [[  0.0,  0.0,  0.0],'$\Gamma$']], 
-                  [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
+    intervals = [int(npoints * 2), int(npoints), int(sqrt(5) * npoints)]
+    bz = BrillouinZone(cell=ylat.lat, path_string='GMKG', intervals=intervals)
 
     ## [2.] Read electron energies
     ## NB:  A YamboQPDB object containing QP corrections is also accepted
@@ -66,7 +63,7 @@ if __name__ == "__main__":
         fig = plt.figure(figsize=(4,6))
         ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
 
-        exc_on_bands = yexc.get_exciton_bs(yel,path,states,size=1.0)
+        exc_on_bands = yexc.get_exciton_bs(yel,bz,states,size=1.0)
         exc_on_bands.plot_ax(ax,c_bands='grey',c_weights='red')
 
         ax.set_ylim(-7.5,12.)
@@ -78,7 +75,7 @@ if __name__ == "__main__":
         ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
 
         # In case of problems with the interpolation, try to increase lpratio
-        exc_on_bands = yexc.interpolate(yel,path,states,lpratio=10,f=None,verbose=True)
+        exc_on_bands = yexc.interpolate(yel,bz,states,lpratio=10,f=None,verbose=True)
         # The 'size' argument controls the weight widths
         exc_on_bands.plot_ax(ax,c_bands='grey',c_weights='red',size=1.,alpha_weights=0.5)
 

@@ -10,7 +10,8 @@
 import re
 import xml.etree.ElementTree as ET
 from numpy import array, zeros, pi, conjugate, arange
-from .lattice import Path, calculate_distances 
+from .lattice import calculate_distances
+from yambopy.bz.labels import format_label
 from yambopy.tools.string import marquee
 from .auxiliary import *
 from itertools import chain
@@ -85,7 +86,7 @@ class ProjwfcXML(object):
         if hasattr(self, 'order_is_l_j_mj') and self.order_is_l_j_mj:
             states = []
             #                                                                                         wfc                  l                 j                 m_j                 
-            for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z0-9]+)\s*\),\s+wfc\s+([0-9])\s+\((?:l=([0-9.]+))? ?(?:j=([0-9.]+))? ?(?:m_j=\s+([0-9.]+))?',f.read()):
+            for line in re.findall(r'state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z0-9]+)\s*\),\s+wfc\s+([0-9])\s+\((?:l=([0-9.]+))? ?(?:j=([0-9.]+))? ?(?:m_j=\s+([0-9.]+))?',f.read()):
                 # examples of the lines we have to read
                 #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin case
                 #  5: atom   1 (C  ), wfc  3 (j=1.5 l=1 m_j=-1.5)     #non collinear spin case
@@ -101,7 +102,7 @@ class ProjwfcXML(object):
         if hasattr(self, 'order_is_j_l_m_mj') and self.order_is_j_l_m_mj:      
             states = []
             #                                                                                        wfc                  j                 l                 m                    m_j
-            for line in re.findall('state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z0-9]+)\s*\),\s+wfc\s+([0-9])\s+\((?:j=([0-9.]+))? ?(?:l=([0-9.]+))? ?(?:m=\s+([0-9.]+))? ?(?:m_j=([ \-0-9.]+))?',f.read()):
+            for line in re.findall(r'state\s+\#\s+([0-9]+):\s+atom\s+([0-9]+)\s+\(([a-zA-Z0-9]+)\s*\),\s+wfc\s+([0-9])\s+\((?:j=([0-9.]+))? ?(?:l=([0-9.]+))? ?(?:m=\s+([0-9.]+))? ?(?:m_j=([ \-0-9.]+))?',f.read()):
                 # examples of the lines we have to read
                 #  5: atom   1 (C  ), wfc  3 (l=2 m= 1)               #no spin case
                 #  5: atom   1 (C  ), wfc  3 (j=1.5 l=1 m_j=-1.5)     #non collinear spin case
@@ -170,9 +171,9 @@ class ProjwfcXML(object):
         return queried_states
 
 
-    def plot_eigen(self, ax, size=20, cmap=None, cmap2=None,color='r', color_2='b',path_kpoints=[], label_1='', label_2='',
-                   selected_orbitals=[], selected_orbitals_2=[],bandmin=0,bandmax=None,alpha=1,size_projection=False,y_offset=0.0,marker='o'):
-        """ 
+    def plot_eigen(self, ax, size=20, cmap=None, cmap2=None, color='r', color_2='b', path_kpoints=[], label_1='', label_2='',
+                       selected_orbitals=[], selected_orbitals_2=[], bandmin=0, bandmax=None, alpha=1, size_projection=False, y_offset=0.0, marker='o'):
+        """
         Plot the band structure. The size of the points is the weigth of the selected orbitals.
 
         Options:
@@ -188,91 +189,98 @@ class ProjwfcXML(object):
 
         Under development to include also colormap and a dictionary for the
         selection of the orbitals...
-        example usage to get: 
+        example usage to get:
              state #   2: atom   1 (Li ), wfc  2 (l=1 m= 1)
-        
-        plot_eigen(ax, path_kpoints=path_kpoints, selected_orbitals=[1], color=color, size=dotsize) 
+
+        plot_eigen(ax, path_kpoints=bz.get_indices(), selected_orbitals=[1], color=color, size=dotsize)
+
+        path_kpoints: [index, label] pairs from BrillouinZone.get_indices();
+        labels are drawn in LaTeX.
 
             notice python counting; state# - 1 = selected_orbital index
         """
-        #from numpy import arange # redundent
+        # from numpy import arange # redundent
         import matplotlib.pyplot as plt
         import matplotlib as mpl
-        if path_kpoints:
-            if isinstance(path_kpoints,Path):
-                path_kpoints = path_kpoints.get_indexes()
         if bandmax is None or bandmax > self.nbands:
             bandmax = self.nbands
 
-        #Colormap
-        if cmap:  color_map = plt.get_cmap(cmap)
-        else:     color_map = plt.get_cmap('rainbow')
-        if cmap2: color_map2 = plt.get_cmap(cmap2)
-        else:     color_map2 = plt.get_cmap('rainbow')
+        # Colormap
+        if cmap:
+            color_map = plt.get_cmap(cmap)
+        else:
+            color_map = plt.get_cmap('rainbow')
+        if cmap2:
+            color_map2 = plt.get_cmap(cmap2)
+        else:
+            color_map2 = plt.get_cmap('rainbow')
 
-        #get kpoint_dists
+        # get kpoint_dists
         kpoints_dists = calculate_distances(self.kpoints[:self.nkpoints])
- 
-        #make K-points labels
+
+        # make K-points labels
         ticks, labels = list(zip(*path_kpoints))
         ax.set_xticks([kpoints_dists[t] for t in ticks])
-        ax.set_xticklabels(labels)
+        ax.set_xticklabels([format_label(label, 'latex') for label in labels])
         ax.set_ylabel('E (eV)')
 
-        #plot vertical lines
-        for t in ticks: ax.axvline(kpoints_dists[t],c='gray',lw=0.8)
-        ax.axhline(0,c='gray')
-     
+        # plot vertical lines
+        for t in ticks: ax.axvline(kpoints_dists[t], c='gray', lw=0.8)
+        ax.axhline(0, c='gray')
+
         # Plot bands for fixed size in a colormap
         if selected_orbitals_2:
-           # No spin or full spinor
-           if self.spin_components == 1 or self.spin_components == 4:
-              w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
-              for ib in range(bandmin,bandmax):
-                  eig = self.eigen[:,ib] + y_offset
-                  eig_last = self.eigen[:,-1] + y_offset
-                  if size_projection==True:
-                     cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2,marker=marker)
-                  else:
-                     cax = ax.scatter(kpoints_dists,eig,s=size,c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2)
+            # No spin or full spinor
+            if self.spin_components == 1 or self.spin_components == 4:
+                w_rel = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
+                for ib in range(bandmin, bandmax):
+                    eig = self.eigen[:, ib] + y_offset
+                    eig_last = self.eigen[:, -1] + y_offset
+                    if size_projection == True:
+                        cax = ax.scatter(kpoints_dists, eig, s=size[:, ib], c=w_rel[:, ib], cmap=color_map, vmin=0, vmax=1, edgecolors='none', label=label_1, rasterized=True, zorder=2, marker=marker)
+                    else:
+                        cax = ax.scatter(kpoints_dists, eig, s=size, c=w_rel[:, ib], cmap=color_map, vmin=0, vmax=1, edgecolors='none', label=label_1, rasterized=True, zorder=2)
 
-           # Spin polarized no SOC
-           if self.spin_components == 2:
-              w_rel1, w_rel2 = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
-              for ib in range(bandmin,bandmax):
-                  eig1 = self.eigen1[:,ib] + y_offset
-                  eig2 = self.eigen2[:,ib] + y_offset
-                  if size_projection==True:
-                     cax = ax.scatter(kpoints_dists,eig,s=size[:,ib],c=w_rel[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2,marker=marker)
-                  else:
-                     cax = ax.scatter(kpoints_dists,eig1,s=size,c=w_rel1[:,ib],cmap=color_map,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2,marker=marker)
-                     cax2= ax.scatter(kpoints_dists,eig2,s=size,c=w_rel2[:,ib],cmap=color_map2,vmin=0,vmax=1,edgecolors='none',label=label_1,rasterized=True,zorder=2,marker=marker)
+            # Spin polarized no SOC
+            if self.spin_components == 2:
+                w_rel1, w_rel2 = self.get_relative_weight(selected_orbitals=selected_orbitals, selected_orbitals_2=selected_orbitals_2)
+                for ib in range(bandmin, bandmax):
+                    eig1 = self.eigen1[:, ib] + y_offset
+                    eig2 = self.eigen2[:, ib] + y_offset
+                    if size_projection == True:
+                        cax = ax.scatter(kpoints_dists, eig, s=size[:, ib], c=w_rel[:, ib], cmap=color_map, vmin=0, vmax=1, edgecolors='none', label=label_1, rasterized=True, zorder=2, marker=marker)
+                    else:
+                        cax = ax.scatter(kpoints_dists, eig1, s=size, c=w_rel1[:, ib], cmap=color_map, vmin=0, vmax=1, edgecolors='none', label=label_1, rasterized=True, zorder=2, marker=marker)
+                        cax2 = ax.scatter(kpoints_dists, eig2, s=size, c=w_rel2[:, ib], cmap=color_map2, vmin=0, vmax=1, edgecolors='none', label=label_1, rasterized=True, zorder=2, marker=marker)
 
         # Plot bands with changing size and a fixed color
         else:
             if self.spin_components == 1 or self.spin_components == 4:
-               w_proj = self.get_weights(selected_orbitals=selected_orbitals)
-               ib_max = np.where(w_proj==np.max(w_proj))[1][0] # needed for label
-               for ib in range(bandmin,bandmax):
-                   if ib==ib_max: lab = label_1
-                   else:          lab = '_'+str(label_1)
-                   eig = self.eigen[:,ib] + y_offset
-                   cax = ax.scatter(kpoints_dists,eig,s=w_proj[:,ib]*size,c=color,edgecolors='none',alpha=alpha,label=lab,rasterized=True,zorder=2,marker=marker)
+                w_proj = self.get_weights(selected_orbitals=selected_orbitals)
+                ib_max = np.where(w_proj == np.max(w_proj))[1][0]  # needed for label
+                for ib in range(bandmin, bandmax):
+                    if ib == ib_max:
+                        lab = label_1
+                    else:
+                        lab = '_' + str(label_1)
+                    eig = self.eigen[:, ib] + y_offset
+                    cax = ax.scatter(kpoints_dists, eig, s=w_proj[:, ib] * size, c=color, edgecolors='none', alpha=alpha, label=lab, rasterized=True, zorder=2, marker=marker)
 
             elif self.spin_components == 2:
-                 w_proj1, w_proj2 = self.get_weights(selected_orbitals=selected_orbitals)
-                 ib_max1, ib_max2 = np.where(w_proj1==np.max(w_proj1))[1][0], np.where(w_proj2==np.max(w_proj2))[1][0]
-                 for ib in range(bandmin,bandmax):
-                     lab1, lab2 = ['_'+label_1,'_'+label_2]
-                     if ib==ib_max1: lab1 = label_1
-                     if ib==ib_max2: lab2 = label_2
-                     eig1, eig2 = self.eigen1[:,ib], self.eigen2[:,ib]
-                     cax = ax.scatter(kpoints_dists,eig1,s=w_proj1[:,ib]*size,c=color  ,edgecolors='none',alpha=alpha,label=lab1,marker=marker)
-                     cax2= ax.scatter(kpoints_dists,eig2,s=w_proj2[:,ib]*size,c=color_2,edgecolors='none',alpha=alpha,label=lab2,marker=marker)
+                w_proj1, w_proj2 = self.get_weights(selected_orbitals=selected_orbitals)
+                ib_max1, ib_max2 = np.where(w_proj1 == np.max(w_proj1))[1][0], np.where(w_proj2 == np.max(w_proj2))[1][0]
+                for ib in range(bandmin, bandmax):
+                    lab1, lab2 = ['_' + label_1, '_' + label_2]
+                    if ib == ib_max1: lab1 = label_1
+                    if ib == ib_max2: lab2 = label_2
+                    eig1, eig2 = self.eigen1[:, ib], self.eigen2[:, ib]
+                    cax = ax.scatter(kpoints_dists, eig1, s=w_proj1[:, ib] * size, c=color, edgecolors='none', alpha=alpha, label=lab1, marker=marker)
+                    cax2 = ax.scatter(kpoints_dists, eig2, s=w_proj2[:, ib] * size, c=color_2, edgecolors='none', alpha=alpha, label=lab2, marker=marker)
 
         ax.set_xlim(0, max(kpoints_dists))
         return cax
-    
+
+
     def get_weights(self,selected_orbitals=[],bandmin=0,bandmax=None):
         if bandmax is None:
            bandmax = self.nbands

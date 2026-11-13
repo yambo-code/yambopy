@@ -11,13 +11,6 @@ bse_dir = 'bse-exc'
 fig = plt.figure(figsize=(4,6))
 ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
 
-# Define path in reduced coordinates using Class Path
-
-path = Path([ [[  0.0,  0.0,  0.0],r'$\Gamma$'],
-              [[  0.5,  0.0,  0.0],'M'],
-              [[1./3.,1./3.,  0.0],'K'],
-              [[  0.0,  0.0,  0.0],r'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
-
 # Load databases
 
 # Electron energies database
@@ -25,6 +18,10 @@ elec = YamboElectronsDB.from_db_file(folder='./SAVE')
 
 # Lattice information
 lat  = YamboLatticeDB.from_db_file(filename='./SAVE/ns.db1')
+
+# Brillouin-zone path on the lattice of the databases (hexagonal BN)
+bz = BrillouinZone(cell=lat.lat, path_string='GMKG',
+                   intervals=[int(npoints*2),int(npoints),int(np.sqrt(5)*npoints)])
 
 # Exciton database read from db file
 if os.path.isfile(bse_dir+'/ndb.BS_diago_Q01'):
@@ -41,7 +38,7 @@ print("Intensity: %lf" % (yexc.get_intensities()[2].real+yexc.get_intensities()[
 states = [1,2]
 
 # 1. Plot exciton weights in band structure NOT interpolated
-exc_bands_up, exc_bands_dn = yexc.get_exciton_bs_spin_pol(elec,path,states,size_up=1.0, size_dw = 1.0)
+exc_bands_up, exc_bands_dn = yexc.get_exciton_bs_spin_pol(elec,bz,states,size_up=1.0, size_dw = 1.0)
 exc_bands_up.plot_ax(ax,c_bands='red',c_weights='orange')
 exc_bands_dn.plot_ax(ax,c_bands='blue',c_weights='orange')
 ax.set_ylim(ymin,ymax)
@@ -54,7 +51,7 @@ fig = plt.figure(figsize=(4,6))
 ax  = fig.add_axes( [ 0.15, 0.15, 0.80, 0.80 ])
 
 # In case of problems with the interpolation, try to increase lpratio
-exc_bands_inter_up, exc_bands_inter_dn  = yexc.interpolate_spin_pol(elec,path,states,lpratio=10,f=None,size=0.5,verbose=True)
+exc_bands_inter_up, exc_bands_inter_dn  = yexc.interpolate_spin_pol(elec,bz,states,lpratio=10,f=None,size_up=0.5,size_dw=0.5,verbose=True)
 exc_bands_inter_up.plot_ax(ax,c_bands='red',c_weights='orange',alpha_weights=0.5,c_label='$X_1$')
 exc_bands_inter_dn.plot_ax(ax,c_bands='blue',c_weights='orange',alpha_weights=0.5,c_label='$X_1$')
 ax.set_ylim(ymin,ymax)

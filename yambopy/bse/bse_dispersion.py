@@ -9,13 +9,16 @@
 #
 import os
 from glob import glob
-from qepy.lattice import Path
+
+import numpy as np
+
 from yambopy import *
 from yambopy.units import *
 from yambopy.plot.plotting import add_fig_kwargs,BZ_Wigner_Seitz
-from yambopy.lattice import replicate_red_kmesh, calculate_distances, car_red
-from yambopy.kpoints import get_path
+from yambopy.lattice import replicate_red_kmesh, calculate_distances, car_red, red_car
 from yambopy.tools.funcs import gaussian, lorentzian
+from yambopy.tools.skw import SkwInterpolator
+from yambopy import YamboExcitonDB, BrillouinZone
 
 class ExcitonDispersion():
     """
@@ -49,14 +52,17 @@ class ExcitonDispersion():
         # Read
         car_qpoints         = np.zeros((nqpoints,3))
         exc_energies        = np.zeros((nqpoints,nexcitons))
-        exc_eigenvectors    = np.zeros((nqpoints,nexcitons,self.ntransitions),dtype=complex)
-        exc_tables          = np.zeros((nqpoints,self.ntransitions,5),dtype=int)
+        # Commented by JMC to make it work with visual-excitons GUI
+        # exc_eigenvectors    = np.zeros((nqpoints,nexcitons,self.ntransitions),dtype=complex)
+        # exc_tables          = np.zeros((nqpoints,self.ntransitions,5),dtype=int)
+        exc_eigenvectors = np.zeros((nqpoints, nexcitons, self.nkpoints * self.nvalence * self.nconduction), dtype=complex)
+        exc_tables = np.zeros((nqpoints, self.nkpoints * self.nvalence * self.nconduction, 5), dtype=int)
         for iQ in range(nqpoints):
             exc_obj = YamboExcitonDB.from_db_file(lattice,filename=folder+'/ndb.BS_diago_Q%d'%(iQ+1))
             if iQ==0: car_qpoints[iQ] = np.array([0.,0.,0.])
             else:     car_qpoints[iQ] = exc_obj.car_qpoint
             exc_energies[iQ,:]        = exc_obj.eigenvalues[:nexcitons].real
-            exc_eigenvectors[iQ,:]    = exc_obj.eigenvectors[:nexcitons]    
+            exc_eigenvectors[iQ,:]    = exc_obj.eigenvectors[:nexcitons]
             exc_tables[iQ,:]          = exc_obj.table
 
         # Set up variables
@@ -170,53 +176,71 @@ class ExcitonDispersion():
     #####################################
     # Dispersion plot under development #
     #####################################
-    def get_dispersion(self, path):
-        """ 
-        Obtain dispersion along symmetry lines.
-        
-        Similar to band plots in k-space, check YamboExcitonDB for more comments
-
-        :: path is instance of Path class
+    def get_dispersion(self, bz):
         """
-        qpoints = self.red_qpoints
-        qpath    = np.array(path.kpoints)
+        Obtain the exciton dispersion along the path of bz (a BrillouinZone
+        describing this lattice, in any units or cell): the q-points of the
+        grid lying on the path.
 
-        rep = list(range(-1,2))
-        qpoints_rep, qpoints_idx_rep = replicate_red_kmesh(qpoints,repx=rep,repy=rep,repz=rep)
-        exc_indexes = get_path(qpoints_rep,qpath)[1] #indices are second output
-        exc_qpoints  = np.array(qpoints_rep[exc_indexes])
-        exc_indexes = qpoints_idx_rep[exc_indexes]
-        
+        Similar to band plots in k-space, check YamboExcitonDB for more comments
+        """
+        car_qpoints = red_car(self.red_qpoints, self.lattice.rlat)
+        exc_qpoints, exc_indexes, _ = bz.find_collinear_lattice_kpoints(self.lattice.lat, car_qpoints)
+
         # Here assuming same ordering in index expansion between k-yambopy and q-yambo...
         energies = self.exc_energies[self.lattice.kpoints_indexes]
         energies_path  = energies[exc_indexes]
-        
-        ybs_disp = YambopyBandStructure(energies_path, exc_qpoints, kpath=path)
+
+        ybs_disp = YambopyBandStructure(energies_path, exc_qpoints, bz=bz)
         return ybs_disp
-        
+
     def get_dispersion_interpolated(self):
         """ Interpolated with SkwInterpolator
         """
-    
-    def plot_exciton_disp_ax(self,ax,path,**kwargs):
-        ybs_disp = self.get_dispersion(path)
-        print(ybs_disp.nbands)
-        print(ybs_disp.nkpoints)
-        print(ybs_disp._xlim)
-        print(ybs_disp.nbands)
-        return ybs_disp.plot_ax(ax) 
+
+    def interpolate_dispersion(self, bz: BrillouinZone):
+        lpratio = 10
+        fermie = 0
+        nelect = 0
+
+        ibz_nkpoints = self.lattice.ibz_nkpoints
+        ibz_kpoints = np.zeros([ibz_nkpoints, 3])
+        for idx_bz, idx_ibz in enumerate(self.lattice.kpoints_indexes):
+            ibz_kpoints[idx_ibz] = self.lattice.red_kpoints[idx_bz]
+
+        ibz_energies = self.exc_energies
+
+        na = np.newaxis
+
+        cell = (self.lattice.lat, self.lattice.red_atomic_positions, self.lattice.atomic_numbers)
+
+        symrel = [sym for sym, trev in zip(self.lattice.sym_rec_red, self.lattice.time_rev_list) if trev == False ]
+        time_rev = False
+
+        skw = SkwInterpolator(lpratio, ibz_kpoints, ibz_energies[na, :, :], fermie, nelect, cell, symrel, time_rev, verbose=False)
+
+        energies = skw.interp_kpts(bz.kpoints()).eigens
+
+        return bz.kpoints_distances(), np.transpose(energies[0])
+
+    def plot_exciton_disp_ax(self,ax,bz,**kwargs):
+        """Plot the exciton dispersion along the path of bz (a BrillouinZone) on ax."""
+        ybs_disp = self.get_dispersion(bz)
+        return ybs_disp.plot_ax(ax, **kwargs)
 
     @add_fig_kwargs
-    def plot_exciton_disp(self,path,**kwargs):
+    def plot_exciton_disp(self,bz,**kwargs):
+        """Plot the exciton dispersion along the path of bz (a BrillouinZone)."""
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        self.plot_exciton_disp_ax(ax,path)
+        self.plot_exciton_disp_ax(ax,bz)
         return fig
     
-    def plot_dispersion():
+    def plot_dispersion(self):
         """ Do plot
         """
+        pass
     
     def __str__(self):
         lines = []; app = lines.append
