@@ -87,6 +87,7 @@ class Xn_from_sine(Xn_from_signal):
                     if self.l_out_current:
                         output_file = f'o{self.prefix}.YamboPy-Sigma_probe_order_{i_order}'
                         header = "E[eV] " + " ".join([f"S{i_order}/Im({d}) S{i_order}/Re({d})" for d in ('x','y','z')])
+                    header = f"Units: {self.get_Unit_label(i_order)}\n" + header
                     values = np.column_stack((self.freqs * ha2ev, out[i_order, :, 0].imag, out[i_order, :, 0].real,
                                       out[i_order, :, 1].imag, out[i_order, :, 1].real,
                                       out[i_order, :, 2].imag, out[i_order, :, 2].real))

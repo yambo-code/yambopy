@@ -7,7 +7,7 @@
 # Modified to allow generalisation
 #
 import numpy as np
-from yambopy.units import ha2ev,fs2aut, Junit, EFunit,SVCMm12VMm1,AU2VMm1
+from yambopy.units import ha2ev,fs2aut, Junit, EFunit,SVCMm12VMm1,AU2VMm1,speed_of_light_SI
 from yambopy.nl.external_efield import Divide_by_the_Field
 from tqdm import tqdm
 from scipy.optimize import least_squares
@@ -16,10 +16,25 @@ import os
 from abc import ABC,abstractmethod
 #
 #
+# Units of the output response functions (keyword units= of the analysis classes)
+#
+#   units   polarization chi^(n), P = chi E^n          current sigma^(n), J = sigma E^n
+#   'esu'   esu: (cm/statV)^(n-1), chi^(1) dimensionless   esu: statA cm^-2 (statV/cm)^-n   (default)
+#   'au'    atomic units                                   atomic units
+#   'SI'    (m/V)^(n-1), chi^(1) = 4 pi chi_au             A m^(n-2) V^-n  (n=2: A/V^2)
+#
+# The order-0 response (optical rectification P0, DC current J0) is second order in the field
+# (P0 = chi^(0) E(w) E(-w)) and has the units of n=2.
+# NOTE: before the units option was added the currents (Sigma_probe_order_n) were written in SI
+# and the polarizations in esu; use units='SI' to get the old current files.
+#
+UNITS = ['esu', 'au', 'SI']
+J_SI2ESU = speed_of_light_SI*1.0e-3     # 1 A/m^2 = 2.998E5 statA/cm^2
+#
 # Template class
 #
 class Xn_from_signal(ABC):
-    def __init__(self,nldb,X_order=4,T_range=[-1, -1],l_out_current=False,nsamp=-1,samp_mod='',solver='',tol=1e-10,debug_mode=False): 
+    def __init__(self,nldb,X_order=4,T_range=[-1, -1],l_out_current=False,nsamp=-1,samp_mod='',solver='',tol=1e-10,debug_mode=False,units='esu'): 
         self.time = nldb.IO_TIME_points # Time series
         self.T_step =self.time[1] - self.time[0]     # Time step of the simulation
         self.T_deph =12.0/nldb.NL_damping 
@@ -47,6 +62,10 @@ class Xn_from_signal(ABC):
         self.out_dim = 0
         self.tol = tol
         self.debug_mode = debug_mode
+        units_ = {u.lower(): u for u in UNITS}
+        if str(units).lower() not in units_:
+            raise ValueError(f"Invalid units. Expected one of: {UNITS}")
+        self.units = units_[str(units).lower()]
         super().__init__()
         
     def __str__(self): 
@@ -69,6 +88,7 @@ class Xn_from_signal(ABC):
         if self.T_urange!=[-1, -1]:
             s+="User time range      : "+str(self.T_urange)+" [au] \n"
         s+="Frequency range: ["+str(self.freqs[0])+","+str(self.freqs[-1])+"] [au] \n"
+        s+="Output units         : "+self.units+"\n"
         if  self.l_out_current:
             s+="Output is set to current."
         else:
@@ -156,15 +176,43 @@ class Xn_from_signal(ABC):
                     print(raw)
         return out
 
-    def get_Unit_of_Measure(self,i_order): # not sure if this is a general or specific method - let it here for the moment
-        linear = 1.0
-        ratio = SVCMm12VMm1 / AU2VMm1 # From AU to statVolt/cm ...is there a better way than this?
+    def get_Unit_of_Measure(self,i_order):
+        """
+        Conversion factor from atomic units to self.units ('esu' default, 'au', 'SI') for the
+        response of order i_order (see the table at the top of this module).
+        Order 0 (rectification / DC current) is second order in the field: same units as n=2.
+        """
+        n = 2 if i_order == 0 else i_order
+        if self.units == 'au':
+            return 1.0
         if self.l_out_current:
-            linear = Junit/EFunit
-            ratio = 1.0/EFunit
-        if i_order == 0:
-            return np.power(ratio, 1, dtype=np.float64)*linear
-        return np.power(ratio, i_order - 1, dtype=np.float64)*linear
+            si = Junit/np.power(EFunit, n, dtype=np.float64)          # A m^(n-2) V^-n
+            if self.units == 'SI':
+                return si
+            return si*J_SI2ESU*np.power(SVCMm12VMm1, n, dtype=np.float64)   # statA cm^-2 (statV/cm)^-n
+        if self.units == 'esu':
+            ratio = SVCMm12VMm1 / AU2VMm1                              # 1/E_au in statV/cm
+            return np.power(ratio, n - 1, dtype=np.float64)
+        return 4.0*np.pi/np.power(AU2VMm1, n - 1, dtype=np.float64)    # SI: P = eps0 chi E^n
+
+    def get_Unit_label(self,i_order):
+        """
+        String with the units of the response of order i_order, for the output headers.
+        """
+        n = 2 if i_order == 0 else i_order
+        if self.units == 'au':
+            return "atomic units"
+        if self.l_out_current:
+            if self.units == 'SI':
+                if n == 1: return "SI: S/m"
+                if n == 2: return "SI: A/V^2"
+                return f"SI: A m^{n-2} V^-{n}"
+            return f"esu: statA cm^-2 (statV/cm)^-{n}"
+        if self.units == 'esu':
+            if n == 1: return "esu: dimensionless"
+            return f"esu: (cm/statV)^{n-1}"
+        if n == 1: return "SI: dimensionless (4 pi chi)"
+        return f"SI: (m/V)^{n-1}"
 
     @abstractmethod
     def output_analysis(self,out,to_file):
@@ -188,6 +236,7 @@ class Xn_from_signal(ABC):
         s+="# Solver               : "+str(self.solver)+"\n"
         s+="# Sampling points      : "+str(self.nsamp)+"\n"
         s+="# Start sampling time  : "+str(T/fs2aut)+" [fs] \n"
+        s+="# Output units         : "+self.units+"\n"
         return s
         
 

@@ -99,9 +99,10 @@ classDiagram
         +prefix : str
         +out_dim : int
         +tol : float
+        +units : str
 
         %% --- Constructor ---
-        +__init__(nldb, X_order=4, T_range=[-1,-1], l_out_current=False, nsamp=-1, samp_mod='', solver='', tol=1e-10)
+        +__init__(nldb, X_order=4, T_range=[-1,-1], l_out_current=False, nsamp=-1, samp_mod='', solver='', tol=1e-10, debug_mode=False, units='esu')
 
         %% --- Special ---
         +__str__() str
@@ -119,6 +120,7 @@ classDiagram
         +solve_lin_system(mat, samp, init=None) np.ndarray
         +perform_analysis() np.ndarray
         +get_Unit_of_Measure(i_order) float
+        +get_Unit_label(i_order) str
         +get_sampling(range, idir, ifrq)
     }
 
@@ -228,3 +230,19 @@ Note: in all snippets one must add `from yambopy import *`
 2. Attaccalite C and Grüning M, [Phys. Rev. B 88, 235113 (2013)](https://doi.org/10.1103/PhysRevB.88.235113)
 3. Pionteck MN, Grüning M, Sanna S, Attaccalite C, [SciPost Phys. 19, 129 (2025)](https://10.21468/SciPostPhys.19.5.129) 
 4. Romani A, Grüning M, 'Notes on nonlinear analysis from Gaussian pulses' (unpublished)
+
+## Units of the output
+
+All analysis classes accept the keyword `units` (`'esu'`, default; `'au'`; `'SI'`, case insensitive), e.g.
+`Xn_from_sine(nldb, X_order=2, units='SI')`. The conversion from atomic units is done by `get_Unit_of_Measure(i_order)`
+and the units are written in the first header line of every output file (`get_Unit_label(i_order)`).
+
+| units | polarization $\chi^{(n)}$, $P=\chi E^n$ | current $\sigma^{(n)}$, $J=\sigma E^n$ |
+|---|---|---|
+| `esu` (default) | $(\mathrm{cm/statV})^{n-1}$, $\chi^{(1)}$ dimensionless | $\mathrm{statA\,cm^{-2}\,(statV/cm)^{-n}}$ |
+| `au` | atomic units | atomic units |
+| `SI` | $(\mathrm{m/V})^{n-1}$, $\chi^{(1)}_{SI}=4\pi\chi_{au}$ | $\mathrm{A\,m^{n-2}\,V^{-n}}$ ($n=2$: A/V$^2$) |
+
+The order-0 response (optical rectification, DC current) is second order in the field and has the units of $n=2$.
+Before this option was introduced the currents were written in SI and the polarizations in esu: use `units='SI'`
+to reproduce the old `Sigma_probe_order_n` files ($1\ \mathrm{A/V^2}=2.694\times10^{14}$ esu).

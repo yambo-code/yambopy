@@ -91,6 +91,7 @@ class Xn_from_freqmix(Xn_from_signal):
                 output_file = f'o{self.prefix}.YamboPy-X_probe_order_{i_n}_{i_m}'
                 iorder = (i_n+i_m,i_n,i_m)
                 header = "E[eV] " + " ".join([f"X{iorder}/Im_{d} X{iorder}/Re_{d}" for d in ('x','y','z')])
+                header = f"Units: {self.get_Unit_label(abs(i_n)+abs(i_m))}\n" + header
                 values = np.column_stack((self.freqs * ha2ev, out[i_c, :, 0].imag, out[i_c, :, 0].real,
                         out[i_c, :, 1].imag, out[i_c, :, 1].real,
                         out[i_c, :, 2].imag, out[i_c, :, 2].real))

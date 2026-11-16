@@ -130,6 +130,7 @@ class Xn_from_pulse(Xn_from_signal):
             if (to_file):
                 output_file = f'o{self.prefix}.YPy-X_order_{i_n}_{i_p}'
                 header = "E[eV] " + " ".join([f"X{i_n}({i_p}w)/Im({d}) X{i_n}({i_p}w)/Re({d})" for d in ('x','y','z')])
+                header = f"Units: {self.get_Unit_label(i_n)}\n" + header
                 values = np.column_stack((self.freqs * ha2ev, out[ii, :, 0].imag, out[ii, :, 0].real,
                                 out[ii, :, 1].imag, out[ii, :, 1].real,
                                 out[ii, :, 2].imag, out[ii, :, 2].real))
