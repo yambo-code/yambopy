@@ -5,7 +5,7 @@
 #
 from yambopy import *
 from netCDF4 import Dataset
-from math import sqrt
+import math
 import numpy as np
 from yambopy.tools.string import marquee
 import os
@@ -68,8 +68,9 @@ class YamboExcitonPhononDB():
         self.nexc_o = database.variables['EXCITON_SUM'][1].astype(int)
         self.nmodes = database.variables['PHONON_MODES'][0].astype(int)
         self.nqpoints = database.variables['HEAD_R_LATT'][3].astype(int)
-        self.type_exc_i = database.variables['L_kind_in'][...].tostring().decode().strip()
-        self.type_exc_o = database.variables['L_kind_out'][...].tostring().decode().strip()
+        self.type_exc_i = database.variables['L_kind_in'][...].tobytes().decode().strip()
+        self.type_exc_o = database.variables['L_kind_out'][...].tobytes().decode().strip()
+
         database.close()
 
         #Check how many databases are present
@@ -83,6 +84,7 @@ class YamboExcitonPhononDB():
         self.lattice = lattice
         self.alat    = lattice.alat
         self.rlat    = lattice.rlat
+        self.red_kpoints = lattice.red_kpoints
         
         # Keep reading
         if read_all: self.read_full_DB()
@@ -145,9 +147,179 @@ class YamboExcitonPhononDB():
 
         self.excph    = excph_full
         self.excph_sq = excph_sq_full
+    
+    def plot_excph(self, data, plt_show=False, plt_cbar=False,
+               threeD=False, axis='z', tol=1e-6, ncols=3, title=None, split_bz = True, **kwargs):
+        """
+        2D scatterplot in the q-BZ of the quantity A_{iq}(ib2,ib1,inu).
+
+        Any real quantity which is a function of only the q-grid may be supplied.
+        The indices iq,inu,ib1,ib2 are user-specified.
+
+        - if plt_show plot is shown
+        - if plt_cbar colorbar is shown
+        - kwargs example: marker='H', s=300, cmap='viridis', etc.
+
+        NB: So far requires a 2D system.
+            If threeD=True, plots BZ planes at constant component along `axis`
+            (x/y/z) in a subplot grid.
+        """
+
+        qpts = self.car_qpoints
+        #qpts_reciprocal = self.red_qpoints
+        kpts_red = self.red_kpoints 
+
+        # Input check
+        if len(data) != len(qpts):
+            raise ValueError('Something wrong in data dimensions (%d data vs %d qpts)' % (len(data), len(qpts)))
+
+        # -------------------------------------------------------------------------
+        # Helpers for 3D layer selection
+        # -------------------------------------------------------------------------
+        def _axis_to_index(ax):
+            ax = ax.lower()
+            if ax == 'x': return 0
+            if ax == 'y': return 1
+            if ax == 'z': return 2
+            raise ValueError("axis must be one of 'x', 'y', 'z'")
+        """
+        def _unique_with_tol(vals, tol_):
+            eps = 1e-6
+            vals = np.asarray(vals)
+            decimals = max(0, int(np.ceil(-np.log10(tol_))))
+            vals_r = np.round(vals, decimals=decimals)
+            if not split_bz:
+                vals_r=vals_r-np.round(vals_r + eps)
+                uniq = np.unique(vals_r)
+            else:
+                uniq = np.unique(vals_r)
+            return uniq, vals_r, decimals
+
+        """
+        def _unique_with_tol(vals, tol_, vals_red):
+            eps = 1e-5
+            vals = np.asarray(vals)
+            decimals = max(0, int(np.ceil(-np.log10(tol_))))
+            vals_r = np.round(vals, decimals=decimals)
+            if not split_bz:
+                vals_red = np.asarray(vals_red)
+                mask = np.round( vals_red + eps) == 1
+                vals_r[mask] = -vals_r[mask]
+                uniq = np.unique(vals_r)
+            else:
+                uniq = np.unique(vals_r)
+            return uniq, vals_r, decimals
+        ax_idx = _axis_to_index(axis)
+
+        # -------------------------------------------------------------------------
+        # 2D path: keep original structure/behavior (plus optional title)
+        # -------------------------------------------------------------------------
+        if not threeD:
+            # Global plot stuff
+            self.fig, self.ax = plt.subplots(1, 1)
+            self.ax.add_patch(BZ_Wigner_Seitz(self.lattice))
+
+            if title is not None:
+                self.ax.set_title(title)
+
+            if plt_cbar:
+                if 'cmap' in kwargs.keys(): color_map = plt.get_cmap(kwargs['cmap'])
+                else:                       color_map = plt.get_cmap('viridis')
+
+            lim = 1.05 * np.linalg.norm(self.rlat[0])
+            self.ax.set_xlim(-lim, lim)
+            self.ax.set_ylim(-lim, lim)
+
+            # Reproduce plot also in adjacent BZs
+            BZs = shifted_grids_2D(qpts, self.rlat)
+            for qpts_s in BZs:
+                plot = self.ax.scatter(qpts_s[:, 0], qpts_s[:, 1], c=data, **kwargs)
+
+            if plt_cbar:
+                self.cbar = self.fig.colorbar(plot)
+
+            plt.gca().set_aspect('equal')
+
+            if plt_show:
+                plt.show()
+            else:
+                print("Plot ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
+            return
+
+        # -------------------------------------------------------------------------
+        # 3D path: make a subplot grid of constant-axis slices (projections)
+        # -------------------------------------------------------------------------
+        uniq_layers, qpts_r, decimals = _unique_with_tol(qpts[:, ax_idx], tol, vals_red = kpts_red[:, ax_idx])
+
+        # which two coordinates to plot
+        all_idx = [0, 1, 2]
+        all_idx.remove(ax_idx)
+        xidx, yidx = all_idx[0], all_idx[1]
+        axis_names = {0: 'x', 1: 'y', 2: 'z'}
+        proj_label = f"{axis_names[xidx]}{axis_names[yidx]}"
+
+        nlay = len(uniq_layers)
+        nrows = int(math.ceil(nlay / ncols))
+
+        self.fig, axes = plt.subplots(nrows, ncols, figsize=(5.5 * ncols, 5.5 * nrows))
+        axes = np.atleast_1d(axes).ravel()
+
+        # Global color range across all layers (unless user provided vmin/vmax)
+        if ('vmin' not in kwargs) and ('vmax' not in kwargs):
+            kwargs = dict(kwargs)  # avoid mutating caller dict
+            kwargs['vmin'] = np.nanmin(data)
+            kwargs['vmax'] = np.nanmax(data)
+
+        lim = 1.05 * np.linalg.norm(self.rlat[0])
+
+        last_plot = None
+        for i, layer_val in enumerate(uniq_layers):
+            ax = axes[i]
+
+            ax.add_patch(BZ_Wigner_Seitz(self.lattice))
+            ax.set_xlim(-lim, lim)
+            ax.set_ylim(-lim, lim)
+            ax.set_aspect('equal')
+
+            ax.set_title(f"{axis} ≈ {layer_val:g} (rounded {decimals} dp)")
+
+            mask = (qpts_r == layer_val)
+            q_layer = qpts[mask]
+            d_layer = np.asarray(data)[mask]
+
+            # Reproduce plot also in adjacent BZs (on projected plane)
+            BZs = shifted_grids_2D(q_layer[:, [xidx, yidx]], self.rlat)
+            for qpts_s in BZs:
+                last_plot = ax.scatter(qpts_s[:, 0], qpts_s[:, 1], c=d_layer, **kwargs)
+
+            ax.set_xlabel(axis_names[xidx])
+            ax.set_ylabel(axis_names[yidx])
+
+        # Turn off unused axes
+        for j in range(nlay, len(axes)):
+            axes[j].axis('off')
+
+        # Shared colorbar
+        if plt_cbar and last_plot is not None:
+            self.cbar = self.fig.colorbar(last_plot, ax=axes[:nlay], shrink=0.9)
+
+        # Figure title
+        if title is None:
+            title = f"3D slices in q-BZ: projection on {proj_label}-plane, grouped by {axis}"
+        self.fig.suptitle(title, y=0.995)
+
+        self.fig.tight_layout()
+
+        if plt_show:
+            plt.show()
+        else:
+            print("3D subplot grid ready.\nYou can customise adding savefig, title, labels, text, show, etc...")
+
+    
+
 
     @add_fig_kwargs
-    def plot_excph(self,data,plt_show=False,plt_cbar=False,**kwargs):
+    def plot_excph_old(self,data,plt_show=False,plt_cbar=False,**kwargs):
         """
         2D scatterplot in the q-BZ of the quantity A_{iq}(ib2,ib1,inu).
         
@@ -183,7 +355,8 @@ class YamboExcitonPhononDB():
         BZs = shifted_grids_2D(qpts,self.rlat)
         for qpts_s in BZs: plot=self.ax.scatter(qpts_s[:,0],qpts_s[:,1],c=data,**kwargs)
         
-        if plt_cbar: self.cbar = self.fig.colorbar(plot)
+        #if plt_cbar: self.cbar = self.fig.colorbar(plot)
+        if plt_cbar: self.cbar = self.fig.colorbar(plot)  
         
         plt.gca().set_aspect('equal')
 
