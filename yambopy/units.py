@@ -44,7 +44,7 @@ FREE_SPACE_PERM   = 1.0e7/4.0/math.pi/speed_of_light_SI**2 # Farad=Coulomb/Volt
 
 
 Eh = 4.359744e-18 # Hartree in Joule
-e = 1.602e-19 # Coulomb
+e = 1.602176565e-19 # Coulomb (same value of e_SI in Lumen src/modules/mod_units.F)
 hbar = 1.054571e-34 # J.s 
 a0 = 5.291772e-11 # m, Bohr radius
 
