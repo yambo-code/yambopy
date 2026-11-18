@@ -93,7 +93,7 @@ Period         : 1.021152 fs
 Propagated bands  : [3, 4]
 t0                : 39.475101 fs
 Sambe gauge       : dominant
-KS/RT offset      : -0.757652 eV
+KS/RT offset      : -0.758196 eV (-VBM mod omega); from data: -0.757652 eV
 Timing errors / T : phase_grid=3.7e-15, T=2.9e-15, fourT=8.9e-16
 
  Consistency checks (min / mean / max over k)
@@ -125,15 +125,15 @@ An already loaded `YamboVbandsDB` can also be used: `FloquetAnalysis(vbdb=mydb, 
 
 - `'principal'`: $\xi\in(-\omega/2,\omega/2]$;
 - `'sambe'`: the branch used for the F–KS coefficients;
-- `'ks'` (default): the branch closest to the KS energy of the associated band. A single global offset between the energy reference of the RT run and of `SAVE` (`fa.ks_offset_au`, here −0.758 eV ≡ −E_VBM modulo ħω) is removed, so that $\xi$ can be compared directly with `fa.ks_energies()`. The offset is a single number: k-dependent shifts are not touched.
+- `'ks'` (default): the branch closest to the KS energy of the associated band. `yambo_nl` puts the valence-band maximum at zero, so the energy reference of the RT run differs from that of `SAVE` by `fa.ks_offset_au` = −E_VBM modulo ħω (here −0.758 eV); this offset is removed, so that $\xi$ can be compared directly with `fa.ks_energies()`. It is a single number: the k-dependent field-induced shifts $\xi-E_{KS}$ are not touched. As a check, `fa.median_offset_au` estimates the same offset from the data (−0.7577 eV: the 0.5 meV difference is the average field-induced shift).
 
 `fa.report('quasienergies.dat')` writes, for every k and band, the KS energy, the quasienergy, their difference, the mode weight, the edge weight and the closure error:
 
 ```
 #  k  band   E_KS[eV]      xi[eV]      xi-E_KS[eV]  weight   edge      closure_T
-   1    3    -4.692204    -4.692701  -4.9671e-04  0.7502  8.65e-23  6.86e-11
-   1    4    -4.692204    -4.692701  -4.9671e-04  0.7502  3.45e-28  6.86e-11
-   2    3    -4.783163    -4.783650  -4.8689e-04  1.0000  6.43e-23  5.87e-11
+   1    3    -4.692204    -4.692157   4.7223e-05  0.7502  8.65e-23  6.86e-11
+   1    4    -4.692204    -4.692157   4.7223e-05  0.7502  3.45e-28  6.86e-11
+   2    3    -4.783163    -4.783106   5.7035e-05  1.0000  6.43e-23  5.87e-11
 ```
 
 **F–KS coefficients.** `eta, d = fa.sambe(kpt, band)` returns $\tilde d_{\mathbf k a i}(\eta)$ as an array (2N_F+1, n_basis); the full array is `fa.Lambda[k, a, eta, i]` with `fa.harmonics = [-4,...,4]`.
@@ -176,7 +176,7 @@ fa.plot_bands(path, npoints=40, bz=bz, ks_bands=range(1,9), replicas=2, ylim=(-1
 
 <img src="./img/fig-Floquet_bands.png" style="zoom:45%" />
 
-At this intensity the quasienergies follow the KS bands (`xi - E_KS` in the report is below 6 meV everywhere). The numbers can be obtained without plotting with `fa.bands_on_path(path, ...)`.
+At this intensity the quasienergies follow the KS bands (`xi - E_KS` in the report is between 0 and 6.1 meV). The numbers can be obtained without plotting with `fa.bands_on_path(path, ...)`.
 
 ## 4. Sidebands in the Brillouin zone
 
@@ -239,4 +239,5 @@ The two spectra agree within 0.5 % (complex L² relative difference at the 64 co
 - If `edge_fraction` is not negligible, increase `FLOrder`; if `closure_T`/`closure_4T` are large, the system has not reached a periodic steady state within the sampled window (check `NLtime`, damping, field switch-on) or `NLBands` is too small.
 - The finite-field coefficients divided by $E^n$ are effective responses: an intensity scan is needed to call them perturbative $\chi^{(n)}$.
 - Convention: the sideband $\eta$ has energy $\xi+\eta\omega$. In the stand-alone scripts `FLQuasi.py`/`FLQ_HG.py` the opposite sign was used, $\Lambda_{\text{here}}(\eta)=\Lambda_{\text{scripts}}(-\eta)$.
+- For a propagated state that coincides with a single Floquet mode, the legacy secant search (`VbPP.find_qe(method='optimize')`) gives the same quasienergies (differences below 10⁻⁶ eV on this dataset); the monodromy method also handles mixed/degenerate states, needs no initial guess or iteration and comes with the independent T/4T checks. The legacy `method='ratio'` is not reliable with the non-uniform Floquet sampling (phase grid + T + 4T) and should not be used.
 - The legacy interface of the previous tutorial (`VbPP`, `findallk_qe`, `calc_rho`, `get_qebands_interpolate`, `plot_2D_kdist`) is unchanged.

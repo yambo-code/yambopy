@@ -737,11 +737,20 @@ class FloquetAnalysis():
     @property
     def ks_offset_au(self):
         """
-        Global difference between the reference energy of the RT run and the KS
-        energies in SAVE (e.g. Fermi-level alignment), estimated as the median of
-        xi - E_KS modulo omega over all k and modes. One single number: k-dependent
-        differences (Stark/Bloch-Siegert shifts) are left untouched.
+        Difference between the energy reference of the RT run and the KS energies in
+        SAVE, modulo omega. yambo_nl puts the valence-band maximum at zero, so the
+        offset is -E_VBM (mod omega). This is a reference shift only: the k-dependent
+        differences xi - E_KS (Stark/Bloch-Siegert shifts) are left untouched.
+        See median_offset_au for the value estimated from the data.
         """
+        if self.ks_au is None: return 0.0
+        vbm = self.ks_au[:, self.active_bands[-1]-1].max()
+        return float(_wrap(-vbm, self.omega_au))
+
+    @property
+    def median_offset_au(self):
+        """Median over k and modes of (xi - E_KS) mod omega: should be close to ks_offset_au,
+           the difference being the average field-induced shift of the quasienergies."""
         if self.ks_au is None: return 0.0
         res = _wrap(self.xi_principal_au - self.ks_au[:, self.active_bands-1], self.omega_au)
         return float(np.median(res))
@@ -833,7 +842,7 @@ class FloquetAnalysis():
         s += f"t0                : {self.t0_au*AUT2FS:.6f} fs\n"
         s += f"Sambe gauge       : {self.gauge}\n"
         if self.ks_au is not None:
-            s += f"KS/RT offset      : {self.ks_offset_au*ha2ev:+.6f} eV\n"
+            s += f"KS/RT offset      : {self.ks_offset_au*ha2ev:+.6f} eV (-VBM mod omega); from data: {self.median_offset_au*ha2ev:+.6f} eV\n"
         s += f"Timing errors / T : " + ", ".join(f"{k}={v:.1e}" for k, v in self.timing_errors.items()) + "\n"
         s += "\n Consistency checks (min / mean / max over k)\n"
         for key, (a, b, c) in self.check_summary().items():
