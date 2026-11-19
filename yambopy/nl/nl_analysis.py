@@ -50,7 +50,6 @@ class Xn_from_signal(ABC):
         self.current_type = current_type
         self.i_curr0 = CURRENT_TYPES[current_type]   # first row of NL_J_t (6 rows: berry x,y,z, dipoles x,y,z)
         self.nldb = nldb                # kept for the description of the simulation in the output files
->>>>>>> bug-fixes
         self.time = nldb.IO_TIME_points # Time series
         self.T_step =self.time[1] - self.time[0]     # Time step of the simulation
         self.T_deph =12.0/nldb.NL_damping 

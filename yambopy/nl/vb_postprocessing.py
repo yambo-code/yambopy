@@ -1162,6 +1162,303 @@ class FloquetAnalysis():
                     energy_eV=self.omega_au*ha2ev)
         return chi, info
 
+    # ------------------------------------- density matrix and inter/intraband P
+    def occupation_matrix(self):
+        """
+        W = Gamma^-1 F Gamma^-1^+ (F = 1: every propagated state is occupied; spin is
+        accounted for separately), so that rho(t) = sum_ab W_ab psi_a(t) psi_b(t)^+.
+        Returns the diagonal w_a (nk, nmodes) and the relative off-diagonal weight per k,
+        which vanishes in the periodic steady state (paper, Eq. rho_floquet).
+        """
+        Gi = np.linalg.inv(self.Gamma)
+        W = Gi @ np.conj(np.swapaxes(Gi, 1, 2))
+        w = np.einsum('kaa->ka', W).real
+        off = np.array([_relnorm(W[k] - np.diag(np.diag(W[k])), np.diag(W[k])) for k in range(self.nk)])
+        return w, off
+
+    def density_matrix_harmonics(self, N):
+        """
+        N-th harmonic of the one-particle density matrix in the KS basis window (no spin),
+
+            rho^(N)_ij,k = sum_a w_a sum_eta d~_kai(eta+N) d~*_kaj(eta)     (paper, Eq. rhoN)
+
+        with rho_k(t) = sum_N rho^(N)_k exp(-i N omega (t-t0)). Off-diagonal W_ab are
+        neglected (see occupation_matrix). Returns (nk_IBZ, nbasis, nbasis).
+        """
+        w, _ = self.occupation_matrix()
+        L = self.Lambda; nh = L.shape[2]; N = int(N)
+        if abs(N) >= nh: return np.zeros((self.nk, L.shape[3], L.shape[3]), complex)
+        if N >= 0: A, B = L[:, :, N:], L[:, :, :nh-N]
+        else:      A, B = L[:, :, :nh+N], L[:, :, -N:]
+        return np.einsum('ka,kahi,kahj->kij', w, A, np.conj(B), optimize=True)
+
+    def _inter_red(self, rho):
+        """-(f_s/2pi N_k) sum_k sum_cv [A_vc rho_cv + A_cv rho_vc] per reduced axis, rho on the full BZ
+           ([..., k, basis, basis]); returns [..., 3] (reduced components, times lattice/volume -> Cartesian)."""
+        bz = self.bz; s = self.samples
+        nv = bz.nocc - s.band_lo + 1                  # propagated/active occupied bands in the basis
+        out = np.zeros(rho.shape[:-3] + (3,), complex)
+        for a, A in self.A_inter.items():
+            A = A[:, :, s.band_lo-1:bz.nocc]          # (k, c, v): c = nocc+1..band_hi, v = band_lo..nocc
+            rcv = rho[..., nv:, :nv]; rvc = rho[..., :nv, nv:]
+            tr = np.einsum('...kcv,kcv->...', rcv, np.conj(A)) + np.einsum('...kvc,kcv->...', rvc, A)
+            out[..., a] = -bz.spin_factor/(2*np.pi*bz.nk_full)*tr
+        return out
+
+    def polarization_decomposition(self, orders=(1, 2), nldb=None, npoints=None, symmetry='auto',
+                                   field_direction=None):
+        """
+        Interband / intraband decomposition of the harmonics of the polarization
+        (paper, Eqs. P_full, PN, PN_intra), P(t) = sum_N P^(N) exp(-i N omega (t-t0)):
+
+          total : Berry-phase polarization of the Floquet-reconstructed states, Fourier
+                  transformed over one period (contains everything);
+          inter : -(f_s/N_k Omega) sum_k sum_cv [r_vc rho^(N)_cv + r_cv rho^(N)_vc], with rho^(N)
+                  from the Sambe coefficients (density_matrix_harmonics) and r_cv from the
+                  overlaps (interband_position): same wave functions and phases as the Berry phase;
+          intra : total - inter, i.e. the elements within the valence and conduction manifolds
+                  and the covariant derivative i nabla_k acting on the Floquet coefficients.
+                  The difference equals Eq. PN_intra up to O(dk^2) and, like the Berry phase,
+                  is independent of the gauge of the KS states and of the Floquet modes.
+
+        orders          : harmonics N >= 1 (<= FLOrder)
+        nldb            : YamboNLDB of the same run; if given, the parts are also returned as
+                          chi^(N) with the normalisation of harmonic_response (key 'chi')
+        symmetry        : 'none', 'residual' or 'auto' (as in harmonic_response; needs the field)
+        field_direction : field versor (default from nldb)
+        Returns a dict with Cartesian arrays (norders, 3) in a.u. for 'total', 'inter', 'intra',
+        the time-domain recomputation of the interband part ('inter_time_domain', a check of
+        the steady-state assumption W_ab = 0) and the off-diagonal occupation weight.
+        """
+        orders = np.atleast_1d(np.asarray(orders, int))
+        if np.any(orders < 1) or np.any(orders > self.nf):
+            raise FloquetError(f'orders must be in 1..FLOrder={self.nf}')
+        field = None
+        if nldb is not None:
+            if len(nldb.Efield) != 1: raise FloquetError('One frequency per calculation expected')
+            field = nldb.Efield[0]
+            if field_direction is None: field_direction = field['versor']
+        if not hasattr(self, 'DIP_S'): self.setup_berry(field_direction=field_direction)
+        bz = self.bz
+        if not hasattr(self, 'A_inter'):
+            self.A_inter = interband_position(self.DIP_S, bz.axes, bz.nocc)
+        if symmetry == 'auto':
+            symmetry = 'residual' if (field_direction is not None and self.samples.path
+                                      and read_symmetrize_flag(self.samples.path)) else 'none'
+        proj = np.eye(3) if symmetry == 'none' else polar_projector(bz, field_direction, symmetry)
+        cart = lambda p: (p @ np.asarray(bz.lattice_bohr, float)/bz.volume) @ proj.T
+        # total: Berry phase on a uniform grid of one period (exact DFT of a band-limited signal)
+        n = npoints or max(4*self.nf+1, 2*int(orders.max())+1, 33)
+        n += (n % 2 == 0)
+        tau = np.arange(n)*self.period_au/n
+        Ptau = self.polarization_from_floquet(tau)
+        ph = np.exp(1j*np.outer(orders*self.omega_au, tau))           # [N, t]
+        total = (ph @ Ptau)/n @ proj.T
+        # interband part from the Floquet density-matrix harmonics
+        inter = np.array([cart(self._inter_red(self.density_matrix_harmonics(N)[bz.bz_to_ibz])) for N in orders])
+        # check: same quantity from rho(t) = C(t) C(t)^+ of the reconstructed states
+        C = self.reconstruct_states(tau)[:, bz.bz_to_ibz]
+        rho_t = C @ np.conj(np.swapaxes(C, 2, 3))
+        inter_td = (ph @ cart(self._inter_red(rho_t)))/n
+        w, off = self.occupation_matrix()
+        out = {'orders': orders, 'total': total, 'inter': inter, 'intra': total - inter,
+               'inter_time_domain': inter_td, 'inter_consistency': _relnorm(inter_td - inter, inter),
+               'occupation_offdiag': float(off.max()), 'npoints': n, 'symmetry': symmetry,
+               'energy_eV': self.omega_au*ha2ev, 'reference_time_au': self.t0_au}
+        if field is not None:
+            from yambopy.nl.external_efield import Divide_by_the_Field
+            from yambopy.units import SVCMm12VMm1, AU2VMm1
+            # harmonics with respect to the field initial time, as in harmonic_response
+            shift = np.exp(1j*orders*self.omega_au*(self.t0_au - float(field['initial_time'])))
+            norm = np.array([Divide_by_the_Field(field, N)*np.power(SVCMm12VMm1/AU2VMm1, N-1) for N in orders])
+            fac = (shift*norm)[:, None]
+            out['chi_factor'] = fac[:, 0]
+            out['chi'] = {key: out[key]*fac for key in ('total', 'inter', 'intra')}
+        return out
+
+
+##################################################################################
+### PART I-e : excitonic analysis of the Floquet components
+##################################################################################
+
+class FloquetExcitons():
+    """
+    Projection of the Floquet density-matrix harmonics on the BSE excitons
+    (paper, Sec. "Excitonic analysis of the Floquet components").
+
+        X^(N)_lam   = sum_kcv A^lam*_cvk rho^(N)_cv,k                       (Eq. XN)
+        d_lam       = sum_kcv r_vc,k A^lam_cvk                               (exciton dipole)
+        M_lam,lam'  = sum_k Tr[ B^lam_k^+ i nabla_k B^lam'_k ],  B^lam_k = sum_cv A^lam_cvk |u_kc><u_kv|
+                    = sum_kcv A^lam* [ sum_c' r_cc' A^lam'_c'v - sum_v' A^lam'_cv' r_v'v
+                                       + i (nabla - i A_c + i A_v) A^lam'_cv ]   (Eq. M)
+        P^(N)_inter = -(f_s/N_k Omega) sum_lam [ d_lam X^(N)_lam + d*_lam X^(-N)*_lam ]      (Eq. P_exc)
+        P^(N)_intra = -(f_s/N_k Omega) sum_N' sum_lam,lam' X^(N'-N)*_lam' M_lam',lam X^(N')_lam (Eq. P_intra_exc)
+
+    r_cv and the covariant derivative are both obtained from ndb.Overlap (same data and
+    phases as the Berry phase): M is discretised as a gauge-covariant central difference
+        M = i/(2 dkappa) sum_k { Tr[A_k^+ S^cc_+ A'_k+b S^vv_+^+] - Tr[A_k^+ S^cc_- A'_k-b S^vv_-^+] }
+    All vectors are kept in reduced components (one per axis of the k grid, the axes
+    with a single k-point are zero) and converted to Cartesian on output.
+
+    The BSE must be computed with the same SAVE (bands, k-grid, wave functions and
+    thus phases) as the real-time run, and (for the comparison with the full response)
+    with the same kernel. Only the TDA, non spin-polarized case is supported.
+
+    Parameters
+    ----------
+    fa       : FloquetAnalysis with setup_berry() done (or done here)
+    A        : (nexc, nk_full, nc, nv) BSE eigenvectors, k in the order of FloquetBZ (full BZ)
+    energies : (nexc,) exciton energies [eV]
+    vbands, cbands : 1-based KS bands of the v and c indices of A
+    """
+    def __init__(self, fa, A, energies, vbands, cbands):
+        self.fa = fa
+        if not hasattr(fa, 'DIP_S'): fa.setup_berry()
+        bz = fa.bz; s = fa.samples
+        if not hasattr(fa, 'A_inter'): fa.A_inter = interband_position(fa.DIP_S, bz.axes, bz.nocc)
+        self.A = np.asarray(A, complex)
+        self.energies = np.asarray(energies, float).real
+        self.vbands = np.asarray(vbands, int); self.cbands = np.asarray(cbands, int)
+        nexc, nk, nc, nv = self.A.shape
+        if nk != bz.nk_full: raise FloquetError(f'BSE has {nk} k-points, the full BZ of the RT run has {bz.nk_full}')
+        if (nc, nv) != (len(self.cbands), len(self.vbands)): raise FloquetError('A and band lists are inconsistent')
+        if self.vbands.max() > bz.nocc or self.cbands.min() <= bz.nocc:
+            raise FloquetError('BSE valence/conduction bands inconsistent with the occupation of the RT run')
+        if self.cbands.max() > s.band_hi:
+            raise FloquetError(f'BSE conduction bands beyond NLBands ({s.band_hi}): not in the Floquet basis')
+        if self.vbands.min() < 1: raise FloquetError('Invalid valence bands')
+        norm = np.einsum('lkcv,lkcv->l', self.A.conj(), self.A).real
+        if np.max(abs(norm - 1)) > 1e-4: raise FloquetError('BSE eigenvectors are not normalised')
+        self.complete = nexc == nk*nc*nv
+        self._M = None; self._X = {}
+
+    @classmethod
+    def from_yambo(cls, fa, filename='ndb.BS_diago_Q1', folder='.', lattice=None, neigs=-1):
+        """Read the BSE eigenvectors (WRbsWF) from a Yambo database (TDA, Q=0, no spin polarisation)."""
+        from yambopy.dbs.excitondb import YamboExcitonDB
+        from yambopy.dbs.latticedb import YamboLatticeDB
+        if lattice is None:
+            if fa.save is None: raise FloquetError('Give the lattice or a FloquetAnalysis with save=...')
+            lattice = YamboLatticeDB.from_db_file(filename=os.path.join(fa.save, 'ns.db1'))
+        ex = YamboExcitonDB.from_db_file(lattice, filename=filename, folder=folder, Load_WF=True, neigs=neigs)
+        Akcv = ex.get_Akcv
+        if Akcv is None: raise FloquetError('No BSE eigenvectors in the database: rerun yambo with WRbsWF')
+        if Akcv.shape[1] != 1: raise FloquetError('Only TDA eigenvectors are supported')
+        if Akcv.shape[2] != 1: raise FloquetError('Spin-polarised BSE is not supported')
+        return cls(fa, Akcv[:, 0, 0], np.real(ex.eigenvalues), ex.unique_vbands+1, ex.unique_cbands+1)
+
+    # ------------------------------------------------------------------ helpers
+    @property
+    def nexc(self): return self.A.shape[0]
+
+    def _rho_cv(self, N):
+        """rho^(N)_cv on the full BZ for the BSE bands (zero for frozen valence bands)."""
+        fa = self.fa; s = fa.samples
+        rho = fa.density_matrix_harmonics(N)[fa.bz.bz_to_ibz]
+        out = np.zeros((rho.shape[0], len(self.cbands), len(self.vbands)), complex)
+        ic = self.cbands - s.band_lo
+        for j, v in enumerate(self.vbands):
+            if v >= s.band_lo: out[:, :, j] = rho[:, ic, v - s.band_lo]
+        return out
+
+    def _red2cart(self, p):
+        bz = self.fa.bz
+        return p @ np.asarray(bz.lattice_bohr, float)/bz.volume
+
+    def amplitudes(self, N):
+        """X^(N)_lambda (Eq. XN), shape (nexc,). The k, c, v resolution is A^* rho^(N)."""
+        N = int(N)
+        if N not in self._X:
+            self._X[N] = np.einsum('lkcv,kcv->l', self.A.conj(), self._rho_cv(N), optimize=True)
+        return self._X[N]
+
+    def dipoles(self, cartesian=True):
+        """Exciton dipoles d_lambda = sum r_vc A_cv: reduced (nexc, 3) or Cartesian [Bohr]."""
+        bz = self.fa.bz; d = np.zeros((self.nexc, 3), complex)
+        iv = self.vbands - 1
+        for a, Acv in self.fa.A_inter.items():
+            r = Acv[:, self.cbands - bz.nocc - 1][:, :, iv]       # (k, c, v) reduced
+            d[:, a] = np.einsum('kcv,lkcv->l', np.conj(r), self.A, optimize=True)
+        return d @ np.asarray(bz.lattice_bohr, float)/(2*np.pi) if cartesian else d
+
+    def transition_dipoles(self, cartesian=True):
+        """Exciton-to-exciton dipoles M[lambda, lambda', 3] (Eq. M), reduced or Cartesian [Bohr]."""
+        bz = self.fa.bz
+        if self._M is None:
+            nexc, nk, nc, nv = self.A.shape
+            ic = self.cbands - 1; iv = self.vbands - 1
+            M = np.zeros((nexc, nexc, 3), complex)
+            Af = self.A.reshape(nexc, -1)
+            for a, info in bz.axes.items():
+                if info['N'] <= 1: continue
+                fwd = np.asarray(info['neighbor'], int); bwd = np.argsort(fwd)
+                Sf = self.fa.DIP_S[:, a].transpose(0, 2, 1)                       # <u_k i|u_k+b j>
+                Sb = np.conj(Sf[bwd]).transpose(0, 2, 1)                          # <u_k i|u_k-b j>
+                def transport(S, nb):
+                    Scc = S[:, ic][:, :, ic]; Svv = S[:, iv][:, :, iv]
+                    # S^cc A_{k+-b} S^vv^+  for every exciton
+                    return np.einsum('kcd,lkde,kve->lkcv', Scc, self.A[:, nb], np.conj(Svv), optimize=True)
+                D = (transport(Sf, fwd) - transport(Sb, bwd)).reshape(nexc, -1)
+                M[:, :, a] = 1j*info['N']/2.0*(np.conj(Af) @ D.T)
+            self._M = M
+        return self._M @ np.asarray(bz.lattice_bohr, float)/(2*np.pi) if cartesian else self._M
+
+    # ------------------------------------------------------------- polarization
+    def polarization(self, orders=(1, 2), nldb=None, pathways=False):
+        """
+        Excitonic decomposition of the harmonics of the polarization. Returns a dict with
+        Cartesian arrays (a.u.) relative to t0, as in FloquetAnalysis.polarization_decomposition:
+
+          'inter'            : (norders, 3) Eq. P_exc
+          'inter_per_exciton': (norders, nexc, 3) resonant + anti-resonant term of each exciton
+          'intra'            : (norders, 3) Eq. P_intra_exc
+          'floquet'          : FloquetAnalysis.polarization_decomposition (total, inter, intra)
+          'residual_inter'   : |P_inter(excitons) - P_inter(Floquet)| / |P_inter(Floquet)|
+                               (truncation of the excitonic basis; ~0 for a complete basis)
+          'residual_intra'   : same for the intraband part (also measures the neglected
+                               O(rho_cv^4) terms and the O(dk^2) discretisation)
+          'residual_total'   : |P_Berry - P_inter - P_intra| / |P_Berry| with excitonic parts
+          'intra_pathways'   : (only if pathways=True) dict N -> (nexc, nexc, 3) contributions
+                               X^(N'-N)*_lam' M_lam'lam X^(N')_lam summed over N' (row lam', column lam)
+        If nldb is given, the same quantities divided by the field are in 'chi'.
+        """
+        fa = self.fa; bz = fa.bz
+        orders = np.atleast_1d(np.asarray(orders, int))
+        harm = np.arange(-fa.nf, fa.nf+1)
+        X = {int(m): self.amplitudes(m) for m in harm}
+        d = self.dipoles(cartesian=False); M = self.transition_dipoles(cartesian=False)
+        pref = -bz.spin_factor/(2*np.pi*bz.nk_full)
+        inter, per_exc, intra, paths = [], [], [], {}
+        for N in orders:
+            pe = pref*(d*X[N][:, None] + np.conj(d)*np.conj(X[-N])[:, None])
+            per_exc.append(self._red2cart(pe)); inter.append(self._red2cart(pe.sum(0)))
+            pw = np.zeros((self.nexc, self.nexc, 3), complex)
+            for Np in harm:
+                if (Np - N) in X:
+                    pw += np.conj(X[int(Np-N)])[:, None, None]*M*X[int(Np)][None, :, None]
+            intra.append(self._red2cart(pref*pw.sum((0, 1))))
+            if pathways: paths[int(N)] = self._red2cart(pref*pw)
+        inter, intra, per_exc = np.array(inter), np.array(intra), np.array(per_exc)
+        flq = fa.polarization_decomposition(orders=orders, nldb=nldb, symmetry='none')
+        out = {'orders': orders, 'inter': inter, 'intra': intra, 'inter_per_exciton': per_exc,
+               'energies_eV': self.energies, 'floquet': flq, 'complete_basis': self.complete,
+               'residual_inter': _relnorm(inter - flq['inter'], flq['inter']),
+               'residual_intra': _relnorm(intra - flq['intra'], flq['intra']),
+               'residual_total': _relnorm(flq['total'] - inter - intra, flq['total'])}
+        if pathways: out['intra_pathways'] = paths
+        if nldb is not None:
+            fac = flq['chi_factor'][:, None]
+            out['chi'] = {'inter': inter*fac, 'intra': intra*fac, 'inter_per_exciton': per_exc*fac[:, None]}
+        return out
+
+    def cumulative(self, N=2, component=None):
+        """Cumulative sum over excitons (ordered by energy) of the interband part of P^(N):
+           energies (eV) and the cumulative complex sum (nexc, 3), or one component."""
+        r = self.polarization(orders=(N,))
+        order = np.argsort(self.energies)
+        c = np.cumsum(r['inter_per_exciton'][0][order], axis=0)
+        return self.energies[order], (c if component is None else c[:, component])
+
 
 ##################################################################################
 ### PART II : Berry phase, overlaps and harmonic fit (module functions)
@@ -1226,6 +1523,44 @@ def berry_polarization(C, DIP, axes, lattice, volume, spin, nocc, band_lo, band_
     for a, ph in phases.items():
         p_red[:, a] = spin/(2*np.pi)*np.unwrap(ph, axis=0).mean(axis=1)
     return p_red @ np.asarray(lattice, float)/volume
+
+
+def interband_position(DIP, axes, nocc, cond_max=1e8):
+    """
+    Interband matrix elements of the position operator in reduced coordinates,
+
+        A^(a)_cv(k) = <u_kc| i d/dkappa_a |u_kv>     (kappa_a: reduced coordinate along b_a),
+
+    from the overlaps of ndb.Overlap (same data used for the Berry phase), for every
+    axis a of the regular grid with more than one point. The forward/backward overlaps
+    S^cv(k,k+-b) are parallel-transported with the inverse of the occupied block
+    S^vv(k,k+-b), which makes the result independent of the (arbitrary) phases of the
+    KS states:
+
+        A_cv = i/(2 dkappa) [ S^cv_+ (S^vv_+)^-1 - S^cv_- (S^vv_-)^-1 ]_cv ,  dkappa = 1/N_a
+
+    (error O(dkappa^2)). Cartesian elements: r_cv = sum_a A^(a)_cv R_a/(2 pi).
+
+    DIP  : (nk_full, 6, nb, nb) overlaps from load_overlaps (bands 1..nb)
+    axes : per-axis neighbour information of FloquetBZ.axes
+    nocc : number of occupied bands (bands 1..nocc)
+    Returns dict axis -> (nk_full, nb-nocc, nocc) complex.
+    """
+    out = {}
+    for a, info in axes.items():
+        if info['N'] <= 1: continue
+        fwd = np.asarray(info['neighbor'], int); bwd = np.argsort(fwd)
+        Sf = DIP[:, a].transpose(0, 2, 1)                       # <u_k i|u_k+b j>
+        Sb = np.conj(Sf[bwd]).transpose(0, 2, 1)                # <u_k i|u_k-b j> = <u_k-b j|u_k i>^*
+        def dual(S):
+            Svv = S[:, :nocc, :nocc]
+            c = np.linalg.cond(Svv)
+            if np.any(~np.isfinite(c)) or np.any(c > cond_max):
+                raise FloquetError(f'Singular occupied overlap block along axis {a}: refine the k grid')
+            # S^cv (S^vv)^-1  =  [ (S^vv)^-T (S^cv)^T ]^T
+            return np.swapaxes(np.linalg.solve(np.swapaxes(Svv, 1, 2), np.swapaxes(S[:, nocc:, :nocc], 1, 2)), 1, 2)
+        out[a] = 1j*(dual(Sf) - dual(Sb))*info['N']/2.0
+    return out
 
 
 def polar_projector(bz, field, setting='none'):

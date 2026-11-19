@@ -233,6 +233,51 @@ The result for hBN (IPA, 64 Floquet frequencies) compared with the real-time spe
 
 The two spectra agree within 0.5 % (complex L² relative difference at the 64 common frequencies). This is a test of the internal consistency of the Floquet reconstruction, not a convergence test with respect to k-points, bands, field intensity or `FLOrder`.
 
+### Interband and intraband parts
+
+`polarization_decomposition` splits each harmonic of the polarization, $\mathbf P(t)=\sum_N\mathbf P^{(N)}e^{-iN\omega(t-t_0)}$, into
+
+$$\mathbf P^{(N)}_{\rm inter}=-\frac{f_s}{N_k\Omega}\sum_{\mathbf k}\sum_{cv}\Big[\mathbf r_{vc}\,\rho^{(N)}_{cv}+\mathbf r_{cv}\,\rho^{(N)}_{vc}\Big],\qquad
+\rho^{(N)}_{ij,\mathbf k}=\sum_a w_a\sum_\eta\tilde d_{\mathbf kai}(\eta+N)\,\tilde d^*_{\mathbf kaj}(\eta),$$
+
+and $\mathbf P^{(N)}_{\rm intra}=\mathbf P^{(N)}_{\rm Berry}-\mathbf P^{(N)}_{\rm inter}$, i.e. the elements within the valence and conduction manifolds plus the covariant derivative $i\nabla_{\mathbf k}$ acting on the Floquet coefficients. The interband position $\mathbf r_{cv}$ is obtained from the same `ndb.Overlap` used for the Berry phase, with a gauge-covariant central difference (`interband_position`), so no dipole database is needed and the phases are consistent with the Berry phase. All parts converge as $O(\Delta k^2)$.
+
+```python
+dec = fa.polarization_decomposition(orders=(1, 2), nldb=nldb)
+print(dec['chi']['total'][1], dec['chi']['inter'][1], dec['chi']['intra'][1])   # SHG, cm/statV
+print(dec['inter_consistency'], dec['occupation_offdiag'])                      # steady-state checks
+rho2 = fa.density_matrix_harmonics(2)          # rho^(2)_ij,k in the KS basis window (no spin)
+```
+
+`inter_consistency` compares $\mathbf P_{\rm inter}$ computed from $\rho^{(N)}$ with the one computed from $\rho(t)=C(t)C(t)^\dagger$ of the reconstructed states, and `occupation_offdiag` is the weight of the off-diagonal $W_{ab}$ neglected in $\rho^{(N)}$; both vanish in the periodic steady state.
+
+### Excitonic analysis
+
+`FloquetExcitons` projects the harmonics of the interband coherence on the BSE excitons $A^\lambda_{cv\mathbf k}$,
+
+$$X^{(N)}_\lambda=\sum_{\mathbf kcv}\big(A^\lambda_{cv\mathbf k}\big)^*\rho^{(N)}_{cv,\mathbf k},\qquad
+\mathbf P^{(N)}_{\rm inter}=-\frac{f_s}{N_k\Omega}\sum_\lambda\Big[\mathbf d_\lambda X^{(N)}_\lambda+\mathbf d^*_\lambda\big(X^{(-N)}_\lambda\big)^*\Big],$$
+
+$$\mathbf P^{(N)}_{\rm intra}\simeq-\frac{f_s}{N_k\Omega}\sum_{N'}\sum_{\lambda\lambda'}\big(X^{(N'-N)}_{\lambda'}\big)^*\,\mathbf M_{\lambda'\lambda}\,X^{(N')}_\lambda ,$$
+
+with the exciton dipoles $\mathbf d_\lambda$ and the exciton-to-exciton dipoles $\mathbf M_{\lambda\lambda'}=\sum_{\mathbf k}\mathrm{Tr}[B^{\lambda\dagger}_{\mathbf k}\,i\nabla_{\mathbf k}B^{\lambda'}_{\mathbf k}]$, $B^\lambda_{\mathbf k}=\sum_{cv}A^\lambda_{cv\mathbf k}|u_{\mathbf kc}\rangle\langle u_{\mathbf kv}|$. Both are computed from `ndb.Overlap` with gauge-covariant finite differences. The intraband expression uses $\rho^2=\rho$ to express $\rho_{cc'}$ and $\rho_{vv'}$ through $\rho_{cv}$ and is accurate to $O(\rho_{cv}^2)$ relative.
+
+The BSE (TDA, `WRbsWF`) must be computed with the **same** `SAVE` (k-grid, bands, wave functions and thus phases) as the real-time run; its conduction bands must lie within `NLBands`.
+
+```python
+from yambopy import FloquetExcitons
+fx = FloquetExcitons.from_yambo(fa, filename='ndb.BS_diago_Q1', folder='BSE')
+X2 = fx.amplitudes(2)                     # X^(2)_lambda
+d  = fx.dipoles(); M = fx.transition_dipoles()   # Cartesian, Bohr
+r  = fx.polarization(orders=(1, 2), nldb=nldb, pathways=True)
+print(r['residual_inter'], r['residual_intra'], r['residual_total'])
+E, c = fx.cumulative(N=2, component=1)    # cumulative sum over excitons (energy order), y component
+```
+
+- `inter_per_exciton` gives the contribution of each exciton to $\mathbf P^{(N)}_{\rm inter}$ (resonant + anti-resonant), `intra_pathways[N]` the matrix of contributions of each pair $(\lambda',\lambda)$ to $\mathbf P^{(N)}_{\rm intra}$.
+- `residual_inter` vanishes for a complete excitonic basis (all eigenvectors) and measures the truncation otherwise; `residual_intra` also contains the $O(\rho_{cv}^2)$ terms and the $O(\Delta k^2)$ discretisation; `residual_total` compares inter + intra with the full Berry-phase $\mathbf P^{(N)}$.
+- The k-points of the BSE eigenvectors are taken in the order of the full BZ of `YamboLatticeDB` (the convention used throughout yambopy).
+
 ## 6. Practical remarks
 
 - Only the propagated occupied subspace is represented: there are no conduction-band Floquet modes. Their weight appears in the sidebands of the valence modes.
