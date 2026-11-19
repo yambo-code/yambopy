@@ -39,6 +39,13 @@ Part I  - Direct monodromy formulation (recommended), class ``FloquetAnalysis``.
           semigroup consistency L_4 ~ L^4, off-diagonal weight of Gamma^-1 L_4 Gamma,
           Floquet-edge weight at |eta| = N_F and reconstruction of all stored records.
 
+          Floquet-channel resolution of rho^(N), X^(N) and P^(N)_inter
+          (density_matrix_channels, channel_weights, polarization_channels,
+          FloquetExcitons.channel_amplitudes/polarization_channels), checks of the
+          norm harmonics and of the secular term (norm_harmonics, quasienergy_winding,
+          secular_check) and lowest-order sum over excitons
+          (FloquetExcitons.sum_over_excitons).
+
 Part II - Berry-phase reconstruction of the polarization from the Floquet states
           and harmonic response chi^(n) (comparison with the real-time spectrum).
 
@@ -1209,7 +1216,7 @@ class FloquetAnalysis():
                                    field_direction=None):
         """
         Interband / intraband decomposition of the harmonics of the polarization
-        (paper, Eqs. P_full, PN, PN_intra), P(t) = sum_N P^(N) exp(-i N omega (t-t0)):
+        (paper, Eqs. P_floquet, PN, P_intra), P(t) = sum_N P^(N) exp(-i N omega (t-t0)):
 
           total : Berry-phase polarization of the Floquet-reconstructed states, Fourier
                   transformed over one period (contains everything);
@@ -1218,8 +1225,11 @@ class FloquetAnalysis():
                   overlaps (interband_position): same wave functions and phases as the Berry phase;
           intra : total - inter, i.e. the elements within the valence and conduction manifolds
                   and the covariant derivative i nabla_k acting on the Floquet coefficients.
-                  The difference equals Eq. PN_intra up to O(dk^2) and, like the Berry phase,
+                  The difference equals Eq. P_intra up to O(dk^2) and, like the Berry phase,
                   is independent of the gauge of the KS states and of the Floquet modes.
+                  Since intra is defined as a remainder, total - inter - intra = 0 by
+                  construction: the independent checks are 'inter_consistency' (off-diagonal
+                  W_ab) and the excitonic residuals of FloquetExcitons.polarization.
 
         orders          : harmonics N >= 1 (<= FLOrder)
         nldb            : YamboNLDB of the same run; if given, the parts are also returned as
@@ -1274,6 +1284,162 @@ class FloquetAnalysis():
             fac = (shift*norm)[:, None]
             out['chi_factor'] = fac[:, 0]
             out['chi'] = {key: out[key]*fac for key in ('total', 'inter', 'intra')}
+        return out
+
+    # ------------------------------ Floquet channels, norm and secular checks
+    def _chi_factor(self, nldb, orders):
+        """Factor converting harmonics of P (relative to t0) into chi^(N), as in
+           harmonic_response/polarization_decomposition."""
+        from yambopy.nl.external_efield import Divide_by_the_Field
+        from yambopy.units import SVCMm12VMm1, AU2VMm1
+        if len(nldb.Efield) != 1: raise FloquetError('One frequency per calculation expected')
+        field = nldb.Efield[0]
+        orders = np.atleast_1d(np.asarray(orders, int))
+        shift = np.exp(1j*orders*self.omega_au*(self.t0_au - float(field['initial_time'])))
+        norm = np.array([Divide_by_the_Field(field, N)*np.power(SVCMm12VMm1/AU2VMm1, N-1) for N in orders])
+        return shift*norm
+
+    def norm_harmonics(self, orders=None):
+        """
+        Harmonics of the norm of the Floquet modes (paper, Eq. norm_harmonics),
+
+            n^(N)_ka = sum_eta sum_i d~*_kai(eta) d~_kai(eta+N),
+
+        which vanish for N != 0 for a unitary evolution. They multiply the k-derivative
+        of the dynamical phase and of the arbitrary phase of the modes in the polarization
+        (paper, Eq. phase_derivative), so their size directly checks Eq. P_floquet.
+        orders : harmonics N >= 1 (default 1..2N_F)
+        Returns a dict: 'n0' (nk, nmodes), 'relative' {N: |n^(N)|/n^(0) (nk, nmodes)},
+        'max' {N: float}.
+        """
+        L = self.Lambda; nh = L.shape[2]
+        orders = np.arange(1, nh) if orders is None else np.atleast_1d(np.asarray(orders, int))
+        n0 = np.einsum('kahi,kahi->ka', np.conj(L), L, optimize=True).real
+        out = {'n0': n0, 'relative': {}, 'max': {}}
+        for N in orders:
+            N = abs(int(N))
+            if N == 0 or N >= nh: continue
+            nN = np.einsum('kahi,kahi->ka', np.conj(L[:, :, :nh-N]), L[:, :, N:], optimize=True)
+            rel = abs(nN)/np.maximum(n0, 1e-300)
+            out['relative'][N] = rel; out['max'][N] = float(rel.max())
+        return out
+
+    def quasienergy_winding(self, bz=None):
+        """
+        Winding of the total quasienergy Xi_k = sum_a xi_ka (mod omega) along each closed
+        string of the k grid,
+
+            w = (1/omega) sum_k wrap(Xi_{k+b} - Xi_k),
+
+        invariant under relabelling of the modes at crossings and under branch shifts.
+        A nonzero (integer) winding corresponds to a Floquet, Thouless-like, pumped DC
+        current, i.e. to a secular term in the polarization (paper, discussion after
+        Eq. P_floquet); it must vanish for the harmonic analysis.
+        Returns {'windings': {axis: (nstrings,)}, 'integer': {axis: (nstrings,) int},
+                 'max_abs': float}.
+        """
+        bz = self._bz(bz)
+        Xi = np.sum(self.xi_principal_au, axis=1)[bz.bz_to_ibz]
+        wind, wmax = {}, 0.0
+        for a, info in bz.axes.items():
+            if info['N'] <= 1: continue
+            w = np.array([np.sum(_wrap(Xi[np.roll(cyc, -1)] - Xi[cyc], self.omega_au))/self.omega_au
+                          for cyc in (np.asarray(c, int) for c in info['cycles'])])
+            wind[a] = w; wmax = max(wmax, float(abs(w).max()))
+        return {'windings': wind, 'integer': {a: np.rint(w).astype(int) for a, w in wind.items()},
+                'max_abs': wmax}
+
+    def secular_check(self, npoints=None, bz=None):
+        """
+        Drift of the Berry-phase polarization of the Floquet-reconstructed states over one
+        period, P(t0+T) - P(t0), with the phase unwrapped in time (berry_polarization).
+        It vanishes in the absence of a pumped DC current (zero quasienergy winding) and is
+        compared with the amplitude of the oscillating polarization.
+        Returns {'drift': (3,) a.u. Cartesian, 'oscillation': (3,), 'relative': float,
+                 'winding': quasienergy_winding()}.
+        """
+        if not hasattr(self, 'DIP_S'): self.setup_berry(bz=bz)
+        n = npoints or max(8*self.nf+1, 65)
+        tau = np.linspace(0.0, self.period_au, n)
+        P = self.polarization_from_floquet(tau)
+        drift = P[-1] - P[0]
+        osc = P.max(axis=0) - P.min(axis=0)
+        return {'drift': drift, 'oscillation': osc,
+                'relative': float(np.linalg.norm(drift)/max(np.linalg.norm(osc), 1e-300)),
+                'winding': self.quasienergy_winding(bz)}
+
+    def density_matrix_channels(self, N):
+        """
+        Floquet-channel resolution of the N-th harmonic of the density matrix (paper, Eq. rhoN),
+
+            rho^(N)_ij,k = sum_eta rho^(N,eta)_ij,k ,
+            rho^(N,eta)_ij,k = sum_a w_a d~_kai(eta+N) d~*_kaj(eta) .
+
+        With the 'dominant' gauge (eta = 0 is the largest sideband of each mode) the lowest
+        order |E|^|N| comes from min(0,-N) <= eta <= max(0,-N); for N = 2 these are the
+        channels eta = 0, -1, -2, i.e. <psi0|r|psi2>, <psi1|r|psi1>, <psi2|r|psi0>. The
+        channels outside this window measure the non-perturbative part of the response.
+        Off-diagonal W_ab are neglected, as in density_matrix_harmonics (whose result is the
+        sum over eta of the channels returned here).
+        Returns etas (n,) and rho (n, nk_IBZ, nbasis, nbasis).
+        """
+        w, _ = self.occupation_matrix()
+        L = self.Lambda; nf = self.nf; N = int(N)
+        etas = np.array([e for e in self.harmonics if -nf <= e + N <= nf], int)
+        if len(etas) == 0:
+            return etas, np.zeros((0, self.nk, L.shape[3], L.shape[3]), complex)
+        rho = np.stack([np.einsum('ka,kai,kaj->kij', w, L[:, :, e+N+nf], np.conj(L[:, :, e+nf]),
+                                  optimize=True) for e in etas])
+        return etas, rho
+
+    @staticmethod
+    def perturbative_window(N):
+        """Lowest-order Floquet channels of rho^(N): min(0,-N) <= eta <= max(0,-N)."""
+        return min(0, -int(N)), max(0, -int(N))
+
+    def channel_weights(self, N):
+        """
+        Weight of each Floquet channel eta of rho^(N), sum_k ||block||^2, for the interband
+        (cv + vc) and the intraband (cc', vv') blocks of the KS basis window, and the
+        fraction of the total weight outside the lowest-order window (non-perturbative
+        indicator, to be followed as a function of the field intensity).
+        For N = 0 the vv block contains the static occupation and dominates.
+        Returns a dict with 'etas', 'cv', 'cc', 'vv', 'in_window' and 'outside_fraction'.
+        """
+        etas, rho = self.density_matrix_channels(N)
+        nv = self.active_bands[-1] - self.samples.band_lo + 1      # valence bands in the basis
+        cv = (np.sum(abs(rho[:, :, nv:, :nv])**2, axis=(1, 2, 3)) +
+              np.sum(abs(rho[:, :, :nv, nv:])**2, axis=(1, 2, 3)))
+        cc = np.sum(abs(rho[:, :, nv:, nv:])**2, axis=(1, 2, 3))
+        vv = np.sum(abs(rho[:, :, :nv, :nv])**2, axis=(1, 2, 3))
+        lo, hi = self.perturbative_window(N)
+        inw = (etas >= lo) & (etas <= hi)
+        tot = cv + cc + vv
+        return {'order': int(N), 'etas': etas, 'cv': cv, 'cc': cc, 'vv': vv, 'in_window': inw,
+                'outside_fraction': float(tot[~inw].sum()/max(tot.sum(), 1e-300))}
+
+    def polarization_channels(self, N, nldb=None, field_direction=None):
+        """
+        Channel-resolved interband polarization (paper, Eqs. PN and rhoN),
+
+            P^(N)_inter = sum_eta P^(N,eta)_inter ,
+
+        with rho^(N,eta) from density_matrix_channels. Cartesian, a.u., relative to t0,
+        no symmetrisation (as polarization_decomposition with symmetry='none').
+        The intraband part is not resolved in channels, since it is obtained as
+        P_Berry - P_inter (see polarization_decomposition).
+        Returns {'order', 'etas', 'inter' (n_eta, 3), 'inter_sum' (3,)} and, if nldb is
+        given, 'chi' (n_eta, 3).
+        """
+        if not hasattr(self, 'DIP_S'): self.setup_berry(field_direction=field_direction)
+        bz = self.bz
+        if not hasattr(self, 'A_inter'):
+            self.A_inter = interband_position(self.DIP_S, bz.axes, bz.nocc)
+        cart = lambda p: p @ np.asarray(bz.lattice_bohr, float)/bz.volume
+        etas, rho = self.density_matrix_channels(N)
+        P = np.array([cart(self._inter_red(r[bz.bz_to_ibz])) for r in rho]).reshape(len(etas), 3)
+        out = {'order': int(N), 'etas': etas, 'inter': P, 'inter_sum': P.sum(0)}
+        if nldb is not None: out['chi'] = P*self._chi_factor(nldb, [N])[0]
         return out
 
 
@@ -1353,13 +1519,7 @@ class FloquetExcitons():
 
     def _rho_cv(self, N):
         """rho^(N)_cv on the full BZ for the BSE bands (zero for frozen valence bands)."""
-        fa = self.fa; s = fa.samples
-        rho = fa.density_matrix_harmonics(N)[fa.bz.bz_to_ibz]
-        out = np.zeros((rho.shape[0], len(self.cbands), len(self.vbands)), complex)
-        ic = self.cbands - s.band_lo
-        for j, v in enumerate(self.vbands):
-            if v >= s.band_lo: out[:, :, j] = rho[:, ic, v - s.band_lo]
-        return out
+        return self._cv_block(self.fa.density_matrix_harmonics(N))
 
     def _red2cart(self, p):
         bz = self.fa.bz
@@ -1416,7 +1576,8 @@ class FloquetExcitons():
           'residual_inter'   : |P_inter(excitons) - P_inter(Floquet)| / |P_inter(Floquet)|
                                (truncation of the excitonic basis; ~0 for a complete basis)
           'residual_intra'   : same for the intraband part (also measures the neglected
-                               O(rho_cv^4) terms and the O(dk^2) discretisation)
+                               O(rho_cv^4) terms, the O(dk^2) discretisation and the band
+                               window: M contains only the BSE bands, P_Berry all NLBands)
           'residual_total'   : |P_Berry - P_inter - P_intra| / |P_Berry| with excitonic parts
           'intra_pathways'   : (only if pathways=True) dict N -> (nexc, nexc, 3) contributions
                                X^(N'-N)*_lam' M_lam'lam X^(N')_lam summed over N' (row lam', column lam)
@@ -1458,6 +1619,121 @@ class FloquetExcitons():
         order = np.argsort(self.energies)
         c = np.cumsum(r['inter_per_exciton'][0][order], axis=0)
         return self.energies[order], (c if component is None else c[:, component])
+
+    # --------------------------------------------------------- Floquet channels
+    def _cv_block(self, rho):
+        """BSE (c, v) block, on the full BZ, of a density matrix rho[k_IBZ, basis, basis]
+           (zero for frozen valence bands below NLBands)."""
+        fa = self.fa; s = fa.samples
+        rho = np.asarray(rho)[fa.bz.bz_to_ibz]
+        out = np.zeros((rho.shape[0], len(self.cbands), len(self.vbands)), complex)
+        ic = self.cbands - s.band_lo
+        for j, v in enumerate(self.vbands):
+            if v >= s.band_lo: out[:, :, j] = rho[:, ic, v - s.band_lo]
+        return out
+
+    def channel_amplitudes(self, N):
+        """
+        Floquet-channel resolution of the excitonic amplitudes (paper, Eq. XN),
+
+            X^(N)_lam = sum_eta X^(N,eta)_lam ,
+            X^(N,eta)_lam = sum_kcv A^lam*_cvk sum_a w_a d~_kac(eta+N) d~*_kav(eta) .
+
+        Returns etas (n,) and X (n, nexc); the sum over eta equals amplitudes(N).
+        """
+        etas, rho = self.fa.density_matrix_channels(N)
+        X = np.array([np.einsum('lkcv,kcv->l', self.A.conj(), self._cv_block(r), optimize=True)
+                      for r in rho]).reshape(len(etas), self.nexc)
+        return etas, X
+
+    def polarization_channels(self, N, nldb=None):
+        """
+        Channel- and exciton-resolved interband polarization (paper, Eq. P_exc). The vc
+        elements of channel eta of rho^(N) are the complex conjugate of the cv elements of
+        channel eta+N of rho^(-N), so that
+
+            P^(N,eta)_inter = -(f_s/N_k Omega) sum_lam [ d_lam X^(N,eta)_lam
+                                                       + d*_lam (X^(-N,eta+N)_lam)^* ] .
+
+        Returns {'order', 'etas', 'per_exciton' (n_eta, nexc, 3), 'inter' (n_eta, 3),
+        'in_window' (n_eta,) bool} in Cartesian a.u. relative to t0 and, if nldb is given,
+        'chi'. Summed over eta and lam it equals polarization()['inter'].
+        """
+        fa = self.fa; bz = fa.bz; N = int(N)
+        etas, XN = self.channel_amplitudes(N)
+        em, Xm = self.channel_amplitudes(-N)
+        Xm = dict(zip(em.tolist(), Xm))
+        d = self.dipoles(cartesian=False)
+        pref = -bz.spin_factor/(2*np.pi*bz.nk_full)
+        pe = []
+        for e, x in zip(etas, XN):
+            xm = Xm.get(int(e)+N, np.zeros(self.nexc, complex))
+            pe.append(self._red2cart(pref*(d*x[:, None] + np.conj(d)*np.conj(xm)[:, None])))
+        pe = np.array(pe).reshape(len(etas), self.nexc, 3)
+        lo, hi = fa.perturbative_window(N)
+        out = {'order': N, 'etas': etas, 'per_exciton': pe, 'inter': pe.sum(1),
+               'in_window': (etas >= lo) & (etas <= hi)}
+        if nldb is not None:
+            fac = fa._chi_factor(nldb, [N])[0]
+            out['chi'] = {'per_exciton': pe*fac, 'inter': pe.sum(1)*fac}
+        return out
+
+    # ------------------------------------------------ lowest-order (SOS) model
+    def sum_over_excitons(self, nldb=None, amplitude=None, versor=None, initial_time=0.0,
+                          damping=None):
+        """
+        Lowest-order excitonic amplitudes and second-harmonic polarization (paper,
+        Eqs. X_eom and SOS_exc), compared with the real-time Floquet amplitudes:
+
+            X^(+-1)_lam = E_+- . d*_lam / (+-omega - E_lam + i gamma)
+            X^(+-2)_lam = sum_lam' E_+- . M_lam,lam' X^(+-1)_lam' / (+-2 omega - E_lam + i gamma)
+            P^(2)_inter = -(f_s/N_k Omega) sum_lam [ d_lam X^(2)_lam + d*_lam X^(-2)*_lam ]
+            P^(2)_intra = -(f_s/N_k Omega) sum_lam,lam' X^(-1)*_lam' M_lam',lam X^(1)_lam
+
+        with E(t) = E_0 versor sin(omega (t - t_i)) = E_+ e^{-i omega (t-t0)} + c.c.,
+        E_+ = (i E_0/2) e^{-i omega (t0 - t_i)} versor, so that all harmonics refer to t0
+        like amplitudes(). The kernel nonlinearity [Delta K[rho], rho]^(2), of the same
+        order E_0^2, is NOT included: the difference between the real-time X^(2) and the
+        model, persisting at vanishing field, measures it (exciton-exciton interaction),
+        while at N = 1 the comparison tests the linear limit. The global sign of X^(+-1)
+        depends on the sign convention of the dipole coupling; X^(2) and P^(2) do not.
+
+        nldb      : YamboNLDB of the run (amplitude, versor, initial time, NL_damping)
+        amplitude, versor, initial_time : field in a.u. if nldb is not given
+        damping   : gamma in Ha (default nldb.NL_damping, otherwise 0)
+        Returns a dict with the model and real-time amplitudes for N = +-1, +-2, the
+        relative differences 'linear_residual' (N = 1) and 'kernel_residual' (N = 2),
+        and the model P^(2) (inter, intra; Cartesian a.u., relative to t0).
+        """
+        fa = self.fa; bz = fa.bz; w = fa.omega_au
+        if nldb is not None:
+            if len(nldb.Efield) != 1: raise FloquetError('One frequency per calculation expected')
+            field = nldb.Efield[0]
+            amplitude = float(field['amplitude']); versor = field['versor']
+            initial_time = float(field['initial_time'])
+            if damping is None: damping = float(getattr(nldb, 'NL_damping', 0.0))
+        if amplitude is None or versor is None:
+            raise FloquetError('Give nldb or the field amplitude and versor')
+        g = 0.0 if damping is None else float(damping)
+        u = np.asarray(versor, float); u = u/np.linalg.norm(u)
+        Ep = 0.5j*amplitude*np.exp(-1j*w*(fa.t0_au - initial_time))*u
+        Em = np.conj(Ep)
+        E = self.energies/ha2ev
+        dc = self.dipoles(cartesian=True); Mc = self.transition_dipoles(cartesian=True)
+        X1  = (np.conj(dc) @ Ep)/( w - E + 1j*g)
+        Xm1 = (np.conj(dc) @ Em)/(-w - E + 1j*g)
+        X2  = ((Mc @ Ep) @ X1)/( 2*w - E + 1j*g)
+        Xm2 = ((Mc @ Em) @ Xm1)/(-2*w - E + 1j*g)
+        d = self.dipoles(cartesian=False); M = self.transition_dipoles(cartesian=False)
+        pref = -bz.spin_factor/(2*np.pi*bz.nk_full)
+        P_inter = self._red2cart(pref*(d*X2[:, None] + np.conj(d)*np.conj(Xm2)[:, None]).sum(0))
+        P_intra = self._red2cart(pref*np.einsum('m,mlx,l->x', np.conj(Xm1), M, X1))
+        rt = {N: self.amplitudes(N) for N in (-2, -1, 1, 2)}
+        return {'E_plus': Ep, 'damping_au': g,
+                'model': {1: X1, -1: Xm1, 2: X2, -2: Xm2}, 'realtime': rt,
+                'linear_residual': _relnorm(rt[1] - X1, rt[1]),
+                'kernel_residual': _relnorm(rt[2] - X2, rt[2]),
+                'P2_inter': P_inter, 'P2_intra': P_intra}
 
 
 ##################################################################################
