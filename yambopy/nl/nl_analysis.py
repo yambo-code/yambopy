@@ -247,15 +247,8 @@ class Xn_from_signal(ABC):
         return names.get(n,f"harmonic of order {n}")
 
     def response_units(self,n):
-        """Units of the order-n output, consistent with get_Unit_of_Measure."""
-        if self.l_out_current:
-            if n==0: return "A/V^2"
-            if n==1: return "S/m (= A/m^2 / (V/m))"
-            return f"A/m^2 / (V/m)^{n}"
-        if n==0: return "esu (cm/statV)"
-        if n==1: return "dimensionless (a.u.)"
-        if n==2: return "esu (cm/statV)"
-        return f"esu (cm/statV)^{n-1}"
+        """Units of the order-n output, as selected with the option units (see get_Unit_label)."""
+        return self.get_Unit_label(n)
 
     def response_description(self,n):
         """Name, definition and notes of the response function extracted at order n (one monochromatic field)."""
@@ -286,7 +279,7 @@ class Xn_from_signal(ABC):
                 note=["Dielectric function: eps(w) = 1 + 4 pi chi(w)."]
             elif n==2:
                 name="chi^(2)(-2w;w,w) - second-harmonic generation (SHG)"; defi="P(2w) = chi(-2w;w,w) E(w)E(w)"
-                note=["1 esu (cm/statV) = 4.189e-4 m/V = 4.189e8 pm/V  (SI chi = 4 pi/(3e4) x esu)."]
+                note=["1 esu (cm/statV) = 4.189e-4 m/V = 4.189e8 pm/V  (SI chi = 4 pi/(3e4) x esu)."] if self.units=='esu' else []
             elif n==3:
                 name="chi^(3)(-3w;w,w,w) - third-harmonic generation (THG)"; defi="P(3w) = chi(-3w;w,w,w) E(w)^3"; note=[]
             else:
