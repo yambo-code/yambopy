@@ -4,7 +4,7 @@ Generate an external field in the format read by yambo_rt / yambo_nl
 
 Usage
 -----
-    python3 generate_field.py -f GAUSS -d 0.005 -t 0 120 -s 0.0 -o EXTFIELD1_P1.time
+    python3 generate_field.py -f GAUSS -d 0.005 -t 0 120 -o EXTFIELD1_P1.time
 
 Two example fields are implemented: SIN and GAUSS (see the functions
 sin_field and gauss_field below). To create your own field write a new
@@ -36,8 +36,8 @@ A file with dt_f = dt/6 is valid for all the integrators.
 Initial time
 ------------
 The starting time of the field is given by Field1_Tstart in the real-time
-input. If you also use -s here the shift is applied twice: use -s 0.0.
-(The default of -s is 0.01 fs only for backward compatibility.)
+input. If you also use -s here the shift is applied twice: leave -s = 0
+(default).
 """
 
 import argparse
@@ -97,8 +97,8 @@ if __name__ == "__main__":
                         help='Time step dt_f of the field (fs)')
     parser.add_argument('-t', '--trange', type=float, nargs=2, default=[0.0, 80.0],
                         metavar=('T_INIT', 'T_FINAL'), help='Time range (fs)')
-    parser.add_argument('-s', '--tstart', type=float, default=0.01,
-                        help='Shift of the field (fs). Use 0.0 if you set Field1_Tstart in the Yambo input')
+    parser.add_argument('-s', '--tstart', type=float, default=0.0,
+                        help='Shift of the field (fs). Leave it to 0 if you set Field1_Tstart in the Yambo input')
     parser.add_argument('-o', '--fout',   type=str, default="EXTFIELD1_P1.time",
                         help='Name of the output file')
     parser.add_argument('-v', '--versor', type=float, nargs=3, default=[1.0, 0.0, 0.0],
