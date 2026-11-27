@@ -1,27 +1,29 @@
-from qepy import Path,PwXML
+from qepy import PwXML
+from yambopy import BrillouinZone
 from math import sqrt
 
 # k-points map
 npoints = 50
-path_kpoints = Path([ [[0.0, 0.0, 0.0],'$\Gamma$'],
-                      [[0.5, 0.0, 0.0],'M'],
-                      [[1./3,1./3,0.0],'K'],
-                      [[0.0, 0.0, 0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)])
+intervals = [int(npoints*2), int(npoints), int(sqrt(5)*npoints)]
+extra_points = {'G': [0.0, 0.0, 0.0], 'M': [0.5, 0.0, 0.0], 'K': [1/3, 1/3, 0.0]}
+path = 'GMKG'
 
-atom_1 = [range(16)]
-atom_2 = [range(16,32)]
+bz = BrillouinZone(
+    path_string=path,
+    extra_points=extra_points,
+    intervals=intervals
+)
 
 # Class PwXML. QE database reading
-xml = PwXML(prefix='bn',path='bands')
-
-# Class PwXML. QE database reading
-xml.plot_eigen(path_kpoints)
+xml = PwXML(prefix='bn', path='bands')
+xml.plot_eigen(bz.get_indices())
 
 # Alternative option with more plot control
 ## Matplotlib options 
-#fig = plt.figure()
-#ax = fig.add_subplot(1,1,1)
+import matplotlib.pyplot as plt
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
 
 ## Class PwXML. QE database reading
-#xml.plot_eigen_ax(ax,path_kpoints)
-#plt.show()
+xml.plot_eigen_ax(ax,bz.get_indices())
+plt.show()

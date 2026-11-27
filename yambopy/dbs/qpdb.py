@@ -15,8 +15,6 @@ from yambopy.plot.bandstructure import YambopyBandStructure, YambopyBandStructur
 from yambopy.plot.plotting import add_fig_kwargs
 from yamboparser import YamboFile
 from yambopy.lattice import car_red, red_car, rec_lat, vol_lat
-from yambopy.kpoints import get_path
-from qepy.lattice import Path
 
 class YamboQPDB():
     """
@@ -229,14 +227,11 @@ class YamboQPDB():
         self.plot_scissor_ax(ax,valence,verbose=verbose)
         return fig
 
-    def get_bs_path(self,lat,path,debug=False,**kwargs):
-        """Get a band-structure on a path  
+    def get_bs_path(self, lat, bz, debug = False, **kwargs):
 
-            Here the path is a Path object given in rlu, since it's simpler
-            for the user.
-        """
-        
-        bands_kpoints, bands_indexes, path_car = get_path(lat.car_kpoints,lat.rlat,lat.sym_car,path,debug=debug)
+        bands_kpoints, bands_indexes, _ = bz.find_collinear_grid(lat)
+
+        # labels = bz.path_labels_list(True)
 
         # set fermi energy
         # NOT EVIDENT IN SPIN-POLARIZED SYSTEM
@@ -250,20 +245,20 @@ class YamboQPDB():
 
         #red_bands_kpoints = car_red(bands_kpoints,lat.rlat)
         if self.spin == True:
-           print('Spin polarized bands')
-           ks_bandstructure_up = YambopyBandStructure(self.eigenvalues_dft[bands_indexes,:,0],bands_kpoints,kpath=path_car,**kwargs)
-           ks_bandstructure_dw = YambopyBandStructure(self.eigenvalues_dft[bands_indexes,:,1],bands_kpoints,kpath=path_car,**kwargs)
-           qp_bandstructure_up = YambopyBandStructure(self.eigenvalues_qp[bands_indexes,:,0], bands_kpoints,kpath=path_car,**kwargs)
-           qp_bandstructure_dw = YambopyBandStructure(self.eigenvalues_qp[bands_indexes,:,1], bands_kpoints,kpath=path_car,**kwargs)
+            print('Spin polarized bands')
+            ks_bandstructure_up = YambopyBandStructure(self.eigenvalues_dft[bands_indexes,:,0],bands_kpoints,bz=bz,**kwargs)
+            ks_bandstructure_dw = YambopyBandStructure(self.eigenvalues_dft[bands_indexes,:,1],bands_kpoints,bz=bz,**kwargs)
+            qp_bandstructure_up = YambopyBandStructure(self.eigenvalues_qp[bands_indexes,:,0], bands_kpoints,bz=bz,**kwargs)
+            qp_bandstructure_dw = YambopyBandStructure(self.eigenvalues_qp[bands_indexes,:,1], bands_kpoints,bz=bz,**kwargs)
 
-           return ks_bandstructure_up, ks_bandstructure_dw, qp_bandstructure_up, qp_bandstructure_dw
+            return ks_bandstructure_up, ks_bandstructure_dw, qp_bandstructure_up, qp_bandstructure_dw
         else:
-           print('no polarized bands')
-           ks_bandstructure = YambopyBandStructure(self.eigenvalues_dft[bands_indexes],bands_kpoints,kpath=path_car,**kwargs)
-           qp_bandstructure = YambopyBandStructure(self.eigenvalues_qp[bands_indexes] ,bands_kpoints,kpath=path_car,**kwargs)
+            print('no polarized bands')
+            ks_bandstructure = YambopyBandStructure(self.eigenvalues_dft[bands_indexes],bands_kpoints,bz=bz,**kwargs)
+            qp_bandstructure = YambopyBandStructure(self.eigenvalues_qp[bands_indexes] ,bands_kpoints,bz=bz,**kwargs)
 
-           return ks_bandstructure, qp_bandstructure
-        
+            return ks_bandstructure, qp_bandstructure
+
     def get_bs(self,**kwargs):
         """
         Get YambopyBandStructure object with the KS and GW bands
@@ -275,7 +270,8 @@ class YamboQPDB():
 
         return ks_bandstructure, qp_bandstructure
 
-    def interpolate(self,lattice,path,what='QP+KS',lpratio=5,valence=None,verbose=1,**kwargs):
+    #def interpolate(self,lattice,path,what='QP+KS',lpratio=5,valence=None,verbose=1,**kwargs):
+    def interpolate(self,lattice,bz,what='QP+KS',lpratio=5,valence=None,verbose=1,**kwargs):
         """
         Interpolate the QP bandstrcture on a k-point path, requires the lattice structure with Expand=False
         """
@@ -306,11 +302,11 @@ class YamboQPDB():
             symrel = lattice.sym_rec_red
             trev_for_interp=False
         
-        band_kpoints_rlu = path.get_klist()[:,:3]
+        band_kpoints_rlu = bz.kpoints(coords='red')
 
         # Obtain quantities in cc needed for plot (since interpolation wants rlu)
-        _, _, path_car = get_path(lattice.car_kpoints,lattice.rlat,lattice.sym_car,path)
-        band_kpoints = red_car(band_kpoints_rlu,lattice.rlat)
+        #band_kpoints = red_car(band_kpoints_rlu,lattice.rlat)
+        band_kpoints = bz.kpoints(coords='car')
 
         #interpolate KS
         ks_ebands, qp_ebands = None, None
@@ -325,18 +321,20 @@ class YamboQPDB():
               dft_eigens_dw_kpath = skw_dw.interp_kpts(band_kpoints_rlu).eigens[0]
 
               #if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
-              # tricky 
-              ks_ebands_up = YambopyBandStructure(dft_eigens_up_kpath,band_kpoints,kpath=path_car,**kwargs)
-              ks_ebands_dw = YambopyBandStructure(dft_eigens_dw_kpath,band_kpoints,kpath=path_car,**kwargs)
+              # tricky
+              #ks_ebands_up = YambopyBandStructure(dft_eigens_up_kpath,band_kpoints,kpath=path_car,**kwargs)
+              #ks_ebands_dw = YambopyBandStructure(dft_eigens_dw_kpath,band_kpoints,kpath=path_car,**kwargs)
+              ks_ebands_up = YambopyBandStructure(dft_eigens_up_kpath,band_kpoints,bz,**kwargs)
+              ks_ebands_dw = YambopyBandStructure(dft_eigens_dw_kpath,band_kpoints,bz,**kwargs)
 
            else:
               print('No spin-polarized bands DFT')
               eigens  = self.eigenvalues_dft[np.newaxis,:]
               skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
-              #kpoints_path = path.get_klist()[:,:3]
               dft_eigens_kpath = skw.interp_kpts(band_kpoints_rlu).eigens[0]
               if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
-              ks_ebands = YambopyBandStructure(dft_eigens_kpath,band_kpoints,kpath=path_car,**kwargs)
+              #ks_ebands = YambopyBandStructure(dft_eigens_kpath,band_kpoints,kpath=path_car,**kwargs)
+              ks_ebands = YambopyBandStructure(dft_eigens_kpath,band_kpoints,bz,**kwargs)
 
         #interpolate QP
         if 'QP' in what:
@@ -353,13 +351,14 @@ class YamboQPDB():
 
                skw_up = SkwInterpolator(lpratio,kpoints,eigens_up,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
                skw_dw = SkwInterpolator(lpratio,kpoints,eigens_dw,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
-               #kpoints_path = path.get_klist()[:,:3]
                qp_eigens_up_kpath = skw_up.interp_kpts(band_kpoints_rlu).eigens[0]
                qp_eigens_dw_kpath = skw_dw.interp_kpts(band_kpoints_rlu).eigens[0]
                #if valence: kwargs['fermie'] = np.max(dft_eigens_kpath[:,:valence])
-               # tricky 
-               qp_ebands_up = YambopyBandStructure(qp_eigens_up_kpath,band_kpoints,kpath=path_car,**kwargs)
-               qp_ebands_dw = YambopyBandStructure(qp_eigens_dw_kpath,band_kpoints,kpath=path_car,**kwargs)
+               # tricky
+               #qp_ebands_up = YambopyBandStructure(qp_eigens_up_kpath,band_kpoints,kpath=path_car,**kwargs)
+               #qp_ebands_dw = YambopyBandStructure(qp_eigens_dw_kpath,band_kpoints,kpath=path_car,**kwargs)
+               qp_ebands_up = YambopyBandStructure(qp_eigens_up_kpath,band_kpoints,bz,**kwargs)
+               qp_ebands_dw = YambopyBandStructure(qp_eigens_dw_kpath,band_kpoints,bz,**kwargs)
 
             else:
                print('No spin-polarized bands DFT')
@@ -370,24 +369,23 @@ class YamboQPDB():
                    eigens[0,ik,:] = sorted(aux[0,ik,:])
                #end sorting
                skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
-               #kpoints_path = path.get_klist()[:,:3]
                qp_eigens_kpath = skw.interp_kpts(band_kpoints_rlu).eigens[0]
                if valence: kwargs['fermie'] = np.max(qp_eigens_kpath[:,:valence])
 
-               qp_ebands = YambopyBandStructure(qp_eigens_kpath,band_kpoints,kpath=path_car,**kwargs)
-               #qp_ebands = YambopyBandStructure(qp_eigens_kpath,kpoints_path,kpath=path,weights=qp_z_kpath,size=0.1,**kwargs)
+               qp_ebands = YambopyBandStructure(qp_eigens_kpath,band_kpoints,bz,**kwargs)
+               #qp_ebands = YambopyBandStructure(qp_eigens_kpath,band_kpoints,kpath=path_car,**kwargs)
+               ##qp_ebands = YambopyBandStructure(qp_eigens_kpath,kpoints_path,kpath=path,weights=qp_z_kpath,size=0.1,**kwargs)
 
             qp_z_kpath = None
             if 'Z' in what:
                 eigens = self.z[np.newaxis,:]
                 skw = SkwInterpolator(lpratio,kpoints,eigens,fermie,nelect,cell,symrel,trev_for_interp,verbose=verbose)
-                #kpoints_path = path.get_klist()[:,:3]
                 qp_z_kpath = skw.interp_kpts(band_kpoints_rlu).eigens[0]
-                
+
 
         if self.spin == True:
            return ks_ebands_up, ks_ebands_dw , qp_ebands_up, qp_ebands_dw
-        else: 
+        else:
            return ks_ebands, qp_ebands
 
     def interpolate_QP_corrections(self,yel_coarse,yel_dense,lpratio=20,verbose=1,**kwargs):

@@ -477,7 +477,7 @@ def PwNscfTasks(structure,kpoints,ecut,nscf_bands,nscf_kpoints=None,**kwargs):
 
     return qe_scf_task, qe_nscf_task, p2y_task
 
-def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints,**kwargs):
+def PwBandsTasks(structure,kpoints,ecut,nscf_bands,brillouin_zone,**kwargs):
     """
     Return a ScfTask and BandsTask (Author: AMS, HM)
 
@@ -516,7 +516,7 @@ def PwBandsTasks(structure,kpoints,ecut,nscf_bands,path_kpoints,**kwargs):
     qe_scf_task = PwTask.from_input(qe_input,paralelization=scf_paralelization)
 
     #create a QE bands task
-    qe_input_bands = qe_input.copy().set_bands(nscf_bands,path_kpoints=path_kpoints,conv_thr=bands_conv_thr,**kwargs)
+    qe_input_bands = qe_input.copy().set_bands(nscf_bands,brillouin_zone,conv_thr=bands_conv_thr,**kwargs)
     nscf_paralelization = kwargs.pop("nscf_paralelization","")
     qe_bands_task = PwTask.from_input([qe_input_bands,qe_scf_task],dependencies=qe_scf_task,paralelization=nscf_paralelization,**kwargs)
 

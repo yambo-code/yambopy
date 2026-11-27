@@ -11,7 +11,6 @@ import numpy as np
 from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
 from yambopy.lattice import red_car
-from yambopy.kpoints import get_path
 from yambopy.dbs.latticedb import YamboLatticeDB
 from itertools import product
 from netCDF4 import Dataset
@@ -245,22 +244,23 @@ class YamboExcitonWeight(object):
         ax.set_aspect('equal')
         plt.show()
 
-    def plot_exciton_bs(self,ax,path,nbands='all',space='transition',color='#1f77b4'):
+    def plot_exciton_bs(self,ax,bz,nbands='all',space='transition',color='#1f77b4'):
         """
-        Plot the excitonic weights of a given transition in the band-structure
+        Plot the excitonic weights of a given transition in the band-structure,
+        along the path of bz (a BrillouinZone describing this lattice, in any
+        units or cell).
         """
         kpts, t_v_c, kidx = self.calc_kpts_transitions(repx=list(range(1)),repy=list(range(1)),repz=list(range(1)))
         t_v_c = np.array(t_v_c)
 
-        #get_path is provided by savedb
-        bands_kpoints, bands_indexes, path_car = get_path(kpts,self.rlat,None,path)
+        # k-points on the path and their positions along it
+        _, bands_indexes, bands_distances = bz.find_collinear_lattice_kpoints(self.lat, kpts)
 
-        #calculate distances
-        bands_distances = [0]
-        distance = 0
-        for nk in range(1,len(bands_kpoints)):
-            distance += np.linalg.norm(bands_kpoints[nk-1]-bands_kpoints[nk])
-            bands_distances.append(distance)
+        ticks = bz.special_kpoints_distances(True)
+        for xcoord in ticks:
+            ax.axvline(xcoord, color='k', lw=0.5)
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(bz.path_labels_list(True, fmt='latex'))
 
         #get energies at these k-points
         eig = self.eigenvalues[kidx-1]

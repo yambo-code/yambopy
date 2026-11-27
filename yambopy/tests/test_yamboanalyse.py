@@ -9,7 +9,8 @@ import os
 import shutil as sh
 from yambopy.analyse import YamboAnalyser
 from yambopy.io.outputfile import YamboOut
-from qepy.lattice import Path
+from yambopy.bz.brillouin import BrillouinZone
+from yambopy.dbs.latticedb import YamboLatticeDB
 
 test_path = os.path.join(os.path.dirname(__file__),'..','data','refs','gw_conv')
 
@@ -48,13 +49,14 @@ class TestYamboAnalyse(unittest.TestCase):
         qp_bands.plot(show=False)
         print(qp_bands)
 
-        #test get_path    
-        path = Path([[[1.0,1.0,1.0],'G'],
-                     [[0.0,0.5,0.5],'X'],
-                     [[0.0,0.0,0.0],'G'],
-                     [[0.5,0.0,0.0],'L']], [20,20,20])
-        ks_bands_path,qp_bands_path = y.get_bands(tags='FFTGvecs',path_kpoints=path,type_calc=('gw'))
-        qp_bands_path.plot(show=False) 
+        #test bands along a Brillouin-zone path
+        lat = YamboLatticeDB.from_dict(list(y.jsonfiles.values())[0]['lattice'])
+        bz = BrillouinZone(cell=lat.lat, path_string='GXGL', npoints=60)
+        ks_bands_path,qp_bands_path = y.get_bands(tags='FFTGvecs',bz=bz,type_calc=('gw',))
+        assert ks_bands_path is None
+        assert 0 < qp_bands_path.nkpoints < qp_bands.nkpoints
+        assert qp_bands_path.bz is bz
+        qp_bands_path.plot(show=False)
 
     def tearDown(self):
         sh.rmtree('gw_conv') 

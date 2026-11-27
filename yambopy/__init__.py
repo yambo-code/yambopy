@@ -51,6 +51,14 @@ from yambopy.zeros import *
 #lattice-related operations
 from yambopy.lattice import *
 
+#brillouin zone paths
+from yambopy.bz.brillouin import *
+from yambopy.bz.lattice_data import *
+from yambopy.bz.kpath_optimizer import *
+from yambopy.bz.labels import *
+
+#kpoint mesh operations
+from yambopy.kpoints import *
 
 #skw interpolator (adapted from abipy version)
 from yambopy.tools.skw import *

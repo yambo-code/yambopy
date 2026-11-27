@@ -287,6 +287,7 @@ class YamboLatticeDB(object):
         #set the variables
         self.weights_ibz      = weights
         self.symmetry_indexes = symmetry_indexes
+        # self.iku_kpoints      = np.array([k*self.alat for k in kpoints_full])
         self.iku_kpoints      = [k*self.alat for k in kpoints_full]
         # BZ_to_IBZ_indexes[ik_bz] = ik_ibz in the original unexpanded list
         self.BZ_to_IBZ_indexes = BZ_to_IBZ_indexes # for clarity for users

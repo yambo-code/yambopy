@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from qepy Path,PwXML,Unfolding
+from qepy import PwXML,Unfolding
+from yambopy import BrillouinZone
 
 # Matplotlib options
 fig = plt.figure(figsize=(7,5))
@@ -9,15 +10,9 @@ ax = fig.add_axes( [ 0.1, 0.1, 0.4, 0.8 ])
 # k-points map
 npoints = 30
 
-path_kpoints_pc = Path([ [[0.0,  0.5, 0.0],'M'],
-                         [[0.0,  0.0, 0.0],'G'],
-                         [[1.0/3.0,  1.0/3.0, 0.0],'K'],
-                         [[0.0,  0.5, 0.0],'G']], [int(npoints),int(npoints),int(npoints)])
-
-path_kpoints_sc = Path([ [[0.0,  1.0, 0.0],'M'],
-                         [[0.0,  0.0, 0.0],'G'],
-                         [[2.0/3.0,  2.0/3.0, 0.0],'K'],
-                         [[0.0,  1.0, 0.0],'G']], [int(npoints),int(npoints),int(npoints)])
+# Path of the supercell bands calculation, M-G-K-M with npoints per segment.
+# Only the tick positions and labels are needed, so no lattice is given.
+bz_sc = BrillouinZone(path_string='MGKM', intervals=[npoints, npoints, npoints])
 
 # Prefix and path to read data
 prefix_pc = 'BN_pc'
@@ -34,7 +29,7 @@ sc = PwXML(prefix=prefix_sc,path=path_sc)
 fold = Unfolding(prefix_pc=prefix_pc,path_pc=path_pc,prefix_sc=prefix_sc,path_sc=path_sc,spin="noncol", band_min = 0, sc_rotated=False,compute_projections=True)
 
 # Plotting unfolded sc band structure
-fold.plot_eigen_ax(ax,path=path_kpoints_sc,ylim = (-4.0,10.0))
+fold.plot_eigen_ax(ax,path=bz_sc.get_indices(),ylim = (-4.0,10.0))
 
 plt.show()
 

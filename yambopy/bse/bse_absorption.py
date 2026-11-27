@@ -43,6 +43,7 @@ from __future__ import print_function, division
 import os
 from yambopy.tools.string import marquee
 from yambopy import *
+import numpy as np
 
 class YamboBSEAbsorptionSpectra():
     """
@@ -54,6 +55,7 @@ class YamboBSEAbsorptionSpectra():
             excitondb - an instance of the excitonDB class
         """
         self.excitondb = excitondb
+        self.data = {}
 
     @classmethod
     def from_folder(cls,folder):
@@ -62,47 +64,40 @@ class YamboBSEAbsorptionSpectra():
         #initialize this class
         return cls
 
-    def get_excitons(self,min_intensity=0.1,max_energy=4,eps=1e-4):
-        """ 
+    def get_excitons(self,min_intensity=0.1,max_energy=4,eps=1e-4,Degen_Step=False):
+        """
         Obtain the excitons using ypp
         Parameters:
             min_intensity - Only plot excitons with intensity larger than this value (default: 0.1)
             max_energy    - Only plot excitons with energy below this value (default: 4 eV)
             Degen_Step    - Only plot excitons whose energy is different by more that this value (default: 0.0)
         """
-        excitons = self.excitondb.get_nondegenerate(eps=eps)
+        energies, indices = self.excitondb.get_nondegenerate(eps=eps)
+        intensities = self.excitondb.get_intensities()
 
-        #filter with energy
-        excitons = excitons[excitons[:,0]<max_energy]
+        # Filter with energy and intensity
+        excitons = []
+        for i in range(len(energies)):
+            if energies[i] < max_energy and intensities[i] > min_intensity:
+                excitons.append((energies[i], intensities[i], i))
 
-        #filter with intensity
-        excitons = excitons[excitons[:,1]>min_intensity]
-
-        #filter with degen
+        # Filter with degen
         if Degen_Step:
-
-            #create a list with differences in energy
+            # Create a list with differences in energy
             new_excitons = []
-            prev_exc = 0
-            for exc in self.excitons:
-                e,i,index = exc
-                #if the energy of this exciton is too diferent then we add it to the list
-                if abs(e-prev_exc)<Degen_Step:
+            prev_e = 0
+            for exc in excitons:
+                e, i, index = exc
+                # If the energy of this exciton is too different, then we add it to the list
+                if abs(e - prev_e) < Degen_Step:
                     new_excitons[-1][1] += i
                     continue
-                new_excitons.append([e,i,index])
-                intensity = 0
-                prev_exc = e
-            self.excitons = np.array(new_excitons)
+                new_excitons.append((e, i, index))
+                prev_e = e
+            excitons = np.array(new_excitons)
 
-        #create dictionary with excitons 
-        excitons = self.data["excitons"]
-        for e,intensity,i in self.excitons:
-            exciton = {"energy": e,
-                       "intensity": intensity,
-                       "index": i}
-            excitons.append(exciton)
-        return self.excitons
+        self.excitons = excitons
+        return excitons
 
     def get_wavefunctions(self, FFTGvecs=30,
                           Cells=[1,1,1], Hole=[0,0,0],

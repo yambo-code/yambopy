@@ -8,15 +8,13 @@ from yambopy import *
 import matplotlib.pyplot as plt
 
 
-# Define path in reduced coordinates using Class Path
-npoints = 10
-path = Path([ [[  0.0,  0.0,  0.0],'$\Gamma$'],
-              [[  0.5,  0.0,  0.0],'M'],
-              [[1./3.,1./3.,  0.0],'K'],
-              [[  0.0,  0.0,  0.0],'$\Gamma$']], [int(npoints*2),int(npoints),int(sqrt(5)*npoints)] )
-
 # Read Lattice information from SAVE
 lat  = YamboLatticeDB.from_db_file(filename='gw/SAVE/ns.db1')
+
+npoints = 10
+# Brillouin-zone path on the lattice of the databases (hexagonal BN)
+bz = BrillouinZone(cell=lat.lat, path_string='GMKG',
+                   intervals=[int(npoints*2),int(npoints),int(np.sqrt(5)*npoints)])
 # Read QP database
 ydb  = YamboQPDB.from_db(filename='ndb.QP',folder='gw/yambo')
 
@@ -35,7 +33,7 @@ plt.show()
 
 # 2. Plot of KS and QP eigenvalues NOT interpolated along the path
 n_top_vb = 3
-ks_bs_0, qp_bs_0 = ydb.get_bs_path(lat,path)
+ks_bs_0, qp_bs_0 = ydb.get_bs_path(lat,bz)
 
 fig = plt.figure(figsize=(4,5))
 ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])
@@ -50,7 +48,7 @@ plt.show()
 
 # 3. Interpolation of KS and QP eigenvalues
 
-ks_bs, qp_bs = ydb.interpolate(lat,path,what='QP+KS',lpratio=20)
+ks_bs, qp_bs = ydb.interpolate(lat,bz,what='QP+KS',lpratio=20)
 
 fig = plt.figure(figsize=(4,5))
 ax = fig.add_axes( [ 0.20, 0.20, 0.70, 0.70 ])

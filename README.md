@@ -63,6 +63,9 @@ Type `pip install yambopy`
 
 #### Local installation from this repository (for latest patches)
 Clone this repository in your local machine or cluster, enter the directory and type `pip install .`
+
+#### Local editable installation from this repository (for developers)
+To be able to edit code and see changes reflected on installed version, clone this repository in your local machine or cluster, enter the directory and type `pip install --editable .`
  
 #### More information
 Follow the installation steps on the [Yambo wiki](https://wiki.yambo-code.eu/index.php/First_steps_in_Yambopy).
@@ -114,7 +117,7 @@ Mantainer:
 Active contributors:
 - Claudio Attaccalite
 - Miki Bonacci
-- José Castelo
+- José M. Castelo
 - Jorge Cervantes-Villanueva
 - Myrta Grüning
 - Riccardo Reho
